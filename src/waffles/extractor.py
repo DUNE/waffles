@@ -33,7 +33,7 @@ def main(run):
     det         = 'HD_PDS'
     run_path    = f'/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/rucio_paths/{run}.txt'
     root_file   = rc(f'/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/root_files/{run}.root')
-        
+
     with open(f'{run_path}', "r") as run_list:
         run_paths = run_list.readlines()
     files = [run_path.rstrip('\n') for run_path in run_paths]
@@ -52,15 +52,16 @@ def main(run):
             for gid in pds_geo_ids:
                 frag = h5_file.get_frag(r, gid)
                 tr_header = frag.get_header().trigger_timestamp
-                
-                if list(hex(gid))[3] == '0': endpoint = list(hex(gid))[2]
-                else                       : endpoint = list(hex(gid))[2:4]
+
+                if hex(gid)[3] == '0': endpoint = hex(gid)[2]
+                else                 : endpoint = hex(gid)[2:4]
 
                 # Filtering data with different timestamp on the header
                 if tr_header != tr_ref:
         
                     trigger, frag_id, channels, adcs, timestamps = extract_fragment_info(frag)
-                    channels = 100*int(endpoint) + channels                    
+                    channels = 100*int(endpoint) + channels   
+
                     if trigger == 'full_stream': adcs = adcs.transpose()
                    
                     if tr_ref is None:
