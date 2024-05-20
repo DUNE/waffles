@@ -32,8 +32,7 @@ def extract_fragment_info(frag):
 def main(run):
     det         = 'HD_PDS'
     run_path    = f'/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/rucio_paths/{run}.txt'
-    #root_file   = rc(f'/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/root_files/{run}.root')
-    root_file   = rc(f'{run}.root')
+    root_file   = rc(f'/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/root_files/{run}.root')
         
     with open(f'{run_path}', "r") as run_list:
         run_paths = run_list.readlines()
