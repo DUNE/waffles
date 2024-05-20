@@ -1,0 +1,13 @@
+click
+dash
+dash_bootstrap_components
+h5py
+inquirer
+jupyter
+matplotlib
+numpy
+rich
+scipy
+pandas
+plotly
+uproot
