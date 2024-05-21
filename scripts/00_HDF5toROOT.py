@@ -5,9 +5,8 @@ import detdataformats
 from daqdataformats import FragmentType
 from rawdatautils.unpack.daphne import *
 
-import click
+import os, click, subprocess
 import numpy as np
-import os
 from rich.progress  import track
 from uproot import recreate as rc
 
@@ -34,7 +33,7 @@ def extract_fragment_info(frag):
     return trigger, frag_id, channels, adcs, timestamps
 
 @click.command()
-@click.option("--path", '-p', default = '/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/', help="Insert the run number, ex: 026102")
+@click.option("--path", '-p', default = '/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles', help="Insert the run number, ex: 026102")
 @click.option("--run" , '-r', default = None, help="Insert the run number, ex: 026102")
 
 def main(path, run):
@@ -49,17 +48,28 @@ def main(path, run):
     map_id = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 8], '107': [9, 10], '109': [11], '111': [12], '112': [13], '113': [14]}
     for run in runs_list:
         run = str(run).zfill(6) # check if run have 6 digits and fill with zeros if not
-        det         = 'HD_PDS'
-        run_path    = f'{path}/1_rucio_paths/{run}.txt'
-        path_root   = f'{path}/2_daq_root/run_{run}'
-        os.mkdir(path_root)
+        det = 'HD_PDS'
+
+        run_path = f'{path}/1_rucio_paths/{run}.txt'
+        try: 
+            with open(f'{run_path}', "r") as run_list: pass
+            print(f"\033[92mFound the file {run_path}\n\033[0m")
+        except FileNotFoundError: 
+            subprocess.call(f"python get_rucio.py --runs {run}", shell=True)     
+            run_path = f'{path}/1_rucio_paths/{run}.txt'
         
-        with open(f'{run_path}', "r") as run_list:
+        path_root = f'{path}/2_daq_root/run_{run}'
+        try: os.mkdir(path_root)
+        # we may need to change permissions. still debugging.
+        # os.chmod(f'{path_root}', stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+        except FileExistsError: print("DATA STRUCTURE ALREADY EXISTS") 
+
+        
+        with open(f'{run_path}', "r") as run_list: 
             run_paths = run_list.readlines()
         files = [run_path.rstrip('\n') for run_path in run_paths]
         
         for raw_file in files:
-            # print(f'Reading {raw_file}...')
             h5_file   = HDF5RawDataFile(raw_file)
             run_id    = raw_file.split('_')[3]
             root_file = rc(f'{path_root}/{run}_{run_id}.root')
