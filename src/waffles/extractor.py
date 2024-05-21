@@ -49,7 +49,7 @@ def main(run):
         files = [run_path.rstrip('\n') for run_path in run_paths]
         
         for raw_file in files:
-            print(f'Reading {raw_file}...')
+            # print(f'Reading {raw_file}...')
             h5_file   = HDF5RawDataFile(raw_file)
             records   = h5_file.get_all_record_ids()
             tr_ref    = None
