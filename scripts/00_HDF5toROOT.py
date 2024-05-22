@@ -1,13 +1,13 @@
 from hdf5libs import HDF5RawDataFile
 
-import daqdataformats
-import detdataformats
+# import daqdataformats
 from daqdataformats import FragmentType
 from rawdatautils.unpack.daphne import *
+import detdataformats
 
-import os, click, subprocess
+import os, click, subprocess, stat
 import numpy as np
-from rich.progress  import track
+from rich.progress import track
 from uproot import recreate as rc
 
 def find_endpoint(map_id, target_value):
@@ -35,9 +35,10 @@ def extract_fragment_info(frag):
 @click.command()
 @click.option("--path", '-p', default = '/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles', help="Insert the run number, ex: 026102")
 @click.option("--run" , '-r', default = None, help="Insert the run number, ex: 026102")
+@click.option("--debug",'-b', default = False, help="Insert the run number, ex: 026102", type=bool)
 
-def main(path, run):
-    
+def main(path, run, debug):
+
     ## Check if the run number is provided ##
     if run is None: 
         print("\033[35mPlease provide a run(s) number(s) to be analysed, separated by commas:)\033[0m")
@@ -59,14 +60,12 @@ def main(path, run):
             run_path = f'{path}/1_rucio_paths/{run}.txt'
         
         path_root = f'{path}/2_daq_root/run_{run}'
-        try: os.mkdir(path_root)
-        # we may need to change permissions. still debugging.
-        # os.chmod(f'{path_root}', stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+        try: 
+            os.mkdir(path_root)
+            # os.chmod(f'{path_root}', stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
         except FileExistsError: print("DATA STRUCTURE ALREADY EXISTS") 
 
-        
-        with open(f'{run_path}', "r") as run_list: 
-            run_paths = run_list.readlines()
+        with open(f'{run_path}', "r") as run_list: run_paths = run_list.readlines()
         files = [run_path.rstrip('\n') for run_path in run_paths]
         
         for raw_file in files:
@@ -74,37 +73,64 @@ def main(path, run):
             run_id    = raw_file.split('_')[3]
             root_file = rc(f'{path_root}/{run}_{run_id}.root')
             records   = h5_file.get_all_record_ids()
-            tr_ref    = None
+            inittime  = None
+            #maybe we want to save the thresholds also [ASK DAQ to create np_array_thresholds?]
+            root_file[f'metadata'] = ({'run': (int(run),), 'nrecords': (len(records),), 'det': (det,)})
             
             # Iterate through records 
             for r in track(records, description=f'Dumping {raw_file.split("/")[-1]} ...'):     
                 pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(r, detdataformats.DetID.string_to_subdetector(det)))
                 
+                trigger_header = h5_file.get_trh(r)
+                trigger_ts = trigger_header.get_header().trigger_timestamp
+                
+                # Filtering data with different timestamp on the header
+                # if inittime == trigger_ts: continue 
+                
+                # Save variable to filter repeated data
+                if inittime == trigger_ts: repeated_candidate = True
+                else: repeated_candidate = False
+                
+                ##TODO: store repeated data in log file?
+                ##TODO: check if the repeated nrecord has only the first frag repeated or all of them
+
+                if debug: 
+                    print("\nTrigger Timestamp from header:", trigger_ts)
+                    print("NRECORD: ", r)
+                
                 # Iterate through geo_ids
                 for gid in pds_geo_ids:
+
                     frag = h5_file.get_frag(r, gid)
-                    
-                    tr_header = frag.get_header().trigger_timestamp
-                    scr_id    = frag.get_header().element_id.id
-
-                    # Filtering data with different timestamp on the header
-                    if tr_header != tr_ref:
-            
-                        trigger, frag_id, channels, adcs, timestamps = extract_fragment_info(frag)
-                        
-                        endpoint = int(find_endpoint(map_id, scr_id))
-                        channels = 100*int(endpoint) + channels   
-
-                        if trigger == 'full_stream': adcs = adcs.transpose()
-                    
-                        if tr_ref is None:
-                            root_file[f'waveform_primitive']       = ({'channel': channels,'adcs': np.array(adcs)})
-                            root_file[f'timestamps']               = ({'timestamps': timestamps})
-                        else:
-                            root_file[f'waveform_primitive'].extend({'channel': channels,'adcs': np.array(adcs)})
-                            root_file[f'timestamps'].extend ({'timestamps': timestamps})            
+                    trigger, frag_id, channels, adcs, timestamps = extract_fragment_info(frag)
                             
-                    tr_ref = tr_header
+                    scr_id   = frag.get_header().element_id.id
+                    endpoint = int(find_endpoint(map_id, scr_id))
+                    channels = 100*int(endpoint) + channels 
+
+                    if debug: 
+                        print("GEO ID: ", gid)
+                        print("FRAG ID: ", frag_id)
+                        print("EP: ", endpoint)
+                        print("CH: ", channels)
+                        print("ADCS: ",adcs)
+
+                    if trigger == 'full_stream': adcs = adcs.transpose()
+
+                    if inittime is None:
+                        root_file[f'raw_waveforms'] = ({'channel': channels,
+                                                        'adcs': np.array(adcs),
+                                                        'timestamps': timestamps,
+                                                        'repeated_candidate': np.ones(len(channels))*repeated_candidate})
+                        
+                    else:
+                        root_file[f'raw_waveforms'].extend({'channel': channels,
+                                                            'adcs': np.array(adcs),
+                                                            'timestamps': timestamps,
+                                                            'repeated_candidate': np.ones(len(channels))*repeated_candidate})
+
+                    inittime = trigger_ts
                     
+
 if __name__ == "__main__":
     main()
