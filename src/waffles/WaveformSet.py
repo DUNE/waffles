@@ -16,11 +16,12 @@ class WaveformSet:
     ----------
     Waveforms : list of Waveform objects
         Waveforms[i] gives the i-th waveform in the set.
-
+    PointsPerWf : int
+        Number of entries for the Adcs attribute of
+        each Waveform object in this WaveformSet object.
     Runs : list of int                                          ## Shall we keep this attribute?
         It contains the run number of any run for which
         there is at least one waveform in the set.
-
     AvailableChannels : dictionary                              ## Shall we keep this attribute?
         It is a dictionary whose keys are endpoints (int) 
         and its values are lists of channels (list of int).
@@ -51,6 +52,13 @@ class WaveformSet:
         
         self.__waveforms = list(waveforms)
 
+        if not self.check_length_homogeneity():
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.__init__',
+                                                        'The length of the given waveforms is not homogeneous.'))
+        
+        self.__points_per_wf = len(self.__waveforms[0].Adcs)
+
         # self.__runs = []                  ## Implement filling
         # self.__available_channels = {}    ## of these attributes
 
@@ -59,6 +67,10 @@ class WaveformSet:
     @property
     def Waveforms(self):
         return self.__waveforms
+    
+    @property
+    def PointsPerWf(self):
+        return self.__points_per_wf
     
     #Getters
     @property
@@ -69,6 +81,24 @@ class WaveformSet:
     @property
     def AvailableChannels(self):
         return self.__available_channels
+    
+    def check_length_homogeneity(self) -> bool:
+            
+            """
+            This method returns True if the Adcs attribute
+            of every Waveform object in this WaveformSet
+            has the same length. It returns False if else.
+
+            Returns
+            ----------
+            bool
+            """
+
+            length = len(self.__waveforms[0].Adcs)
+            for i in range(1, len(self.__waveforms)):
+                if len(self.__waveforms[i].Adcs)!=length:
+                    return False
+            return True
 
     @classmethod
     def from_ROOT_file(cls, filepath : str,
