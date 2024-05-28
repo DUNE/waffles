@@ -107,5 +107,5 @@ class WfAnaResult:
         return self.__deconvoluted_adcs
     
     # There are no setters for these attributes, since they
-    # should be solely set by an analyzer method of WfAna
+    # should be solely set by an analyser method of WfAna
     # when it creates this WfAnaResult object.

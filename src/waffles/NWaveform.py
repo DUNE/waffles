@@ -128,8 +128,8 @@ class Waveform:
         else:
             return len(self.__adcs)-1
 
-    def analyze(self,   label : str,
-                        analyzer_name : str,
+    def analyse(self,   label : str,
+                        analyser_name : str,
                         baseline_limits : List[int],
                         int_ll : int = 0,
                         int_ul : int = None,
@@ -140,8 +140,8 @@ class Waveform:
         """
         This method creates a WfAna object and adds it to the
         self.__analyses dictionary using label as its key.
-        This method grabs the analyzer method from the WfAna
-        class, up to the given analyzer_name, runs it on this 
+        This method grabs the analyser method from the WfAna
+        class, up to the given analyser_name, runs it on this 
         Waveform object, and adds its results to the 'Result' 
         and 'Passed' attributes of the newly created WfAna object.
 
@@ -150,7 +150,7 @@ class Waveform:
         label : str
             Key for the new WfAna object within the self.__analyses
             OrderedDict
-        analyzer_name : str
+        analyser_name : str
             It must match the name of a WfAna method whose first 
             argument must be called 'waveform' and must be hinted 
             as a Waveform object. Such method should also have a
@@ -169,18 +169,19 @@ class Waveform:
         int_ll (resp. int_ul): int
             Given to the int_ll (resp. int_ul) parameter of
             WfAna.__init__. Iterator value for the first (resp. 
-            last) point of the waveform that falls into the 
+            last) point of self.Adcs that falls into the 
             integration window. int_ll must be smaller than 
-            int_ul. These limits are inclusive.
+            int_ul. These limits are inclusive. If they are 
+            not defined, then the whole self.Adcs is considered.
         *args
             Positional arguments which are given to the 
-            analyzer method.
+            analyser method.
         overwrite : bool
             If True, the method will overwrite any existing
             WfAna object with the same label (key) within
             self.__analyses.
         **kwargs
-            Keyword arguments which are given to the analyzer
+            Keyword arguments which are given to the analyser
             method.
 
         Returns
@@ -190,7 +191,7 @@ class Waveform:
 
         if label in self.__analyses.keys() and not overwrite:
             raise Exception(generate_exception_message( 1,
-                                                        'Waveform.analyze()',
+                                                        'Waveform.analyse()',
                                                         f"There is already an analysis with label '{label}'. If you want to overwrite it, set the 'overwrite' parameter to True."))
         else:
 
@@ -201,51 +202,54 @@ class Waveform:
 
             if not self.baseline_limits_are_well_formed(baseline_limits):
                 raise Exception(generate_exception_message( 2,
-                                                            'Waveform.analyze()',
+                                                            'Waveform.analyse()',
                                                             f"The baseline limits ({baseline_limits}) are not well formed."))
-            
-            if not self.subinterval_is_well_formed(int_ll, int_ul):
+            int_ul_ = int_ul
+            if int_ul_ is None:
+                int_ul_ = len(self.__adcs)-1
+
+            if not self.subinterval_is_well_formed(int_ll, int_ul_):
                 raise Exception(generate_exception_message( 3,
-                                                            'Waveform.analyze()',
-                                                            f"The integration window ({int_ll}, {int_ul}) is not well formed."))
+                                                            'Waveform.analyse()',
+                                                            f"The integration window ({int_ll}, {int_ul_}) is not well formed."))
             aux = WfAna(baseline_limits,
                         int_ll,
-                        int_ul)
+                        int_ul_)
             try:
-                analyzer = getattr(aux, analyzer_name)
+                analyser = getattr(aux, analyser_name)
             except AttributeError:
                 raise Exception(generate_exception_message( 4,
-                                                            'Waveform.analyze()',
-                                                            f"The analyzer method '{analyzer_name}' does not exist in the WfAna class."))
+                                                            'Waveform.analyse()',
+                                                            f"The analyser method '{analyser_name}' does not exist in the WfAna class."))
             try:
-                signature = inspect.signature(analyzer)
+                signature = inspect.signature(analyser)
             except TypeError:
                 raise Exception(generate_exception_message( 5,
-                                                            'Waveform.analyze()',
-                                                            f"'{analyzer_name}' does not match a callable attribute of WfAna."))
+                                                            'Waveform.analyse()',
+                                                            f"'{analyser_name}' does not match a callable attribute of WfAna."))
             try:
 
                 ## DISCLAIMER: Same problem here for the following
                 ## three 'if' statements as for the disclaimer above.
 
                 if list(signature.parameters.keys())[0]!='waveform':
-                    raise Exception(generate_exception_message( "Waveform.analyze",
+                    raise Exception(generate_exception_message( "Waveform.analyse",
                                                                 6,
-                                                                extra_info="The name of the first parameter of the given analyzer method must be 'waveform'."))
+                                                                extra_info="The name of the first parameter of the given analyser method must be 'waveform'."))
                 if signature.parameters['waveform'].annotation != Waveform:
-                    raise Exception(generate_exception_message( "Waveform.analyze",
+                    raise Exception(generate_exception_message( "Waveform.analyse",
                                                                 7,
-                                                                extra_info="The 'waveform' parameter of the analyzer method must be hinted as a Waveform object."))
+                                                                extra_info="The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
                 
                 if signature.return_annotation!=Tuple[WfAnaResult, bool]:
-                    raise Exception(generate_exception_message( "Waveform.analyze",
+                    raise Exception(generate_exception_message( "Waveform.analyse",
                                                                 8,
-                                                                extra_info="The return type of the analyzer method must be hinted as Tuple[WfAnaResult, bool]."))
+                                                                extra_info="The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool]."))
             except IndexError:
-                raise Exception(generate_exception_message( "Waveform.analyze",
+                raise Exception(generate_exception_message( "Waveform.analyse",
                                                             9,
                                                             extra_info="The given filter must take at least one parameter."))
-            output_1, output_2 = analyzer(*args, **kwargs)
+            output_1, output_2 = analyser(*args, **kwargs)
 
             aux.Result = output_1
             aux.Passed = output_2

@@ -62,7 +62,7 @@ class WfAna:
         self.__int_ul = int_ul
         
         self.__result = None    # To be determined a posteriori 
-        self.__passed = None    # by an analyzer method
+        self.__passed = None    # by an analyser method
 
     #Getters
     @property
@@ -88,7 +88,7 @@ class WfAna:
     #Setters
     @Result.setter                                  # Adding setters for the self.__result and
     def Result(self, input):                        # self.__passed attributes, since 
-                                                    # Waveform.analyze() should be able to set
+                                                    # Waveform.analyse() should be able to set
         ## Shall we add a type check here?          # them. Not adding setters for the rest of 
                                                     # the attributes, since they shall not be
         self.__result = input                       # set outside WfAna code
@@ -102,19 +102,19 @@ class WfAna:
         self.__passed = input
         return
 
-    def analyzer_template(  self,
+    def analyser_template(  self,
                             waveform : 'Waveform',
                             *args,
                             **kwargs) -> Tuple[WfAnaResult, bool]:
         
         """
-        This method implements a template for an analyzer 
+        This method implements a template for an analyser 
         method.
 
         Parameters
         ----------
         waveform : Waveform
-            Waveform object which will be analyzed.
+            Waveform object which will be analysed.
         *args
             Additional positional arguments
         **kwargs
@@ -140,13 +140,13 @@ class WfAna:
         output_2 = True
         return output_1, output_2
     
-    def standard_analyzer(  self,
+    def standard_analyser(  self,
                             waveform : 'Waveform',
                             *args,
                             **kwargs) -> Tuple[WfAnaResult, bool]:
         
         """
-        This method implements an analyzer method
+        This method implements an analyser method
         which does the following:
 
             - It computes the baseline as the median of the points
@@ -163,7 +163,7 @@ class WfAna:
         Parameters
         ----------
         waveform : Waveform
-            Waveform object which will be analyzed.
+            Waveform object which will be analysed.
         *args, **kwargs
             These arguments are passed to 
             scipy.signal.find_peaks(waveform.Adcs, *args, **kwargs)
@@ -192,7 +192,7 @@ class WfAna:
                                 peaks,
                                 np.array([ waveform.Adcs[it]-baseline for it in peaks ]),
                                 waveform.TimeStep_ns*(np.sum(waveform.Adcs[self.__int_ll:self.__int_ul+1])-baseline),
-                                None)                       ## deconvoluted_adcs , not computed by this standard analyzer
+                                None)                       ## deconvoluted_adcs , not computed by this standard analyser
         
-        output_2 = True ## This standard analyzer does not implement a quality filter yet
+        output_2 = True ## This standard analyser does not implement a quality filter yet
         return output_1, output_2
