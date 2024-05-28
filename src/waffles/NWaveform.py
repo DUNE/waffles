@@ -139,7 +139,11 @@ class Waveform:
 
         """
         This method creates a WfAna object and adds it to the
-        self.__analyses dictionary using label as its key.       ## Add more documentation here on how the WfAna object is created.
+        self.__analyses dictionary using label as its key.
+        This method grabs the analyzer method from the WfAna
+        class, up to the given analyzer_name, runs it on this 
+        Waveform object, and adds its results to the 'Result' 
+        and 'Passed' attributes of the newly created WfAna object.
 
         Parameters
         ----------
