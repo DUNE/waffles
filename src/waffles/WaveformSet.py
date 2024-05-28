@@ -85,8 +85,8 @@ class WaveformSet:
             Path to the ROOT file to be read. Such ROOT file should 
             have a defined TTree object whose name matches tree_to_look_for.
             Such TTree should have at least three branches, with names
-            'channel', 'timestamp', 'adcs', from which the values for
-            the Waveform objects attributes Channel, Timestamp and Adcs
+            'channel', 'timestamp', 'adcs', from which the values for           ## For the moment, the timestamp branch may
+            the Waveform objects attributes Channel, Timestamp and Adcs         ## be called 'timestamps'
             will be taken respectively.
         tree_to_look_for : str
             Name of the tree which will be extracted from the given
@@ -114,7 +114,7 @@ class WaveformSet:
             raise Exception(generate_exception_message( 2,
                                                         'WaveformSet.from_ROOT_file()',
                                                         f"Branch 'channel' not found in the given TTree"))
-        if 'timestamp' not in aux.keys():
+        if 'timestamp' not in aux.keys() and 'timestamps' not in aux.keys():    ## Temporal
             raise Exception(generate_exception_message( 3,
                                                         'WaveformSet.from_ROOT_file()',
                                                         f"Branch 'timestamp' not found in the given TTree"))
@@ -125,7 +125,12 @@ class WaveformSet:
         
         channels = aux['channel'].array()       # It is slightly faster (~106s vs. 114s, for a          ## We should check whether is it possible with uproot to read just a fraction of each array
         adcs = aux['adcs'].array()              # 809 MB input file running on lxplus9) to read
-        timestamps = aux['timestamp'].array()   # branch by branch rather than going for aux.arrays()
+
+        try:
+            timestamps = aux['timestamp'].array()   # branch by branch rather than going for aux.arrays()
+        except uproot.exceptions.KeyInFileError:    
+            timestamps = aux['timestamps'].array()   ## Temporal
+
 
         wvfs_no_to_load = math.ceil(fraction_to_load_*len(channels))
 
