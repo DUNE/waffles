@@ -1,10 +1,11 @@
 import math
+from typing import Tuple
+
 import uproot
 import numpy as np
 
-from src.waffles.Exceptions import generate_exception_message
-
 from src.waffles.NWaveform import Waveform
+from src.waffles.Exceptions import generate_exception_message
 
 class WaveformSet:
 
@@ -14,27 +15,31 @@ class WaveformSet:
     Attributes
     ----------
     Waveforms : list of Waveform objects
-        Waveforms[i] gives the i-th waveform in the set
+        Waveforms[i] gives the i-th waveform in the set.
 
-    Runs : list of int
+    Runs : list of int                                          ## Shall we keep this attribute?
         It contains the run number of any run for which
         there is at least one waveform in the set.
 
-    Available_channels : dictionary
+    AvailableChannels : dictionary                              ## Shall we keep this attribute?
         It is a dictionary whose keys are endpoints (int) 
         and its values are lists of channels (list of int).
         If there is at least one Waveform object within
         this WaveformSet which comes from endpoint n, then
-        n belongs to Available_channels.keys(). 
-        Available_channels[n] is a list of channels for 
+        n belongs to AvailableChannels.keys(). 
+        AvailableChannels[n] is a list of channels for 
         endpoint n. If there is at least one waveform for
         endpoint n and channel m, then m belongs to 
-        Available_channels[n].
+        AvailableChannels[n].
+
+    Methods
+    ----------
+    ## Add the list of methods and a summary for each one here
     """
 
     def __init__(self,  *waveforms):
         
-        """Waveform class initializer
+        """WaveformSet class initializer
         
         Parameters
         ----------
@@ -42,12 +47,12 @@ class WaveformSet:
             The waveforms that will be added to the set
         """
 
-        # Do we want to add type checks here?
+        ## Shall we add type checks here?
         
         self.__waveforms = list(waveforms)
 
-        # self.__runs = []                  # Implement filling
-        # self.__available_channels = {}    # of these attributes
+        # self.__runs = []                  ## Implement filling
+        # self.__available_channels = {}    ## of these attributes
 
 
     #Getters
@@ -62,17 +67,17 @@ class WaveformSet:
     
     #Getters
     @property
-    def Available_channels(self):
+    def AvailableChannels(self):
         return self.__available_channels
 
     @classmethod
-    def from_ROOT_file(cls, filepath,
-                            tree_to_look_for='raw_waveforms',
-                            fraction_to_load=1.0):
+    def from_ROOT_file(cls, filepath : str,
+                            tree_to_look_for : str ='raw_waveforms',
+                            fraction_to_load : float =1.0) -> 'WaveformSet':
 
         """
         Alternative initializer for a WaveformSet object out of the
-        waveforms stored in a ROOT file.
+        waveforms stored in a ROOT file
 
         Parameters
         ----------
@@ -80,15 +85,15 @@ class WaveformSet:
             Path to the ROOT file to be read. Such ROOT file should 
             have a defined TTree object whose name matches tree_to_look_for.
             Such TTree should have at least three branches, with names
-            'channel', 'timestamps', 'adcs', from which the values for
+            'channel', 'timestamp', 'adcs', from which the values for
             the Waveform objects attributes Channel, Timestamp and Adcs
             will be taken respectively.
         tree_to_look_for : str
             Name of the tree which will be extracted from the given
-            ROOT file.
+            ROOT file
         fraction_to_load : float
             Fraction of the total number of waveforms which will be
-            loaded to this WaveformSet object.
+            loaded to this WaveformSet object
         """
 
         fraction_to_load_ = fraction_to_load
@@ -96,7 +101,6 @@ class WaveformSet:
             fraction_to_load_ = 0.0
         elif fraction_to_load>1.0:
             fraction_to_load_ = 1.0
-
 
         input_file = uproot.open(filepath)
 
@@ -110,18 +114,18 @@ class WaveformSet:
             raise Exception(generate_exception_message( 2,
                                                         'WaveformSet.from_ROOT_file()',
                                                         f"Branch 'channel' not found in the given TTree"))
-        if 'timestamps' not in aux.keys():
+        if 'timestamp' not in aux.keys():
             raise Exception(generate_exception_message( 3,
                                                         'WaveformSet.from_ROOT_file()',
-                                                        f"Branch 'timestamps' not found in the given TTree"))
+                                                        f"Branch 'timestamp' not found in the given TTree"))
         if 'adcs' not in aux.keys():
             raise Exception(generate_exception_message( 4,
                                                         'WaveformSet.from_ROOT_file()',
                                                         f"Branch 'adcs' not found in the given TTree"))
         
-        channels = aux['channel'].array()       # It is slightly faster (~106s vs. 114s, for a
+        channels = aux['channel'].array()       # It is slightly faster (~106s vs. 114s, for a          ## We should check whether is it possible with uproot to read just a fraction of each array
         adcs = aux['adcs'].array()              # 809 MB input file running on lxplus9) to read
-        timestamps = aux['timestamps'].array()  # branch by branch rather than going for aux.arrays()
+        timestamps = aux['timestamp'].array()   # branch by branch rather than going for aux.arrays()
 
         wvfs_no_to_load = math.ceil(fraction_to_load_*len(channels))
 
@@ -131,15 +135,17 @@ class WaveformSet:
             endpoint, channel = WaveformSet.get_endpoint_and_channel(channels[i])
 
             waveforms.append(Waveform(  timestamps[i],
+                                        0,      # TimeStep_ns   ## To be implemented from the new
+                                                                ## 'metadata' TTree in the ROOT file
                                         np.array(adcs[i]),
-                                        0,      # To be implemented from 
-                                                # new TTree in the ROOT file
+                                        0,      #RunNumber      ## To be implemented from the new
+                                                                ## 'metadata' TTree in the ROOT file
                                         endpoint,
                                         channel))      
         return cls(*waveforms)
 
     @staticmethod
-    def get_endpoint_and_channel(input):
+    def get_endpoint_and_channel(input : int) -> Tuple[int, int]:
     
         """
         Parameters
@@ -151,8 +157,10 @@ class WaveformSet:
 
         Returns
         ----------
-        int, int
-            The endpoint and the channel, in such order.
+        int
+            The endpoint value
+        int
+            The channel value
         """
 
         return int(str(input)[0:3]), int(str(input)[3:5])
