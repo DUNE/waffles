@@ -123,16 +123,20 @@ class WaveformSet:
                                                         'WaveformSet.from_ROOT_file()',
                                                         f"Branch 'adcs' not found in the given TTree"))
         
-        channels = aux['channel'].array()       # It is slightly faster (~106s vs. 114s, for a          ## We should check whether is it possible with uproot to read just a fraction of each array
-        adcs = aux['adcs'].array()              # 809 MB input file running on lxplus9) to read
+        adcs = aux['adcs']  # adcs is an uproot.TBranch object
+        wvfs_no_to_load = math.ceil(fraction_to_load_*adcs.num_entries)
 
+        channels = aux['channel'].array(entry_start=0, 
+                                        entry_stop=wvfs_no_to_load)     # It is slightly faster (~106s vs. 114s, for a
+                                                                        # 809 MB input file running on lxplus9) to read
+        adcs = aux['adcs'].array(   entry_start=0,                      # branch by branch rather than going for aux.arrays()
+                                    entry_stop=wvfs_no_to_load)          
         try:
-            timestamps = aux['timestamp'].array()   # branch by branch rather than going for aux.arrays()
+            timestamps = aux['timestamp'].array(entry_start=0,
+                                                entry_stop=wvfs_no_to_load)   
         except uproot.exceptions.KeyInFileError:    
-            timestamps = aux['timestamps'].array()   ## Temporal
-
-
-        wvfs_no_to_load = math.ceil(fraction_to_load_*len(channels))
+            timestamps = aux['timestamps'].array(   entry_start=0,
+                                                    entry_stop=wvfs_no_to_load) ## Temporal
 
         waveforms = []                      # Using a list comprehension here is slightly slower than a for loop
         for i in range(wvfs_no_to_load):    # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
