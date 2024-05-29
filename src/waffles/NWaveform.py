@@ -101,7 +101,7 @@ class Waveform:
 #   #Setters                       # For the moment there are no setters for 
 #   @Timestamp.setter              # the attributes of Waveform. I.e. you can
 #   def Timestamp(self, input):    # only set the value of its attributes
-#       self.__timestamp=input     # through Waveform.__init__. Here's an example
+#       self.__timestamp = input     # through Waveform.__init__. Here's an example
 #       return                     # of what a setter would look like, though.
 
     def confine_iterator_value(self, input : int) -> int:
@@ -164,7 +164,7 @@ class Waveform:
             all i. The points which are used for 
             baseline calculation are 
             self.__adcs[baseline_limits[2*i]:baseline_limits[2*i+1]],
-            with i=0,1,...,(len(baseline_limits)/2)-1. 
+            with i = 0,1,...,(len(baseline_limits)/2)-1. 
             The upper limits are exclusive.
         int_ll (resp. int_ul): int
             Given to the int_ll (resp. int_ul) parameter of
@@ -232,23 +232,23 @@ class Waveform:
                 ## DISCLAIMER: Same problem here for the following
                 ## three 'if' statements as for the disclaimer above.
 
-                if list(signature.parameters.keys())[0]!='waveform':
+                if list(signature.parameters.keys())[0] != 'waveform':
                     raise Exception(generate_exception_message( "Waveform.analyse",
                                                                 6,
-                                                                extra_info="The name of the first parameter of the given analyser method must be 'waveform'."))
+                                                                extra_info = "The name of the first parameter of the given analyser method must be 'waveform'."))
                 if signature.parameters['waveform'].annotation != Waveform:
                     raise Exception(generate_exception_message( "Waveform.analyse",
                                                                 7,
-                                                                extra_info="The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
+                                                                extra_info = "The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
                 
-                if signature.return_annotation!=Tuple[WfAnaResult, bool]:
+                if signature.return_annotation != Tuple[WfAnaResult, bool]:
                     raise Exception(generate_exception_message( "Waveform.analyse",
                                                                 8,
-                                                                extra_info="The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool]."))
+                                                                extra_info = "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool]."))
             except IndexError:
                 raise Exception(generate_exception_message( "Waveform.analyse",
                                                             9,
-                                                            extra_info="The given filter must take at least one parameter."))
+                                                            extra_info = "The given filter must take at least one parameter."))
             output_1, output_2 = analyser(*args, **kwargs)
 
             aux.Result = output_1
@@ -262,7 +262,7 @@ class Waveform:
                                             i_up : int) -> bool:
         
         """
-        This method returns True if 0<=i_low<i_up<=len(self.__adcs)-1,
+        This method returns True if 0 <= i_low < i_up <= len(self.__adcs)-1,
         and False if else.
 
         Parameters
@@ -277,7 +277,7 @@ class Waveform:
 
         if i_low<0:
             return False
-        elif i_up<=i_low:
+        elif i_up <= i_low:
             return False
         elif i_up>len(self.__adcs)-1:
             return False
@@ -288,7 +288,7 @@ class Waveform:
 
         """
         This method returns True if len(baseline_limits) is even and 
-        0<=baseline_limites[0]<baseline_limits[1]<...<baseline_limits[-1]<=len(self.__adcs)-1.
+        0 <= baseline_limites[0] < baseline_limits[1] < ... < baseline_limits[-1] <= len(self.__adcs)-1.
         It returns False if else.
 
         Parameters
@@ -300,17 +300,17 @@ class Waveform:
         bool
         """
 
-        if len(baseline_limits)%2!=0:
+        if len(baseline_limits)%2 != 0:
             return False
 
-        if baseline_limits[0]<0:
+        if baseline_limits[0] < 0:
             return False
             
         for i in range(0, len(baseline_limits)-1):
-            if baseline_limits[i]>=baseline_limits[i+1]:
+            if baseline_limits[i] >= baseline_limits[i+1]:
                 return False
                 
-        if baseline_limits[-1]>len(self.__adcs)-1:
+        if baseline_limits[-1] > len(self.__adcs)-1:
             return False
         
         return True
