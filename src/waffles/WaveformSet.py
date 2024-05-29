@@ -19,16 +19,16 @@ class WaveformSet:
     PointsPerWf : int
         Number of entries for the Adcs attribute of
         each Waveform object in this WaveformSet object.
-    Runs : list of int                                          ## Shall we keep this attribute?
+    Runs : set of int
         It contains the run number of any run for which
         there is at least one waveform in the set.
-    AvailableChannels : dictionary                              ## Shall we keep this attribute?
+    AvailableChannels : dictionary
         It is a dictionary whose keys are endpoints (int) 
-        and its values are lists of channels (list of int).
+        and its values are sets of channels (set of int).
         If there is at least one Waveform object within
         this WaveformSet which comes from endpoint n, then
         n belongs to AvailableChannels.keys(). 
-        AvailableChannels[n] is a list of channels for 
+        AvailableChannels[n] is a set of channels for 
         endpoint n. If there is at least one waveform for
         endpoint n and channel m, then m belongs to 
         AvailableChannels[n].
@@ -59,9 +59,13 @@ class WaveformSet:
         
         self.__points_per_wf = len(self.__waveforms[0].Adcs)
 
-        # self.__runs = []                  ## Implement filling
-        # self.__available_channels = {}    ## of these attributes
+        self.__runs = set()
+        self.update_runs()
 
+        self.__available_channels = {}
+        self.update_available_channels()    # Running on an Apple M2, it took 
+                                            # ~ 52 ms to run this line for a
+                                            # WaveformSet with 1046223 waveforms
 
     #Getters
     @property
@@ -99,6 +103,41 @@ class WaveformSet:
                 if len(self.__waveforms[i].Adcs) != length:
                     return False
             return True
+    
+    def update_runs(self) -> None:
+        
+        """
+        This method iterates through the whole WaveformSet
+        and updates the self.__runs attribute of this object. 
+
+        Returns
+        ----------
+        None
+        """
+
+        for wf in self.__waveforms:
+            self.__runs.add(wf.RunNumber)
+        return
+    
+    def update_available_channels(self) -> None:
+        
+        """
+        This method iterates through the whole WaveformSet
+        and updates the self.__available_channels attribute of 
+        this object. 
+
+        Returns
+        ----------
+        None
+        """
+
+        for wf in self.__waveforms:
+            try:
+                self.__available_channels[wf.Endpoint].add(wf.Channel)
+            except KeyError:
+                self.__available_channels[wf.Endpoint] = set()
+                self.__available_channels[wf.Endpoint].add(wf.Channel)
+        return
 
     @classmethod
     def from_ROOT_file(cls, filepath : str,
