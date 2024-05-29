@@ -96,7 +96,7 @@ class WaveformSet:
 
             length = len(self.__waveforms[0].Adcs)
             for i in range(1, len(self.__waveforms)):
-                if len(self.__waveforms[i].Adcs)!=length:
+                if len(self.__waveforms[i].Adcs) != length:
                     return False
             return True
 
@@ -160,17 +160,17 @@ class WaveformSet:
         wf_start = math.floor(start_fraction*adcs.num_entries)
         wf_stop = math.ceil(stop_fraction*adcs.num_entries)
 
-        channels = aux['channel'].array(entry_start=wf_start, 
-                                        entry_stop=wf_stop)         # It is slightly faster (~106s vs. 114s, for a
+        channels = aux['channel'].array(entry_start = wf_start, 
+                                        entry_stop = wf_stop)         # It is slightly faster (~106s vs. 114s, for a
                                                                     # 809 MB input file running on lxplus9) to read
-        adcs = aux['adcs'].array(   entry_start=wf_start,           # branch by branch rather than going for aux.arrays()
-                                    entry_stop=wf_stop)          
+        adcs = aux['adcs'].array(   entry_start = wf_start,           # branch by branch rather than going for aux.arrays()
+                                    entry_stop = wf_stop)          
         try:
-            timestamps = aux['timestamp'].array(entry_start=wf_start,
-                                                entry_stop=wf_stop)   
+            timestamps = aux['timestamp'].array(entry_start = wf_start,
+                                                entry_stop = wf_stop)   
         except uproot.exceptions.KeyInFileError:    
-            timestamps = aux['timestamps'].array(   entry_start=wf_start,
-                                                    entry_stop=wf_stop) ## Temporal
+            timestamps = aux['timestamps'].array(   entry_start = wf_start,
+                                                    entry_stop = wf_stop) ## Temporal
 
         waveforms = []                  # Using a list comprehension here is slightly slower than a for loop
         for i in range(len(adcs)):      # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
@@ -213,7 +213,7 @@ class WaveformSet:
                                 upper_limit : float = 1.0) -> bool:
         
         """
-        This method returns True if 0.0<=lower_limit<upper_limit<=1.0,
+        This method returns True if 0.0 <= lower_limit < upper_limit <= 1.0,
         and False if else.
 
         Parameters
@@ -226,11 +226,11 @@ class WaveformSet:
         bool
         """
 
-        if lower_limit<0.0:
+        if lower_limit < 0.0:
             return False
-        elif upper_limit<=lower_limit:
+        elif upper_limit <= lower_limit:
             return False
-        elif upper_limit>1.0:
+        elif upper_limit > 1.0:
             return False
         
         return True

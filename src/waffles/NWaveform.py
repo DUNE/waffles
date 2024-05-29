@@ -121,9 +121,9 @@ class Waveform:
         int
         """
     
-        if input<0:
+        if input < 0:
             return 0
-        elif input<len(self.__adcs):
+        elif input < len(self.__adcs):
             return input
         else:
             return len(self.__adcs)-1
@@ -160,7 +160,7 @@ class Waveform:
             Given to the baseline_limits parameter of 
             WfAna.__init__. It must have an even number 
             of integers which must meet 
-            baseline_limits[i]<baseline_limits[i+1] for
+            baseline_limits[i] < baseline_limits[i+1] for
             all i. The points which are used for 
             baseline calculation are 
             self.__adcs[baseline_limits[2*i]:baseline_limits[2*i+1]],
@@ -275,11 +275,11 @@ class Waveform:
         bool
         """
 
-        if i_low<0:
+        if i_low < 0:
             return False
         elif i_up <= i_low:
             return False
-        elif i_up>len(self.__adcs)-1:
+        elif i_up > len(self.__adcs)-1:
             return False
         
         return True
