@@ -10,4 +10,5 @@ rich
 scipy
 pandas
 plotly
+pyyaml
 uproot
