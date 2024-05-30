@@ -11,6 +11,8 @@ import trgdataformats
 
 import os, click, subprocess, stat
 import numpy as np
+import awkward as ak
+
 from rich.progress import track
 from uproot import recreate as rc
 from uproot.models.TString import Model_TString as TString
@@ -130,7 +132,7 @@ def main(path, run, debug):
 
                     data = {
                         'channel'   : channels,
-                        'adcs'      : adcs if trigger == 'self_trigger' else adcs.transpose(),
+                        'adcs'      : adcs if trigger == 'self_trigger' else ak.Array(adcs.transpose()),
                         'timestamps': timestamps if trigger == 'self_trigger' else [[timestamps[0]]]*len(channels)
                     }
 
@@ -148,7 +150,7 @@ def main(path, run, debug):
                         data['timestamps'] = timestamps
 
                     if started is None:
-                        root_file['raw_waveforms'] = data
+                        root_file['raw_waveforms']      = data
                         root_file['trigger_primitives'] = data_tp
 
                     else:
