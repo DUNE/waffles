@@ -96,12 +96,13 @@ def main(path, run, debug):
         files = [run_path.rstrip('\n') for run_path in run_paths]
         
         for raw_file in files:
-            h5_file   = HDF5RawDataFile(raw_file)
-            run_date  = h5_file.get_attribute('creation_timestamp')
-            run_id    = raw_file.split('_')[3]
-            root_file = rc(f'{path_root}/{run}_{run_id}.root')
-            records   = h5_file.get_all_record_ids()
-            started   = None
+            h5_file      = HDF5RawDataFile(raw_file)
+            run_date   = h5_file.get_attribute('creation_timestamp')
+            run_id     = raw_file.split('_')[3]
+            root_file  = rc(f'{path_root}/{run}_{run_id}.root')
+            records    = h5_file.get_all_record_ids()
+            started_st = None
+            started_fs = None
             
             # Iterate through records 
             for r in track(records, description=f'Dumping {raw_file.split("/")[-1]} ...'):     
@@ -148,20 +149,24 @@ def main(path, run, debug):
                         data['threshold']  = threshold
                         data['baseline']   = baseline
                         data['timestamps'] = timestamps
+                        started = started_st 
+
+                    else: 
+                        started = started_fs
 
                     if started is None:
-                        root_file['raw_waveforms']      = data
-                        root_file['trigger_primitives'] = data_tp
-
+                        root_file[f'{trigger}/raw_waveforms']      = data
+                        root_file[f'{trigger}/trigger_primitives'] = data_tp
+                        if trigger == 'self_trigger': started_st   = 'yes'
+                        if trigger == 'full_stream' : started_fs   = 'yes'
+ 
                     else:
                         try:
                             root_file['raw_waveforms'].extend(data)
                             root_file['trigger_primitives'].extend(data_tp)
                         except:
                             print(f'Warning: It was not possible to store the data from record {r} and fragment {frag_id} on the root file.')
-
-                    started = 'yes'
                     
-            root_file['metadata'] = ({'run': (int(run),), 'nrecords': (len(records),), 'detector': (TString(det),), 'trigger': (TString(trigger),), 'date' : (TString(run_date),), 'ticks_to_nanoseconds': (float(1/16),), 'adc_to_volts': (float((1.5*3.2)/(2^(14)-1)),) })
+            root_file[f'{trigger}/metadata'] = ({'run': (int(run),), 'nrecords': (len(records),), 'detector': (TString(det),), 'date' : (TString(run_date),), 'ticks_to_nanoseconds': (float(1/16),), 'adc_to_volts': (float((1.5*3.2)/(2^(14)-1)),) })
 if __name__ == "__main__":
     main()
