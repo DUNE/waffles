@@ -1,3 +1,10 @@
+from typing import List
+
+import numpy as np
+
+from src.waffles.WfPeak import WfPeak
+from src.waffles.Exceptions import generate_exception_message
+
 class WfAnaResult:
 
     """
@@ -19,12 +26,8 @@ class WfAnaResult:
     BaselineRms : float
         The RMS of the chunk of the waveform which has
         been used for the baseline calculation
-    PeaksPos : unidimensional numpy array of integers
-        Iterator values for the points within the waveform
-        Adcs for which a peak was spotted
-    PeaksAmpl : unidimensional numpy array of floats
-        PeaksAmpl[i] is the amplitude of the i-th peak
-        with respect to the computed baseline
+    Peaks : list of WfPeak objects
+        The peaks which have been spotted in the waveform
     Integral : float
         The integral of the waveform Adcs
     DeconvolutedAdcs : unidimensional numpy array of floats         ## For the moment, this is all of the information
@@ -39,14 +42,13 @@ class WfAnaResult:
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self,  baseline,
-                        baseline_min,
-                        baseline_max,
-                        baseline_rms,
-                        peaks_pos,
-                        peaks_ampl,
-                        integral,
-                        deconvoluted_adcs):
+    def __init__(self,  baseline : float,
+                        baseline_min : float,
+                        baseline_max : float,
+                        baseline_rms : float,
+                        peaks : List[WfPeak],
+                        integral : float,
+                        deconvoluted_adcs : np.ndarray):
         
         """
         WfAnaResult class initializer
@@ -56,9 +58,9 @@ class WfAnaResult:
         baseline : float
         baseline_min : float
         baseline_max : float
+            baseline_max must be bigger than baseline_min
         baseline_rms : float
-        peaks_pos : unidimensional numpy array of integers
-        peaks_ampl : unidimensional numpy array of floats
+        peaks : list of WfPeak objects
         integral : float
         deconvoluted_adcs : unidimensional numpy array of floats
 
@@ -66,11 +68,16 @@ class WfAnaResult:
         ## Shall we add type checks here?
 
         self.__baseline = baseline
+
+        if baseline_min >= baseline_max:                                            # If this check makes the execution time 
+            raise Exception(generate_exception_message( 1,                          # be prohibitively high, it may be removed
+                                                        'WfAnaResult.__init__()',
+                                                        f"'baseline_min' ({baseline_min}) cannot be bigger or equal to 'baseline_max' ({baseline_max})."))
+
         self.__baseline_min = baseline_min
         self.__baseline_max = baseline_max
         self.__baseline_rms = baseline_rms
-        self.__peaks_pos = peaks_pos
-        self.__peaks_ampl = peaks_ampl
+        self.__peaks = peaks
         self.__integral = integral
         self.__deconvoluted_adcs = deconvoluted_adcs
 
@@ -92,12 +99,8 @@ class WfAnaResult:
         return self.__baseline_rms
     
     @property
-    def PeaksPos(self):
-        return self.__peaks_pos
-    
-    @property
-    def PeaksAmpl(self):
-        return self.__peaks_ampl
+    def Peaks(self):
+        return self.__peaks
     
     @property
     def Integral(self):
