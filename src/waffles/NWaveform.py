@@ -250,7 +250,8 @@ class Waveform:
                 raise Exception(generate_exception_message( 9,
                                                             "Waveform.analyse",
                                                             "The given filter must take at least one parameter."))
-            output_1, output_2 = analyser(*args, **kwargs)
+            output_1, output_2 = analyser(self, *args, 
+                                                **kwargs)
 
             aux.Result = output_1
             aux.Passed = output_2
