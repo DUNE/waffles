@@ -160,7 +160,7 @@ class WaveformSet:
             grid of axes.
         wfs_per_axes : int
             If it is not None, then the argument given to 
-            grid_of_wf_idcs will be ignored. In this case,
+            'grid_of_wf_idcs' will be ignored. In this case,
             each axes contains wfs_per_axes waveforms.
             P.e. for wfs_per_axes equal to 2, the axes
             for the first row and first column will contain
@@ -196,7 +196,7 @@ class WaveformSet:
         elif grid_of_wf_idcs is None:
             raise Exception(generate_exception_message( 3,
                                                         'WaveformSet.plot()',
-                                                        'The grid_of_wf_idcs parameter must be defined if wfs_per_axes is not.'))
+                                                        "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
         elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,
                                                             nrows,

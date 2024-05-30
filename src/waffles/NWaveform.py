@@ -158,7 +158,7 @@ class Waveform:
             defined return-annotation which must match
             Tuple[WfAnaResult, bool].
         baseline_limits : list of int
-            Given to the baseline_limits parameter of 
+            Given to the 'baseline_limits' parameter of 
             WfAna.__init__. It must have an even number 
             of integers which must meet 
             baseline_limits[i] < baseline_limits[i+1] for
@@ -168,7 +168,7 @@ class Waveform:
             with i = 0,1,...,(len(baseline_limits)/2)-1. 
             The upper limits are exclusive.
         int_ll (resp. int_ul): int
-            Given to the int_ll (resp. int_ul) parameter of
+            Given to the 'int_ll' (resp. 'int_ul') parameter of
             WfAna.__init__. Iterator value for the first (resp. 
             last) point of self.Adcs that falls into the 
             integration window. int_ll must be smaller than 
