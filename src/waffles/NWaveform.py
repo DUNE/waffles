@@ -234,21 +234,21 @@ class Waveform:
                 ## three 'if' statements as for the disclaimer above.
 
                 if list(signature.parameters.keys())[0] != 'waveform':
-                    raise Exception(generate_exception_message( "Waveform.analyse",
-                                                                6,
+                    raise Exception(generate_exception_message( 6,
+                                                                "Waveform.analyse",
                                                                 "The name of the first parameter of the given analyser method must be 'waveform'."))
                 if signature.parameters['waveform'].annotation != Waveform:
-                    raise Exception(generate_exception_message( "Waveform.analyse",
-                                                                7,
+                    raise Exception(generate_exception_message( 7,
+                                                                "Waveform.analyse",
                                                                 "The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
                 
                 if signature.return_annotation != Tuple[WfAnaResult, bool]:
-                    raise Exception(generate_exception_message( "Waveform.analyse",
-                                                                8,
+                    raise Exception(generate_exception_message( 8,
+                                                                "Waveform.analyse",
                                                                 "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool]."))
             except IndexError:
-                raise Exception(generate_exception_message( "Waveform.analyse",
-                                                            9,
+                raise Exception(generate_exception_message( 9,
+                                                            "Waveform.analyse",
                                                             "The given filter must take at least one parameter."))
             output_1, output_2 = analyser(*args, **kwargs)
 
