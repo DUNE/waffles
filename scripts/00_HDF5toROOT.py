@@ -167,6 +167,6 @@ def main(path, run, debug):
                         except:
                             print(f'Warning: It was not possible to store the data from record {r} and fragment {frag_id} on the root file.')
                     
-            root_file[f'{trigger}/metadata'] = ({'run': (int(run),), 'nrecords': (len(records),), 'detector': (TString(det),), 'date' : (TString(run_date),), 'ticks_to_nanoseconds': (float(1/16),), 'adc_to_volts': (float((1.5*3.2)/(2^(14)-1)),) })
+            root_file['metadata'] = ({'run': (int(run),), 'nrecords': (len(records),), 'detector': (TString(det),), 'date' : (TString(run_date),), 'ticks_to_nanoseconds': (float(1/16),), 'adc_to_volts': (float((1.5*3.2)/(2^(14)-1)),) })
 if __name__ == "__main__":
     main()
