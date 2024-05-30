@@ -1,3 +1,5 @@
+from typing import Optional
+
 from src.waffles.Exceptions import generate_exception_message
 
 class WfPeak:
@@ -34,11 +36,11 @@ class WfPeak:
     """
 
     def __init__(self,  position : int,
-                        baseline : float = None,
-                        int_ll : int = None,
-                        int_ul : int = None,
-                        amplitude : float = None,
-                        integral : float = None):
+                        baseline : Optional[float] = None,
+                        int_ll : Optional[int] = None,
+                        int_ul : Optional[int] = None,
+                        amplitude : Optional[float] = None,
+                        integral : Optional[float] = None):
         
         """
         WfPeak class initializer. The only requirement to initialize
@@ -106,11 +108,11 @@ class WfPeak:
     def Integral(self):
         return self.__integral
 
-    def set_amplitude_and_integral(self,    baseline : float = None,                # Attributes should be set mutually
-                                            int_ll : int = None,                    # to make sure that the baseline
-                                            int_ul : int = None,                    # in self.__baseline matches the
-                                            amplitude : float = None,               # one that was used to compute
-                                            integral : float = None) -> None:       # self.__amplitude and self.__integral
+    def set_amplitude_and_integral(self,    baseline : Optional[float] = None,                # Attributes should be set mutually
+                                            int_ll : Optional[int] = None,                    # to make sure that the baseline
+                                            int_ul : Optional[int] = None,                    # in self.__baseline matches the
+                                            amplitude : Optional[float] = None,               # one that was used to compute
+                                            integral : Optional[float] = None) -> None:       # self.__amplitude and self.__integral
         
         """
         Method to jointly set the

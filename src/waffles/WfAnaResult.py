@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
@@ -42,13 +42,13 @@ class WfAnaResult:
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self,  baseline : float,
-                        baseline_min : float,
-                        baseline_max : float,
-                        baseline_rms : float,
-                        peaks : List[WfPeak],
-                        integral : float,
-                        deconvoluted_adcs : np.ndarray):
+    def __init__(self,  baseline : Optional[float] = None,
+                        baseline_min : Optional[float] = None,
+                        baseline_max : Optional[float] = None,
+                        baseline_rms : Optional[float] = None,
+                        peaks : Optional[List[WfPeak]] = None,
+                        integral : Optional[float] = None,
+                        deconvoluted_adcs : Optional[np.ndarray] = None):
         
         """
         WfAnaResult class initializer

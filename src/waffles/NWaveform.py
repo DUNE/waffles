@@ -1,5 +1,5 @@
 import inspect
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from collections import OrderedDict
 
 import numpy as np
@@ -133,7 +133,7 @@ class Waveform:
                         analyser_name : str,
                         baseline_limits : List[int],
                         int_ll : int = 0,
-                        int_ul : int = None,
+                        int_ul : Optional[int] = None,
                         *args,
                         overwrite : bool = False,
                         **kwargs) -> None:
