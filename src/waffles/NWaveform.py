@@ -43,7 +43,8 @@ class Waveform:
                         endpoint : int,
                         channel : int):
         
-        """Waveform class initializer
+        """
+        Waveform class initializer
         
         Parameters
         ----------

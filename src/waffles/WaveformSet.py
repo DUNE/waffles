@@ -43,7 +43,8 @@ class WaveformSet:
 
     def __init__(self,  *waveforms):
         
-        """WaveformSet class initializer
+        """
+        WaveformSet class initializer
         
         Parameters
         ----------

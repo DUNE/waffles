@@ -44,7 +44,8 @@ class WfAna:
                         int_ll : int,
                         int_ul : int):
         
-        """WfAna class initializer. It is assumed that it is
+        """
+        WfAna class initializer. It is assumed that it is
         the caller responsibility to check the well-formedness 
         of the input parameters, according to the attributes
         documentation in WfAna.__init__. No checks are perfomed

@@ -48,7 +48,8 @@ class WfAnaResult:
                         integral,
                         deconvoluted_adcs):
         
-        """WfAnaResult class initializer
+        """
+        WfAnaResult class initializer
         
         Parameters
         ----------
