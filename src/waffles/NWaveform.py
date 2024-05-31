@@ -240,6 +240,11 @@ class Waveform:
                     row : Optional[int] = None,
                     col : Optional[int] = None,
                     plot_analysis_markers : bool = False,
+                    show_baseline_limits : bool = False, 
+                    show_baseline : bool = True,
+                    show_general_integration_limits : bool = False,
+                    show_spotted_peaks : bool = True,
+                    show_peaks_integration_limits : bool = False,
                     analysis_label : Optional[str] = None) -> None:
 
         """
@@ -269,17 +274,44 @@ class Waveform:
                   grid, then 'row' and 'col' must be valid 1-indexed
                   integers.
         plot_analysis_markers : bool                                        ## Plotting every marker makes the call to
-            If True, this method will also plot the analysis markers        ## WaveformSet.plot() very slow. We should
-            for this waveform in the given figure. If False, it will        ## allow the user to choose a level of detail,
-            not. By analysis markers we mean those which are                ## i.e. which markers want to use (not simply
-            available among:                                                ## enabling all of them at once with plot_analysis_markers)
+            If True, this method will potentially plot the                  ## WaveformSet.plot() very slow. We should
+            analysis markers for this waveform in the given                 ## allow the user to choose a level of detail,
+            figure. If False, it will not. By analysis markers              ## i.e. which markers want to use (not simply
+            we mean those which are available among:                        ## enabling all of them at once with plot_analysis_markers)
 
                 - Vertical lines for the baseline limits
                 - An horizontal line for the computed baseline
                 - Two vertical lines for the integration limits
-                - A triangle marker over each spotted peak
-                - Two vertical lines framing each spotted peak
+                - A triangle marker over each spotted peak                  ## This is not true yet. Change the 
+                - Two vertical lines framing each spotted peak              ## vertical lines for triangle markers.
                   marking the integration limits for each peak.
+        show_baseline_limits : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot vertical lines
+            framing the intervals which were used to compute
+            the baseline.
+        show_baseline : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot an horizontal
+            line matching the computed baseline
+        show_general_integration_limits : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot vertical lines
+            framing the general integration interval.
+        show_spotted_peaks : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot a triangle
+            marker over each spotted peak.
+        show_peaks_integration_limits : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot two vertical
+            lines framing the integration interval for each
+            spotted peak.
         analysis_label : str
             This parameter only makes a difference if 
             'plot_analysis_markers' is set to True. In that case, 
@@ -320,61 +352,67 @@ class Waveform:
                                                                 'Waveform.plot()',
                                                                 f"There is no analysis with label '{analysis_label}'."))
             
-            # Plot the markers for the baseline limits
-            for i in range(len(aux.BaselineLimits)//2):
+            
+            if show_baseline_limits:    # Plot the markers for the baseline limits
 
-                figure.add_shape(   type = 'line',
-                                    x0 = aux.BaselineLimits[2*i], y0 = 0,
-                                    x1 = aux.BaselineLimits[2*i], y1 = 1,
-                                    line = dict(color = 'grey',         # Properties for
-                                                width = 1,              # the beginning of
-                                                dash = 'dash'),         # a baseline chunk
-                                    xref = 'x',
-                                    yref = 'y domain',
+                for i in range(len(aux.BaselineLimits)//2):
+
+                    figure.add_shape(   type = 'line',
+                                        x0 = aux.BaselineLimits[2*i], y0 = 0,
+                                        x1 = aux.BaselineLimits[2*i], y1 = 1,
+                                        line = dict(color = 'grey',         # Properties for
+                                                    width = 1,              # the beginning of
+                                                    dash = 'dash'),         # a baseline chunk
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
+                    
+                    figure.add_shape(   type = 'line',
+                                        x0 = aux.BaselineLimits[(2*i) + 1], y0 = 0,
+                                        x1 = aux.BaselineLimits[(2*i) + 1], y1 = 1,
+                                        line = dict(color = 'grey',         # Properties for
+                                                    width = 1,              # the end of a
+                                                    dash = 'dashdot'),      # baseline chunk
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
+
+            if show_baseline:       # Plot the baseline
+            
+                figure.add_shape(   type = "line",
+                                    x0 = 0, y0 = aux.Result.Baseline,
+                                    x1 = 1, y1 = aux.Result.Baseline,
+                                    line = dict(color = 'grey',             # Properties for
+                                                width = 1,                  # the computed
+                                                dash = 'dot'),              # baseline
+                                    xref = 'x domain',
+                                    yref = 'y',
                                     row = row,
                                     col = col)
                 
-                figure.add_shape(   type = 'line',
-                                    x0 = aux.BaselineLimits[(2*i) + 1], y0 = 0,
-                                    x1 = aux.BaselineLimits[(2*i) + 1], y1 = 1,
-                                    line = dict(color = 'grey',         # Properties for
-                                                width = 1,              # the end of a
-                                                dash = 'dashdot'),      # baseline chunk
-                                    xref = 'x',
-                                    yref = 'y domain',
-                                    row = row,
-                                    col = col)
-
-            # Plot the marker for the baseline 
-            figure.add_shape(   type = "line",
-                                x0 = 0, y0 = aux.Result.Baseline,
-                                x1 = 1, y1 = aux.Result.Baseline,
-                                line = dict(color = 'grey',             # Properties for
-                                            width = 1,                  # the computed
-                                            dash = 'dot'),              # baseline
-                                xref = 'x domain',
-                                yref = 'y',
-                                row = row,
-                                col = col)
+            if show_general_integration_limits:  # Plot the markers for the general integration limits
+                pass    ## To be implemented 
             
-            # Plot the markers for the peaks positions
-            for peak in aux.Result.Peaks:
+            if show_spotted_peaks:      # Plot the markers for the spotted peaks
 
-                aux = x[peak.Position]
+                for peak in aux.Result.Peaks:
 
-                figure.add_shape(   type = 'line',
-                                    x0 = aux, y0 = 0,
-                                    x1 = aux, y1 = 1,
-                                    line = dict(color = 'red',      # Properties for
-                                                width = 1,          # the peaks markers
-                                                dash = 'dot'),
-                                    xref = 'x',
-                                    yref = 'y domain',
-                                    row = row,
-                                    col = col)
-            
-            ## The rest of the markers are not implemented yet
-            ##  - General integration limits
-            ##  - Peaks integration limits 
+                    aux = x[peak.Position]
+
+                    figure.add_shape(   type = 'line',
+                                        x0 = aux, y0 = 0,
+                                        x1 = aux, y1 = 1,
+                                        line = dict(color = 'red',      # Properties for
+                                                    width = 1,          # the peaks markers
+                                                    dash = 'dot'),
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
+                    
+            if show_peaks_integration_limits:   # Plot the markers for the peaks integration limits
+                pass    ## To be implemented
 
         return

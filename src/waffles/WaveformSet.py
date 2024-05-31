@@ -343,6 +343,11 @@ class WaveformSet:
                     wfs_per_axes : Optional[int] = 1,
                     grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
                     plot_analysis_markers : bool = False,
+                    show_baseline_limits : bool = False, 
+                    show_baseline : bool = True,
+                    show_general_integration_limits : bool = False,
+                    show_spotted_peaks : bool = True,
+                    show_peaks_integration_limits : bool = False,
                     analysis_label : Optional[str] = None) -> pgo.Figure: 
 
 
@@ -376,11 +381,38 @@ class WaveformSet:
             This parameter is given to the 'plot_analysis_markers' 
             argument of the Waveform.plot() method for each 
             waveform in this WaveformSet. If True, analysis markers
-            for the waveforms will be plotted together with each 
-            waveform. For more information, check the 
+            for the waveforms will potentially be plotted together 
+            with each waveform. For more information, check the 
             'plot_analysis_markers' parameter documentation in the 
             Waveform.plot() method. If False, no analysis markers 
             will be plot.
+        show_baseline_limits : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot vertical lines
+            framing the intervals which were used to compute
+            the baseline.
+        show_baseline : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot an horizontal
+            line matching the computed baseline
+        show_general_integration_limits : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot vertical lines
+            framing the general integration interval.
+        show_spotted_peaks : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot a triangle
+            marker over each spotted peak.
+        show_peaks_integration_limits : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot two vertical
+            lines framing the integration interval for each
+            spotted peak.
         analysis_label : str
             This parameter is given to the 'analysis_label' 
             parameter of the Waveform.plot() method for each
@@ -435,6 +467,11 @@ class WaveformSet:
                                                         row = i + 1,  # Plotly uses 1-based indexing
                                                         col = j + 1,
                                                         plot_analysis_markers = plot_analysis_markers,
+                                                        show_baseline_limits = show_baseline_limits,
+                                                        show_baseline = show_baseline,
+                                                        show_general_integration_limits = show_general_integration_limits,
+                                                        show_spotted_peaks = show_spotted_peaks,
+                                                        show_peaks_integration_limits = show_peaks_integration_limits,
                                                         analysis_label = analysis_label)
                         counter += 1
         else:
@@ -447,6 +484,11 @@ class WaveformSet:
                                                     row = i + 1,  # Plotly uses 1-based indexing
                                                     col = j + 1,
                                                     plot_analysis_markers = plot_analysis_markers,
+                                                    show_baseline_limits = show_baseline_limits,
+                                                    show_baseline = show_baseline,
+                                                    show_general_integration_limits = show_general_integration_limits,
+                                                    show_spotted_peaks = show_spotted_peaks,
+                                                    show_peaks_integration_limits = show_peaks_integration_limits,
                                                     analysis_label = analysis_label)
         return figure
 
