@@ -159,8 +159,10 @@ class Waveform:
             annotation must match the Waveform class or the             # a circular import is to use the typing.TYPE_CHECKING variable, which      # need to grab the analyser method using an 
             'Waveform' string literal. Such method should also          # is only defined for type-checking runs. As a consequence, the type        # string and getattr) if the analyser methods were
             have a defined return-annotation which must match           # annotation should be an string, which the type-checking software          # defined as Waveform methods or in a separate module.
-            Tuple[WfAnaResult, bool].                                   # successfully associates to the class itself, but which is detected        # There might be other downsizes to it such as the
-                                                                        # as so (a string) by inspect.signature().                                  # accesibility to WfAna attributes.
+            Tuple[WfAnaResult, bool]. It is the caller's                # successfully associates to the class itself, but which is detected        # There might be other downsizes to it such as the
+            responsibility to check such conditions for this            # as so (a string) by inspect.signature().                                  # accesibility to WfAna attributes.
+            parameter. No checks are performed here for this
+            input.
         baseline_limits : list of int                                   
             Given to the 'baseline_limits' parameter of                 
             WfAna.__init__. It must have an even number
@@ -170,7 +172,10 @@ class Waveform:
             baseline calculation are 
             self.__adcs[baseline_limits[2*i]:baseline_limits[2*i+1]],
             with i = 0,1,...,(len(baseline_limits)/2)-1. 
-            The upper limits are exclusive.
+            The upper limits are exclusive. It is the
+            caller's responsibility to ensure the
+            well-formedness of this input. No checks are
+            performed here for 'baseline_limits'.
         int_ll (resp. int_ul): int
             Given to the 'int_ll' (resp. 'int_ul') parameter of
             WfAna.__init__. Iterator value for the first (resp. 
@@ -178,6 +183,9 @@ class Waveform:
             integration window. int_ll must be smaller than 
             int_ul. These limits are inclusive. If they are 
             not defined, then the whole self.Adcs is considered.
+            It is the caller's responsibility to ensure the 
+            well-formedness of this input. No checks are
+            performed here for this parameter.
         *args
             Positional arguments which are given to the 
             analyser method.
@@ -205,21 +213,9 @@ class Waveform:
             ## If that's the case, these checks might be implemented at the WaveformSet level, 
             ## or simply removed.
 
-            if not self.baseline_limits_are_well_formed(baseline_limits):
-                raise Exception(generate_exception_message( 2,
-                                                            'Waveform.analyse()',
-                                                            f"The baseline limits ({baseline_limits}) are not well formed."))
-            int_ul_ = int_ul
-            if int_ul_ is None:
-                int_ul_ = len(self.__adcs)-1
-
-            if not self.subinterval_is_well_formed(int_ll, int_ul_):
-                raise Exception(generate_exception_message( 3,
-                                                            'Waveform.analyse()',
-                                                            f"The integration window ({int_ll}, {int_ul_}) is not well formed."))
             aux = WfAna(baseline_limits,
                         int_ll,
-                        int_ul_)
+                        int_ul)
             try:
                 analyser = getattr(aux, analyser_name)
             except AttributeError:
