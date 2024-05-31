@@ -142,6 +142,37 @@ class WaveformSet:
                 self.__available_channels[wf.Endpoint] = set()
                 self.__available_channels[wf.Endpoint].add(wf.Channel)
         return
+    def baseline_limits_are_well_formed(self, baseline_limits : List[int]) -> bool:
+
+        """
+        This method returns True if len(baseline_limits) is even and 
+        0 <= baseline_limites[0] < baseline_limits[1] < ... < baseline_limits[-1] <= self.PointsPerWf-1.
+        It returns False if else.
+
+        Parameters
+        ----------
+        baseline_limits : list of int
+
+        Returns
+        ----------
+        bool
+        """
+
+        if len(baseline_limits)%2 != 0:
+            return False
+
+        if baseline_limits[0] < 0:
+            return False
+            
+        for i in range(0, len(baseline_limits)-1):
+            if baseline_limits[i] >= baseline_limits[i+1]:
+                return False
+                
+        if baseline_limits[-1] > self.PointsPerWf-1:
+            return False
+        
+        return True
+    
     def plot(self,  nrows : int = 1,
                     ncols : int = 1,
                     wfs_per_axes : Optional[int] = 1,
