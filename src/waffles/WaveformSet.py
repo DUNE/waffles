@@ -194,7 +194,7 @@ class WaveformSet:
             return False
         elif i_up <= i_low:
             return False
-        elif i_up > len(self.PointsPerWf)-1:
+        elif i_up > self.PointsPerWf - 1:
             return False
         
         return True
