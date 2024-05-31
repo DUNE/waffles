@@ -1,5 +1,4 @@
-import inspect
-from typing import Tuple, List, Optional
+from typing import List, Optional
 from collections import OrderedDict
 
 import numpy as np
@@ -7,7 +6,6 @@ from plotly import graph_objects as pgo
 
 from src.waffles.WfAna import WfAna
 
-from src.waffles.WfAnaResult import WfAnaResult
 from src.waffles.Exceptions import generate_exception_message
 
 class Waveform:
@@ -143,10 +141,11 @@ class Waveform:
         """
         This method creates a WfAna object and adds it to the
         self.__analyses dictionary using label as its key.
-        This method grabs the analyser method from the WfAna
-        class, up to the given analyser_name, runs it on this 
-        Waveform object, and adds its results to the 'Result' 
-        and 'Passed' attributes of the newly created WfAna object.
+        To do so, it grabs the WfAna instance method whose name
+        matches analyser_name and runs it on this Waveform
+        object. To finish, this method adds the results of 
+        such analyser method to the 'Result' and 'Passed' 
+        attributes of the newly created WfAna object.
 
         Parameters
         ----------
@@ -154,24 +153,24 @@ class Waveform:
             Key for the new WfAna object within the self.__analyses
             OrderedDict
         analyser_name : str
-            It must match the name of a WfAna method whose first            
-            argument must be called 'waveform' and whose type           # The only way to import the Waveform class in WfAna without having         # This would not be a problem (and we would not    
-            annotation must match the Waveform class or the             # a circular import is to use the typing.TYPE_CHECKING variable, which      # need to grab the analyser method using an 
-            'Waveform' string literal. Such method should also          # is only defined for type-checking runs. As a consequence, the type        # string and getattr) if the analyser methods were
-            have a defined return-annotation which must match           # annotation should be an string, which the type-checking software          # defined as Waveform methods or in a separate module.
-            Tuple[WfAnaResult, bool]. It is the caller's                # successfully associates to the class itself, but which is detected        # There might be other downsizes to it such as the
-            responsibility to check such conditions for this            # as so (a string) by inspect.signature().                                  # accesibility to WfAna attributes.
+            It must match the name of a WfAna method whose first
+            argument must be called 'waveform' and whose type   
+            annotation must match the Waveform class or the     
+            'Waveform' string literal. Such method should also  
+            have a defined return-annotation which must match   
+            Tuple[WfAnaResult, bool]. It is the caller's
+            responsibility to check such conditions for this
             parameter. No checks are performed here for this
             input.
         baseline_limits : list of int                                   
             Given to the 'baseline_limits' parameter of                 
             WfAna.__init__. It must have an even number
             of integers which must meet 
-            baseline_limits[i] < baseline_limits[i+1] for
+            baseline_limits[i] < baseline_limits[i + 1] for
             all i. The points which are used for 
             baseline calculation are 
-            self.__adcs[baseline_limits[2*i]:baseline_limits[2*i+1]],
-            with i = 0,1,...,(len(baseline_limits)/2)-1. 
+            self.__adcs[baseline_limits[2*i]:baseline_limits[(2*i) + 1]],
+            with i = 0,1,...,(len(baseline_limits)/2) - 1. 
             The upper limits are exclusive. It is the
             caller's responsibility to ensure the
             well-formedness of this input. No checks are
@@ -208,52 +207,14 @@ class Waveform:
                                                         f"There is already an analysis with label '{label}'. If you want to overwrite it, set the 'overwrite' parameter to True."))
         else:
 
-            ## *DISCLAIMER: The following two 'if' statements might make the run time go 
-            ## prohibitively high when running analyses sequentially over a large WaveformSet. 
-            ## If that's the case, these checks might be implemented at the WaveformSet level, 
-            ## or simply removed.
-
             aux = WfAna(baseline_limits,
                         int_ll,
                         int_ul)
-            try:
-                analyser = getattr(aux, analyser_name)
-            except AttributeError:
-                raise Exception(generate_exception_message( 4,
-                                                            'Waveform.analyse()',
-                                                            f"The analyser method '{analyser_name}' does not exist in the WfAna class."))
-            try:
-                signature = inspect.signature(analyser)
-            except TypeError:
-                raise Exception(generate_exception_message( 5,
-                                                            'Waveform.analyse()',
-                                                            f"'{analyser_name}' does not match a callable attribute of WfAna."))
-            try:
+            
+            analyser = getattr(aux, analyser_name)
 
-                ## DISCLAIMER: Same problem here for the following
-                ## three 'if' statements as for the disclaimer above.
-
-                if list(signature.parameters.keys())[0] != 'waveform':
-                    raise Exception(generate_exception_message( 6,
-                                                                "Waveform.analyse",
-                                                                "The name of the first parameter of the given analyser method must be 'waveform'."))
-                
-                if signature.parameters['waveform'].annotation not in ['Waveform', Waveform]:
-                    raise Exception(generate_exception_message( 7,
-                                                                "Waveform.analyse",
-                                                                "The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
-                
-                if signature.return_annotation != Tuple[WfAnaResult, bool]:
-                    raise Exception(generate_exception_message( 8,
-                                                                "Waveform.analyse",
-                                                                "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool]."))
-            except IndexError:
-                raise Exception(generate_exception_message( 9,
-                                                            "Waveform.analyse",
-                                                            "The given filter must take at least one parameter."))
             output_1, output_2 = analyser(self, *args, 
                                                 **kwargs)
-
             aux.Result = output_1
             aux.Passed = output_2
 
