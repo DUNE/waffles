@@ -8,6 +8,8 @@ from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
 from src.waffles.NWaveform import Waveform
+from src.waffles.WfAna import WfAna
+from src.waffles.WfAnaResult import WfAnaResult
 from src.waffles.Exceptions import generate_exception_message
 
 class WaveformSet:
@@ -142,6 +144,143 @@ class WaveformSet:
                 self.__available_channels[wf.Endpoint] = set()
                 self.__available_channels[wf.Endpoint].add(wf.Channel)
         return
+    
+    def analyse(self,   label : str,
+                        analyser_name : str,
+                        baseline_limits : List[int],
+                        int_ll : int = 0,
+                        int_ul : Optional[int] = None,
+                        *args,
+                        overwrite : bool = False,
+                        **kwargs) -> None:
+        
+        """
+        For each Waveform in this WaveformSet, this method
+        calls its 'analyse' method passing to it the parameters
+        given to this method. In turn, Waveform.analyse()
+        creates a WfAna object and adds it to the Analyses 
+        attribute of the analysed waveform. It also runs the
+        indicated analyser method (up to the 'analyser_name'
+        parameter) on the waveform, and adds its results to 
+        the 'Result' and 'Passed' attributes of the newly 
+        created WfAna object.
+
+        Parameters
+        ----------
+        label : str
+            For every analysed waveform, this is the key
+            for the new WfAna object within its Analyses
+            attribute.
+        analyser_name : str
+            It must match the name of a WfAna method whose first            
+            argument must be called 'waveform' and whose type           # The only way to import the Waveform class in WfAna without having         # This would not be a problem (and we would not    
+            annotation must match the Waveform class or the             # a circular import is to use the typing.TYPE_CHECKING variable, which      # need to grab the analyser method using an 
+            'Waveform' string literal. Such method should also          # is only defined for type-checking runs. As a consequence, the type        # string and getattr) if the analyser methods were
+            have a defined return-annotation which must match           # annotation should be an string, which the type-checking software          # defined as Waveform methods or in a separate module.
+            Tuple[WfAnaResult, bool].                                   # successfully associates to the class itself, but which is detected        # There might be other downsizes to it such as the
+                                                                        # as so (a string) by inspect.signature().                                  # accesibility to WfAna attributes.
+        baseline_limits : list of int
+            For every analysed waveform, it defines
+            the Adcs points which will be used for
+            baseline calculation (it is given to
+            the 'baseline_limits' parameter of
+            Waveform.analyse()). It must have an 
+            even number of integers which must meet 
+            baseline_limits[i] < baseline_limits[i + 1] 
+            for all i. The points which are used for 
+            baseline calculation are 
+            self.__adcs[baseline_limits[2*i]:baseline_limits[(2*i) + 1]],
+            with i = 0,1,...,(len(baseline_limits)/2) - 1. 
+            The upper limits are exclusive. For more 
+            information check the 'baseline_limits' 
+            parameter documentation in the 
+            Waveform.analyse() docstring.
+        int_ll (resp. int_ul): int
+            For every analysed waveform, it defines the
+            integration window (it is given to the 'int_ll'
+            (resp. 'int_ul') parameter of Waveform.analyse()).
+            int_ll must be smaller than int_ul. These limits 
+            are inclusive. If they are not defined, then the
+            whole Adcs are considered for each waveform. 
+            For more information check the 'int_ll' and 
+            'int_ul' parameters documentation in the 
+            Waveform.analyse() docstring.
+        *args
+            For each analysed waveform, these are the 
+            positional arguments which are given to the
+            analyser method by Waveform.analyse().
+        overwrite : bool
+            If True, for every analysed Waveform wf, its
+            'analyze' method will overwrite any existing
+            WfAna object with the same label (key) within
+            its Analyses attribute.
+        **kwargs
+            For each analysed waveform, these are the
+            keyword arguments which are given to the
+            analyser method by Waveform.analyse().
+
+        Returns
+        ----------
+        None
+        """
+
+        if not self.baseline_limits_are_well_formed(baseline_limits):
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.analyse()',
+                                                        f"The baseline limits ({baseline_limits}) are not well formed."))
+        int_ul_ = int_ul
+        if int_ul_ is None:
+            int_ul_ = self.PointsPerWf - 1
+
+        if not self.subinterval_is_well_formed(int_ll, int_ul_):
+            raise Exception(generate_exception_message( 2,
+                                                        'WaveformSet.analyse()',
+                                                        f"The integration window ({int_ll}, {int_ul_}) is not well formed."))
+        aux = WfAna([0,1],  # Dummy object to access
+                    0,      # the analyser instance method
+                    1,)
+        try:
+            analyser = getattr(aux, analyser_name)
+        except AttributeError:
+            raise Exception(generate_exception_message( 3,
+                                                        'WaveformSet.analyse()',
+                                                        f"The analyser method '{analyser_name}' does not exist in the WfAna class."))
+        try:
+            signature = inspect.signature(analyser)
+        except TypeError:
+            raise Exception(generate_exception_message( 4,
+                                                        'WaveformSet.analyse()',
+                                                        f"'{analyser_name}' does not match a callable attribute of WfAna."))
+        try:
+            if list(signature.parameters.keys())[0] != 'waveform':
+                raise Exception(generate_exception_message( 5,
+                                                            "WaveformSet.analyse",
+                                                            "The name of the first parameter of the given analyser method must be 'waveform'."))
+            
+            if signature.parameters['waveform'].annotation not in ['Waveform', Waveform]:
+                raise Exception(generate_exception_message( 6,
+                                                            "WaveformSet.analyse",
+                                                            "The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
+            
+            if signature.return_annotation != Tuple[WfAnaResult, bool]:
+                raise Exception(generate_exception_message( 7,
+                                                            "WaveformSet.analyse",
+                                                            "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool]."))
+        except IndexError:
+            raise Exception(generate_exception_message( 8,
+                                                        "WaveformSet.analyse",
+                                                        'The given analyser method must take at least one parameter.'))
+        for wf in self.__waveforms:
+            wf.analyse( label,
+                        analyser_name,
+                        baseline_limits,
+                        int_ll = int_ll,
+                        int_ul = int_ul_,
+                        *args,
+                        overwrite = overwrite,
+                        **kwargs)
+        return
+    
     def baseline_limits_are_well_formed(self, baseline_limits : List[int]) -> bool:
 
         """
