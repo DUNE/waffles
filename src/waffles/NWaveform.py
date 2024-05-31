@@ -3,8 +3,10 @@ from typing import Tuple, List, Optional
 from collections import OrderedDict
 
 import numpy as np
+from plotly import graph_objects as go
 
 from src.waffles.WfAna import WfAna
+
 from src.waffles.WfAnaResult import WfAnaResult
 from src.waffles.Exceptions import generate_exception_message
 
