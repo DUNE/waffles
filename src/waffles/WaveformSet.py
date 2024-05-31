@@ -145,9 +145,11 @@ class WaveformSet:
     def plot(self,  nrows : int = 1,
                     ncols : int = 1,
                     wfs_per_axes : Optional[int] = 1,
-                    grid_of_wf_idcs : Optional[List[List[List[int]]]] = None) -> pgo.Figure:    ## The plot of the markers 
-                                                                                                ## for the analysis-results
-                                                                                                ## is yet to be implemented
+                    grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
+                    plot_analysis_markers : bool = False,
+                    analysis_label : Optional[str] = None) -> pgo.Figure:   ## The plot of the markers 
+                                                                            ## for the analysis-results
+                                                                            ## is yet to be implemented
         """ 
         This method returns a plotly.graph_objects.Figure 
         with a nrows x ncols grid of axes, with plots of
@@ -174,6 +176,25 @@ class WaveformSet:
             waveforms, with respect to this WaveformSet, which 
             should be plotted in the axes located at the i-th 
             row and j-th column.
+        plot_analysis_markers : bool
+            This parameter is given to the 'plot_analysis_markers' 
+            argument of the Waveform.plot() method for each 
+            waveform in this WaveformSet. If True, analysis markers
+            for the waveforms will be plotted together with each 
+            waveform. For more information, check the 
+            'plot_analysis_markers' parameter documentation in the 
+            Waveform.plot() method. If False, no analysis markers 
+            will be plot.
+        analysis_label : str
+            This parameter is given to the 'analysis_label' 
+            parameter of the Waveform.plot() method for each
+            waveform in this WaveformSet. It only makes a difference 
+            if 'plot_analysis_markers' is set to True. In that case, 
+            'analysis_label' is the key for the WfAna object within 
+            the Analysis attribute of each plotted waveform from 
+            where to take the information for the analysis markers 
+            plot. If 'analysis_label' is None, then the last analysis 
+            added to self.__analyses will be the used one.            
 
         Returns
         ----------
@@ -212,23 +233,25 @@ class WaveformSet:
             for i in range(nrows):
                 for j in range(ncols):
                     for k in range(wfs_per_axes):
-                        figure.add_trace(   pgo.Scatter(x = np.arange(self.__points_per_wf),    ## This may be encapsulated in a 
-                                                        y = self.__waveforms[counter].Adcs,     ## Waveform instance method which
-                                                        mode = 'lines'),                        ## returns a pgo.Scatter object
 
-                                            row = i+1,  # Plotly uses 1-based indexing
-                                            col = j+1)
+                        self.__waveforms[counter].plot( figure = figure,
+                                                        name = f"Wf {counter}, Ch {self.__waveforms[counter].Channel}, Ep {self.__waveforms[counter].Endpoint}",
+                                                        row = i+1,  # Plotly uses 1-based indexing
+                                                        col = j+1,
+                                                        plot_analysis_markers = plot_analysis_markers,
+                                                        analysis_label = analysis_label)
                         counter += 1
         else:
             for i in range(nrows):
                 for j in range(ncols):
                     for k in grid_of_wf_idcs[i][j]:
-                        figure.add_trace(   pgo.Scatter(x = np.arange(self.__points_per_wf),    ## Same as above
-                                                        y = self.__waveforms[k].Adcs,
-                                                        mode = 'lines'),
 
-                                            row = i+1,  # Plotly uses 1-based indexing
-                                            col = j+1)
+                        self.__waveforms[k].plot(   figure = figure,
+                                                    name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
+                                                    row = i+1,  # Plotly uses 1-based indexing
+                                                    col = j+1,
+                                                    plot_analysis_markers = plot_analysis_markers,
+                                                    analysis_label = analysis_label)
         return figure
 
     @staticmethod
