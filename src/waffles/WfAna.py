@@ -19,11 +19,11 @@ class WfAna:
     ----------
     BaselineLimits : list of int
         It must have an even number of integers which
-        must meet BaselineLimits[i] < BaselineLimits[i+1].
+        must meet BaselineLimits[i] < BaselineLimits[i + 1].
         Given a Waveform object whose adcs array is x, 
         the points which are used for baseline calculation
-        are x[BaselineLimits[2*i]:BaselineLimits[2*i+1]],
-        with i = 0,1,...,(len(BaselineLimits)/2)-1. The 
+        are x[BaselineLimits[2*i]:BaselineLimits[(2*i) + 1]],
+        with i = 0,1,...,(len(BaselineLimits)/2) - 1. The 
         upper limits are exclusive.
     IntLl (resp. IntUl) : int
         Stands for integration lower (resp. upper) limit.
@@ -161,10 +161,10 @@ class WfAna:
             attribute.
             - It searches for peaks using scipy.signal.find_peaks.
             - It calculates the integral of 
-            waveform.Adcs[IntLl:IntUl+1]. To do so, it assumes that
+            waveform.Adcs[IntLl:IntUl + 1]. To do so, it assumes that
             the temporal resolution of the waveform is constant and
             and approximates its integral to 
-            waveform.TimeStep_ns*np.sum(-b+waveform.Adcs[IntLl:IntUl+1]),
+            waveform.TimeStep_ns*np.sum( -b + waveform.Adcs[IntLl:IntUl + 1]),
             where b is the comptued baseline.
 
         Parameters

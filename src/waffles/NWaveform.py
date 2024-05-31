@@ -3,7 +3,7 @@ from typing import Tuple, List, Optional
 from collections import OrderedDict
 
 import numpy as np
-from plotly import graph_objects as go
+from plotly import graph_objects as pgo
 
 from src.waffles.WfAna import WfAna
 
@@ -110,9 +110,9 @@ class Waveform:
     def confine_iterator_value(self, input : int) -> int:
 
         """
-        Confines the input integer to the range [0, len(self.__adcs)-1].
+        Confines the input integer to the range [0, len(self.__adcs) - 1].
         I.e returns 0 if input is negative, returns input if input belongs
-        to the range [0, len(self.__adcs)-1], and returns len(self.__adcs)-1
+        to the range [0, len(self.__adcs) - 1], and returns len(self.__adcs) - 1
         in any other case.
 
         Parameters
@@ -129,7 +129,7 @@ class Waveform:
         elif input < len(self.__adcs):
             return input
         else:
-            return len(self.__adcs)-1
+            return len(self.__adcs) - 1
 
     def analyse(self,   label : str,
                         analyser_name : str,
@@ -274,7 +274,7 @@ class Waveform:
 
         pass
 
-    def plot(self,  figure : go.Figure,
+    def plot(self,  figure : pgo.Figure,
                     name : Optional[str] = None,
                     row : Optional[int] = None,
                     col : Optional[int] = None,
@@ -331,9 +331,9 @@ class Waveform:
 
         x = np.arange(len(self.Adcs))
 
-        wf_trace = go.Scatter(  x = x,      ## If we think x might match for every waveform, 
-                                                                    ## it might be defined by the caller, so as not
-                                                                    ## to recompute this array for each waveform.
+        wf_trace = pgo.Scatter(  x = x,                 ## If we think x might match for every waveform, 
+                                                        ## it might be defined by the caller, so as not
+                                                        ## to recompute this array for each waveform.
                                 y = self.Adcs,
                                 mode = 'lines',
                                 name = name)
@@ -374,8 +374,8 @@ class Waveform:
                                     col = col)
                 
                 figure.add_shape(   type = 'line',
-                                    x0 = aux.BaselineLimits[(2*i)+1], y0 = 0,
-                                    x1 = aux.BaselineLimits[(2*i)+1], y1 = 1,
+                                    x0 = aux.BaselineLimits[(2*i) + 1], y0 = 0,
+                                    x1 = aux.BaselineLimits[(2*i) + 1], y1 = 1,
                                     line = dict(color = 'grey',         # Properties for
                                                 width = 1,              # the end of a
                                                 dash = 'dashdot'),      # baseline chunk

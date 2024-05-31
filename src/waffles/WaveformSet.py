@@ -146,7 +146,7 @@ class WaveformSet:
 
         """
         This method returns True if len(baseline_limits) is even and 
-        0 <= baseline_limites[0] < baseline_limits[1] < ... < baseline_limits[-1] <= self.PointsPerWf-1.
+        0 <= baseline_limites[0] < baseline_limits[1] < ... < baseline_limits[-1] <= self.PointsPerWf - 1.
         It returns False if else.
 
         Parameters
@@ -164,11 +164,11 @@ class WaveformSet:
         if baseline_limits[0] < 0:
             return False
             
-        for i in range(0, len(baseline_limits)-1):
-            if baseline_limits[i] >= baseline_limits[i+1]:
+        for i in range(0, len(baseline_limits) - 1):
+            if baseline_limits[i] >= baseline_limits[i + 1]:
                 return False
                 
-        if baseline_limits[-1] > self.PointsPerWf-1:
+        if baseline_limits[-1] > self.PointsPerWf - 1:
             return False
         
         return True
@@ -177,7 +177,7 @@ class WaveformSet:
                                             i_up : int) -> bool:
         
         """
-        This method returns True if 0 <= i_low < i_up <= self.PointsPerWf-1,
+        This method returns True if 0 <= i_low < i_up <= self.PointsPerWf - 1,
         and False if else.
 
         Parameters
@@ -204,9 +204,9 @@ class WaveformSet:
                     wfs_per_axes : Optional[int] = 1,
                     grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
                     plot_analysis_markers : bool = False,
-                    analysis_label : Optional[str] = None) -> pgo.Figure:   ## The plot of the markers 
-                                                                            ## for the analysis-results
-                                                                            ## is yet to be implemented
+                    analysis_label : Optional[str] = None) -> pgo.Figure: 
+
+
         """ 
         This method returns a plotly.graph_objects.Figure 
         with a nrows x ncols grid of axes, with plots of
@@ -293,8 +293,8 @@ class WaveformSet:
 
                         self.__waveforms[counter].plot( figure = figure,
                                                         name = f"Wf {counter}, Ch {self.__waveforms[counter].Channel}, Ep {self.__waveforms[counter].Endpoint}",
-                                                        row = i+1,  # Plotly uses 1-based indexing
-                                                        col = j+1,
+                                                        row = i + 1,  # Plotly uses 1-based indexing
+                                                        col = j + 1,
                                                         plot_analysis_markers = plot_analysis_markers,
                                                         analysis_label = analysis_label)
                         counter += 1
@@ -305,8 +305,8 @@ class WaveformSet:
 
                         self.__waveforms[k].plot(   figure = figure,
                                                     name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
-                                                    row = i+1,  # Plotly uses 1-based indexing
-                                                    col = j+1,
+                                                    row = i + 1,  # Plotly uses 1-based indexing
+                                                    col = j + 1,
                                                     plot_analysis_markers = plot_analysis_markers,
                                                     analysis_label = analysis_label)
         return figure
