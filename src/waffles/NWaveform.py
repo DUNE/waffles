@@ -332,3 +332,147 @@ class Waveform:
         """
 
         pass
+
+    def plot(self,  figure : go.Figure,
+                    name : Optional[str] = None,
+                    row : Optional[int] = None,
+                    col : Optional[int] = None,
+                    plot_analysis_markers : bool = False,
+                    analysis_label : Optional[str] = None) -> None:
+
+        """
+        This method plots the waveform in the given figure.
+        
+        Parameters
+        ----------
+        figure : plotly.graph_objects.Figure
+            The figure in which the waveform will be plotted
+        name : str
+            The name for the waveform trace which will be added
+            to the given figure.
+        row (resp. col) : int
+            The row (resp. column) in which the waveform will
+            be plottled. This parameter is directly handled to
+            the 'row' (resp. 'col') parameter of
+            plotly.graph_objects.Figure.add_trace() and
+            plotly.graph_objects.Figure.add_shape(). It is the
+            caller's responsibility to ensure two things:
+                
+                - if the given 'figure' parameter does not contain
+                  a subplot grid (p.e. it was not created by
+                  plotly.subplots.make_subplots()) then 'row' and
+                  'col' must be None.
+                   
+                - if the given 'figure' parameter contains a subplot
+                  grid, then 'row' and 'col' must be valid 1-indexed
+                  integers.
+        plot_analysis_markers : bool                                        ## Plotting every marker makes the call to
+            If True, this method will also plot the analysis markers        ## WaveformSet.plot() very slow. We should
+            for this waveform in the given figure. If False, it will        ## allow the user to choose a level of detail,
+            not. By analysis markers we mean those which are                ## i.e. which markers want to use (not simply
+            available among:                                                ## enabling all of them at once with plot_analysis_markers)
+
+                - Vertical lines for the baseline limits
+                - An horizontal line for the computed baseline
+                - Two vertical lines for the integration limits
+                - A triangle marker over each spotted peak
+                - Two vertical lines framing each spotted peak
+                  marking the integration limits for each peak.
+        analysis_label : str
+            This parameter only makes a difference if 
+            'plot_analysis_markers' is set to True. In that case, 
+            'analysis_label' is the key for the WfAna object within 
+            self.__analyses from where to take the information for 
+            the analysis markers plot. If 'analysis_label' is None,
+            then the last analysis added to self.__analyses will be
+            the used one.
+        """
+
+        x = np.arange(len(self.Adcs))
+
+        wf_trace = go.Scatter(  x = x,      ## If we think x might match for every waveform, 
+                                                                    ## it might be defined by the caller, so as not
+                                                                    ## to recompute this array for each waveform.
+                                y = self.Adcs,
+                                mode = 'lines',
+                                name = name)
+        
+        figure.add_trace(   wf_trace,
+                            row = row,
+                            col = col)
+
+        if plot_analysis_markers:
+
+            if analysis_label is None:
+                try:
+                    aux = next(reversed(self.__analyses.values()))  # Grabbing the last analysis
+                except StopIteration:
+                    raise Exception(generate_exception_message( 1,
+                                                                'Waveform.plot()',
+                                                                'The waveform has not been analysed yet.'))
+            else:
+                try:
+                    aux = self.__analyses[analysis_label]
+                except KeyError:
+                    raise Exception(generate_exception_message( 2,
+                                                                'Waveform.plot()',
+                                                                f"There is no analysis with label '{analysis_label}'."))
+            
+            # Plot the markers for the baseline limits
+            for i in range(len(aux.BaselineLimits)//2):
+
+                figure.add_shape(   type = 'line',
+                                    x0 = aux.BaselineLimits[2*i], y0 = 0,
+                                    x1 = aux.BaselineLimits[2*i], y1 = 1,
+                                    line = dict(color = 'grey',         # Properties for
+                                                width = 1,              # the beginning of
+                                                dash = 'dash'),         # a baseline chunk
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+                
+                figure.add_shape(   type = 'line',
+                                    x0 = aux.BaselineLimits[(2*i)+1], y0 = 0,
+                                    x1 = aux.BaselineLimits[(2*i)+1], y1 = 1,
+                                    line = dict(color = 'grey',         # Properties for
+                                                width = 1,              # the end of a
+                                                dash = 'dashdot'),      # baseline chunk
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+
+            # Plot the marker for the baseline 
+            figure.add_shape(   type = "line",
+                                x0 = 0, y0 = aux.Result.Baseline,
+                                x1 = 1, y1 = aux.Result.Baseline,
+                                line = dict(color = 'grey',             # Properties for
+                                            width = 1,                  # the computed
+                                            dash = 'dot'),              # baseline
+                                xref = 'x domain',
+                                yref = 'y',
+                                row = row,
+                                col = col)
+            
+            # Plot the markers for the peaks positions
+            for peak in aux.Result.Peaks:
+
+                aux = x[peak.Position]
+
+                figure.add_shape(   type = 'line',
+                                    x0 = aux, y0 = 0,
+                                    x1 = aux, y1 = 1,
+                                    line = dict(color = 'red',      # Properties for
+                                                width = 1,          # the peaks markers
+                                                dash = 'dot'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+            
+            ## The rest of the markers are not implemented yet
+            ##  - General integration limits
+            ##  - Peaks integration limits 
+
+        return
