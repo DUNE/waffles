@@ -1,8 +1,11 @@
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING
 
 import numpy as np
 from scipy import signal as spsi
 
+if TYPE_CHECKING:                                   # Import only for type-checking, so as
+    from src.waffles.NWaveform import Waveform      # to avoid a runtime circular import
+                                                    
 from src.waffles.WfAnaResult import WfAnaResult
 
 class WfAna:
@@ -142,8 +145,11 @@ class WfAna:
         return output_1, output_2
     
     def standard_analyser(  self,
-                            waveform : 'Waveform',
-                            *args,
+                            waveform : 'Waveform',      # The Waveform class is not defined at runtime, only during
+                                                        # type-checking (see TYPE_CHECKING). Not enclosing the type
+                                                        # in quotes would raise a `NameError: name 'Waveform' is 
+                                                        # not defined.`
+                            *args,                      
                             **kwargs) -> Tuple[WfAnaResult, bool]:
         
         """

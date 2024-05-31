@@ -152,14 +152,16 @@ class Waveform:
             Key for the new WfAna object within the self.__analyses
             OrderedDict
         analyser_name : str
-            It must match the name of a WfAna method whose first 
-            argument must be called 'waveform' and must be hinted 
-            as a Waveform object. Such method should also have a
-            defined return-annotation which must match
-            Tuple[WfAnaResult, bool].
-        baseline_limits : list of int
-            Given to the 'baseline_limits' parameter of 
-            WfAna.__init__. It must have an even number 
+            It must match the name of a WfAna method whose first            
+            argument must be called 'waveform' and whose type           # The only way to import the Waveform class in WfAna without having         # This would not be a problem (and we would not    
+            annotation must match the Waveform class or the             # a circular import is to use the typing.TYPE_CHECKING variable, which      # need to grab the analyser method using an 
+            'Waveform' string literal. Such method should also          # is only defined for type-checking runs. As a consequence, the type        # string and getattr) if the analyser methods were
+            have a defined return-annotation which must match           # annotation should be an string, which the type-checking software          # defined as Waveform methods or in a separate module.
+            Tuple[WfAnaResult, bool].                                   # successfully associates to the class itself, but which is detected        # There might be other downsizes to it such as the
+                                                                        # as so (a string) by inspect.signature().                                  # accesibility to WfAna attributes.
+        baseline_limits : list of int                                   
+            Given to the 'baseline_limits' parameter of                 
+            WfAna.__init__. It must have an even number
             of integers which must meet 
             baseline_limits[i] < baseline_limits[i+1] for
             all i. The points which are used for 
@@ -237,7 +239,8 @@ class Waveform:
                     raise Exception(generate_exception_message( 6,
                                                                 "Waveform.analyse",
                                                                 "The name of the first parameter of the given analyser method must be 'waveform'."))
-                if signature.parameters['waveform'].annotation != Waveform:
+                
+                if signature.parameters['waveform'].annotation not in ['Waveform', Waveform]:
                     raise Exception(generate_exception_message( 7,
                                                                 "Waveform.analyse",
                                                                 "The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
