@@ -265,32 +265,6 @@ class Waveform:
 
             return
         
-    def subinterval_is_well_formed(self,    i_low : int, 
-                                            i_up : int) -> bool:
-        
-        """
-        This method returns True if 0 <= i_low < i_up <= len(self.__adcs)-1,
-        and False if else.
-
-        Parameters
-        ----------
-        i_low : int
-        i_up : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        if i_low < 0:
-            return False
-        elif i_up <= i_low:
-            return False
-        elif i_up > len(self.__adcs)-1:
-            return False
-        
-        return True
-        
     def get_global_channel(self):
 
         """

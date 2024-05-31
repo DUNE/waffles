@@ -173,6 +173,32 @@ class WaveformSet:
         
         return True
     
+    def subinterval_is_well_formed(self,    i_low : int, 
+                                            i_up : int) -> bool:
+        
+        """
+        This method returns True if 0 <= i_low < i_up <= self.PointsPerWf-1,
+        and False if else.
+
+        Parameters
+        ----------
+        i_low : int
+        i_up : int
+
+        Returns
+        ----------
+        bool
+        """
+
+        if i_low < 0:
+            return False
+        elif i_up <= i_low:
+            return False
+        elif i_up > len(self.PointsPerWf)-1:
+            return False
+        
+        return True
+    
     def plot(self,  nrows : int = 1,
                     ncols : int = 1,
                     wfs_per_axes : Optional[int] = 1,
