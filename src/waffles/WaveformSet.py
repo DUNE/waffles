@@ -37,6 +37,26 @@ class WaveformSet:
         endpoint n. If there is at least one waveform for
         endpoint n and channel m, then m belongs to 
         AvailableChannels[n].
+    MeanAdcs : np.ndarray
+        The mean of the adcs arrays for a every waveform
+        or a subset of waveforms in this WaveformSet. It 
+        is an unidimensional float numpy array with 
+        PointsPerWf entries, so that MeanAdcs[i] is the 
+        mean of self.Waveforms[j].Adcs[i] for every value
+        of j or a subset of values of j, within 
+        [0, len(self.__waveforms) - 1]. It is not 
+        computed by default. I.e. if self.MeanAdcs 
+        equals to None, it should be interpreted as 
+        unavailable data. Call the 'compute_mean_waveform' 
+        method of this WaveformSet to compute it.
+    MeanAdcsIdcs : tuple of int
+        It is a tuple of integers which contains the indices
+        of the waveforms, with respect to this WaveformSet,
+        which were used to compute the MeanAdcs attribute.
+        By default, it is None. I.e. if self.MeanAdcsIdcs
+        equals to None, it should be interpreted as
+        unavailable data. Call the 'compute_mean_waveform'
+        method of this WaveformSet to compute it.
 
     Methods
     ----------
@@ -72,6 +92,8 @@ class WaveformSet:
         self.update_available_channels()    # Running on an Apple M2, it took 
                                             # ~ 52 ms to run this line for a
                                             # WaveformSet with 1046223 waveforms
+        self.__mean_adcs = None
+        self.__mean_adcs_idcs = None
 
     #Getters
     @property
@@ -82,15 +104,21 @@ class WaveformSet:
     def PointsPerWf(self):
         return self.__points_per_wf
     
-    #Getters
     @property
     def Runs(self):
         return self.__runs
     
-    #Getters
     @property
     def AvailableChannels(self):
         return self.__available_channels
+    
+    @property
+    def MeanAdcs(self):
+        return self.__mean_adcs
+    
+    @property
+    def MeanAdcsIdcs(self):
+        return self.__mean_adcs_idcs
     
     def check_length_homogeneity(self) -> bool:
             
@@ -673,6 +701,27 @@ class WaveformSet:
         return waveform.RunNumber == run
     
     @staticmethod
+    def match_channel(  waveform : Waveform,
+                            channel : int) -> bool:
+        
+        """
+        This method returns True if the Channel attribute
+        of the given waveform matches channel, and False
+        if else.
+
+        Parameters
+        ----------
+        waveform : Waveform
+        channel : int
+
+        Returns
+        ----------
+        bool
+        """
+
+        return waveform.Channel == channel
+    
+    @staticmethod
     def match_endpoint_and_channel( waveform : Waveform,
                                     endpoint : int,
                                     channel : int) -> bool:
@@ -1019,3 +1068,95 @@ class WaveformSet:
             return False
         
         return True
+    
+    def compute_mean_waveform(self, wf_selector : Optional[Callable[..., bool]] = None,
+                                    *args,
+                                    **kwargs) -> None:
+
+        """
+        If wf_selector is None, then this method 
+        computes mean of the adcs arrays for every 
+        waveform in this WaveformSet. If wf_selector
+        is not None, then this method computes the
+        mean of the adcs arrays of the waveforms, wf,
+        within this WaveformSet for which 
+        wf_selector(wf, *args, **kwargs) evaluates 
+        to True. The result is assigned to the
+        self.__mean_adcs attribute. The 
+        self.__mean_adcs_idcs attribute is also
+        updated with a tuple of the indices of the
+        waveforms which were used to compute the
+        mean waveform.
+
+        Parameters
+        ----------
+        wf_selector : callable                                      
+            If it is not None, then it must be a callable           # As for WaveformSet.analyse(), requiring the type
+            whose first parameter must be called 'waveform'         # annotation to be either Waveform or 'Waveform'
+            and its type annotation must match the Waveform         # lets us cover the case where the wf_selector
+            class or the 'Waveform' string literal. Its             # is defined in a module where the Waveform class
+            return value must be annotated as a boolean.            # cannot be imported due to circular-import issues.
+        *args
+            For each waveform, wf, these are the 
+            positional arguments which are given to
+            wf_selector(wf, *args, **kwargs) as *args.
+        *kwargs
+            For each waveform, wf, these are the 
+            keyword arguments which are given to
+            wf_selector(wf, *args, **kwargs) as **kwargs.
+
+        Returns
+        ----------
+        None
+        """
+
+        if len(self.__waveforms) == 0:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.compute_mean_waveform()',
+                                                        'There are no waveforms in this WaveformSet object.'))
+        if wf_selector is None:
+
+            aux = self.Waveforms[0].Adcs
+
+            for i in range(1, len(self.__waveforms)):
+                aux += self.Waveforms[i].Adcs
+
+            self.__mean_adcs = aux/len(self.__waveforms)
+            self.__mean_adcs_idcs = tuple(range(len(self.__waveforms)))
+
+        else:
+
+            signature = inspect.signature(wf_selector)
+
+            if list(signature.parameters.keys())[0] != 'waveform':
+                raise Exception(generate_exception_message( 2,
+                                                            "WaveformSet.compute_mean_waveform",
+                                                            "The name of the first parameter of the given waveform-selector method must be 'waveform'."))
+            
+            if signature.parameters['waveform'].annotation not in ['Waveform', Waveform]:
+                raise Exception(generate_exception_message( 3,
+                                                            "WaveformSet.compute_mean_waveform",
+                                                            "The 'waveform' parameter of the waveform-selector method must be hinted as a Waveform object."))
+            
+            if signature.return_annotation != bool:
+                raise Exception(generate_exception_message( 4,
+                                                            "WaveformSet.compute_mean_waveform",
+                                                            "The return type of the waveform-selector method must be hinted as a boolean."))
+            added_wvfs = []
+
+            aux = np.zeros((self.__points_per_wf,))
+
+            for i in range(len(self.__waveforms)):
+                if wf_selector(self.__waveforms[i], *args, **kwargs):
+                    aux += self.__waveforms[i].Adcs
+                    added_wvfs.append(i)
+                    
+            if len(added_wvfs) == 0:
+                raise Exception(generate_exception_message( 5,
+                                                            'WaveformSet.compute_mean_waveform()',
+                                                            'No waveform in this WaveformSet object passed the given selector.'))
+            
+            self.__mean_adcs = aux/len(added_wvfs)
+            self.__mean_adcs_idcs = tuple(added_wvfs)
+
+        return
