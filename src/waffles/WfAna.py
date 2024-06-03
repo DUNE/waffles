@@ -7,6 +7,7 @@ if TYPE_CHECKING:                                   # Import only for type-check
     from src.waffles.NWaveform import Waveform      # to avoid a runtime circular import
                                                     
 from src.waffles.WfAnaResult import WfAnaResult
+from src.waffles.WfPeak import WfPeak
 
 class WfAna:
 
@@ -109,7 +110,7 @@ class WfAna:
     def analyser_template(  self,
                             waveform : 'Waveform',
                             *args,
-                            **kwargs) -> Tuple[WfAnaResult, bool]:
+                            **kwargs) -> Tuple[WfAnaResult, bool, dict]:
         
         """
         This method implements a template for an analyser 
@@ -131,6 +132,10 @@ class WfAna:
         output_2 : bool
             True (resp. False) if analysis concluded
             that the waveform passes (resp. fails).
+        output_3 : dict
+            Additional information about the analysis.
+            If there is no additional information,
+            then this dictionary is empty.
         """
 
         output_1 = WfAnaResult( 0,                              # baseline
@@ -142,15 +147,17 @@ class WfAna:
                                 10.0,                           # integral
                                 np.array([0.,-1.,1.,0.,-1.]))   # deconvoluted_adcs
         output_2 = True
-        return output_1, output_2
+        output_3 = {}
+
+        return output_1, output_2, output_3
     
     def standard_analyser(  self,
                             waveform : 'Waveform',      # The Waveform class is not defined at runtime, only during
                                                         # type-checking (see TYPE_CHECKING). Not enclosing the type
                                                         # in quotes would raise a `NameError: name 'Waveform' is 
                                                         # not defined.`
-                            *args,                      
-                            **kwargs) -> Tuple[WfAnaResult, bool]:
+                            *args,
+                            **kwargs) -> Tuple[WfAnaResult, bool, dict]:
         
         """
         This method implements an analyser method
@@ -171,35 +178,62 @@ class WfAna:
         ----------
         waveform : Waveform
             Waveform object which will be analysed.
-        *args, **kwargs
+        *args
             These arguments are passed to 
             scipy.signal.find_peaks(waveform.Adcs, *args, **kwargs)
+            as *args.        
+        **kwargs
+            If the 'return_peaks_properties' keyword argument is present
+            in **kwargs and set to True, then this method returns 
+            information about the spotted-peaks properties. The rest 
+            of the keyword arguments are passed to 
+            scipy.signal.find_peaks(waveform.Adcs, *args, **kwargs) 
+            as **kwargs.
 
         Returns
         ----------
         output_1 : WfAnaResult
             The result of the analysis
         output_2 : bool
-            True (resp. False) if analysis concluded
+            True (resp. False) if the analysis concluded
             that the waveform passes (resp. fails).
+        output_3 : dict
+            Contains the 'properties' dictionary returned by
+            scipy.signal.find_peaks, under the 'peaks_properties' key,
+            if the 'return_peaks_properties' keyword argument is 
+            present in **kwargs and set to True. It is an empty 
+            dictionary if else.
         """
-        
-        split_baseline_samples = [  waveform.Adcs[ self.__baseline_limits[2*i] : self.__baseline_limits[(2*i)+1]]
+
+        return_peaks_properties = None
+
+        try:
+            return_peaks_properties = kwargs.pop('return_peaks_properties')     # If the 'return_peaks_properties' keyword
+        except KeyError:                                                        # is present, pop it from kwargs before
+            pass                                                                # giving them to scipy.signal.find_peaks
+                    
+        split_baseline_samples = [  waveform.Adcs[ self.__baseline_limits[2*i] : self.__baseline_limits[(2*i) + 1]]
                                     for i in range(len(self.__baseline_limits)//2) ]
         
         baseline_samples = np.concatenate(split_baseline_samples)
         baseline = np.median(baseline_samples)
 
-        peaks, properties = spsi.find_peaks(waveform.Adcs, *args, **kwargs)
-
-        output_1 =  WfAnaResult(baseline,
-                                np.min(baseline_samples),
-                                np.max(baseline_samples),
-                                np.std(baseline_samples),   ## Not definitive, computes STD not RMS
-                                peaks,
-                                np.array([ waveform.Adcs[it]-baseline for it in peaks ]),
-                                waveform.TimeStep_ns*(np.sum(waveform.Adcs[self.__int_ll:self.__int_ul+1])-baseline),
-                                None)                       ## deconvoluted_adcs , not computed by this standard analyser
+        peaks, properties = spsi.find_peaks(-1.*waveform.Adcs, *args, **kwargs)     ## Assuming that the waveform is
+                                                                                    ## inverted. We should find another 
+                                                                                    ## way not to hardcode this.
+        output_1 = WfAnaResult( baseline=baseline,
+                                baseline_min=None,          # np.max(baseline_samples)
+                                baseline_max=None,          # np.min(baseline_samples)
+                                baseline_rms=None,          # np.std(baseline_samples)  ## Not definitive, computes STD not RMS
+                                peaks= [ WfPeak(peaks[i]) for i in range(len(peaks)) ],
+                                integral=None,              # waveform.TimeStep_ns*(np.sum(waveform.Adcs[self.__int_ll:self.__int_ul + 1]) - baseline)
+                                deconvoluted_adcs=None)     ## deconvoluted_adcs , not computed by this standard analyser
         
-        output_2 = True ## This standard analyser does not implement a quality filter yet
-        return output_1, output_2
+        output_2 = True             ## This standard analyser does not implement a quality filter yet
+
+        if return_peaks_properties is True:
+            output_3 = {'peaks_properties': properties}
+        else:
+            output_3 = {}
+            
+        return output_1, output_2, output_3

@@ -152,7 +152,7 @@ class WaveformSet:
                         int_ul : Optional[int] = None,
                         *args,
                         overwrite : bool = False,
-                        **kwargs) -> None:
+                        **kwargs) -> dict:
         
         """
         For each Waveform in this WaveformSet, this method
@@ -163,7 +163,12 @@ class WaveformSet:
         indicated analyser method (up to the 'analyser_name'
         parameter) on the waveform, and adds its results to 
         the 'Result' and 'Passed' attributes of the newly 
-        created WfAna object.
+        created WfAna object. Also, it returns a dictionary,
+        say output, whose keys are integers in 
+        [0, len(self.__waveforms) - 1]. ouptut[i] matches
+        the output of self.__waveforms[i].analyse(...), 
+        which is a dictionary. I.e. the output of this method 
+        is a dictionary of dictionaries.
 
         Parameters
         ----------
@@ -177,7 +182,7 @@ class WaveformSet:
             annotation must match the Waveform class or the             # a circular import is to use the typing.TYPE_CHECKING variable, which      # need to grab the analyser method using an 
             'Waveform' string literal. Such method should also          # is only defined for type-checking runs. As a consequence, the type        # string and getattr) if the analyser methods were
             have a defined return-annotation which must match           # annotation should be an string, which the type-checking software          # defined as Waveform methods or in a separate module.
-            Tuple[WfAnaResult, bool].                                   # successfully associates to the class itself, but which is detected        # There might be other downsizes to it such as the
+            Tuple[WfAnaResult, bool, dict].                             # successfully associates to the class itself, but which is detected        # There might be other downsizes to it such as the
                                                                         # as so (a string) by inspect.signature().                                  # accesibility to WfAna attributes.
         baseline_limits : list of int
             For every analysed waveform, it defines
@@ -221,7 +226,14 @@ class WaveformSet:
 
         Returns
         ----------
-        None
+        output : dict
+            output[i] gives the output of 
+            self.__waveforms[i].analyse(...), which is a
+            dictionary containing any additional information
+            of the analysis which was performed over the
+            i-th waveform of this WaveformSet. Such 
+            dictionary is empty if the analyser method gives 
+            no additional information.
         """
 
         if not self.baseline_limits_are_well_formed(baseline_limits):
@@ -262,7 +274,7 @@ class WaveformSet:
                                                             "WaveformSet.analyse",
                                                             "The 'waveform' parameter of the analyser method must be hinted as a Waveform object."))
             
-            if signature.return_annotation != Tuple[WfAnaResult, bool]:
+            if signature.return_annotation != Tuple[WfAnaResult, bool, dict]:
                 raise Exception(generate_exception_message( 7,
                                                             "WaveformSet.analyse",
                                                             "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool]."))
@@ -270,16 +282,18 @@ class WaveformSet:
             raise Exception(generate_exception_message( 8,
                                                         "WaveformSet.analyse",
                                                         'The given analyser method must take at least one parameter.'))
-        for wf in self.__waveforms:
-            wf.analyse( label,
-                        analyser_name,
-                        baseline_limits,
-                        int_ll = int_ll,
-                        int_ul = int_ul_,
-                        *args,
-                        overwrite = overwrite,
-                        **kwargs)
-        return
+        output = {}
+
+        for i in range(len(self.__waveforms)):
+            output[i] = self.__waveforms[i].analyse(    label,
+                                                        analyser_name,
+                                                        baseline_limits,
+                                                        int_ll = int_ll,
+                                                        int_ul = int_ul_,
+                                                        *args,
+                                                        overwrite = overwrite,
+                                                        **kwargs)
+        return output
     
     def baseline_limits_are_well_formed(self, baseline_limits : List[int]) -> bool:
 

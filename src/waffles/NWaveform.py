@@ -136,16 +136,25 @@ class Waveform:
                         int_ul : Optional[int] = None,
                         *args,
                         overwrite : bool = False,
-                        **kwargs) -> None:
+                        **kwargs) -> dict:
 
         """
         This method creates a WfAna object and adds it to the
         self.__analyses dictionary using label as its key.
         To do so, it grabs the WfAna instance method whose name
         matches analyser_name and runs it on this Waveform
-        object. To finish, this method adds the results of 
-        such analyser method to the 'Result' and 'Passed' 
-        attributes of the newly created WfAna object.
+        object. Then, this method does two things:
+        
+            -   first, it adds the two first outputs of such
+                analyser method to the 'Result' and 'Passed' 
+                attributes of the newly created WfAna object,
+                respectively.
+            -   second, it returns the third output of the
+                analyser method, which should be a dictionary
+                containing any additional information that the
+                analyser method wants to return. Such dictionary
+                is empty if no additional information is
+                provided by the analyser method.
 
         Parameters
         ----------
@@ -158,7 +167,7 @@ class Waveform:
             annotation must match the Waveform class or the     
             'Waveform' string literal. Such method should also  
             have a defined return-annotation which must match   
-            Tuple[WfAnaResult, bool]. It is the caller's
+            Tuple[WfAnaResult, bool, dict]. It is the caller's
             responsibility to check such conditions for this
             parameter. No checks are performed here for this
             input.
@@ -198,7 +207,13 @@ class Waveform:
 
         Returns
         ----------
-        None
+        output_3 : dict
+            The third output of the analyser method, which
+            should be a dictionary containing any additional
+            information that the analyser method wants to
+            return. Note that the analyser method must return
+            a dictionary as its third output, even it its
+            an empty one.
         """
 
         if label in self.__analyses.keys() and not overwrite:
@@ -213,14 +228,14 @@ class Waveform:
             
             analyser = getattr(aux, analyser_name)
 
-            output_1, output_2 = analyser(self, *args, 
-                                                **kwargs)
+            output_1, output_2, output_3 = analyser(self,   *args, 
+                                                            **kwargs)
             aux.Result = output_1
             aux.Passed = output_2
 
             self.__analyses[label] = aux
 
-            return
+            return output_3
         
     def get_global_channel(self):
 
