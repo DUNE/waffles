@@ -3,8 +3,8 @@ from typing import Tuple, List, TYPE_CHECKING
 import numpy as np
 from scipy import signal as spsi
 
-if TYPE_CHECKING:                                   # Import only for type-checking, so as
-    from src.waffles.NWaveform import Waveform      # to avoid a runtime circular import
+if TYPE_CHECKING:                                           # Import only for type-checking, so as
+    from src.waffles.WaveformAdcs import WaveformAdcs       # to avoid a runtime circular import
                                                     
 from src.waffles.WfAnaResult import WfAnaResult
 from src.waffles.WfPeak import WfPeak
@@ -14,14 +14,14 @@ class WfAna:
     """
     Stands for Waveform Analysis. This class 
     implements an analysis which has been performed 
-    over a certain waveform.
+    over a certain WaveformAdcs object.
     
     Attributes
     ----------
     BaselineLimits : list of int
         It must have an even number of integers which
         must meet BaselineLimits[i] < BaselineLimits[i + 1].
-        Given a Waveform object whose adcs array is x, 
+        Given a WaveformAdcs object whose adcs array is x, 
         the points which are used for baseline calculation
         are x[BaselineLimits[2*i]:BaselineLimits[(2*i) + 1]],
         with i = 0,1,...,(len(BaselineLimits)/2) - 1. The 
@@ -92,11 +92,11 @@ class WfAna:
     
     #Setters
     @Result.setter                                  # Adding setters for the self.__result and
-    def Result(self, input):                        # self.__passed attributes, since 
-                                                    # Waveform.analyse() should be able to set
-        ## Shall we add a type check here?          # them. Not adding setters for the rest of 
-                                                    # the attributes, since they shall not be
-        self.__result = input                       # set outside WfAna code
+    def Result(self, input):                        # self.__passed attributes, since
+                                                    # WaveformAdcs.analyse() should be able to
+        ## Shall we add a type check here?          # set them. Not adding setters for the rest
+                                                    # of the attributes, since they shall not
+        self.__result = input                       # be set outside WfAna code
         return
     
     @Passed.setter
@@ -108,7 +108,7 @@ class WfAna:
         return
 
     def analyser_template(  self,
-                            waveform : 'Waveform',
+                            waveform : 'WaveformAdcs',
                             *args,
                             **kwargs) -> Tuple[WfAnaResult, bool, dict]:
         
@@ -118,8 +118,8 @@ class WfAna:
 
         Parameters
         ----------
-        waveform : Waveform
-            Waveform object which will be analysed.
+        waveform : WaveformAdcs
+            WaveformAdcs object which will be analysed.
         *args
             Additional positional arguments
         **kwargs
@@ -152,10 +152,10 @@ class WfAna:
         return output_1, output_2, output_3
     
     def standard_analyser(  self,
-                            waveform : 'Waveform',      # The Waveform class is not defined at runtime, only during
-                                                        # type-checking (see TYPE_CHECKING). Not enclosing the type
-                                                        # in quotes would raise a `NameError: name 'Waveform' is 
-                                                        # not defined.`
+                            waveform : 'WaveformAdcs',  # The WaveformAdcs class is not defined at runtime, only
+                                                        # during type-checking (see TYPE_CHECKING). Not enclosing
+                                                        # the type in quotes would raise a `NameError: name
+                                                        # 'WaveformAdcs' is not defined.`
                             *args,
                             **kwargs) -> Tuple[WfAnaResult, bool, dict]:
         
@@ -170,14 +170,14 @@ class WfAna:
             - It calculates the integral of 
             waveform.Adcs[IntLl:IntUl + 1]. To do so, it assumes that
             the temporal resolution of the waveform is constant and
-            and approximates its integral to 
+            approximates its integral to 
             waveform.TimeStep_ns*np.sum( -b + waveform.Adcs[IntLl:IntUl + 1]),
-            where b is the comptued baseline.
+            where b is the computed baseline.
 
         Parameters
         ----------
-        waveform : Waveform
-            Waveform object which will be analysed.
+        waveform : WaveformAdcs
+            WaveformAdcs object which will be analysed.
         *args
             These arguments are passed to 
             scipy.signal.find_peaks(waveform.Adcs, *args, **kwargs)
@@ -199,9 +199,9 @@ class WfAna:
             that the waveform passes (resp. fails).
         output_3 : dict
             Contains the 'properties' dictionary returned by
-            scipy.signal.find_peaks, under the 'peaks_properties' key,
-            if the 'return_peaks_properties' keyword argument is 
-            present in **kwargs and set to True. It is an empty 
+            scipy.signal.find_peaks, under the 'peaks_properties'
+            key, if the 'return_peaks_properties' keyword argument
+            is present in **kwargs and set to True. It is an empty
             dictionary if else.
         """
 
