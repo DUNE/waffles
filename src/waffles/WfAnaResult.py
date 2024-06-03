@@ -69,10 +69,13 @@ class WfAnaResult:
 
         self.__baseline = baseline
 
-        if baseline_min >= baseline_max:                                            # If this check makes the execution time 
-            raise Exception(generate_exception_message( 1,                          # be prohibitively high, it may be removed
-                                                        'WfAnaResult.__init__()',
-                                                        f"'baseline_min' ({baseline_min}) cannot be bigger or equal to 'baseline_max' ({baseline_max})."))
+        try:
+            if baseline_min >= baseline_max:                                            # If this check makes the execution time 
+                raise Exception(generate_exception_message( 1,                          # be prohibitively high, it may be removed
+                                                            'WfAnaResult.__init__()',
+                                                            f"'baseline_min' ({baseline_min}) cannot be bigger or equal to 'baseline_max' ({baseline_max})."))
+        except TypeError:   # Happens if baseline_min
+            pass            # or baseline_max is None
 
         self.__baseline_min = baseline_min
         self.__baseline_max = baseline_max
