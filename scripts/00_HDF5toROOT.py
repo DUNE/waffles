@@ -11,11 +11,12 @@ import fddetdataformats
 import os, click, subprocess, stat
 import numpy as np
 
-from rich.progress import track
+from tqdm import tqdm
 from uproot import recreate as rc
-from uproot import update as up
 from uproot.models.TString import Model_TString as TString
+from multiprocessing import Pool
 
+map_id     = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 8], '107': [9, 10], '109': [11], '111': [12], '112': [13], '113': [14]}
 def find_endpoint(map_id, target_value):
     for key, value_list in map_id.items():
         if target_value in value_list:
@@ -51,8 +52,66 @@ def extract_fragment_info(frag):
        
     return trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value
 
+def root_creator(inputs):
+    raw_file, path_root, run, debug = inputs
+                
+    det        = 'HD_PDS'
+    h5_file    = HDF5RawDataFile(raw_file)
+    run_date   = h5_file.get_attribute('creation_timestamp')
+    run_id     = raw_file.split('_')[3]
+    root_file  = rc(f'{path_root}/{run}_{run_id}.root')
+    records    = h5_file.get_all_record_ids()
+
+    # Iterate through records
+    #for r in records:
+    for r in tqdm(records):
+        pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(r, detdataformats.DetID.string_to_subdetector(det)))
+
+        if debug: 
+            print("\nTrigger Timestamp from header:", trigger_ts)
+            print("NRECORD: ", r)
+        
+        # Iterate through geo_ids
+        for gid in pds_geo_ids:
+
+            frag = h5_file.get_frag(r, gid)
+            trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value = extract_fragment_info(frag)
+                    
+            endpoint = int(find_endpoint(map_id, scr_id))
+            channels = 100*int(endpoint) + channels 
+
+            if debug: 
+                print("GEO ID: ", gid)
+                print("FRAG ID: ", frag_id)
+                print("EP: ", endpoint)
+                print("CH: ", channels)
+                print("ADCS: ",adcs)
+
+            data = {
+                'channel'   : channels,
+                'timestamps': timestamps if trigger == 'self_trigger' else [[timestamps[0]]]*len(channels)
+            }
+
+            if trigger == 'self_trigger':
+                data['adcs']                 = adcs
+                data['threshold']            = threshold
+                data['baseline']             = baseline
+                data['trigger_sample_value'] = trigger_sample_value
+                
+            else:
+                adcs         = adcs.transpose()
+                adcs         = [selected_adcs[:262100] for selected_adcs in adcs]
+                data['adcs'] = adcs
+
+            try:
+                root_file[f'raw_waveforms_{trigger}'].extend(data)
+            except:
+                root_file[f'raw_waveforms_{trigger}'] = data
+               
+    root_file['metadata'] = ({'run': (int(run),), 'nrecords': (len(records),), 'detector': (TString(det),), 'date' : (TString(run_date),), 'ticks_to_nanoseconds': (float(1/16),), 'adc_to_volts': (float((1.5*3.2)/(2^(14)-1)),) })
+
 @click.command()
-@click.option("--path", '-p', default = '/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles', help="Insert the run number, ex: 026102")
+@click.option("--path", '-p', default = '/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles', help="Insert the desired path.")
 @click.option("--run" , '-r', default = None, help="Insert the run number, ex: 026102")
 @click.option("--debug",'-b', default = False, help="Insert the run number, ex: 026102", type=bool)
 
@@ -65,12 +124,9 @@ def main(path, run, debug):
         
     if len(run)!=1: runs_list = list(map(int, list(run.split(","))))
     else: runs_list = run
-
-    map_id = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 8], '107': [9, 10], '109': [11], '111': [12], '112': [13], '113': [14]}
+    
     for run in runs_list:
         run = str(run).zfill(6) # check if run have 6 digits and fill with zeros if not
-        det = 'HD_PDS'
-
         run_path = f'{path}/1_rucio_paths/{run}.txt'
         
         try: 
@@ -79,7 +135,7 @@ def main(path, run, debug):
         except FileNotFoundError: 
             subprocess.call(f"python get_rucio.py --runs {run}", shell=True)     
             run_path = f'{path}/1_rucio_paths/{run}.txt'
-        
+
         path_root = f'{path}/2_daq_root/run_{run}'
         
         try: 
@@ -88,63 +144,12 @@ def main(path, run, debug):
         except FileExistsError: print("DATA STRUCTURE ALREADY EXISTS") 
 
         with open(f'{run_path}', "r") as run_list: run_paths = run_list.readlines()
-        files = [run_path.rstrip('\n') for run_path in run_paths]
+        files  = [run_path.rstrip('\n') for run_path in run_paths]
+        inputs = [[raw_file, path_root, run, debug] for raw_file in files]
         
-        for raw_file in files:
-            h5_file    = HDF5RawDataFile(raw_file)
-            run_date   = h5_file.get_attribute('creation_timestamp')
-            run_id     = raw_file.split('_')[3]
-            root_file  = rc(f'{path_root}/{run}_{run_id}.root')
-            records    = h5_file.get_all_record_ids()
-            
-            # Iterate through records 
-            for r in track(records, description=f'Dumping {raw_file.split("/")[-1]} ...'):     
-                pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(r, detdataformats.DetID.string_to_subdetector(det)))
-                
-                ##TODO: store repeated data in log file?
-                ##TODO: check if the repeated nrecord has only the first frag repeated or all of them
-
-                if debug: 
-                    print("\nTrigger Timestamp from header:", trigger_ts)
-                    print("NRECORD: ", r)
-                
-                # Iterate through geo_ids
-                for gid in pds_geo_ids:
-
-                    frag = h5_file.get_frag(r, gid)
-                    trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value = extract_fragment_info(frag)
-                            
-                    endpoint = int(find_endpoint(map_id, scr_id))
-                    channels = 100*int(endpoint) + channels 
-
-                    if debug: 
-                        print("GEO ID: ", gid)
-                        print("FRAG ID: ", frag_id)
-                        print("EP: ", endpoint)
-                        print("CH: ", channels)
-                        print("ADCS: ",adcs)
-
-                    data = {
-                        'channel'   : channels,
-                        'timestamps': timestamps if trigger == 'self_trigger' else [[timestamps[0]]]*len(channels)
-                    }
-
-                    if trigger == 'self_trigger':
-                        data['adcs']                 = adcs
-                        data['threshold']            = threshold
-                        data['baseline']             = baseline
-                        data['trigger_sample_value'] = trigger_sample_value
-                        
-                    else:
-                        adcs         = adcs.transpose()
-                        adcs         = [selected_adcs[:262100] for selected_adcs in adcs]
-                        data['adcs'] = adcs
-
-                    try:
-                        root_file[f'raw_waveforms_{trigger}'].extend(data)
-                    except:
-                        root_file[f'raw_waveforms_{trigger}'] = data
-                       
-            root_file['metadata'] = ({'run': (int(run),), 'nrecords': (len(records),), 'detector': (TString(det),), 'date' : (TString(run_date),), 'ticks_to_nanoseconds': (float(1/16),), 'adc_to_volts': (float((1.5*3.2)/(2^(14)-1)),) })
+        with Pool(processes=len(files)) as pool:
+            process = pool.map(root_creator, inputs)
+        
 if __name__ == "__main__":
     main()
+
