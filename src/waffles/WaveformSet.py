@@ -386,6 +386,7 @@ class WaveformSet:
     
     def plot(self,  nrows : int = 1,
                     ncols : int = 1,
+                    figure : Optional[pgo.Figure] = None,
                     wfs_per_axes : Optional[int] = 1,
                     grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
                     plot_analysis_markers : bool = False,
@@ -407,6 +408,12 @@ class WaveformSet:
         nrows (resp. ncols) : int
             Number of rows (resp. columns) of the returned 
             grid of axes.
+        figure : plotly.graph_objects.Figure
+            If it is not None, then this method adds the
+            plots to this figure and eventually returns 
+            it. In such case, the number of rows (resp. 
+            columns) in such figure must match the 'nrows' 
+            (resp. 'ncols') parameter.
         wfs_per_axes : int
             If it is not None, then the argument given to 
             'grid_of_wf_idcs' will be ignored. In this case,
@@ -481,16 +488,35 @@ class WaveformSet:
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.plot()',
                                                         'The number of rows and columns must be positive.'))
+        fFigureIsGiven = False
+        if figure is not None:
+
+            try:
+                fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
+                fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
+
+            except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
+
+                raise Exception(generate_exception_message( 2,
+                                                            'WaveformSet.plot()',
+                                                            'The given figure is not a subplot grid.'))
+            if fig_rows != nrows or fig_cols != ncols:
+                
+                raise Exception(generate_exception_message( 3,
+                                                            'WaveformSet.plot()',
+                                                            f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
+            fFigureIsGiven = True
+
         fArbitraryWfs = False
         if wfs_per_axes is not None:
             if wfs_per_axes < 1:
-                raise Exception(generate_exception_message( 2,
+                raise Exception(generate_exception_message( 4,
                                                             'WaveformSet.plot()',
                                                             'The number of waveforms per axes must be positive.'))
             fArbitraryWfs = True
 
         elif grid_of_wf_idcs is None:
-            raise Exception(generate_exception_message( 3,
+            raise Exception(generate_exception_message( 5,
                                                         'WaveformSet.plot()',
                                                         "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
@@ -498,18 +524,23 @@ class WaveformSet:
                                                             nrows,
                                                             ncols):
                 
-                raise Exception(generate_exception_message( 4,
+                raise Exception(generate_exception_message( 6,
                                                             'WaveformSet.plot()',
                                                             f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
-        figure = psu.make_subplots( rows = nrows, 
-                                    cols = ncols)
+        if not fFigureIsGiven:
+
+            figure_ = psu.make_subplots(    rows = nrows, 
+                                            cols = ncols)
+        else:
+            figure_ = figure
+
         if fArbitraryWfs:
             counter = 0
             for i in range(nrows):
                 for j in range(ncols):
                     for k in range(wfs_per_axes):
 
-                        self.__waveforms[counter].plot( figure = figure,
+                        self.__waveforms[counter].plot( figure = figure_,
                                                         name = f"Wf {counter}, Ch {self.__waveforms[counter].Channel}, Ep {self.__waveforms[counter].Endpoint}",
                                                         row = i + 1,  # Plotly uses 1-based indexing
                                                         col = j + 1,
@@ -526,7 +557,7 @@ class WaveformSet:
                 for j in range(ncols):
                     for k in grid_of_wf_idcs[i][j]:
 
-                        self.__waveforms[k].plot(   figure = figure,
+                        self.__waveforms[k].plot(   figure = figure_,
                                                     name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
                                                     row = i + 1,  # Plotly uses 1-based indexing
                                                     col = j + 1,
@@ -537,7 +568,7 @@ class WaveformSet:
                                                     show_spotted_peaks = show_spotted_peaks,
                                                     show_peaks_integration_limits = show_peaks_integration_limits,
                                                     analysis_label = analysis_label)
-        return figure
+        return figure_
 
     @staticmethod
     def grid_of_lists_is_well_formed(   grid : List[List[List]],
