@@ -1166,94 +1166,279 @@ class WaveformSet:
         
         return True
     
-    def compute_mean_waveform(self, wf_selector : Optional[Callable[..., bool]] = None,
-                                    *args,
-                                    **kwargs) -> None:
+    def compute_mean_waveform(self, *args,
+                                    wf_idcs : Optional[List[int]] = None,
+                                    wf_selector : Optional[Callable[..., bool]] = None,
+                                    **kwargs) -> np.ndarray:
 
         """
-        If wf_selector is None, then this method 
-        computes mean of the adcs arrays for every 
-        waveform in this WaveformSet. If wf_selector
-        is not None, then this method computes the
-        mean of the adcs arrays of the waveforms, wf,
+        If wf_idcs is None and wf_selector is None,
+        then this method computes the mean of the adcs 
+        arrays for every waveform in this WaveformSet.
+        If wf_idcs is not None, then this method
+        computes the mean of the adcs arrays of the
+        waveform whose iterator values, with respect
+        to this WaveformSet, are given in wf_idcs.
+        If wf_idcs is None but wf_selector is not 
+        None, then this method computes the mean 
+        of the adcs arrays of the waveforms, wf,
         within this WaveformSet for which 
         wf_selector(wf, *args, **kwargs) evaluates 
-        to True. The result is assigned to the
+        to True. 
+        
+        In any case, the result is assigned to the
         self.__mean_adcs attribute. The 
         self.__mean_adcs_idcs attribute is also
         updated with a tuple of the indices of the
         waveforms which were used to compute the
-        mean waveform.
+        mean waveform. Finally, this method returns
+        the averaged adcs array.
 
         Parameters
         ----------
-        wf_selector : callable                                      
-            If it is not None, then it must be a callable
-            whose first parameter must be called 'waveform'
-            and its type annotation must match the Waveform
-            class. Its return value must be annotated as a
-            boolean.
         *args
+            These arguments only make a difference if
+            the 'wf_idcs' parameter is None and the
+            'wf_selector' parameter is suitable defined.
             For each waveform, wf, these are the 
             positional arguments which are given to
             wf_selector(wf, *args, **kwargs) as *args.
+        wf_idcs : list of int
+            If it is not None, then it must be a list
+            of integers which must be a valid iterator
+            value for the __waveforms attribute of this
+            WaveformSet. I.e. any integer i within such
+            list must satisfy
+            0 <= i <= len(self.__waveforms) - 1. Any
+            integer which does not satisfy this condition
+            is ignored. These integers give the waveforms
+            which are averaged.
+        wf_selector : callable 
+            This parameter only makes a difference if 
+            the 'wf_idcs' parameter is None. If that's 
+            the case, and 'wf_selector' is not None, then 
+            it must be a callable whose first parameter 
+            must be called 'waveform' and its type 
+            annotation must match the Waveform class. 
+            Its return value must be annotated as a 
+            boolean. In this case, the mean waveform 
+            is averaged over those waveforms, wf, for 
+            which wf_selector(wf, *args, **kwargs) 
+            evaluates to True.
         *kwargs
-            For each waveform, wf, these are the 
-            keyword arguments which are given to
-            wf_selector(wf, *args, **kwargs) as **kwargs.
+            These keyword arguments only make a 
+            difference if the 'wf_idcs' parameter is 
+            None and the 'wf_selector' parameter is 
+            suitable defined. For each waveform, wf, 
+            these are the keyword arguments which are 
+            given to wf_selector(wf, *args, **kwargs) 
+            as **kwargs.
 
         Returns
         ----------
-        None
+        output : np.ndarray
+            The averaged adcs array
         """
 
         if len(self.__waveforms) == 0:
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.compute_mean_waveform()',
                                                         'There are no waveforms in this WaveformSet object.'))
-        if wf_selector is None:
+        if wf_idcs is None and wf_selector is None:
 
-            aux = self.Waveforms[0].Adcs
-
-            for i in range(1, len(self.__waveforms)):
-                aux += self.Waveforms[i].Adcs
-
-            self.__mean_adcs = aux/len(self.__waveforms)
-            self.__mean_adcs_idcs = tuple(range(len(self.__waveforms)))
-
-        else:
+            output = self.__compute_mean_waveform_of_every_waveform()   # Average over every 
+                                                                        # waveform in this WaveformSet
+        elif wf_idcs is None and wf_selector is not None:
 
             signature = inspect.signature(wf_selector)
 
             if list(signature.parameters.keys())[0] != 'waveform':
                 raise Exception(generate_exception_message( 2,
-                                                            "WaveformSet.compute_mean_waveform",
+                                                            "WaveformSet.compute_mean_waveform()",
                                                             "The name of the first parameter of the given waveform-selector method must be 'waveform'."))
             
             if signature.parameters['waveform'].annotation != Waveform:
                 raise Exception(generate_exception_message( 3,
-                                                            "WaveformSet.compute_mean_waveform",
+                                                            "WaveformSet.compute_mean_waveform()",
                                                             "The 'waveform' parameter of the waveform-selector method must be hinted as a Waveform object."))
-            
             if signature.return_annotation != bool:
                 raise Exception(generate_exception_message( 4,
-                                                            "WaveformSet.compute_mean_waveform",
+                                                            "WaveformSet.compute_mean_waveform()",
                                                             "The return type of the waveform-selector method must be hinted as a boolean."))
-            added_wvfs = []
 
-            aux = np.zeros((self.__points_per_wf,))
+            output = self.__compute_mean_waveform_with_selector(wf_selector,
+                                                                *args,
+                                                                **kwargs)
+        else:
 
-            for i in range(len(self.__waveforms)):
-                if wf_selector(self.__waveforms[i], *args, **kwargs):
-                    aux += self.__waveforms[i].Adcs
-                    added_wvfs.append(i)
-                    
-            if len(added_wvfs) == 0:
+            fWfIdcsIsWellFormed = False
+            for idx in wf_idcs:
+                if self.is_valid_iterator_value(idx):
+
+                    fWfIdcsIsWellFormed = True
+                    break                       # Just make sure that there 
+                                                # is at least one valid 
+                                                # iterator value in the given list
+
+            if not fWfIdcsIsWellFormed:
                 raise Exception(generate_exception_message( 5,
                                                             'WaveformSet.compute_mean_waveform()',
-                                                            'No waveform in this WaveformSet object passed the given selector.'))
-            
-            self.__mean_adcs = aux/len(added_wvfs)
-            self.__mean_adcs_idcs = tuple(added_wvfs)
+                                                            'There is not even one valid iterator value in the given list. I.e. there are no waveforms to average.'))
 
-        return
+            output = self.__compute_mean_waveform_of_given_waveforms(wf_idcs)
+
+        return output
+    
+    def __compute_mean_waveform_of_every_waveform(self) -> np.ndarray:
+        
+        """
+        This method should only be called by the
+        WaveformSet.compute_mean_waveform() method,
+        where any necessary well-formedness checks 
+        have already been performed. It is called by 
+        such method in the case where both the 'wf_idcs' 
+        and the 'wf_selector' input parameters are 
+        None. This method sets the self.__mean_adcs
+        and self.__mean_adcs_idcs attributes according
+        to the WaveformSet.compute_mean_waveform()
+        method documentation. It also returns the averaged
+        adcs array. Refer to the 
+        WaveformSet.compute_mean_waveform() method 
+        documentation for more information.
+
+        Returns
+        ----------
+        output : np.ndarray
+            The averaged adcs array
+        """
+
+        aux = self.Waveforms[0].Adcs                # WaveformSet.compute_mean_waveform() 
+                                                    # has already checked that there is at 
+                                                    # least one waveform in this WaveformSet
+        for i in range(1, len(self.__waveforms)):
+            aux += self.Waveforms[i].Adcs
+
+        output = aux/len(self.__waveforms)
+
+        self.__mean_adcs = output
+        self.__mean_adcs_idcs = tuple(range(len(self.__waveforms)))
+
+        return output
+    
+    def __compute_mean_waveform_with_selector(self, wf_selector : Callable[..., bool],
+                                                    *args,
+                                                    **kwargs) -> np.ndarray:
+        
+        """
+        This method should only be called by the
+        WaveformSet.compute_mean_waveform() method,
+        where any necessary well-formedness checks 
+        have already been performed. It is called by 
+        such method in the case where the 'wf_idcs'
+        parameter is None and the 'wf_selector' 
+        parameter is suitably defined. This method 
+        sets the self.__mean_adcs and 
+        self.__mean_adcs_idcs attributes according
+        to the WaveformSet.compute_mean_waveform()
+        method documentation. It also returns the 
+        averaged adcs array. Refer to the 
+        WaveformSet.compute_mean_waveform() method 
+        documentation for more information.
+
+        Parameters
+        ----------
+        wf_selector : callable
+        *args
+        **kwargs
+
+        Returns
+        ----------
+        output : np.ndarray
+            The averaged adcs array
+        """
+
+        added_wvfs = []
+
+        aux = np.zeros((self.__points_per_wf,))
+
+        for i in range(len(self.__waveforms)):
+            if wf_selector(self.__waveforms[i], *args, **kwargs):
+                aux += self.__waveforms[i].Adcs
+                added_wvfs.append(i)
+                
+        if len(added_wvfs) == 0:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.__compute_mean_waveform_with_selector()',
+                                                        'No waveform in this WaveformSet object passed the given selector.'))
+        output = aux/len(added_wvfs)
+        
+        self.__mean_adcs = output
+        self.__mean_adcs_idcs = tuple(added_wvfs)
+
+        return output
+    
+    def __compute_mean_waveform_of_given_waveforms(self, wf_idcs : List[int]) -> np.ndarray:
+        
+        """
+        This method should only be called by the
+        WaveformSet.compute_mean_waveform() method,
+        where any necessary well-formedness checks 
+        have already been performed. It is called by 
+        such method in the case where the 'wf_idcs'
+        parameter is not None, regardless the input
+        given to the 'wf_selector' parameter. This 
+        method sets the self.__mean_adcs and 
+        self.__mean_adcs_idcs attributes according
+        to the WaveformSet.compute_mean_waveform()
+        method documentation. It also returns the 
+        averaged adcs array. Refer to the 
+        WaveformSet.compute_mean_waveform() method 
+        documentation for more information.
+
+        Parameters
+        ----------
+        wf_idcs : list of int
+
+        Returns
+        ----------
+        output : np.ndarray
+            The averaged adcs array
+        """
+
+        added_wvfs = []
+
+        aux = np.zeros((self.__points_per_wf,))
+
+        for idx in wf_idcs:
+            try:                # WaveformSet.compute_mean_waveform() only checked that there 
+                                # is at least one valid iterator value, but we need to handle
+                                # the case where there are invalid iterator values
+
+                aux += self.__waveforms[idx].Adcs
+            except IndexError:
+                continue        # Ignore the invalid iterator values as specified in the 
+                                # WaveformSet.compute_mean_waveform() method documentation
+            else:
+                added_wvfs.append(idx)
+                
+        output = aux/len(added_wvfs)        # len(added_wvfs) must be at least 1. This was already
+                                            # checked by WaveformSet.compute_mean_waveform()
+        self.__mean_adcs = output
+        self.__mean_adcs_idcs = tuple(added_wvfs)
+
+        return output
+
+    def is_valid_iterator_value(self, iterator_value : int) -> bool:
+
+        """
+        This method returns True if
+        0 <= iterator_value <= len(self.__waveforms) - 1,
+        and False if else.
+        """
+
+        if iterator_value < 0:
+            return False
+        elif iterator_value <= len(self.__waveforms) - 1:
+            return True
+        else:
+            return False
