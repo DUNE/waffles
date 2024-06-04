@@ -38,12 +38,15 @@ class WaveformSet:
         endpoint n. If there is at least one waveform for
         endpoint n and channel m, then m belongs to 
         AvailableChannels[n].
-    MeanAdcs : np.ndarray
+    MeanAdcs : WaveformAdcs
         The mean of the adcs arrays for every waveform
         or a subset of waveforms in this WaveformSet. It 
-        is an unidimensional float numpy array with 
-        PointsPerWf entries, so that MeanAdcs[i] is the 
-        mean of self.Waveforms[j].Adcs[i] for every value
+        is a WaveformAdcs object whose TimeStep_ns
+        attribute is assumed to match that of the first
+        waveform which was used in the average sum.
+        Its Adcs attribute contains PointsPerWf entries,
+        so that MeanAdcs.Adcs[i] is the mean of 
+        self.Waveforms[j].Adcs[i] for every value
         of j or a subset of values of j, within 
         [0, len(self.__waveforms) - 1]. It is not 
         computed by default. I.e. if self.MeanAdcs 
@@ -53,11 +56,12 @@ class WaveformSet:
     MeanAdcsIdcs : tuple of int
         It is a tuple of integers which contains the indices
         of the waveforms, with respect to this WaveformSet,
-        which were used to compute the MeanAdcs attribute.
-        By default, it is None. I.e. if self.MeanAdcsIdcs
-        equals to None, it should be interpreted as
-        unavailable data. Call the 'compute_mean_waveform'
-        method of this WaveformSet to compute it.
+        which were used to compute the MeanAdcs.Adcs 
+        attribute. By default, it is None. I.e. if 
+        self.MeanAdcsIdcs equals to None, it should be 
+        interpreted as unavailable data. Call the 
+        'compute_mean_waveform' method of this WaveformSet 
+        to compute it.
 
     Methods
     ----------
@@ -1169,30 +1173,36 @@ class WaveformSet:
     def compute_mean_waveform(self, *args,
                                     wf_idcs : Optional[List[int]] = None,
                                     wf_selector : Optional[Callable[..., bool]] = None,
-                                    **kwargs) -> np.ndarray:
+                                    **kwargs) -> WaveformAdcs:
 
         """
         If wf_idcs is None and wf_selector is None,
-        then this method computes the mean of the adcs 
-        arrays for every waveform in this WaveformSet.
-        If wf_idcs is not None, then this method
-        computes the mean of the adcs arrays of the
-        waveform whose iterator values, with respect
-        to this WaveformSet, are given in wf_idcs.
-        If wf_idcs is None but wf_selector is not 
-        None, then this method computes the mean 
-        of the adcs arrays of the waveforms, wf,
-        within this WaveformSet for which 
+        then this method creates a WaveformAdcs
+        object whose Adcs attribute is the mean 
+        of the adcs arrays for every waveform in 
+        this WaveformSet. If wf_idcs is not None, 
+        then such mean is computed using the adcs
+        arrays of the waveforms whose iterator 
+        values, with respect to this WaveformSet, 
+        are given in wf_idcs. If wf_idcs is None 
+        but wf_selector is not None, then such 
+        mean is computed using the adcs arrays
+        of the waveforms, wf, within this 
+        WaveformSet for which 
         wf_selector(wf, *args, **kwargs) evaluates 
-        to True. 
+        to True. In any case, the TimeStep_ns
+        attribute of the newly created WaveformAdcs
+        object assumed to match that of the first
+        waveform which was used in the average sum.
         
-        In any case, the result is assigned to the
+        In any case, the resulting WaveformAdcs
+        object is assigned to the
         self.__mean_adcs attribute. The 
         self.__mean_adcs_idcs attribute is also
         updated with a tuple of the indices of the
         waveforms which were used to compute the
-        mean waveform. Finally, this method returns
-        the averaged adcs array.
+        mean WaveformAdcs. Finally, this method 
+        returns the averaged WaveformAdcs object.
 
         Parameters
         ----------
@@ -1285,11 +1295,13 @@ class WaveformSet:
                                                             'WaveformSet.compute_mean_waveform()',
                                                             'There is not even one valid iterator value in the given list. I.e. there are no waveforms to average.'))
 
-            output = self.__compute_mean_waveform_of_given_waveforms(wf_idcs)
-
+            output = self.__compute_mean_waveform_of_given_waveforms(wf_idcs)   ## In this case we also need to remove indices
+                                                                                ## redundancy (if any) before giving wf_idcs to
+                                                                                ## WaveformSet.__compute_mean_waveform_of_given_waveforms.
+                                                                                ## This is a open issue for now.
         return output
     
-    def __compute_mean_waveform_of_every_waveform(self) -> np.ndarray:
+    def __compute_mean_waveform_of_every_waveform(self) -> WaveformAdcs:
         
         """
         This method should only be called by the
@@ -1301,8 +1313,8 @@ class WaveformSet:
         None. This method sets the self.__mean_adcs
         and self.__mean_adcs_idcs attributes according
         to the WaveformSet.compute_mean_waveform()
-        method documentation. It also returns the averaged
-        adcs array. Refer to the 
+        method documentation. It also returns the 
+        averaged WaveformAdcs object. Refer to the 
         WaveformSet.compute_mean_waveform() method 
         documentation for more information.
 
@@ -1318,8 +1330,9 @@ class WaveformSet:
         for i in range(1, len(self.__waveforms)):
             aux += self.Waveforms[i].Adcs
 
-        output = aux/len(self.__waveforms)
-
+        output = WaveformAdcs(  self.__waveforms[0].TimeStep_ns,
+                                aux/len(self.__waveforms))
+        
         self.__mean_adcs = output
         self.__mean_adcs_idcs = tuple(range(len(self.__waveforms)))
 
@@ -1327,7 +1340,7 @@ class WaveformSet:
     
     def __compute_mean_waveform_with_selector(self, wf_selector : Callable[..., bool],
                                                     *args,
-                                                    **kwargs) -> np.ndarray:
+                                                    **kwargs) -> WaveformAdcs:
         
         """
         This method should only be called by the
@@ -1341,7 +1354,7 @@ class WaveformSet:
         self.__mean_adcs_idcs attributes according
         to the WaveformSet.compute_mean_waveform()
         method documentation. It also returns the 
-        averaged adcs array. Refer to the 
+        averaged WaveformAdcs object. Refer to the 
         WaveformSet.compute_mean_waveform() method 
         documentation for more information.
 
@@ -1370,14 +1383,16 @@ class WaveformSet:
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.__compute_mean_waveform_with_selector()',
                                                         'No waveform in this WaveformSet object passed the given selector.'))
-        output = aux/len(added_wvfs)
+    
+        output = WaveformAdcs(  self.__waveforms[added_wvfs[0]].TimeStep_ns,
+                                aux/len(added_wvfs))
         
         self.__mean_adcs = output
         self.__mean_adcs_idcs = tuple(added_wvfs)
 
         return output
     
-    def __compute_mean_waveform_of_given_waveforms(self, wf_idcs : List[int]) -> np.ndarray:
+    def __compute_mean_waveform_of_given_waveforms(self, wf_idcs : List[int]) -> WaveformAdcs:
         
         """
         This method should only be called by the
@@ -1391,7 +1406,7 @@ class WaveformSet:
         self.__mean_adcs_idcs attributes according
         to the WaveformSet.compute_mean_waveform()
         method documentation. It also returns the 
-        averaged adcs array. Refer to the 
+        averaged WaveformAdcs object. Refer to the 
         WaveformSet.compute_mean_waveform() method 
         documentation for more information.
 
@@ -1420,9 +1435,11 @@ class WaveformSet:
                                 # WaveformSet.compute_mean_waveform() method documentation
             else:
                 added_wvfs.append(idx)
-                
-        output = aux/len(added_wvfs)        # len(added_wvfs) must be at least 1. This was already
-                                            # checked by WaveformSet.compute_mean_waveform()
+
+        output = WaveformAdcs(  self.__waveforms[added_wvfs[0]].TimeStep_ns,
+                                aux/len(added_wvfs))                            # len(added_wvfs) must be at least 1. 
+                                                                                # This was already checked by 
+                                                                                # WaveformSet.compute_mean_waveform()
         self.__mean_adcs = output
         self.__mean_adcs_idcs = tuple(added_wvfs)
 
