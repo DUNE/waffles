@@ -81,7 +81,7 @@ class WaveformSet:
 
         if not self.check_length_homogeneity():
             raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.__init__',
+                                                        'WaveformSet.__init__()',
                                                         'The length of the given waveforms is not homogeneous.'))
         
         self.__points_per_wf = len(self.__waveforms[0].Adcs)
@@ -298,21 +298,21 @@ class WaveformSet:
         try:
             if list(signature.parameters.keys())[0] != 'waveform':
                 raise Exception(generate_exception_message( 5,
-                                                            "WaveformSet.analyse",
+                                                            "WaveformSet.analyse()",
                                                             "The name of the first parameter of the given analyser method must be 'waveform'."))
             
             if signature.parameters['waveform'].annotation not in ['WaveformAdcs', WaveformAdcs]:
                 raise Exception(generate_exception_message( 6,
-                                                            "WaveformSet.analyse",
+                                                            "WaveformSet.analyse()",
                                                             "The 'waveform' parameter of the analyser method must be hinted as a WaveformAdcs object."))
             
             if signature.return_annotation != Tuple[WfAnaResult, bool, dict]:
                 raise Exception(generate_exception_message( 7,
-                                                            "WaveformSet.analyse",
+                                                            "WaveformSet.analyse()",
                                                             "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool, dict]."))
         except IndexError:
             raise Exception(generate_exception_message( 8,
-                                                        "WaveformSet.analyse",
+                                                        "WaveformSet.analyse()",
                                                         'The given analyser method must take at least one parameter.'))
         output = {}
 
@@ -616,7 +616,7 @@ class WaveformSet:
             fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
         except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
             raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.update_shared_axes_status',
+                                                        'WaveformSet.update_shared_axes_status()',
                                                         'The given figure is not a subplot grid.'))
         
         fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
