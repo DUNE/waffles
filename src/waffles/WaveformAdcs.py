@@ -104,9 +104,9 @@ class WaveformAdcs:
     def analyse(self,   label : str,
                         analyser_name : str,
                         baseline_limits : List[int],
+                        *args,
                         int_ll : int = 0,
                         int_ul : Optional[int] = None,
-                        *args,
                         overwrite : bool = False,
                         **kwargs) -> dict:
 
@@ -156,6 +156,9 @@ class WaveformAdcs:
             caller's responsibility to ensure the
             well-formedness of this input. No checks are
             performed here for 'baseline_limits'.
+        *args
+            Positional arguments which are given to the 
+            analyser method.
         int_ll (resp. int_ul): int
             Given to the 'int_ll' (resp. 'int_ul') parameter of
             WfAna.__init__. Iterator value for the first (resp. 
@@ -166,9 +169,6 @@ class WaveformAdcs:
             It is the caller's responsibility to ensure the 
             well-formedness of this input. No checks are
             performed here for this parameter.
-        *args
-            Positional arguments which are given to the 
-            analyser method.
         overwrite : bool
             If True, the method will overwrite any existing
             WfAna object with the same label (key) within

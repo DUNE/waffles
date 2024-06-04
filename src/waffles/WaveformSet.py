@@ -320,9 +320,9 @@ class WaveformSet:
             output[i] = self.__waveforms[i].analyse(    label,
                                                         analyser_name,
                                                         baseline_limits,
+                                                        *args,
                                                         int_ll = int_ll,
                                                         int_ul = int_ul_,
-                                                        *args,
                                                         overwrite = overwrite,
                                                         **kwargs)
         return output
