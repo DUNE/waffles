@@ -177,9 +177,9 @@ class WaveformSet:
     def analyse(self,   label : str,
                         analyser_name : str,
                         baseline_limits : List[int],
+                        *args,
                         int_ll : int = 0,
                         int_ul : Optional[int] = None,
-                        *args,
                         overwrite : bool = False,
                         **kwargs) -> dict:
         
@@ -231,6 +231,10 @@ class WaveformSet:
             information check the 'baseline_limits' 
             parameter documentation in the 
             Waveform.analyse() docstring.
+        *args
+            For each analysed waveform, these are the 
+            positional arguments which are given to the
+            analyser method by WaveformAdcs.analyse().
         int_ll (resp. int_ul): int
             For every analysed waveform, it defines the
             integration window (it is given to the 'int_ll'
@@ -242,10 +246,6 @@ class WaveformSet:
             For more information check the 'int_ll' and 
             'int_ul' parameters documentation in the 
             Waveform.analyse() docstring.
-        *args
-            For each analysed waveform, these are the 
-            positional arguments which are given to the
-            analyser method by WaveformAdcs.analyse().
         overwrite : bool
             If True, for every analysed Waveform wf, its
             'analyse' method will overwrite any existing
