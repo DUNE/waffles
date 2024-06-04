@@ -367,7 +367,28 @@ class WaveformAdcs:
                                     col = col)
                 
             if show_general_integration_limits:  # Plot the markers for the general integration limits
-                pass    ## To be implemented 
+
+                    figure.add_shape(   type = 'line',
+                                        x0 = x[aux.IntLl], y0 = 0,
+                                        x1 = x[aux.IntLl], y1 = 1,
+                                        line = dict(color = 'black',        # Properties for
+                                                    width = 1,              # the beginning of
+                                                    dash = 'solid'),        # a baseline chunk
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
+                    
+                    figure.add_shape(   type = 'line',
+                                        x0 = x[aux.IntUl], y0 = 0,
+                                        x1 = x[aux.IntUl], y1 = 1,
+                                        line = dict(color = 'black',        # Properties for
+                                                    width = 1,              # the beginning of
+                                                    dash = 'solid'),        # a baseline chunk
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
             
             if show_spotted_peaks:      # Plot the markers for the spotted peaks
 
