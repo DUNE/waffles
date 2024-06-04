@@ -389,6 +389,8 @@ class WaveformSet:
                     figure : Optional[pgo.Figure] = None,
                     wfs_per_axes : Optional[int] = 1,
                     grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
+                    share_x_scale : bool = False,
+                    share_y_scale : bool = False,
                     plot_analysis_markers : bool = False,
                     show_baseline_limits : bool = False, 
                     show_baseline : bool = True,
@@ -430,6 +432,9 @@ class WaveformSet:
             waveforms, with respect to this WaveformSet, which 
             should be plotted in the axes located at the i-th 
             row and j-th column.
+        share_x_scale (resp. share_y_scale) : bool
+            If True, the x-axis (resp. y-axis) scale will be 
+            shared among all the subplots.
         plot_analysis_markers : bool
             This parameter is given to the 'plot_analysis_markers' 
             argument of the Waveform.plot() method for each 
@@ -528,14 +533,20 @@ class WaveformSet:
                                                             'WaveformSet.plot()',
                                                             f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
         if not fFigureIsGiven:
-
+            
             figure_ = psu.make_subplots(    rows = nrows, 
                                             cols = ncols)
         else:
             figure_ = figure
 
-        if fArbitraryWfs:
-            counter = 0
+        WaveformSet.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
+                                                share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
+                                                share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
+                                                                            # that alternative is only doable for 
+                                                                            # the case where the given 'figure'
+                                                                            # parameter is None.
+        if fArbitraryWfs: 
+            counter = 0                                                         
             for i in range(nrows):
                 for j in range(ncols):
                     for k in range(wfs_per_axes):
@@ -569,6 +580,56 @@ class WaveformSet:
                                                     show_peaks_integration_limits = show_peaks_integration_limits,
                                                     analysis_label = analysis_label)
         return figure_
+    
+    @staticmethod
+    def update_shared_axes_status(  figure : pgo.Figure,
+                                    share_x : bool = False,
+                                    share_y : bool = True) -> pgo.Figure:
+        
+        """
+        If share_x (resp. share_y) is True, then this
+        method makes the x-axis (resp. y-axis) scale 
+        of every subplot in the given figure shared.
+        If share_x (resp. share_y) is False, then this
+        method will reset the shared-status of the 
+        x-axis (resp. y-axis) so that they are not 
+        shared anymore. Finally, it returns the figure 
+        with the shared y-axes.
+
+        Parameters
+        ----------
+        figure : plotly.graph_objects.Figure
+            The figure whose subplots will share the
+            selected axes scale.
+        share_x (resp. share_y): bool
+            If True, the x-axis (resp. y-axis) scale will be
+            shared among all the subplots. If False, the
+            x-axis (resp. y-axis) scale will not be shared
+            anymore.
+        
+        Returns
+        ----------
+        figure : plotly.graph_objects.Figure
+        """
+        
+        try:
+            fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
+        except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.update_shared_axes_status',
+                                                        'The given figure is not a subplot grid.'))
+        
+        fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
+
+        aux_x = None if not share_x else 'x'
+        aux_y = None if not share_y else 'y'
+        
+        for i in range(fig_rows):
+            for j in range(fig_cols):
+                figure.update_xaxes(matches=aux_x, row=i+1, col=j+1)
+                figure.update_yaxes(matches=aux_y, row=i+1, col=j+1)
+
+        return figure
 
     @staticmethod
     def grid_of_lists_is_well_formed(   grid : List[List[List]],
