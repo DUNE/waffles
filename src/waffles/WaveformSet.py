@@ -674,27 +674,39 @@ class WaveformSet:
 
     def get_grid_of_wf_idcs(self,   nrows : int,
                                     ncols : int,
-                                    wf_filter : Callable[..., bool],
-                                    filter_args : List[List[List]],
+                                    wfs_per_axes : Optional[int] = None,
+                                    wf_filter : Optional[Callable[..., bool]] = None,
+                                    filter_args : Optional[List[List[List]]] = None,
                                     max_wfs_per_axes : Optional[int] = 5) -> List[List[List[int]]]:
         
         """
-        This method returns a list of lists of lists of integers.
+        This method returns a list of lists of lists of integers,
+        which should be interpreted as iterator values for
+        waveforms in this WaveformSet object.
 
         Parameters
         ----------
         nrows : int
-            The length of the returned list. It must match
-            the length of the filter_args list.
+            The length of the returned list.
         ncols : 
             The length of every list within the returned 
-            list. It must match the length of every list
-            within the filter_args list.
+            list.
+        wfs_per_axes : int
+            If it is not None, then it must be a positive
+            integer, so that the iterator values contained 
+            in the output grid are contiguous in
+            [0, nrows*ncols*wfs_per_axes - 1]. I.e.
+            output[0][0] contains 0, 1, ... , wfs_per_axes - 1,
+            output[0][1] contains wfs_per_axes, wfs_per_axes + 1,
+            ... , 2*wfs_per_axes - 1, and so on. 
         wf_filter : callable
-            A callable object whose first parameter must be
-            called 'waveform' and must be hinted as a Waveform
-            object. Such callable must return a boolean value.
-            If wf_filter is 
+            This parameter only makes a difference if
+            the 'wfs_per_axes' parameter is None. In such
+            case, this one must be a callable object whose 
+            first parameter must be called 'waveform' and 
+            must be hinted as a Waveform object. Also, the
+            return type of such callable must be annotated
+            as a boolean. If wf_filter is 
                 - WaveformSet.match_run or
                 - WaveformSet.match_endpoint_and_channel,
             this method can benefit from the information in
@@ -703,87 +715,135 @@ class WaveformSet:
             the case where an arbitrary (but compliant) 
             callable is passed to wf_filter.
         filter_args : list of list of list
-            filter_args[i][j], for all i and j, is a list of 
-            arguments which will be given to wf_filter at
-            some point. The user is responsible for giving
-            a set of arguments which comply with the signature
-            of the specified wf_filter. For more information 
-            check the return value documentation.
+            This parameter only makes a difference if 
+            the 'wfs_per_axes' parameter is None. In such
+            case, this parameter must be defined and
+            it must contain nrows lists, each of which
+            must contain ncols lists. filter_args[i][j],
+            for all i and j, is interpreted as a list of
+            arguments which will be given to wf_filter
+            at some point. The user is responsible for
+            giving a set of arguments which comply with
+            the signature of the specified wf_filter.
+            For more information check the return value 
+            documentation.
         max_wfs_per_axes : int
-            If it is not None, then output[i][j] will contain
-            the indices for the first max_wfs_per_axes waveforms
-            in this WaveformSet which passed the filter.
-            If it is None, then this function iterates through
-            the whole WaveformSet for every i,j pair.
-            Note that setting this parameter to None may
-            result in a long execution time.
+            This parameter only makes a difference if           ## If max_wfs_per_axes applies and 
+            the 'wfs_per_axes' parameter is None. In such       ## is a positive integer, it is never
+            case, and if 'max_wfs_per_axes' is not None,        ## checked that there are enough waveforms
+            then output[i][j] will contain the indices for      ## in the WaveformSet to fill the grid.
+            the first max_wfs_per_axes waveforms in this        ## This is an open issue.
+            WaveformSet which passed the filter. If it is 
+            None, then this function iterates through the 
+            whole WaveformSet for every i,j pair. Note that 
+            setting this parameter to None may result in a 
+            long execution time.
 
         Returns
         ----------
         output : list of list of list of int
-            output[i][j] gives the indices of the waveforms
-            in this WaveformSet object, say wf, for which
+            If the 'wfs_per_axes' parameter is defined, then
+            the iterator values contained in the output grid 
+            are contiguous in [0, nrows*ncols*wfs_per_axes - 1].
+            For more information, check the 'wfs_per_axes'
+            parameter documentation. If the 'wfs_per_axes'
+            is not defined, then the 'wf_filter' and 'filter_args'
+            parameters must be defined and output[i][j] gives 
+            the indices of the waveforms in this WaveformSet 
+            object, say wf, for which 
             wf_filter(wf, *filter_args[i][j]) returns True.
+            In this last case, the number of indices in each
+            grid slot may be limited, up to the value given
+            to the 'max_wfs_per_axes' parameter.
         """
 
         if nrows < 1 or ncols < 1:
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.get_grid_of_wf_idcs()',
                                                         'The number of rows and columns must be positive.'))
+        fFilteringMode = True
+        if wfs_per_axes is not None:
+            if wfs_per_axes < 1:
+                raise Exception(generate_exception_message( 2,
+                                                            'WaveformSet.get_grid_of_wf_idcs()',
+                                                            f"The given wfs_per_axes ({wfs_per_axes}) must be positive."))
+            fFilteringMode = False
 
-        if not WaveformSet.grid_of_lists_is_well_formed(filter_args,
-                                                        nrows,
-                                                        ncols):
+        fMaxIsSet = None    # This one should only be defined as
+                            # a boolean if fFilteringMode is True
+        if fFilteringMode:
+
+            try:
+                signature = inspect.signature(wf_filter)
+            except TypeError:
+                raise Exception(generate_exception_message( 3,
+                                                            'WaveformSet.get_grid_of_wf_idcs()',
+                                                            "The given wf_filter is not defined or is not callable. It must be suitably defined because the 'wfs_per_axes' parameter is not. At least one of them must be suitably defined."))
+
+            if list(signature.parameters.keys())[0] != 'waveform':
+                raise Exception(generate_exception_message( 4,
+                                                            'WaveformSet.get_grid_of_wf_idcs()',
+                                                            "The name of the first parameter of the given filter must be 'waveform'."))
             
-            raise Exception(generate_exception_message( 2,
-                                                        'WaveformSet.get_grid_of_wf_idcs()',
-                                                        f"The shape of the given filter_args list is not nrows ({nrows}) x ncols ({ncols})."))
-        
-        signature = inspect.signature(wf_filter)
-
-        if list(signature.parameters.keys())[0] != 'waveform':
-            raise Exception(generate_exception_message( 3,
-                                                        'WaveformSet.get_grid_of_wf_idcs()',
-                                                        "The name of the first parameter of the given filter must be 'waveform'."))
-        
-        if signature.parameters['waveform'].annotation != Waveform:
-            raise Exception(generate_exception_message( 4,
-                                                        'WaveformSet.get_grid_of_wf_idcs()',
-                                                        "The 'waveform' parameter of the filter must be hinted as a Waveform object."))
-        fMaxIsSet = False
-        if max_wfs_per_axes is not None:
-            if max_wfs_per_axes < 1:
+            if signature.parameters['waveform'].annotation != Waveform:
                 raise Exception(generate_exception_message( 5,
                                                             'WaveformSet.get_grid_of_wf_idcs()',
-                                                            'The number of waveforms per axes must be positive.'))
-            fMaxIsSet = True
+                                                            "The 'waveform' parameter of the filter must be hinted as a Waveform object."))
+            if filter_args is None:
+                raise Exception(generate_exception_message( 6,
+                                                            'WaveformSet.get_grid_of_wf_idcs()',
+                                                            "The 'filter_args' parameter must be defined if the 'wfs_per_axes' parameter is not."))
+            
+            elif not WaveformSet.grid_of_lists_is_well_formed(  filter_args,
+                                                                nrows,
+                                                                ncols):
+                    
+                    raise Exception(generate_exception_message( 7,
+                                                                'WaveformSet.get_grid_of_wf_idcs()',
+                                                                f"The shape of the given filter_args list is not nrows ({nrows}) x ncols ({ncols})."))
+            fMaxIsSet = False
+            if max_wfs_per_axes is not None:
+                if max_wfs_per_axes < 1:
+                    raise Exception(generate_exception_message( 8,
+                                                                'WaveformSet.get_grid_of_wf_idcs()',
+                                                                f"The given max_wfs_per_axes ({max_wfs_per_axes}) must be positive."))
+                fMaxIsSet = True
 
-        mode_map = {WaveformSet.match_run : 0,
-                    WaveformSet.match_endpoint_and_channel : 1}
-        try:
-            fMode = mode_map[wf_filter]
-        except KeyError:
-            fMode = 2
+        if not fFilteringMode:
 
-        output = WaveformSet.get_2D_empty_nested_list(nrows, ncols)
+            return WaveformSet.get_2D_indices_nested_list(  wfs_per_axes,
+                                                            nrows = nrows,
+                                                            ncols = ncols)
+            
+        else:   # fFilteringMode is True and so, wf_filter, 
+                # filter_args and fMaxIsSet are defined
 
-        if fMode == 0:
-            return self.__get_grid_of_wf_idcs_by_run(   output,
-                                                        filter_args,
-                                                        fMaxIsSet,
-                                                        max_wfs_per_axes)
-        elif fMode == 1:
-            return self.__get_grid_of_wf_idcs_by_endpoint_and_channel(  output,
-                                                                        filter_args,
-                                                                        fMaxIsSet,
-                                                                        max_wfs_per_axes)
-        else:
-            return self.__get_grid_of_wf_idcs_general(  output,
-                                                        wf_filter,
-                                                        filter_args,
-                                                        fMaxIsSet,
-                                                        max_wfs_per_axes)
-    
+            mode_map = {WaveformSet.match_run : 0,
+                        WaveformSet.match_endpoint_and_channel : 1}
+            try:
+                fMode = mode_map[wf_filter]
+            except KeyError:
+                fMode = 2
+
+            output = WaveformSet.get_2D_empty_nested_list(nrows, ncols)
+
+            if fMode == 0:
+                return self.__get_grid_of_wf_idcs_by_run(   output,
+                                                            filter_args,
+                                                            fMaxIsSet,
+                                                            max_wfs_per_axes)
+            elif fMode == 1:
+                return self.__get_grid_of_wf_idcs_by_endpoint_and_channel(  output,
+                                                                            filter_args,
+                                                                            fMaxIsSet,
+                                                                            max_wfs_per_axes)
+            else:
+                return self.__get_grid_of_wf_idcs_general(  output,
+                                                            wf_filter,
+                                                            filter_args,
+                                                            fMaxIsSet,
+                                                            max_wfs_per_axes)
+
     @staticmethod
     def match_run(  waveform : Waveform,
                     run : int) -> bool:
@@ -1038,6 +1098,49 @@ class WaveformSet:
                                                         'The number of rows and columns must be positive.'))
 
         return [[[] for _ in range(ncols)] for _ in range(nrows)]
+    
+    @staticmethod
+    def get_2D_indices_nested_list( indices_per_slot : int,
+                                    nrows : int = 1,
+                                    ncols : int = 1) -> List[List[List]]:
+        
+        """
+        This method returns a 2D nested list with nrows
+        rows and ncols columns. Such nested list, say
+        output, contains contiguous positive integers in
+        [0, nrows*ncols*indices_per_slot - 1]. I.e.
+        output[0][0] contains 0, 1, ... , indices_per_slot - 1,
+        output[0][1] contains indices_per_slot, 
+        indices_per_slot + 1, ...  , 2*indices_per_slot - 1, 
+        and so on. 
+        
+        Parameters
+        ----------
+        indices_per_slot : int
+            The number of indices contained within each 
+            slot in the returned output grid
+        nrows (resp. ncols) : int
+            Number of rows (resp. columns) of the returned 
+            nested list
+
+        Returns
+        ----------
+        list of list of list
+            A list containing nrows lists, each of them
+            containing ncols lists, each of them containing
+            indices_per_slot integers.
+        """
+
+        if nrows < 1 or ncols < 1:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.get_2D_indices_nested_list()',
+                                                        f"The given number of rows ({nrows}) and columns ({ncols}) must be positive."))
+        if indices_per_slot < 1:
+            raise Exception(generate_exception_message( 2,
+                                                        'WaveformSet.get_2D_indices_nested_list()',
+                                                        f"The given number of indices per slot ({indices_per_slot}) must be positive."))
+        
+        return [[[k + indices_per_slot*(j + (ncols*i)) for k in range(indices_per_slot)] for j in range(ncols)] for i in range(nrows)]
 
     @classmethod
     def from_ROOT_file(cls, filepath : str,
