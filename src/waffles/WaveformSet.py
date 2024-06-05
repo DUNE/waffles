@@ -861,17 +861,10 @@ class WaveformSet:
                                                             'WaveformSet.get_grid_of_wf_idcs()',
                                                             "The given wf_filter is not defined or is not callable. It must be suitably defined because the 'wfs_per_axes' parameter is not. At least one of them must be suitably defined."))
 
-            if list(signature.parameters.keys())[0] != 'waveform':
-                raise Exception(generate_exception_message( 4,
-                                                            'WaveformSet.get_grid_of_wf_idcs()',
-                                                            "The name of the first parameter of the given filter must be 'waveform'."))
-            
-            if signature.parameters['waveform'].annotation != Waveform:
-                raise Exception(generate_exception_message( 5,
-                                                            'WaveformSet.get_grid_of_wf_idcs()',
-                                                            "The 'waveform' parameter of the filter must be hinted as a Waveform object."))
+            WaveformSet.check_well_formedness_of_generic_waveform_function(signature)
+
             if filter_args is None:
-                raise Exception(generate_exception_message( 6,
+                raise Exception(generate_exception_message( 4,
                                                             'WaveformSet.get_grid_of_wf_idcs()',
                                                             "The 'filter_args' parameter must be defined if the 'wfs_per_axes' parameter is not."))
             
@@ -879,13 +872,13 @@ class WaveformSet:
                                                                 nrows,
                                                                 ncols):
                     
-                    raise Exception(generate_exception_message( 7,
+                    raise Exception(generate_exception_message( 5,
                                                                 'WaveformSet.get_grid_of_wf_idcs()',
                                                                 f"The shape of the given filter_args list is not nrows ({nrows}) x ncols ({ncols})."))
             fMaxIsSet = False
             if max_wfs_per_axes is not None:
                 if max_wfs_per_axes < 1:
-                    raise Exception(generate_exception_message( 8,
+                    raise Exception(generate_exception_message( 6,
                                                                 'WaveformSet.get_grid_of_wf_idcs()',
                                                                 f"The given max_wfs_per_axes ({max_wfs_per_axes}) must be positive."))
                 fMaxIsSet = True
@@ -1450,19 +1443,7 @@ class WaveformSet:
 
             signature = inspect.signature(wf_selector)
 
-            if list(signature.parameters.keys())[0] != 'waveform':
-                raise Exception(generate_exception_message( 2,
-                                                            "WaveformSet.compute_mean_waveform()",
-                                                            "The name of the first parameter of the given waveform-selector method must be 'waveform'."))
-            
-            if signature.parameters['waveform'].annotation != Waveform:
-                raise Exception(generate_exception_message( 3,
-                                                            "WaveformSet.compute_mean_waveform()",
-                                                            "The 'waveform' parameter of the waveform-selector method must be hinted as a Waveform object."))
-            if signature.return_annotation != bool:
-                raise Exception(generate_exception_message( 4,
-                                                            "WaveformSet.compute_mean_waveform()",
-                                                            "The return type of the waveform-selector method must be hinted as a boolean."))
+            WaveformSet.check_well_formedness_of_generic_waveform_function(signature)
 
             output = self.__compute_mean_waveform_with_selector(wf_selector,
                                                                 *args,
@@ -1479,7 +1460,7 @@ class WaveformSet:
                                                 # iterator value in the given list
 
             if not fWfIdcsIsWellFormed:
-                raise Exception(generate_exception_message( 5,
+                raise Exception(generate_exception_message( 2,
                                                             'WaveformSet.compute_mean_waveform()',
                                                             'The given list of waveform indices is empty or it does not contain even one valid iterator value in the given list. I.e. there are no waveforms to average.'))
 
@@ -1712,19 +1693,7 @@ class WaveformSet:
 
         signature = inspect.signature(wf_filter)
 
-        if list(signature.parameters.keys())[0] != 'waveform':
-            raise Exception(generate_exception_message( 1,
-                                                        "WaveformSet.filter()",
-                                                        "The name of the first parameter of the given waveform filter must be 'waveform'."))
-        
-        if signature.parameters['waveform'].annotation != Waveform:
-            raise Exception(generate_exception_message( 2,
-                                                        "WaveformSet.filter()",
-                                                        "The 'waveform' parameter of the waveform filter must be hinted as a Waveform object."))
-        if signature.return_annotation != bool:
-            raise Exception(generate_exception_message( 3,
-                                                        "WaveformSet.filter()",
-                                                        "The return type of the waveform filter must be hinted as a boolean."))
+        WaveformSet.check_well_formedness_of_generic_waveform_function(signature)
         
         staying_ones, dumped_ones = [], []      # Better fill the two lists during the WaveformSet scan and then return
                                                 # the desired one, rather than filling just the dumped_ones one and
@@ -1750,3 +1719,53 @@ class WaveformSet:
             return staying_ones
         else:
             return dumped_ones
+        
+    @staticmethod
+    def check_well_formedness_of_generic_waveform_function(wf_function_signature : inspect.Signature) -> None:
+
+        """
+        This method gets an argument, wf_function_signature, 
+        and returns None if the following conditions are met:
+
+            -   such signature takes at least one argument
+            -   the first argument of such signature
+                is called 'waveform'
+            -   the type annotation of such argument 
+                must be either the WaveformAdcs class,
+                the Waveform class, the 'WaveformAdcs'
+                string literal or the 'Waveform' string
+                literal
+            -   the return type of such signature 
+                is annotated as a boolean value
+
+        If any of these conditions are not met, this
+        method raises an exception.
+                
+        Parameters
+        ----------
+        wf_function_signature : inspect.Signature
+
+        Returns
+        ----------
+        bool
+        """
+
+        try:
+            if list(wf_function_signature.parameters.keys())[0] != 'waveform':
+                raise Exception(generate_exception_message( 1,
+                                                            "WaveformSet.check_well_formedness_of_generic_waveform_function()",
+                                                            "The name of the first parameter of the given signature must be 'waveform'."))
+        except IndexError:
+            raise Exception(generate_exception_message( 2,
+                                                        "WaveformSet.check_well_formedness_of_generic_waveform_function()",
+                                                        'The given signature must take at least one parameter.'))
+        
+        if wf_function_signature.parameters['waveform'].annotation not in [WaveformAdcs, 'WaveformAdcs', Waveform, 'Waveform']:
+            raise Exception(generate_exception_message( 3,
+                                                        "WaveformSet.check_well_formedness_of_generic_waveform_function()",
+                                                        "The 'waveform' parameter of the given signature must be hinted as a WaveformAdcs (or an inherited class) object."))
+        if wf_function_signature.return_annotation != bool:
+            raise Exception(generate_exception_message( 4,
+                                                        "WaveformSet.check_well_formedness_of_generic_waveform_function()",
+                                                        "The return type of the given signature must be hinted as a boolean."))
+        return
