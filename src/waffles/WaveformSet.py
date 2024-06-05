@@ -1647,3 +1647,106 @@ class WaveformSet:
             return True
         else:
             return False
+        
+    def filter(self,    wf_filter : Callable[..., bool],
+                        *args,
+                        actually_filter : bool = False,
+                        return_the_staying_ones : bool = True,
+                        **kwargs) -> List[int]:
+        
+        """
+        This method filters the waveforms in this WaveformSet
+        using the given wf_filter callable. I.e. for each
+        Waveform object, wf, in this WaveformSet, it runs
+        wf_filter(wf, *args, **kwargs). This method returns
+        a list of indices for the waveforms which got the
+        same result from the filter.
+
+        Parameters
+        ----------
+        wf_filter : callable 
+            It must be a callable whose first parameter 
+            must be called 'waveform' and its type
+            annotation must match the Waveform class. 
+            Its return value must be annotated as a 
+            boolean. The waveforms that are filtered
+            out are those for which 
+            wf_filter(waveform, *args, **kwargs)
+            evaluates to False.
+        *args
+            For each waveform, wf, these are the 
+            positional arguments which are given to
+            wf_filter(wf, *args, **kwargs) as *args.
+        actually_filter : bool
+            If False, then no changes are done to 
+            this WaveformSet object. If True, then 
+            the waveforms which are filtered out 
+            are deleted from the self.__waveforms 
+            attribute of this WaveformSet object. 
+            If so, the self.__runs and the 
+            self.__available_channels attributes
+            are updated accordingly, and the
+            the self.__mean_adcs and the 
+            self.__mean_adcs_idcs are reset to None. 
+        return_the_staying_ones : bool
+            If True (resp. False), then this method 
+            returns the indices of the waveforms which 
+            passed (resp. didn't pass) the filter, i.e.
+            those for which the filter evaluated to 
+            True (resp. False).
+        *kwargs
+            For each waveform, wf, these are the 
+            keyword arguments which are given to
+            wf_filter(wf, *args, **kwargs) as *kwargs
+
+        Returns
+        ----------
+        output : list of int
+            If return_the_staying_ones is True (resp.
+            False), then this list contains the indices,
+            with respect to the self.__waveforms list, 
+            for the waveforms, wf, for which 
+            wf_filter(wf, *args, **kwargs) evaluated to
+            True (resp. False).
+        """
+
+        signature = inspect.signature(wf_filter)
+
+        if list(signature.parameters.keys())[0] != 'waveform':
+            raise Exception(generate_exception_message( 1,
+                                                        "WaveformSet.filter()",
+                                                        "The name of the first parameter of the given waveform filter must be 'waveform'."))
+        
+        if signature.parameters['waveform'].annotation != Waveform:
+            raise Exception(generate_exception_message( 2,
+                                                        "WaveformSet.filter()",
+                                                        "The 'waveform' parameter of the waveform filter must be hinted as a Waveform object."))
+        if signature.return_annotation != bool:
+            raise Exception(generate_exception_message( 3,
+                                                        "WaveformSet.filter()",
+                                                        "The return type of the waveform filter must be hinted as a boolean."))
+        
+        staying_ones, dumped_ones = [], []      # Better fill the two lists during the WaveformSet scan and then return
+                                                # the desired one, rather than filling just the dumped_ones one and
+                                                # then computing its negative in case return_the_staying_ones is True
+        for i in range(len(self.__waveforms)):      
+            if wf_filter(self.__waveforms[i], *args, **kwargs):
+                staying_ones.append(i)
+            else:
+                dumped_ones.append(i)
+
+        if actually_filter:
+
+            for idx in reversed(dumped_ones):       # dumped_ones is increasingly ordered, so 
+                del self.Waveforms[idx]             # iterate in reverse order for waveform deletion
+
+            self.update_runs()                      # If actually_filter, then we need to update 
+            self.update_available_channels()        # the self.__runs and self.__available_channels
+
+            self.__mean_adcs = None                 # We also need to reset the attributes regarding the mean
+            self.__mean_adcs_idcs = None            # waveform, for which some of the waveforms might have been removed
+
+        if return_the_staying_ones:
+            return staying_ones
+        else:
+            return dumped_ones
