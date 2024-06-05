@@ -520,26 +520,38 @@ class WaveformSet:
                                                             f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
             fFigureIsGiven = True
 
-        fArbitraryWfs = False
-        if wfs_per_axes is not None:
+        grid_of_wf_idcs_ = None         # Logically useless
+
+        if wfs_per_axes is not None:    # wfs_per_axes is defined
+
             if wfs_per_axes < 1:
                 raise Exception(generate_exception_message( 4,
                                                             'WaveformSet.plot()',
                                                             'The number of waveforms per axes must be positive.'))
-            fArbitraryWfs = True
 
-        elif grid_of_wf_idcs is None:
+            grid_of_wf_idcs_ = self.get_grid_of_wf_idcs(nrows,
+                                                        ncols,
+                                                        wfs_per_axes = wfs_per_axes)
+
+        elif grid_of_wf_idcs is None:   # Nor wf_per_axes, nor 
+                                        # grid_of_wf_idcs are defined
+
             raise Exception(generate_exception_message( 5,
                                                         'WaveformSet.plot()',
                                                         "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
-        elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,
-                                                            nrows,
-                                                            ncols):
-                
-                raise Exception(generate_exception_message( 6,
-                                                            'WaveformSet.plot()',
-                                                            f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
+        elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
+                                                            nrows,              # but grid_of_wf_idcs is, but 
+                                                            ncols):             # it is not well-formed
+            raise Exception(generate_exception_message( 6,
+                                                        'WaveformSet.plot()',
+                                                        f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
+        else:   # wf_per_axes is not defined,
+                # but grid_of_wf_idcs is,
+                # and it is well-formed
+
+            grid_of_wf_idcs_ = grid_of_wf_idcs
+
         if not fFigureIsGiven:
             
             figure_ = psu.make_subplots(    rows = nrows, 
@@ -553,40 +565,21 @@ class WaveformSet:
                                                                             # that alternative is only doable for 
                                                                             # the case where the given 'figure'
                                                                             # parameter is None.
-        if fArbitraryWfs: 
-            counter = 0                                                         
-            for i in range(nrows):
-                for j in range(ncols):
-                    for k in range(wfs_per_axes):
+        for i in range(nrows):
+            for j in range(ncols):
+                for k in grid_of_wf_idcs_[i][j]:
 
-                        self.__waveforms[counter].plot( figure = figure_,
-                                                        name = f"Wf {counter}, Ch {self.__waveforms[counter].Channel}, Ep {self.__waveforms[counter].Endpoint}",
-                                                        row = i + 1,  # Plotly uses 1-based indexing
-                                                        col = j + 1,
-                                                        plot_analysis_markers = plot_analysis_markers,
-                                                        show_baseline_limits = show_baseline_limits,
-                                                        show_baseline = show_baseline,
-                                                        show_general_integration_limits = show_general_integration_limits,
-                                                        show_spotted_peaks = show_spotted_peaks,
-                                                        show_peaks_integration_limits = show_peaks_integration_limits,
-                                                        analysis_label = analysis_label)
-                        counter += 1
-        else:
-            for i in range(nrows):
-                for j in range(ncols):
-                    for k in grid_of_wf_idcs[i][j]:
-
-                        self.__waveforms[k].plot(   figure = figure_,
-                                                    name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
-                                                    row = i + 1,  # Plotly uses 1-based indexing
-                                                    col = j + 1,
-                                                    plot_analysis_markers = plot_analysis_markers,
-                                                    show_baseline_limits = show_baseline_limits,
-                                                    show_baseline = show_baseline,
-                                                    show_general_integration_limits = show_general_integration_limits,
-                                                    show_spotted_peaks = show_spotted_peaks,
-                                                    show_peaks_integration_limits = show_peaks_integration_limits,
-                                                    analysis_label = analysis_label)
+                    self.__waveforms[k].plot(   figure = figure_,
+                                                name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
+                                                row = i + 1,  # Plotly uses 1-based indexing
+                                                col = j + 1,
+                                                plot_analysis_markers = plot_analysis_markers,
+                                                show_baseline_limits = show_baseline_limits,
+                                                show_baseline = show_baseline,
+                                                show_general_integration_limits = show_general_integration_limits,
+                                                show_spotted_peaks = show_spotted_peaks,
+                                                show_peaks_integration_limits = show_peaks_integration_limits,
+                                                analysis_label = analysis_label)
         return figure_
     
     @staticmethod
