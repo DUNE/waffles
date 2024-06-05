@@ -393,6 +393,7 @@ class WaveformSet:
                     figure : Optional[pgo.Figure] = None,
                     wfs_per_axes : Optional[int] = 1,
                     grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
+                    average : bool = False,
                     share_x_scale : bool = False,
                     share_y_scale : bool = False,
                     plot_analysis_markers : bool = False,
@@ -427,74 +428,84 @@ class WaveformSet:
         wfs_per_axes : int
             If it is not None, then the argument given to 
             'grid_of_wf_idcs' will be ignored. In this case,
-            each axes contains wfs_per_axes waveforms.
-            P.e. for wfs_per_axes equal to 2, the axes
-            for the first row and first column will contain
-            the first two waveforms in the set, the axes
-            in the first row and second column will contain
-            the following two, and so on.
+            the number of waveforms considered for each
+            axes is wfs_per_axes. P.e. for wfs_per_axes 
+            equal to 2, the axes at the first row and first
+            column contains information about the first
+            two waveforms in the set. The axes in the first 
+            row and second column will consider the 
+            following two, and so on.
         grid_of_wf_idcs : list of list of list of int
             This list must contain nrows lists, each of which
             must contain ncols lists of integers. 
             grid_of_wf_idcs[i][j] gives the indices of the 
-            waveforms, with respect to this WaveformSet, which 
-            should be plotted in the axes located at the i-th 
-            row and j-th column.
+            waveforms, with respect to this WaveformSet, which
+            should be considered for plotting in the axes
+            which are located at the i-th row and j-th column.
+        average : bool
+            If True, instead of plotting all of the specified
+            waveforms, up to the 'wvfs_per_axes' and the
+            'grid_of_wf_idcs' parameters, the average waveform
+            of the considered waveforms will be plotted.
+            If False, all of the considered waveforms will be
+            plotted.
         share_x_scale (resp. share_y_scale) : bool
             If True, the x-axis (resp. y-axis) scale will be 
             shared among all the subplots.
         plot_analysis_markers : bool
             This parameter is given to the 'plot_analysis_markers' 
             argument of the Waveform.plot() method for each 
-            waveform in this WaveformSet. If True, analysis markers
-            for the waveforms will potentially be plotted together 
-            with each waveform. For more information, check the 
-            'plot_analysis_markers' parameter documentation in the 
-            Waveform.plot() method. If False, no analysis markers 
-            will be plot.
+            waveform in this WaveformSet. If True, analysis 
+            markers for the plotted WaveformAdcs objects 
+            will potentially be plotted together with each 
+            waveform. For more information, check the 
+            'plot_analysis_markers' parameter documentation 
+            in the Waveform.plot() method. If False, no analysis 
+            markers will be plot.
         show_baseline_limits : bool
             This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that case,
-            this parameter means whether to plot vertical lines
-            framing the intervals which were used to compute
-            the baseline.
+            'plot_analysis_markers' is set to True. In that 
+            case, this parameter means whether to plot 
+            vertical lines framing the intervals which 
+            were used to compute the baseline.
         show_baseline : bool
             This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that case,
-            this parameter means whether to plot an horizontal
-            line matching the computed baseline
+            'plot_analysis_markers' is set to True. In that 
+            case, this parameter means whether to plot an 
+            horizontal line matching the computed baseline
         show_general_integration_limits : bool
             This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that case,
-            this parameter means whether to plot vertical lines
-            framing the general integration interval.
+            'plot_analysis_markers' is set to True. In that 
+            case, this parameter means whether to plot vertical 
+            lines framing the general integration interval.
         show_spotted_peaks : bool
             This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that case,
-            this parameter means whether to plot a triangle
-            marker over each spotted peak.
+            'plot_analysis_markers' is set to True. In that 
+            case, this parameter means whether to plot a 
+            triangle marker over each spotted peak.
         show_peaks_integration_limits : bool
             This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that case,
-            this parameter means whether to plot two vertical
-            lines framing the integration interval for each
-            spotted peak.
+            'plot_analysis_markers' is set to True. In that 
+            case, this parameter means whether to plot two 
+            vertical lines framing the integration interval 
+            for each spotted peak.
         analysis_label : str
             This parameter is given to the 'analysis_label' 
             parameter of the Waveform.plot() (actually 
-            WaveformAdcs.plot()) method for each waveform in this 
-            WaveformSet. It only makes a difference if 
-            'plot_analysis_markers' is set to True. In that case, 
-            'analysis_label' is the key for the WfAna object within 
-            the Analysis attribute of each plotted waveform from 
-            where to take the information for the analysis markers 
-            plot. If 'analysis_label' is None, then the last analysis 
+            WaveformAdcs.plot()) method for each WaveformAdcs
+            object which will be plotted. It only makes a 
+            difference if 'plot_analysis_markers' is set to 
+            True. In that case, 'analysis_label' is the key 
+            for the WfAna object within the Analysis attribute 
+            of each plotted waveform from where to take the 
+            information for the analysis markers plot. If 
+            'analysis_label' is None, then the last analysis 
             added to self.__analyses will be the used one.            
 
         Returns
         ----------
         figure : plotly.graph_objects.Figure
-            The figure with the grid plot
+            The figure with the grid plot of the waveforms
         """
 
         if nrows < 1 or ncols < 1:
@@ -565,22 +576,90 @@ class WaveformSet:
                                                                             # that alternative is only doable for 
                                                                             # the case where the given 'figure'
                                                                             # parameter is None.
-        for i in range(nrows):
-            for j in range(ncols):
-                for k in grid_of_wf_idcs_[i][j]:
+        if not average:                                                                            
+            for i in range(nrows):
+                for j in range(ncols):
+                    for k in grid_of_wf_idcs_[i][j]:
 
-                    self.__waveforms[k].plot(   figure = figure_,
-                                                name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
-                                                row = i + 1,  # Plotly uses 1-based indexing
-                                                col = j + 1,
-                                                plot_analysis_markers = plot_analysis_markers,
-                                                show_baseline_limits = show_baseline_limits,
-                                                show_baseline = show_baseline,
-                                                show_general_integration_limits = show_general_integration_limits,
-                                                show_spotted_peaks = show_spotted_peaks,
-                                                show_peaks_integration_limits = show_peaks_integration_limits,
-                                                analysis_label = analysis_label)
+                        self.__waveforms[k].plot(   figure = figure_,
+                                                    name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
+                                                    row = i + 1,  # Plotly uses 1-based indexing
+                                                    col = j + 1,
+                                                    plot_analysis_markers = plot_analysis_markers,
+                                                    show_baseline_limits = show_baseline_limits,
+                                                    show_baseline = show_baseline,
+                                                    show_general_integration_limits = show_general_integration_limits,
+                                                    show_spotted_peaks = show_spotted_peaks,
+                                                    show_peaks_integration_limits = show_peaks_integration_limits,
+                                                    analysis_label = analysis_label)
+        else:
+            for i in range(nrows):
+                for j in range(ncols):
+
+                    aux = self.compute_mean_waveform(wf_idcs = grid_of_wf_idcs_[i][j])  # WaveformSet.compute_mean_waveform() will
+                                                                                        # raise an exception if grid_of_wf_idcs_[i][j]
+                                                                                        # happens to be empty
+
+                    aux_name = 'Mean Wf ['+ WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j],
+                                                                                                    queried_no = 3) + ']'
+                    aux.plot(   figure = figure_,
+                                name = aux_name,
+                                row = i + 1,
+                                col = j + 1,
+                                plot_analysis_markers = plot_analysis_markers,
+                                show_baseline_limits = show_baseline_limits,
+                                show_baseline = show_baseline,
+                                show_general_integration_limits = show_general_integration_limits,
+                                show_spotted_peaks = show_spotted_peaks,
+                                show_peaks_integration_limits = show_peaks_integration_limits,
+                                analysis_label = analysis_label)
         return figure_
+
+    @staticmethod
+    def get_string_of_first_n_integers_if_available(input_list : List[int],
+                                                    queried_no : int = 3) -> str:
+
+        """
+        This method returns an string with the first
+        comma-separated n integers of the given list
+        where n is the minimum between queried_no and 
+        the length of the given list, input_list. If 
+        n is 0, then the output is an empty string. 
+        If n equals queried_no, (i.e. if queried_no
+        is smaller than the length of the input list) 
+        then the ',...' string is appended to the 
+        output.
+
+        Parameters
+        ----------
+        input_list : list of int
+        queried_no : int
+            It must be a positive integer
+
+        Returns
+        ----------
+        output : str
+        """
+
+        if queried_no < 1:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.get_string_of_first_n_integers_if_available()',
+                                                        f"The given queried_no ({queried_no}) must be positive."))
+        actual_no = queried_no
+        fAppend = True
+
+        if queried_no > len(input_list):
+            actual_no = len(input_list)
+            fAppend = False
+
+        output = ''
+
+        for i in range(actual_no):
+            output += (str(input_list[i])+',')
+
+        output = output[:-1] if not fAppend else (output[:-1] + ',...')
+
+        return output
     
     @staticmethod
     def update_shared_axes_status(  figure : pgo.Figure,
@@ -1393,7 +1472,7 @@ class WaveformSet:
             if not fWfIdcsIsWellFormed:
                 raise Exception(generate_exception_message( 5,
                                                             'WaveformSet.compute_mean_waveform()',
-                                                            'There is not even one valid iterator value in the given list. I.e. there are no waveforms to average.'))
+                                                            'The given list of waveform indices is empty or it does not contain even one valid iterator value in the given list. I.e. there are no waveforms to average.'))
 
             output = self.__compute_mean_waveform_of_given_waveforms(wf_idcs)   ## In this case we also need to remove indices
                                                                                 ## redundancy (if any) before giving wf_idcs to
