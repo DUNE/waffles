@@ -7,8 +7,8 @@ import numpy as np
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
-from src.waffles.NWaveform import Waveform
 from src.waffles.WaveformAdcs import WaveformAdcs
+from src.waffles.Waveform import Waveform
 from src.waffles.WfAna import WfAna
 from src.waffles.WfAnaResult import WfAnaResult
 from src.waffles.Exceptions import generate_exception_message
