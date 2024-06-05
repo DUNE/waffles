@@ -415,7 +415,11 @@ class WaveformSet:
             Number of rows (resp. columns) of the returned 
             grid of axes.
         figure : plotly.graph_objects.Figure
-            If it is not None, then this method adds the
+            If it is not None, then it must be have been
+            generated using plotly.subplots.make_subplots()
+            (even if nrows and ncols equal 1). It is the
+            caller's responsibility to ensure this.
+            If that's the case, then this method adds the
             plots to this figure and eventually returns 
             it. In such case, the number of rows (resp. 
             columns) in such figure must match the 'nrows' 
