@@ -146,13 +146,18 @@ class WaveformSet:
     def update_runs(self) -> None:
         
         """
-        This method iterates through the whole WaveformSet
-        and updates the self.__runs attribute of this object. 
+        This method clears the self.__runs attribute 
+        of this object and then iterates through the 
+        whole WaveformSet to fill such attribute 
+        according to the waveforms which are currently
+        present in this WaveformSet object.
 
         Returns
         ----------
         None
         """
+
+        self.__runs.clear()
 
         for wf in self.__waveforms:
             self.__runs.add(wf.RunNumber)
@@ -161,14 +166,18 @@ class WaveformSet:
     def update_available_channels(self) -> None:
         
         """
-        This method iterates through the whole WaveformSet
-        and updates the self.__available_channels attribute of 
-        this object. 
+        This method clears the self.__available_channels 
+        attribute of this object and then iterates through 
+        the whole WaveformSet to fill such attribute 
+        according to the waveforms which are currently
+        present in this WaveformSet object.
 
         Returns
         ----------
         None
         """
+
+        self.__available_channels.clear()
 
         for wf in self.__waveforms:
             try:
