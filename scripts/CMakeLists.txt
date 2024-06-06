@@ -38,5 +38,6 @@ daq_add_application(HDF5LIBS_TestReader HDF5LIBS_TestReader.cpp TEST LINK_LIBRAR
 daq_add_application(HDF5LIBS_TestWriter HDF5LIBS_TestWriter.cpp TEST LINK_LIBRARIES ${PROJECT_NAME})
 daq_add_application(HDF5LIBS_TestDumpRecord HDF5LIBS_TestDumpRecord.cpp TEST LINK_LIBRARIES ${PROJECT_NAME})
 daq_add_application(HDF5LIBS_DumptoROOT_filtered HDF5LIBS_DumptoROOT_filtered.cpp TEST LINK_LIBRARIES ${PROJECT_NAME})
+daq_add_application(HDF5LIBS_duplications HDF5LIBS_DumptoROOT_filtered.cpp TEST LINK_LIBRARIES ${PROJECT_NAME})
 
 daq_install()
