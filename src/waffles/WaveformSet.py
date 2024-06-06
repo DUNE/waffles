@@ -609,8 +609,8 @@ class WaveformSet:
                                                                                         # raise an exception if grid_of_wf_idcs_[i][j]
                                                                                         # happens to be empty
 
-                    aux_name = 'Mean Wf ['+ WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j],
-                                                                                                    queried_no = 3) + ']'
+                    aux_name = f"Mean of {len(grid_of_wf_idcs_[i][j])} Wf(s): [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j],
+                                                                                                                                        queried_no = 3)}]"
                     aux.plot(   figure = figure_,
                                 name = aux_name,
                                 row = i + 1,
