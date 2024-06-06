@@ -657,7 +657,7 @@ class WaveformSet:
         actual_no = queried_no
         fAppend = True
 
-        if queried_no > len(input_list):
+        if queried_no >= len(input_list):
             actual_no = len(input_list)
             fAppend = False
 
