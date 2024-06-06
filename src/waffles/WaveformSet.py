@@ -411,7 +411,8 @@ class WaveformSet:
                     show_general_integration_limits : bool = False,
                     show_spotted_peaks : bool = True,
                     show_peaks_integration_limits : bool = False,
-                    analysis_label : Optional[str] = None) -> pgo.Figure: 
+                    analysis_label : Optional[str] = None,
+                    detailed_label : bool = True) -> pgo.Figure: 
 
 
         """ 
@@ -509,7 +510,14 @@ class WaveformSet:
             of each plotted waveform from where to take the 
             information for the analysis markers plot. If 
             'analysis_label' is None, then the last analysis 
-            added to self.__analyses will be the used one.            
+            added to self.__analyses will be the used one.
+        detailed_label : bool
+            This parameter only makes a difference if
+            the 'average' parameter is set to True. In such
+            case, whether to show the iterator values of the
+            three first available waveforms, which were used
+            to compute the mean waveform, in the label of
+            the mean waveform plot.
 
         Returns
         ----------
@@ -612,8 +620,11 @@ class WaveformSet:
                     except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
                         continue            ## so that we can handle in parallel exceptions due to different reasons if we need it
 
-                    aux_name = f"Mean of {len(grid_of_wf_idcs_[i][j])} Wf(s): [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j],
-                                                                                                                                        queried_no = 3)}]"
+                    aux_name = f"Mean of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
+                    if detailed_label:
+                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
+                                                                                                    queried_no = 3)}]"
+
                     aux.plot(   figure = figure_,
                                 name = aux_name,
                                 row = i + 1,
