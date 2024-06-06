@@ -605,9 +605,12 @@ class WaveformSet:
             for i in range(nrows):
                 for j in range(ncols):
 
-                    aux = self.compute_mean_waveform(wf_idcs = grid_of_wf_idcs_[i][j])  # WaveformSet.compute_mean_waveform() will
-                                                                                        # raise an exception if grid_of_wf_idcs_[i][j]
-                                                                                        # happens to be empty
+                    try: 
+                        aux = self.compute_mean_waveform(wf_idcs = grid_of_wf_idcs_[i][j])  # WaveformSet.compute_mean_waveform() will raise
+                                                                                            # an exception if grid_of_wf_idcs_[i][j] is emtpy
+
+                    except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
+                        continue            ## so that we can handle in parallel exceptions due to different reasons if we need it
 
                     aux_name = f"Mean of {len(grid_of_wf_idcs_[i][j])} Wf(s): [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j],
                                                                                                                                         queried_no = 3)}]"
