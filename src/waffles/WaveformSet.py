@@ -1970,6 +1970,87 @@ class WaveformSet:
         else:
             return dumped_ones
         
+    @classmethod
+    def from_filtered_WaveformSet(cls,  original_WaveformSet : 'WaveformSet',
+                                        wf_filter : Callable[..., bool],
+                                        *args,
+                                        **kwargs) -> 'WaveformSet':
+        
+        """
+        This method returns a new WaveformSet object
+        which contains only the waveforms from the
+        given original_WaveformSet object which passed
+        the given wf_filter callable, i.e. those Waveform
+        objects, wf, for which
+        wf_filter(wf, *args, **kwargs) evaluated to True.
+        To do so, this method calls the WaveformSet.filter()
+        instance method of the Waveformset given to the
+        'original_WaveformSet' parameter by setting the
+        its 'actually_filter' parameter to True.
+
+        Parameters
+        ----------
+        original_WaveformSet : WaveformSet
+            The WaveformSet object which will be filtered
+            so as to create the new WaveformSet object
+        wf_filter : callable
+            It must be a callable whose first parameter
+            must be called 'waveform' and its type
+            annotation must match the Waveform class.
+            Also, its return value must be annotated
+            as a boolean. The well-formedness of
+            the given callable is not checked by
+            this method, but checked by the 
+            WaveformSet.filter() instance method of
+            the original_WaveformSet object, whose
+            'wf_filter' parameter receives the input
+            given to the 'wf_filter' parameter of this
+            method. The waveforms which end up staying 
+            in the returned WaveformSet object are those
+            within the original_WaveformSet object,
+            wf, for which wf_filter(wf, *args, **kwargs)
+            evaluated to True.
+        *args
+            For each waveform, wf, these are the 
+            positional arguments which are given to
+            wf_filter(wf, *args, **kwargs) as *args.
+        **kwargs
+            For each waveform, wf, these are the 
+            keyword arguments which are given to
+            wf_filter(wf, *args, **kwargs) as **kwargs
+        
+        Returns
+        ----------
+        WaveformSet
+            A new WaveformSet object which contains
+            only the waveforms from the given 
+            original_WaveformSet object which passed
+            the given wf_filter callable.
+        """
+
+        staying_wfs_idcs = original_WaveformSet.filter( wf_filter,
+                                                        *args,
+                                                        actually_filter = False,
+                                                        return_the_staying_ones = True,
+                                                        **kwargs)
+        
+        waveforms = [ original_WaveformSet.Waveforms[idx] for idx in staying_wfs_idcs ] 
+        
+        ## About the waveforms that we will handle to the new WaveformSet object:
+        ## Shall they be a deep copy? If they are not, maybe some of the Waveform
+        ## objects that belong to both - the original and the filtered - WaveformSet
+        ## objects are not independent, but references to the same Waveform objects 
+        ## in memory. This could be an issue if we want, p.e. to run different 
+        ## analyses on the different WaveformSet objects. I.e. running an analysis
+        ## on the filtered waveformset could modify the analysis on the same waveform
+        ## in the original waveformset. This would not be an issue, though, if we 
+        ## want to partition the original waveformset into disjoint waveformsets, and
+        ## never look back on the original waveformset, p.e. if we want to partition 
+        ## the original waveformset according to the endpoints. This needs to be 
+        ## checked, because it might be an open issue.
+
+        return cls(*waveforms)  
+        
     @staticmethod
     def check_well_formedness_of_generic_waveform_function(wf_function_signature : inspect.Signature) -> None:
 
