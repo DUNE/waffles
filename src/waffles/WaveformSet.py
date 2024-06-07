@@ -131,12 +131,18 @@ class WaveformSet:
             This method returns True if the Adcs attribute
             of every Waveform object in this WaveformSet
             has the same length. It returns False if else.
+            In order to call this method, there must be at
+            least one waveform in the set.
 
             Returns
             ----------
             bool
             """
 
+            if len(self.__waveforms) == 0:
+                raise Exception(generate_exception_message( 1,
+                                                            'WaveformSet.check_length_homogeneity()',
+                                                            'There must be at least one waveform in the set.'))
             length = len(self.__waveforms[0].Adcs)
             for i in range(1, len(self.__waveforms)):
                 if len(self.__waveforms[i].Adcs) != length:
