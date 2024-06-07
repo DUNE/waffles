@@ -960,6 +960,27 @@ class WaveformSet:
         return waveform.RunNumber == run
     
     @staticmethod
+    def match_endpoint( waveform : Waveform,
+                        endpoint : int) -> bool:
+        
+        """
+        This method returns True if the Endpoint attribute
+        of the given Waveform object matches endpoint, and 
+        False if else.
+
+        Parameters
+        ----------
+        waveform : Waveform
+        endpoint : int
+
+        Returns
+        ----------
+        bool
+        """
+
+        return waveform.Endpoint == endpoint
+    
+    @staticmethod
     def match_channel(  waveform : Waveform,
                         channel : int) -> bool:
         
