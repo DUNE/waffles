@@ -219,8 +219,8 @@ void plotsAPA(TString inputfile, int run)
                     c1[h + histosize]->cd(4 * (i - 1) + j);
                     // chg[i + 119 + 10 * (4 - j)]->SetTitle(Form("Channel: %i", invdetmap[i + 119 + 10 * (4 - j)]));
                     // chg[i + 119 + 10 * (4 - j)]->Draw("histo");
-                    histomap[2][i + 119 + 10 * (4 - j)]->SetTitle(Form("Channel: %i", invdetmap[i + 119 + 10 * (4 - j)]));
-                    histomap[2][i + 119 + 10 * (4 - j)]->Draw("histo");
+                    histomap[h][i + 119 + 10 * (4 - j)]->SetTitle(Form("Channel: %i", invdetmap[i + 119 + 10 * (4 - j)]));
+                    histomap[h][i + 119 + 10 * (4 - j)]->Draw("histo");
                     gPad->SetTopMargin(0.2);
                     c1[h + histosize]->Modified();
                     c1[h + histosize]->Update();
@@ -228,8 +228,8 @@ void plotsAPA(TString inputfile, int run)
                     c2[h + histosize]->cd(4 * (i - 1) + j);
                     // chg[i + 79 + 10 * (4 - j)]->SetTitle(Form("Channel: %i", invdetmap[i + 79 + 10 * (4 - j)]));
                     // chg[i + 79 + 10 * (4 - j)]->Draw("histo");
-                    histomap[2][i + 79 + 10 * (4 - j)]->SetTitle(Form("Channel: %i", invdetmap[i + 79 + 10 * (4 - j)]));
-                    histomap[2][i + 79 + 10 * (4 - j)]->Draw("histo");
+                    histomap[h][i + 79 + 10 * (4 - j)]->SetTitle(Form("Channel: %i", invdetmap[i + 79 + 10 * (4 - j)]));
+                    histomap[h][i + 79 + 10 * (4 - j)]->Draw("histo");
                     gPad->SetTopMargin(0.2);
                     c2[h + histosize]->Modified();
                     c2[h + histosize]->Update();
