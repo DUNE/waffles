@@ -50,25 +50,14 @@ using std::endl;
 using std::map;
 using std::vector;
 
-// template <typename S>
-// std::ostream &operator<<(std::ostream &os,
-//                          const std::vector<S> &vector)
-// {
-//   for (auto element : vector)
-//   {
-//     os << element << " ";
-//   }
-//   return os;
-// }
-
 template <typename S>
 std::ostream &operator<<(std::ostream &os,
                          const std::vector<S> &vector)
 {
   // Printing all the elements
   // using <<
-  // for (int i = 0; i < vector.size(); i++)
-  for (int i = 0; i < vector.size(); i += 10000)
+  // for (int i = 0; i < vector.size(); i += 10000)
+  for (int i = 0; i < 20; i++)
   {
     os << vector[i] << " ";
   }
@@ -156,20 +145,6 @@ int main(int argc, char **argv)
     int countergeoid = 0;
     for (auto const &geo_id : frag_sid_list)
     {
-      countergeoid++;
-
-      uint16_t slot_id = (geo_id >> 32) & 0xffff;
-      uint16_t link_id = (geo_id >> 48) & 0xffff;
-
-      
-
-      // std::vector<uint16_t>::iterator it2;
-      // it2 = std::find(vslot.begin(), vslot.end(), slot_id);
-
-      // if (it2 == vslot.end())
-      // {
-      //   continue;
-      // }
 
       auto frag_ptr = h5_raw_data_file.get_frag_ptr(record_id, geo_id);
 
@@ -181,12 +156,7 @@ int main(int argc, char **argv)
       if (DetID::subdetector_to_string(static_cast<DetID::Subdetector>(frag_ptr->get_detector_id())) != "HD_PDS")
         continue;
 
-      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
       auto datafrag = frag_ptr->get_data();
-
-      cout << countergeoid << " - End point: " << slot_id << endl;
 
       int nframes = (fragment_type_to_string(frag_ptr->get_fragment_type()) == "DAPHNE") ? (frag_ptr->get_size() - sizeof(dunedaq::daqdataformats::FragmentHeader)) / sizeof(dunedaq::fddetdataformats::DAPHNEFrame) : (frag_ptr->get_size() - sizeof(dunedaq::daqdataformats::FragmentHeader)) / sizeof(dunedaq::fddetdataformats::DAPHNEStreamFrame);
 
@@ -206,11 +176,6 @@ int main(int argc, char **argv)
           std::tuple<size_t, size_t, size_t> slc = {b_slot, b_link, b_channel_0};
 
           short ofch = -1;
-
-          // if (detmap.find(slc) != detmap.end())
-          // {
-          //   ofch = detmap[slc];
-          // }
 
           _Run = -1;
           _Event = -1;
@@ -497,7 +462,7 @@ int main(int argc, char **argv)
 
   std::cout << "\nWritting ROOT file... ";
   fWaveformTree.Write("", TObject::kWriteDelete);
-  metadata.Write("", TObject::kWriteDelete);
+  // metadata.Write("", TObject::kWriteDelete);
 
   hf.Close();
   std::cout << "\nReading and writting complete!... \n";
