@@ -61,68 +61,22 @@ std::ostream &operator<<(std::ostream &os,
 
 void print_usage()
 {
-  TLOG() << "Usage: HDF5LIBS_DumptoROOT <input_file_name> <channel_map_file>";
+  TLOG() << "Usage: HDF5LIBS_duplications <input_file_name>";
 }
 
 int main(int argc, char **argv)
 {
 
-  if (argc != 3)
+  if (argc != 2)
   {
     print_usage();
     return 1;
   }
 
-  const std::string string_map = std::string(argv[2]);
-  std::ifstream file_map(string_map);
-  size_t sl, lk, dpch, ch;
-
   std::map<std::vector<short>, long int> nodupadc;
   std::vector<std::vector<short>> alladc;
 
-  size_t b_slot, b_crate, b_link;
-  bool b_is_stream;
-  size_t b_channel_0, b_channel_1, b_channel_2, b_channel_3;
-
-  std::stringstream ssmap;
-  // vector<size_t> vlink;
-  std::vector<uint16_t> vslot;
-
-  // std::map<size_t, std::map<size_t, std::map<size_t, size_t>>> detmap;
-  std::map<std::tuple<size_t, size_t, size_t>, size_t> detmap;
-
-  // String to store each line of the file.
-  std::string line;
-
-  if (file_map.is_open())
-  {
-
-    while (getline(file_map, line))
-    {
-      ssmap.clear();
-      ssmap.str(line);
-
-      while (ssmap >> sl >> lk >> dpch >> ch)
-      {
-        detmap[std::make_tuple(sl, lk, dpch)] = ch;
-        vslot.push_back(sl);
-      }
-    }
-
-    file_map.close();
-  }
-  else
-  {
-
-    std::cerr << "Unable to open file!" << std::endl;
-    file_map.close();
-  }
-
-  std::sort(vslot.begin(), vslot.end());
-  auto it = std::unique(vslot.begin(), vslot.end());
-  vslot.erase(it, vslot.end());
-
-  const std::string ifile_name = std::string(argv[1]);
+   const std::string ifile_name = std::string(argv[1]);
   HDF5RawDataFile h5_raw_data_file(ifile_name);
 
   TLOG() << "\nReading... " << h5_raw_data_file.get_file_name() << "\n"
@@ -140,10 +94,6 @@ int main(int argc, char **argv)
     int countergeoid = 0;
     for (auto const &geo_id : frag_sid_list)
     {
-      uint16_t slot_id = (geo_id >> 32) & 0xffff;
-      uint16_t link_id = (geo_id >> 48) & 0xffff;
-      std::vector<uint16_t>::iterator it2;
-      it2 = std::find(vslot.begin(), vslot.end(), slot_id);
 
       auto frag_ptr = h5_raw_data_file.get_frag_ptr(record_id, geo_id);
 
@@ -162,18 +112,6 @@ int main(int argc, char **argv)
       {
         auto fr = reinterpret_cast<dunedaq::fddetdataformats::DAPHNEFrame *>(static_cast<char *>(data) + i * sizeof(dunedaq::fddetdataformats::DAPHNEFrame));
         const auto adcs_per_channel = dunedaq::fddetdataformats::DAPHNEFrame::s_num_adcs;
-
-        b_channel_0 = fr->get_channel();
-        b_slot = (fr->daq_header.slot_id);
-        b_link = (fr->daq_header.link_id);
-        std::tuple<size_t, size_t, size_t> slc = {b_slot, b_link, b_channel_0};
-        short ofch = -1;
-        if (detmap.find(slc) != detmap.end())
-        {
-          ofch = detmap[slc];
-        }
-        if (ofch == -1)
-          continue;
 
         vector<short> tempadc;
         for (size_t j = 0; j < adcs_per_channel; ++j)
