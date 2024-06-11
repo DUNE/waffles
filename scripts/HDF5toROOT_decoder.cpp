@@ -66,7 +66,7 @@ std::ostream &operator<<(std::ostream &os,
 
 void print_usage()
 {
-  TLOG() << "Usage: HDF5LIBS_DumptoROOT <input_file_name>";
+  TLOG() << "Usage: HDF5toROOT_decoder <input_file_name>";
 }
 
 int main(int argc, char **argv)
