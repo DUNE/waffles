@@ -25,7 +25,7 @@ dbt-build --clean
 
 
 echo -e "\e[35mCopying the decoder and CMakeLists.txt in the correct folders... \n \e[0m"
-cp $waffles_path/HDF5LIBS_DumptoROOT_filtered.cpp $DBT_AREA_ROOT/sourcecode/hdf5libs/test/apps/
+cp $waffles_path/HDF5toROOT_decoder.cpp $DBT_AREA_ROOT/sourcecode/hdf5libs/test/apps/
 cp $waffles_path/HDF5LIBS_duplications.cpp $DBT_AREA_ROOT/sourcecode/hdf5libs/test/apps/
 cp $waffles_path/CMakeLists.txt $DBT_AREA_ROOT/sourcecode/hdf5libs/
 
