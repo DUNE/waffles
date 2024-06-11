@@ -2,8 +2,9 @@ import math
 import inspect
 from typing import Tuple, List, Callable, Optional
 
-import uproot
 import numpy as np
+import uproot
+import numba
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -408,18 +409,21 @@ class WaveformSet:
                     figure : Optional[pgo.Figure] = None,
                     wfs_per_axes : Optional[int] = 1,
                     grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
-                    average : bool = False,
                     share_x_scale : bool = False,
                     share_y_scale : bool = False,
+                    mode : str = 'overlay',
+                    analysis_label : Optional[str] = None,
                     plot_analysis_markers : bool = False,
                     show_baseline_limits : bool = False, 
                     show_baseline : bool = True,
                     show_general_integration_limits : bool = False,
                     show_spotted_peaks : bool = True,
                     show_peaks_integration_limits : bool = False,
-                    analysis_label : Optional[str] = None,
+                    time_bins : int = 512,
+                    adc_bins : int = 100,
+                    adc_range_above_baseline : int = 100,
+                    adc_range_below_baseline : int = 200,
                     detailed_label : bool = True) -> pgo.Figure: 
-
 
         """ 
         This method returns a plotly.graph_objects.Figure 
@@ -458,73 +462,130 @@ class WaveformSet:
             waveforms, with respect to this WaveformSet, which
             should be considered for plotting in the axes
             which are located at the i-th row and j-th column.
-        average : bool
-            If True, instead of plotting all of the specified
-            waveforms, up to the 'wvfs_per_axes' and the
-            'grid_of_wf_idcs' parameters, the average waveform
-            of the considered waveforms will be plotted.
-            If False, all of the considered waveforms will be
-            plotted.
         share_x_scale (resp. share_y_scale) : bool
             If True, the x-axis (resp. y-axis) scale will be 
             shared among all the subplots.
+        mode : str
+            This parameter should be set to 'overlay', 'average',
+            or 'heatmap'. If any other input is given, an
+            exception will be raised. The default setting is 
+            'overlay', which means that all of the considered 
+            waveforms will be plotted. If it set to 'average', 
+            instead of plotting every waveform, only the 
+            averaged waveform of the considered waveforms will 
+            be plotted. If it is set to 'heatmap', then a 
+            2D-histogram, whose entries are the union of all 
+            of the points of every considered waveform, will 
+            be plotted. In the 'heatmap' mode, the baseline 
+            of each waveform is subtracted from each waveform 
+            before plotting. Note that to perform such a 
+            correction, the waveforms should have been 
+            previously analysed, so that at least one baseline
+            value is available. The analysis which gave the 
+            baseline value which should be used is specified
+            via the 'analysis_label' parameter. Check its
+            documentation for more information.
+        analysis_label : str
+            If mode is set to 'overlay' or 'average', then
+            this parameter is optoinal and it only makes a 
+            difference if the 'plot_analysis_markers' 
+            parameter is set to True. In such case, this 
+            parameter is given to the 'analysis_label' 
+            parameter of the Waveform.plot() (actually 
+            WaveformAdcs.plot()) method for each WaveformAdcs 
+            object(s) which will be plotted, either a set 
+            of waveforms of the average of them. It is the 
+            key for the WfAna object within the Analyses 
+            attribute of each plotted waveform from where 
+            to take the information for the analysis markers 
+            plot. In these cases, if 'analysis_label' is 
+            None, then the last analysis added to 
+            self.__analyses will be the used one. On the 
+            other hand, in the case when the 'mode' 
+            parameter is set to 'heatmap', this parameter is
+            not optional, i.e. it must be defined, and
+            gives the analysis whose baseline will be 
+            subtracted from each waveform before plotting. 
+            In this case, it will not be checked that, 
+            for each waveform, the analysis with the given 
+            label is available. It is the caller's 
+            responsibility to ensure so.
         plot_analysis_markers : bool
-            This parameter is given to the 'plot_analysis_markers' 
-            argument of the Waveform.plot() method for each 
-            waveform in this WaveformSet. If True, analysis 
-            markers for the plotted WaveformAdcs objects 
-            will potentially be plotted together with each 
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average'.
+            In such case, this parameter is given to the 
+            'plot_analysis_markers' argument of the 
+            WaveformAdcs.plot() method for each waveform in 
+            which will be plotted. If True, analysis markers 
+            for the plotted WaveformAdcs objects will 
+            potentially be plotted together with each 
             waveform. For more information, check the 
             'plot_analysis_markers' parameter documentation 
-            in the Waveform.plot() method. If False, no analysis 
-            markers will be plot.
+            in the WaveformAdcs.plot() method. If False, no 
+            analysis markers will be plot.
         show_baseline_limits : bool
-            This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that 
-            case, this parameter means whether to plot 
-            vertical lines framing the intervals which 
-            were used to compute the baseline.
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average',
+            and the 'plot_analysis_markers' parameter is set 
+            to True. In that case, this parameter means 
+            whether to plot vertical lines framing the 
+            intervals which were used to compute the baseline.
         show_baseline : bool
-            This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that 
-            case, this parameter means whether to plot an 
-            horizontal line matching the computed baseline
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average',
+            and the 'plot_analysis_markers' parameter is set 
+            to True. In that case, this parameter means whether 
+            to plot an horizontal line matching the computed 
+            baseline.
         show_general_integration_limits : bool
-            This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that 
-            case, this parameter means whether to plot vertical 
-            lines framing the general integration interval.
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average',
+            and the 'plot_analysis_markers' parameter is set 
+            to True. In that case, this parameter means whether 
+            to plot vertical lines framing the general 
+            integration interval.
         show_spotted_peaks : bool
-            This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that 
-            case, this parameter means whether to plot a 
-            triangle marker over each spotted peak.
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average',
+            and the 'plot_analysis_markers' parameter is set 
+            to True. In that case, this parameter means whether 
+            to plot a triangle marker over each spotted peak.
         show_peaks_integration_limits : bool
-            This parameter only makes a difference if
-            'plot_analysis_markers' is set to True. In that 
-            case, this parameter means whether to plot two 
-            vertical lines framing the integration interval 
-            for each spotted peak.
-        analysis_label : str
-            This parameter is given to the 'analysis_label' 
-            parameter of the Waveform.plot() (actually 
-            WaveformAdcs.plot()) method for each WaveformAdcs
-            object which will be plotted. It only makes a 
-            difference if 'plot_analysis_markers' is set to 
-            True. In that case, 'analysis_label' is the key 
-            for the WfAna object within the Analysis attribute 
-            of each plotted waveform from where to take the 
-            information for the analysis markers plot. If 
-            'analysis_label' is None, then the last analysis 
-            added to self.__analyses will be the used one.
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average',
+            and the 'plot_analysis_markers' parameter is set 
+            to True. In that case, this parameter means whether 
+            to plot two vertical lines framing the integration 
+            interval for each spotted peak.
+        time_bins (resp. adc_bins) : int
+            This parameter only makes a difference if the 'mode'
+            parameter is set to 'heatmap'. In that case, it is
+            the number of bins along the horizontal (resp. 
+            vertical) axis, i.e. the time (resp. ADCs) axis.
+        adc_range_above_baseline (resp. adc_range_below_baseline) : int
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'heatmap'. In that case,
+            its absolute value times one (resp. minus one) is 
+            the upper (resp. lower) limit of the ADCs range 
+            which will be considered for the heatmap plot. 
+            Note that, in this case, each waveform is 
+            corrected by its own baseline.
         detailed_label : bool
             This parameter only makes a difference if
-            the 'average' parameter is set to True. In such
-            case, whether to show the iterator values of the
-            three first available waveforms, which were used
-            to compute the mean waveform, in the label of
-            the mean waveform plot.
-
+            the 'mode' parameter is set to 'average' or
+            'heatmap', respectively. If the 'mode' parameter
+            is set to 'average', then this parameter means
+            whether to show the iterator values of the two
+            first available waveforms (which were used to
+            compute the mean waveform) in the label of the
+            mean waveform plot and on the top annotation of
+            each subplot. If the 'mode' parameter is set to
+            'heatmap', then this parameter means whether to
+            show the iterator values of the two first
+            available waveforms (which were used to compute
+            the 2D-histogram) in the top annotation of each
+            subplot.
+             
         Returns
         ----------
         figure : plotly.graph_objects.Figure
@@ -599,13 +660,15 @@ class WaveformSet:
                                                                             # that alternative is only doable for 
                                                                             # the case where the given 'figure'
                                                                             # parameter is None.
-        if not average:                                                                            
+        if mode == 'overlay':
             for i in range(nrows):
                 for j in range(ncols):
                     for k in grid_of_wf_idcs_[i][j]:
 
+                        aux_name = f"({i+1},{j+1}) - Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}"
+
                         self.__waveforms[k].plot(   figure = figure_,
-                                                    name = f"Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}",
+                                                    name = aux_name,
                                                     row = i + 1,  # Plotly uses 1-based indexing
                                                     col = j + 1,
                                                     plot_analysis_markers = plot_analysis_markers,
@@ -615,7 +678,7 @@ class WaveformSet:
                                                     show_spotted_peaks = show_spotted_peaks,
                                                     show_peaks_integration_limits = show_peaks_integration_limits,
                                                     analysis_label = analysis_label)
-        else:
+        elif mode == 'average':
             for i in range(nrows):
                 for j in range(ncols):
 
@@ -626,13 +689,12 @@ class WaveformSet:
                     except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
                         continue            ## so that we can handle in parallel exceptions due to different reasons if we need it
 
-                    aux_name = f"Mean of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
+                    aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
                     if detailed_label:
                         aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
-                                                                                                    queried_no = 3)}]"
-
+                                                                                                    queried_no = 2)}]"
                     aux.plot(   figure = figure_,
-                                name = aux_name,
+                                name = f"({i+1},{j+1}) - Mean of " + aux_name,
                                 row = i + 1,
                                 col = j + 1,
                                 plot_analysis_markers = plot_analysis_markers,
@@ -642,6 +704,64 @@ class WaveformSet:
                                 show_spotted_peaks = show_spotted_peaks,
                                 show_peaks_integration_limits = show_peaks_integration_limits,
                                 analysis_label = analysis_label)
+                    
+                    figure_.add_annotation( xref = "x domain",  # This annotation could be coded at the WaveformAdcs.plot() 
+                                            yref = "y domain",  # level, but a boolean condition should be checked there to
+                                                                # make it general enough to cover the mode=='overlay' case, 
+                                                                # which would result in a less efficient code when plotting 
+                                                                # a big amount of waveforms in the 'overlay' mode.
+
+                                            x = 0.,             # The annotation is left-aligned
+                                            y = 1.25,           # and on top of each subplot
+                                            showarrow = False,
+                                            text = aux_name,
+                                            row = i + 1,
+                                            col = j + 1)
+
+                    
+        elif mode == 'heatmap':
+
+            if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
+                raise Exception(generate_exception_message( 7,
+                                                            'WaveformSet.plot()',
+                                                            "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
+            
+            aux_ranges =    np.array([  [0,                                 self.PointsPerWf - 1            ],
+                                        [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
+            for i in range(nrows):
+                for j in range(ncols):
+
+                    aux_name = f"Heatmap of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
+                    if detailed_label:
+                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
+                                                                                                    queried_no = 2)}]"
+                    figure_ = self.__subplot_heatmap(   figure_,
+                                                        aux_name,
+                                                        i + 1,
+                                                        j + 1,
+                                                        grid_of_wf_idcs_[i][j],
+                                                        analysis_label,
+                                                        time_bins,
+                                                        adc_bins,
+                                                        aux_ranges,
+                                                        show_color_bar = False)     # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
+                                                                                    # since it may differ from one plot     ## every plot in the grid, though, but comes at the
+                                                                                    # to another.                           ## cost of finding the max and min values of the 
+                                                                                                                            ## union of all of the histograms. Such feature may 
+                                                                                                                            ## be enabled in the future, using a boolean input
+                                                                                                                            ## parameter.
+                    figure_.add_annotation( xref = "x domain", 
+                                            yref = "y domain",      
+                                            x = 0.,             # The annotation is left-aligned
+                                            y = 1.25,           # and on top of each subplot
+                                            showarrow = False,
+                                            text = aux_name,
+                                            row = i + 1,
+                                            col = j + 1)
+        else:                                                                                                           
+            raise Exception(generate_exception_message( 8,
+                                                        'WaveformSet.plot()',
+                                                        f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
         return figure_
 
     @staticmethod
@@ -2100,3 +2220,166 @@ class WaveformSet:
                                                         "WaveformSet.check_well_formedness_of_generic_waveform_function()",
                                                         "The return type of the given signature must be hinted as a boolean."))
         return
+    
+    @staticmethod
+    @numba.njit(nogil=True, parallel=False)                 # ~ 20 times faster than numpy.histogram2d
+    def histogram2d(samples, bins, ranges):                 # for a dataset with ~1.8e+8 points
+
+        """
+        This method returns a bidimensional integer numpy 
+        array which is the 2D histogram of the given samples.
+
+        Parameters
+        ----------
+        samples : np.ndarray
+            A 2xN numpy array where samples[0, i] (resp.
+            samples[1, i]) gives, for the i-th point in the
+            samples set, the value for the coordinate which 
+            varies along the first (resp. second) axis of 
+            the returned bidimensional matrix.
+        bins : np.ndarray
+            A 2x1 numpy array where bins[0] (resp. bins[1])
+            gives the number of bins to be considered along
+            the coordinate which varies along the first 
+            (resp. second) axis of the returned bidimensional 
+            matrix.
+        ranges : np.ndarray
+            A 2x2 numpy array where (ranges[0,0], ranges[0,1])
+            (resp. (ranges[1,0], ranges[1,1])) gives the 
+            range for the coordinate which varies along the 
+            first (resp. second) axis of the returned 
+            bidimensional. Any sample which falls outside 
+            these ranges is ignored.
+
+        Returns
+        ----------
+        result : np.ndarray
+            A bidimensional integer numpy array which is the
+            2D histogram of the given samples.
+        """
+
+        result = np.zeros((bins[0], bins[1]), dtype=np.uint64)
+
+        inverse_step = 1. / ((ranges[:, 1] - ranges[:, 0]) / bins)
+
+        for t in range(samples.shape[1]):
+
+            i = (samples[0, t] - ranges[0, 0]) * inverse_step[0]
+            j = (samples[1, t] - ranges[1, 0]) * inverse_step[1]
+
+            if 0 <= i < bins[0] and 0 <= j < bins[1]:       # Using this condition is slightly faster than               
+                result[int(i), int(j)] += 1                 # using four nested if-conditions (one for each        
+                                                            # one of the four conditions). For a dataset with             
+        return result                                       # 178993152 points, the average time (for 30        
+                                                            # calls to this function) gave ~1.06 s vs ~1.22 s
+
+    def __subplot_heatmap(self, figure : pgo.Figure,
+                                name : str,
+                                row : int,
+                                col : int,
+                                wf_idcs : List[int],
+                                analysis_label : str,
+                                time_bins : int,
+                                adc_bins : int,
+                                ranges : np.ndarray,
+                                show_color_bar : bool = False) -> pgo.Figure:
+    
+        """
+        This method should only be called by the
+        WaveformSet.plot() method, where the 
+        data-availability and the well-formedness 
+        checks of the input have already been 
+        performed. No checks are performed in
+        this method. For each subplot in the grid 
+        plot generated by the WaveformSet.plot()
+        methods when its 'mode' parameter is
+        set to 'heatmap', such method delegates
+        plotting the heatmap to the current method.
+        This method takes the given figure, and 
+        plots on it the heatmap of the union of 
+        the waveforms whose indices are contained 
+        within the given 'wf_idcs' list. The 
+        position of the subplot where this heatmap 
+        is plotted is given by the 'row' and 'col' 
+        parameters. Finally, this method returns 
+        the figure.
+
+        Parameters
+        ----------
+        figure : pgo.Figure
+            The figure where the heatmap will be
+            plotted
+        name : str
+            The name of the heatmap. It is given
+            to the 'heatmap' parameter of 
+            plotly.graph_objects.Heatmap().
+        row (resp. col) : int
+            The row (resp. column) where the 
+            heatmap will be plotted. These values
+            are expected to be 1-indexed, so they
+            are directly passed to the 'row' and
+            'col' parameters of the figure.add_trace()
+            method.
+        wf_idcs : list of int
+            Indices of the waveforms, with respect
+            to the self.__waveforms list, which
+            will be added to the heatmap.
+        analysis_label : str
+            For each considered waveform, it is the
+            key for its Analyses attribute which gives
+            the WfAna object whose computed baseline
+            is subtracted from the waveform prior to
+            addition to the heatmap. This method does
+            not check that an analysis for such label
+            exists.
+        time_bins : int
+            The number of bins for the horizontal axis
+            of the heatmap
+        adc_bins : int
+            The number of bins for the vertical axis
+            of the heatmap
+        ranges : np.ndarray
+            A 2x2 integer numpy array where ranges[0,0]
+            (resp. ranges[0,1]) gives the lower (resp.
+            upper) bound of the horizontal axis of the
+            heatmap, and ranges[1,0] (resp. ranges[1,1])
+            gives the lower (resp. upper) bound of the
+            vertical axis of the heatmap.
+        show_color_bar : bool
+            It is given to the 'showscale' parameter of
+            plotly.graph_objects.Heatmap(). If True, a
+            bar with the color scale of the plotted 
+            heatmap is shown. If False, it is not.
+        
+        Returns
+        ----------
+        figure_ : plotly.graph_objects.Figure
+            The figure whose subplot at position 
+            (row, col) has been filled with the heatmap
+        """
+
+        figure_ = figure
+
+        time_step   = (ranges[0,1] - ranges[0,0]) / time_bins
+        adc_step    = (ranges[1,1] - ranges[1,0]) / adc_bins
+            
+        aux_x = np.hstack([np.arange(0, self.PointsPerWf) for _ in range(len(wf_idcs))])
+        aux_y = np.hstack([self.Waveforms[idx].Adcs - self.Waveforms[idx].Analyses[analysis_label].Result.Baseline for idx in wf_idcs])
+
+        aux = WaveformSet.histogram2d(  np.vstack((aux_x, aux_y)), 
+                                        np.array((time_bins, adc_bins)),
+                                        ranges)
+        
+        heatmap =   pgo.Heatmap(z = aux,
+                                x0 = ranges[0,0],
+                                dx = time_step,
+                                y0 = ranges[1,0],
+                                dy = adc_step,
+                                name = name,
+                                transpose = True,
+                                showscale = show_color_bar)
+
+        figure_.add_trace(  heatmap,
+                            row = row,
+                            col = col)
+        return figure_
