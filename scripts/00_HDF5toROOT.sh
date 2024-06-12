@@ -11,7 +11,6 @@ if [ ! "$BASH_VERSION" ] ; then
 fi
 
 waffles_path=$(realpath ${BASH_SOURCE[0]})
-#get everything before the last '/'
 waffles_path=$(echo $waffles_path | sed 's|\(.*\)/.*|\1|')
 
 # Check if the arguments are provided and if not ask for them
@@ -21,9 +20,13 @@ if [ -n "$1" ];then
         read -p "Please provide a run(s) number(s) to be analysed, separated by commas :) " run_number
 fi
 
+read -p "Do you want to run the DUMP an output root file in eos (1) or just a DUPLICATION check (2)? (1/2) " script_mode
+declare -A mode_script_map
+mode_script_map[1]="HDF5toROOT_decoder"
+mode_script_map[2]="HDF5LIBS_duplications"
 
 run_string=$(IFS=,; echo "${run_number[*]}")
-echo -e "\e[31mWARNING: You are about to run the CPP DECODER for runs: ["${run_string[@]}"] !\e[0m"
+echo -e "\e[31mWARNING: You are about to run the CPP ${mode_script_map[$script_mode]} for runs: ["${run_string[@]}"] !\e[0m"
 read -p "Are you sure you want to continue? (y/n) " -n 1 -r
 # If the user did not answer with y, exit the script
 if [[ ! $REPLY =~ ^[Yy]$ ]]
@@ -47,15 +50,18 @@ do
     fi
 
     echo -e "\e[32m --> Raw .hdf5 file found at $rucio_path \e[0m"
-    cd /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root
     
-    # if run_run_number folder does not exist create it
-    if [ ! -d "run_$run" ]; then
-        mkdir run_$run
+    if [ ${mode_script_map[$script_mode]} == "HDF5toROOT_decoder" ]; then
+        cd /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root
+        # if run_run_number folder does not exist create it
+        if [ ! -d "run_$run" ]; then
+            mkdir run_$run
+        fi
+
+        cd run_$run
+        echo -e "\e[35m\n... Running HDF5toROOT_decoder ...\n \e[0m"
     fi
 
-    cd run_$run
-    echo -e "\e[35m\n... Running HDF5toROOT_decoder ...\n \e[0m"
-    HDF5toROOT_decoder $rucio_path
+    ${mode_script_map[$script_mode]} $rucio_path
     cd $waffles_path
 done
