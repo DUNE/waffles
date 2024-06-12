@@ -43,13 +43,13 @@ do
     # run get_rucio script with the run number to get the paths
     echo -e "\e[35m\nGetting the paths for the run(s) $run... \n \e[0m"
 
-    rucio_path=$(cat /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/$run.txt)
-    if [ -z "$rucio_path" ]; then
+    rucio_paths=$(cat /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/$run.txt)
+    if [ -z "$rucio_paths" ]; then
         python get_rucio.py --runs $run
-        rucio_path=$(cat /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/$run.txt)
+        rucio_paths=$(cat /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/$run.txt)
     fi
 
-    echo -e "\e[32m --> Raw .hdf5 file found at $rucio_path \e[0m"
+    echo -e "\e[32m --> Raw .hdf5 file found at $rucio_paths \e[0m"
     
     if [ ${mode_script_map[$script_mode]} == "HDF5toROOT_decoder" ]; then
         cd /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root
@@ -62,6 +62,10 @@ do
         echo -e "\e[35m\n... Running HDF5toROOT_decoder ...\n \e[0m"
     fi
 
-    ${mode_script_map[$script_mode]} $rucio_path
+    #check if there are several lines in the txt and run a loop over them
+    for rucio_path in $rucio_paths
+    do
+        ${mode_script_map[$script_mode]} $rucio_path >>  duplications.txt
+    done
     cd $waffles_path
 done
