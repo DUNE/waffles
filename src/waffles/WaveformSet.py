@@ -718,21 +718,28 @@ class WaveformSet:
         if mode == 'overlay':
             for i in range(nrows):
                 for j in range(ncols):
-                    for k in grid_of_wf_idcs_[i][j]:
+                    if len(grid_of_wf_idcs_[i][j]) > 0:
+                        for k in grid_of_wf_idcs_[i][j]:
 
-                        aux_name = f"({i+1},{j+1}) - Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}"
+                            aux_name = f"({i+1},{j+1}) - Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}"
 
-                        self.__waveforms[k].plot(   figure = figure_,
-                                                    name = aux_name,
-                                                    row = i + 1,  # Plotly uses 1-based indexing
-                                                    col = j + 1,
-                                                    plot_analysis_markers = plot_analysis_markers,
-                                                    show_baseline_limits = show_baseline_limits,
-                                                    show_baseline = show_baseline,
-                                                    show_general_integration_limits = show_general_integration_limits,
-                                                    show_spotted_peaks = show_spotted_peaks,
-                                                    show_peaks_integration_limits = show_peaks_integration_limits,
-                                                    analysis_label = analysis_label)
+                            self.__waveforms[k].plot(   figure = figure_,
+                                                        name = aux_name,
+                                                        row = i + 1,  # Plotly uses 1-based indexing
+                                                        col = j + 1,
+                                                        plot_analysis_markers = plot_analysis_markers,
+                                                        show_baseline_limits = show_baseline_limits,
+                                                        show_baseline = show_baseline,
+                                                        show_general_integration_limits = show_general_integration_limits,
+                                                        show_spotted_peaks = show_spotted_peaks,
+                                                        show_peaks_integration_limits = show_peaks_integration_limits,
+                                                        analysis_label = analysis_label)
+                    else:
+                        
+                        WaveformSet.__add_no_data_annotation(   figure_,
+                                                                i + 1,
+                                                                j + 1)
+                        
         elif mode == 'average':
             for i in range(nrows):
                 for j in range(ncols):
@@ -742,7 +749,12 @@ class WaveformSet:
                                                                                             # an exception if grid_of_wf_idcs_[i][j] is emtpy
 
                     except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
-                        continue            ## so that we can handle in parallel exceptions due to different reasons if we need it
+                                            ## so that we can handle in parallel exceptions due to different reasons if we need it
+                        
+                        WaveformSet.__add_no_data_annotation(   figure_,
+                                                                i + 1,
+                                                                j + 1)
+                        continue
 
                     fAnalyzed = False
                     if analysis_label is not None:
@@ -780,8 +792,6 @@ class WaveformSet:
                                             text = aux_name,
                                             row = i + 1,
                                             col = j + 1)
-
-                    
         elif mode == 'heatmap':
 
             if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
@@ -793,34 +803,40 @@ class WaveformSet:
                                         [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
             for i in range(nrows):
                 for j in range(ncols):
+                    if len(grid_of_wf_idcs_[i][j]) > 0:
 
-                    aux_name = f"Heatmap of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
-                    if detailed_label:
-                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
-                                                                                                    queried_no = 2)}]"
-                    figure_ = self.__subplot_heatmap(   figure_,
-                                                        aux_name,
-                                                        i + 1,
-                                                        j + 1,
-                                                        grid_of_wf_idcs_[i][j],
-                                                        analysis_label,
-                                                        time_bins,
-                                                        adc_bins,
-                                                        aux_ranges,
-                                                        show_color_bar = False)     # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
-                                                                                    # since it may differ from one plot     ## every plot in the grid, though, but comes at the
-                                                                                    # to another.                           ## cost of finding the max and min values of the 
-                                                                                                                            ## union of all of the histograms. Such feature may 
-                                                                                                                            ## be enabled in the future, using a boolean input
-                                                                                                                            ## parameter.
-                    figure_.add_annotation( xref = "x domain", 
-                                            yref = "y domain",      
-                                            x = 0.,             # The annotation is left-aligned
-                                            y = 1.25,           # and on top of each subplot
-                                            showarrow = False,
-                                            text = aux_name,
-                                            row = i + 1,
-                                            col = j + 1)
+                        aux_name = f"Heatmap of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
+                        if detailed_label:
+                            aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
+                                                                                                        queried_no = 2)}]"
+                        figure_ = self.__subplot_heatmap(   figure_,
+                                                            aux_name,
+                                                            i + 1,
+                                                            j + 1,
+                                                            grid_of_wf_idcs_[i][j],
+                                                            analysis_label,
+                                                            time_bins,
+                                                            adc_bins,
+                                                            aux_ranges,
+                                                            show_color_bar = False)     # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
+                                                                                        # since it may differ from one plot     ## every plot in the grid, though, but comes at the
+                                                                                        # to another.                           ## cost of finding the max and min values of the 
+                                                                                                                                ## union of all of the histograms. Such feature may 
+                                                                                                                                ## be enabled in the future, using a boolean input
+                                                                                                                                ## parameter.
+                        figure_.add_annotation( xref = "x domain", 
+                                                yref = "y domain",      
+                                                x = 0.,             # The annotation is left-aligned
+                                                y = 1.25,           # and on top of each subplot
+                                                showarrow = False,
+                                                text = aux_name,
+                                                row = i + 1,
+                                                col = j + 1)
+                    else:
+
+                        WaveformSet.__add_no_data_annotation(   figure_,
+                                                                i + 1,
+                                                                j + 1)
         else:                                                                                                           
             raise Exception(generate_exception_message( 8,
                                                         'WaveformSet.plot()',
@@ -2339,6 +2355,61 @@ class WaveformSet:
                                                             # one of the four conditions). For a dataset with             
         return result                                       # 178993152 points, the average time (for 30        
                                                             # calls to this function) gave ~1.06 s vs ~1.22 s
+
+    @staticmethod
+    def __add_no_data_annotation(   figure : pgo.Figure,
+                                    row : int,
+                                    col : int) -> pgo.Figure:
+        
+        """
+        This method should only be called by the
+        WaveformSet.plot() method, where the 
+        the well-formedness checks of the input 
+        have already been performed. No checks 
+        are performed in this method. This method
+        adds an empty trace and a centered annotation
+        displaying 'No data' to the given figure at
+        the given row and column. Finally, this
+        method returns the figure.
+
+        Parameters
+        ----------
+        figure : pgo.Figure
+            The figure where the annotation will be
+            added
+        row (resp. col) : int
+            The row (resp. column) where the annotation
+            will be added. These values are expected 
+            to be 1-indexed, so they are directly passed 
+            to the 'row' and 'col' parameters of the 
+            plotly.graph_objects.Figure.add_trace() and 
+            plotly.graph_objects.Figure.add_annotation()
+            methods.
+
+        Returns
+        ----------
+        figure_ : plotly.graph_objects.Figure
+            The figure with the annotation added
+        """
+
+        figure_ = figure
+
+        figure_.add_trace(  pgo.Scatter(x = [], 
+                                        y = []), 
+                            row = row, 
+                            col = col)
+
+        figure_.add_annotation( text = "No data",
+                                xref = 'x domain',
+                                yref = 'y domain',
+                                x = 0.5,
+                                y = 0.5,
+                                showarrow = False,
+                                font = dict(size = 14, 
+                                            color='black'),
+                                row = row,
+                                col = col)
+        return figure_
 
     def __subplot_heatmap(self, figure : pgo.Figure,
                                 name : str,
