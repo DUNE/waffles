@@ -65,7 +65,7 @@ do
     #check if there are several lines in the txt and run a loop over them
     for rucio_path in $rucio_paths
     do
-        ${mode_script_map[$script_mode]} $rucio_path >>  duplications.txt
+        ${mode_script_map[$script_mode]} $rucio_path
     done
     cd $waffles_path
 done
