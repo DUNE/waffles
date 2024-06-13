@@ -1472,7 +1472,7 @@ class WaveformSet:
         idcs_to_retrieve = WaveformSet.__cluster_integers_by_contiguity(aux)
 
         if verbose:
-            print(f"In function WaveformSet.from_ROOT_file(): Found {len(idcs_to_retrieve)} clusters of contiguous {'full-streaming' if read_full_streaming_data else 'self-trigger'} waveforms in the ROOT file.")
+            print(f"In function WaveformSet.from_ROOT_file(): Found {len(idcs_to_retrieve)} cluster(s) of contiguous {'full-streaming' if read_full_streaming_data else 'self-trigger'} waveforms in the ROOT file.")
             print(f"In function WaveformSet.from_ROOT_file(): Note that, the lesser the clusters the faster the reading process will be.")
 
         # For reference, reading ~1.6e+3 waveforms in 357 clusters takes ~10s,
