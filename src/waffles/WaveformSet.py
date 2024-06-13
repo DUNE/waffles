@@ -404,7 +404,8 @@ class WaveformSet:
         
         return True
     
-    def plot(self,  nrows : int = 1,
+    def plot(self,  *args,
+                    nrows : int = 1,
                     ncols : int = 1,
                     figure : Optional[pgo.Figure] = None,
                     wfs_per_axes : Optional[int] = 1,
@@ -423,7 +424,8 @@ class WaveformSet:
                     adc_bins : int = 100,
                     adc_range_above_baseline : int = 100,
                     adc_range_below_baseline : int = 200,
-                    detailed_label : bool = True) -> pgo.Figure: 
+                    detailed_label : bool = True,
+                    **kwargs) -> pgo.Figure: 
 
         """ 
         This method returns a plotly.graph_objects.Figure 
@@ -432,6 +434,19 @@ class WaveformSet:
 
         Parameters
         ----------
+        *args
+            These arguments only make a difference if the
+            'mode' parameter is set to 'average' and the
+            'analysis_label' parameter is not None. In such
+            case, these are the positional arguments handled 
+            to the WaveformAdcs.analyse() instance method of 
+            the computed mean waveform. I.e. for the mean 
+            waveform wf, the call to its analyse() method
+            is wf.analyse(analysis_label, *args, **kwargs).
+            The WaveformAdcs.analyse() method does not 
+            perform any well-formedness checks, so it is 
+            the caller's responsibility to ensure so for 
+            these parameters.
         nrows (resp. ncols) : int
             Number of rows (resp. columns) of the returned 
             grid of axes.
@@ -486,37 +501,64 @@ class WaveformSet:
             via the 'analysis_label' parameter. Check its
             documentation for more information.
         analysis_label : str
-            If mode is set to 'overlay' or 'average', then
-            this parameter is optoinal and it only makes a 
+            The meaning of this parameter varies slightly
+            depending on the value given to the 'mode'
+            parameter. 
+                If mode is set to 'overlay', then this 
+            parameter is optional and it only makes a 
             difference if the 'plot_analysis_markers' 
             parameter is set to True. In such case, this 
-            parameter is given to the 'analysis_label' 
+            parameter is given to the 'analysis_label'
             parameter of the Waveform.plot() (actually 
             WaveformAdcs.plot()) method for each WaveformAdcs 
-            object(s) which will be plotted, either a set 
-            of waveforms of the average of them. It is the 
-            key for the WfAna object within the Analyses 
-            attribute of each plotted waveform from where 
-            to take the information for the analysis markers 
-            plot. In these cases, if 'analysis_label' is 
-            None, then the last analysis added to 
-            self.__analyses will be the used one. On the 
-            other hand, in the case when the 'mode' 
-            parameter is set to 'heatmap', this parameter is
-            not optional, i.e. it must be defined, and
-            gives the analysis whose baseline will be 
-            subtracted from each waveform before plotting. 
-            In this case, it will not be checked that, 
-            for each waveform, the analysis with the given 
-            label is available. It is the caller's 
+            object(s) which will be plotted. This parameter 
+            gives the key for the WfAna object within the 
+            Analyses attribute of each plotted waveform from 
+            where to take the information for the analysis 
+            markers plot. In this case, if 'analysis_label' 
+            is None, then the last analysis added to 
+            self.__analyses will be the used one. 
+                If mode is set to 'average' and this 
+            parameter is defined, then this method will 
+            analyse the newly computed average waveform, 
+            say wf, by calling 
+            wf.analyse(analysis_label, *args, **kwargs).
+            Additionally, if the 'plot_analysis_markers'
+            parameter is set to True and this parameter
+            is defined, then this parameter is given to 
+            the 'analysis_label' parameter of the wf.plot() 
+            method, i.e. the analysis markers for the 
+            plotted average waveform are those of the 
+            newly computed analysis. This parameter gives 
+            the key for the WfAna object within the 
+            Analyses attribute of the average waveform 
+            where to take the information for the analysis 
+            markers plot.
+                If 'mode' is set to 'heatmap', this 
+            parameter is not optional, i.e. it must be 
+            defined, and gives the analysis whose baseline 
+            will be subtracted from each waveform before 
+            plotting. In this case, it will not be checked 
+            that, for each waveform, the analysis with the 
+            given label is available. It is the caller's 
             responsibility to ensure so.
         plot_analysis_markers : bool
             This parameter only makes a difference if the
             'mode' parameter is set to 'overlay' or 'average'.
-            In such case, this parameter is given to the 
+                If mode is set to 'overlay', then this 
+            parameter is given to the 
             'plot_analysis_markers' argument of the 
             WaveformAdcs.plot() method for each waveform in 
-            which will be plotted. If True, analysis markers 
+            which will be plotted. 
+                If mode is set to 'average' and the
+            'analysis_label' parameter is defined, then this
+            parameter is given to the 'plot_analysis_markers'
+            argument of the WaveformAdcs.plot() method for
+            the newly computed average waveform. If the
+            'analysis_label' parameter is not defined, then
+            this parameter will be automatically interpreted
+            as False.
+                In both cases, If True, analysis markers 
             for the plotted WaveformAdcs objects will 
             potentially be plotted together with each 
             waveform. For more information, check the 
@@ -585,6 +627,19 @@ class WaveformSet:
             available waveforms (which were used to compute
             the 2D-histogram) in the top annotation of each
             subplot.
+        **kwargs
+            These arguments only make a difference if the
+            'mode' parameter is set to 'average' and the
+            'analysis_label' parameter is not None. In such
+            case, these are the keyword arguments handled 
+            to the WaveformAdcs.analyse() instance method of 
+            the computed mean waveform. I.e. for the mean 
+            waveform wf, the call to its analyse() method
+            is wf.analyse(analysis_label, *args, **kwargs).
+            The WaveformAdcs.analyse() method does not 
+            perform any well-formedness checks, so it is 
+            the caller's responsibility to ensure so for 
+            these parameters.
              
         Returns
         ----------
@@ -689,6 +744,14 @@ class WaveformSet:
                     except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
                         continue            ## so that we can handle in parallel exceptions due to different reasons if we need it
 
+                    fAnalyzed = False
+                    if analysis_label is not None:
+                        
+                        _ = aux.analyse(    analysis_label,
+                                            *args,
+                                            **kwargs)
+                        fAnalyzed = True
+
                     aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
                     if detailed_label:
                         aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
@@ -697,13 +760,13 @@ class WaveformSet:
                                 name = f"({i+1},{j+1}) - Mean of " + aux_name,
                                 row = i + 1,
                                 col = j + 1,
-                                plot_analysis_markers = plot_analysis_markers,
+                                plot_analysis_markers = plot_analysis_markers if fAnalyzed else False,
                                 show_baseline_limits = show_baseline_limits,
                                 show_baseline = show_baseline,
                                 show_general_integration_limits = show_general_integration_limits,
                                 show_spotted_peaks = show_spotted_peaks,
                                 show_peaks_integration_limits = show_peaks_integration_limits,
-                                analysis_label = analysis_label)
+                                analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None)
                     
                     figure_.add_annotation( xref = "x domain",  # This annotation could be coded at the WaveformAdcs.plot() 
                                             yref = "y domain",  # level, but a boolean condition should be checked there to
