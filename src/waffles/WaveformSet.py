@@ -1462,10 +1462,14 @@ class WaveformSet:
         is_fullstream_array = is_fullstream_branch.array(   entry_start = wf_start,
                                                             entry_stop = wf_stop)
     
-        if read_full_streaming_data:   
-            idcs_to_retrieve = WaveformSet.__cluster_integers_by_contiguity(np.where(is_fullstream_array)[0])
-        else:
-            idcs_to_retrieve = WaveformSet.__cluster_integers_by_contiguity(np.where(np.logical_not(is_fullstream_array))[0])
+        aux = np.where(is_fullstream_array)[0] if read_full_streaming_data else np.where(np.logical_not(is_fullstream_array))[0]
+
+        if len(aux) == 0:
+            raise Exception(generate_exception_message( 2,
+                                                        'WaveformSet.from_ROOT_file()',
+                                                        f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
+
+        idcs_to_retrieve = WaveformSet.__cluster_integers_by_contiguity(aux)
 
         if verbose:
             print(f"In function WaveformSet.from_ROOT_file(): Found {len(idcs_to_retrieve)} clusters of contiguous {'full-streaming' if read_full_streaming_data else 'self-trigger'} waveforms in the ROOT file.")
