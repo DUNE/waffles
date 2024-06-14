@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  std::map<std::vector<short>, std::tuple<unsigned int, unsigned int, unsigned int, long int, long int, long int, short, short, short, short, short, long int, bool, int, int, int>> allval;
+  std::map<std::vector<short>, std::tuple<unsigned int, unsigned int, unsigned int, long int, long int, long int, short, short, short, short, short, long int, bool, int, int, int, unsigned int>> allval;
 
   const std::string ifile_name = std::string(argv[1]);
   HDF5RawDataFile h5_raw_data_file(ifile_name);
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
           // _Deltatmst = deltatmstp;
           _FrameTimestamp = fr->get_timestamp();
           _TriggerSampleValue = fr->header.trigger_sample_value;
-          // _Threshold = fr->header.threshold;
+          short _Threshold = fr->header.threshold;
           _Baseline = fr->header.baseline;
           // _TriggerTimeStamp = trh_ptr->get_trigger_timestamp();
 
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 
           // allval[adctemp] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream);
 
-          allval[adctemp] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record);
+          allval[adctemp] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record, _Threshold);
         }
       }
       if (fragment_type_to_string(frag_ptr->get_fragment_type()) == "DAPHNEStream")
@@ -368,6 +368,7 @@ int main(int argc, char **argv)
           // _Deltatmst = deltatmstp;
           _FrameTimestamp = tmstmpstream[k];
           _TriggerSampleValue = samplevaluestream[k];
+          short _Threshold = -1;
           // _Threshold = fr->header.threshold;
           _Baseline = baselinestream[k];
           // _TriggerTimeStamp = trh_ptr->get_trigger_timestamp();
@@ -375,7 +376,7 @@ int main(int argc, char **argv)
 
           // allval[adcstream[k]] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream);
 
-          allval[adcstream[k]] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record);
+          allval[adcstream[k]] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record, _Threshold);
         }
       }
     }
@@ -431,6 +432,9 @@ int main(int argc, char **argv)
     _Baseline_a = std::get<13>(v.second);
     _TriggerSampleValue_a = std::get<14>(v.second);
     isstream = std::get<12>(v.second);
+
+    ep.push_back(std::get<6>(v.second));
+    th = std::get<16>(v.second);
 
     fWaveformTree.Fill();
 
