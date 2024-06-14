@@ -1,31 +1,105 @@
+import numpy as np
 
+from src.waffles.WaveformAdcs import WaveformAdcs
 
+class Waveform(WaveformAdcs):
 
-#import libraries
-import os
-import daqdataformats
-import matplotlib.pyplot as plt
-from daqdataformats import FragmentType
-from rawdatautils.unpack.daphne import *
-from hdf5libs import HDF5RawDataFile
+    """
+    This class implements a waveform which includes
+    information which is relative to detector readout.
+    It inherits from the WaveformAdcs class.
 
+    Attributes
+    ----------
+    Timestamp : int
+        The timestamp value for this waveform
+    TimeStep_ns : float (inherited)
+        The time step (in nanoseconds) for this waveform
+    Adcs : unidimensional numpy array of integers (inherited)
+        The readout for this waveform, in # of ADCs
+    RunNumber : int
+        Number of the run from which this waveform was
+        acquired
+    Endpoint : int
+        Endpoint number from which this waveform was
+        acquired
+    Channel : int
+        Channel number for this waveform
+    Analyses : OrderedDict of WfAna objects (inherited)
 
-#define waveform class
-class waveform:
-  def __init__(self, fragment):
-    frag_id = str(frag).split(' ')[3][:-1]
-    fragType = frag.get_header().fragment_type
+    Methods
+    ----------
+    ## Add the list of methods and a summary for each one here
+    """
+
+    def __init__(self,  timestamp : int,
+                        time_step_ns : float,
+                        adcs : np.ndarray,
+                        run_number : int,
+                        endpoint : int,
+                        channel : int):
+        
+        """
+        Waveform class initializer
+        
+        Parameters
+        ----------
+        timestamp : int
+        time_step_ns : float
+            It is given to the 'time_step_ns' parameter of
+            the base class initializer.
+        adcs : unidimensional numpy array of integers
+            It is given to the 'adcs' parameter of the base
+            class initializer.
+        run_number : int
+        endpoint : int
+        channel : int
+        """
+
+        ## Shall we add add type checks here?
     
-    if fragType == FragmentType.kDAPHNE.value:  # For self trigger
-        trigger = 'self_trigger'
-        timestamps = np_array_timestamp(frag)
-        adcs = np_array_adc(frag)
-        channels = np_array_channels(frag)
-    elif fragType == 13:  # For full_stream
-        trigger = 'full_stream'
-        timestamps = np_array_timestamp_stream(frag)
-        adcs = np_array_adc_stream(frag)
-        channels = np_array_channels_stream(frag)[0]
-    
-    return trigger, frag_id, channels, adcs, timestamps
+        self.__timestamp = timestamp
+        self.__run_number = run_number
+        self.__endpoint = endpoint
+        self.__channel = channel
 
+        ## Do we need to add trigger primitives as attributes?
+
+        super().__init__(   time_step_ns, 
+                            adcs)
+
+    #Getters
+    @property
+    def Timestamp(self):
+        return self.__timestamp
+    
+    @property
+    def RunNumber(self):
+        return self.__run_number
+    
+    @property
+    def Endpoint(self):
+        return self.__endpoint
+    
+    @property
+    def Channel(self):
+        return self.__channel
+    
+#   #Setters                        # For the moment there are no setters for 
+#   @Timestamp.setter               # the attributes of Waveform. I.e. you can
+#   def Timestamp(self, input):     # only set the value of its attributes
+#       self.__timestamp = input    # through Waveform.__init__. Here's an example
+#       return                      # of what a setter would look like, though.
+        
+    def get_global_channel(self):
+
+        """
+        Returns
+        ----------
+        int
+            An integer value for the readout channel with respect to a numbering 
+            scheme which identifies the endpoint and the APA channel at the same
+            time
+        """
+
+        pass
