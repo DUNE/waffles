@@ -2307,6 +2307,11 @@ class WaveformSet:
     @staticmethod
     @numba.njit(nogil=True, parallel=False)                 # ~ 20 times faster than numpy.histogram2d
     def histogram2d(samples, bins, ranges):                 # for a dataset with ~1.8e+8 points
+    @staticmethod
+    @numba.njit(nogil=True, parallel=False)                 
+    def histogram2d(samples : np.ndarray, 
+                    bins : np.ndarray,                      # ~ 20 times faster than numpy.histogram2d
+                    ranges : np.ndarray) -> np.ndarray:     # for a dataset with ~1.8e+8 points
 
         """
         This method returns a bidimensional integer numpy 
