@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  std::map<std::vector<short>, std::tuple<unsigned int, unsigned int, unsigned int, long int, long int, long int, short, short, short, short, short, long int, bool, int, int, int>> allval;
+  std::map<std::vector<short>, std::tuple<unsigned int, unsigned int, unsigned int, long int, long int, long int, short, short, short, short, short, long int, bool, int, int, int, unsigned int>> allval;
 
   const std::string ifile_name = std::string(argv[1]);
   HDF5RawDataFile h5_raw_data_file(ifile_name);
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
   auto run_number = h5_raw_data_file.get_attribute<unsigned int>("run_number");
   auto app_name = h5_raw_data_file.get_attribute<std::string>("application_name");
   auto file_index = h5_raw_data_file.get_attribute<unsigned int>("file_index");
-  auto creation_timestamp = h5_raw_data_file.get_attribute<std::string>("creation_timestamp");
+  std::string creation_timestamp = h5_raw_data_file.get_attribute<std::string>("creation_timestamp");
 
   TString appn = app_name;
   int rn = run_number;
@@ -125,6 +125,7 @@ int main(int argc, char **argv)
   // hf.cd("pdhddaphne");
 
   auto records = h5_raw_data_file.get_all_record_ids();
+  unsigned int nrec = records.size();
   size_t frag_header_size = sizeof(FragmentHeader);
 
   std::cout << "\nReading fragments and filling ROOT file... \n";
@@ -218,7 +219,7 @@ int main(int argc, char **argv)
           // _Deltatmst = deltatmstp;
           _FrameTimestamp = fr->get_timestamp();
           _TriggerSampleValue = fr->header.trigger_sample_value;
-          // _Threshold = fr->header.threshold;
+          short _Threshold = fr->header.threshold;
           _Baseline = fr->header.baseline;
           // _TriggerTimeStamp = trh_ptr->get_trigger_timestamp();
 
@@ -234,7 +235,7 @@ int main(int argc, char **argv)
 
           // allval[adctemp] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream);
 
-          allval[adctemp] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record);
+          allval[adctemp] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record, _Threshold);
         }
       }
       if (fragment_type_to_string(frag_ptr->get_fragment_type()) == "DAPHNEStream")
@@ -367,6 +368,7 @@ int main(int argc, char **argv)
           // _Deltatmst = deltatmstp;
           _FrameTimestamp = tmstmpstream[k];
           _TriggerSampleValue = samplevaluestream[k];
+          short _Threshold = -1;
           // _Threshold = fr->header.threshold;
           _Baseline = baselinestream[k];
           // _TriggerTimeStamp = trh_ptr->get_trigger_timestamp();
@@ -374,7 +376,7 @@ int main(int argc, char **argv)
 
           // allval[adcstream[k]] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream);
 
-          allval[adcstream[k]] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record);
+          allval[adcstream[k]] = std::make_tuple(_Run, _Event, _TriggerNumber, _TimeStamp, _Window_end, _Window_begin, _Slot, _Link, _Crate, _DaphneChannel, _OfflineChannel, _FrameTimestamp, is_stream, _Baseline, _TriggerSampleValue, _Record, _Threshold);
         }
       }
     }
@@ -415,6 +417,9 @@ int main(int argc, char **argv)
   fWaveformTree.Branch("trigger_sample_value", &_TriggerSampleValue_a, "trigger_sample_value/S"); // only for self-trigger
   fWaveformTree.Branch("is_fullstream", &isstream, "is_fullstream/O");
 
+  vector<short> ep;
+  unsigned int th;
+
   for (auto &v : allval)
   {
     // std::cout << adcvec << "\n " << std::endl;
@@ -427,6 +432,9 @@ int main(int argc, char **argv)
     _Baseline_a = std::get<13>(v.second);
     _TriggerSampleValue_a = std::get<14>(v.second);
     isstream = std::get<12>(v.second);
+
+    ep.push_back(std::get<6>(v.second));
+    th = std::get<16>(v.second);
 
     fWaveformTree.Fill();
 
@@ -456,9 +464,28 @@ int main(int argc, char **argv)
     // _Baseline_a = -1;
     // _TriggerTimeStamp_a = -1;
   }
+  sort(ep.begin(), ep.end());
+  auto itep = unique(ep.begin(), ep.end());
+  ep.erase(itep, ep.end());
 
-  // TTree metadata("metadata", "metadata");
+  unsigned int _ticks_to_nsec = 16;
+  unsigned int _adcs_to_nvolts = 292986; //(1.5*3.2)/(2^(14)-1);
+  ULong64_t date;
+  std::stringstream ssdate;
+  ssdate << creation_timestamp;
+  ssdate >> date;
+  // vector<short> _endpoint;
+  TTree metadata("metadata", "metadata");
   // metadata.Branch("record", &_Record_a, "record/i");
+  metadata.Branch("endpoint", &ep);
+  metadata.Branch("threshold", &th, "threshold/i");
+  metadata.Branch("run", &run_number, "run/i");
+  metadata.Branch("nrecords", &nrec, "nrecords/i");
+  metadata.Branch("date", &date, "date/l");
+  metadata.Branch("ticks_to_nsec", &_ticks_to_nsec, "ticks_to_nsec/i");
+  metadata.Branch("adcs_to_nvolts", &_adcs_to_nvolts, "adcs_to_nvolts/i");
+
+  metadata.Fill();
 
   std::cout << "\nWritting ROOT file... ";
   fWaveformTree.Write("", TObject::kWriteDelete);
