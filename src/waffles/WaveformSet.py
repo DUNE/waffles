@@ -2305,8 +2305,48 @@ class WaveformSet:
         return
     
     @staticmethod
-    @numba.njit(nogil=True, parallel=False)                 # ~ 20 times faster than numpy.histogram2d
-    def histogram2d(samples, bins, ranges):                 # for a dataset with ~1.8e+8 points
+    @numba.njit(nogil=True, parallel=False)
+    def histogram1d(samples : np.ndarray,
+                    bins : int,
+                    domain : np.ndarray) -> np.ndarray:     # Not calling it 'range' because 
+                                                            # it is a reserved keyword in Python
+        """
+        This method returns an unidimensional integer numpy 
+        array which is the 1D histogram of the given samples.
+
+        Parameters
+        ----------
+        samples : np.ndarray
+            An unidimensional numpy array where samples[i] 
+            gives the i-th sample.
+        bins : int
+            The number of bins
+        domain : np.ndarray
+            A 2x1 numpy array where (domain[0], domain[1])
+            gives the range to consider for the histogram.
+            Any sample which falls outside this range is 
+            ignored.
+
+        Returns
+        ----------
+        result : np.ndarray
+            An unidimensional integer numpy array which 
+            is the 1D histogram of the given samples
+        """
+
+        result = np.zeros(bins, dtype=np.uint64)
+
+        inverse_step = 1. / ((domain[1] - domain[0]) / bins)
+
+        for t in range(samples.shape[0]):
+
+            i = (samples[t] - domain[0]) * inverse_step
+
+            if 0 <= i < bins:
+                result[int(i)] += 1
+
+        return result
+
     @staticmethod
     @numba.njit(nogil=True, parallel=False)                 
     def histogram2d(samples : np.ndarray, 
