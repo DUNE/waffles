@@ -56,6 +56,7 @@ do
         # if run_run_number folder does not exist create it
         if [ ! -d "run_$run" ]; then
             mkdir run_$run
+            chmod 777 run_$run
         fi
 
         cd run_$run
