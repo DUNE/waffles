@@ -404,28 +404,28 @@ class WaveformSet:
         
         return True
     
-    def plot(self,  *args,
-                    nrows : int = 1,
-                    ncols : int = 1,
-                    figure : Optional[pgo.Figure] = None,
-                    wfs_per_axes : Optional[int] = 1,
-                    grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
-                    share_x_scale : bool = False,
-                    share_y_scale : bool = False,
-                    mode : str = 'overlay',
-                    analysis_label : Optional[str] = None,
-                    plot_analysis_markers : bool = False,
-                    show_baseline_limits : bool = False, 
-                    show_baseline : bool = True,
-                    show_general_integration_limits : bool = False,
-                    show_spotted_peaks : bool = True,
-                    show_peaks_integration_limits : bool = False,
-                    time_bins : int = 512,
-                    adc_bins : int = 100,
-                    adc_range_above_baseline : int = 100,
-                    adc_range_below_baseline : int = 200,
-                    detailed_label : bool = True,
-                    **kwargs) -> pgo.Figure: 
+    def plot_wfs(self,  *args,
+                        nrows : int = 1,
+                        ncols : int = 1,
+                        figure : Optional[pgo.Figure] = None,
+                        wfs_per_axes : Optional[int] = 1,
+                        grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
+                        share_x_scale : bool = False,
+                        share_y_scale : bool = False,
+                        mode : str = 'overlay',
+                        analysis_label : Optional[str] = None,
+                        plot_analysis_markers : bool = False,
+                        show_baseline_limits : bool = False, 
+                        show_baseline : bool = True,
+                        show_general_integration_limits : bool = False,
+                        show_spotted_peaks : bool = True,
+                        show_peaks_integration_limits : bool = False,
+                        time_bins : int = 512,
+                        adc_bins : int = 100,
+                        adc_range_above_baseline : int = 100,
+                        adc_range_below_baseline : int = 200,
+                        detailed_label : bool = True,
+                        **kwargs) -> pgo.Figure: 
 
         """ 
         This method returns a plotly.graph_objects.Figure 
@@ -649,7 +649,7 @@ class WaveformSet:
 
         if nrows < 1 or ncols < 1:
             raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.plot()',
+                                                        'WaveformSet.plot_wfs()',
                                                         'The number of rows and columns must be positive.'))
         fFigureIsGiven = False
         if figure is not None:
@@ -661,12 +661,12 @@ class WaveformSet:
             except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
 
                 raise Exception(generate_exception_message( 2,
-                                                            'WaveformSet.plot()',
+                                                            'WaveformSet.plot_wfs()',
                                                             'The given figure is not a subplot grid.'))
             if fig_rows != nrows or fig_cols != ncols:
                 
                 raise Exception(generate_exception_message( 3,
-                                                            'WaveformSet.plot()',
+                                                            'WaveformSet.plot_wfs()',
                                                             f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
             fFigureIsGiven = True
 
@@ -676,7 +676,7 @@ class WaveformSet:
 
             if wfs_per_axes < 1:
                 raise Exception(generate_exception_message( 4,
-                                                            'WaveformSet.plot()',
+                                                            'WaveformSet.plot_wfs()',
                                                             'The number of waveforms per axes must be positive.'))
 
             grid_of_wf_idcs_ = self.get_grid_of_wf_idcs(nrows,
@@ -687,14 +687,14 @@ class WaveformSet:
                                         # grid_of_wf_idcs are defined
 
             raise Exception(generate_exception_message( 5,
-                                                        'WaveformSet.plot()',
+                                                        'WaveformSet.plot_wfs()',
                                                         "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
         elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
                                                             nrows,              # but grid_of_wf_idcs is, but 
                                                             ncols):             # it is not well-formed
             raise Exception(generate_exception_message( 6,
-                                                        'WaveformSet.plot()',
+                                                        'WaveformSet.plot_wfs()',
                                                         f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
         else:   # wf_per_axes is not defined,
                 # but grid_of_wf_idcs is,
@@ -796,7 +796,7 @@ class WaveformSet:
 
             if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
                 raise Exception(generate_exception_message( 7,
-                                                            'WaveformSet.plot()',
+                                                            'WaveformSet.plot_wfs()',
                                                             "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
             
             aux_ranges =    np.array([  [0,                                 self.PointsPerWf - 1            ],
@@ -839,7 +839,7 @@ class WaveformSet:
                                                                 j + 1)
         else:                                                                                                           
             raise Exception(generate_exception_message( 8,
-                                                        'WaveformSet.plot()',
+                                                        'WaveformSet.plot_wfs()',
                                                         f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
         return figure_
 
@@ -2363,7 +2363,7 @@ class WaveformSet:
         
         """
         This method should only be called by the
-        WaveformSet.plot() method, where the 
+        WaveformSet.plot_wfs() method, where the 
         the well-formedness checks of the input 
         have already been performed. No checks 
         are performed in this method. This method
@@ -2424,12 +2424,12 @@ class WaveformSet:
     
         """
         This method should only be called by the
-        WaveformSet.plot() method, where the 
+        WaveformSet.plot_wfs() method, where the 
         data-availability and the well-formedness 
         checks of the input have already been 
         performed. No checks are performed in
         this method. For each subplot in the grid 
-        plot generated by the WaveformSet.plot()
+        plot generated by the WaveformSet.plot_wfs()
         methods when its 'mode' parameter is
         set to 'heatmap', such method delegates
         plotting the heatmap to the current method.
