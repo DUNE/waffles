@@ -146,6 +146,57 @@ class WaveformSet:
     def MeanAdcsIdcs(self):
         return self.__mean_adcs_idcs
     
+    def get_set_of_endpoints(self) -> set:
+            
+        """
+        This method returns a set which contains every endpoint
+        for which there is at least one waveform in this 
+        WaveformSet object.
+
+        Returns
+        ----------
+        output : set of int
+        """
+
+        output = set()
+
+        for run in self.__available_channels.keys():
+            for endpoint in self.__available_channels[run].keys():
+                output.add(endpoint)
+
+        return output
+    
+    def get_run_collapsed_available_channels(self) -> dict:
+            
+        """
+        This method returns a dictionary of sets of integers,
+        say output, whose keys are endpoints. If there is
+        at least one waveform within this set that comes from
+        endpoint n, then n belongs to output.keys(). output[n]
+        is a set of integers, so that if there is at least a
+        waveform coming from endpoint n and channel m, then m
+        belongs to output[n].
+
+        Returns
+        ----------
+        output : dictionary of sets
+        """
+
+        output = {}
+
+        for run in self.__runs:
+            for endpoint in self.__available_channels[run].keys():
+                try:
+                    aux = output[endpoint]
+                except KeyError:
+                    output[endpoint] = set()
+                    aux = output[endpoint]
+
+                for channel in self.__available_channels[run][endpoint]:
+                    aux.add(channel)
+
+        return output
+    
     def check_length_homogeneity(self) -> bool:
             
             """
