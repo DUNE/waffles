@@ -312,20 +312,7 @@ class WaveformAdcs:
 
         if plot_analysis_markers:
 
-            if analysis_label is None:
-                try:
-                    aux = next(reversed(self.__analyses.values()))  # Grabbing the last analysis
-                except StopIteration:
-                    raise Exception(generate_exception_message( 1,
-                                                                'WaveformAdcs.plot()',
-                                                                'The waveform has not been analysed yet.'))
-            else:
-                try:
-                    aux = self.__analyses[analysis_label]
-                except KeyError:
-                    raise Exception(generate_exception_message( 2,
-                                                                'WaveformAdcs.plot()',
-                                                                f"There is no analysis with label '{analysis_label}'."))
+            aux = self.get_analysis(analysis_label)
             
             if show_baseline_limits:    # Plot the markers for the baseline limits
 
@@ -411,3 +398,44 @@ class WaveformAdcs:
                 pass    ## To be implemented
 
         return
+    
+    def get_analysis(self, label : Optional[str] = None) -> WfAna:
+
+        """
+        If the 'label' parameter is defined, then this 
+        method returns the WfAna object which has such 
+        label within the self.__analyses OrderedDict. 
+        If there is no analysis which such label, then
+        this method raises a KeyError. If the 'label'
+        parameter is not defined, then this method returns
+        the last WfAna object added to self.__analyses. If
+        there are no analyses, then this method raises an
+        exception.
+
+        Parameters
+        ----------
+        label : str
+            The key for the WfAna object within the
+            self.__analyses OrderedDict.
+
+        Returns
+        ----------
+        output : WfAna
+            The WfAna object which has the given label
+        """
+
+        if label is None:
+            try:
+                output = next(reversed(self.__analyses.values()))  # Grabbing the last analysis
+            except StopIteration:
+                raise Exception(generate_exception_message( 1,
+                                                            'WaveformAdcs.get_analysis()',
+                                                            'The waveform has not been analysed yet.'))
+        else:
+            try:
+                output = self.__analyses[label]
+            except KeyError:
+                raise Exception(generate_exception_message( 2,
+                                                            'WaveformAdcs.get_analysis()',
+                                                            f"There is no analysis with label '{label}'."))
+        return output
