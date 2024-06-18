@@ -451,7 +451,7 @@ class WaveformSet:
             Number of rows (resp. columns) of the returned 
             grid of axes.
         figure : plotly.graph_objects.Figure
-            If it is not None, then it must be have been
+            If it is not None, then it must have been
             generated using plotly.subplots.make_subplots()
             (even if nrows and ncols equal 1). It is the
             caller's responsibility to ensure this.
@@ -1522,7 +1522,7 @@ class WaveformSet:
         if not WaveformSet.fraction_is_well_formed(start_fraction, stop_fraction):
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.from_ROOT_file()',
-                                                        f"Fraction limits are not well-formed"))
+                                                        f"Fraction limits are not well-formed."))
         input_file = uproot.open(filepath)
         
         # meta_data_tree = WaveformSet.find_TTree_in_ROOT_file(   input_file,           ## For the moment, the meta-data tree is not
