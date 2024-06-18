@@ -2234,7 +2234,8 @@ class WaveformSet:
             the waveforms which are filtered out 
             are deleted from the self.__waveforms 
             attribute of this WaveformSet object. 
-            If so, the self.__runs and the 
+            If so, the self.__runs, 
+            self.__record_numbers and the 
             self.__available_channels attributes
             are updated accordingly, and the
             the self.__mean_adcs and the 
@@ -2280,7 +2281,8 @@ class WaveformSet:
                 del self.Waveforms[idx]             # iterate in reverse order for waveform deletion
 
             self.update_runs()                      # If actually_filter, then we need to update 
-            self.update_available_channels()        # the self.__runs and self.__available_channels
+            self.update_record_numbers()            # the self.__runs, self.__record_numbers and 
+            self.update_available_channels()        # self.__available_channels
 
             self.__mean_adcs = None                 # We also need to reset the attributes regarding the mean
             self.__mean_adcs_idcs = None            # waveform, for which some of the waveforms might have been removed
