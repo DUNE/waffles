@@ -11,6 +11,8 @@ cmake -DCMAKE_INSTALL_PREFIX=../root_install -D dataframe=OFF ../root_src
 
 make install
 
+If some error appears during the installation related with Roofit, just disable it by adding the command -Droofit=OFF on the cmake.
+
 After that, everytime you login, you need to source Root, or you can edit env.sh and add this command:
 
 source ../root_install/bin/thisroot.sh 
