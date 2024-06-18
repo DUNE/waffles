@@ -993,7 +993,9 @@ class WaveformSet:
             list.
         wfs_per_axes : int
             If it is not None, then it must be a positive
-            integer, so that the iterator values contained 
+            integer which is smaller or equal to
+            math.floor(len(self.Waveforms) / (nrows * ncols)),
+            so that the iterator values contained 
             in the output grid are contiguous in
             [0, nrows*ncols*wfs_per_axes - 1]. I.e.
             output[0][0] contains 0, 1, ... , wfs_per_axes - 1,
@@ -1063,10 +1065,10 @@ class WaveformSet:
                                                         'The number of rows and columns must be positive.'))
         fFilteringMode = True
         if wfs_per_axes is not None:
-            if wfs_per_axes < 1:
+            if wfs_per_axes < 1 or wfs_per_axes > math.floor(len(self.__waveforms) / (nrows * ncols)):
                 raise Exception(generate_exception_message( 2,
                                                             'WaveformSet.get_grid_of_wf_idcs()',
-                                                            f"The given wfs_per_axes ({wfs_per_axes}) must be positive."))
+                                                            f"The given wfs_per_axes ({wfs_per_axes}) must belong to the range [1, math.floor(len(self.__waveforms) / (nrows * ncols))] (={[1, math.floor(len(self.__waveforms) / (nrows * ncols))]})."))
             fFilteringMode = False
 
         fMaxIsSet = None    # This one should only be defined as
