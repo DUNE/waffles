@@ -29,16 +29,29 @@ class WaveformSet:
     Runs : set of int
         It contains the run number of any run for which
         there is at least one waveform in the set.
-    AvailableChannels : dictionary
-        It is a dictionary whose keys are endpoints (int) 
-        and its values are sets of channels (set of int).
+    RecordNumbers : dictionary of sets
+        It is a dictionary whose keys are runs (int) and
+        its values are sets of record numbers (set of int).
         If there is at least one Waveform object within
-        this WaveformSet which comes from endpoint n, then
-        n belongs to AvailableChannels.keys(). 
-        AvailableChannels[n] is a set of channels for 
-        endpoint n. If there is at least one waveform for
-        endpoint n and channel m, then m belongs to 
-        AvailableChannels[n].
+        this WaveformSet which was acquired during run n,
+        then n belongs to RecordNumbers.keys(). RecordNumbers[n]
+        is a set of record numbers for run n. If there is at
+        least one waveform acquired during run n whose
+        RecordNumber is m, then m belongs to RecordNumbers[n].
+    AvailableChannels : dictionary of dictionaries of sets
+        It is a dictionary whose keys are run numbers (int),
+        so that if there is at least one waveform in the set
+        which was acquired during run n, then n belongs to
+        AvailableChannels.keys(). AvailableChannels[n] is a
+        dictionary whose keys are endpoints (int) and its 
+        values are sets of channels (set of int). If there 
+        is at least one Waveform object within this WaveformSet 
+        which was acquired during run n and which comes from 
+        endpoint m, then m belongs to AvailableChannels[n].keys(). 
+        AvailableChannels[n][m] is a set of channels for 
+        endpoint m during run n. If there is at least one 
+        waveform for run n, endpoint m and channel p, then p 
+        belongs to AvailableChannels[n][m].
     MeanAdcs : WaveformAdcs
         The mean of the adcs arrays for every waveform
         or a subset of waveforms in this WaveformSet. It 
@@ -94,6 +107,9 @@ class WaveformSet:
         self.__runs = set()
         self.update_runs()
 
+        self.__record_numbers = {}
+        self.update_record_numbers()
+
         self.__available_channels = {}
         self.update_available_channels()    # Running on an Apple M2, it took 
                                             # ~ 52 ms to run this line for a
@@ -113,6 +129,10 @@ class WaveformSet:
     @property
     def Runs(self):
         return self.__runs
+    
+    @property
+    def RecordNumbers(self):
+        return self.__record_numbers
     
     @property
     def AvailableChannels(self):
@@ -170,6 +190,31 @@ class WaveformSet:
             self.__runs.add(wf.RunNumber)
         return
     
+    def update_record_numbers(self) -> None:
+        
+        """
+        This method clears the self.__record_numbers 
+        attribute of this object and then iterates 
+        through the whole WaveformSet to fill such 
+        attribute according to the waveforms which 
+        are currently present in this WaveformSet 
+        object.
+
+        Returns
+        ----------
+        None
+        """
+
+        self.__record_numbers.clear()
+
+        for wf in self.__waveforms:
+            try:
+                self.__record_numbers[wf.RunNumber].add(wf.RecordNumber)
+            except KeyError:
+                self.__record_numbers[wf.RunNumber] = set()
+                self.__record_numbers[wf.RunNumber].add(wf.RecordNumber)
+        return
+    
     def update_available_channels(self) -> None:
         
         """
@@ -188,10 +233,19 @@ class WaveformSet:
 
         for wf in self.__waveforms:
             try:
-                self.__available_channels[wf.Endpoint].add(wf.Channel)
+                aux = self.__available_channels[wf.RunNumber]
+
+                try:
+                    aux[wf.Endpoint].add(wf.Channel)
+
+                except KeyError:
+                    aux[wf.Endpoint] = set()
+                    aux[wf.Endpoint].add(wf.Channel)
+
             except KeyError:
-                self.__available_channels[wf.Endpoint] = set()
-                self.__available_channels[wf.Endpoint].add(wf.Channel)
+                self.__available_channels[wf.RunNumber] = {}
+                self.__available_channels[wf.RunNumber][wf.Endpoint] = set()
+                self.__available_channels[wf.RunNumber][wf.Endpoint].add(wf.Channel)    
         return
     
     def analyse(self,   label : str,
