@@ -1540,14 +1540,15 @@ class WaveformSet:
                 - 'adcs'
                 - 'channel'
                 - 'timestamp'
+                - 'record'
                 - 'is_fullstream'
 
             from which the values for the Waveform objects attributes
-            Timestamp, Channel and Adcs will be taken respectively.
-            The 'is_fullstream' branch is used to decide whether a
-            certain waveform should be grabbed or not, depending 
-            on the value given to the 'read_full_streaming_data'            ## For the moment, the meta-data tree is not
-            parameter.                                                      ## read. This needs to change in the near future.
+            Adcs, Channel, Timestamp and RecordNumber will be taken 
+            respectively. The 'is_fullstream' branch is used to 
+            decide whether a certain waveform should be grabbed 
+            or not, depending on the value given to the             ## For the moment, the meta-data tree is not
+            'read_full_streaming_data' parameter                    ## read. This needs to change in the near future.
         bulk_data_tree_name (resp. meta_data_tree_name) : str
             Name of the bulk-data (meta-data) tree which will be 
             extracted from the given ROOT file. The first object 
@@ -1641,6 +1642,9 @@ class WaveformSet:
         timestamp_branch = WaveformSet.find_TBranch_in_TTree_file(  bulk_data_tree,
                                                                     'timestamp')
         
+        record_branch = WaveformSet.find_TBranch_in_TTree_file(    bulk_data_tree,
+                                                                    'record')
+        
         waveforms = []                      # Using a list comprehension here is slightly slower than a for loop
                                             # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
 
@@ -1656,7 +1660,10 @@ class WaveformSet:
                                                             entry_stop = branch_stop)
             
             current_timestamp_array = timestamp_branch.array(   entry_start = branch_start,
-                                                                entry_stop = branch_stop)                                           
+                                                                entry_stop = branch_stop)
+            
+            current_record_array = record_branch.array( entry_start = branch_start,
+                                                        entry_stop = branch_stop)
             for i in range(len(current_adcs_array)):
 
                 endpoint, channel = WaveformSet.get_endpoint_and_channel(current_channel_array[i])
@@ -1668,6 +1675,7 @@ class WaveformSet:
                                             np.array(current_adcs_array[i]),
                                             0,      #RunNumber      ## To be implemented from the new
                                                                     ## 'metadata' TTree in the ROOT file
+                                            current_record_array[i],
                                             endpoint,
                                             channel))
         return cls(*waveforms)
