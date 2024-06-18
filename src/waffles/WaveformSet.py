@@ -2568,3 +2568,213 @@ class WaveformSet:
                             row = row,
                             col = col)
         return figure_
+    
+    def plot_calibration_histogram(self,    nrows : int = 1,                                                ## This is a quick solution a la WaveformSet.plot_wfs()
+                                            ncols : int = 1,                                                ## which is useful to produce calibration plots in
+                                            figure : Optional[pgo.Figure] = None,                           ## self-trigger cases where a general integration window
+                                            wfs_per_axes : Optional[int] = 100,                             ## can be defined. Eventually, a method like this should
+                                            grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,       ## inspect the Analyses attribute of each waveform
+                                            analysis_label : Optional[str] = None,                          ## in search for the spotted WfPeaks and their integrals.
+                                            bins : int = 250,
+                                            domain : Tuple[float, float] = (-20000., 60000.),               # It's the regular range, but here it is called 'domain'
+                                            share_x_scale : bool = False,                                   # to not collide with the 'range' reserved keyword
+                                            share_y_scale : bool = False,                                   
+                                            detailed_label : bool = True) -> pgo.Figure:                    ## Also, most of the code of this function is copied from            
+                                                                                                            ## that of WaveformSet.plot_wfs(). A way to avoid this is
+                                                                                                            ## to incorporate the histogram functionality into the
+                                                                                                            ## WaveformSet.plot_wfs() method, but I don't think that's
+                                                                                                            ## a good idea, though. Maybe we should find a way to 
+                                                                                                            ## encapsulate the shared code into an static method.    
+        """                                                                                                 
+        This method returns a plotly.graph_objects.Figure                                                   
+        with a nrows x ncols grid of axes, with plots of                                                    
+        the calibration histograms which include a subset
+        of the waveforms in this WaveformSet object.
+
+        Parameters
+        ----------
+        nrows (resp. ncols) : int
+            Number of rows (resp. columns) of the returned 
+            grid of axes.
+        figure : plotly.graph_objects.Figure
+            If it is not None, then it must have been
+            generated using plotly.subplots.make_subplots()
+            (even if nrows and ncols equal 1). It is the
+            caller's responsibility to ensure this.
+            If that's the case, then this method adds the
+            plots to this figure and eventually returns 
+            it. In such case, the number of rows (resp. 
+            columns) in such figure must match the 'nrows' 
+            (resp. 'ncols') parameter.
+        wfs_per_axes : int
+            If it is not None, then the argument given to 
+            'grid_of_wf_idcs' will be ignored. In this case,
+            the number of waveforms considered for each
+            axes is wfs_per_axes. P.e. for wfs_per_axes 
+            equal to 100, the axes at the first row and 
+            first column contains a calibration histogram 
+            with 100 entries, each of which comes from the
+            integral of the first 100 waveforms in this
+            WaveformSet object. The axes in the first 
+            row and second column will consider the 
+            following 100 waveforms, and so on.
+        grid_of_wf_idcs : list of list of list of int
+            This list must contain nrows lists, each of 
+            which must contain ncols lists of integers. 
+            grid_of_wf_idcs[i][j] gives the indices of the 
+            waveforms, with respect to this WaveformSet, whose
+            integrals will be part of the calibration
+            histogram which is located at the i-th row 
+            and j-th column.
+        analysis_label : str
+            This parameter gives the key for the WfAna 
+            object within the Analyses attribute of each 
+            considered waveform from where to take the 
+            integral value to add to the calibration
+            histogram. Namely, if such WfAna object is
+            x, then x.Result.Integral is the considered
+            integral. If 'analysis_label' is None, 
+            then the last analysis added to 
+            self.__analyses will be the used one.
+        bins : int
+            A positive integer giving the number of bins 
+            in each histogram
+        domain : tuple of float
+            It must contain two floats, so that domain[0]
+            is smaller than domain[1]. It is the range
+            of each histogram.
+        share_x_scale (resp. share_y_scale) : bool
+            If True, the x-axis (resp. y-axis) scale will be 
+            shared among all the subplots.
+        detailed_label : bool
+            Whether to show the iterator values of the two 
+            first available waveforms (which contribute to
+            the calibration histogram) in the label of the
+            each histogram and in the top annotation of 
+            each subplot.
+             
+        Returns
+        ----------
+        figure : plotly.graph_objects.Figure
+            The figure with the grid plot of the waveforms
+        """
+
+        if nrows < 1 or ncols < 1:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.plot_calibration_histogram()',
+                                                        'The number of rows and columns must be positive.'))
+        fFigureIsGiven = False
+        if figure is not None:
+
+            try:
+                fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
+                fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
+
+            except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
+
+                raise Exception(generate_exception_message( 2,
+                                                            'WaveformSet.plot_calibration_histogram()',
+                                                            'The given figure is not a subplot grid.'))
+            if fig_rows != nrows or fig_cols != ncols:
+                
+                raise Exception(generate_exception_message( 3,
+                                                            'WaveformSet.plot_calibration_histogram()',
+                                                            f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
+            fFigureIsGiven = True
+
+        grid_of_wf_idcs_ = None         # Logically useless
+
+        if wfs_per_axes is not None:    # wfs_per_axes is defined
+
+            if wfs_per_axes < 1:
+                raise Exception(generate_exception_message( 4,
+                                                            'WaveformSet.plot_calibration_histogram()',
+                                                            'The number of waveforms per axes must be positive.'))
+
+            grid_of_wf_idcs_ = self.get_grid_of_wf_idcs(nrows,
+                                                        ncols,
+                                                        wfs_per_axes = wfs_per_axes)
+
+        elif grid_of_wf_idcs is None:   # Nor wf_per_axes, nor 
+                                        # grid_of_wf_idcs are defined
+
+            raise Exception(generate_exception_message( 5,
+                                                        'WaveformSet.plot_calibration_histogram()',
+                                                        "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
+        
+        elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
+                                                            nrows,              # but grid_of_wf_idcs is, but 
+                                                            ncols):             # it is not well-formed
+            raise Exception(generate_exception_message( 6,
+                                                        'WaveformSet.plot_calibration_histogram()',
+                                                        f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
+        else:   # wf_per_axes is not defined,
+                # but grid_of_wf_idcs is,
+                # and it is well-formed
+
+            grid_of_wf_idcs_ = grid_of_wf_idcs
+
+        if bins < 1:
+            raise Exception(generate_exception_message( 7,
+                                                        'WaveformSet.plot_calibration_histogram()',
+                                                        f"The given number of bins ({bins}) is not positive."))
+        
+        if domain[0] >= domain[1]:
+            raise Exception(generate_exception_message( 8,
+                                                        'WaveformSet.plot_calibration_histogram()',
+                                                        f"The given domain ({domain}) is not well-formed."))
+        if not fFigureIsGiven:
+            
+            figure_ = psu.make_subplots(    rows = nrows, 
+                                            cols = ncols)
+        else:
+            figure_ = figure
+
+        WaveformSet.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
+                                                share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
+                                                share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
+                                                                            # that alternative is only doable for 
+                                                                            # the case where the given 'figure'
+                                                                            # parameter is None.
+
+        step = (domain[1] - domain[0]) / bins
+                                                                        
+        for i in range(nrows):
+            for j in range(ncols):
+                if len(grid_of_wf_idcs_[i][j]) > 0:
+
+                    aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
+                    if detailed_label:
+                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
+                                                                                                    queried_no = 2)}]"
+                        
+                    data = WaveformSet.histogram1d( np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]), ## This one might be slow !!!!
+                                                    bins,
+                                                    domain)
+                    
+                    figure.add_trace(   pgo.Scatter(    x = np.linspace(domain[0] + (step / 2.0), 
+                                                                        domain[1] - (step / 2.0), 
+                                                                        num = bins,
+                                                                        endpoint = True),
+                                                        y = data,
+                                                        mode = 'lines',
+                                                        line = dict(color='black', 
+                                                                    width=0.5),
+                                                        name = f"({i+1},{j+1}) - C. H. of " + aux_name,),
+                                        row = i + 1, 
+                                        col = j + 1)
+
+                    figure_.add_annotation( xref = "x domain", 
+                                            yref = "y domain",      
+                                            x = 0.,             # The annotation is left-aligned
+                                            y = 1.25,           # and on top of each subplot
+                                            showarrow = False,
+                                            text = aux_name,
+                                            row = i + 1,
+                                            col = j + 1)
+                else:
+
+                    WaveformSet.__add_no_data_annotation(   figure_,
+                                                            i + 1,
+                                                            j + 1)
+        return figure_
