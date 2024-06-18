@@ -1411,13 +1411,15 @@ class WaveformSet:
         list of list of list of int
         """
 
+        aux = self.get_run_collapsed_available_channels()
+
         for i in range(len(blank_grid)):
             for j in range(len(blank_grid[i])):
 
-                if filter_args[i][j][0] not in self.__available_channels.keys():    # filter_args[i][j][0] is the
-                    continue                                                        # endpoint we are looking for
+                if filter_args[i][j][0] not in aux.keys():      # filter_args[i][j][0] is the
+                    continue                                    # endpoint we are looking for
 
-                elif filter_args[i][j][1] not in self.__available_channels[filter_args[i][j][0]]:   # filter_args[i][j][1] is
+                elif filter_args[i][j][1] not in aux[filter_args[i][j][0]]:                         # filter_args[i][j][1] is
                     continue                                                                        # the channel of endpoint 
                                                                                                     # filter_args[i][j][0]
                                                                                                     # which we are looking for
