@@ -725,13 +725,12 @@ class WaveformSet:
             whether to show the iterator values of the two
             first available waveforms (which were used to
             compute the mean waveform) in the label of the
-            mean waveform plot and on the top annotation of
-            each subplot. If the 'mode' parameter is set to
-            'heatmap', then this parameter means whether to
-            show the iterator values of the two first
-            available waveforms (which were used to compute
-            the 2D-histogram) in the top annotation of each
-            subplot.
+            mean waveform plot. If the 'mode' parameter is 
+            set to 'heatmap', then this parameter means 
+            whether to show the iterator values of the two 
+            first available waveforms (which were used to 
+            compute the 2D-histogram) in the top annotation 
+            of each subplot.
         **kwargs
             These arguments only make a difference if the
             'mode' parameter is set to 'average' and the
@@ -844,7 +843,6 @@ class WaveformSet:
                         WaveformSet.__add_no_data_annotation(   figure_,
                                                                 i + 1,
                                                                 j + 1)
-                        
         elif mode == 'average':
             for i in range(nrows):
                 for j in range(ncols):
@@ -884,19 +882,6 @@ class WaveformSet:
                                 show_spotted_peaks = show_spotted_peaks,
                                 show_peaks_integration_limits = show_peaks_integration_limits,
                                 analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None)
-                    
-                    figure_.add_annotation( xref = "x domain",  # This annotation could be coded at the WaveformAdcs.plot() 
-                                            yref = "y domain",  # level, but a boolean condition should be checked there to
-                                                                # make it general enough to cover the mode=='overlay' case, 
-                                                                # which would result in a less efficient code when plotting 
-                                                                # a big amount of waveforms in the 'overlay' mode.
-
-                                            x = 0.,             # The annotation is left-aligned
-                                            y = 1.25,           # and on top of each subplot
-                                            showarrow = False,
-                                            text = aux_name,
-                                            row = i + 1,
-                                            col = j + 1)
         elif mode == 'heatmap':
 
             if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
@@ -2766,9 +2751,8 @@ class WaveformSet:
         detailed_label : bool
             Whether to show the iterator values of the two 
             first available waveforms (which contribute to
-            the calibration histogram) in the label of the
-            each histogram and in the top annotation of 
-            each subplot.
+            the calibration histogram) in the label of
+            each histogram.
              
         Returns
         ----------
@@ -2880,15 +2864,6 @@ class WaveformSet:
                                                         name = f"({i+1},{j+1}) - C. H. of " + aux_name,),
                                         row = i + 1, 
                                         col = j + 1)
-
-                    figure_.add_annotation( xref = "x domain", 
-                                            yref = "y domain",      
-                                            x = 0.,             # The annotation is left-aligned
-                                            y = 1.25,           # and on top of each subplot
-                                            showarrow = False,
-                                            text = aux_name,
-                                            row = i + 1,
-                                            col = j + 1)
                 else:
 
                     WaveformSet.__add_no_data_annotation(   figure_,
