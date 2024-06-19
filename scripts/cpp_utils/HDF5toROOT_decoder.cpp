@@ -245,7 +245,7 @@ int main(int argc, char **argv)
         short slotstream[4] = {-1};
         short linkstream[4] = {-1};
         short cratestream[4] = {-1};
-        short tmstmpstream[4] = {-1};
+        long tmstmpstream[4] = {-1};
         int samplevaluestream[4] = {-1};
         int baselinestream[4] = {-1};
 
@@ -279,10 +279,10 @@ int main(int argc, char **argv)
             cratestream[2] = (short)(frq->daq_header.crate_id);
             cratestream[3] = (short)(frq->daq_header.crate_id);
 
-            tmstmpstream[0] = (short)(frq->get_timestamp());
-            tmstmpstream[1] = (short)(frq->get_timestamp());
-            tmstmpstream[2] = (short)(frq->get_timestamp());
-            tmstmpstream[3] = (short)(frq->get_timestamp());
+            tmstmpstream[0] = (long)(frq->get_timestamp());
+            tmstmpstream[1] = (long)(frq->get_timestamp());
+            tmstmpstream[2] = (long)(frq->get_timestamp());
+            tmstmpstream[3] = (long)(frq->get_timestamp());
 
             samplevaluestream[0] = -1;
             samplevaluestream[1] = -1;
