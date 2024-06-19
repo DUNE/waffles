@@ -237,3 +237,40 @@ class WfAna:
             output_3 = {}
             
         return output_1, output_2, output_3
+    def baseline_is_available(self) -> bool:
+        
+        """
+        This method returns True if self.__result
+        is not None and self.__result.Baseline is
+        not None. It returns False otherwise.
+
+        Returns
+        ----------
+        bool
+        """
+
+        if self.__result is not None:
+            if self.__result.Baseline is not None:
+                return True
+        
+        return False
+
+    def peaks_are_available(self) -> bool:
+        
+        """
+        This method returns True if self.__result
+        is not None and self.__result.Peaks is
+        not None and len(self.__result.Peaks)
+        is greater than 0. It returns False otherwise.
+
+        Returns
+        ----------
+        bool
+        """
+
+        if self.__result is not None:
+            if self.__result.Peaks is not None:
+                if len(self.__result.Peaks) > 0:
+                    return True
+        
+        return False

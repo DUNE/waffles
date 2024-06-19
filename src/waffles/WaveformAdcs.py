@@ -313,8 +313,12 @@ class WaveformAdcs:
         if plot_analysis_markers:
 
             aux = self.get_analysis(analysis_label)
+
+            fBaselineIsAvailable = aux.baseline_is_available()
+            fPeaksAreAvailable = aux.peaks_are_available()
             
             if show_baseline_limits:    # Plot the markers for the baseline limits
+                                        # These are always defined for every WfAna object
 
                 for i in range(len(aux.BaselineLimits)//2):
 
@@ -340,7 +344,7 @@ class WaveformAdcs:
                                         row = row,
                                         col = col)
 
-            if show_baseline:       # Plot the baseline
+            if show_baseline and fBaselineIsAvailable:       # Plot the baseline
             
                 figure.add_shape(   type = "line",
                                     x0 = 0, y0 = aux.Result.Baseline,
@@ -353,7 +357,8 @@ class WaveformAdcs:
                                     row = row,
                                     col = col)
                 
-            if show_general_integration_limits:  # Plot the markers for the general integration limits
+            if show_general_integration_limits:     # Plot the markers for the general integration limits
+                                                    # These are always defined for every WfAna object
 
                     figure.add_shape(   type = 'line',
                                         x0 = x[aux.IntLl], y0 = 0,
@@ -377,7 +382,7 @@ class WaveformAdcs:
                                         row = row,
                                         col = col)
             
-            if show_spotted_peaks:      # Plot the markers for the spotted peaks
+            if show_spotted_peaks and fPeaksAreAvailable:      # Plot the markers for the spotted peaks
 
                 for peak in aux.Result.Peaks:
 
