@@ -28,6 +28,10 @@ class WaveformAdcs:
         The time step (in nanoseconds) for this waveform
     Adcs : unidimensional numpy array of integers
         The readout for this waveform, in # of ADCs
+    TimeOffset : float
+        A time offset, in units of TimeStep_ns (i.e.
+        time ticks) which is may be used for plotting 
+        and analysing. It is set to 0 by default.
     Analyses : OrderedDict of WfAna objects
 
     Methods
@@ -36,7 +40,8 @@ class WaveformAdcs:
     """
 
     def __init__(self,  time_step_ns : float,
-                        adcs : np.ndarray):
+                        adcs : np.ndarray,
+                        time_offset : float = 0.):
         
         """
         WaveformAdcs class initializer
@@ -45,12 +50,14 @@ class WaveformAdcs:
         ----------
         time_step_ns : float
         adcs : unidimensional numpy array of integers
+        time_offset : float
         """
 
         ## Shall we add add type checks here?
 
         self.__time_step_ns = time_step_ns
         self.__adcs = adcs
+        self.__time_offset = time_offset
         self.__analyses = OrderedDict() # Initialize the analyses 
                                         # attribute as an empty 
                                         # OrderedDict.
@@ -66,6 +73,10 @@ class WaveformAdcs:
     @property
     def Adcs(self):
         return self.__adcs
+    
+    @property
+    def TimeOffset(self):
+        return self.__time_offset
     
     @property
     def Analyses(self):
@@ -213,6 +224,7 @@ class WaveformAdcs:
                     name : Optional[str] = None,
                     row : Optional[int] = None,
                     col : Optional[int] = None,
+                    consider_offset : bool = True,
                     plot_analysis_markers : bool = False,
                     show_baseline_limits : bool = False, 
                     show_baseline : bool = True,
@@ -247,6 +259,13 @@ class WaveformAdcs:
                 - if the given 'figure' parameter contains a subplot
                   grid, then 'row' and 'col' must be valid 1-indexed
                   integers.
+        consider_offset : bool
+            If False (resp. True), then self.__adcs will be 
+            plotted against [0, 1, 2, ..., len(self.__adcs) - 1]
+            (resp. [self.__time_offset, self.__time_offset + 1,
+            ..., self.__time_offset + len(self.__adcs) - 1]).
+            Note that if plot_analysis_markers is True, then the 
+            time-fixed markers will be offset accordingly.
         plot_analysis_markers : bool
             If True, this method will potentially plot the
             analysis markers for this waveform in the given
@@ -296,7 +315,11 @@ class WaveformAdcs:
             the used one.
         """
 
-        x = np.arange(len(self.__adcs))
+        x = np.arange(  len(self.__adcs),
+                        dtype = np.float32)
+
+        if consider_offset:
+            x += self.__time_offset
 
         wf_trace = pgo.Scatter( x = x,                  ## If we think x might match for every waveform, in
                                                         ## a certain WaveformSet object, it might be more
