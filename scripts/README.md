@@ -1,6 +1,7 @@
-To run the 00_HDF5toROOT.py it is necessary to build Root on the dbt environment, due to Python versions incompatibility.
-To build Root you need to source the dbt env.sh first:
+To run the ``00_HDF5toROOT.py`` it is necessary to build ROOT on the dbt environment, due to Python versions incompatibility.
+To build ROOT you need to source the dbt ``env.sh`` first:
 
+```bash
 source env.sh
 
 git clone --branch latest-stable --depth=1 https://github.com/root-project/root.git root_src
@@ -10,9 +11,10 @@ mkdir root_build root_install && cd root_build
 cmake -DCMAKE_INSTALL_PREFIX=../root_install -D dataframe=OFF ../root_src
 
 make install
+```
 
-If some error appears during the installation related with Roofit, just disable it by adding the command -Droofit=OFF on the cmake.
+If some error appears during the installation related with Roofit, just disable it by adding the command ``-Droofit=OFF`` on the cmake.
 
-After that, everytime you login, you need to source Root, or you can edit env.sh and add this command:
+After that, everytime you login, you need to source ROOT, or you can edit ``env.sh`` and add this command:
 
-source ../root_install/bin/thisroot.sh 
+``source ../root_install/bin/thisroot.sh``
