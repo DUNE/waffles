@@ -237,6 +237,7 @@ class WfAna:
             output_3 = {}
             
         return output_1, output_2, output_3
+    
     def baseline_is_available(self) -> bool:
         
         """
