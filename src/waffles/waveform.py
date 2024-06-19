@@ -20,6 +20,9 @@ class Waveform(WaveformAdcs):
     RunNumber : int
         Number of the run from which this waveform was
         acquired
+    RecordNumber : int
+        Number of the record within which this waveform
+        was acquired
     Endpoint : int
         Endpoint number from which this waveform was
         acquired
@@ -36,6 +39,7 @@ class Waveform(WaveformAdcs):
                         time_step_ns : float,
                         adcs : np.ndarray,
                         run_number : int,
+                        record_number : int,
                         endpoint : int,
                         channel : int):
         
@@ -52,6 +56,7 @@ class Waveform(WaveformAdcs):
             It is given to the 'adcs' parameter of the base
             class initializer.
         run_number : int
+        record_number : int
         endpoint : int
         channel : int
         """
@@ -60,6 +65,7 @@ class Waveform(WaveformAdcs):
     
         self.__timestamp = timestamp
         self.__run_number = run_number
+        self.__record_number = record_number
         self.__endpoint = endpoint
         self.__channel = channel
 
@@ -76,6 +82,10 @@ class Waveform(WaveformAdcs):
     @property
     def RunNumber(self):
         return self.__run_number
+    
+    @property
+    def RecordNumber(self):
+        return self.__record_number
     
     @property
     def Endpoint(self):
