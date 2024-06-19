@@ -162,10 +162,10 @@ class WaveformAdcs:
         int_ll (resp. int_ul): int
             Given to the 'int_ll' (resp. 'int_ul') parameter of
             WfAna.__init__. Iterator value for the first (resp. 
-            last) point of self.Adcs that falls into the 
+            last) point of self.__adcs that falls into the 
             integration window. int_ll must be smaller than 
             int_ul. These limits are inclusive. If they are 
-            not defined, then the whole self.Adcs is considered.
+            not defined, then the whole self.__adcs is considered.
             It is the caller's responsibility to ensure the 
             well-formedness of this input. No checks are
             performed here for this parameter.
@@ -296,13 +296,13 @@ class WaveformAdcs:
             the used one.
         """
 
-        x = np.arange(len(self.Adcs))
+        x = np.arange(len(self.__adcs))
 
         wf_trace = pgo.Scatter( x = x,                  ## If we think x might match for every waveform, in
                                                         ## a certain WaveformSet object, it might be more
                                                         ## efficient to let the caller define it, so as 
                                                         ## not to recompute this array for each waveform.
-                                y = self.Adcs,
+                                y = self.__adcs,
                                 mode = 'lines',
                                 name = name)
         
