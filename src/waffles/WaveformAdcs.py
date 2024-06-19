@@ -319,8 +319,8 @@ class WaveformAdcs:
                 for i in range(len(aux.BaselineLimits)//2):
 
                     figure.add_shape(   type = 'line',
-                                        x0 = aux.BaselineLimits[2*i], y0 = 0,
-                                        x1 = aux.BaselineLimits[2*i], y1 = 1,
+                                        x0 = x[aux.BaselineLimits[2*i]], y0 = 0,
+                                        x1 = x[aux.BaselineLimits[2*i]], y1 = 1,
                                         line = dict(color = 'grey',         # Properties for
                                                     width = 1,              # the beginning of
                                                     dash = 'dash'),         # a baseline chunk
@@ -330,8 +330,8 @@ class WaveformAdcs:
                                         col = col)
                     
                     figure.add_shape(   type = 'line',
-                                        x0 = aux.BaselineLimits[(2*i) + 1], y0 = 0,
-                                        x1 = aux.BaselineLimits[(2*i) + 1], y1 = 1,
+                                        x0 = x[aux.BaselineLimits[(2*i) + 1]], y0 = 0,
+                                        x1 = x[aux.BaselineLimits[(2*i) + 1]], y1 = 1,
                                         line = dict(color = 'grey',         # Properties for
                                                     width = 1,              # the end of a
                                                     dash = 'dashdot'),      # baseline chunk
