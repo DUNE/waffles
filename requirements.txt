@@ -1,6 +1,7 @@
 click
 dash
 dash_bootstrap_components
+graphviz
 h5py
 inquirer
 jupyter
