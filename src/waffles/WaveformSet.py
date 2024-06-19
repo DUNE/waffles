@@ -515,6 +515,7 @@ class WaveformSet:
                         figure : Optional[pgo.Figure] = None,
                         wfs_per_axes : Optional[int] = 1,
                         grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
+                        consider_offset : bool = True,
                         share_x_scale : bool = False,
                         share_y_scale : bool = False,
                         mode : str = 'overlay',
@@ -582,6 +583,21 @@ class WaveformSet:
             waveforms, with respect to this WaveformSet, which
             should be considered for plotting in the axes
             which are located at the i-th row and j-th column.
+        consider_offset : bool
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'heatmap'.
+            If it is set to 'average', then it is ignored.
+                If 'mode' is set to 'overlay', then this 
+            parameter is given to the 'consider_offset' 
+            parameter of the WaveformAdcs.plot() method for 
+            each waveform which will be plotted. It means 
+            whether to shift each waveform trace by the 
+            value of its TimeOffset attribute. 
+                If 'mode' is set to 'heatmap', then this
+            parameter is given to the 'consider_offset'
+            parameter of the WaveformSet.__subplot_heatmap()
+            method. It means whether to shift each waveform
+            trace by the value of its TimeOffset attribute.
         share_x_scale (resp. share_y_scale) : bool
             If True, the x-axis (resp. y-axis) scale will be 
             shared among all the subplots.
@@ -831,6 +847,7 @@ class WaveformSet:
                                                         name = aux_name,
                                                         row = i + 1,  # Plotly uses 1-based indexing
                                                         col = j + 1,
+                                                        consider_offset = consider_offset,
                                                         plot_analysis_markers = plot_analysis_markers,
                                                         show_baseline_limits = show_baseline_limits,
                                                         show_baseline = show_baseline,
@@ -889,7 +906,15 @@ class WaveformSet:
                                                             'WaveformSet.plot_wfs()',
                                                             "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
             
-            aux_ranges =    np.array([  [0,                                 self.PointsPerWf - 1            ],
+            aux_ranges =    np.array([  [0,                                 self.PointsPerWf - 1            ],      # Assuming here that the aim of the time 
+                                                                                                                    # offsets of the considered waveforms (if 
+                                                                                                                    # consider_offset) is to slightly align
+                                                                                                                    # waveforms among each other. I.e. those
+                                                                                                                    # offsets are smaller than self.__points_per_wf.
+                                                                                                                    # Hence, note that for each considered
+                                                                                                                    # waveform wf, a number of points equal
+                                                                                                                    # to math.ceil(wf.TimeOffset) is lost, i.e.
+                                                                                                                    # in the sense that goes out of the heatmap x-range.
                                         [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
             for i in range(nrows):
                 for j in range(ncols):
@@ -905,6 +930,7 @@ class WaveformSet:
                                                             j + 1,
                                                             grid_of_wf_idcs_[i][j],
                                                             analysis_label,
+                                                            consider_offset,
                                                             time_bins,
                                                             adc_bins,
                                                             aux_ranges,
@@ -2566,6 +2592,7 @@ class WaveformSet:
                                 col : int,
                                 wf_idcs : List[int],
                                 analysis_label : str,
+                                consider_offset : bool,
                                 time_bins : int,
                                 adc_bins : int,
                                 ranges : np.ndarray,
@@ -2619,6 +2646,12 @@ class WaveformSet:
             addition to the heatmap. This method does
             not check that an analysis for such label
             exists.
+        consider_offset : bool
+            If False (resp. True), then for each
+            considered waveform wf, wf.Adcs will be 
+            plotted against [0, 1, 2, ..., len(wf.Adcs) - 1]
+            (resp. [wf.TimeOffset, wf.TimeOffset + 1,
+            ..., wf.TimeOffset + len(wf.Adcs) - 1]).
         time_bins : int
             The number of bins for the horizontal axis
             of the heatmap
@@ -2650,7 +2683,14 @@ class WaveformSet:
         time_step   = (ranges[0,1] - ranges[0,0]) / time_bins
         adc_step    = (ranges[1,1] - ranges[1,0]) / adc_bins
             
-        aux_x = np.hstack([np.arange(0, self.PointsPerWf) for _ in range(len(wf_idcs))])
+        if consider_offset:
+            aux_x = np.hstack([np.arange(   0,
+                                            self.PointsPerWf,
+                                            dtype = np.float32) + self.Waveforms[idx].TimeOffset for idx in wf_idcs])
+        else:
+            aux_x = np.hstack([np.arange(   0, 
+                                            self.PointsPerWf) for _ in range(len(wf_idcs))])
+
         aux_y = np.hstack([self.Waveforms[idx].Adcs - self.Waveforms[idx].Analyses[analysis_label].Result.Baseline for idx in wf_idcs])
 
         aux = WaveformSet.histogram2d(  np.vstack((aux_x, aux_y)), 
