@@ -417,8 +417,7 @@ int main(int argc, char **argv)
   fWaveformTree.Branch("trigger_sample_value", &_TriggerSampleValue_a, "trigger_sample_value/S"); // only for self-trigger
   fWaveformTree.Branch("is_fullstream", &isstream, "is_fullstream/O");
 
-  vector<short> ep;
-  unsigned int th;
+  map<short, short> epth;
 
   for (auto &v : allval)
   {
@@ -433,8 +432,7 @@ int main(int argc, char **argv)
     _TriggerSampleValue_a = std::get<14>(v.second);
     isstream = std::get<12>(v.second);
 
-    ep.push_back(std::get<6>(v.second));
-    th = std::get<16>(v.second);
+    epth[std::get<6>(v.second)] = std::get<16>(v.second);
 
     fWaveformTree.Fill();
 
@@ -464,9 +462,15 @@ int main(int argc, char **argv)
     // _Baseline_a = -1;
     // _TriggerTimeStamp_a = -1;
   }
-  sort(ep.begin(), ep.end());
-  auto itep = unique(ep.begin(), ep.end());
-  ep.erase(itep, ep.end());
+
+
+  vector<short> endp;
+  vector<short> thr;
+  for (auto &ee : epth)
+  {
+    endp.push_back(ee.first);
+    thr.push_back(ee.second);
+  }
 
   unsigned int _ticks_to_nsec = 16;
   unsigned int _adcs_to_nvolts = 292986; //(1.5*3.2)/(2^(14)-1);
@@ -477,8 +481,8 @@ int main(int argc, char **argv)
   // vector<short> _endpoint;
   TTree metadata("metadata", "metadata");
   // metadata.Branch("record", &_Record_a, "record/i");
-  metadata.Branch("endpoint", &ep);
-  metadata.Branch("threshold", &th, "threshold/i");
+  metadata.Branch("endpoint", &endp);
+  metadata.Branch("threshold", &thr);
   metadata.Branch("run", &run_number, "run/i");
   metadata.Branch("nrecords", &nrec, "nrecords/i");
   metadata.Branch("date", &date, "date/l");
@@ -489,7 +493,7 @@ int main(int argc, char **argv)
 
   std::cout << "\nWritting ROOT file... ";
   fWaveformTree.Write("", TObject::kWriteDelete);
-  // metadata.Write("", TObject::kWriteDelete);
+  metadata.Write("", TObject::kWriteDelete);
 
   hf.Close();
   std::cout << "\nReading and writting complete!... \n";
