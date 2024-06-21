@@ -125,7 +125,7 @@ class WaveformAdcs:
             self.__time_offset = input
 
         return
-        return
+
 
     def confine_iterator_value(self, input : int) -> int:
 
