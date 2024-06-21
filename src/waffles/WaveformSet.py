@@ -515,7 +515,6 @@ class WaveformSet:
                         figure : Optional[pgo.Figure] = None,
                         wfs_per_axes : Optional[int] = 1,
                         grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
-                        consider_offset : bool = True,
                         share_x_scale : bool = False,
                         share_y_scale : bool = False,
                         mode : str = 'overlay',
@@ -583,21 +582,6 @@ class WaveformSet:
             waveforms, with respect to this WaveformSet, which
             should be considered for plotting in the axes
             which are located at the i-th row and j-th column.
-        consider_offset : bool
-            This parameter only makes a difference if the
-            'mode' parameter is set to 'overlay' or 'heatmap'.
-            If it is set to 'average', then it is ignored.
-                If 'mode' is set to 'overlay', then this 
-            parameter is given to the 'consider_offset' 
-            parameter of the WaveformAdcs.plot() method for 
-            each waveform which will be plotted. It means 
-            whether to shift each waveform trace by the 
-            value of its TimeOffset attribute. 
-                If 'mode' is set to 'heatmap', then this
-            parameter is given to the 'consider_offset'
-            parameter of the WaveformSet.__subplot_heatmap()
-            method. It means whether to shift each waveform
-            trace by the value of its TimeOffset attribute.
         share_x_scale (resp. share_y_scale) : bool
             If True, the x-axis (resp. y-axis) scale will be 
             shared among all the subplots.
@@ -847,7 +831,6 @@ class WaveformSet:
                                                         name = aux_name,
                                                         row = i + 1,  # Plotly uses 1-based indexing
                                                         col = j + 1,
-                                                        consider_offset = consider_offset,
                                                         plot_analysis_markers = plot_analysis_markers,
                                                         show_baseline_limits = show_baseline_limits,
                                                         show_baseline = show_baseline,
@@ -906,15 +889,17 @@ class WaveformSet:
                                                             'WaveformSet.plot_wfs()',
                                                             "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
             
-            aux_ranges =    np.array([  [0,                                 self.PointsPerWf - 1            ],      # Assuming here that the aim of the time 
-                                                                                                                    # offsets of the considered waveforms (if 
-                                                                                                                    # consider_offset) is to slightly align
-                                                                                                                    # waveforms among each other. I.e. those
-                                                                                                                    # offsets are smaller than self.__points_per_wf.
+            aux_ranges =    np.array([  [0,                                 self.PointsPerWf - 1            ],      # Using here that the aim of the time 
+                                                                                                                    # offsets of the considered waveforms 
+                                                                                                                    # is to slightly align waveforms among 
+                                                                                                                    # each other. I.e. the offsets are forced 
+                                                                                                                    # by WaveformAdcs.__init__ to belong 
+                                                                                                                    # to the [0, N-2] range, where N is 
+                                                                                                                    # the number of points of the waveform.
                                                                                                                     # Hence, note that for each considered
                                                                                                                     # waveform wf, a number of points equal
-                                                                                                                    # to math.ceil(wf.TimeOffset) is lost, i.e.
-                                                                                                                    # in the sense that goes out of the heatmap x-range.
+                                                                                                                    # to wf.TimeOffset is lost, in the sense
+                                                                                                                    # that they escape the heatmap x-range.
                                         [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
             for i in range(nrows):
                 for j in range(ncols):
@@ -930,7 +915,6 @@ class WaveformSet:
                                                             j + 1,
                                                             grid_of_wf_idcs_[i][j],
                                                             analysis_label,
-                                                            consider_offset,
                                                             time_bins,
                                                             adc_bins,
                                                             aux_ranges,
@@ -1580,6 +1564,7 @@ class WaveformSet:
     def from_ROOT_file(cls, filepath : str,
                             bulk_data_tree_name : str = 'raw_waveforms',
                             meta_data_tree_name : str = 'metadata',
+                            set_offset_wrt_daq_window : bool = False,
                             read_full_streaming_data : bool = False,
                             start_fraction : float = 0.0,
                             stop_fraction : float = 1.0,
@@ -1620,6 +1605,23 @@ class WaveformSet:
             with the given string and which is a TTree object, 
             will be identified as the bulk-data (resp. meta-data) 
             tree.
+        set_offset_wrt_daq_window : bool
+            If True, then the bulk data tree must also have a
+            branch whose name starts with 'daq_timestamp'. In
+            this case, then the TimeOffset attribute of each
+            waveform is set as the difference between its
+            value for the 'timestamp' branch and the value
+            for the 'daq_timestamp' branch, in such order,
+            referenced to the minimum value of such difference
+            among all the waveforms. This is useful to align
+            waveforms whose time overlap is not null, for 
+            plotting and analysis purposes. It is required
+            that the time overlap of every waveform is not 
+            null, otherwise an exception will be eventually
+            raised by the WaveformSet initializer. If False, 
+            then the 'daq_timestamp' branch is not queried 
+            and the TimeOffset attribute of each waveform 
+            is set to 0.
         read_full_streaming_data : bool
             If True (resp. False), then only the waveforms for which 
             the 'is_fullstream' branch in the bulk-data tree has a 
@@ -1708,40 +1710,95 @@ class WaveformSet:
         
         record_branch = WaveformSet.find_TBranch_in_TTree_file(    bulk_data_tree,
                                                                     'record')
-        
+
         waveforms = []                      # Using a list comprehension here is slightly slower than a for loop
                                             # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
 
-        for interval in idcs_to_retrieve:   # Read the waveforms in contiguous blocks
+        if not set_offset_wrt_daq_window:   # Code is more extensive this way, but faster than evaluating
+                                            # the conditional at each iteration within the loop.
 
-            branch_start = wf_start + interval[0]
-            branch_stop = wf_start + interval[1]
+            for interval in idcs_to_retrieve:   # Read the waveforms in contiguous blocks
 
-            current_adcs_array = adcs_branch.array( entry_start = branch_start,
-                                                    entry_stop = branch_stop)
-            
-            current_channel_array = channel_branch.array(   entry_start = branch_start,
-                                                            entry_stop = branch_stop)
-            
-            current_timestamp_array = timestamp_branch.array(   entry_start = branch_start,
-                                                                entry_stop = branch_stop)
-            
-            current_record_array = record_branch.array( entry_start = branch_start,
+                branch_start = wf_start + interval[0]
+                branch_stop = wf_start + interval[1]
+
+                current_adcs_array = adcs_branch.array( entry_start = branch_start,
                                                         entry_stop = branch_stop)
-            for i in range(len(current_adcs_array)):
+                
+                current_channel_array = channel_branch.array(   entry_start = branch_start,
+                                                                entry_stop = branch_stop)
+                
+                current_timestamp_array = timestamp_branch.array(   entry_start = branch_start,
+                                                                    entry_stop = branch_stop)
+                
+                current_record_array = record_branch.array( entry_start = branch_start,
+                                                            entry_stop = branch_stop)
+                for i in range(len(current_adcs_array)):
 
-                endpoint, channel = WaveformSet.get_endpoint_and_channel(current_channel_array[i])
+                    endpoint, channel = WaveformSet.get_endpoint_and_channel(current_channel_array[i])
 
-                waveforms.append(Waveform(  current_timestamp_array[i],
-                                            16.,    # TimeStep_ns   ## Hardcoded to 16 ns for now, but
-                                                                    ## it must be implemented from the new
-                                                                    ## 'metadata' TTree in the ROOT file
-                                            np.array(current_adcs_array[i]),
+                    waveforms.append(Waveform(  current_timestamp_array[i],
+                                                16.,    # TimeStep_ns   ## Hardcoded to 16 ns for now, but
+                                                                        ## it must be implemented from the new
+                                                                        ## 'metadata' TTree in the ROOT file
+                                                np.array(current_adcs_array[i]),
                                             0,      #RunNumber      ## To be implemented from the new
                                                                     ## 'metadata' TTree in the ROOT file
-                                            current_record_array[i],
-                                            endpoint,
-                                            channel))
+                                                                        ## 'metadata' TTree in the ROOT file
+                                                current_record_array[i],
+                                                endpoint,
+                                                channel,
+                                                time_offset = 0))
+        else:
+
+            raw_time_offsets = []
+
+            daq_timestamp_branch = WaveformSet.find_TBranch_in_TTree_file(  bulk_data_tree,
+                                                                            'daq_timestamp')
+            
+            for interval in idcs_to_retrieve:   # Read the waveforms in contiguous blocks
+
+                branch_start = wf_start + interval[0]
+                branch_stop = wf_start + interval[1]
+
+                current_adcs_array = adcs_branch.array( entry_start = branch_start,
+                                                        entry_stop = branch_stop)
+                
+                current_channel_array = channel_branch.array(   entry_start = branch_start,
+                                                                entry_stop = branch_stop)
+                
+                current_timestamp_array = timestamp_branch.array(   entry_start = branch_start,
+                                                                    entry_stop = branch_stop)
+                
+                current_record_array = record_branch.array( entry_start = branch_start,
+                                                            entry_stop = branch_stop)
+                
+                current_daq_timestamp_array = daq_timestamp_branch.array(   entry_start = branch_start,
+                                                                            entry_stop = branch_stop)
+
+                for i in range(len(current_adcs_array)):
+
+                    endpoint, channel = WaveformSet.get_endpoint_and_channel(current_channel_array[i])
+
+                    waveforms.append(Waveform(  current_timestamp_array[i],
+                                                16.,    # TimeStep_ns   ## Hardcoded to 16 ns for now, but
+                                                                        ## it must be implemented from the new
+                                                                        ## 'metadata' TTree in the ROOT file
+                                                np.array(current_adcs_array[i]),
+                                                0,      #RunNumber      ## To be implemented from the new
+                                                                        ## 'metadata' TTree in the ROOT file
+                                                current_record_array[i],
+                                                endpoint,
+                                                channel,
+                                                time_offset = 0))
+                    
+                    raw_time_offsets.append(int(current_timestamp_array[i]) - int(current_daq_timestamp_array[i]))
+
+            time_offsets = WaveformSet.reference_to_minimum(raw_time_offsets)
+
+            for i in range(len(waveforms)):
+                waveforms[i]._set_time_offset(time_offsets[i])
+
         return cls(*waveforms)
     
     @staticmethod
@@ -2081,7 +2138,8 @@ class WaveformSet:
             aux += self.Waveforms[i].Adcs
 
         output = WaveformAdcs(  self.__waveforms[0].TimeStep_ns,
-                                aux/len(self.__waveforms))
+                                aux/len(self.__waveforms),
+                                time_offset = 0)
         
         self.__mean_adcs = output
         self.__mean_adcs_idcs = tuple(range(len(self.__waveforms)))
@@ -2135,7 +2193,8 @@ class WaveformSet:
                                                         'No waveform in this WaveformSet object passed the given selector.'))
     
         output = WaveformAdcs(  self.__waveforms[added_wvfs[0]].TimeStep_ns,
-                                aux/len(added_wvfs))
+                                aux/len(added_wvfs),
+                                time_offset = 0)
         
         self.__mean_adcs = output
         self.__mean_adcs_idcs = tuple(added_wvfs)
@@ -2187,9 +2246,10 @@ class WaveformSet:
                 added_wvfs.append(idx)
 
         output = WaveformAdcs(  self.__waveforms[added_wvfs[0]].TimeStep_ns,
-                                aux/len(added_wvfs))                            # len(added_wvfs) must be at least 1. 
+                                aux/len(added_wvfs),                            # len(added_wvfs) must be at least 1. 
                                                                                 # This was already checked by 
                                                                                 # WaveformSet.compute_mean_waveform()
+                                time_offset = 0)
         self.__mean_adcs = output
         self.__mean_adcs_idcs = tuple(added_wvfs)
 
@@ -2592,7 +2652,6 @@ class WaveformSet:
                                 col : int,
                                 wf_idcs : List[int],
                                 analysis_label : str,
-                                consider_offset : bool,
                                 time_bins : int,
                                 adc_bins : int,
                                 ranges : np.ndarray,
@@ -2646,12 +2705,6 @@ class WaveformSet:
             addition to the heatmap. This method does
             not check that an analysis for such label
             exists.
-        consider_offset : bool
-            If False (resp. True), then for each
-            considered waveform wf, wf.Adcs will be 
-            plotted against [0, 1, 2, ..., len(wf.Adcs) - 1]
-            (resp. [wf.TimeOffset, wf.TimeOffset + 1,
-            ..., wf.TimeOffset + len(wf.Adcs) - 1]).
         time_bins : int
             The number of bins for the horizontal axis
             of the heatmap
@@ -2682,14 +2735,10 @@ class WaveformSet:
 
         time_step   = (ranges[0,1] - ranges[0,0]) / time_bins
         adc_step    = (ranges[1,1] - ranges[1,0]) / adc_bins
-            
-        if consider_offset:
-            aux_x = np.hstack([np.arange(   0,
-                                            self.PointsPerWf,
-                                            dtype = np.float32) + self.Waveforms[idx].TimeOffset for idx in wf_idcs])
-        else:
-            aux_x = np.hstack([np.arange(   0, 
-                                            self.PointsPerWf) for _ in range(len(wf_idcs))])
+        
+        aux_x = np.hstack([np.arange(   0,
+                                        self.PointsPerWf,
+                                        dtype = np.float32) + self.Waveforms[idx].TimeOffset for idx in wf_idcs])
 
         aux_y = np.hstack([self.Waveforms[idx].Adcs - self.Waveforms[idx].Analyses[analysis_label].Result.Baseline for idx in wf_idcs])
 
@@ -2910,3 +2959,24 @@ class WaveformSet:
                                                             i + 1,
                                                             j + 1)
         return figure_
+    
+    @staticmethod
+    def reference_to_minimum(input : List[int]) -> List[int]:
+
+        """
+        This method returns a list of integers, say output,
+        so that output[i] is equal to input[i] minus the
+        minimum value within input.
+
+        Parameters
+        ----------
+        input : list of int
+
+        Returns
+        ----------
+        list of int
+        """
+
+        aux = np.array(input).min()
+
+        return [ input[i] - aux for i in range(len(input)) ]
