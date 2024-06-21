@@ -106,6 +106,7 @@ if [ -f ${rucio_paths_file} ]; then
                esac
             ;;
             cern)
+               if [[ $line ==  *"experiment/neutplatform"* ]];then
                case $localgrid in
                local)
                foo="/eos"${line//*'//eos'/}
@@ -115,6 +116,7 @@ if [ -f ${rucio_paths_file} ]; then
                echo $line | tee -a $HOME/${run0}.txt
                ;;
                esac
+               fi
             ;;
             esac
          fi
