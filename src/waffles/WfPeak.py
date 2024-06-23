@@ -1,6 +1,5 @@
 from typing import Optional
-
-from src.waffles.Exceptions import generate_exception_message
+from .Exceptions import generate_exception_message
 
 class WfPeak:
 

@@ -1,12 +1,9 @@
+import numpy as np
 from typing import List, Optional
 from collections import OrderedDict
-
-import numpy as np
 from plotly import graph_objects as pgo
-
-from src.waffles.WfAna import WfAna
-
-from src.waffles.Exceptions import generate_exception_message
+from .WfAna import WfAna
+from .Exceptions import generate_exception_message
 
 class WaveformAdcs:
 
