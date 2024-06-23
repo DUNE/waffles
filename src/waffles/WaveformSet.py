@@ -2842,10 +2842,12 @@ class WaveformSet:
                 if len(grid_of_wf_idcs_[i][j]) > 0:
 
                     aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
-                    # if detailed_label:
-                    #     aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j]queried_no = 2)}]"data = WaveformSet.histogram1d( np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]), ## This one might be slow !!!!
-                    #                                 bins,
-                    #                                 domain)
+                    if detailed_label:
+                         aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
+                                                                                                     queried_no = 2)}]"
+                    data = WaveformSet.histogram1d( np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]), ## This one might be slow !!!!
+                                                     bins,
+                                                     domain)
                     
                     figure.add_trace(   pgo.Scatter(    x = np.linspace(domain[0] + (step / 2.0), 
                                                                         domain[1] - (step / 2.0), 
