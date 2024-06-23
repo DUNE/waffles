@@ -12,3 +12,6 @@ scipy
 pandas
 plotly
 uproot
+kaleido
+numba
+.

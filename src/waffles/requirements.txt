@@ -1,5 +1,0 @@
-just to keep track of what i ve been installing
-
-kaleido
-plotly
-numba

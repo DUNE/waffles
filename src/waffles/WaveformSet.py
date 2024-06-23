@@ -1,18 +1,17 @@
 import math
 import inspect
-from typing import Tuple, List, Callable, Optional
-
-import numpy as np
 import uproot
 import numba
+import numpy as np
+from typing import Tuple, List, Callable, Optional
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
-from src.waffles.WaveformAdcs import WaveformAdcs
-from src.waffles.Waveform import Waveform
-from src.waffles.WfAna import WfAna
-from src.waffles.WfAnaResult import WfAnaResult
-from src.waffles.Exceptions import generate_exception_message
+from .WaveformAdcs import WaveformAdcs
+from .Waveform import Waveform
+from .WfAna import WfAna
+from .WfAnaResult import WfAnaResult
+from .Exceptions import generate_exception_message
 
 class WaveformSet:
 
@@ -869,8 +868,7 @@ class WaveformSet:
 
                     aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
                     if detailed_label:
-                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
-                                                                                                    queried_no = 2)}]"
+                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],queried_no = 2)}]"
                     aux.plot(   figure = figure_,
                                 name = f"({i+1},{j+1}) - Mean of " + aux_name,
                                 row = i + 1,
@@ -897,8 +895,7 @@ class WaveformSet:
 
                         aux_name = f"Heatmap of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
                         if detailed_label:
-                            aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
-                                                                                                        queried_no = 2)}]"
+                            aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],queried_no = 2)}]"
                         figure_ = self.__subplot_heatmap(   figure_,
                                                             aux_name,
                                                             i + 1,
@@ -2845,13 +2842,10 @@ class WaveformSet:
                 if len(grid_of_wf_idcs_[i][j]) > 0:
 
                     aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
-                    if detailed_label:
-                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
-                                                                                                    queried_no = 2)}]"
-                        
-                    data = WaveformSet.histogram1d( np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]), ## This one might be slow !!!!
-                                                    bins,
-                                                    domain)
+                    # if detailed_label:
+                    #     aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j]queried_no = 2)}]"data = WaveformSet.histogram1d( np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]), ## This one might be slow !!!!
+                    #                                 bins,
+                    #                                 domain)
                     
                     figure.add_trace(   pgo.Scatter(    x = np.linspace(domain[0] + (step / 2.0), 
                                                                         domain[1] - (step / 2.0), 

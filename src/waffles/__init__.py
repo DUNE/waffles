@@ -1,7 +1,8 @@
+# import numpy as np
 from .Exceptions   import *
-from .Waveform     import *
+from .WfPeak       import *
+from .WfAnaResult  import *
+from .WfAna        import *
 from .WaveformAdcs import *
 from .WaveformSet  import *
-from .WfAna        import *
-from .WfAnaResult  import *
-from .WfPeak       import *
+from .Waveform     import *

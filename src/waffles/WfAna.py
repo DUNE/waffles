@@ -1,13 +1,12 @@
 from typing import Tuple, List, TYPE_CHECKING
-
-import numpy as np
 from scipy import signal as spsi
+import numpy as np
 
-if TYPE_CHECKING:                                           # Import only for type-checking, so as
-    from src.waffles.WaveformAdcs import WaveformAdcs       # to avoid a runtime circular import
+if TYPE_CHECKING:                                # Import only for type-checking, so as
+    from .WaveformAdcs import WaveformAdcs       # to avoid a runtime circular import
                                                     
-from src.waffles.WfAnaResult import WfAnaResult
-from src.waffles.WfPeak import WfPeak
+from .WfAnaResult import WfAnaResult
+from .WfPeak import WfPeak
 
 class WfAna:
 
