@@ -1,6 +1,6 @@
 sphinx==4.1.0
 alabaster==0.7.13
-lxml==4.5.2
+lxml==4.9.1
 myst_parser
 myst_nb
 nbsphinx
@@ -31,3 +31,9 @@ rich
 scipy 
 shapely
 uproot
+click
+dash
+dash_bootstrap_components
+h5py
+jupyter
+kaleido
