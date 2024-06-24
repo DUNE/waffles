@@ -1,4 +1,5 @@
 import numpy as np
+
 from .WaveformAdcs import WaveformAdcs
 
 class Waveform(WaveformAdcs):
