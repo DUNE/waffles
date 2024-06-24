@@ -94,11 +94,15 @@ class WaveformSet:
         """
 
         ## Shall we add type checks here?
-        
+
+        if len(waveforms) == 0:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.__init__()',
+                                                        'There must be at least one waveform in the set.'))
         self.__waveforms = list(waveforms)
 
         if not self.check_length_homogeneity():
-            raise Exception(generate_exception_message( 1,
+            raise Exception(generate_exception_message( 2,
                                                         'WaveformSet.__init__()',
                                                         'The length of the given waveforms is not homogeneous.'))
         
