@@ -1,4 +1,5 @@
 import numpy as np
+
 from .WaveformAdcs import WaveformAdcs
 
 class Waveform(WaveformAdcs):
@@ -12,10 +13,8 @@ class Waveform(WaveformAdcs):
     ----------
     Timestamp : int
         The timestamp value for this waveform
-    TimeStep_ns : float (inherited)
-        The time step (in nanoseconds) for this waveform
-    Adcs : unidimensional numpy array of integers (inherited)
-        The readout for this waveform, in # of ADCs
+    TimeStep_ns : float (inherited from WaveformAdcs)
+    Adcs : unidimensional numpy array of integers (inherited from WaveformAdcs)
     RunNumber : int
         Number of the run from which this waveform was
         acquired
@@ -27,14 +26,8 @@ class Waveform(WaveformAdcs):
         acquired
     Channel : int
         Channel number for this waveform
-    TimeOffset : int
-        A time offset, in units of TimeStep_ns (i.e.
-        time ticks) which will be used as a relative
-        alignment among different WaveformAdcs
-        objects for plotting and analysis purposes. 
-        It must be semipositive and smaller than 
-        len(self.__adcs)-1. It is set to 0 by default.
-    Analyses : OrderedDict of WfAna objects (inherited)
+    TimeOffset : int (inherited from WaveformAdcs)
+    Analyses : OrderedDict of WfAna objects (inherited from WaveformAdcs)
 
     Methods
     ----------
