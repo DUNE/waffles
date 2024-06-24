@@ -27,6 +27,13 @@ class Waveform(WaveformAdcs):
         acquired
     Channel : int
         Channel number for this waveform
+    TimeOffset : int
+        A time offset, in units of TimeStep_ns (i.e.
+        time ticks) which will be used as a relative
+        alignment among different WaveformAdcs
+        objects for plotting and analysis purposes. 
+        It must be semipositive and smaller than 
+        len(self.__adcs)-1. It is set to 0 by default.
     Analyses : OrderedDict of WfAna objects (inherited)
 
     Methods
@@ -40,7 +47,8 @@ class Waveform(WaveformAdcs):
                         run_number : int,
                         record_number : int,
                         endpoint : int,
-                        channel : int):
+                        channel : int,
+                        time_offset : int = 0):
         
         """
         Waveform class initializer
@@ -58,6 +66,11 @@ class Waveform(WaveformAdcs):
         record_number : int
         endpoint : int
         channel : int
+        time_offset : int
+            It is given to the 'time_offset' parameter of the
+            base class initializer. It must be semipositive 
+            and smaller than len(self.__adcs)-1. Its default 
+            value is 0.
         """
 
         ## Shall we add add type checks here?
@@ -71,7 +84,8 @@ class Waveform(WaveformAdcs):
         ## Do we need to add trigger primitives as attributes?
 
         super().__init__(   time_step_ns, 
-                            adcs)
+                            adcs,
+                            time_offset = time_offset)
 
     #Getters
     @property
