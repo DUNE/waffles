@@ -1,5 +1,6 @@
 import math
 import inspect
+
 import uproot
 import numba
 import numpy as np
@@ -872,8 +873,8 @@ class WaveformSet:
 
                     aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
                     if detailed_label:
-                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
-                                                                                                    queried_no = 2)}]"
+                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j], queried_no = 2)}]"
+
                     aux.plot(   figure = figure_,
                                 name = f"({i+1},{j+1}) - Mean of " + aux_name,
                                 row = i + 1,
@@ -910,8 +911,8 @@ class WaveformSet:
 
                         aux_name = f"Heatmap of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
                         if detailed_label:
-                            aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(  grid_of_wf_idcs_[i][j],
-                                                                                                        queried_no = 2)}]"
+                            aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j], queried_no = 2)}]"
+
                         figure_ = self.__subplot_heatmap(   figure_,
                                                             aux_name,
                                                             i + 1,
@@ -2938,8 +2939,7 @@ class WaveformSet:
 
                     aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
                     if detailed_label:
-                         aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available( grid_of_wf_idcs_[i][j],
-                                                                                                    queried_no = 2)}]"
+                         aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j], queried_no = 2)}]"
                          
                     data = WaveformSet.histogram1d( np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]), ## This one might be slow !!!!
                                                     bins,

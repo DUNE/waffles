@@ -1,5 +1,6 @@
 import numpy as np
 from typing import List,Optional
+
 from .WfPeak import WfPeak
 from .Exceptions import generate_exception_message
 
