@@ -7,33 +7,44 @@ from .Exceptions import generate_exception_message
 
 class WaveformAdcs:
 
+            # It is useful to have such a class so that tools which only need the Adcs information
+            # can be run even in situations where a waveform does not have a defined timestamp,
+            # endpoint or any other attribute which could be used to identify a waveform at a higher 
+            # level. For example, the waveform which is the result of a averaging over every waveform
+            # for a certain channel could be analyzed so as to compute its baseline, but its timestamp
+            # is not defined, i.e. it makes no sense.
+
     """
-    This class implements the Adcs array of a waveform.     # It is useful to have such a class so that
-                                                            # tools which only need the Adcs information
-                                                            # can be run even in situations where a 
-                                                            # waveform does not have a defined timestamp,
-                                                            # endpoint or any other attribute which could
-                                                            # be used to identify a waveform at a higher 
-                                                            # level. For example, the waveform which is the
-                                                            # result of a averaging over every waveform
-                                                            # for a certain channel could be analyzed so
-                                                            # as to compute its baseline, but its timestamp
-                                                            # is not defined, i.e. it makes no sense.                                           
+    This class implements the Adcs array of a waveform.
+
     Attributes
     ----------
     TimeStep_ns : float
         The time step (in nanoseconds) for this waveform
     Adcs : unidimensional numpy array of integers
         The readout for this waveform, in # of ADCs
+    TimeOffset : int
+        A time offset, in units of TimeStep_ns (i.e.
+        time ticks) which will be used as a relative
+        alignment among different WaveformAdcs
+        objects for plotting and analysis purposes. 
+        It must be semipositive and smaller than 
+        len(self.__adcs)-1. It is set to 0 by default.
     Analyses : OrderedDict of WfAna objects
 
     Methods
     ----------
     ## Add the list of methods and a summary for each one here
     """
+                                # The restrictions over the TimeOffset attribute
+                                # ensure that there are always at least two points
+                                # left in the [0, 1, ..., len(self.__adcs) - 1] range,
+                                # so that baselines and integrals can be computed using
+                                # points in that range.
 
     def __init__(self,  time_step_ns : float,
-                        adcs : np.ndarray):
+                        adcs : np.ndarray,
+                        time_offset : int = 0):
         
         """
         WaveformAdcs class initializer
@@ -42,20 +53,26 @@ class WaveformAdcs:
         ----------
         time_step_ns : float
         adcs : unidimensional numpy array of integers
+        time_offset : int
+            It must be semipositive and smaller than 
+            len(self.__adcs)-1. It is set to 0 by 
+            default.
         """
 
         ## Shall we add add type checks here?
 
         self.__time_step_ns = time_step_ns
         self.__adcs = adcs
+        self._set_time_offset(time_offset)      # WaveformSet._set_time_offset() 
+                                                # takes care of the proper checks
+       
         self.__analyses = OrderedDict() # Initialize the analyses 
                                         # attribute as an empty 
                                         # OrderedDict.
 
         ## Do we need to add trigger primitives as attributes?
-    
+
     #Getters
-    
     @property
     def TimeStep_ns(self):
         return self.__time_step_ns
@@ -63,6 +80,10 @@ class WaveformAdcs:
     @property
     def Adcs(self):
         return self.__adcs
+    
+    @property
+    def TimeOffset(self):
+        return self.__time_offset
     
     @property
     def Analyses(self):
@@ -73,6 +94,35 @@ class WaveformAdcs:
 #   def TimeStep_ns(self, input):       # can only set the value of its attributes
 #       self.__time_step_ns = input     # through WaveformAdcs.__init__. Here's an
 #       return                          # example of what a setter would look like, though.
+
+    def _set_time_offset(self, input : float) -> None:
+
+        """
+        This method is not intended for user usage. It is 
+        a setter for the TimeOffset attribute. 
+        
+        Parameters
+        ----------
+        input : float
+            The value which will be assigned to the TimeOffset
+            attribute. It must be semipositive and smaller than 
+            len(self.__adcs)-1.
+        
+        Returns
+        ----------
+        None
+        """
+
+        if input < 0 or input >= len(self.__adcs)-1:
+            
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformAdcs._set_time_offset()',
+                                                        f"The given time offset ({input}) must belong to the [0, {len(self.__adcs)-2}] interval."))
+        else:
+            self.__time_offset = input
+
+        return
+
 
     def confine_iterator_value(self, input : int) -> int:
 
@@ -293,14 +343,18 @@ class WaveformAdcs:
             the used one.
         """
 
-        x = np.arange(len(self.__adcs))
+        x = np.arange(  len(self.__adcs),
+                        dtype = np.float32)
 
-        wf_trace = pgo.Scatter( x = x,                  ## If we think x might match for every waveform, in
-                                                        ## a certain WaveformSet object, it might be more
-                                                        ## efficient to let the caller define it, so as 
-                                                        ## not to recompute this array for each waveform.
+        wf_trace = pgo.Scatter( x = x + self.__time_offset,     ## If at some point we think x might match for
+                                                                ## every waveform, in a certain WaveformSet 
+                                                                ## object, it might be more efficient to let
+                                                                ## the caller define it, so as not to recompute
+                                                                ## this array for each waveform.
                                 y = self.__adcs,
                                 mode = 'lines',
+                                line=dict(  color='black', 
+                                            width=0.5),
                                 name = name)
         
         figure.add_trace(   wf_trace,
@@ -320,8 +374,17 @@ class WaveformAdcs:
                 for i in range(len(aux.BaselineLimits)//2):
 
                     figure.add_shape(   type = 'line',
-                                        x0 = x[aux.BaselineLimits[2*i]], y0 = 0,
-                                        x1 = x[aux.BaselineLimits[2*i]], y1 = 1,
+                                        x0 = x[aux.BaselineLimits[2*i]], y0 = 0,                ## If you are wondering why only the trace of
+                                        x1 = x[aux.BaselineLimits[2*i]], y1 = 1,                ## the waveform is offset according to self.TimeOffset,
+                                                                                                ## but not the markers, note that this is, indeed,
+                                                                                                ## the reason why a time offset is useful. The WfAna 
+                                                                                                ## class moves the analysis ranges (p.e. baseline or
+                                                                                                ## integral ranges) according to the TimeOffset. Then
+                                                                                                ## to show a consistent plot, either the markers are
+                                                                                                ## displaced or the wavefrom is displaced, but not both.
+                                                                                                ## For the sake of having a grid-plot where the analysis
+                                                                                                ## ranges are aligned among different subplots, I chose 
+                                                                                                ## to displace the waveform.
                                         line = dict(color = 'grey',         # Properties for
                                                     width = 1,              # the beginning of
                                                     dash = 'dash'),         # a baseline chunk

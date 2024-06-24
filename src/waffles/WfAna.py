@@ -20,9 +20,9 @@ class WfAna:
     BaselineLimits : list of int
         It must have an even number of integers which
         must meet BaselineLimits[i] < BaselineLimits[i + 1].
-        Given a WaveformAdcs object whose adcs array is x, 
-        the points which are used for baseline calculation
-        are x[BaselineLimits[2*i]:BaselineLimits[(2*i) + 1]],
+        Given a WaveformAdcs object, wf, the points which
+        are used for baseline calculation are
+        wf.Adcs[BaselineLimits[2*i] - wf.TimeOffset : BaselineLimits[(2*i) + 1] - wf.TimeOffset],
         with i = 0,1,...,(len(BaselineLimits)/2) - 1. The 
         upper limits are exclusive.
     IntLl (resp. IntUl) : int
@@ -30,7 +30,9 @@ class WfAna:
         Iterator value for the first (resp. last) point 
         of the waveform that falls into the integration
         window. IntLl must be smaller than IntUl. These
-        limits are inclusive.
+        limits are inclusive. I.e., the points which are
+        used for the integral calculation are
+        wf.Adcs[IntLl - wf.TimeOffset : IntUl + 1 - wf.TimeOffset]. 
     Result : WfAnaResult
         The result of the analysis
     Passed : bool
@@ -163,15 +165,27 @@ class WfAna:
         which does the following:
 
             - It computes the baseline as the median of the points
-            that are considered, according to the self.__baseline_limits
-            attribute.
+            that are considered, according to the documentation of
+            the self.__baseline_limits attribute.
             - It searches for peaks using scipy.signal.find_peaks.
             - It calculates the integral of 
-            waveform.Adcs[IntLl:IntUl + 1]. To do so, it assumes that
-            the temporal resolution of the waveform is constant and
-            approximates its integral to 
-            waveform.TimeStep_ns*np.sum( -b + waveform.Adcs[IntLl:IntUl + 1]),
+            waveform.Adcs[IntLl - waveform.TimeOffset : IntUl + 1 - waveform.TimeOffset]. 
+            To do so, it assumes that the temporal resolution of 
+            the waveform is constant and approximates its integral 
+            to waveform.TimeStep_ns*np.sum( -b + waveform.Adcs[IntLl - waveform.TimeOffset : IntUl + 1 - waveform.TimeOffset]),
             where b is the computed baseline.
+
+        Note that for these computations to be well-defined, it is
+        assumed that
+
+            - BaselineLimits[0] - wf.TimeOffset >= 0
+            - BaselineLimits[-1] - wf.TimeOffset <= len(wf.Adcs)
+            - IntLl - wf.TimeOffset >= 0
+            - IntUl - wf.TimeOffset < len(wf.Adcs)
+
+        For the sake of efficiency, these checks are not done.
+        It is the caller's responsibility to ensure that these 
+        requirements are met.
 
         Parameters
         ----------
@@ -211,7 +225,7 @@ class WfAna:
         except KeyError:                                                        # is present, pop it from kwargs before
             pass                                                                # giving them to scipy.signal.find_peaks
                     
-        split_baseline_samples = [  waveform.Adcs[ self.__baseline_limits[2*i] : self.__baseline_limits[(2*i) + 1]]
+        split_baseline_samples = [  waveform.Adcs[ self.__baseline_limits[2*i] - waveform.TimeOffset : self.__baseline_limits[(2*i) + 1] - waveform.TimeOffset]
                                     for i in range(len(self.__baseline_limits)//2) ]
         
         baseline_samples = np.concatenate(split_baseline_samples)
