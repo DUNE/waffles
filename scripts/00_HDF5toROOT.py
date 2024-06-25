@@ -33,6 +33,16 @@ def split_list(original_list, n_splits):
 
     return out
 
+def check_PDS(raw_file):
+    h5_file  = HDF5RawDataFile(raw_file)
+    record   = list(h5_file.get_all_record_ids())[0]
+    gid      = list(h5_file.get_geo_ids_for_subdetector(record, detdataformats.DetID.string_to_subdetector('HD_PDS')))
+    if len(gid) == 0:
+        output = False
+    else:
+        output = True
+    return output
+
 def extract_fragment_info(frag, trig):
     frag_id = str(frag).split(' ')[3][:-1]
     frh     = frag.get_header()
@@ -77,8 +87,9 @@ def root_creator(inputs):
     run_date = h5_file.get_attribute('creation_timestamp')
     run_id   = raw_file.split('_')[3]
     run_flow = raw_file.split('_')[4]
+    run_numb = raw_file.split('_')[7]
     
-    root_file = TFile( f'{path_root}/{run}_{run_id}_{run_flow}.root' , 'RECREATE')
+    root_file = TFile( f'{path_root}/{run}_{run_id}_{run_flow}_{run_numb}.root' , 'RECREATE')
 
     fWaveformTree = TTree("raw_waveforms", "raw_waveforms")
 
@@ -123,7 +134,7 @@ def root_creator(inputs):
 
     records = h5_file.get_all_record_ids()
     current = current_process()
-    for r in tqdm(records, position = current._identity[0]-1, desc = f'{run}_{run_id}_{run_flow}'):
+    for r in tqdm(records, position = current._identity[0]-1, desc = f'{run}_{run_id}_{run_flow}_{run_numb}'):
         pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(r, detdataformats.DetID.string_to_subdetector(det)))
         
         for gid in pds_geo_ids:
@@ -189,7 +200,7 @@ def root_creator(inputs):
 @click.command()
 @click.option("--path", '-p', default = '/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles', help="Insert the desired path.")
 @click.option("--run" , '-r', default = None, help="Insert the run number, ex: 026102")
-@click.option("--debug",'-b', default = False, help="Insert the run number, ex: 026102", type=bool)
+@click.option("--debug",'-b', default = False, help="To debug, make -b True", type=bool)
 
 def main(path, run, debug):
 
@@ -223,24 +234,30 @@ def main(path, run, debug):
 
         with open(f'{run_path}', "r") as run_list: 
             run_paths = run_list.readlines()
+
+        files = [run_path.rstrip('\n') for run_path in run_paths]
+        if check_PDS(files[0]):
      
-        print(f'Cores avaliable:{num_cores_mp}')
-        print(f'Files to be processed: {len(run_paths)}')
-    
-        if num_cores_mp > len(run_paths): 
-            process  = len(run_paths)
-            nprocess = 1
-        else: 
-            process  = num_cores_mp
-            nprocess = len(run_paths)//num_cores_mp
+            print(f'Cores avaliable:{num_cores_mp}')
+            print(f'Files to be processed: {len(run_paths)}')
         
-        files  = [run_path.rstrip('\n') for run_path in run_paths]
-        split_files = split_list(files, nprocess)
-        for p in range(nprocess):
-            print(f'- Process{p}: {split_files[p]}')
-            with Pool(process) as pool:
-                inputs  = [[raw_file, path_root, run, debug] for raw_file in split_files[p]]
-                process = pool.map(root_creator, inputs)
+            if num_cores_mp > len(run_paths): 
+                cores    = len(run_paths)
+                steps    = 1
+            else: 
+                cores    = num_cores_mp
+                steps    = len(run_paths)//num_cores_mp
+            
+            split_files = split_list(files, steps)
+            
+            for st in range(steps):
+                print(f'- Step {st} -> {cores} cores: {split_files[st]}')
+                with Pool(cores) as pool:
+                    inputs  = [[raw_file, path_root, run, debug] for raw_file in split_files[st]]
+                    process = pool.map(root_creator, inputs, chunksize=1)
+            
+        else: print(f'No PDS data on run {run}!')
+            
         
 if __name__ == "__main__":
     main()
