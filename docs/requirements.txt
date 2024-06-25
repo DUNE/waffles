@@ -37,3 +37,4 @@ dash_bootstrap_components
 h5py
 jupyter
 kaleido
+.
