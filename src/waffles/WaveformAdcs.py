@@ -124,6 +124,24 @@ class WaveformAdcs:
 
         return
 
+    def __truncate_adcs(self, number_of_points_to_keep : int) -> None:
+
+        """
+        This method is not intended for user usage. It truncates 
+        the self.__adcs attribute array to the first 
+        'number_of_points_to_keep' points.
+
+        Parameters
+        ----------
+        number_of_points_to_keep : int
+
+        Returns
+        ----------
+        None
+        """
+
+        self.__adcs = self.__adcs[:number_of_points_to_keep]    # Numpy handles the case where number_of_points_to_keep
+                                                                # is greater than the length of self.__adcs.
 
     def confine_iterator_value(self, input : int) -> int:
 
