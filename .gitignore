@@ -2,6 +2,7 @@
 *.root
 *.npy
 *.hdf5
+*.ipynb
 test/
 .vscode/
 
