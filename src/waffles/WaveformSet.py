@@ -1803,6 +1803,13 @@ class WaveformSet:
             for i in range(len(waveforms)):
                 waveforms[i]._set_time_offset(time_offsets[i])
 
+        if read_full_streaming_data:
+
+            minimum_length = np.array([ len(wf.Adcs) for wf in waveforms]).min()
+
+            for wf in waveforms:
+                wf._WaveformAdcs__truncate_adcs(minimum_length)      
+        
         return cls(*waveforms)
     
     @staticmethod
