@@ -626,7 +626,7 @@ class WaveformSet:
             where to take the information for the analysis 
             markers plot. In this case, if 'analysis_label' 
             is None, then the last analysis added to 
-            self.__analyses will be the used one. 
+            the Analyses attribute will be the used one. 
                 If mode is set to 'average' and this 
             parameter is defined, then this method will 
             analyse the newly computed average waveform, 
@@ -2837,7 +2837,7 @@ class WaveformSet:
             x, then x.Result.Integral is the considered
             integral. If 'analysis_label' is None, 
             then the last analysis added to 
-            self.__analyses will be the used one.
+            the Analyses attribute will be the used one.
         bins : int
             A positive integer giving the number of bins 
             in each histogram
