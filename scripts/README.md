@@ -8,9 +8,9 @@ git clone --branch latest-stable --depth=1 https://github.com/root-project/root.
 
 mkdir root_build root_install && cd root_build
 
-cmake -DCMAKE_INSTALL_PREFIX=../root_install -D dataframe=OFF ../root_src
+cmake -DCMAKE_INSTALL_PREFIX=../root_install -Ddataframe=OFF ../root_src
 
-make install
+cmake --build . -- install -j4
 ```
 
 If some error appears during the installation related with Roofit, just disable it by adding the command ``-Droofit=OFF`` on the cmake.
