@@ -1,6 +1,8 @@
-from typing import Dict
+import numpy as np
+from typing import Dict, Optional
 
-from src.waffles.WaveformSet import WaveformSet
+from .WaveformSet import WaveformSet
+from .CalibrationHistogram import CalibrationHistogram
 from src.waffles.Exceptions import generate_exception_message
 
 class ChannelWS(WaveformSet):
@@ -25,13 +27,23 @@ class ChannelWS(WaveformSet):
         Endpoint number for this set of waveforms
     Channel : int
         Channel number for this set of waveforms
+    CalibHisto : CalibrationHistogram
+        A calibration histogram for this set of waveforms.
+        It is not computed by default. I.e. if 
+        self.CalibHisto equals to None, it should be 
+        interpreted as unavailable data.
 
     Methods
     ----------
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self,  *waveforms):
+    def __init__(self,  *waveforms,
+                        compute_calib_histo : bool = False,
+                        bins_number : Optional[int] = None,
+                        domain : Optional[np.ndarray] = None,
+                        variable : str = 'integral',
+                        analysis_label : Optional[str] = None):
         
         """
         ChannelWS class initializer
@@ -43,6 +55,56 @@ class ChannelWS(WaveformSet):
             Their Endpoint and Channel attributes must be
             homogeneous. Otherwise, an exception will be
             raised.
+        compute_calib_histo : bool
+            If True, then the calibration histogram for 
+            this ChannelWS object will be computed, up to 
+            the input given to the 'variable' parameter.
+            If False, then the calibration histogram for
+            this ChannelWS object will be set to None.
+        bins_number : int
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True.
+            If so, this parameter must be defined.
+            In that case, it gives the number of bins
+            that the calibration histogram will have.
+            It must be greater than 1.
+        domain : np.ndarray
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True.
+            If so, this parameter must be defined.
+            A 2x1 numpy array where (domain[0], domain[1])
+            gives the range to consider for the
+            calibration histogram. Any sample which falls 
+            outside this range is ignored.
+        variable : str
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True.
+            In that case, if variable is set to 'integral', 
+            then the calibration histogram will be 
+            computed using the integral of the waveforms, 
+            up to the input given to the 'analysis_label' 
+            parameter. If variable is set to 'amplitude', 
+            then the calibration histogram will be 
+            computed using the amplitude of the waveforms.           ## Not implemented yet
+            The default behaviour, which is used if
+            the input is different from 'integral' or
+            'amplitude', is that of 'integral'.
+        analysis_label : str
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True
+            and 'variable' is set to 'integral'.
+            In such case, this parameter gives the key
+            for the WfAna object within the Analyses 
+            attribute of each considered waveform 
+            from where to take the integral value to 
+            add to the calibration histogram. Namely, 
+            if such WfAna object is x, then 
+            x.Result.Integral is the considered
+            integral. If 'analysis_label' is None, 
+            then the last analysis added to 
+            the Analyses attribute will be the used 
+            one. If there is not even one analysis, 
+            then an exception will be raised.
         """
 
         ## Shall we add type checks here?
@@ -53,6 +115,25 @@ class ChannelWS(WaveformSet):
         self.__channel = None
         self.update_endpoint_and_channel()
 
+        self.__calib_histo = None
+
+        if compute_calib_histo:
+
+            if bins_number is None:
+                raise Exception(generate_exception_message( 1,
+                                                            'ChannelWS.__init__()',
+                                                            'The bins number must be provided if the calibration histogram is to be computed.'))
+            if domain is None:
+                raise Exception(generate_exception_message( 2,
+                                                            'ChannelWS.__init__()',
+                                                            'The domain must be provided if the calibration histogram is to be computed.'))
+
+            self.__calib_histo = CalibrationHistogram.from_WaveformSet( self,
+                                                                        bins_number,
+                                                                        domain,
+                                                                        variable = variable,
+                                                                        analysis_label = analysis_label)
+
     #Getters
     @property
     def Endpoint(self):
@@ -61,6 +142,10 @@ class ChannelWS(WaveformSet):
     @property
     def Channel(self):
         return self.__channel
+    
+    @property
+    def CalibHisto(self):
+        return self.__calib_histo
     
     def update_endpoint_and_channel(self) -> None:
 
@@ -99,7 +184,12 @@ class ChannelWS(WaveformSet):
         return
 
     @staticmethod
-    def clusterize_WaveformSet(waveform_set : WaveformSet) -> Dict[int, Dict[int, 'ChannelWS']]:
+    def clusterize_WaveformSet( waveform_set : WaveformSet,
+                                compute_calib_histo : bool = False,
+                                bins_number : Optional[int] = None,
+                                domain : Optional[np.ndarray] = None,
+                                variable : str = 'integral',
+                                analysis_label : Optional[str] = None) -> Dict[int, Dict[int, 'ChannelWS']]:
 
         """
         This function returns a dictionary, say output, 
@@ -125,6 +215,43 @@ class ChannelWS(WaveformSet):
         subsets of the given WaveformSet object, and 
         whose Waveform objects have homogeneous endpoint 
         and channel values.
+
+        Parameters
+        ----------
+        waveform_set : WaveformSet
+            The WaveformSet object which will be partitioned
+            into ChannelWS objects.
+        compute_calib_histo : bool
+            If True, then the calibration histogram for each
+            ChannelWS object will be computed. It is given
+            to the 'compute_calib_histo' parameter of the
+            ChannelWS initializer. Check its docstring for
+            more information.
+        bins_number : int
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True.
+            If so, this parameter must be defined.
+            It is the number of bins that the calibration 
+            histogram will have.
+        domain : np.ndarray
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True. It 
+            is given to the 'domain' parameter of the
+            ChannelWS initializer. Check its docstring 
+            for more information.
+        variable : str
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True.
+            It is given to the 'variable' parameter of 
+            the ChannelWS initializer. Check its docstring 
+            for more information.
+        analysis_label : str
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True
+            and 'variable' is set to 'integral'.
+            It is given to the 'analysis_label' parameter 
+            of the ChannelWS initializer. Check its 
+            docstring for more information.
 
         Returns
         ----------
@@ -153,6 +280,10 @@ class ChannelWS(WaveformSet):
 
             for channel in idcs[endpoint].keys():
                 aux = [waveform_set.Waveforms[idx] for idx in idcs[endpoint][channel]]
-                output[endpoint][channel] = ChannelWS(*aux)
-
+                output[endpoint][channel] = ChannelWS(  *aux,
+                                                        compute_calib_histo = compute_calib_histo,
+                                                        bins_number = bins_number,
+                                                        domain = domain,
+                                                        variable = variable,
+                                                        analysis_label = analysis_label)
         return output
