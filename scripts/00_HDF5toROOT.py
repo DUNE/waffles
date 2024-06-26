@@ -80,7 +80,7 @@ def extract_fragment_info(frag, trig):
     return trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value, daq_pretrigger
 
 def root_creator(inputs):
-    raw_file, path_root, run, debug = inputs
+    raw_file, path_root, run, debug, overwrite = inputs
 
     det      = 'HD_PDS'
     h5_file  = HDF5RawDataFile(raw_file)
@@ -88,9 +88,20 @@ def root_creator(inputs):
     run_id   = raw_file.split('_')[3]
     run_flow = raw_file.split('_')[4]
     run_numb = raw_file.split('_')[7]
-    
-    root_file = TFile( f'{path_root}/{run}_{run_id}_{run_flow}_{run_numb}.root' , 'RECREATE')
 
+    root_name = f'{run}_{run_id}_{run_flow}_{run_numb}.root'
+    
+    if overwrite:
+        root_file = TFile( f'{path_root}/{run}_{run_id}_{run_flow}_{run_numb}.root' , 'RECREATE')
+    else:
+        created_files = [f for f in os.listdir(path_root) if os.path.isfile(os.path.join(path_root, f))]
+        if root_name not in created_files:
+            root_file = TFile( f'{path_root}/{run}_{run_id}_{run_flow}_{run_numb}.root' , 'RECREATE')
+        else:
+            print(f'File {root_name} already exists and will not be overwritten.')
+            return 0
+            
+        
     fWaveformTree = TTree("raw_waveforms", "raw_waveforms")
 
     adcs                 = std.vector('float')()
@@ -136,49 +147,53 @@ def root_creator(inputs):
     current = current_process()
     for r in tqdm(records, position = current._identity[0]-1, desc = f'{run}_{run_id}_{run_flow}_{run_numb}'):
         pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(r, detdataformats.DetID.string_to_subdetector(det)))
-        
+
         for gid in pds_geo_ids:
-            frag = h5_file.get_frag(r, gid)
-            trig = h5_file.get_trh(r)
-            
-            trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, daq_pretrigger_frag = extract_fragment_info(frag, trig)
-                    
-            endpoint = int(find_endpoint(map_id, scr_id))
-            channels_frag = 100 * int(endpoint) + channels_frag 
-            
-            if debug: 
-                print("GEO ID:", gid)
-                print("FRAG ID:", frag_id)
-                print("EP:", endpoint)
-                print("CH:", channels)
-                print("ADCS:", adcs)
-
-            if trigger == 'full_stream':
-                adcs_frag                 = adcs_frag.transpose()
-                timestamps_frag           = [timestamps_frag[0]] * len(channels_frag)
-                baseline_frag             = [-1] * len(channels_frag)
-                trigger_sample_value_frag = [-1] * len(channels_frag)
-                is_fullstream_frag        = [True] * len(channels_frag)
-            elif trigger == 'self_trigger':
-                is_fullstream_frag = [False] * len(channels_frag)
-            
-            if endpoint not in active_endpoints: 
-                active_endpoints.add(endpoint)
-                threshold_list.append(threshold_frag)
+            try:
+                frag = h5_file.get_frag(r, gid)
+                trig = h5_file.get_trh(r)
                 
-            for index, ch in enumerate(channels_frag):
-
-                adcs.clear()
-                for value in adcs_frag[index]:
-                    adcs.push_back(value)
-                timestamps[0]           = timestamps_frag[index]
-                channel[0]              = ch
-                baseline[0]             = baseline_frag[index]
-                trigger_sample_value[0] = trigger_sample_value_frag[index]
-                is_fullstream[0]        = is_fullstream_frag[index]
-                daq_timestamp[0]        = daq_pretrigger_frag
-                record[0]               = r[0]
-                fWaveformTree.Fill()
+                trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, daq_pretrigger_frag = extract_fragment_info(frag, trig)
+                        
+                endpoint = int(find_endpoint(map_id, scr_id))
+                channels_frag = 100 * int(endpoint) + channels_frag 
+                
+                if debug: 
+                    print("GEO ID:", gid)
+                    print("FRAG ID:", frag_id)
+                    print("EP:", endpoint)
+                    print("CH:", channels)
+                    print("ADCS:", adcs)
+    
+                if trigger == 'full_stream':
+                    adcs_frag                 = adcs_frag.transpose()
+                    timestamps_frag           = [timestamps_frag[0]] * len(channels_frag)
+                    baseline_frag             = [-1] * len(channels_frag)
+                    trigger_sample_value_frag = [-1] * len(channels_frag)
+                    is_fullstream_frag        = [True] * len(channels_frag)
+                elif trigger == 'self_trigger':
+                    is_fullstream_frag = [False] * len(channels_frag)
+                
+                if endpoint not in active_endpoints: 
+                    active_endpoints.add(endpoint)
+                    threshold_list.append(threshold_frag)
+                    
+                for index, ch in enumerate(channels_frag):
+    
+                    adcs.clear()
+                    for value in adcs_frag[index]:
+                        adcs.push_back(value)
+                    timestamps[0]           = timestamps_frag[index]
+                    channel[0]              = ch
+                    baseline[0]             = baseline_frag[index]
+                    trigger_sample_value[0] = trigger_sample_value_frag[index]
+                    is_fullstream[0]        = is_fullstream_frag[index]
+                    daq_timestamp[0]        = daq_pretrigger_frag
+                    record[0]               = r[0]
+                    fWaveformTree.Fill()
+    
+            except:
+                print(f'Corrupted PDS data on record {r} and GeoID {gid}')
 
     fWaveformTree.Write("", TFile.kOverwrite)    
 
@@ -191,7 +206,7 @@ def root_creator(inputs):
     nrecords[0]  = len(records)
     date.assign(run_date)
     ticks_to_nsec[0] = 1/16
-    adc_to_volts[0]  = (1.5*3.2)/(2^(14)-1)
+    adc_to_volts[0]  = (1.5 * 3.2)/(2 ** 14 - 1)
     fMetaDataTree.Fill()
     
     fMetaDataTree.Write("", TFile.kOverwrite)
@@ -201,8 +216,9 @@ def root_creator(inputs):
 @click.option("--path", '-p', default = '/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles', help="Insert the desired path.")
 @click.option("--run" , '-r', default = None, help="Insert the run number, ex: 026102")
 @click.option("--debug",'-b', default = False, help="To debug, make -b True", type=bool)
+@click.option("--overwrite", '-o', default = False, help="If you want to overwrite make -o True", type= bool)
 
-def main(path, run, debug):
+def main(path, run, debug, overwrite):
 
     ## Check if the run number is provided ##
     if run is None: 
@@ -251,9 +267,9 @@ def main(path, run, debug):
             split_files = split_list(files, steps)
             
             for st in range(steps):
-                print(f'- Step {st} -> {cores} cores: {split_files[st]}')
+                print(f'\n - Step {st} -> {cores} cores')
                 with Pool(cores) as pool:
-                    inputs  = [[raw_file, path_root, run, debug] for raw_file in split_files[st]]
+                    inputs  = [[raw_file, path_root, run, debug, overwrite] for raw_file in split_files[st]]
                     process = pool.map(root_creator, inputs, chunksize=1)
             
         else: print(f'No PDS data on run {run}!')
