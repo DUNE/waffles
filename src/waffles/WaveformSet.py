@@ -4,7 +4,7 @@ import inspect
 import uproot
 import numba
 import numpy as np
-from typing import Tuple, List, Callable, Optional
+from typing import Tuple, List, Callable, Optional, Any
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -12,6 +12,7 @@ from .WaveformAdcs import WaveformAdcs
 from .Waveform import Waveform
 from .WfAna import WfAna
 from .WfAnaResult import WfAnaResult
+from .Map import Map
 from .Exceptions import generate_exception_message
 
 class WaveformSet:
@@ -798,9 +799,9 @@ class WaveformSet:
                                                         'WaveformSet.plot_wfs()',
                                                         "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
-        elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
-                                                            nrows,              # but grid_of_wf_idcs is, but 
-                                                            ncols):             # it is not well-formed
+        elif not Map.list_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
+                                                    nrows,              # but grid_of_wf_idcs is, but 
+                                                    ncols):             # it is not well-formed
             raise Exception(generate_exception_message( 6,
                                                         'WaveformSet.plot_wfs()',
                                                         f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
@@ -1043,39 +1044,6 @@ class WaveformSet:
 
         return figure
 
-    @staticmethod
-    def grid_of_lists_is_well_formed(   grid : List[List[List]],
-                                        nrows : int,
-                                        ncols : int) -> bool:
-        
-        """
-        This method returns True if the given grid contains
-        nrows lists, each of which contains ncols lists. It 
-        returns False if else.
-
-        Parameters
-        ----------
-        grid : list of lists of lists
-        nrows : int
-        ncols : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        if nrows < 1 or ncols < 1:
-            raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.grid_of_lists_is_well_formed()',
-                                                        'The number of rows and columns must be positive.'))
-        if len(grid) != nrows:
-            return False
-        else:
-            for row in grid:
-                if len(row) != ncols:
-                    return False
-        return True
-
     def get_grid_of_wf_idcs(self,   nrows : int,
                                     ncols : int,
                                     wfs_per_axes : Optional[int] = None,
@@ -1193,9 +1161,9 @@ class WaveformSet:
                                                             'WaveformSet.get_grid_of_wf_idcs()',
                                                             "The 'filter_args' parameter must be defined if the 'wfs_per_axes' parameter is not."))
             
-            elif not WaveformSet.grid_of_lists_is_well_formed(  filter_args,
-                                                                nrows,
-                                                                ncols):
+            elif not Map.list_of_lists_is_well_formed(  filter_args,
+                                                        nrows,
+                                                        ncols):
                     
                     raise Exception(generate_exception_message( 5,
                                                                 'WaveformSet.get_grid_of_wf_idcs()',
@@ -2995,9 +2963,9 @@ class WaveformSet:
                                                         'WaveformSet.plot_calibration_histogram()',
                                                         "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
-        elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
-                                                            nrows,              # but grid_of_wf_idcs is, but 
-                                                            ncols):             # it is not well-formed
+        elif not Map.list_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
+                                                    nrows,              # but grid_of_wf_idcs is, but 
+                                                    ncols):             # it is not well-formed
             raise Exception(generate_exception_message( 6,
                                                         'WaveformSet.plot_calibration_histogram()',
                                                         f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
