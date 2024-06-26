@@ -1,3 +1,5 @@
+import copy
+
 from typing import Optional, List, Any
 
 from src.waffles.Exceptions import generate_exception_message
@@ -19,15 +21,19 @@ class Map:
         The number of columns in the map
     Type : type
         The type of the objects stored in the map
+    Data : list of lists
+        Nested list which contains the data of the
+        map. Data[i][j] gives the object stored in
+        the i-th row and j-th column of the map.
 
     Methods
     ----------
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self,  rows,
-                        columns,
-                        type_,
+    def __init__(self,  rows : int,
+                        columns : int,
+                        type_ : type,
                         data : Optional[List[List[Any]]] = None):
         
         """
@@ -40,7 +46,12 @@ class Map:
         columns : int
             It must be a positive integer
         type_ : type
-            It must be a type
+        data : list of lists
+            It must be a list of lists of objects of the
+            same type as the one specified in the type_
+            parameter. The length of data must be equal to
+            rows and the length of each one of its lists
+            must be equal to columns.
         """
 
         ## Shall we add type checks here?
@@ -53,13 +64,20 @@ class Map:
             raise Exception(generate_exception_message( 2,
                                                         'Map.__init__()',
                                                         f"The given number of columns ({columns}) must be positive."))
-        if not isinstance(type_, type):
+        
+        if not Map.list_of_lists_is_well_formed(data, rows, columns):
             raise Exception(generate_exception_message( 3,
                                                         'Map.__init__()',
-                                                        f"The given type ({type_}) must be a type."))
+                                                        f"The shape of the given data is not ({rows}, {columns})."))
+        
+        if not all( [ isinstance(item, type_) for row in data for item in row ] ):
+            raise Exception(generate_exception_message( 4,
+                                                        'Map.__init__()',
+                                                        f"The type of the objects in the given data must be {type_}."))
         self.__rows = rows
         self.__columns = columns
         self.__type = type_
+        self.__data = data
 
     #Getters
     @property
@@ -73,6 +91,10 @@ class Map:
     @property
     def Type(self):
         return self.__type
+    
+    @property
+    def Data(self):
+        return self.__data
 
     @staticmethod
     def list_of_lists_is_well_formed(   grid : List[List[Any]],
@@ -106,3 +128,60 @@ class Map:
                 if len(row) != ncols:
                     return False
         return True
+    
+    @classmethod
+    def from_unique_value(  cls,
+                            nrows : int,
+                            ncols : int,
+                            type_ : type,
+                            value,
+                            independent_copies = False) -> 'Map':
+        
+        """
+        This method returns a Map object whose Rows, Columns
+        and Type attributes match the input parameters nrows,
+        ncols and type_, and for which all of its entries
+        are equal to the input value.
+        
+        Parameters
+        ----------
+        nrows (resp. ncols) : int
+            Number of rows (resp. columns) of the returned 
+            Map object. It must be a positive integer.
+        type_ : type
+            Type of the object(s) stored in the returned Map
+            object
+        value
+            Its type must match the type_ parameter. It is
+            the value that all the entries of the returned
+            Map object will have.
+        independent_copies : bool
+            If True, the returned Map object will have 
+            independent copies of the value parameter in each 
+            one of its entries. If False, the returned Map object 
+            will have  references to the same object in each one 
+            of its entries.
+            
+        Returns
+        ----------
+        Map
+        """
+
+        if nrows < 1 or ncols < 1:
+            raise Exception(generate_exception_message( 1,
+                                                        'Map.from_unique_value()',
+                                                        'The number of rows and columns must be positive.'))
+        if not isinstance(value, type_):
+            raise Exception(generate_exception_message( 2,
+                                                        'Map.from_unique_value()',
+                                                        'The type of the given value must match the given type.'))
+        
+        if not independent_copies:
+            aux = [[value for _ in range(ncols)] for _ in range(nrows)]
+        else:
+            aux = [[copy.deepcopy(value) for _ in range(ncols)] for _ in range(nrows)]
+    
+        return cls( nrows,
+                    ncols,
+                    type_,
+                    data = aux)
