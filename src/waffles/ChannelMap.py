@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from .UniqueChannel import UniqueChannel
 from .Map import Map
@@ -53,3 +53,39 @@ class ChannelMap(Map):
                             columns,
                             UniqueChannel,                               
                             data = data)
+        
+    def find_channel(self,  unique_channel : UniqueChannel) -> Tuple[bool, Tuple[int, int]]:
+        
+        """
+        This method gets an UniqueChannel object 
+        and returns a tuple with a boolean and a
+        tuple with two integers. If the given 
+        channel is spotted in this ChannelMap object,
+        the boolean is True and the tuple contains
+        the position of the channel in the map,
+        i.e. the iterator values i, j so that
+        self.Data[i][j] is an UniqueChannel object
+        with the same endpoint and channel values as
+        the given unique_channel. If the given 
+        channel is not found, the boolean is False 
+        and the tuple is (-1, -1).
+        
+        Parameters
+        ----------
+        unique_channel : UniqueChannel
+            Unique channel to look for within this
+            ChannelMap object
+
+        Returns
+        -------
+        output : tuple of ( bool and tuple of two integers )
+        """
+
+        for i in range(self.Rows):
+            for j in range(self.Columns):
+                aux = self.Data[i][j]
+                if aux.Endpoint == unique_channel.Endpoint:
+                    if aux.Channel == unique_channel.Channel:
+                        return (True, (i, j))
+                
+        return (False, (-1, -1))
