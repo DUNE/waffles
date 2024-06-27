@@ -63,10 +63,17 @@ do
         echo -e "\e[35m\n... Running HDF5toROOT_decoder ...\n \e[0m"
     fi
 
+    counter=0 # Limiting the number of files to be processed
     #check if there are several lines in the txt and run a loop over them
     for rucio_path in $rucio_paths
     do
-        ${mode_script_map[$script_mode]} $rucio_path
+        if [ $counter -ge 16 ]; then
+            echo -e " The processing of the files has been stopped after 16 files. \n"
+            break
+        fi
+
+        ${mode_script_map[$script_mode]} $rucio_path 
+        counter=$((counter+1))
     done
     cd $waffles_path
 done
