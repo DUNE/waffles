@@ -63,7 +63,7 @@ def extract_fragment_info(frag, trig):
         trigger              = 'self_trigger'
         frame_obj            = fddetdataformats.DAPHNEFrame
         daphne_headers       = [frame_obj(frag.get_data(iframe*frame_obj.sizeof())).get_header() for iframe in range(get_n_frames(frag))]
-        threshold            = [header.threshold for header in daphne_headers]
+        threshold            = daphne_headers[0].threshold  #[header.threshold for header in daphne_headers]
         baseline             = [header.baseline for header in daphne_headers]
         trigger_sample_value = [header.trigger_sample_value for header in daphne_headers]
 
@@ -85,18 +85,19 @@ def root_creator(inputs):
     det      = 'HD_PDS'
     h5_file  = HDF5RawDataFile(raw_file)
     run_date = h5_file.get_attribute('creation_timestamp')
-    run_id   = raw_file.split('_')[3]
-    run_flow = raw_file.split('_')[4]
-    run_numb = raw_file.split('_')[7]
-
-    root_name = f'{run}_{run_id}_{run_flow}_{run_numb}.root'
     
+    run_id     = raw_file.split('_')[3]
+    run_flow   = raw_file.split('_')[4]
+    datawriter = dataflow = raw_file.split('_')[6]
+    run_numb = (raw_file.split('_')[7]).split('.')[0]
+
+    root_name = f'run{run}_{run_id}_{run_flow}_datawriter_{datawriter}_{run_numb}.root'   
     if overwrite:
-        root_file = TFile( f'{path_root}/{run}_{run_id}_{run_flow}_{run_numb}.root' , 'RECREATE')
+        root_file = TFile( f'{path_root}/{root_name}' , 'RECREATE')
     else:
         created_files = [f for f in os.listdir(path_root) if os.path.isfile(os.path.join(path_root, f))]
         if root_name not in created_files:
-            root_file = TFile( f'{path_root}/{run}_{run_id}_{run_flow}_{run_numb}.root' , 'RECREATE')
+            root_file = TFile( f'{path_root}/{root_name}' , 'RECREATE')
         else:
             print(f'File {root_name} already exists and will not be overwritten.')
             return 0
@@ -124,19 +125,19 @@ def root_creator(inputs):
 
     fMetaDataTree = TTree("metadata", "metadata")
 
-    edp           = std.string()
-    threshold     = std.string()
-    run_          = std.string()
+    edp           = std.vector('int')()
+    threshold     = std.vector('int')()
+    run_          = array('i', [0])
     nrecords      = array('i', [0])
-    date          = std.string()
+    date          = array('l', [0])
     ticks_to_nsec = array('f', [0])
-    adc_to_volts  = array('f',[0])
+    adc_to_volts  = array('f', [0])
 
     fMetaDataTree.Branch("endpoint", edp)
     fMetaDataTree.Branch("threshold", threshold)
-    fMetaDataTree.Branch("run", run_)
+    fMetaDataTree.Branch("run", run_, "run/I")
     fMetaDataTree.Branch("nrecords", nrecords, "nrecords/I")
-    fMetaDataTree.Branch("date", date, "date/I")
+    fMetaDataTree.Branch("date", date, "date/L")
     fMetaDataTree.Branch("ticks_to_nsec", ticks_to_nsec, "ticks_to_nsec/F")
     fMetaDataTree.Branch("adc_to_volts", adc_to_volts, "adc_to_volts/F")
     
@@ -145,7 +146,7 @@ def root_creator(inputs):
 
     records = h5_file.get_all_record_ids()
     current = current_process()
-    for r in tqdm(records, position = current._identity[0]-1, desc = f'{run}_{run_id}_{run_flow}_{run_numb}'):
+    for r in tqdm(records, position = current._identity[0]-1, desc = f'{root_name}'):
         pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(r, detdataformats.DetID.string_to_subdetector(det)))
 
         for gid in pds_geo_ids:
@@ -197,14 +198,14 @@ def root_creator(inputs):
 
     fWaveformTree.Write("", TFile.kOverwrite)    
 
-    active_endpoints = str(active_endpoints)
-    threshold_list   = str(threshold_list)
+    for edp_value in active_endpoints:
+        edp.push_back(edp_value)
+    for threshold_value in threshold_list:
+        threshold.push_back(int(threshold_value))
 
-    edp.assign(active_endpoints) 
-    threshold.assign(threshold_list)
-    run_.assign(run)
+    run_[0]      = int(run)
     nrecords[0]  = len(records)
-    date.assign(run_date)
+    date[0]      = np.uint64(run_date)
     ticks_to_nsec[0] = 1/16
     adc_to_volts[0]  = (1.5 * 3.2)/(2 ** 14 - 1)
     fMetaDataTree.Fill()
