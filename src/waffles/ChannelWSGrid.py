@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, Optional
+from typing import List, Dict, Optional
 
 from .UniqueChannel import UniqueChannel
 from .WaveformSet import WaveformSet
@@ -107,12 +107,12 @@ class ChannelWSGrid:
         self.__ch_map = ch_map
 
         self.__ch_wf_sets = ChannelWSGrid.clusterize_WaveformSet(   input_waveformset,
+                                                                    channel_map = ch_map,
                                                                     compute_calib_histo = compute_calib_histo,
                                                                     bins_number = bins_number,
                                                                     domain = domain,
                                                                     variable = variable,
                                                                     analysis_label = analysis_label)
-        self.purge()
                 
     #Getters
     @property
@@ -125,6 +125,7 @@ class ChannelWSGrid:
     
     @staticmethod
     def clusterize_WaveformSet( waveform_set : WaveformSet,
+                                channel_map : Optional[ChannelMap] = None,
                                 compute_calib_histo : bool = False,
                                 bins_number : Optional[int] = None,
                                 domain : Optional[np.ndarray] = None,
@@ -133,18 +134,15 @@ class ChannelWSGrid:
 
         """
         This function returns a dictionary, say output, 
-        whose keys are endpoint values for which there 
-        is at least one Waveform object in the given 
-        WaveformSet object. The values of such dictionary 
-        are dictionaries, whose keys are channel values 
-        for which there is at least one Waveform object 
-        in this WaveformSet object. The values for the 
-        deeper-level dictionaries are ChannelWS objects,
-        which are initialized by this static method,
-        in a way that output[i][j] is the ChannelWS object 
-        which contains all of the Waveform objects within 
-        the given WaveformSet object which come from 
-        endpoint i and channel j.
+        whose keys are endpoint values. The values of
+        of such dictionary are dictionaries, whose keys
+        are channel values. The values for the deeper-level
+        dictionaries are ChannelWS objects, which are
+        initialized by this static method, in a way that
+        output[i][j] is the ChannelWS object which contains
+        all of the Waveform objects within the given
+        WaveformSet object which come from endpoint i and
+        channel j.
 
         This method is useful to partition the given 
         WaveformSet object into WaveformSet objects 
@@ -161,6 +159,13 @@ class ChannelWSGrid:
         waveform_set : WaveformSet
             The WaveformSet object which will be partitioned
             into ChannelWS objects.
+        channel_map : ChannelMap
+            If it is not given, then all of the waveforms
+            in this WaveformSet object will be considered
+            for partitioning. If it is given, then only
+            the waveforms which come from channels which
+            are present in this ChannelMap object will be
+            considered for partitioning.
         compute_calib_histo : bool
             If True, then the calibration histogram for each
             ChannelWS object will be computed. It is given
@@ -198,21 +203,39 @@ class ChannelWSGrid:
         output : dict of dict of ChannelWS
         """
 
-        idcs = {}
+        if channel_map is None:
+            idcs = {}
 
-        for idx in range(len(waveform_set.Waveforms)):
-            try:
-                aux = idcs[waveform_set.Waveforms[idx].Endpoint]
+            for idx in range(len(waveform_set.Waveforms)):
+                try:
+                    aux = idcs[waveform_set.Waveforms[idx].Endpoint]
 
-            except KeyError:
-                idcs[waveform_set.Waveforms[idx].Endpoint] = {}
-                aux = idcs[waveform_set.Waveforms[idx].Endpoint]
+                except KeyError:
+                    idcs[waveform_set.Waveforms[idx].Endpoint] = {}
+                    aux = idcs[waveform_set.Waveforms[idx].Endpoint]
 
-            try:
-                aux[waveform_set.Waveforms[idx].Channel].append(idx)
-            except KeyError:
-                aux[waveform_set.Waveforms[idx].Channel] = [idx]
+                try:
+                    aux[waveform_set.Waveforms[idx].Channel].append(idx)
 
+                except KeyError:
+                    aux[waveform_set.Waveforms[idx].Channel] = [idx]
+
+        else:
+            idcs = ChannelWSGrid.get_nested_dictionary_template(channel_map)    # idcs contain the endpoints and channels for 
+                                                                                # which we can potentially save waveforms
+            for idx in range(len(waveform_set.Waveforms)):
+                try:
+                    aux = idcs[waveform_set.Waveforms[idx].Endpoint]
+
+                except KeyError:
+                    continue
+
+                try:
+                    aux[waveform_set.Waveforms[idx].Channel].append(idx)
+
+                except KeyError:
+                    continue
+                    
         output = {}
 
         for endpoint in idcs.keys():
@@ -220,6 +243,7 @@ class ChannelWSGrid:
 
             for channel in idcs[endpoint].keys():
                 aux = [waveform_set.Waveforms[idx] for idx in idcs[endpoint][channel]]
+
                 output[endpoint][channel] = ChannelWS(  *aux,
                                                         compute_calib_histo = compute_calib_histo,
                                                         bins_number = bins_number,
@@ -228,7 +252,55 @@ class ChannelWSGrid:
                                                         analysis_label = analysis_label)
         return output
     
-    def purge(self) -> None:
+    @staticmethod
+    def get_nested_dictionary_template(channel_map : ChannelMap) -> Dict[int, Dict[int, List]]:
+
+        """
+        This method returns a dictionary which has the same
+        structure as the ChWfSets attribute of ChannelWSGrid,
+        but whose values are emtpy lists instead of ChannelWS 
+        objects. The endpoints and channels that are considered
+        for such output are those which are present in the
+        input ChannelMap object.
+
+        Parameters
+        ----------
+        channel_map : ChannelMap
+            The ChannelMap object which contains the endpoints
+            and channels which will end up in the ouput of
+            this method.
+    
+        Returns
+        ----------
+        output : dict of dict of list
+        """
+
+        output = {}
+
+        for i in range(channel_map.Rows):
+            for j in range(channel_map.Columns):
+                
+                try:
+                    aux = output[channel_map.Data[i][j].Endpoint]
+
+                except KeyError:
+                    output[channel_map.Data[i][j].Endpoint] = {}
+                    aux = output[channel_map.Data[i][j].Endpoint]
+
+                aux[channel_map.Data[i][j].Channel] = []
+        
+        return output
+
+    def purge(self) -> None:    # Before 2024/06/27, this method was used in
+                                # ChannelWSGrid.__init___, because the output
+                                # of ChannelWSGrid.clusterize_WaveformSet()
+                                # contained channels which were present in its
+                                # WaveformSet input, but were not present in the
+                                # self.__ch_map attribute. As of such date, 
+                                # ChannelWSGrid.clusterize_WaveformSet() is 
+                                # fixed and this method is not used anymore, but 
+                                # it is kept here in case we need this 
+                                # functionality in the future.
 
         """
         Removes the ChannelWS objects from self.__ch_wf_sets 
