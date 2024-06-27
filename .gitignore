@@ -5,6 +5,7 @@
 *.ipynb
 test/
 .vscode/
+*krb5.conf*
 
 # Ignoring common build directories
 build/
