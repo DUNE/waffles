@@ -8,6 +8,7 @@
 
 os_name=$(grep "^NAME" /etc/os-release | cut -d '=' -f 2 | tr -d '"')
 version_id=$(grep VERSION_ID /etc/os-release | cut -d '=' -f 2 | tr -d '"')
+current_dir=$(pwd)
 
 # Check if the user has provided the arguments and if not, ask for them
 if [ -n "$1" ];then
@@ -50,8 +51,9 @@ if [ -f ${rucio_paths_file} ]; then
          echo -e "\e[92mRucio loaded successfully!!\e[0m"
          else
             echo -e "\e[31mConfiguring rucio in ${os_name}: ${version_id}\e[0m"
-            if [[ $os_name == "CentOS Linux" && $version_id == 7* ]]; then
-               echo -e "\e[31mConfiguring rucio in CentOS 7\e[0m"
+            if [[ ($os_name == "CentOS Linux" || $os_name == "Scientific Linux") && $version_id == 7* ]]; then
+               wget https://authentication.fnal.gov/krb5conf/SL7/krb5.conf
+               export KRB5_CONFIG="$current_dir/krb5.conf"
                source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
                setup python v3_9_15
                setup rucio
@@ -122,3 +124,6 @@ if [ -f ${rucio_paths_file} ]; then
          fi
       done
 fi
+
+rm -f $current_dir/krb5.conf
+kdestroy

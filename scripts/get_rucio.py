@@ -40,12 +40,16 @@ def main(runs):
                 subprocess.call(shlex.split(get_rucio), shell=False)
                 print(f"[WARNING] Inside lxplus7 the file will be saved in {homepath}/{one_run}.txt and not moved to {saving_path}{one_run}.txt\n")
             
-            # If not --> Run the SSH command to get the path from EVERYWHERE
+            # If not --> Run the SSH command/enter a container (needs to be already in lxplus)
             else:
-                print(f"Connecting to lxplus7 to get rucio paths :)\n")
+                # print(f"Connecting to lxplus7 to get rucio paths :)\n") # NO MORE LXPLUS7
+                # ssh_command = f'ssh -t {username}@lxplus7.cern.ch "source {current_path}/get_protodunehd_files.sh local cern {one_run}"'
                 username = os.environ['USER']
-                ssh_command = f'ssh -t {username}@lxplus7.cern.ch "source {current_path}/get_protodunehd_files.sh local cern {one_run}"'
-                subprocess.call(shlex.split(ssh_command), shell=False)
+                print(f"Starting a SL7 container to get rucio paths :)\n")
+                sl7_command = f'/cvmfs/oasis.opensciencegrid.org/mis/apptainer/current/bin/apptainer exec -f -B \
+                /cvmfs,/afs/cern.ch/user/{username[0]}/{username},/tmp,/etc/hostname,/etc/hosts,/etc/krb5.conf,/run/user/ /cvmfs/singularity.opensciencegrid.org/fermilab/fnal-dev-sl7:latest \
+                sh {current_path}/get_protodunehd_files.sh local cern {one_run}'
+                subprocess.run(shlex.split(sl7_command), shell=False)
 
                 one_run = str(one_run).zfill(6)
                 print("\n")
