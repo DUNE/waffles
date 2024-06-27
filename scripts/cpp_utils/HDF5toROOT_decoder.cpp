@@ -120,7 +120,7 @@ int main(int argc, char **argv)
   int rn = run_number;
   int idxrn = file_index;
 
-  TFile hf(Form("run_%i_%i_%s_decode.root", rn, idxrn, appn.Data()), "recreate");
+  TFile hf(Form("run%i_%i_%s.root", rn, idxrn, appn.Data()), "recreate");
   // hf.mkdir("pdhddaphne");
   // hf.cd("pdhddaphne");
 
