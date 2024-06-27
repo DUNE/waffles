@@ -4,7 +4,7 @@ import inspect
 import uproot
 import numba
 import numpy as np
-from typing import Tuple, List, Callable, Optional
+from typing import Tuple, List, Callable, Optional, Any
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -12,6 +12,8 @@ from .WaveformAdcs import WaveformAdcs
 from .Waveform import Waveform
 from .WfAna import WfAna
 from .WfAnaResult import WfAnaResult
+from .Map import Map
+from .ChannelMap import ChannelMap
 from .Exceptions import generate_exception_message
 
 class WaveformSet:
@@ -518,7 +520,7 @@ class WaveformSet:
                         ncols : int = 1,
                         figure : Optional[pgo.Figure] = None,
                         wfs_per_axes : Optional[int] = 1,
-                        grid_of_wf_idcs : Optional[List[List[List[int]]]] = None,
+                        map_of_wf_idcs : Optional[Map] = None,
                         share_x_scale : bool = False,
                         share_y_scale : bool = False,
                         mode : str = 'overlay',
@@ -571,7 +573,7 @@ class WaveformSet:
             (resp. 'ncols') parameter.
         wfs_per_axes : int
             If it is not None, then the argument given to 
-            'grid_of_wf_idcs' will be ignored. In this case,
+            'map_of_wf_idcs' will be ignored. In this case,
             the number of waveforms considered for each
             axes is wfs_per_axes. P.e. for wfs_per_axes 
             equal to 2, the axes at the first row and first
@@ -579,10 +581,9 @@ class WaveformSet:
             two waveforms in the set. The axes in the first 
             row and second column will consider the 
             following two, and so on.
-        grid_of_wf_idcs : list of list of list of int
-            This list must contain nrows lists, each of which
-            must contain ncols lists of integers. 
-            grid_of_wf_idcs[i][j] gives the indices of the 
+        map_of_wf_idcs : Map of lists of integers
+            This Map must contain lists of integers.
+            map_of_wf_idcs.Data[i][j] gives the indices of the 
             waveforms, with respect to this WaveformSet, which
             should be considered for plotting in the axes
             which are located at the i-th row and j-th column.
@@ -778,37 +779,38 @@ class WaveformSet:
                                                             f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
             fFigureIsGiven = True
 
-        grid_of_wf_idcs_ = None         # Logically useless
+        data_of_map_of_wf_idcs = None         # Logically useless
 
-        if wfs_per_axes is not None:    # wfs_per_axes is defined
+        if wfs_per_axes is not None:    # wfs_per_axes is defined, so ignore map_of_wf_idcs
 
             if wfs_per_axes < 1:
                 raise Exception(generate_exception_message( 4,
                                                             'WaveformSet.plot_wfs()',
                                                             'The number of waveforms per axes must be positive.'))
 
-            grid_of_wf_idcs_ = self.get_grid_of_wf_idcs(nrows,
-                                                        ncols,
-                                                        wfs_per_axes = wfs_per_axes)
+            data_of_map_of_wf_idcs = self.get_map_of_wf_idcs(   nrows,
+                                                                ncols,
+                                                                wfs_per_axes = wfs_per_axes).Data
 
-        elif grid_of_wf_idcs is None:   # Nor wf_per_axes, nor 
-                                        # grid_of_wf_idcs are defined
+        elif map_of_wf_idcs is None:    # Nor wf_per_axes, nor 
+                                        # map_of_wf_idcs are defined
 
             raise Exception(generate_exception_message( 5,
                                                         'WaveformSet.plot_wfs()',
-                                                        "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
+                                                        "The 'map_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
-        elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
-                                                            nrows,              # but grid_of_wf_idcs is, but 
-                                                            ncols):             # it is not well-formed
+        elif not Map.list_of_lists_is_well_formed(  map_of_wf_idcs.Data,    # wf_per_axes is not defined, 
+                                                    nrows,                  # but map_of_wf_idcs is, but 
+                                                    ncols):                 # it is not well-formed
+            
             raise Exception(generate_exception_message( 6,
                                                         'WaveformSet.plot_wfs()',
-                                                        f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
+                                                        f"The given map_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
         else:   # wf_per_axes is not defined,
-                # but grid_of_wf_idcs is,
+                # but map_of_wf_idcs is,
                 # and it is well-formed
 
-            grid_of_wf_idcs_ = grid_of_wf_idcs
+            data_of_map_of_wf_idcs = map_of_wf_idcs.Data
 
         if not fFigureIsGiven:
             
@@ -826,8 +828,8 @@ class WaveformSet:
         if mode == 'overlay':
             for i in range(nrows):
                 for j in range(ncols):
-                    if len(grid_of_wf_idcs_[i][j]) > 0:
-                        for k in grid_of_wf_idcs_[i][j]:
+                    if len(data_of_map_of_wf_idcs[i][j]) > 0:
+                        for k in data_of_map_of_wf_idcs[i][j]:
 
                             aux_name = f"({i+1},{j+1}) - Wf {k}, Ch {self.__waveforms[k].Channel}, Ep {self.__waveforms[k].Endpoint}"
 
@@ -852,8 +854,8 @@ class WaveformSet:
                 for j in range(ncols):
 
                     try: 
-                        aux = self.compute_mean_waveform(wf_idcs = grid_of_wf_idcs_[i][j])  # WaveformSet.compute_mean_waveform() will raise
-                                                                                            # an exception if grid_of_wf_idcs_[i][j] is emtpy
+                        aux = self.compute_mean_waveform(wf_idcs = data_of_map_of_wf_idcs[i][j])    # WaveformSet.compute_mean_waveform() will raise an
+                                                                                                    # exception if data_of_map_of_wf_idcs[i][j] is emtpy
 
                     except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
                                             ## so that we can handle in parallel exceptions due to different reasons if we need it
@@ -871,9 +873,9 @@ class WaveformSet:
                                             **kwargs)
                         fAnalyzed = True
 
-                    aux_name = f"{len(grid_of_wf_idcs_[i][j])} Wf(s)"
+                    aux_name = f"{len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                     if detailed_label:
-                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j], queried_no = 2)}]"
+                        aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
 
                     aux.plot(   figure = figure_,
                                 name = f"({i+1},{j+1}) - Mean of " + aux_name,
@@ -907,17 +909,17 @@ class WaveformSet:
                                         [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
             for i in range(nrows):
                 for j in range(ncols):
-                    if len(grid_of_wf_idcs_[i][j]) > 0:
+                    if len(data_of_map_of_wf_idcs[i][j]) > 0:
 
-                        aux_name = f"Heatmap of {len(grid_of_wf_idcs_[i][j])} Wf(s)"
+                        aux_name = f"Heatmap of {len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                         if detailed_label:
-                            aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j], queried_no = 2)}]"
+                            aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
 
                         figure_ = self.__subplot_heatmap(   figure_,
                                                             aux_name,
                                                             i + 1,
                                                             j + 1,
-                                                            grid_of_wf_idcs_[i][j],
+                                                            data_of_map_of_wf_idcs[i][j],
                                                             analysis_label,
                                                             time_bins,
                                                             adc_bins,
@@ -1043,67 +1045,35 @@ class WaveformSet:
 
         return figure
 
-    @staticmethod
-    def grid_of_lists_is_well_formed(   grid : List[List[List]],
-                                        nrows : int,
-                                        ncols : int) -> bool:
-        
-        """
-        This method returns True if the given grid contains
-        nrows lists, each of which contains ncols lists. It 
-        returns False if else.
-
-        Parameters
-        ----------
-        grid : list of lists of lists
-        nrows : int
-        ncols : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        if nrows < 1 or ncols < 1:
-            raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.grid_of_lists_is_well_formed()',
-                                                        'The number of rows and columns must be positive.'))
-        if len(grid) != nrows:
-            return False
-        else:
-            for row in grid:
-                if len(row) != ncols:
-                    return False
-        return True
-
-    def get_grid_of_wf_idcs(self,   nrows : int,
+    def get_map_of_wf_idcs(self,    nrows : int,
                                     ncols : int,
                                     wfs_per_axes : Optional[int] = None,
                                     wf_filter : Optional[Callable[..., bool]] = None,
-                                    filter_args : Optional[List[List[List]]] = None,
-                                    max_wfs_per_axes : Optional[int] = 5) -> List[List[List[int]]]:
+                                    filter_args : Optional[Map] = None,
+                                    max_wfs_per_axes : Optional[int] = 5) -> Map:
         
         """
-        This method returns a list of lists of lists of integers,
-        which should be interpreted as iterator values for
-        waveforms in this WaveformSet object.
+        This method returns a Map of lists of integers,
+        i.e. a Map object whose Type attribute equals 
+        list. The contained integers should be interpreted 
+        as iterator values for waveforms in this WaveformSet 
+        object.
 
         Parameters
         ----------
         nrows : int
-            The length of the returned list.
+            The number of rows of the returned Map object
         ncols : 
-            The length of every list within the returned 
-            list.
+            The number of columns of the returned Map object
         wfs_per_axes : int
             If it is not None, then it must be a positive
             integer which is smaller or equal to
             math.floor(len(self.Waveforms) / (nrows * ncols)),
             so that the iterator values contained 
-            in the output grid are contiguous in
+            in the output Map are contiguous in
             [0, nrows*ncols*wfs_per_axes - 1]. I.e.
-            output[0][0] contains 0, 1, ... , wfs_per_axes - 1,
-            output[0][1] contains wfs_per_axes, wfs_per_axes + 1,
+            output.Data[0][0] contains 0, 1, ... , wfs_per_axes - 1,
+            output.Data[0][1] contains wfs_per_axes, wfs_per_axes + 1,
             ... , 2*wfs_per_axes - 1, and so on. 
         wf_filter : callable
             This parameter only makes a difference if
@@ -1120,58 +1090,61 @@ class WaveformSet:
             execution time may be reduced with respect to
             the case where an arbitrary (but compliant) 
             callable is passed to wf_filter.
-        filter_args : list of list of list
+        filter_args : Map
             This parameter only makes a difference if 
             the 'wfs_per_axes' parameter is None. In such
             case, this parameter must be defined and
-            it must contain nrows lists, each of which
-            must contain ncols lists. filter_args[i][j],
-            for all i and j, is interpreted as a list of
-            arguments which will be given to wf_filter
-            at some point. The user is responsible for
-            giving a set of arguments which comply with
-            the signature of the specified wf_filter.
-            For more information check the return value 
-            documentation.
+            it must be a Map object whose Rows (resp.
+            Columns) attribute match nrows (resp. ncols).
+            Its Type attribute must be list. 
+            filter_args.Data[i][j], for all i and j, is 
+            interpreted as a list of arguments which will 
+            be given to wf_filter at some point. The user 
+            is responsible for giving a set of arguments 
+            which comply with the signature of the 
+            specified wf_filter. For more information 
+            check the return value documentation.
         max_wfs_per_axes : int
             This parameter only makes a difference if           ## If max_wfs_per_axes applies and 
             the 'wfs_per_axes' parameter is None. In such       ## is a positive integer, it is never
             case, and if 'max_wfs_per_axes' is not None,        ## checked that there are enough waveforms
-            then output[i][j] will contain the indices for      ## in the WaveformSet to fill the grid.
-            the first max_wfs_per_axes waveforms in this        ## This is an open issue.
+            then output.Data[i][j] will contain the indices     ## in the WaveformSet to fill the map.
+            for the first max_wfs_per_axes waveforms in this    ## This is an open issue.
             WaveformSet which passed the filter. If it is 
             None, then this function iterates through the 
             whole WaveformSet for every i,j pair. Note that 
             setting this parameter to None may result in a 
-            long execution time.
+            long execution time for big waveform sets.
 
         Returns
         ----------
-        output : list of list of list of int
+        output : Map
+            It is a Map object whose Type attribute is list.
+            Namely, output.Data[i][j] is a list of integers.
             If the 'wfs_per_axes' parameter is defined, then
-            the iterator values contained in the output grid 
+            the iterator values contained in the output Map 
             are contiguous in [0, nrows*ncols*wfs_per_axes - 1].
             For more information, check the 'wfs_per_axes'
             parameter documentation. If the 'wfs_per_axes'
             is not defined, then the 'wf_filter' and 'filter_args'
-            parameters must be defined and output[i][j] gives 
-            the indices of the waveforms in this WaveformSet 
+            parameters must be defined and output.Data[i][j] 
+            gives the indices of the waveforms in this WaveformSet 
             object, say wf, for which 
-            wf_filter(wf, *filter_args[i][j]) returns True.
+            wf_filter(wf, *filter_args.Data[i][j]) returns True.
             In this last case, the number of indices in each
-            grid slot may be limited, up to the value given
-            to the 'max_wfs_per_axes' parameter.
+            entry may be limited, up to the value given to the 
+            'max_wfs_per_axes' parameter.
         """
 
         if nrows < 1 or ncols < 1:
             raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.get_grid_of_wf_idcs()',
+                                                        'WaveformSet.get_map_of_wf_idcs()',
                                                         'The number of rows and columns must be positive.'))
         fFilteringMode = True
         if wfs_per_axes is not None:
             if wfs_per_axes < 1 or wfs_per_axes > math.floor(len(self.__waveforms) / (nrows * ncols)):
                 raise Exception(generate_exception_message( 2,
-                                                            'WaveformSet.get_grid_of_wf_idcs()',
+                                                            'WaveformSet.get_map_of_wf_idcs()',
                                                             f"The given wfs_per_axes ({wfs_per_axes}) must belong to the range [1, math.floor(len(self.__waveforms) / (nrows * ncols))] (={[1, math.floor(len(self.__waveforms) / (nrows * ncols))]})."))
             fFilteringMode = False
 
@@ -1183,34 +1156,34 @@ class WaveformSet:
                 signature = inspect.signature(wf_filter)
             except TypeError:
                 raise Exception(generate_exception_message( 3,
-                                                            'WaveformSet.get_grid_of_wf_idcs()',
+                                                            'WaveformSet.get_map_of_wf_idcs()',
                                                             "The given wf_filter is not defined or is not callable. It must be suitably defined because the 'wfs_per_axes' parameter is not. At least one of them must be suitably defined."))
 
             WaveformSet.check_well_formedness_of_generic_waveform_function(signature)
 
             if filter_args is None:
                 raise Exception(generate_exception_message( 4,
-                                                            'WaveformSet.get_grid_of_wf_idcs()',
+                                                            'WaveformSet.get_map_of_wf_idcs()',
                                                             "The 'filter_args' parameter must be defined if the 'wfs_per_axes' parameter is not."))
             
-            elif not WaveformSet.grid_of_lists_is_well_formed(  filter_args,
-                                                                nrows,
-                                                                ncols):
+            elif not Map.list_of_lists_is_well_formed(  filter_args.Data,
+                                                        nrows,
+                                                        ncols):
                     
                     raise Exception(generate_exception_message( 5,
-                                                                'WaveformSet.get_grid_of_wf_idcs()',
+                                                                'WaveformSet.get_map_of_wf_idcs()',
                                                                 f"The shape of the given filter_args list is not nrows ({nrows}) x ncols ({ncols})."))
             fMaxIsSet = False
             if max_wfs_per_axes is not None:
                 if max_wfs_per_axes < 1:
                     raise Exception(generate_exception_message( 6,
-                                                                'WaveformSet.get_grid_of_wf_idcs()',
+                                                                'WaveformSet.get_map_of_wf_idcs()',
                                                                 f"The given max_wfs_per_axes ({max_wfs_per_axes}) must be positive."))
                 fMaxIsSet = True
 
         if not fFilteringMode:
 
-            return WaveformSet.get_2D_indices_nested_list(  wfs_per_axes,
+            return WaveformSet.get_contiguous_indices_map(  wfs_per_axes,
                                                             nrows = nrows,
                                                             ncols = ncols)
             
@@ -1224,20 +1197,23 @@ class WaveformSet:
             except KeyError:
                 fMode = 2
 
-            output = WaveformSet.get_2D_empty_nested_list(nrows, ncols)
-
+            output = Map.from_unique_value( nrows,
+                                            ncols,
+                                            list,
+                                            [],
+                                            independent_copies = True)
             if fMode == 0:
-                return self.__get_grid_of_wf_idcs_by_run(   output,
-                                                            filter_args,
-                                                            fMaxIsSet,
-                                                            max_wfs_per_axes)
+                return self.__get_map_of_wf_idcs_by_run(output,
+                                                        filter_args,
+                                                        fMaxIsSet,
+                                                        max_wfs_per_axes)
             elif fMode == 1:
-                return self.__get_grid_of_wf_idcs_by_endpoint_and_channel(  output,
+                return self.__get_map_of_wf_idcs_by_endpoint_and_channel(   output,
                                                                             filter_args,
                                                                             fMaxIsSet,
                                                                             max_wfs_per_axes)
             else:
-                return self.__get_grid_of_wf_idcs_general(  output,
+                return self.__get_map_of_wf_idcs_general(   output,
                                                             wf_filter,
                                                             filter_args,
                                                             fMaxIsSet,
@@ -1329,40 +1305,40 @@ class WaveformSet:
 
         return waveform.Endpoint == endpoint and waveform.Channel == channel
     
-    def __get_grid_of_wf_idcs_by_run(self,  blank_grid : List[List[List]],
-                                            filter_args : List[List[List]],
+    def __get_map_of_wf_idcs_by_run(self,   blank_map : Map,
+                                            filter_args : Map,
                                             fMaxIsSet : bool,
-                                            max_wfs_per_axes : Optional[int] = 5) -> List[List[List[int]]]:
+                                            max_wfs_per_axes : Optional[int] = 5) -> Map:
         
         """
         This method should only be called by the
-        WaveformSet.get_grid_of_wf_idcs() method, where
+        WaveformSet.get_map_of_wf_idcs() method, where
         the well-formedness checks of the input have
         already been performed. This method generates an
         output as described in such method docstring,
         for the case when wf_filter is WaveformSet.match_run.
-        Refer to the WaveformSet.get_grid_of_wf_idcs()
+        Refer to the WaveformSet.get_map_of_wf_idcs()
         method documentation for more information.
 
         Parameters
         ----------
-        blank_grid : list of list of list
-        filter_args : list of list of list
+        blank_map : Map
+        filter_args : Map
         fMaxIsSet : bool
         max_wfs_per_axes : int
 
         Returns
         ----------
-        list of list of list of int
+        Map
         """
 
-        for i in range(len(blank_grid)):
-            for j in range(len(blank_grid[i])):
+        for i in range(blank_map.Rows):
+            for j in range(blank_map.Columns):
 
-                if filter_args[i][j][0] not in self.__runs:
+                if filter_args.Data[i][j][0] not in self.__runs:
                     continue
 
-                if fMaxIsSet:   # blank_grid should not be very big (visualization purposes)
+                if fMaxIsSet:   # blank_map should not be very big (visualization purposes)
                                 # so we can afford evaluating the fMaxIsSet conditional here
                                 # instead of at the beginning of the method (which would
                                 # be more efficient but would entail a more extensive code)
@@ -1370,59 +1346,60 @@ class WaveformSet:
                     counter = 0
                     for k in range(len(self.__waveforms)):
                         if WaveformSet.match_run(   self.__waveforms[k],
-                                                    *filter_args[i][j]):
-                            blank_grid[i][j].append(k)
+                                                    *filter_args.Data[i][j]):
+                            
+                            blank_map.Data[i][j].append(k)
                             counter += 1
                             if counter == max_wfs_per_axes:
                                 break
                 else:
                     for k in range(len(self.__waveforms)):
                         if WaveformSet.match_run(   self.__waveforms[k],
-                                                    *filter_args[i][j]):
-                            blank_grid[i][j].append(k)        
-        return blank_grid
+                                                    *filter_args.Data[i][j]):
+                            
+                            blank_map.Data[i][j].append(k)
+        return blank_map
     
-    def __get_grid_of_wf_idcs_by_endpoint_and_channel(self, blank_grid : List[List[List]],
-                                                            filter_args : List[List[List]],
+    def __get_map_of_wf_idcs_by_endpoint_and_channel(self,  blank_map : Map,
+                                                            filter_args : ChannelMap,
                                                             fMaxIsSet : bool,
-                                                            max_wfs_per_axes : Optional[int] = 5) -> List[List[List[int]]]:
+                                                            max_wfs_per_axes : Optional[int] = 5) -> Map:
         
         """
         This method should only be called by the 
-        WaveformSet.get_grid_of_wf_idcs() method, where 
+        WaveformSet.get_map_of_wf_idcs() method, where 
         the well-formedness checks of the input have 
         already been performed. This method generates an 
         output as described in such method docstring,
         for the case when wf_filter is 
         WaveformSet.match_endpoint_and_channel. Refer to
-        the WaveformSet.get_grid_of_wf_idcs() method
+        the WaveformSet.get_map_of_wf_idcs() method
         documentation for more information.
 
         Parameters
         ----------
-        blank_grid : list of list of list
-        filter_args : list of list of list
+        blank_map : Map
+        filter_args : ChannelMap
         fMaxIsSet : bool
         max_wfs_per_axes : int
 
         Returns
         ----------
-        list of list of list of int
+        Map
         """
 
         aux = self.get_run_collapsed_available_channels()
 
-        for i in range(len(blank_grid)):
-            for j in range(len(blank_grid[i])):
+        for i in range(blank_map.Rows):
+            for j in range(blank_map.Columns):
 
-                if filter_args[i][j][0] not in aux.keys():      # filter_args[i][j][0] is the
-                    continue                                    # endpoint we are looking for
+                if filter_args.Data[i][j].Endpoint not in aux.keys():
+                    continue
 
-                elif filter_args[i][j][1] not in aux[filter_args[i][j][0]]:                         # filter_args[i][j][1] is
-                    continue                                                                        # the channel of endpoint 
-                                                                                                    # filter_args[i][j][0]
-                                                                                                    # which we are looking for
-                if fMaxIsSet:   # blank_grid should not be very big (visualization purposes)
+                elif filter_args.Data[i][j].Channel not in aux[filter_args.Data[i][j].Endpoint]:
+                    continue    
+          
+                if fMaxIsSet:   # blank_map should not be very big (visualization purposes)
                                 # so we can afford evaluating the fMaxIsSet conditional here
                                 # instead of at the beginning of the method (which would
                                 # be more efficient but would entail a more extensive code)
@@ -1430,41 +1407,43 @@ class WaveformSet:
                     counter = 0
                     for k in range(len(self.__waveforms)):
                         if WaveformSet.match_endpoint_and_channel(  self.__waveforms[k],
-                                                                    *filter_args[i][j]):
-                            blank_grid[i][j].append(k)
+                                                                    filter_args.Data[i][j].Endpoint,
+                                                                    filter_args.Data[i][j].Channel):
+                            blank_map.Data[i][j].append(k)
                             counter += 1
                             if counter == max_wfs_per_axes:
                                 break
                 else:
                     for k in range(len(self.__waveforms)):
                         if WaveformSet.match_endpoint_and_channel(  self.__waveforms[k],
-                                                                    *filter_args[i][j]):
-                            blank_grid[i][j].append(k)
-        return blank_grid
+                                                                    filter_args.Data[i][j].Endpoint,
+                                                                    filter_args.Data[i][j].Channel):
+                            blank_map.Data[i][j].append(k)
+        return blank_map
     
-    def __get_grid_of_wf_idcs_general(self, blank_grid : List[List[List]],
+    def __get_map_of_wf_idcs_general(self,  blank_map : Map,
                                             wf_filter : Callable[..., bool],
-                                            filter_args : List[List[List]],
+                                            filter_args : Map,
                                             fMaxIsSet : bool,
                                             max_wfs_per_axes : Optional[int] = 5) -> List[List[List[int]]]:
         
         """
         This method should only be called by the 
-        WaveformSet.get_grid_of_wf_idcs() method, where 
+        WaveformSet.get_map_of_wf_idcs() method, where 
         the well-formedness checks of the input have 
         already been performed. This method generates an 
         output as described in such method docstring,
         for the case when wf_filter is neither
         WaveformSet.match_run nor
         WaveformSet.match_endpoint_and_channel. Refer 
-        to the WaveformSet.get_grid_of_wf_idcs() method
+        to the WaveformSet.get_map_of_wf_idcs() method
         documentation for more information.
 
         Parameters
         ----------
-        blank_grid : list of list of list
+        blank_map : Map
         wf_filter : callable
-        filter_args : list of list of list
+        filter_args : Map
         fMaxIsSet : bool
         max_wfs_per_axes : int
 
@@ -1473,25 +1452,25 @@ class WaveformSet:
         list of list of list of int
         """
 
-        for i in range(len(blank_grid)):
-            for j in range(len(blank_grid[i])):
+        for i in range(blank_map.Rows):
+            for j in range(blank_map.Columns):
 
                 if fMaxIsSet:
                     counter = 0
                     for k in range(len(self.__waveforms)):
                         if wf_filter(   self.__waveforms[k],
-                                        *filter_args[i][j]):
+                                        *filter_args.Data[i][j]):
                             
-                            blank_grid[i][j].append(k)
+                            blank_map.Data[i][j].append(k)
                             counter += 1
                             if counter == max_wfs_per_axes:
                                 break
                 else:
                     for k in range(len(self.__waveforms)):
                         if wf_filter(   self.__waveforms[k],
-                                        *filter_args[i][j]):
-                            blank_grid[i][j].append(k)
-        return blank_grid
+                                        *filter_args.Data[i][j]):
+                            blank_map.Data[i][j].append(k)
+        return blank_map
                             
     @staticmethod
     def get_2D_empty_nested_list(   nrows : int = 1,
@@ -1522,17 +1501,19 @@ class WaveformSet:
         return [[[] for _ in range(ncols)] for _ in range(nrows)]
     
     @staticmethod
-    def get_2D_indices_nested_list( indices_per_slot : int,
+    def get_contiguous_indices_map( indices_per_slot : int,
                                     nrows : int = 1,
-                                    ncols : int = 1) -> List[List[List]]:
+                                    ncols : int = 1) -> Map:
         
         """
-        This method returns a 2D nested list with nrows
-        rows and ncols columns. Such nested list, say
-        output, contains contiguous positive integers in
+        This method returns a Map object whose Type attribute
+        is list. Namely, each entry of the output Map is a list
+        of integers. Such Map contains nrows rows and ncols
+        columns. The resulting Map, say output, contains 
+        contiguous positive integers in 
         [0, nrows*ncols*indices_per_slot - 1]. I.e.
-        output[0][0] contains 0, 1, ... , indices_per_slot - 1,
-        output[0][1] contains indices_per_slot, 
+        output.Data[0][0] contains 0, 1, ... , indices_per_slot - 1,
+        output.Data[0][1] contains indices_per_slot, 
         indices_per_slot + 1, ...  , 2*indices_per_slot - 1, 
         and so on. 
         
@@ -1540,29 +1521,34 @@ class WaveformSet:
         ----------
         indices_per_slot : int
             The number of indices contained within each 
-            slot in the returned output grid
+            entry of the returned Map object
         nrows (resp. ncols) : int
             Number of rows (resp. columns) of the returned 
-            nested list
+            Map object
 
         Returns
         ----------
-        list of list of list
-            A list containing nrows lists, each of them
-            containing ncols lists, each of them containing
+        Map
+            A Map object with nrows (resp. ncols) rows 
+            (resp. columns). Each entry is a list containing 
             indices_per_slot integers.
         """
 
         if nrows < 1 or ncols < 1:
             raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.get_2D_indices_nested_list()',
+                                                        'WaveformSet.get_contiguous_indices_map()',
                                                         f"The given number of rows ({nrows}) and columns ({ncols}) must be positive."))
         if indices_per_slot < 1:
             raise Exception(generate_exception_message( 2,
-                                                        'WaveformSet.get_2D_indices_nested_list()',
+                                                        'WaveformSet.get_contiguous_indices_map()',
                                                         f"The given number of indices per slot ({indices_per_slot}) must be positive."))
         
-        return [[[k + indices_per_slot*(j + (ncols*i)) for k in range(indices_per_slot)] for j in range(ncols)] for i in range(nrows)]
+        aux = [[[k + indices_per_slot*(j + (ncols*i)) for k in range(indices_per_slot)] for j in range(ncols)] for i in range(nrows)]
+
+        return Map( nrows,
+                    ncols,
+                    list,
+                    data = aux)
 
     @classmethod
     def from_ROOT_file(cls, filepath : str,
@@ -2863,6 +2849,12 @@ class WaveformSet:
                             col = col)
         return figure_
     
+    ## WaveformSet.plot_calibration_histogram() may not work anymore.
+    ## In successive commits, this feature will be moved up to the
+    ## ChannelWS level, where it is better suited. It is not worth
+    ## the effort to fix this method now for WaveformSet, it will 
+    ## be migrated soon.
+
     def plot_calibration_histogram(self,    nrows : int = 1,                                                ## This is a quick solution a la WaveformSet.plot_wfs()
                                             ncols : int = 1,                                                ## which is useful to produce calibration plots in
                                             figure : Optional[pgo.Figure] = None,                           ## self-trigger cases where a general integration window
@@ -2984,7 +2976,7 @@ class WaveformSet:
                                                             'WaveformSet.plot_calibration_histogram()',
                                                             'The number of waveforms per axes must be positive.'))
 
-            grid_of_wf_idcs_ = self.get_grid_of_wf_idcs(nrows,
+            grid_of_wf_idcs_ = self.get_map_of_wf_idcs( nrows,
                                                         ncols,
                                                         wfs_per_axes = wfs_per_axes)
 
@@ -2995,9 +2987,9 @@ class WaveformSet:
                                                         'WaveformSet.plot_calibration_histogram()',
                                                         "The 'grid_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
-        elif not WaveformSet.grid_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
-                                                            nrows,              # but grid_of_wf_idcs is, but 
-                                                            ncols):             # it is not well-formed
+        elif not Map.list_of_lists_is_well_formed(  grid_of_wf_idcs,    # wf_per_axes is not defined, 
+                                                    nrows,              # but grid_of_wf_idcs is, but 
+                                                    ncols):             # it is not well-formed
             raise Exception(generate_exception_message( 6,
                                                         'WaveformSet.plot_calibration_histogram()',
                                                         f"The given grid_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
