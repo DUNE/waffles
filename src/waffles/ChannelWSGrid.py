@@ -123,6 +123,26 @@ class ChannelWSGrid:
     def ChWfSets(self):
         return self.__ch_wf_sets
     
+    def get_ChannelWS_by_ij_position_in_map(self,   i : int, 
+                                                    j : int) -> Optional[ChannelWS]:
+        
+        """
+        This method returns the ChannelWS object whose
+        Endpoint (resp. Channel) attribute matches the
+        Endpoint (resp. Channel) attribute of the UniqueChannel
+        object which is placed the i-th row and j-th column 
+        of the self.__ch_map ChannelMap, if any. If there is
+        no such ChannelWS object, then this method returns
+        None.
+        """
+
+        try:
+            output = self.__ch_wf_sets[self.__ch_map.Data[i][j].Endpoint][self.__ch_map.Data[i][j].Channel]
+        except KeyError:
+            output = None
+
+        return output
+    
     @staticmethod
     def clusterize_WaveformSet( waveform_set : WaveformSet,
                                 channel_map : Optional[ChannelMap] = None,
