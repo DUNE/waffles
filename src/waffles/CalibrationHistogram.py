@@ -28,6 +28,13 @@ class CalibrationHistogram:
         i-th bin, with i = 0, ..., BinsNumber - 1, 
         contains the number of occurrences between 
         Edges[i] and Edges[i+1].
+    MeanBinWidth : float
+        The mean difference between two consecutive
+        edges. It is computed as
+        (Edges[BinsNumber] - Edges[0]) / BinsNumber.
+        For calibration histograms with an uniform
+        binning, this value matches 
+        (Edges[i+1] - Edges[i]) for all i.
     Counts : unidimensional numpy array of integers
         Its length must match BinsNumber. Counts[i] 
         gives the number of occurrences in the i-th 
@@ -39,6 +46,17 @@ class CalibrationHistogram:
         contributed to the i-th bin. Note that the 
         length of Indices[i] must match Counts[i], 
         for i = 0, ..., BinsNumber - 1.
+    GaussianFitsParameters : dict of list of tuples of floats
+        The keys for this dictionary is 
+        'scale', 'mean', and 'std'. The value for
+        each key is a list of tuples. The i-th
+        element of the list whose key is 'scale'
+        (resp. 'mean', 'std'), gives a tuple with
+        two floats, where the first element is the 
+        scaling factor (resp. mean, standard 
+        deviation) of the i-th gaussian fit of this 
+        histogram, and the second one is the error
+        of such fit parameter.
 
     Methods
     ----------
@@ -86,8 +104,12 @@ class CalibrationHistogram:
                                                             f"The length of 'indices[{i}]' parameter ({len(indices[i])}) must match 'counts[{i}]' ({counts[i]})."))
         self.__bins_number = bins_number
         self.__edges = edges
+        self.__mean_bin_width = ( self.__edges[self.__bins_number] - self.__edges[0] ) / self.__bins_number
         self.__counts = counts
         self.__indices = indices
+
+        self.__gaussian_fits_parameters = None
+        self.__reset_gaussian_fit_parameters()
 
     #Getters
     @property
@@ -99,12 +121,77 @@ class CalibrationHistogram:
         return self.__edges
     
     @property
+    def MeanBinWidth(self):
+        return self.__mean_bin_width
+    
+    @property
     def Counts(self):
         return self.__counts
     
     @property
     def Indices(self):
         return self.__indices
+    
+    @property
+    def GaussianFitsParameters(self):
+        return self.__gaussian_fits_parameters
+    
+    def __reset_gaussian_fit_parameters(self) -> None:
+
+        """
+        This method is not intended for user usage. It
+        resets the GaussianFitsParameters attribute to
+        its initial state.
+        """
+
+        self.__gaussian_fits_parameters = { 'scale':[], 
+                                            'mean':[], 
+                                            'std':[]}
+        return
+    
+    def __add_gaussian_fit_parameters(self, scale : float,
+                                            scale_err : float,
+                                            mean : float,
+                                            mean_err : float,
+                                            std : float,
+                                            std_err : float) -> None:
+        
+        """
+        This method is not intended for user usage.
+        It takes care of adding the given fit parameters 
+        to the GaussianFitsParameters attribute according 
+        to its structure. No checks are performed in this 
+        function regarding the values of the input 
+        parameters.
+
+        Parameters
+        ----------
+        scale : float
+            The scaling factor of the gaussian fit
+        scale_err : float
+            The error of the scaling factor of the 
+            gaussian fit
+        mean : float
+            The mean value of the gaussian fit
+        mean_err : float
+            The error of the mean value of the 
+            gaussian fit
+        std : float
+            The standard deviation of the gaussian fit
+        std_err : float
+            The error of the standard deviation of the 
+            gaussian fit
+
+        Returns
+        ----------
+        None
+        """
+
+        self.__gaussian_fits_parameters['scale'].append((scale, scale_err))
+        self.__gaussian_fits_parameters['mean'].append((mean, mean_err))
+        self.__gaussian_fits_parameters['std'].append((std, std_err))
+
+        return
     
     @classmethod
     def from_WaveformSet(cls,   waveform_set : WaveformSet,
@@ -239,3 +326,36 @@ class CalibrationHistogram:
                     edges,
                     counts,
                     indices)
+    
+    @staticmethod
+    def gaussian(   x : float, 
+                    scale : float, 
+                    mean : float, 
+                    std : float) -> float:
+
+        """
+        Evaluates an scaled gaussian function
+        at x. The function is defined as:
+        
+        f(x) = scale * exp( -1 * (( x - mean ) / ( 2 * std )) ** 2)
+
+        This function supports numpy arrays as input.
+        
+        Parameters
+        ----------
+        x : float
+            The point at which the function is evaluated.
+        scale : float
+            The scale factor of the gaussian function
+        mean : float
+            The mean value of the gaussian function
+        std : float
+            The standard deviation of the gaussian function
+
+        Returns
+        -------
+        float
+            The value of the function at x
+        """
+    
+        return scale * np.exp( -1. * (np.power( ( x - mean ) / ( 2 * std ), 2)))
