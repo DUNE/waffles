@@ -443,7 +443,7 @@ class WaveformSet:
             except KeyError:
                 self.__available_channels[wf.RunNumber] = {}
                 self.__available_channels[wf.RunNumber][wf.Endpoint] = set()
-                self.__available_channels[wf.RunNumber][wf.Endpoint].add(wf.Channel)    
+                self.__available_channels[wf.RunNumber][wf.Endpoint].add(wf.Channel)
         return
     
     def analyse(self,   label : str,
@@ -809,7 +809,7 @@ class WaveformSet:
             'analysis_label' parameter is not defined, then
             this parameter will be automatically interpreted
             as False.
-                In both cases, If True, analysis markers 
+                In both cases, if True, analysis markers 
             for the plotted WaveformAdcs objects will 
             potentially be plotted together with each 
             waveform. For more information, check the 
@@ -979,7 +979,7 @@ class WaveformSet:
 
                     try: 
                         aux = self.compute_mean_waveform(wf_idcs = data_of_map_of_wf_idcs[i][j])    # WaveformSet.compute_mean_waveform() will raise an
-                                                                                                    # exception if data_of_map_of_wf_idcs[i][j] is emtpy
+                                                                                                    # exception if data_of_map_of_wf_idcs[i][j] is empty
 
                     except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
                                             ## so that we can handle in parallel exceptions due to different reasons if we need it
@@ -2897,7 +2897,7 @@ class WaveformSet:
             plotted
         name : str
             The name of the heatmap. It is given
-            to the 'heatmap' parameter of 
+            to the 'name' parameter of 
             plotly.graph_objects.Heatmap().
         row (resp. col) : int
             The row (resp. column) where the 
