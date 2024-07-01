@@ -901,31 +901,21 @@ class WaveformSet:
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.plot_wfs()',
                                                         'The number of rows and columns must be positive.'))
-        fFigureIsGiven = False
         if figure is not None:
-
-            try:
-                fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
-                fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
-
-            except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
-
-                raise Exception(generate_exception_message( 2,
-                                                            'WaveformSet.plot_wfs()',
-                                                            'The given figure is not a subplot grid.'))
-            if fig_rows != nrows or fig_cols != ncols:
-                
-                raise Exception(generate_exception_message( 3,
-                                                            'WaveformSet.plot_wfs()',
-                                                            f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
-            fFigureIsGiven = True
+            WaveformSet.check_dimensions_of_suplots_figure( figure,
+                                                            nrows,
+                                                            ncols)
+            figure_ = figure
+        else:
+            figure_ = psu.make_subplots(    rows = nrows, 
+                                            cols = ncols)
 
         data_of_map_of_wf_idcs = None         # Logically useless
 
         if wfs_per_axes is not None:    # wfs_per_axes is defined, so ignore map_of_wf_idcs
 
             if wfs_per_axes < 1:
-                raise Exception(generate_exception_message( 4,
+                raise Exception(generate_exception_message( 2,
                                                             'WaveformSet.plot_wfs()',
                                                             'The number of waveforms per axes must be positive.'))
 
@@ -936,7 +926,7 @@ class WaveformSet:
         elif map_of_wf_idcs is None:    # Nor wf_per_axes, nor 
                                         # map_of_wf_idcs are defined
 
-            raise Exception(generate_exception_message( 5,
+            raise Exception(generate_exception_message( 3,
                                                         'WaveformSet.plot_wfs()',
                                                         "The 'map_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
         
@@ -944,7 +934,7 @@ class WaveformSet:
                                                     nrows,                  # but map_of_wf_idcs is, but 
                                                     ncols):                 # it is not well-formed
             
-            raise Exception(generate_exception_message( 6,
+            raise Exception(generate_exception_message( 4,
                                                         'WaveformSet.plot_wfs()',
                                                         f"The given map_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
         else:   # wf_per_axes is not defined,
@@ -952,13 +942,6 @@ class WaveformSet:
                 # and it is well-formed
 
             data_of_map_of_wf_idcs = map_of_wf_idcs.Data
-
-        if not fFigureIsGiven:
-            
-            figure_ = psu.make_subplots(    rows = nrows, 
-                                            cols = ncols)
-        else:
-            figure_ = figure
 
         WaveformSet.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
                                                 share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
@@ -1032,7 +1015,7 @@ class WaveformSet:
         elif mode == 'heatmap':
 
             if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
-                raise Exception(generate_exception_message( 7,
+                raise Exception(generate_exception_message( 5,
                                                             'WaveformSet.plot_wfs()',
                                                             "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
             
@@ -1085,7 +1068,7 @@ class WaveformSet:
                                                                 i + 1,
                                                                 j + 1)
         else:                                                                                                           
-            raise Exception(generate_exception_message( 8,
+            raise Exception(generate_exception_message( 6,
                                                         'WaveformSet.plot_wfs()',
                                                         f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
         return figure_
@@ -3216,3 +3199,45 @@ class WaveformSet:
         aux = np.array(input).min()
 
         return [ input[i] - aux for i in range(len(input)) ]
+    
+    @staticmethod
+    def check_dimensions_of_suplots_figure( figure : pgo.Figure,
+                                            nrows : int,
+                                            ncols : int) -> None:
+        
+        """
+        This method checks that the given figure has
+        the given number of rows and columns. If not,
+        it raises an exception.
+
+        Parameters
+        ----------
+        figure : plotly.graph_objects.Figure
+            The figure to be checked. It must have been
+            generated using plotly.subplots.make_subplots()
+            with a 'rows' and 'cols' parameters matching
+            the given nrows and ncols parameters.
+        nrows (resp. ncols) : int
+            The number of rows (resp. columns) that the
+            given figure must have
+
+        Returns
+        ----------
+        None
+        """
+
+        try:
+            fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
+            fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
+
+        except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
+
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.check_dimensions_of_suplots_figure()',
+                                                        'The given figure is not a subplot grid.'))
+        if fig_rows != nrows or fig_cols != ncols:
+            
+            raise Exception(generate_exception_message( 2,
+                                                        'WaveformSet.check_dimensions_of_suplots_figure()',
+                                                        f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
+        return
