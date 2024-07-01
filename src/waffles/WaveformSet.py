@@ -4,7 +4,7 @@ import inspect
 import uproot
 import numba
 import numpy as np
-from typing import Tuple, List, Callable, Optional, Any
+from typing import Tuple, List, Dict, Callable, Optional, Any
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -111,15 +111,15 @@ class WaveformSet:
         self.__points_per_wf = len(self.__waveforms[0].Adcs)
 
         self.__runs = set()
-        self.update_runs()
+        self.__update_runs(other_runs = None)
 
         self.__record_numbers = {}
-        self.update_record_numbers()
+        self.__update_record_numbers(other_record_numbers = None)
 
         self.__available_channels = {}
-        self.update_available_channels()    # Running on an Apple M2, it took 
-                                            # ~ 52 ms to run this line for a
-                                            # WaveformSet with 1046223 waveforms
+        self.__update_available_channels(other_available_channels = None)   # Running on an Apple M2, it took 
+                                                                            # ~ 52 ms to run this line for a
+                                                                            # WaveformSet with 1046223 waveforms
         self.__mean_adcs = None
         self.__mean_adcs_idcs = None
 
@@ -227,39 +227,122 @@ class WaveformSet:
                     return False
             return True
     
-    def update_runs(self) -> None:
+    def __update_runs(self, other_runs : Optional[set] = None) -> None:
         
         """
-        This method clears the self.__runs attribute 
-        of this object and then iterates through the 
-        whole WaveformSet to fill such attribute 
-        according to the waveforms which are currently
-        present in this WaveformSet object.
+        This method is not intended to be called by the user.
+        This method updates the self.__runs attribute of this
+        object. Its behaviour is different depending on whether
+        the 'other_runs' parameter is None or not. Check its
+        documentation for more information.
+
+        Parameters
+        ----------
+        other_runs : set of int
+            If it is None, then this method clears the self.__runs 
+            attribute of this object and then iterates through the 
+            whole WaveformSet to fill such attribute according to 
+            the waveforms which are currently present in this 
+            WaveformSet object. If the 'other_runs' parameter is 
+            defined, then it must be a set of integers, as expected 
+            for the Runs attribute of a WaveformSet object. In this 
+            case, the entries within other_runs which are not
+            already present in self.__runs, are added to self.__runs.
+            The well-formedness of this parameter is not checked by
+            this method. It is the caller's responsibility to ensure
+            it.
 
         Returns
         ----------
         None
+        """
+
+        if other_runs is None:
+            self.__reset_runs()
+        else:
+            self.__runs = self.__runs.union(other_runs)
+
+        return
+    
+    def __reset_runs(self) -> None:
+
+        """
+        This method is not intended for user usage.
+        This method must only be called by the
+        WaveformSet.__update_runs() method. It clears
+        the self.__runs attribute of this object and 
+        then iterates through the whole WaveformSet to 
+        fill such attribute according to the waveforms 
+        which are currently present in this WaveformSet 
+        object.
         """
 
         self.__runs.clear()
 
         for wf in self.__waveforms:
             self.__runs.add(wf.RunNumber)
+
         return
     
-    def update_record_numbers(self) -> None:
+    def __update_record_numbers(self, other_record_numbers : Optional[Dict[int, set]] = None) -> None:
         
         """
-        This method clears the self.__record_numbers 
-        attribute of this object and then iterates 
-        through the whole WaveformSet to fill such 
-        attribute according to the waveforms which 
-        are currently present in this WaveformSet 
-        object.
+        This method is not intended to be called by the user.
+        This method updates the self.__record_numbers attribute
+        of this object. Its behaviour is different depending on
+        whether the 'other_record_numbers' parameter is None or
+        not. Check its documentation for more information.
+
+        Parameters
+        ----------
+        other_record_numbers : dictionary of sets of int
+            If it is None, then this method clears the
+            self.__record_numbers attribute of this object
+            and then iterates through the whole WaveformSet
+            to fill such attribute according to the waveforms
+            which are currently present in this WaveformSet.
+            If the 'other_record_numbers' parameter is defined,
+            then it must be a dictionary of sets of integers,
+            as expected for the RecordNumbers attribute of a
+            WaveformSet object. In this case, the information 
+            in other_record_numbers is merged into the
+            self.__record_numbers attribute of this object,
+            according to the meaning of the self.__record_numbers
+            attribute. The well-formedness of this parameter 
+            is not checked by this method. It is the caller's 
+            responsibility to ensure it.
 
         Returns
         ----------
         None
+        """
+
+        if other_record_numbers is None:
+            self.__reset_record_numbers()
+
+        else:
+            for run in other_record_numbers.keys():
+                if run in self.__record_numbers.keys():     # If this run is present in both, this WaveformSet and
+                                                            # the incoming one, then carefully merge the information
+                    
+                    self.__record_numbers[run] = self.__record_numbers[run].union(other_record_numbers[run])
+
+                else:                                       # If this run is present in the incoming WaveformSet but not in self, then
+                                                            # simply get the information from the incoming WaveformSet as a block
+
+                    self.__record_numbers[run] = other_record_numbers[run]
+        return
+    
+    def __reset_record_numbers(self) -> None:
+
+        """
+        This method is not intended for user usage.
+        This method must only be called by the
+        WaveformSet.__update_record_numbers() method. It clears
+        the self.__record_numbers attribute of this object and 
+        then iterates through the whole WaveformSet to fill such 
+        attribute according to the waveforms which are currently 
+        present in this WaveformSet object.
         """
 
         self.__record_numbers.clear()
@@ -271,19 +354,77 @@ class WaveformSet:
                 self.__record_numbers[wf.RunNumber] = set()
                 self.__record_numbers[wf.RunNumber].add(wf.RecordNumber)
         return
-    
-    def update_available_channels(self) -> None:
+
+    def __update_available_channels(self, other_available_channels : Optional[Dict[int, Dict[int, set]]] = None) -> None:
         
         """
-        This method clears the self.__available_channels 
-        attribute of this object and then iterates through 
-        the whole WaveformSet to fill such attribute 
-        according to the waveforms which are currently
-        present in this WaveformSet object.
+        This method is not intended to be called by the user.
+        This method updates the self.__available_channels 
+        attribute of this object. Its behaviour is different 
+        depending on whether the 'other_available_channels' 
+        parameter is None or not. Check its documentation for 
+        more information.
+
+        Parameters
+        ----------
+        other_available_channels : dictionary of dictionaries of sets
+            If it is None, then this method clears the
+            self.__available_channels attribute of this object
+            and then iterates through the whole WaveformSet
+            to fill such attribute according to the waveforms
+            which are currently present in this WaveformSet.
+            If the 'other_available_channels' parameter is 
+            defined, then it must be a dictionary of dictionaries
+            of sets of integers, as expected for the 
+            AvailableChannels attribute of a WaveformSet object. 
+            In this case, the information in other_available_channels 
+            is merged into the self.__available_channels attribute 
+            of this object, according to the meaning of the 
+            self.__available_channels attribute. The well-
+            formedness of this parameter is not checked by this 
+            method. It is the caller's responsibility to ensure it.
 
         Returns
         ----------
         None
+        """
+
+        if other_available_channels is None:
+            self.__reset_available_channels()
+
+        else:
+            for run in other_available_channels.keys():
+                if run in self.__available_channels.keys():     # If this run is present in both, this WaveformSet and
+                                                                # the incoming one, then carefully merge the information
+
+                    for endpoint in other_available_channels[run].keys():
+                        if endpoint in self.__available_channels[run].keys():   # If this endpoint for this run is present
+                                                                                # in both waveform sets, then carefully
+                                                                                # merge the information.
+                            
+                            self.__available_channels[run][endpoint] = self.__available_channels[run][endpoint].union(other_available_channels[run][endpoint])
+
+                        else:   # If this endpoint for this run is present in the incoming WaveformSet but not in
+                                # self, then simply get the information from the incoming WaveformSet as a block
+                                
+                            self.__available_channels[run][endpoint] = other_available_channels[run][endpoint]
+
+                else:       # If this run is present in the incoming WaveformSet but not in self, then
+                            # simply get the information from the incoming WaveformSet as a block
+
+                    self.__available_channels[run] = other_available_channels[run]
+        return
+    
+    def __reset_available_channels(self) -> None:
+
+        """
+        This method is not intended for user usage.
+        This method must only be called by the
+        WaveformSet.__update_available_channels() method. It clears
+        the self.__available_channels attribute of this object and 
+        then iterates through the whole WaveformSet to fill such 
+        attribute according to the waveforms which are currently 
+        present in this WaveformSet object.
         """
 
         self.__available_channels.clear()
@@ -2348,9 +2489,9 @@ class WaveformSet:
             for idx in reversed(dumped_ones):       # dumped_ones is increasingly ordered, so 
                 del self.Waveforms[idx]             # iterate in reverse order for waveform deletion
 
-            self.update_runs()                      # If actually_filter, then we need to update 
-            self.update_record_numbers()            # the self.__runs, self.__record_numbers and 
-            self.update_available_channels()        # self.__available_channels
+            self.__update_runs(other_runs = None)                               # If actually_filter, then we need to update 
+            self.__update_record_numbers(other_record_numbers = None)           # the self.__runs, self.__record_numbers and 
+            self.__update_available_channels(other_available_channels = None)   # self.__available_channels
 
             self.__mean_adcs = None                 # We also need to reset the attributes regarding the mean
             self.__mean_adcs_idcs = None            # waveform, for which some of the waveforms might have been removed
