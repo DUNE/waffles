@@ -3241,3 +3241,45 @@ class WaveformSet:
                                                         'WaveformSet.check_dimensions_of_suplots_figure()',
                                                         f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
         return
+
+    def merge(self, other : 'WaveformSet') -> None:
+
+        """
+        This method merges the given other WaveformSet
+        object into this WaveformSet object. For every
+        waveform in the given other WaveformSet object,
+        it is appended to the list of waveforms of this
+        WaveformSet object. The self.__runs, 
+        self.__record_numbers and self.__available_channels
+        are updated accordingly. The self.__mean_adcs and
+        self.__mean_adcs_idcs are reset to None.
+
+        Parameters
+        ----------
+        other : WaveformSet
+            The WaveformSet object to be merged into this
+            WaveformSet object. The PointsPerWf attribute
+            of the given WaveformSet object must be equal
+            to the PointsPerWf attribute of this WaveformSet
+            object. Otherwise, an exception is raised.
+
+        Returns
+        ----------
+        None
+        """
+
+        if other.PointsPerWf != self.PointsPerWf:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.merge()',
+                                                        f"The given WaveformSet object has waveforms with lengths ({other.PointsPerWf}) different to the ones in this WaveformSet object ({self.PointsPerWf})."))
+        for wf in other.Waveforms:
+            self.__waveforms.append(wf)
+
+        self.__update_runs(other_runs = other.Runs)
+        self.__update_record_numbers(other_record_numbers = other.RecordNumbers)
+        self.__update_available_channels(other_available_channels = other.AvailableChannels)
+
+        self.__mean_adcs = None
+        self.__mean_adcs_idcs = None
+
+        return
