@@ -1785,7 +1785,7 @@ class WaveformSet:
                                                         'WaveformSet.from_ROOT_file()',
                                                         f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
 
-        idcs_to_retrieve = WaveformSet.__cluster_integers_by_contiguity(aux)
+        idcs_to_retrieve = WaveformSet.cluster_integers_by_contiguity(aux)
 
         if verbose:
             print(f"In function WaveformSet.from_ROOT_file(): Found {len(idcs_to_retrieve)} cluster(s) of contiguous {'full-streaming' if read_full_streaming_data else 'self-trigger'} waveforms in the ROOT file.")
@@ -1923,7 +1923,7 @@ class WaveformSet:
         return cls(*waveforms)
     
     @staticmethod
-    def __cluster_integers_by_contiguity(increasingly_sorted_integers : np.ndarray) -> List[List[int]]:
+    def cluster_integers_by_contiguity(increasingly_sorted_integers : np.ndarray) -> List[List[int]]:
 
         """
         This function gets an unidimensional numpy array of 
@@ -1965,12 +1965,44 @@ class WaveformSet:
 
         if increasingly_sorted_integers.ndim != 1:
             raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.__cluster_integers_by_contiguity()',
+                                                        'WaveformSet.cluster_integers_by_contiguity()',
                                                         'The given numpy array must be unidimensional.'))
         if len(increasingly_sorted_integers) < 2:
             raise Exception(generate_exception_message( 2,
-                                                        'WaveformSet.__cluster_integers_by_contiguity()',
+                                                        'WaveformSet.cluster_integers_by_contiguity()',
                                                         'The given numpy array must contain at least two elements.'))
+        
+        return WaveformSet.__cluster_integers_by_contiguity(increasingly_sorted_integers)
+    
+    @staticmethod
+    @numba.njit(nogil=True, parallel=False)
+    def __cluster_integers_by_contiguity(increasingly_sorted_integers : np.ndarray) -> List[List[int]]:
+
+        """
+        This method is not intended for user usage. It 
+        must only be called by the 
+        WaveformSet.cluster_integers_by_contiguity() 
+        method, where some well-formedness checks
+        have been already perforemd. This is the 
+        low-level numba-optimized implementation of 
+        the numerical process which is time consuming.
+
+        Parameters
+        ----------
+        increasingly_sorted_integers : np.ndarray
+            An increasingly sorted numpy array of integers
+            whose length is at least 2.
+
+        Returns
+        ----------
+        extremals : list of list of int
+            output[i] is a list containing two integers,
+            so that output[i][0] (resp. output[i][1]) is
+            the inclusive (resp. exclusive) lower (resp. 
+            upper) bound of the i-th cluster of contiguous
+            integers in the input array.
+        """
+
         extremals = []
         extremals.append([increasingly_sorted_integers[0]])
         
