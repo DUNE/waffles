@@ -47,4 +47,4 @@ myst_footnote_transition = True
 myst_dmath_double_inline = True
 myst_enable_checkboxes = True
 
-inheritance_graph_attrs = dict(rankdir="TB", size='""')
+# inheritance_graph_attrs = dict(rankdir="TB", size='""')
