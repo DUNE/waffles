@@ -5,7 +5,7 @@ import uproot
 import ROOT
 import numba
 import numpy as np
-from typing import Tuple, List, Dict, Callable, Optional, Any
+from typing import Tuple, List, Dict, Callable, Optional, Union
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -2047,8 +2047,7 @@ class WaveformSet:
             The library used to open the ROOT file. It can be
             either 'uproot' or 'pyroot'. If 'uproot' (resp. 
             'pyroot'), then the 'file' parameter must be of
-            type uproot.ReadOnlyDirectory (resp. ROOT.TFile) 
-            object. 
+            type uproot.ReadOnlyDirectory (resp. ROOT.TFile).
 
         Returns
         ----------
@@ -2089,39 +2088,70 @@ class WaveformSet:
         return file[TTree_name]
     
     @staticmethod
-    def find_TBranch_in_TTree_file( TTree : uproot.TTree,
-                                    TBranch_pre_name : str) -> uproot.TBranch:
+    def find_TBranch_in_ROOT_TTree( tree : Union[uproot.TTree, ROOT.TTree],
+                                    TBranch_pre_name : str,
+                                    library : str = 'uproot') -> Union[uproot.TBranch, ROOT.TBranch]:
         
         """
         This method returns the first TBranch found in the 
-        given TTree whose name starts with the string given 
-        to the 'TBranch_pre_name' parameter. If no such 
-        TBranch is found, an exception is raised.
+        given ROOT TTree whose name starts with the string 
+        given to the 'TBranch_pre_name' parameter. If no 
+        such TBranch is found, an exception is raised.
 
         Parameters
         ----------
-        TTree : uproot.TTree
+        tree : uproot.TTree or ROOT.TTree
             The TTree where to look for the TBranch object
         TBranch_pre_name : str
             The string which the name of the TBranch object 
             must start with
+        library : str
+            The library used to read the TBranch from the
+            given tree. It can be either 'uproot' or 'pyroot'. 
+            If 'uproot' (resp. 'pyroot'), then the 'tree' 
+            parameter must be of type uproot.TTree (resp. 
+            ROOT.TTree).
 
         Returns
         ----------
         uproot.TBranch
         """
 
+        if library == 'uproot':
+            if not isinstance(tree, uproot.TTree):
+                raise Exception(generate_exception_message( 1,
+                                                            'WaveformSet.find_TBranch_in_ROOT_TTree()',
+                                                            'Since the uproot library was specified, the input tree must be of type uproot.TTree.'))
+        elif library == 'pyroot':
+            if not isinstance(tree, ROOT.TTree):
+                raise Exception(generate_exception_message( 2,
+                                                            'WaveformSet.find_TBranch_in_ROOT_TTree()',
+                                                            'Since the pyroot library was specified, the input tree must be of type ROOT.TTree.'))
+        else:
+            raise Exception(generate_exception_message( 3,
+                                                        'WaveformSet.find_TBranch_in_ROOT_TTree()',
+                                                        f"The library '{library}' is not supported. Either 'uproot' or 'pyroot' must be given."))
         TBranch_name = None
-        for key in TTree.keys():
-            if key.startswith(TBranch_pre_name):
-                TBranch_name = key
-                break
 
+        if library == 'uproot':
+            for key in tree.keys():
+                if key.startswith(TBranch_pre_name):
+                    TBranch_name = key
+                    break
+        else:
+            for branch in tree.GetListOfBranches():
+                if branch.GetName().startswith(TBranch_pre_name):
+                    TBranch_name = branch.GetName()
+                    break
+                
         if TBranch_name is None:
-            raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.find_TBranch_in_TTree_file()',
+            raise Exception(generate_exception_message( 4,
+                                                        'WaveformSet.find_TBranch_in_ROOT_TTree()',
                                                         f"There is no TBranch with a name starting with '{TBranch_pre_name}'."))
-        return TTree[TBranch_name]
+        if library == 'uproot':
+            return tree[TBranch_name]
+        else:
+            return tree.GetBranch(TBranch_name)
         
     @staticmethod
     def get_endpoint_and_channel(input : int) -> Tuple[int, int]:
