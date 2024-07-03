@@ -125,5 +125,5 @@ if [ -f ${rucio_paths_file} ]; then
       done
 fi
 
-rm -f $current_dir/krb5.conf
+rm -f $current_dir/krb5.conf*
 kdestroy
