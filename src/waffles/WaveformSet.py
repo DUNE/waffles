@@ -675,6 +675,8 @@ class WaveformSet:
                         show_peaks_integration_limits : bool = False,
                         time_bins : int = 512,
                         adc_bins : int = 100,
+                        time_range_lower_limit : Optional[int] = None,
+                        time_range_upper_limit : Optional[int] = None,
                         adc_range_above_baseline : int = 100,
                         adc_range_below_baseline : int = 200,
                         detailed_label : bool = True,
@@ -856,6 +858,15 @@ class WaveformSet:
             parameter is set to 'heatmap'. In that case, it is
             the number of bins along the horizontal (resp. 
             vertical) axis, i.e. the time (resp. ADCs) axis.
+        time_range_lower_limit (resp. time_range_upper_limit) : int
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'heatmap'. In such case,
+            it gives the inclusive lower (resp. upper) limit of 
+            the time range, in time ticks, which will be considered 
+            for the heatmap plot. If it is not defined, then it 
+            is assumed to be 0 (resp. self.PointsPerWf - 1).
+            It must be smaller (resp. greater) than
+            time_range_upper_limit (resp. time_range_lower_limit).
         adc_range_above_baseline (resp. adc_range_below_baseline) : int
             This parameter only makes a difference if the
             'mode' parameter is set to 'heatmap'. In that case,
@@ -1019,19 +1030,11 @@ class WaveformSet:
                 raise Exception(generate_exception_message( 5,
                                                             'WaveformSet.plot_wfs()',
                                                             "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
-            
-            aux_ranges =    np.array([  [0,                                 self.PointsPerWf - 1            ],      # Using here that the aim of the time 
-                                                                                                                    # offsets of the considered waveforms 
-                                                                                                                    # is to slightly align waveforms among 
-                                                                                                                    # each other. I.e. the offsets are forced 
-                                                                                                                    # by WaveformAdcs.__init__ to belong 
-                                                                                                                    # to the [0, N-2] range, where N is 
-                                                                                                                    # the number of points of the waveform.
-                                                                                                                    # Hence, note that for each considered
-                                                                                                                    # waveform wf, a number of points equal
-                                                                                                                    # to wf.TimeOffset is lost, in the sense
-                                                                                                                    # that they escape the heatmap x-range.
-                                        [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
+
+            aux_ranges = self.arrange_time_vs_ADC_ranges(   time_range_lower_limit = time_range_lower_limit,
+                                                            time_range_upper_limit = time_range_upper_limit,
+                                                            adc_range_above_baseline = adc_range_above_baseline,
+                                                            adc_range_below_baseline = adc_range_below_baseline)
             for i in range(nrows):
                 for j in range(ncols):
                     if len(data_of_map_of_wf_idcs[i][j]) > 0:
@@ -1073,6 +1076,52 @@ class WaveformSet:
                                                         'WaveformSet.plot_wfs()',
                                                         f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
         return figure_
+    
+    def arrange_time_vs_ADC_ranges(self,    time_range_lower_limit : Optional[int] = None,
+                                            time_range_upper_limit : Optional[int] = None,
+                                            adc_range_above_baseline : int = 100,
+                                            adc_range_below_baseline : int = 200) -> np.ndarray:
+        
+        """
+        This method arranges a 2x2 numpy array with a time and ADC
+        range.
+        
+        Parameters
+        ----------
+        time_range_lower_limit (resp. time_range_upper_limit) : int
+            If it is defined, then it gives the lower (resp. upper) 
+            limit of the time range, in time ticks. If it is not
+            defined, then the lower (resp. upper) will be set to 
+            0 (resp. self.PointsPerWf - 1). It must be smaller 
+            (resp. greater) than time_range_upper_limit (resp. 
+            time_range_lower_limit).
+        adc_range_above_baseline (resp. adc_range_below_baseline) : int
+            Its absolute value times one (resp. minus one) gives
+            the upper (resp. lower) limit of the ADC range.
+
+        Returns
+        ----------
+        np.ndarray
+            It is a 2x2 numpy array, say output, where the time (resp. 
+            ADC) range is given by [output[0, 0], output[0, 1]] (resp. 
+            [output[1, 0], output[1, 1]]).
+        """
+
+        time_range_lower_limit_ = 0
+        if time_range_lower_limit is not None:
+            time_range_lower_limit_ = time_range_lower_limit
+
+        time_range_upper_limit_ = self.PointsPerWf - 1
+        if time_range_upper_limit is not None:
+            time_range_upper_limit_ = time_range_upper_limit
+
+        if time_range_lower_limit_ >= time_range_upper_limit_:
+            raise Exception(generate_exception_message( 1,
+                                                        'WaveformSet.arrange_time_vs_ADC_ranges()',
+                                                        f"The time range limits ({time_range_lower_limit_}, {time_range_upper_limit_}) are not well-formed."))
+        
+        return np.array([   [time_range_lower_limit_,           time_range_upper_limit_         ],
+                            [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
 
     @staticmethod
     def get_string_of_first_n_integers_if_available(input_list : List[int],
