@@ -2787,7 +2787,7 @@ class WaveformSet:
         # method, which is not numba decorated and should not perform
         # very demanding operations.
 
-        counts = np.zeros(bins, dtype=np.uint64)
+        counts = np.zeros(bins, dtype = np.uint64)
         formatted_idcs = []
 
         inverse_step = 1. / ((domain[1] - domain[0]) / bins)
@@ -2850,7 +2850,7 @@ class WaveformSet:
             2D histogram of the given samples.
         """
 
-        result = np.zeros((bins[0], bins[1]), dtype=np.uint64)
+        result = np.zeros((bins[0], bins[1]), dtype = np.uint64)
 
         inverse_step = 1. / ((ranges[:, 1] - ranges[:, 0]) / bins)
 
