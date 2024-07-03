@@ -356,3 +356,86 @@ class ChannelWSGrid:
             del self.__ch_wf_sets[endpoint]
 
         return
+    
+    def fit_peaks_of_calibration_histograms(self,   max_peaks : int,
+                                                    prominence : float,
+                                                    half_points_to_fit : int,
+                                                    initial_percentage = 0.1,
+                                                    percentage_step = 0.1) -> bool:
+        
+        """
+        This method calls the fit_peaks() method of 
+        each CalibrationHistogram object in the
+        ChannelWS objects contained in self.__ch_wf_sets
+        whose channel is present in the self.__ch_map
+        attribute. It returns False if at least one 
+        of the fit_peaks() calls returns False, and 
+        True if every fit_peaks() call returned True.
+        I.e. it returns True if max_peaks peaks were
+        successfully found for each histogram, and
+        False if only n peaks were found for at
+        least one of the histograms, where n < max_peaks.
+
+        Parameters
+        ----------
+        max_peaks : int
+            The maximum number of peaks which will be
+            searched for in each calibration histogram.
+            It is given to the 'max_peaks' parameter of
+            the CalibrationHistogram.fit_peaks() method
+            for each calibration histogram.
+        prominence : float
+            It must be greater than 0.0 and smaller than 
+            1.0. It gives the minimal prominence of the 
+            peaks to spot. This parameter is passed to the 
+            'prominence' parameter of the 
+            CalibrationHistogram.fit_peaks() method for 
+            each calibration histogram. For more information, 
+            check the documentation of such method.
+        half_points_to_fit : int
+            It must be a positive integer. For each peak in
+            each calibration histogram, it gives the number 
+            of points to consider on either side of the peak 
+            maximum, to fit each gaussian function. It is
+            given to the 'half_points_to_fit' parameter of
+            the CalibrationHistogram.fit_peaks() method for
+            each calibration histogram. For more information, 
+            check the documentation of such method.
+        initial_percentage : float
+            It must be greater than 0.0 and smaller than 1.0.
+            This parameter is passed to the 'initial_percentage' 
+            parameter of the CalibrationHistogram.fit_peaks()
+            method for each calibration histogram. For more 
+            information, check the documentation of such method.
+        percentage_step : float
+            It must be greater than 0.0 and smaller than 1.0.
+            This parameter is passed to the 'percentage_step'
+            parameter of the CalibrationHistogram.fit_peaks()
+            method for each calibration histogram. For more 
+            information, check the documentation of such method.
+
+        Returns
+        ----------
+        output : bool
+            True if max_peaks peaks were successfully found for 
+            each histogram, and False if only n peaks were found 
+            for at least one of the histograms, where n < max_peaks.
+        """
+
+        output = True
+
+        for i in range(self.__ch_map.Rows):
+            for j in range(self.__ch_map.Columns):
+
+                try:
+                    channel_ws = self.__ch_wf_sets[self.__ch_map.Data[i][j].Endpoint][self.__ch_map.Data[i][j].Channel]
+
+                except KeyError:
+                    continue
+
+                output *= channel_ws.CalibHisto.fit_peaks(  max_peaks,
+                                                            prominence,
+                                                            half_points_to_fit,
+                                                            initial_percentage = initial_percentage,
+                                                            percentage_step = percentage_step)
+        return output
