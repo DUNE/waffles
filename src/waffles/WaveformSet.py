@@ -2,6 +2,7 @@ import math
 import inspect
 
 import uproot
+import ROOT
 import numba
 import numpy as np
 from typing import Tuple, List, Dict, Callable, Optional, Any
@@ -2025,8 +2026,9 @@ class WaveformSet:
         return extremals
     
     @staticmethod
-    def find_TTree_in_ROOT_file(file : uproot.ReadOnlyDirectory,
-                                TTree_pre_name : str) -> uproot.TTree:
+    def find_TTree_in_ROOT_file(file : Union[uproot.ReadOnlyDirectory, ROOT.TFile],
+                                TTree_pre_name : str,
+                                library : str = 'pyroot') -> Union[uproot.TTree, ROOT.TTree]:
         
         """
         This method returns the first object found in the given
@@ -2036,25 +2038,52 @@ class WaveformSet:
 
         Parameters
         ----------
-        file : uproot.ReadOnlyDirectory
+        file : uproot.ReadOnlyDirectory or ROOT.TFile
             The ROOT file where to look for the TTree object
         TTree_pre_name : str
             The string which the name of the TTree object must
             start with
+        library : str
+            The library used to open the ROOT file. It can be
+            either 'uproot' or 'pyroot'. If 'uproot' (resp. 
+            'pyroot'), then the 'file' parameter must be of
+            type uproot.ReadOnlyDirectory (resp. ROOT.TFile) 
+            object. 
 
         Returns
         ----------
         uproot.TTree
         """
 
+        if library == 'uproot':
+            if type(file) != uproot.ReadOnlyDirectory:
+                raise Exception(generate_exception_message( 1,
+                                                            'WaveformSet.find_TTree_in_ROOT_file()',
+                                                            'Since the uproot library was specified, the input file must be of type uproot.ReadOnlyDirectory.'))
+        elif library == 'pyroot':
+            if type(file) != ROOT.TFile:
+                raise Exception(generate_exception_message( 2,
+                                                            'WaveformSet.find_TTree_in_ROOT_file()',
+                                                            'Since the pyroot library was specified, the input file must be of type ROOT.TFile.'))
+        else:
+            raise Exception(generate_exception_message( 3,
+                                                        'WaveformSet.find_TTree_in_ROOT_file()',
+                                                        f"The library '{library}' is not supported."))
         TTree_name = None
-        for key in file.classnames().keys():
-            if key.startswith(TTree_pre_name) and file.classnames()[key] == 'TTree':
-                TTree_name = key
-                break
+        
+        if library == 'uproot':
+            for key in file.classnames().keys():
+                if key.startswith(TTree_pre_name) and file.classnames()[key] == 'TTree':
+                    TTree_name = key
+                    break
+        else:
+            for key in file.GetListOfKeys():
+                if key.GetName().startswith(TTree_pre_name) and key.GetClassName() == 'TTree':
+                    TTree_name = key.GetName()
+                    break
 
         if TTree_name is None:
-            raise Exception(generate_exception_message( 1,
+            raise Exception(generate_exception_message( 4,
                                                         'WaveformSet.find_TTree_in_ROOT_file()',
                                                         f"There is no TTree with a name starting with '{TTree_pre_name}'."))
         return file[TTree_name]
