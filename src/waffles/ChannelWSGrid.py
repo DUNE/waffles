@@ -57,13 +57,11 @@ class ChannelWSGrid:
         takes a WaveformSet object as an input, and creates
         a ChannelWSGrid object by partitioning the given
         WaveformSet object using the Endpoint and Channel
-        attribute of its constituent Waveform objects.
-        To do so, this initializer delegates
-        the ChannelWSGrid.clusterize_WaveformSet() static
-        method. After having partitioned the given
-        WaveformSet object, the initializer purges the
-        ChannelWS objects which come from channels which
-        are not present in the given ChannelMap object.
+        attributes of the UniqueChannel objects which are
+        present in the ChannelMap object given to the 
+        'ch_map' input parameter. To do so, this initializer 
+        delegates the ChannelWSGrid.clusterize_WaveformSet() 
+        static method.
         
         Parameters
         ----------
@@ -252,8 +250,12 @@ class ChannelWSGrid:
                     aux[waveform_set.Waveforms[idx].Channel] = [idx]
 
         else:
-            idcs = ChannelWSGrid.get_nested_dictionary_template(channel_map)    # idcs contain the endpoints and channels for 
-                                                                                # which we can potentially save waveforms
+            idcs = ChannelWSGrid.get_nested_dictionary_template(channel_map)    # idcs contains the endpoints and channels for 
+                                                                                # which we can potentially save waveforms.
+                                                                                # Contrary to the channel_map == None case,
+                                                                                # in this case some of the idcs entries may 
+                                                                                # never be filled not even with a single waveform.
+                                                                                # We will need to remove those after.
             for idx in range(len(waveform_set.Waveforms)):
                 try:
                     aux = idcs[waveform_set.Waveforms[idx].Endpoint]
@@ -266,7 +268,20 @@ class ChannelWSGrid:
 
                 except KeyError:
                     continue
-                    
+
+            empty_channels = {}                             # Now let's remove the channels that are empty.
+            for endpoint in idcs.keys():                    # To do so, find those first.
+                for channel in idcs[endpoint].keys():
+                    if len(idcs[endpoint][channel]) == 0:
+                        try:
+                            empty_channels[endpoint].append(channel)
+                        except KeyError:
+                            empty_channels[endpoint] = [channel]
+
+            for endpoint in empty_channels.keys():          # Then remove them. This process is staged to
+                for channel in empty_channels[endpoint]:    # prevent a 'RuntimeError: dictionary changed 
+                    del idcs[endpoint][channel]             # size during iteration' error
+
         output = {}
 
         for endpoint in idcs.keys():
