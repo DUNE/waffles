@@ -1,5 +1,6 @@
 import math
 import inspect
+import array
 
 import uproot
 import ROOT
@@ -1730,8 +1731,11 @@ class WaveformSet:
                             meta_data_tree_name : str = 'metadata',
                             set_offset_wrt_daq_window : bool = False,
                             read_full_streaming_data : bool = False,
+                            truncate_wfs_to_minimum : bool = False,
                             start_fraction : float = 0.0,
                             stop_fraction : float = 1.0,
+                            library : str = 'pyroot',
+                            subsample : int = 1,
                             verbose : bool = True) -> 'WaveformSet':
 
         """
@@ -1790,6 +1794,17 @@ class WaveformSet:
             If True (resp. False), then only the waveforms for which 
             the 'is_fullstream' branch in the bulk-data tree has a 
             value equal to True (resp. False) will be considered.
+        truncate_wfs_to_minimum : bool
+            If True, then the waveforms will be truncated to
+            the minimum length among all the waveforms in the input 
+            file before being handled to the WaveformSet class 
+            initializer. If False, then the waveforms will be 
+            read and handled to the WaveformSet initializer as 
+            they are. Note that WaveformSet.__init__() will raise 
+            an exception if the given waveforms are not homogeneous 
+            in length, so this parameter should be set to False 
+            only if the user is sure that all the waveforms in 
+            the input file have the same length.
         start_fraction (resp. stop_fraction) : float
             Gives the iterator value for the first (resp. last) 
             waveform which will be a candidate to be loaded into 
@@ -1800,7 +1815,39 @@ class WaveformSet:
             stop_fraction to 0.75 and read_full_streaming_data to 
             True, will result in loading every waveform which belongs
             to the third quarter of the input file and for which 
-            the 'is_fullstream' branch equals to True. 
+            the 'is_fullstream' branch equals to True.
+        library : str
+            The library to be used to read the input ROOT file. 
+            The supported values are 'uproot' and 'pyroot'. If 
+            pyroot is selected, then it is assumed that the 
+            types of the branches in the bulk-data tree are the 
+            following ones:
+
+                - 'adcs'            : vector<short>
+                - 'channel'         : 'S', i.e. a 16 bit signed integer
+                - 'timestamp'       : 'l', i.e. a 64 bit unsigned integer
+                - 'record'          : 'i', i.e. a 32 bit unsigned integer
+                - 'is_fullstream'   : 'O', i.e. a boolean
+
+            Additionally, if set_offset_wrt_daq_window is True,
+            then the 'daq_timestamp' branch must be of type 'l',
+            i.e. a 64 bit unsigned integer. Type checks are not
+            implemented here. If these requirements are not met,
+            a segmentation fault may occur in the reading process.
+        subsample : int
+            This feature is only enabled for the case when
+            library == 'pyroot'. Otherwise, this parameter
+            is ignored. It matches one plus the number of 
+            waveforms to be skipped between two consecutive 
+            read waveforms. I.e. if it is set to one, then 
+            every waveform will be read. If it is set to two, 
+            then every other waveform will be read, and so 
+            on. This feature can be combined with the 
+            start_fraction and stop_fraction parameters. P.e. 
+            if start_fraction (resp. stop_fraction, subsample) 
+            is set to 0.25 (resp. 0.5, 2), then every other 
+            waveform in the second quarter of the input file 
+            will be read.
         verbose : bool
             If True, then functioning-related messages will be
             printed.
@@ -1810,36 +1857,148 @@ class WaveformSet:
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.from_ROOT_file()',
                                                         f"Fraction limits are not well-formed."))
-        input_file = uproot.open(filepath)
-        
-        # meta_data_tree = WaveformSet.find_TTree_in_ROOT_file(   input_file,           ## For the moment, the meta-data tree is not
-        #                                                         meta_data_tree_name)  ## read. This needs to change in the near future.
-        
-        bulk_data_tree = WaveformSet.find_TTree_in_ROOT_file(   input_file,
-                                                                bulk_data_tree_name)
-        
-        is_fullstream_branch = WaveformSet.find_TBranch_in_TTree_file(  bulk_data_tree,
-                                                                        'is_fullstream')
-        
-        wf_start = math.floor(start_fraction*is_fullstream_branch.num_entries)  # Get the start and stop iterator values for
-        wf_stop = math.ceil(stop_fraction*is_fullstream_branch.num_entries)     # the chunk which contains the waveforms which
-                                                                                # could be potentially read.
-
-        is_fullstream_array = is_fullstream_branch.array(   entry_start = wf_start,
-                                                            entry_stop = wf_stop)
-    
-        aux = np.where(is_fullstream_array)[0] if read_full_streaming_data else np.where(np.logical_not(is_fullstream_array))[0]
-
-        if len(aux) == 0:
+        if library not in ['uproot', 'pyroot']:
             raise Exception(generate_exception_message( 2,
                                                         'WaveformSet.from_ROOT_file()',
-                                                        f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
+                                                        f"The given library ({library}) is not supported."))
+        elif library == 'uproot':
+            input_file = uproot.open(filepath)
+        else:
+            input_file = ROOT.TFile(filepath)
+        
+        try:
+            meta_data_tree, _ = WaveformSet.find_TTree_in_ROOT_TFile(   input_file,
+                                                                        meta_data_tree_name,
+                                                                        library = library)
+        except NameError:
+            meta_data_tree = None           ## To enable compatibility with old runs when the meta data tree was not defined, we are handling 
+                                            ## this exception here. This can be done for now, because we are not reading yet any information 
+                                            ## from such tree, but setting meta_data_tree to None (i.e. passing None to 
+                                            ## __build_waveforms_list_from_ROOT_file_using_uproot or 
+                                            ## __build_waveforms_list_from_ROOT_file_using_pyroot) will be unacceptable in the near future.
 
-        idcs_to_retrieve = WaveformSet.cluster_integers_by_contiguity(aux)
+        bulk_data_tree, _ = WaveformSet.find_TTree_in_ROOT_TFile(   input_file,
+                                                                    bulk_data_tree_name,
+                                                                    library = library)
+        
+        is_fullstream_branch, is_fullstream_branch_name = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
+                                                                                                    'is_fullstream',
+                                                                                                    library = library)
+    
+        aux = is_fullstream_branch.num_entries if library == 'uproot' else is_fullstream_branch.GetEntries()
+
+        wf_start = math.floor(start_fraction*aux)   # Get the start and stop iterator values for
+        wf_stop = math.ceil(stop_fraction*aux)      # the chunk which contains the waveforms which
+                                                    # could be potentially read.
+        if library == 'uproot':
+            is_fullstream_array = is_fullstream_branch.array(   entry_start = wf_start,
+                                                                entry_stop = wf_stop)
+        else:
+
+            is_fullstream_array = WaveformSet.get_1d_array_from_pyroot_TBranch( bulk_data_tree,
+                                                                                is_fullstream_branch_name,
+                                                                                i_low = wf_start, 
+                                                                                i_up = wf_stop,
+                                                                                ROOT_type_code = 'O')
+
+        aux = np.where(is_fullstream_array)[0] if read_full_streaming_data else np.where(np.logical_not(is_fullstream_array))[0]
+        
+        # One could consider summing wf_start to every entry of aux at this point, so that the __build... helper
+        # methods do not need to take both parameters idcs_to_retrieve and first_wf_index. However, for
+        # the library == 'uproot' case, it is more efficient to clusterize first (which is done within the
+        # helper method for the uproot case), then sum wf_start. That's why we carry both parameters until then.
+
+        if len(aux) == 0:
+            raise Exception(generate_exception_message( 3,
+                                                        'WaveformSet.from_ROOT_file()',
+                                                        f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
+        if library == 'uproot':
+
+            waveforms = WaveformSet.__build_waveforms_list_from_ROOT_file_using_uproot( aux,
+                                                                                        bulk_data_tree,
+                                                                                        meta_data_tree,
+                                                                                        set_offset_wrt_daq_window = set_offset_wrt_daq_window,
+                                                                                        first_wf_index = wf_start,
+                                                                                        verbose = verbose)
+        else:
+        
+            waveforms = WaveformSet.__build_waveforms_list_from_ROOT_file_using_pyroot( aux,
+                                                                                        bulk_data_tree,
+                                                                                        meta_data_tree,
+                                                                                        set_offset_wrt_daq_window = set_offset_wrt_daq_window,
+                                                                                        first_wf_index = wf_start,
+                                                                                        subsample = subsample,
+                                                                                        verbose = verbose)
+        if truncate_wfs_to_minimum:
+                    
+            minimum_length = np.array([len(wf.Adcs) for wf in waveforms]).min()
+
+            for wf in waveforms:
+                wf._WaveformAdcs__truncate_adcs(minimum_length)
+
+        return cls(*waveforms)
+    
+    @staticmethod
+    def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.ndarray,
+                                                            bulk_data_tree : uproot.TTree,
+                                                            meta_data_tree : uproot.TTree,
+                                                            set_offset_wrt_daq_window : bool = False,
+                                                            first_wf_index : int = 0,
+                                                            verbose : bool = True) -> List[Waveform]:
+        
+        """
+        This is a helper method which must only be called by the 
+        WaveformSet.from_ROOT_file() class method. This method
+        reads a subset of waveforms from the given uproot.TTree
+        and appends them one by one to a list of Waveform
+        objects, which is finally returned by this method.
+        When the uproot library is specified, WaveformSet.from_ROOT_file()
+        delegates such task to this helper method.
+
+        Parameters
+        ----------
+        idcs_to_retrieve : np.ndarray
+            A numpy array of (strictly) increasingly-ordered 
+            integers which contains the indices of the waveforms 
+            to be read from the TTree given to the bulk_data_tree
+            parameter. These indices are referred to the 
+            first_wf_index iterator value of the bulk data tree.
+        bulk_data_tree (resp. meta_data_tree) : uproot.TTree
+            The tree from which the bulk data (resp. meta data)
+            of the waveforms will be read. Branches whose name
+            start with 'adcs', 'channel', 'timestamp' and 'record'
+            will be required.
+        set_offset_wrt_daq_window : bool
+            If True, then the bulk data tree must also have a
+            branch whose name starts with 'daq_timestamp'. In
+            this case, then the TimeOffset attribute of each
+            waveform is set as the difference between its
+            value for the 'timestamp' branch and the value
+            for the 'daq_timestamp' branch, in such order,
+            referenced to the minimum value of such difference
+            among all the waveforms. This is useful to align
+            waveforms whose time overlap is not null, for
+            plotting and analysis purposes.
+        first_wf_index : int
+            The index of the first waveform of the chunk in
+            the bulk data, which can be potentially read. 
+            WaveformSet.from_ROOT_file() calculates this 
+            value based on its 'start_fraction' input parameter.
+        verbose : bool
+            If True, then functioning-related messages will be
+            printed.
+
+        Returns
+        ----------
+        waveforms : list of Waveform
+        """
+
+        clustered_idcs_to_retrieve = WaveformSet.cluster_integers_by_contiguity(idcs_to_retrieve)
 
         if verbose:
-            print(f"In function WaveformSet.from_ROOT_file(): Found {len(idcs_to_retrieve)} cluster(s) of contiguous {'full-streaming' if read_full_streaming_data else 'self-trigger'} waveforms in the ROOT file.")
-            print(f"In function WaveformSet.from_ROOT_file(): Note that, the lesser the clusters the faster the reading process will be.")
+
+            print(f"In function WaveformSet.__build_waveforms_list_from_ROOT_file_using_uproot(): Found {len(clustered_idcs_to_retrieve)} cluster(s) of contiguous waveforms of the selected type (self-trigger or full-stream) in the ROOT file.")
+            print(f"In function WaveformSet.__build_waveforms_list_from_ROOT_file_using_uproot(): Note that, the lesser the clusters the faster the reading process will be.")
 
         # For reference, reading ~1.6e+3 waveforms in 357 clusters takes ~10s,
         # while reading ~176e+3 waveforms in 1 cluster takes the same ~10s.
@@ -1849,31 +2008,35 @@ class WaveformSet:
         ## (where we read block-by-block) compared to just reading the whole arrays
         ## and then discard what we do not need based on the read 'is_fullstream' array.
         ## That's why we should introduce a criterion based on the number of clusters
-        ## i.e. len(idcs_to_retrieve) to decide whether to use this block-reading
-        ## structure or not. While lacking a proper criterion, a threshold for the
-        ## number of clusters above which just reading the whole arrays, could
-        ## be gotten as an input parameter of this method. The block-reading
+        ## i.e. len(clustered_idcs_to_retrieve) to decide whether to use this block-
+        ## reading structure or not. While lacking a proper criterion, a threshold 
+        ## for the number of clusters above which just reading the whole arrays, 
+        ## could be gotten as an input parameter of this method. The block-reading
         ## strategy is worth it, though, when the input file is not very fragmented.
         ## This is an open issue. 
         
-        # Note that the indices in idcs_to_retrieve are referred to the block which 
-        # we have read. I.e. idcs_to_retrieve[0] being, p.e. [0,3], means that with 
-        # respect to the branches in the ROOT file, the first cluster we need to read 
-        # goes from index wf_start+0 to index wf_start+3-1 inclusive, or wf_start+3.
+        # Note that the indices in clustered_idcs_to_retrieve are referred to the block 
+        # which we have read. I.e. clustered_idcs_to_retrieve[0] being, p.e. [0,3], means 
+        # that with respect to the branches in the ROOT file, the first cluster we need 
+        # to read goes from index wf_start+0 to index wf_start+3-1 inclusive, or wf_start+3.
         # exclusive. Also note that the 'entry_stop' parameter of uproot.TBranch.array()
         # is exclusive.
 
-        adcs_branch = WaveformSet.find_TBranch_in_TTree_file(   bulk_data_tree,     # It is slightly faster (~106s vs. 114s, for a 809 MB
-                                                                'adcs')             # input file running on lxplus9) to read branch by
-                                                                                    # branch rather than going for bulk_data_tree.arrays()
-        channel_branch = WaveformSet.find_TBranch_in_TTree_file(bulk_data_tree,
-                                                                'channel')
+        adcs_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                                'adcs',
+                                                                library = 'uproot')
+
+        channel_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree( bulk_data_tree,
+                                                                    'channel',
+                                                                    library = 'uproot')
         
-        timestamp_branch = WaveformSet.find_TBranch_in_TTree_file(  bulk_data_tree,
-                                                                    'timestamp')
+        timestamp_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
+                                                                        'timestamp',
+                                                                        library = 'uproot')
         
-        record_branch = WaveformSet.find_TBranch_in_TTree_file(    bulk_data_tree,
-                                                                    'record')
+        record_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(  bulk_data_tree,
+                                                                    'record',
+                                                                    library = 'uproot')
 
         waveforms = []                      # Using a list comprehension here is slightly slower than a for loop
                                             # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
@@ -1881,14 +2044,16 @@ class WaveformSet:
         if not set_offset_wrt_daq_window:   # Code is more extensive this way, but faster than evaluating
                                             # the conditional at each iteration within the loop.
 
-            for interval in idcs_to_retrieve:   # Read the waveforms in contiguous blocks
+            for interval in clustered_idcs_to_retrieve:     # Read the waveforms in contiguous blocks
 
-                branch_start = wf_start + interval[0]
-                branch_stop = wf_start + interval[1]
+                branch_start = first_wf_index + interval[0]
+                branch_stop = first_wf_index + interval[1]
 
-                current_adcs_array = adcs_branch.array( entry_start = branch_start,
-                                                        entry_stop = branch_stop)
-                
+                current_adcs_array = adcs_branch.array( entry_start = branch_start,     # It is slightly faster (~106s vs. 114s,
+                                                        entry_stop = branch_stop)       # for a 809 MB input file running on lxplus9)
+                                                                                        # to read branch by branch rather than going
+                                                                                        # for bulk_data_tree.arrays()
+
                 current_channel_array = channel_branch.array(   entry_start = branch_start,
                                                                 entry_stop = branch_stop)
                 
@@ -1906,8 +2071,7 @@ class WaveformSet:
                                                                         ## it must be implemented from the new
                                                                         ## 'metadata' TTree in the ROOT file
                                                 np.array(current_adcs_array[i]),
-                                            0,      #RunNumber      ## To be implemented from the new
-                                                                    ## 'metadata' TTree in the ROOT file
+                                                0,      #RunNumber      ## To be implemented from the new
                                                                         ## 'metadata' TTree in the ROOT file
                                                 current_record_array[i],
                                                 endpoint,
@@ -1917,13 +2081,14 @@ class WaveformSet:
 
             raw_time_offsets = []
 
-            daq_timestamp_branch = WaveformSet.find_TBranch_in_TTree_file(  bulk_data_tree,
-                                                                            'daq_timestamp')
-            
-            for interval in idcs_to_retrieve:   # Read the waveforms in contiguous blocks
+            daq_timestamp_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
+                                                                                'daq_timestamp',
+                                                                                library = 'uproot')
+                        
+            for interval in clustered_idcs_to_retrieve:     # Read the waveforms in contiguous blocks
 
-                branch_start = wf_start + interval[0]
-                branch_stop = wf_start + interval[1]
+                branch_start = first_wf_index + interval[0]
+                branch_stop = first_wf_index + interval[1]
 
                 current_adcs_array = adcs_branch.array( entry_start = branch_start,
                                                         entry_stop = branch_stop)
@@ -1945,12 +2110,9 @@ class WaveformSet:
                     endpoint, channel = WaveformSet.get_endpoint_and_channel(current_channel_array[i])
 
                     waveforms.append(Waveform(  current_timestamp_array[i],
-                                                16.,    # TimeStep_ns   ## Hardcoded to 16 ns for now, but
-                                                                        ## it must be implemented from the new
-                                                                        ## 'metadata' TTree in the ROOT file
+                                                16.,    # TimeStep_ns
                                                 np.array(current_adcs_array[i]),
-                                                0,      #RunNumber      ## To be implemented from the new
-                                                                        ## 'metadata' TTree in the ROOT file
+                                                0,      #RunNumber
                                                 current_record_array[i],
                                                 endpoint,
                                                 channel,
@@ -1961,17 +2123,255 @@ class WaveformSet:
             time_offsets = WaveformSet.reference_to_minimum(raw_time_offsets)
 
             for i in range(len(waveforms)):
-                waveforms[i]._set_time_offset(time_offsets[i])
+                waveforms[i]._WaveformAdcs__set_time_offset(time_offsets[i])
 
-        if read_full_streaming_data:
-
-            minimum_length = np.array([ len(wf.Adcs) for wf in waveforms]).min()
-
-            for wf in waveforms:
-                wf._WaveformAdcs__truncate_adcs(minimum_length)      
-        
-        return cls(*waveforms)
+        return waveforms
     
+    @staticmethod
+    def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.ndarray,
+                                                            bulk_data_tree : ROOT.TTree,
+                                                            meta_data_tree : ROOT.TTree,
+                                                            set_offset_wrt_daq_window : bool = False,
+                                                            first_wf_index : int = 0,
+                                                            subsample : int = 1,
+                                                            verbose : bool = True) -> List[Waveform]:
+        
+        """
+        This is a helper method which must only be called by the 
+        WaveformSet.from_ROOT_file() class method. This method
+        reads a subset of waveforms from the given ROOT.TTree
+        and appends them one by one to a list of Waveform
+        objects, which is finally returned by this method.
+        When the pyroot library is specified, WaveformSet.from_ROOT_file()
+        delegates such task to this helper method.
+
+        Parameters
+        ----------
+        idcs_to_retrieve : np.ndarray
+            A numpy array of (strictly) increasingly-ordered 
+            integers which contains the indices of the waveforms 
+            to be read from the TTree given to the bulk_data_tree
+            parameter. These indices are referred to the 
+            first_wf_index iterator value of the bulk data tree.
+        bulk_data_tree (resp. meta_data_tree) : ROOT.TTree
+            The tree from which the bulk data (resp. meta data)
+            of the waveforms will be read. Branches whose name
+            start with 'adcs', 'channel', 'timestamp' and 'record'
+            will be required. For more information on the expected
+            data types for these branches, check the 
+            WaveformSet.from_ROOT_file() method documentation.
+        set_offset_wrt_daq_window : bool
+            If True, then the bulk data tree must also have a
+            branch whose name starts with 'daq_timestamp'. In
+            this case, then the TimeOffset attribute of each
+            waveform is set as the difference between its
+            value for the 'timestamp' branch and the value
+            for the 'daq_timestamp' branch, in such order,
+            referenced to the minimum value of such difference
+            among all the waveforms. This is useful to align
+            waveforms whose time overlap is not null, for
+            plotting and analysis purposes.
+        first_wf_index : int
+            The index of the first waveform of the chunk in
+            the bulk data, which can be potentially read. 
+            WaveformSet.from_ROOT_file() calculates this 
+            value based on its 'start_fraction' input parameter.
+        subsample : int
+            It matches one plus the number of waveforms to be 
+            skipped between two consecutive waveforms to be read. 
+            I.e. if subsample is set to N, then the i-th waveform
+            to be read is the one with index equal to
+            first_wf_index + idcs_to_retrieve[i*N]. P.e.
+            the 0-th waveform to be read is the one with
+            index equal to first_wf_index + idcs_to_retrieve[0],
+            the 1-th waveform to be read is the one with
+            index equal to first_wf_index + idcs_to_retrieve[N]
+            and so on. 
+        verbose : bool
+            If True, then functioning-related messages will be
+            printed.
+
+        Returns
+        ----------
+        waveforms : list of Waveform
+        """
+
+        _, adcs_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree( bulk_data_tree,
+                                                                            'adcs',
+                                                                            library = 'pyroot')
+        adcs_address = ROOT.std.vector('short')()
+        bulk_data_tree.SetBranchAddress(adcs_branch_exact_name,
+                                        adcs_address)
+
+        _, channel_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(  bulk_data_tree,
+                                                                                'channel',
+                                                                                library = 'pyroot')
+        channel_address = array.array(  WaveformSet.ROOT_to_array_type_code('S'), 
+                                        [0])
+        
+        bulk_data_tree.SetBranchAddress(channel_branch_exact_name, 
+                                        channel_address)
+        
+        _, timestamp_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                                                'timestamp',
+                                                                                library = 'pyroot')
+        timestamp_address = array.array(WaveformSet.ROOT_to_array_type_code('l'),
+                                        [0])
+        
+        bulk_data_tree.SetBranchAddress(timestamp_branch_exact_name, 
+                                        timestamp_address)
+        
+        _, record_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
+                                                                                'record',
+                                                                                library = 'pyroot')
+        record_address = array.array(   WaveformSet.ROOT_to_array_type_code('i'),
+                                        [0])
+        
+        bulk_data_tree.SetBranchAddress(record_branch_exact_name, 
+                                        record_address)
+
+        idcs_to_retrieve_ = first_wf_index + idcs_to_retrieve[::subsample]
+
+        waveforms = []
+
+        if not set_offset_wrt_daq_window:   # Code is more extensive this way, but faster than evaluating
+                                            # the conditional at each iteration within the loop.
+
+            for idx in idcs_to_retrieve_:
+
+                bulk_data_tree.GetEntry(int(idx))
+
+                endpoint, channel = WaveformSet.get_endpoint_and_channel(channel_address[0])
+
+                waveforms.append(Waveform(  timestamp_address[0],
+                                            16.,    # TimeStep_ns   ## Hardcoded to 16 ns for now, but
+                                                                    ## it must be implemented from the new
+                                                                    ## 'metadata' TTree in the ROOT file
+                                            np.array(adcs_address),
+                                            0,      #RunNumber      ## To be implemented from the new
+                                                                    ## 'metadata' TTree in the ROOT file
+                                            record_address[0],
+                                            endpoint,
+                                            channel,
+                                            time_offset = 0))
+        else:
+
+            raw_time_offsets = []
+
+            _, daq_timestamp_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                                                        'daq_timestamp',
+                                                                                        library = 'pyroot')
+            daq_timestamp_address = array.array(WaveformSet.ROOT_to_array_type_code('l'), 
+                                                [0])
+
+            bulk_data_tree.SetBranchAddress(daq_timestamp_branch_exact_name, 
+                                            daq_timestamp_address)
+
+            for idx in idcs_to_retrieve_:
+
+                bulk_data_tree.GetEntry(int(idx))
+
+                endpoint, channel = WaveformSet.get_endpoint_and_channel(channel_address[0])
+
+                waveforms.append(Waveform(  timestamp_address[0],
+                                            16.,    # TimeStep_ns
+                                            np.array(adcs_address),
+                                            0,      #RunNumber      ## To be implemented from the new
+                                                                    ## 'metadata' TTree in the ROOT file
+                                            record_address[0],
+                                            endpoint,
+                                            channel,
+                                            time_offset = 0))
+                
+                raw_time_offsets.append(int(timestamp_address[0]) - int(daq_timestamp_address[0]))
+
+            time_offsets = WaveformSet.reference_to_minimum(raw_time_offsets)
+
+            for i in range(len(waveforms)):
+                waveforms[i]._WaveformAdcs__set_time_offset(time_offsets[i])
+
+        bulk_data_tree.ResetBranchAddresses()   # This is necessary to avoid a segmentation fault. 
+                                                # For more information, check 
+                                                # https://root.cern/doc/master/classTTree.html
+        return waveforms
+
+    @staticmethod
+    def ROOT_to_array_type_code(input : str) -> str:
+
+        """
+        This method gets a length-one string which matches
+        a code type used in ROOT TTree and TBranch objects.
+        It returns its equivalent in python array module.
+        If the code is not recognized, a ValueError exception
+        is raised.
+
+        Parameters
+        ----------
+        input : str
+            A length-one string which matches a code type
+            used in ROOT TTree and TBranch objects. The
+            available codes are:
+
+                - B : an 8 bit signed integer
+                - b : an 8 bit unsigned integer
+                - S : a 16 bit signed integer
+                - s : a 16 bit unsigned integer
+                - I : a 32 bit signed integer
+                - i : a 32 bit unsigned integer
+                - F : a 32 bit floating point
+                - D : a 64 bit floating point
+                - L : a 64 bit signed integer
+                - l : a 64 bit unsigned integer
+                - G : a long signed integer, stored as 64 bit
+                - g : a long unsigned integer, stored as 64 bit
+                - O : [the letter o, not a zero] a boolean (bool)
+
+            For more information, check https://root.cern/doc/master/classTTree.html
+
+        Returns
+        ----------
+        output : str
+            The equivalent code in python array module. The possible
+            outputs are
+
+                - 'b' : signed char (int, 1 byte)
+                - 'B' : unsigned char (int, 1 byte)
+                - 'h' : signed short (int, 2 bytes)
+                - 'H' : unsigned short (int, 2 bytes)
+                - 'i' : signed int (int, 2 bytes)
+                - 'I' : unsigned int (int, 2 bytes)
+                - 'l' : signed long (int, 4 bytes)
+                - 'L' : unsigned long (int, 4 bytes)
+                - 'q' : signed long long (int, 8 bytes)
+                - 'Q' : unsigned long long (int, 8 bytes)
+                - 'f' : float (float, 4 bytes)
+                - 'd' : double (float, 8 bytes)
+
+            For more information, check https://docs.python.org/3/library/array.html
+        """
+
+        map = { 'B' : 'b',
+                'b' : 'B',
+                'O' : 'B',
+                'S' : 'h',
+                's' : 'H',
+                'I' : 'l',
+                'i' : 'L',
+                'G' : 'q',
+                'L' : 'q',
+                'g' : 'Q',
+                'l' : 'Q',
+                'F' : 'f',
+                'D' : 'd'}
+        try:
+            output = map[input]
+        except KeyError:
+            raise ValueError(generate_exception_message( 1,
+                                                        'WaveformSet.ROOT_to_array_type_code()',
+                                                        f"The given data type ({input}) is not recognized."))
+        else:
+            return output
+
     @staticmethod
     def cluster_integers_by_contiguity(increasingly_sorted_integers : np.ndarray) -> List[List[int]]:
 
@@ -2075,15 +2475,16 @@ class WaveformSet:
         return extremals
     
     @staticmethod
-    def find_TTree_in_ROOT_file(file : Union[uproot.ReadOnlyDirectory, ROOT.TFile],
-                                TTree_pre_name : str,
-                                library : str = 'pyroot') -> Union[uproot.TTree, ROOT.TTree]:
+    def find_TTree_in_ROOT_TFile(   file : Union[uproot.ReadOnlyDirectory, ROOT.TFile],
+                                    TTree_pre_name : str,
+                                    library : str = 'uproot') -> Union[uproot.TTree, ROOT.TTree]:
         
         """
         This method returns the first object found in the given
         ROOT file whose name starts with the string given to the
-        'TTree_pre_name' parameter and which is a TTree object. If 
-        no such TTree is found, an exception is raised.
+        'TTree_pre_name' parameter and which is a TTree object, 
+        and the full exact name of the returned TTree object. If
+        no such TTree is found, a NameError exception is raised.
 
         Parameters
         ----------
@@ -2099,24 +2500,30 @@ class WaveformSet:
             type uproot.ReadOnlyDirectory (resp. ROOT.TFile).
 
         Returns
-        ----------
-        uproot.TTree
+        ----------        
+        output : tuple of ( uproot.TTree or ROOT.TTree, str, )
+            The first element of the returned tuple is the
+            TTree object found in the given TFile whose
+            name starts with the string given to the
+            'TTree_pre_name' parameter. The second element
+            is the full name, within the given TFile, of the 
+            returned TTree.
         """
 
         if library == 'uproot':
-            if type(file) != uproot.ReadOnlyDirectory:
+            if not isinstance(file, uproot.ReadOnlyDirectory):
                 raise Exception(generate_exception_message( 1,
-                                                            'WaveformSet.find_TTree_in_ROOT_file()',
+                                                            'WaveformSet.find_TTree_in_ROOT_TFile()',
                                                             'Since the uproot library was specified, the input file must be of type uproot.ReadOnlyDirectory.'))
         elif library == 'pyroot':
-            if type(file) != ROOT.TFile:
+            if not isinstance(file, ROOT.TFile):
                 raise Exception(generate_exception_message( 2,
-                                                            'WaveformSet.find_TTree_in_ROOT_file()',
+                                                            'WaveformSet.find_TTree_in_ROOT_TFile()',
                                                             'Since the pyroot library was specified, the input file must be of type ROOT.TFile.'))
         else:
             raise Exception(generate_exception_message( 3,
-                                                        'WaveformSet.find_TTree_in_ROOT_file()',
-                                                        f"The library '{library}' is not supported."))
+                                                        'WaveformSet.find_TTree_in_ROOT_TFile()',
+                                                        f"The library '{library}' is not supported. Either 'uproot' or 'pyroot' must be given."))
         TTree_name = None
         
         if library == 'uproot':
@@ -2131,21 +2538,22 @@ class WaveformSet:
                     break
 
         if TTree_name is None:
-            raise Exception(generate_exception_message( 4,
-                                                        'WaveformSet.find_TTree_in_ROOT_file()',
+            raise NameError(generate_exception_message( 4,
+                                                        'WaveformSet.find_TTree_in_ROOT_TFile()',
                                                         f"There is no TTree with a name starting with '{TTree_pre_name}'."))
-        return file[TTree_name]
+        return file[TTree_name], TTree_name
     
     @staticmethod
     def find_TBranch_in_ROOT_TTree( tree : Union[uproot.TTree, ROOT.TTree],
                                     TBranch_pre_name : str,
-                                    library : str = 'uproot') -> Union[uproot.TBranch, ROOT.TBranch]:
+                                    library : str = 'uproot') -> Tuple[Union[uproot.TBranch, ROOT.TBranch], str]:
         
         """
         This method returns the first TBranch found in the 
         given ROOT TTree whose name starts with the string 
-        given to the 'TBranch_pre_name' parameter. If no 
-        such TBranch is found, an exception is raised.
+        given to the 'TBranch_pre_name' parameter, and the
+        full exact name of the returned TBranch. If no such 
+        TBranch is found, a NameError exception is raised.
 
         Parameters
         ----------
@@ -2163,7 +2571,13 @@ class WaveformSet:
 
         Returns
         ----------
-        uproot.TBranch
+        output : tuple of ( uproot.TBranch or ROOT.TBranch, str, )
+            The first element of the returned tuple is the
+            TBranch object found in the given TTree whose
+            name starts with the string given to the
+            'TBranch_pre_name' parameter. The second element
+            is the full name, within the given TTree, of the 
+            returned TBranch.
         """
 
         if library == 'uproot':
@@ -2194,13 +2608,94 @@ class WaveformSet:
                     break
                 
         if TBranch_name is None:
-            raise Exception(generate_exception_message( 4,
+            raise NameError(generate_exception_message( 4,
                                                         'WaveformSet.find_TBranch_in_ROOT_TTree()',
                                                         f"There is no TBranch with a name starting with '{TBranch_pre_name}'."))
-        if library == 'uproot':
-            return tree[TBranch_name]
+        
+        output = ( tree[TBranch_name] if library == 'uproot' else tree.GetBranch(TBranch_name), TBranch_name )
+        return output
+        
+    @staticmethod
+    def get_1d_array_from_pyroot_TBranch(   tree : ROOT.TTree,
+                                            branch_name : str,
+                                            i_low : int = 0, 
+                                            i_up : Optional[int] = None,
+                                            ROOT_type_code : str = 'S') -> np.ndarray:
+        
+        """
+        This method returns a 1D numpy array containing the
+        values of the branch whose name starts with the string
+        given to the 'branch_name' parameter in the given ROOT
+        TTree object. The values are taken from the entries
+        of the TTree object whose iterator values are in the
+        range [i_low, i_up). I.e. the lower (resp. upper) bound 
+        is inclusive (resp. exclsive). 
+
+        Parameters
+        ----------
+        tree : ROOT.TTree
+            The ROOT TTree object where to look for the TBranch
+        branch_name : str
+            The string which the name of the TBranch object 
+            must start with
+        i_low : int
+            The inclusive lower bound of the range of entries 
+            to be read from the branch. It must be non-negative. 
+            It is set to 0 by default. It must be smaller than 
+            i_up.
+        i_up : int
+            The exclusive upper bound of the range of entries 
+            to be read from the branch. If it is not defined,
+            then it is set to the length of the considered branch.
+            It it is defined, then it must be smaller or equal
+            to the length of the considered branch, and greater
+            than i_low.
+        ROOT_type_code : str
+            The data type of the branch to be read. The valid
+            values can be checked in the docstring of the
+            WaveformSet.ROOT_to_array_type_code() method.
+
+        Returns
+        ----------
+        output : np.ndarray
+        """
+
+        try:
+            branch, exact_branch_name = WaveformSet.find_TBranch_in_ROOT_TTree( tree, 
+                                                                                branch_name, 
+                                                                                library = 'pyroot')
+        except NameError:
+            raise NameError(generate_exception_message( 1,
+                                                        'WaveformSet.get_1d_array_from_pyroot_TBranch()',
+                                                        f"There is no TBranch with a name starting with '{branch_name}' in the given tree."))
+        if i_up is None:
+            i_up_ = branch.GetEntries()
         else:
-            return tree.GetBranch(TBranch_name)
+            i_up_ = i_up
+
+        if i_low < 0 or i_low >= i_up_ or i_up_ > branch.GetEntries():
+            raise Exception(generate_exception_message( 2,
+                                                        'WaveformSet.get_1d_array_from_pyroot_TBranch()',
+                                                        f"The given range [{i_low}, {i_up_}) is not well-defined for this branch."))
+        
+        retrieval_address = array.array(WaveformSet.ROOT_to_array_type_code(ROOT_type_code),    # WaveformSet.ROOT_to_array_type_code()
+                                        [0])                                                    # will raise a ValueError if ROOT_type_code
+                                                                                                # is not recognized.
+        
+        output = np.empty((i_up_ - i_low,))     # Specifying a dtype here might speed up the process
+        
+        tree.SetBranchAddress(exact_branch_name, retrieval_address)
+
+        for i in range(i_low, i_up_):
+            tree.GetEntry(i)
+            output[i - i_low] = retrieval_address[0]
+
+        tree.ResetBranchAddresses()     # This is necessary to avoid a segmentation fault. Indeed,
+                                        # from https://root.cern/doc/master/classTTree.html :
+                                        # 'The pointer whose address is passed to TTree::Branch 
+                                        # must not be destroyed (i.e. go out of scope) until the 
+                                        # TTree is deleted or TTree::ResetBranchAddress is called.'
+        return output
         
     @staticmethod
     def get_endpoint_and_channel(input : int) -> Tuple[int, int]:
