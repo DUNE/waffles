@@ -1760,8 +1760,8 @@ class WaveformSet:
             Adcs, Channel, Timestamp and RecordNumber will be taken 
             respectively. The 'is_fullstream' branch is used to 
             decide whether a certain waveform should be grabbed 
-            or not, depending on the value given to the             ## For the moment, the meta-data tree is not
-            'read_full_streaming_data' parameter                    ## read. This needs to change in the near future.
+            or not, depending on the value given to the                 ## For the moment, the meta-data tree is not
+            'read_full_streaming_data' parameter.                       ## read. This needs to change in the near future.
         bulk_data_tree_name (resp. meta_data_tree_name) : str
             Name of the bulk-data (meta-data) tree which will be 
             extracted from the given ROOT file. The first object 
