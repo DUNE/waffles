@@ -436,7 +436,7 @@ class CalibrationHistogram:
 
         Returns
         -------
-        output : tuple of ( bool and tuple )
+        output : tuple of ( bool,  tuple, )
             The first entry is a boolean which is True if 
             the number of peaks found is greater than or 
             equal to max_peaks, and False otherwise. The
@@ -492,7 +492,7 @@ class CalibrationHistogram:
 
         Parameters
         ----------
-        spsi_output : tuple of ( np.ndarray and dict )
+        spsi_output : tuple of ( np.ndarray,  dict, )
             The output of a call to scipy.signal.find_peaks().
             No checks are performed here regarding the
             well-formedness of this input.
@@ -510,7 +510,7 @@ class CalibrationHistogram:
 
         Returns
         -------
-        output : tuple of ( np.ndarray and dict )
+        output : tuple of ( np.ndarray, dict, )
             The first element is an unidimensional numpy array 
             which contains the first max_peaks elements of the 
             first element of the given spsi_output. The second 
