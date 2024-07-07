@@ -23,10 +23,21 @@ class ChannelWSGrid:
         for which there is at least one ChannelWS object
         in this ChannelWSGrid object. The values of such
         dictionary are dictionaries, whose keys are
-        channel values for which there is at least one
-        ChannelWS object in this ChannelWSGrid object.
-        The values for the deeper-level dictionaries are
-        ChannelWS objects.
+        channel values for which there is a ChannelWS
+        object in this ChannelWSGrid object. The values 
+        for the deeper-level dictionaries are ChannelWS 
+        objects. Note that there might be a certain
+        UniqueChannel object which is present in the
+        ChannelMap, but for which there is no ChannelWS
+        object in this attribute (ChWfSets). I.e.
+        appearance of a certain UniqueChannel object
+        in the ChannelMap does not guarantee that there
+        will be a ChannelWS object in this attribute
+        which comes from such unique channel. Hence, 
+        one should always handle a KeyError exceptions
+        when trying to subscribe ChWfSets with the endpoint
+        and channel coming from an UniqueChannel object
+        within the ChMap attribute.
 
     Methods
     ----------
