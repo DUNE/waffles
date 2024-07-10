@@ -121,8 +121,56 @@ do
                 ${mode_script_map[$script_mode]} $rucio_path >> run${run}_duplications.txt
         fi
 
-
     done
+
+    # Check if the mode is HDF5toROOT_decoder and merge the root files if necessary
+    if [ ${mode_script_map[$script_mode]} == "HDF5toROOT_decoder" ]; then
+        declare -A groups
+        files=$(ls .) # Get the files in the directory
+
+        # Loop over the files
+        for file in $files
+        do
+            prefix=$(echo $file | cut -d'_' -f2) # Get the prefix of the file name
+            groups[$prefix]+="$file " # Add the file to the appropriate group
+        done
+
+        # Loop over the groups
+        for prefix in "${!groups[@]}"
+        do
+            
+            group=(${groups[$prefix]}) # Get the group
+            common_name=${group[0]} # Get the common name from the first file in the group
+            # Replace the dataflow number in the common name with 0-3
+            common_name=$(echo $common_name | awk -F'dataflow' '{print $1 "dataflow0-3_" substr($0, index($0,$2)+2)}')
+
+            # Count the number of files in the group that are smaller than 200MB
+            small_files=0
+            for file in ${group[@]}
+            do
+                size=$(du -m "${file}" | cut -f1)
+                if [ ! -z "$size" ] && [ $size -lt 200 ]; then
+                    small_files=$((small_files + 1))
+                fi
+            done
+
+            #If more than 1 file in the group smaller than 200MB, merge them:
+            if [ $small_files -gt 1 ]; then
+                echo -e "\n\nMerging group ${prefix}... into ${common_name}"
+                echo -e "\nFILES TO BE REMOVED ${group[@]}"
+
+                read -p "Do you want to merge the files in the group ${prefix}? (y/n) " -n 1 -r
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    hadd -k ${common_name} ${group[@]} # Run the hadd command
+                    rm ${group[@]} # Remove the files in the group
+                fi
+                
+                else
+                    echo -e "\nNo small files so NO merging root files ${prefix}"
+            fi
+        done
+    fi
+
     cd $waffles_path
 
 done
