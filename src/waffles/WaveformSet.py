@@ -3,7 +3,10 @@ import inspect
 import array
 
 import uproot
-import ROOT
+try: import ROOT
+except ImportError: 
+    print("[WaveformSet.py]: Could not import ROOT module. Do not use 'pyroot' library options.")
+    pass
 import numba
 import numpy as np
 from typing import Tuple, List, Dict, Callable, Optional, Union
