@@ -5,7 +5,7 @@ WaveformAdcs
     
    The ...
 
-.. inheritance-diagram::  src.waffles.WaveformAdcs
+.. inheritance-diagram::  waffles.WaveformAdcs
 
-.. autoclass:: src.waffles.WaveformAdcs
+.. autoclass:: waffles.WaveformAdcs
    :members:

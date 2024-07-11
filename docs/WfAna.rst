@@ -5,7 +5,7 @@ WfAna
     
    The ...
 
-.. inheritance-diagram::  src.waffles.WfAna
+.. inheritance-diagram::  waffles.WfAna
 
-.. autoclass:: src.waffles.WfAna
+.. autoclass:: waffles.WfAna
    :members:

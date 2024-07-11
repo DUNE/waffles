@@ -5,7 +5,7 @@ WaveformSet
 
    The ...
 
-.. inheritance-diagram::  src.waffles.WaveformSet
+.. inheritance-diagram::  waffles.WaveformSet
 
-.. autoclass:: src.waffles.WaveformSet
+.. autoclass:: waffles.WaveformSet
    :members:

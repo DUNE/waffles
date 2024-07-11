@@ -21,6 +21,15 @@
    :tealtitle:`WELCOME TO WAFFLES`
 ====================================================
 
+.. image:: _static/waffles_logo.png
+   :width: 500px
+   :align: center
+   :alt: waffles_logo
+
+.. raw:: html
+
+   <br />
+
 The **Waveform Analysis Framework For Light Emission Studies** (:tealstext:`WAFFLES`) is a Python library used for the PDS analysis in NP04.
 
 You can navigate through the documentation using the table of contents below, and you can search for specific keywords using the search tab placed at left side.
@@ -35,7 +44,6 @@ You can navigate through the documentation using the table of contents below, an
     1_Intro  
     2_Scripts  
     3_Libraries
-
     examples/4_Examples
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
@@ -45,13 +53,10 @@ You can navigate through the documentation using the table of contents below, an
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
+**CONNECTION TO LXPLUS@CERN.CH ARE NEEDED** -- Check your `CERN account configuration <https://resources.web.cern.ch/resources/>`_.
 
-**SUMMARY**
-============
-
-For a quick summary or just as a reminder follow the next steps:
-
-** CONNECTION/CREADENTIALS TO LXPLUS@CERN.CH ARE NEEDED**
+**QUICK START**
+================
 
 -------------------------
 0.- Clone the repository
@@ -74,39 +79,56 @@ Otherwise, you can create a folder for your custom scripts and add them to the `
    echo "<your_folder_name/*>" >> .gitignore
 
 -----------------------------------------------------------------------------------
-1.- Install (first time) or source the ``daq environment`` (every time you log-in)
+1.- Install (first time) or source your virtual environment (every time you log-in)
 -----------------------------------------------------------------------------------
 
-This enviroment is needed to extract PDS data from the raw DAQ data.
-If you just want to analyse the already generated ``root`` files this requirement becames optional.
+* If you need to decode ``.hdf5`` files you need to install the ``dbt`` environment. This environment is needed to extract PDS data from the raw DAQ data.
 
-To install the environment check for the last version and run:
+  To install the environment check for the last version and run:
 
-.. code-block:: bash
+  .. code-block:: bash
+  
+     source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh  # Source the dunedaq environment
+  
+     setup_dbt latest                                            # Setup the latest version of dbt
+     dbt-create -l                                               # List the available versions of dbt
+     dbt-create fddaq-v4.4.3-a9 <my_dir>                         # Create a new dbt environment with the version fddaq-v4.4.3-a9
+     source <my_dir>/env.sh                                      # Source the dbt environment
 
-   source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh
 
-   setup_dbt latest
-   dbt-create -l 
-   dbt-create fddaq-v4.4.3-a9 <my_dir>
+* If you just want to analyze the already generated ``ROOT`` files this requirement becomes optional and you can create a python virtual environment with:
+
+  .. code-block:: bash
+  
+     python3 -m venv /path/to/new/virtual/environment      # Create a new virtual environment
+     source /path/to/new/virtual/environment/bin/activate  # Activate the environment
+  
+    
+  In order to have access to the ``ROOT`` library you need to have it sourced in your environment. Add these lines at the end of the ``bin/activate`` file:
+
+  .. code-block:: bash
+  
+     source /cvmfs/sft.cern.ch/lcg/app/releases/ROOT/6.32.02/x86_64-almalinux9.4-gcc114-opt/bin/thisroot.sh
+     export JUPYTER_CONFIG_DIR=$VIRTUAL_ENV
+
 
 ----------------------------------------------------
 2.- Install packages needed for the library to run
 ----------------------------------------------------
 
-Once you have your environment sourced (``source env.sh``) you can install the packages needed for the library with:
+Once you have your environment sourced (``source env.sh`` or ``source bin/activate``) you can install the packages needed for the library with:
 
 .. code-block:: bash
 
-   cd waffles/scripts
-   sh setup.sh
+   cd /path/to/waffles # Go to the waffles main folder
+   pip install -r docs/analysis_requirements.txt # Install the requirements for the library
 
 
 ----------------------
 3.- Access the data  
 ----------------------
 
-The PDS data is stored in the ``eos`` CERN storage system. The paths are would be useful:
+The PDS data is stored in the ``eos`` CERN storage system. The paths would be useful:
 
 * **TUTORIAL INFO**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/0_TUTORIAL`` 
 * **RUCIO PATHS**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`` 
@@ -115,9 +137,10 @@ The PDS data is stored in the ``eos`` CERN storage system. The paths are would b
 
 .. admonition:: **Preferred work-flow**
    
-   Convert the ``hdf5`` files to ``root`` files using ``00_HDF5toROOT`` scripts. (For using the bash script you need to have the cpp tools previously compiled, see ``cpp_utils`` folder).
-   This will generate the rucio paths if they are not already created and store them in the ``1_rucio_paths`` folder. The output will be stored in the ``2_daq_root`` folder.
+   Convert the ``hdf5`` files to ``ROOT`` files using ``00_HDF5toROOT`` scripts. (For using the bash script you need to have the cpp tools previously compiled, see ``cpp_utils`` folder).
+   This will generate the ``rucio`` paths if they are not already created and store them in the ``1_rucio_paths`` folder. The output will be stored in the ``2_daq_root`` folder.
 
+Have a look at the examples tab for more information on how to run waffles.
 
 Depending on the scope of your analysis you may need a different machine:
    
