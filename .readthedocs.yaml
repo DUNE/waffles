@@ -24,3 +24,4 @@ sphinx:
 python:
   install:
   - requirements: docs/docs_requirements.txt
+  - requirements: docs/analysis_requirements.txt
