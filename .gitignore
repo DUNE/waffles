@@ -8,6 +8,7 @@ test/
 *krb5.conf*
 
 !docs/examples/00_CheckData.ipynb
+!docs/_static/*
 
 # Ignoring common build directories
 build/
