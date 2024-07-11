@@ -149,7 +149,7 @@ do
             for file in ${group[@]}
             do
                 size=$(du -m "${file}" | cut -f1)
-                if [ ! -z "$size" ] && [ $size -lt 200 ]; then
+                if [ ! -z "$size" ] && [ $size -lt 300 ]; then
                     small_files=$((small_files + 1))
                 fi
             done
