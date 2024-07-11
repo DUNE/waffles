@@ -36,7 +36,11 @@ if [ -n "$3" ];then
          done
 fi
 
-run0=$(printf "%06d" $run)
+if [ ${#run} -ne 6 ]; then
+   run0=$(printf "%06d" $run)
+   else
+      run0=$run
+fi  
 rucio_paths_file="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/${run0}.txt"
 # Check if already someone have run this script and rucio paths are stored already
 if [ -f ${rucio_paths_file} ]; then
@@ -71,7 +75,7 @@ if [ -f ${rucio_paths_file} ]; then
             fi
             if [[ $os_name == "Red Hat Enterprise Linux" && $version_id == 9* ]]; then
                echo -e "Configuring rucio in Alma 9"
-               echo -e "Work on progress...  Connect to lxplus7 to get the paths"
+               echo -e "Work on progress...  Connect to SL7 to get the paths"
                # source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh 
                # spack load r-m-dd-config/w7kcz6r experiment=dune
                # spack load cmake@3.27.7

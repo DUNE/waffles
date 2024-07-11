@@ -62,11 +62,13 @@ fi
 run_string=(${run_string//,/ })
 for run in ${run_string[@]}
 do
-    run=$(printf "%06d" $run)
-    # run get_rucio script with the run number to get the paths
+    if [ ${#run} -ne 6 ]; then
+        run=$(printf "%06d" $run)
+    fi  
     echo -e "\e[35m\nGetting the paths for the run(s) $run... \n \e[0m"
-
     rucio_paths=$(cat /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/$run.txt)
+
+    # run get_rucio script with the run number to get the paths if the file does not exist
     if [ -z "$rucio_paths" ]; then
         python get_rucio.py --runs $run
         rucio_paths=$(cat /eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/$run.txt)
@@ -74,21 +76,20 @@ do
 
     echo -e "\e[32m --> Raw .hdf5 file found at $rucio_paths \e[0m"
     
-    if [ ${mode_script_map[$script_mode]} == "HDF5toROOT_decoder" ]; then
-        cd ${save_path}
-        if [ ! -d "run_$run" ]; then  #if run_run_number folder does not exist create it
-            mkdir run_$run
-            chmod 777 run_$run
-        fi
-
-        cd run_$run
-        echo -e "\e[35m\n... Running HDF5toROOT_decoder ...\n \e[0m"
+    # Check if the output directory exists and create it if it does not
+    cd ${save_path}
+    if [ ! -d "run_$run" ]; then  # if run_run_number folder does not exist create it
+        mkdir run_$run            # Create a directory for each run
+        chmod 777 run_$run        # Give permissions to the directory (to be removed if stable root files are produced)
     fi
+
+    cd run_$run
+    echo -e "\e[35m\n... Running ${mode_script_map[$script_mode]} ...\n \e[0m"
 
     # Convert rucio_paths to an array
     rucio_paths_array=($rucio_paths)
     if [ $end_nfile -eq -1 ]; then
-        end_nfile=16 #HARDCODED 16 files per run (TEMPORAL)
+        end_nfile=16 # HARDCODED 16 files per run (TEMPORAL)
         # end_nfile=${#rucio_paths_array[@]} #if the user wants to process all the files
     fi
 
@@ -96,19 +97,80 @@ do
     rucio_paths_subset=${rucio_paths_array[@]:$ini_nfile:$end_nfile}
     for rucio_path in $rucio_paths_subset #check if there are several lines in the txt and run a loop over them
     do
-        ${mode_script_map[$script_mode]} $rucio_path 
-        
-        new_name=$(basename "$rucio_path")
-        new_name=${new_name#np04hd_raw_}
-        new_name=${new_name%.hdf5}
-        echo -e "\e[32m --> The output file is $new_name.root\e[0m"
-        
-        # Get the most recently created file in the current directory
-        file=$(ls -t | head -n1)
-        # Rename the file
-        mv "$file" "$new_name.root"
-        
+        if [ ${mode_script_map[$script_mode]} == "HDF5toROOT_decoder" ]; then
+                new_name=$(basename "$rucio_path") # Get the name of the file
+                new_name=${new_name#np04hd_raw_}   # Remove the prefix
+                new_name=${new_name%.hdf5}         # Remove the suffix
+
+                #Check if the output file already exists in the folder and ask if want to overwrite
+                if [ -f "$new_name.root" ]; then
+                    echo -e "\e[31m\nWARNING: The output file $new_name.root already exists in the folder!\e[0m"
+                    read -p "Do you want to overwrite it? (y/n) " -n 1 -r
+                    if [[ ! $REPLY =~ ^[Yy]$ ]]
+                    then
+                        continue
+                    fi
+                fi
+                
+                ${mode_script_map[$script_mode]} $rucio_path 
+            
+                file=$(ls -t | head -n1)    # Get the most recently created file in the current directory
+                mv "$file" "$new_name.root" # Rename the file (same as the hdf5 file and python script output)
+                echo -e "\e[32m --> The output file is $new_name.root\n\e[0m"
+            else
+                ${mode_script_map[$script_mode]} $rucio_path >> run${run}_duplications.txt
+        fi
+
     done
+
+    # Check if the mode is HDF5toROOT_decoder and merge the root files if necessary
+    if [ ${mode_script_map[$script_mode]} == "HDF5toROOT_decoder" ]; then
+        declare -A groups
+        files=$(ls .) # Get the files in the directory
+
+        # Loop over the files
+        for file in $files
+        do
+            prefix=$(echo $file | cut -d'_' -f2) # Get the prefix of the file name
+            groups[$prefix]+="$file " # Add the file to the appropriate group
+        done
+
+        # Loop over the groups
+        for prefix in "${!groups[@]}"
+        do
+            
+            group=(${groups[$prefix]}) # Get the group
+            common_name=${group[0]} # Get the common name from the first file in the group
+            # Replace the dataflow number in the common name with 0-3
+            common_name=$(echo $common_name | awk -F'dataflow' '{print $1 "dataflow0-3_" substr($0, index($0,$2)+2)}')
+
+            # Count the number of files in the group that are smaller than 200MB
+            small_files=0
+            for file in ${group[@]}
+            do
+                size=$(du -m "${file}" | cut -f1)
+                if [ ! -z "$size" ] && [ $size -lt 300 ]; then
+                    small_files=$((small_files + 1))
+                fi
+            done
+
+            #If more than 1 file in the group smaller than 200MB, merge them:
+            if [ $small_files -gt 1 ]; then
+                echo -e "\n\nMerging group ${prefix}... into ${common_name}"
+                echo -e "\nFILES TO BE REMOVED ${group[@]}"
+
+                read -p "Do you want to merge the files in the group ${prefix}? (y/n) " -n 1 -r
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    hadd -k ${common_name} ${group[@]} # Run the hadd command
+                    rm ${group[@]} # Remove the files in the group
+                fi
+                
+                else
+                    echo -e "\nNo small files so NO merging root files ${prefix}"
+            fi
+        done
+    fi
+
     cd $waffles_path
 
 done
