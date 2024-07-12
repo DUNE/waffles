@@ -7,6 +7,7 @@ from .WaveformAdcs          import *
 from .WaveformSet           import *
 from .Waveform              import *
 from .ChannelWS             import *
+from .ChannelWSGrid         import *
 from .CalibrationHistogram  import *
 from .UniqueChannel         import *
 from .Map                   import *
