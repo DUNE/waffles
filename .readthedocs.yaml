@@ -20,7 +20,6 @@ sphinx:
 # If using Sphinx, optionally build your docs in additional formats such as PDF
 formats:
    - pdf
-   - ipynb
 
 # Create a conda environment and install dependencies from environment.yml
 conda:
