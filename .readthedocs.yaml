@@ -27,4 +27,4 @@ conda:
 
 python:
   install:
-  - requirements: docs/analysis_requirements.txt
+  - requirements: docs/requirements.txt
