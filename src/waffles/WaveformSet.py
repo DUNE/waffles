@@ -1731,6 +1731,7 @@ class WaveformSet:
 
     @classmethod
     def from_ROOT_file(cls, filepath : str,
+                            library : str,
                             bulk_data_tree_name : str = 'raw_waveforms',
                             meta_data_tree_name : str = 'metadata',
                             set_offset_wrt_daq_window : bool = False,
@@ -1738,7 +1739,6 @@ class WaveformSet:
                             truncate_wfs_to_minimum : bool = False,
                             start_fraction : float = 0.0,
                             stop_fraction : float = 1.0,
-                            library : str = 'pyroot',
                             subsample : int = 1,
                             verbose : bool = True) -> 'WaveformSet':
 
@@ -1770,6 +1770,24 @@ class WaveformSet:
             decide whether a certain waveform should be grabbed 
             or not, depending on the value given to the                 ## For the moment, the meta-data tree is not
             'read_full_streaming_data' parameter.                       ## read. This needs to change in the near future.
+        library : str
+            The library to be used to read the input ROOT file. 
+            The supported values are 'uproot' and 'pyroot'. If 
+            pyroot is selected, then it is assumed that the 
+            types of the branches in the bulk-data tree are the 
+            following ones:
+
+                - 'adcs'            : vector<short>
+                - 'channel'         : 'S', i.e. a 16 bit signed integer
+                - 'timestamp'       : 'l', i.e. a 64 bit unsigned integer
+                - 'record'          : 'i', i.e. a 32 bit unsigned integer
+                - 'is_fullstream'   : 'O', i.e. a boolean
+
+            Additionally, if set_offset_wrt_daq_window is True,
+            then the 'daq_timestamp' branch must be of type 'l',
+            i.e. a 64 bit unsigned integer. Type checks are not
+            implemented here. If these requirements are not met,
+            a segmentation fault may occur in the reading process.
         bulk_data_tree_name (resp. meta_data_tree_name) : str
             Name of the bulk-data (meta-data) tree which will be 
             extracted from the given ROOT file. The first object 
@@ -1820,24 +1838,6 @@ class WaveformSet:
             True, will result in loading every waveform which belongs
             to the third quarter of the input file and for which 
             the 'is_fullstream' branch equals to True.
-        library : str
-            The library to be used to read the input ROOT file. 
-            The supported values are 'uproot' and 'pyroot'. If 
-            pyroot is selected, then it is assumed that the 
-            types of the branches in the bulk-data tree are the 
-            following ones:
-
-                - 'adcs'            : vector<short>
-                - 'channel'         : 'S', i.e. a 16 bit signed integer
-                - 'timestamp'       : 'l', i.e. a 64 bit unsigned integer
-                - 'record'          : 'i', i.e. a 32 bit unsigned integer
-                - 'is_fullstream'   : 'O', i.e. a boolean
-
-            Additionally, if set_offset_wrt_daq_window is True,
-            then the 'daq_timestamp' branch must be of type 'l',
-            i.e. a 64 bit unsigned integer. Type checks are not
-            implemented here. If these requirements are not met,
-            a segmentation fault may occur in the reading process.
         subsample : int
             This feature is only enabled for the case when
             library == 'pyroot'. Otherwise, this parameter
@@ -1873,7 +1873,7 @@ class WaveformSet:
         try:
             meta_data_tree, _ = WaveformSet.find_TTree_in_ROOT_TFile(   input_file,
                                                                         meta_data_tree_name,
-                                                                        library = library)
+                                                                        library)
         except NameError:
             meta_data_tree = None           ## To enable compatibility with old runs when the meta data tree was not defined, we are handling 
                                             ## this exception here. This can be done for now, because we are not reading yet any information 
@@ -1883,11 +1883,11 @@ class WaveformSet:
 
         bulk_data_tree, _ = WaveformSet.find_TTree_in_ROOT_TFile(   input_file,
                                                                     bulk_data_tree_name,
-                                                                    library = library)
+                                                                    library)
         
         is_fullstream_branch, is_fullstream_branch_name = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
                                                                                                     'is_fullstream',
-                                                                                                    library = library)
+                                                                                                    library)
     
         aux = is_fullstream_branch.num_entries if library == 'uproot' else is_fullstream_branch.GetEntries()
 
@@ -2028,19 +2028,19 @@ class WaveformSet:
 
         adcs_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(bulk_data_tree,
                                                                 'adcs',
-                                                                library = 'uproot')
+                                                                'uproot')
 
         channel_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree( bulk_data_tree,
                                                                     'channel',
-                                                                    library = 'uproot')
+                                                                    'uproot')
         
         timestamp_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
                                                                         'timestamp',
-                                                                        library = 'uproot')
+                                                                        'uproot')
         
         record_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(  bulk_data_tree,
                                                                     'record',
-                                                                    library = 'uproot')
+                                                                    'uproot')
 
         waveforms = []                      # Using a list comprehension here is slightly slower than a for loop
                                             # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
@@ -2087,7 +2087,7 @@ class WaveformSet:
 
             daq_timestamp_branch, _ = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
                                                                                 'daq_timestamp',
-                                                                                library = 'uproot')
+                                                                                'uproot')
                         
             for interval in clustered_idcs_to_retrieve:     # Read the waveforms in contiguous blocks
 
@@ -2202,14 +2202,14 @@ class WaveformSet:
 
         _, adcs_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree( bulk_data_tree,
                                                                             'adcs',
-                                                                            library = 'pyroot')
+                                                                            'pyroot')
         adcs_address = ROOT.std.vector('short')()
         bulk_data_tree.SetBranchAddress(adcs_branch_exact_name,
                                         adcs_address)
 
         _, channel_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(  bulk_data_tree,
                                                                                 'channel',
-                                                                                library = 'pyroot')
+                                                                                'pyroot')
         channel_address = array.array(  WaveformSet.ROOT_to_array_type_code('S'), 
                                         [0])
         
@@ -2218,7 +2218,7 @@ class WaveformSet:
         
         _, timestamp_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(bulk_data_tree,
                                                                                 'timestamp',
-                                                                                library = 'pyroot')
+                                                                                'pyroot')
         timestamp_address = array.array(WaveformSet.ROOT_to_array_type_code('l'),
                                         [0])
         
@@ -2227,7 +2227,7 @@ class WaveformSet:
         
         _, record_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
                                                                                 'record',
-                                                                                library = 'pyroot')
+                                                                                'pyroot')
         record_address = array.array(   WaveformSet.ROOT_to_array_type_code('i'),
                                         [0])
         
@@ -2264,7 +2264,7 @@ class WaveformSet:
 
             _, daq_timestamp_branch_exact_name = WaveformSet.find_TBranch_in_ROOT_TTree(bulk_data_tree,
                                                                                         'daq_timestamp',
-                                                                                        library = 'pyroot')
+                                                                                        'pyroot')
             daq_timestamp_address = array.array(WaveformSet.ROOT_to_array_type_code('l'), 
                                                 [0])
 
@@ -2481,7 +2481,7 @@ class WaveformSet:
     @staticmethod
     def find_TTree_in_ROOT_TFile(   file : Union[uproot.ReadOnlyDirectory, ROOT.TFile],
                                     TTree_pre_name : str,
-                                    library : str = 'uproot') -> Union[uproot.TTree, ROOT.TTree]:
+                                    library : str) -> Union[uproot.TTree, ROOT.TTree]:
         
         """
         This method returns the first object found in the given
@@ -2550,7 +2550,7 @@ class WaveformSet:
     @staticmethod
     def find_TBranch_in_ROOT_TTree( tree : Union[uproot.TTree, ROOT.TTree],
                                     TBranch_pre_name : str,
-                                    library : str = 'uproot') -> Tuple[Union[uproot.TBranch, ROOT.TBranch], str]:
+                                    library : str) -> Tuple[Union[uproot.TBranch, ROOT.TBranch], str]:
         
         """
         This method returns the first TBranch found in the 
@@ -2667,7 +2667,7 @@ class WaveformSet:
         try:
             branch, exact_branch_name = WaveformSet.find_TBranch_in_ROOT_TTree( tree, 
                                                                                 branch_name, 
-                                                                                library = 'pyroot')
+                                                                                'pyroot')
         except NameError:
             raise NameError(generate_exception_message( 1,
                                                         'WaveformSet.get_1d_array_from_pyroot_TBranch()',
@@ -3612,11 +3612,11 @@ class WaveformSet:
                             col = col)
         return figure_
     
-    ## WaveformSet.plot_calibration_histogram() may not work anymore.
-    ## In successive commits, this feature will be moved up to the
-    ## ChannelWS level, where it is better suited. It is not worth
-    ## the effort to fix this method now for WaveformSet, it will 
-    ## be migrated soon.
+    ## WaveformSet.plot_calibration_histogram() is not supported anymore,
+    ## and so, it may not work. ChannelWSGrid.plot() with its 'mode' 
+    ## input parameter set to calibration already covers this feature. 
+    ## It is not worth the effort to fix this method for WaveformSet, 
+    ## it will be deleted soon.
 
     def plot_calibration_histogram(self,    nrows : int = 1,                                                ## This is a quick solution a la WaveformSet.plot_wfs()
                                             ncols : int = 1,                                                ## which is useful to produce calibration plots in
