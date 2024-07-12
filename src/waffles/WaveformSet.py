@@ -3608,11 +3608,11 @@ class WaveformSet:
                             col = col)
         return figure_
     
-    ## WaveformSet.plot_calibration_histogram() may not work anymore.
-    ## In successive commits, this feature will be moved up to the
-    ## ChannelWS level, where it is better suited. It is not worth
-    ## the effort to fix this method now for WaveformSet, it will 
-    ## be migrated soon.
+    ## WaveformSet.plot_calibration_histogram() is not supported anymore,
+    ## and so, it may not work. ChannelWSGrid.plot() with its 'mode' 
+    ## input parameter set to calibration already covers this feature. 
+    ## It is not worth the effort to fix this method for WaveformSet, 
+    ## it will be deleted soon.
 
     def plot_calibration_histogram(self,    nrows : int = 1,                                                ## This is a quick solution a la WaveformSet.plot_wfs()
                                             ncols : int = 1,                                                ## which is useful to produce calibration plots in
