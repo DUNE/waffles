@@ -3,7 +3,8 @@ import inspect
 import array
 
 import uproot
-try: import ROOT
+try: 
+    import ROOT
 except ImportError: 
     print("[WaveformSet.py]: Could not import ROOT module. Do not use 'pyroot' library options.")
     pass
