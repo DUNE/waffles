@@ -667,8 +667,13 @@ class ChannelWSGrid:
                                                             'If defined, the number of waveforms per axes must be positive.'))
             fPlotAll = False
 
-        self.__add_unique_channels_top_annotations(figure_)
-
+        self.__add_unique_channels_top_annotations(figure_,
+                                                   also_add_run_info = True if mode != 'heatmap' else False)    # If mode is 'heatmap', then
+                                                                                                                # there is already a right-aligned
+                                                                                                                # top annotation which shows the
+                                                                                                                # iterator values of the first
+                                                                                                                # waveforms. We are not adding a
+                                                                                                                # new one so that they don't collide.
         WaveformSet.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
                                                 share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
                                                 share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
@@ -843,7 +848,8 @@ class ChannelWSGrid:
                                                         f"The given mode ({mode}) must match either 'overlay', 'average', 'heatmap' or 'calibration'."))
         return figure_
 
-    def __add_unique_channels_top_annotations(self, figure : pgo.Figure) -> pgo.Figure:
+    def __add_unique_channels_top_annotations(self, figure : pgo.Figure,
+                                                    also_add_run_info : bool = False) -> pgo.Figure:
 
         """
         This method is not intended for user usage. It is
@@ -860,6 +866,16 @@ class ChannelWSGrid:
         ----------
         figure : plotly.graph_objects.Figure
             The figure to which the annotations will be added
+        also_add_run_info : bool
+            If True, then for each subplot for which there
+            is a ChannelWS object, say chws, present in the 
+            self.__ch_wf_sets attribute, the first run number 
+            which appears in the chws.Runs attribute will be
+            additionally added to the annotation. For each
+            subplot for which there is no ChannelWS object,
+            according to the physical position given by the
+            self.__ch_map attribute, no additional annotation
+            will be added.
 
         Returns
         ----------
@@ -876,7 +892,32 @@ class ChannelWSGrid:
                                         showarrow = False,
                                         text = str(self.__ch_map.Data[i][j]),   # Implicitly using UniqueChannel.__repr__()
                                         row = i + 1,
-                                        col = j + 1)
+                                        col = j + 1)    
+        if also_add_run_info:
+            for i in range(self.__ch_map.Rows):
+                for j in range(self.__ch_map.Columns):
+                    try:
+                        channel_ws = self.__ch_wf_sets[self.__ch_map.Data[i][j].Endpoint][self.__ch_map.Data[i][j].Channel]
+                    
+                    except KeyError:
+                        continue
+
+                    aux = list(channel_ws.Runs) # Since a WaveformSet must contain at
+                                                # least one waveform, it is ensured that
+                                                # there is at least one run value here
+                    if len(aux)>1:
+                        annotation = f"Runs {aux[0]}, ..."
+                    else:
+                        annotation = f"Run {aux[0]}"
+
+                    figure.add_annotation(  xref = "x domain", 
+                                            yref = "y domain",      
+                                            x = 1.,             # The run annotation is right-aligned
+                                            y = 1.25,
+                                            showarrow = False,
+                                            text = annotation,
+                                            row = i + 1,
+                                            col = j + 1)
         return figure
     
     def fit_peaks_of_calibration_histograms(self,   max_peaks : int,
