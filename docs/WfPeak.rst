@@ -5,7 +5,7 @@ WfPeak
     
    The ...
 
-.. inheritance-diagram::  src.waffles.WfPeak
+.. inheritance-diagram::  waffles.WfPeak
 
-.. autoclass:: src.waffles.WfPeak
+.. autoclass:: waffles.WfPeak
    :members:

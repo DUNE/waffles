@@ -5,7 +5,7 @@ WfAnaResult
     
    The ...
 
-.. inheritance-diagram::  src.waffles.WfAnaResult
+.. inheritance-diagram::  waffles.WfAnaResult
 
-.. autoclass:: src.waffles.WfAnaResult
+.. autoclass:: waffles.WfAnaResult
    :members:
