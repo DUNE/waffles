@@ -23,7 +23,7 @@ formats:
 
 # Create a conda environment and install dependencies from environment.yml
 conda:
-  environment: docs/environment.yaml
+  environment: environment.yaml
 
 python:
   install:
