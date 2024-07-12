@@ -25,9 +25,9 @@ Nevertheless, it is very important to keep some common rules not to harm others 
 ```{tip} 
 **Good coding practises here**
 
-    *   Create your own branch for developing code and make puntual commits with your changes. Once you want to share with the world, open a pull request and wait for two reviewers to approve the merging.
+*   Create your own branch for developing code and make puntual commits with your changes. Once you want to share with the world, open a pull request and wait for two reviewers to approve the merging.
 
-    * To include functions/methods... [COMPLETE]
+* To include functions/methods... [COMPLETE]
 
 ```
 
@@ -62,12 +62,18 @@ After running our extractors (see `scripts/00_HDF5toROOT`) a folder will be gene
 
 This file is used to debug and check the quality of the data but in future releases of `waffles` we will load directly the `.hdf5` daq files.
 
-The next steps are loading the `root` files (you can select the fraction of statistics you want to analyse) and start visualizing your data,
+The next steps are loading the `root` files (you can select the fraction of statistics you want to analyse) and start visualizing your data.
 
 
 ## **Getting Started - SETUP**  ⚙️
 
-If it is your first time here you need to create a `daq_env` to be able to use all their tools:
+We recommend installing [VSCode](https://code.visualstudio.com/) as editor. Some useful extensions are: Remote-SSH, Jupyter, vscode-numpy-viewer, **Python Environment Manager**
+
+If it is your first time here you need to create an environment to be able to use all their tools. Depending on the scope of your work you can create a `daq_env` (run `hdf5` file processing) or a `ana_env` (general analysis scope) environment.
+
+### DAQ ENVIRONMENT
+
+In this case all the dependencies from the DAQ needed to translate the information from the `.hdf5` files to `.root` files are included. (We are still working to have `ROOT` directly available in this environment from a `Python` interpreter). You don't need this environment unless you plan to work on the decoding side.
 
 ```bash
 source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh
@@ -77,7 +83,26 @@ dbt-create -l
 dbt-create fddaq-v4.4.3-a9 <my_dir>
 ```
 
-We recommend installing [VSCode](https://code.visualstudio.com/) as editor. Some useful extensions are: Remote-SSH, Jupyter, vscode-numpy-viewer, **Python Environment Manager**
+
+### ANA ENVIRONMENT
+
+This general environment is used to run the `waffles` library and all the tools needed to analyze the data. To create it just run in your terminal (from whatever `lxplus` machine or locally):
+
+```bash
+python3 -m venv /path/to/new/virtual/environment
+source /path/to/new/virtual/environment/bin/activate
+```
+Or use the **Python Environment Manager** VScode extension to manage your environments.
+
+In order to have access to the `ROOT` library you need to have it sourced in your environment. Add these lines at the end of the `bin/activate` file:
+
+```bash
+source /cvmfs/sft.cern.ch/lcg/app/releases/ROOT/6.32.02/x86_64-almalinux9.4-gcc114-opt/bin/thisroot.sh
+export JUPYTER_CONFIG_DIR=$VIRTUAL_ENV
+```
+
+To deactivate the environment just run `deactivate` in your terminal.
+
 
 ### 0. Download the library by cloning it from GitHub
 
@@ -106,10 +131,10 @@ The expected folder structure of the repository should be
             └── 'wffunctions.h'
         ├── 'CMakeLists.txt'
         ├── 'compile_decoder.sh' #Script to compile c++ scripts (just 1st time) and be able to use them
-        ├── 'HDF5LIBS_duplications.cpp'
-        ├── 'HDF5toROOT_decoder.cpp'
-        ├── 'plotsAPA.C'
-        └── 'README.md'
+        ├── 'HDF5LIBS_duplications.cpp' # C++ script to check for duplications in the hdf5 files
+        ├── 'HDF5toROOT_decoder.cpp' # C++ script to decode hdf5 files to root files
+        ├── 'plotsAPA.C' # ROOT script to plot the APA map
+        └── 'README.md' # Instructions to compile and run the C++ scripts
     ├── '00_HDF5toROOT.py' # Python decoder (hdf5 to root) with multithreading
     ├── '00_HDF5toROOT.sh' # Bash script for managing CPP macros. If you already compiled (cpp_utils) them you can run this one.
     ├── 'get_protodunehd_files.sh' # Script to get rucio_paths from the hdf5 daq files
@@ -143,10 +168,10 @@ The expected folder structure of the repository should be
 
 ### 1. Install packages needed for the library to run
 
-After activating the `daq_env` with `source env.sh` you can install all the requirements to run `waffles` with:
+After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` with [NEED TO BE IN THE MAIN FOLDER]:
 
 ```bash
-pip install -r requirements.txt
+pip install -r docs/analysis_requirements.txt 
 ```
 
 ### 2. Make sure you have access to data to analyze
