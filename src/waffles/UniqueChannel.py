@@ -41,3 +41,14 @@ class UniqueChannel:
     @property
     def Channel(self):
         return self.__channel
+    
+    def __repr__(self) -> str:
+
+        """
+        Returns a string representation of the UniqueChannel
+        object. P.e. for a UniqueChannel object with endpoint
+        105 and channel 3, the string representation would be
+        "105: 3".
+        """
+
+        return f"{self.Endpoint}-{self.Channel}"

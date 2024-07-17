@@ -145,14 +145,13 @@ class WfAna:
             then this dictionary is empty.
         """
 
-        output_1 = WfAnaResult( 0,                              # baseline
-                                0,                              # baseline_min
-                                10,                             # baseline_max
-                                1,                              # baseline_rms
-                                np.array([10,20]),              # peaks_pos
-                                np.array([30.,10.]),            # peaks_ampl
-                                10.0,                           # integral
-                                np.array([0.,-1.,1.,0.,-1.]))   # deconvoluted_adcs
+        output_1 = WfAnaResult( baseline = 0,
+                                baseline_min = 0,
+                                baseline_max = 10,
+                                baseline_rms = 1,
+                                peaks = [WfPeak(1), WfPeak(12), WfPeak(300)],
+                                integral = 10.0,
+                                deconvoluted_adcs = np.array([0.,-1.,1.,0.,-1.]))
         output_2 = True
         output_3 = {}
 
@@ -239,16 +238,21 @@ class WfAna:
 
         peaks, properties = spsi.find_peaks(-1.*waveform.Adcs, *args, **kwargs)     ## Assuming that the waveform is
                                                                                     ## inverted. We should find another 
-                                                                                    ## way not to hardcode this.
-        output_1 = WfAnaResult( baseline=baseline,
-                                baseline_min=None,          # np.max(baseline_samples)
-                                baseline_max=None,          # np.min(baseline_samples)
-                                baseline_rms=None,          # np.std(baseline_samples)  ## Not definitive, computes STD not RMS
-                                peaks= [ WfPeak(peaks[i]) for i in range(len(peaks)) ],
-                                integral = waveform.TimeStep_ns*(((self.__int_ul - self.__int_ll + 1)*baseline) - np.sum(waveform.Adcs[ self.__int_ll - waveform.TimeOffset : self.__int_ul + 1 - waveform.TimeOffset])),              # waveform.TimeStep_ns*(np.sum(waveform.Adcs[self.__int_ll:self.__int_ul + 1]) - baseline)
-                                deconvoluted_adcs=None)     ## deconvoluted_adcs , not computed by this standard analyser
+                                                                                    ## way not to hardcode this
+        output_1 = WfAnaResult( baseline = baseline,
+                               
+                                baseline_min = None,            # Might be set to np.min(baseline_samples) (resp. 
+                                baseline_max = None,            # np.max(baseline_samples), ~np.std(baseline_samples)) 
+                                baseline_rms = None,            # for a deeper analysis for which we need (and
+                                                                # can afford the computation time) for this data
+
+                                peaks = [ WfPeak(peaks[i]) for i in range(len(peaks)) ],
+                                integral = waveform.TimeStep_ns*(((self.__int_ul - self.__int_ll + 1)*baseline) - np.sum(waveform.Adcs[ self.__int_ll - waveform.TimeOffset : self.__int_ul + 1 - waveform.TimeOffset])),   ## Assuming that the waveform is
+                                                                                                                                                                                                                            ## inverted and using linearity
+                                                                                                                                                                                                                            ## to avoid some multiplications
+                                deconvoluted_adcs=None)     # Not computed by this standard analyser
         
-        output_2 = True             ## This standard analyser does not implement a quality filter yet
+        output_2 = True         # This standard analyser does not implement a quality filter yet
 
         if return_peaks_properties is True:
             output_3 = {'peaks_properties': properties}

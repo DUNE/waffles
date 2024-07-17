@@ -64,7 +64,7 @@ class WaveformAdcs:
 
         self.__time_step_ns = time_step_ns
         self.__adcs = adcs
-        self._set_time_offset(time_offset)      # WaveformSet._set_time_offset() 
+        self.__set_time_offset(time_offset)      # WaveformSet._set_time_offset() 
                                                 # takes care of the proper checks
        
         self.__analyses = OrderedDict() # Initialize the analyses 
@@ -96,7 +96,7 @@ class WaveformAdcs:
 #       self.__time_step_ns = input     # through WaveformAdcs.__init__. Here's an
 #       return                          # example of what a setter would look like, though.
 
-    def _set_time_offset(self, input : float) -> None:
+    def __set_time_offset(self, input : float) -> None:
 
         """
         This method is not intended for user usage. It is 
@@ -117,7 +117,7 @@ class WaveformAdcs:
         if input < 0 or input >= len(self.__adcs)-1:
             
             raise Exception(generate_exception_message( 1,
-                                                        'WaveformAdcs._set_time_offset()',
+                                                        'WaveformAdcs.__set_time_offset()',
                                                         f"The given time offset ({input}) must belong to the [0, {len(self.__adcs)-2}] interval."))
         else:
             self.__time_offset = input
