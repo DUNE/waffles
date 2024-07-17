@@ -21,11 +21,23 @@ If everything is working as expected the output should look similar to:
     plotly.io.read_json('00_CheckData_apa4.json')
 
 
-Next step is analyzing the waveforms (which will allow us to make calibration histograms, heatmpas, etc).
-For that ... 🚧
+Next step is analyzing the waveforms (which will allow us to make calibration histograms, heatmaps, etc).
+For that have a look at our example in :doc:`01_Calibration <01_Calibration>` (download it locally if necessary).
+After running the notebook you should see something like (just showing one of the two APAs):
+
+.. plotly::
+      
+    import plotly.express
+    plotly.io.read_json('01_Calibration_apa3.json')
+
+.. plotly::
+      
+    import plotly.express
+    plotly.io.read_json('01_Heatmap_apa3.json')
 
 
 .. toctree::   
     :maxdepth: 2
 
     00_CheckData
+    01_Calibration
