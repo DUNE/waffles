@@ -121,7 +121,7 @@ Once you have your environment sourced (``source env.sh`` or ``source bin/activa
 .. code-block:: bash
 
    cd /path/to/waffles # Go to the waffles main folder
-   pip install -r docs/analysis_requirements.txt # Install the requirements for the library
+   pip install -r docs/requirements.txt # Install the requirements for the library
 
 
 ----------------------
