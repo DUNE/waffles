@@ -78,7 +78,7 @@ class ChannelMap(Map):
 
         Returns
         -------
-        output : tuple of ( bool and tuple of two integers )
+        output : tuple of ( bool, tuple of (int, int, ), )
         """
 
         for i in range(self.Rows):
