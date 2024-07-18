@@ -522,7 +522,9 @@ class WaveformAdcs:
                                         col = col)
                     
             if show_peaks_integration_limits:   # Plot the markers for the peaks integration limits
-                pass    ## To be implemented
+                raise NotImplementedError(generate_exception_message(   1,
+                                                                        'WaveformAdcs.plot()',
+                                                                        "The 'show_peaks_integration_limits' parameter is not implemented yet."))
 
         return
     
