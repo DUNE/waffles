@@ -40,8 +40,8 @@ class WaveformAdcs:
                                 # The restrictions over the TimeOffset attribute
                                 # ensure that there are always at least two points
                                 # left in the [0, 1, ..., len(self.__adcs) - 1] range,
-                                # so that baselines and integrals can be computed using
-                                # points in that range.
+                                # so that baselines, integrals and amplitudes can be 
+                                # computed using points in that range.
 
     def __init__(self,  time_step_ns : float,
                         adcs : np.ndarray,
@@ -173,6 +173,8 @@ class WaveformAdcs:
                         *args,
                         int_ll : int = 0,
                         int_ul : Optional[int] = None,
+                        amp_ll : int = 0,
+                        amp_ul : Optional[int] = None,
                         overwrite : bool = False,
                         **kwargs) -> dict:
 
@@ -235,6 +237,16 @@ class WaveformAdcs:
             It is the caller's responsibility to ensure the 
             well-formedness of this input. No checks are
             performed here for this parameter.
+        amp_ll (resp. amp_ul): int
+            Given to the 'amp_ll' (resp. 'amp_ul') parameter of
+            WfAna.__init__. Iterator value for the first (resp. 
+            last) point of self.__adcs that is considered for
+            the amplitude calculation. amp_ll must be smaller 
+            than amp_ul. These limits are inclusive. If they are 
+            not defined, then the whole self.__adcs is considered.
+            It is the caller's responsibility to ensure the 
+            well-formedness of this input. No checks are
+            performed here for this parameter.
         overwrite : bool
             If True, the method will overwrite any existing
             WfAna object with the same label (key) within
@@ -262,7 +274,9 @@ class WaveformAdcs:
 
             aux = WfAna(baseline_limits,
                         int_ll,
-                        int_ul)
+                        int_ul,
+                        amp_ll,
+                        amp_ul)
             
             analyser = getattr(aux, analyser_name)
 
@@ -283,6 +297,7 @@ class WaveformAdcs:
                     show_baseline_limits : bool = False, 
                     show_baseline : bool = True,
                     show_general_integration_limits : bool = False,
+                    show_general_amplitude_limits : bool = False,
                     show_spotted_peaks : bool = True,
                     show_peaks_integration_limits : bool = False,
                     analysis_label : Optional[str] = None) -> None:
@@ -341,6 +356,11 @@ class WaveformAdcs:
             'plot_analysis_markers' is set to True. In that case,
             this parameter means whether to plot vertical lines
             framing the general integration interval.
+        show_general_amplitude_limits : bool
+            This parameter only makes a difference if
+            'plot_analysis_markers' is set to True. In that case,
+            this parameter means whether to plot vertical lines
+            framing the general amplitude interval.
         show_spotted_peaks : bool
             This parameter only makes a difference if
             'plot_analysis_markers' is set to True. In that case,
@@ -438,29 +458,52 @@ class WaveformAdcs:
                 
             if show_general_integration_limits:     # Plot the markers for the general integration limits
                                                     # These are always defined for every WfAna object
-
-                    figure.add_shape(   type = 'line',
-                                        x0 = x[aux.IntLl], y0 = 0,
-                                        x1 = x[aux.IntLl], y1 = 1,
-                                        line = dict(color = 'black',        # Properties for
-                                                    width = 1,              # the beginning of
-                                                    dash = 'solid'),        # a baseline chunk
-                                        xref = 'x',
-                                        yref = 'y domain',
-                                        row = row,
-                                        col = col)
+                figure.add_shape(   type = 'line',
+                                    x0 = x[aux.IntLl], y0 = 0,
+                                    x1 = x[aux.IntLl], y1 = 1,
+                                    line = dict(color = 'black',
+                                                width = 1,
+                                                dash = 'solid'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
                     
-                    figure.add_shape(   type = 'line',
-                                        x0 = x[aux.IntUl], y0 = 0,
-                                        x1 = x[aux.IntUl], y1 = 1,
-                                        line = dict(color = 'black',        # Properties for
-                                                    width = 1,              # the beginning of
-                                                    dash = 'solid'),        # a baseline chunk
-                                        xref = 'x',
-                                        yref = 'y domain',
-                                        row = row,
-                                        col = col)
-            
+                figure.add_shape(   type = 'line',
+                                    x0 = x[aux.IntUl], y0 = 0,
+                                    x1 = x[aux.IntUl], y1 = 1,
+                                    line = dict(color = 'black',
+                                                width = 1,
+                                                dash = 'solid'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+                    
+            if show_general_amplitude_limits:       # Plot the markers for the general amplitude limits
+                                                    # These are always defined for every WfAna object
+                figure.add_shape(   type = 'line',
+                                    x0 = x[aux.AmpLl], y0 = 0,
+                                    x1 = x[aux.AmpLl], y1 = 1,
+                                    line = dict(color = 'green',
+                                                width = 1,
+                                                dash = 'solid'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+                
+                figure.add_shape(   type = 'line',
+                                    x0 = x[aux.AmpUl], y0 = 0,
+                                    x1 = x[aux.AmpUl], y1 = 1,
+                                    line = dict(color = 'green',
+                                                width = 1,
+                                                dash = 'solid'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+                        
             if show_spotted_peaks and fPeaksAreAvailable:      # Plot the markers for the spotted peaks
 
                 for peak in aux.Result.Peaks:
@@ -479,7 +522,9 @@ class WaveformAdcs:
                                         col = col)
                     
             if show_peaks_integration_limits:   # Plot the markers for the peaks integration limits
-                pass    ## To be implemented
+                raise NotImplementedError(generate_exception_message(   1,
+                                                                        'WaveformAdcs.plot()',
+                                                                        "The 'show_peaks_integration_limits' parameter is not implemented yet."))
 
         return
     

@@ -106,8 +106,7 @@ class ChannelWSGrid:
             Check its docstring for more information.
         analysis_label : str
             This parameter only makes a difference if
-            'compute_calib_histo' is set to True
-            and 'variable' is set to 'integral'.
+            'compute_calib_histo' is set to True.
             It is given to the 'analysis_label' parameter 
             of the 'clusterize_WaveformSet' static 
             method. Check its docstring for more 
@@ -224,8 +223,7 @@ class ChannelWSGrid:
             for more information.
         analysis_label : str
             This parameter only makes a difference if
-            'compute_calib_histo' is set to True
-            and 'variable' is set to 'integral'.
+            'compute_calib_histo' is set to True.
             It is given to the 'analysis_label' parameter 
             of the ChannelWS initializer. Check its 
             docstring for more information.
@@ -397,6 +395,7 @@ class ChannelWSGrid:
                     show_baseline_limits : bool = False, 
                     show_baseline : bool = True,
                     show_general_integration_limits : bool = False,
+                    show_general_amplitude_limits : bool = False,
                     show_spotted_peaks : bool = True,
                     show_peaks_integration_limits : bool = False,
                     time_bins : int = 512,
@@ -571,6 +570,13 @@ class ChannelWSGrid:
             to True. In that case, this parameter means whether 
             to plot vertical lines framing the general 
             integration interval.
+        show_general_amplitude_limits : bool
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average',
+            and the 'plot_analysis_markers' parameter is 
+            set to True. In that case, this parameter means 
+            whether to plot vertical lines framing the general 
+            amplitude interval.
         show_spotted_peaks : bool
             This parameter only makes a difference if the
             'mode' parameter is set to 'overlay' or 'average',
@@ -713,6 +719,7 @@ class ChannelWSGrid:
                                                         show_baseline_limits = show_baseline_limits,
                                                         show_baseline = show_baseline,
                                                         show_general_integration_limits = show_general_integration_limits,
+                                                        show_general_amplitude_limits = show_general_amplitude_limits,
                                                         show_spotted_peaks = show_spotted_peaks,
                                                         show_peaks_integration_limits = show_peaks_integration_limits,
                                                         analysis_label = analysis_label)
@@ -757,6 +764,7 @@ class ChannelWSGrid:
                                 show_baseline_limits = show_baseline_limits,
                                 show_baseline = show_baseline,
                                 show_general_integration_limits = show_general_integration_limits,
+                                show_general_amplitude_limits = show_general_amplitude_limits,
                                 show_spotted_peaks = show_spotted_peaks,
                                 show_peaks_integration_limits = show_peaks_integration_limits,
                                 analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None)
