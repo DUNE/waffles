@@ -39,6 +39,14 @@ class WfAna:
         limits are inclusive. I.e., the points which are
         used for the integral calculation are
         wf.Adcs[IntLl - wf.TimeOffset : IntUl + 1 - wf.TimeOffset]. 
+    AmpLl (resp. AmpUl) : int
+        Stands for amplitude lower (resp. upper) limit.
+        Iterator value for the first (resp. last) point 
+        of the waveform that is considered to compute
+        the amplitude of the waveform. AmpLl must be smaller 
+        than AmpUl. These limits are inclusive. I.e., the 
+        points which are used for the amplitude calculation 
+        are wf.Adcs[AmpLl - wf.TimeOffset : AmpUl + 1 - wf.TimeOffset].
     Result : WfAnaResult
         The result of the analysis
     Passed : bool
@@ -53,7 +61,9 @@ class WfAna:
 
     def __init__(self,  baseline_limits : List[int],
                         int_ll : int,
-                        int_ul : int):
+                        int_ul : int,
+                        amp_ll : int,
+                        amp_ul : int):
         
         """
         WfAna class initializer. It is assumed that it is
@@ -67,11 +77,15 @@ class WfAna:
         baseline_limits : list of int
         int_ll : int
         int_ul : int
+        amp_ll : int
+        amp_ul : int
         """
         
         self.__baseline_limits = baseline_limits
         self.__int_ll = int_ll
         self.__int_ul = int_ul
+        self.__amp_ll = amp_ll
+        self.__amp_ul = amp_ul
         
         self.__result = None    # To be determined a posteriori 
         self.__passed = None    # by an analyser method
@@ -89,6 +103,14 @@ class WfAna:
     def IntUl(self):
         return self.__int_ul
     
+    @property
+    def AmpLl(self):
+        return self.__amp_ll
+    
+    @property
+    def AmpUl(self):
+        return self.__amp_ul
+
     @property
     def Result(self):
         return self.__result
@@ -151,6 +173,7 @@ class WfAna:
                                 baseline_rms = 1,
                                 peaks = [WfPeak(1), WfPeak(12), WfPeak(300)],
                                 integral = 10.0,
+                                amplitude = 5.0,
                                 deconvoluted_adcs = np.array([0.,-1.,1.,0.,-1.]))
         output_2 = True
         output_3 = {}
@@ -179,6 +202,8 @@ class WfAna:
             the waveform is constant and approximates its integral 
             to waveform.TimeStep_ns*np.sum( -b + waveform.Adcs[IntLl - waveform.TimeOffset : IntUl + 1 - waveform.TimeOffset]),
             where b is the computed baseline.
+            - It calculates the amplitude of 
+            waveform.Adcs[AmpLl - waveform.TimeOffset : AmpUl + 1 - waveform.TimeOffset].
 
         Note that for these computations to be well-defined, it is
         assumed that
@@ -187,6 +212,8 @@ class WfAna:
             - BaselineLimits[-1] - wf.TimeOffset <= len(wf.Adcs)
             - IntLl - wf.TimeOffset >= 0
             - IntUl - wf.TimeOffset < len(wf.Adcs)
+            - AmpLl - wf.TimeOffset >= 0
+            - AmpUl - wf.TimeOffset < len(wf.Adcs)
 
         For the sake of efficiency, these checks are not done.
         It is the caller's responsibility to ensure that these 
@@ -250,6 +277,9 @@ class WfAna:
                                 integral = waveform.TimeStep_ns*(((self.__int_ul - self.__int_ll + 1)*baseline) - np.sum(waveform.Adcs[ self.__int_ll - waveform.TimeOffset : self.__int_ul + 1 - waveform.TimeOffset])),   ## Assuming that the waveform is
                                                                                                                                                                                                                             ## inverted and using linearity
                                                                                                                                                                                                                             ## to avoid some multiplications
+                                amplitude = + np.max(waveform.Adcs[self.__amp_ll - waveform.TimeOffset : self.__amp_ul + 1 - waveform.TimeOffset]) 
+                                            - np.min(waveform.Adcs[self.__amp_ll - waveform.TimeOffset : self.__amp_ul + 1 - waveform.TimeOffset]),
+                                            
                                 deconvoluted_adcs=None)     # Not computed by this standard analyser
         
         output_2 = True         # This standard analyser does not implement a quality filter yet

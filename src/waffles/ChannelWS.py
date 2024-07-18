@@ -85,23 +85,22 @@ class ChannelWS(WaveformSet):
             up to the input given to the 'analysis_label' 
             parameter. If variable is set to 'amplitude', 
             then the calibration histogram will be 
-            computed using the amplitude of the waveforms.           ## Not implemented yet
+            computed using the amplitude of the waveforms.
             The default behaviour, which is used if
             the input is different from 'integral' or
             'amplitude', is that of 'integral'.
         analysis_label : str
-            This parameter only makes a difference if
-            'compute_calib_histo' is set to True
-            and 'variable' is set to 'integral'.
-            In such case, this parameter gives the key
-            for the WfAna object within the Analyses 
+            If variable is set to 'integral' (resp.
+            'amplitude'), this parameter gives the key
+            for the WfAna object within the Analysis
             attribute of each considered waveform 
-            from where to take the integral value to 
-            add to the calibration histogram. Namely, 
-            if such WfAna object is x, then 
-            x.Result.Integral is the considered
-            integral. If 'analysis_label' is None, 
-            then the last analysis added to 
+            from where to take the integral (resp.
+            amplitude) value to add to the calibration 
+            histogram. Namely, if such WfAna object is 
+            x, then x.Result.Integral (resp. 
+            x.Result.Amplitude) is the considered
+            integral (resp. amplitude). If 'analysis_label' 
+            is None, then the last analysis added to 
             the Analyses attribute will be the used 
             one. If there is not even one analysis, 
             then an exception will be raised.
