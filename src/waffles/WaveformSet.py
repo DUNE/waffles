@@ -454,6 +454,8 @@ class WaveformSet:
                         *args,
                         int_ll : int = 0,
                         int_ul : Optional[int] = None,
+                        amp_ll : int = 0,
+                        amp_ul : Optional[int] = None,
                         overwrite : bool = False,
                         **kwargs) -> dict:
         
@@ -520,6 +522,18 @@ class WaveformSet:
             For more information check the 'int_ll' and 
             'int_ul' parameters documentation in the 
             Waveform.analyse() docstring.
+        amp_ll (resp. amp_ul): int
+            For every analysed waveform, it defines the
+            interval considered for the amplitude calculation 
+            (it is given to the 'amp_ll' (resp. 'amp_ul') 
+            parameter of Waveform.analyse() - actually 
+            WaveformAdcs.analyse()). amp_ll must 
+            be smaller than amp_ul. These limits are 
+            inclusive. If they are not defined, then the
+            whole Adcs are considered for each waveform. 
+            For more information check the 'amp_ll' and 
+            'amp_ul' parameters documentation in the 
+            Waveform.analyse() docstring.
         overwrite : bool
             If True, for every analysed Waveform wf, its
             'analyse' method will overwrite any existing
@@ -554,38 +568,48 @@ class WaveformSet:
             raise Exception(generate_exception_message( 2,
                                                         'WaveformSet.analyse()',
                                                         f"The integration window ({int_ll}, {int_ul_}) is not well formed."))
+        amp_ul_ = amp_ul
+        if amp_ul_ is None:
+            amp_ul_ = self.PointsPerWf - 1
+
+        if not self.subinterval_is_well_formed(amp_ll, amp_ul_):
+            raise Exception(generate_exception_message( 3,
+                                                        'WaveformSet.analyse()',
+                                                        f"The amplitude window ({amp_ll}, {amp_ul_}) is not well formed."))
         aux = WfAna([0,1],  # Dummy object to access
                     0,      # the analyser instance method
-                    1,)
+                    1,
+                    0,
+                    1)
         try:
             analyser = getattr(aux, analyser_name)
         except AttributeError:
-            raise Exception(generate_exception_message( 3,
+            raise Exception(generate_exception_message( 4,
                                                         'WaveformSet.analyse()',
                                                         f"The analyser method '{analyser_name}' does not exist in the WfAna class."))
         try:
             signature = inspect.signature(analyser)
         except TypeError:
-            raise Exception(generate_exception_message( 4,
+            raise Exception(generate_exception_message( 5,
                                                         'WaveformSet.analyse()',
                                                         f"'{analyser_name}' does not match a callable attribute of WfAna."))
         try:
             if list(signature.parameters.keys())[0] != 'waveform':
-                raise Exception(generate_exception_message( 5,
+                raise Exception(generate_exception_message( 6,
                                                             "WaveformSet.analyse()",
                                                             "The name of the first parameter of the given analyser method must be 'waveform'."))
             
             if signature.parameters['waveform'].annotation not in ['WaveformAdcs', WaveformAdcs]:
-                raise Exception(generate_exception_message( 6,
+                raise Exception(generate_exception_message( 7,
                                                             "WaveformSet.analyse()",
                                                             "The 'waveform' parameter of the analyser method must be hinted as a WaveformAdcs object."))
             
             if signature.return_annotation != Tuple[WfAnaResult, bool, dict]:
-                raise Exception(generate_exception_message( 7,
+                raise Exception(generate_exception_message( 8,
                                                             "WaveformSet.analyse()",
                                                             "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool, dict]."))
         except IndexError:
-            raise Exception(generate_exception_message( 8,
+            raise Exception(generate_exception_message( 9,
                                                         "WaveformSet.analyse()",
                                                         'The given analyser method must take at least one parameter.'))
         output = {}
@@ -597,6 +621,8 @@ class WaveformSet:
                                                         *args,
                                                         int_ll = int_ll,
                                                         int_ul = int_ul_,
+                                                        amp_ll = amp_ll,
+                                                        amp_ul = amp_ul_,
                                                         overwrite = overwrite,
                                                         **kwargs)
         return output
@@ -672,6 +698,7 @@ class WaveformSet:
                         show_baseline_limits : bool = False, 
                         show_baseline : bool = True,
                         show_general_integration_limits : bool = False,
+                        show_general_amplitude_limits : bool = False,
                         show_spotted_peaks : bool = True,
                         show_peaks_integration_limits : bool = False,
                         time_bins : int = 512,
@@ -841,6 +868,13 @@ class WaveformSet:
             to True. In that case, this parameter means whether 
             to plot vertical lines framing the general 
             integration interval.
+        show_general_amplitude_limits : bool
+            This parameter only makes a difference if the
+            'mode' parameter is set to 'overlay' or 'average',
+            and the 'plot_analysis_markers' parameter is set 
+            to True. In that case, this parameter means whether 
+            to plot vertical lines framing the general 
+            amplitude interval.
         show_spotted_peaks : bool
             This parameter only makes a difference if the
             'mode' parameter is set to 'overlay' or 'average',
@@ -978,6 +1012,7 @@ class WaveformSet:
                                                         show_baseline_limits = show_baseline_limits,
                                                         show_baseline = show_baseline,
                                                         show_general_integration_limits = show_general_integration_limits,
+                                                        show_general_amplitude_limits = show_general_amplitude_limits,
                                                         show_spotted_peaks = show_spotted_peaks,
                                                         show_peaks_integration_limits = show_peaks_integration_limits,
                                                         analysis_label = analysis_label)
@@ -1022,6 +1057,7 @@ class WaveformSet:
                                 show_baseline_limits = show_baseline_limits,
                                 show_baseline = show_baseline,
                                 show_general_integration_limits = show_general_integration_limits,
+                                show_general_amplitude_limits = show_general_amplitude_limits,
                                 show_spotted_peaks = show_spotted_peaks,
                                 show_peaks_integration_limits = show_peaks_integration_limits,
                                 analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None)

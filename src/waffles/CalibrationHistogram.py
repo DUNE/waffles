@@ -4,7 +4,7 @@ import numpy as np
 from scipy import signal as spsi
 from scipy import optimize as spopt
 from plotly import graph_objects as pgo
-from typing import Tuple, List, Dict, Optional
+from typing import Tuple, List, Dict, Optional, Union
 
 from .WaveformSet import WaveformSet
 from .Exceptions import generate_exception_message
@@ -234,23 +234,23 @@ class CalibrationHistogram:
             input given to the 'analysis_label' parameter. 
             If variable is set to 'amplitude', then the 
             calibration histogram will be computed using 
-            the amplitude of the waveforms. The default                     ## Not implemented yet
+            the amplitude of the waveforms. The default
             behaviour, which is used if the input is 
-            different from 'integral' or 'amplitude', 
+            different from 'integral' or 'amplitude',
             is that of 'integral'.
         analysis_label : str
-            This parameter only makes a difference if
-            'variable' is set to 'integral'. In such 
-            case, this parameter gives the key for 
-            the WfAna object within the Analyses 
-            attribute of each considered waveform 
-            from where to take the integral value to 
-            add to the calibration histogram. Namely, 
-            if such WfAna object is x, then 
-            x.Result.Integral is the considered
-            integral. If 'analysis_label' is None, 
-            then the last analysis added to 
-            the Analyses attribute will be the used 
+            If variable is set to 'integral' (resp.
+            'amplitude'), this parameter gives the key 
+            for the WfAna object within the Analyses
+            attribute of each considered waveform
+            from where to take the integral (resp.
+            amplitude) value to add to the calibration 
+            histogram. Namely, if such WfAna object is 
+            x, then x.Result.Integral (resp. 
+            x.Result.Amplitude) is the considered
+            integral (resp. amplitude). If 'analysis_label' 
+            is None, then the last analysis added to 
+            the Analyses attribute will be the used
             one. If there is not even one analysis, 
             then an exception will be raised.
 
@@ -268,43 +268,42 @@ class CalibrationHistogram:
             raise Exception(generate_exception_message( 2,
                                                         'CalibrationHistogram.from_WaveformSet()',
                                                         f"The 'domain' parameter must be a 2x1 numpy array."))
-        fUseIntegral = False
         if variable != 'amplitude':
-            fUseIntegral = True
-
-        if fUseIntegral:
-            return cls.__from_integrals_of_WaveformSet( waveform_set,
-                                                        bins_number,
-                                                        domain,
-                                                        analysis_label)
+            samples = [ waveform_set.Waveforms[idx].get_analysis(analysis_label).Result.Integral for idx in range(len(waveform_set.Waveforms)) ]    ## Trying to grab the WfAna object
+                                                                                                                                                    ## waveform by waveform using 
+                                                                                                                                                    ## WaveformAdcs.get_analysis()
+                                                                                                                                                    ## might be slow. Find a different
+                                                                                                                                                    ## solution if this becomes a 
+                                                                                                                                                    ## a problem at some point.
         else:
-            raise Exception(generate_exception_message( 3,
-                                                        'CalibrationHistogram.from_WaveformSet()',
-                                                        f'Amplitude histograms are not implemented yet'))
+            samples = [ waveform_set.Waveforms[idx].get_analysis(analysis_label).Result.Amplitude for idx in range(len(waveform_set.Waveforms)) ] 
+
+        return cls.__from_samples(  samples,
+                                    bins_number,
+                                    domain)
 
     @classmethod
-    def __from_integrals_of_WaveformSet(cls,    waveform_set : WaveformSet,
-                                                bins_number : int,
-                                                domain : np.ndarray,
-                                                analysis_label : Optional[str] = None) -> 'CalibrationHistogram':
+    def __from_samples(cls, samples : List[Union[int, float]],
+                            bins_number : int,
+                            domain : np.ndarray) -> 'CalibrationHistogram':
         
         """
         This method is not intended for user usage. It must
-        only be called by the 
+        be only called by the 
         CalibrationHistogram.from_WaveformSet() class
         method, which ensures that the input parameters
         are well-formed. No checks are perfomed here.
 
         Parameters
         ----------
-        waveform_set : WaveformSet
+        samples : list of int or float
+            The samples to add to the calibration histogram
         bins_number : int
             It is given to the 'bins' parameter of
             the WaveformSet.histogram1d() static method.
         domain : np.ndarray
             It is given to the 'domain' parameter of 
             the WaveformSet.histogram1d() static method.
-        analysis_label : str
 
         Returns
         ----------
@@ -317,13 +316,7 @@ class CalibrationHistogram:
                             num = bins_number + 1,
                             endpoint = True)
         
-        samples = np.array([ waveform_set.Waveforms[idx].get_analysis(analysis_label).Result.Integral for idx in range(len(waveform_set.Waveforms)) ])  ## Trying to grab the WfAna object
-                                                                                                                                                        ## waveform by waveform using 
-                                                                                                                                                        ## WaveformAdcs.get_analysis()
-                                                                                                                                                        ## might be slow. Find a different
-                                                                                                                                                        ## solution if this becomes a 
-                                                                                                                                                        ## a problem at some point.        
-        counts, indices = WaveformSet.histogram1d(  samples,
+        counts, indices = WaveformSet.histogram1d(  np.array(samples),
                                                     bins_number,
                                                     domain,
                                                     keep_track_of_idcs = True)

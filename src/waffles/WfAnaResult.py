@@ -29,6 +29,8 @@ class WfAnaResult:
         The peaks which have been spotted in the waveform
     Integral : float
         The integral of the waveform Adcs
+    Amplitude : float
+        The amplitude of the waveform Adcs
     DeconvolutedAdcs : unidimensional numpy array of floats         ## For the moment, this is all of the information
         The deconvoluted waveform Adcs                              ## resulting from the deconvolution analysis that 
                                                                     ## we keep, since this is a bottleneck for such 
@@ -47,6 +49,7 @@ class WfAnaResult:
                         baseline_rms : Optional[float] = None,
                         peaks : Optional[List[WfPeak]] = None,
                         integral : Optional[float] = None,
+                        amplitude : Optional[float] = None,
                         deconvoluted_adcs : Optional[np.ndarray] = None):
         
         """
@@ -61,6 +64,7 @@ class WfAnaResult:
         baseline_rms : float
         peaks : list of WfPeak objects
         integral : float
+        amplitude : float
         deconvoluted_adcs : unidimensional numpy array of floats
 
         """
@@ -81,6 +85,7 @@ class WfAnaResult:
         self.__baseline_rms = baseline_rms
         self.__peaks = peaks
         self.__integral = integral
+        self.__amplitude = amplitude
         self.__deconvoluted_adcs = deconvoluted_adcs
 
     #Getters
@@ -107,6 +112,10 @@ class WfAnaResult:
     @property
     def Integral(self):
         return self.__integral
+    
+    @property
+    def Amplitude(self):
+        return self.__amplitude
     
     @property
     def DeconvolutedAdcs(self):
