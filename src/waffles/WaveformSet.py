@@ -1274,7 +1274,7 @@ class WaveformSet:
         ----------
         nrows : int
             The number of rows of the returned Map object
-        ncols : 
+        ncols : int
             The number of columns of the returned Map object
         wfs_per_axes : int
             If it is not None, then it must be a positive
