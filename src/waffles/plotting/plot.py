@@ -722,7 +722,7 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                         **kwargs) -> pgo.Figure:
     
     """
-    This method returns a plotly.graph_objects.Figure 
+    This function returns a plotly.graph_objects.Figure 
     with a grid of subplots which are arranged according
     to the channel_ws_grid.ChMap attribute. The subplot at 
     position i,j may be empty if there is no ChannelWS object 
@@ -757,9 +757,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
         with a 'rows' and 'cols' parameters matching
         the Rows and Columns attribute of 
         channel_ws_grid.ChMap. If that's the case, then 
-        this method adds the plots to this figure and 
+        this function adds the plots to this figure and 
         eventually returns it. If it is None, then this 
-        method generates a new figure and returns it.
+        function generates a new figure and returns it.
     share_x_scale (resp. share_y_scale) : bool
         If True, the x-axis (resp. y-axis) scale will be 
         shared among all the subplots.
@@ -968,7 +968,7 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
     Returns
     ----------
     figure : plotly.graph_objects.Figure
-        This method returns a plotly.graph_objects.Figure 
+        This function returns a plotly.graph_objects.Figure 
         with a grid of subplots which are arranged 
         according to the channel_ws_grid.ChMap attribute.
     """
