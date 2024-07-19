@@ -3,6 +3,7 @@ from plotly import graph_objects as pgo
 from typing import List, Optional
 
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.ChannelWSGrid import ChannelWSGrid
 from waffles.utils.numerical_utils import histogram2d
 from waffles.Exceptions import generate_exception_message
 
@@ -368,3 +369,81 @@ def arrange_time_vs_ADC_ranges( waveform_set : WaveformSet,
     
     return np.array([   [time_range_lower_limit_,           time_range_upper_limit_         ],
                         [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
+
+def __add_unique_channels_top_annotations(  channel_ws_grid : ChannelWSGrid,
+                                            figure : pgo.Figure,
+                                            also_add_run_info : bool = False) -> pgo.Figure:
+
+    """
+    This function is not intended for user usage. It is
+    meant to be called uniquely by the plot_ChannelWSGrid() 
+    function, where the well-formedness of the input 
+    figure has been checked. This function receives a
+    ChannelWSGrid object and a pgo.Figure object, and 
+    adds annotations on top of each subplot of the given 
+    figure. The annotations are the string representation 
+    of the UniqueChannel object, each of which is placed
+    on top of a subplot according to its position in
+    the channel_ws_grid.ChMap attribute.
+
+    Parameters
+    ----------
+    channel_ws_grid : ChannelWSGrid
+        The ChannelWSGrid object whose ChMap attribute
+        will be used to add annotations to the given 
+        figure.
+    figure : plotly.graph_objects.Figure
+        The figure to which the annotations will be added
+    also_add_run_info : bool
+        If True, then for each subplot for which there
+        is a ChannelWS object, say chws, present in the 
+        channel_ws_grid.ChWfSets attribute, the first run 
+        number which appears in the chws.Runs attribute 
+        will be additionally added to the annotation. 
+        For each subplot for which there is no ChannelWS 
+        object, according to the physical position given 
+        by the channel_ws_grid.ChMap attribute, no additional 
+        annotation will be added.
+
+    Returns
+    ----------
+    figure : plotly.graph_objects.Figure
+        The given figure with the annotations added
+    """
+
+    for i in range(channel_ws_grid.ChMap.Rows):
+        for j in range(channel_ws_grid.ChMap.Columns):
+            figure.add_annotation(  xref = "x domain", 
+                                    yref = "y domain",      
+                                    x = 0.,             # The annotation is left-aligned
+                                    y = 1.25,           # and on top of each subplot
+                                    showarrow = False,
+                                    text = str(channel_ws_grid.ChMap.Data[i][j]),   # Implicitly using UniqueChannel.__repr__()
+                                    row = i + 1,
+                                    col = j + 1)    
+    if also_add_run_info:
+        for i in range(channel_ws_grid.ChMap.Rows):
+            for j in range(channel_ws_grid.ChMap.Columns):
+                try:
+                    channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
+                
+                except KeyError:
+                    continue
+
+                aux = list(channel_ws.Runs) # Since a WaveformSet must contain at
+                                            # least one waveform, it is ensured that
+                                            # there is at least one run value here
+                if len(aux)>1:
+                    annotation = f"Runs {aux[0]}, ..."
+                else:
+                    annotation = f"Run {aux[0]}"
+
+                figure.add_annotation(  xref = "x domain", 
+                                        yref = "y domain",      
+                                        x = 1.,             # The run annotation is right-aligned
+                                        y = 1.25,
+                                        showarrow = False,
+                                        text = annotation,
+                                        row = i + 1,
+                                        col = j + 1)
+    return figure
