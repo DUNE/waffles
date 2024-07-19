@@ -8,10 +8,10 @@ import plotly.graph_objects as go
 import numpy as np
 
 if TYPE_CHECKING:                                # Import only for type-checking, so as
-    from .WaveformAdcs import WaveformAdcs       # to avoid a runtime circular import
+    from waffles.data_classes.WaveformAdcs import WaveformAdcs       # to avoid a runtime circular import
                                                     
-from .WfAnaResult import WfAnaResult
-from .WfPeak import WfPeak
+from waffles.data_classes.WfAnaResult import WfAnaResult
+from waffles.data_classes.WfPeak import WfPeak
 
 
 class WfAna:
@@ -335,7 +335,7 @@ class WfAna:
                    noise       : np.ndarray = None,
                    filter_type : str = 'Gauss',
                    sample_rate : float = 62.5e6,
-                   cutoff_rate : float = 10e6
+                   cutoff_rate : float = 10e6,
                    isplot      : bool = False    
                     )-> np.ndarray:
         """

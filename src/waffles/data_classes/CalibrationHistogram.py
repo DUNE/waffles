@@ -5,8 +5,8 @@ from scipy import optimize as spopt
 from plotly import graph_objects as pgo
 from typing import Tuple, List, Dict, Optional, Union
 
-from .data_classes.WaveformSet import WaveformSet
-from .Exceptions import generate_exception_message
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.Exceptions import generate_exception_message
 
 class CalibrationHistogram:
 

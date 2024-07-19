@@ -1,8 +1,8 @@
 import numpy as np
 from typing import List,Optional
 
-from .WfPeak import WfPeak
-from .Exceptions import generate_exception_message
+from waffles.data_classes.WfPeak import WfPeak
+from waffles.Exceptions import generate_exception_message
 
 class WfAnaResult:
 

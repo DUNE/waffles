@@ -3,11 +3,11 @@ from typing import List, Dict, Optional
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
-from .UniqueChannel import UniqueChannel
-from .WaveformSet import WaveformSet
-from .ChannelWS import ChannelWS
-from .ChannelMap import ChannelMap
-from .Exceptions import generate_exception_message
+from waffles.data_classes.UniqueChannel import UniqueChannel
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.ChannelWS import ChannelWS
+from waffles.data_classes.ChannelMap import ChannelMap
+from waffles.Exceptions import generate_exception_message
 
 class ChannelWSGrid:
 

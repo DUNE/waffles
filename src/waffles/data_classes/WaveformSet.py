@@ -14,13 +14,13 @@ from typing import Tuple, List, Dict, Callable, Optional, Union
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
-from .WaveformAdcs import WaveformAdcs
-from .Waveform import Waveform
-from .WfAna import WfAna
-from .WfAnaResult import WfAnaResult
-from .Map import Map
-from .ChannelMap import ChannelMap
-from .Exceptions import generate_exception_message
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
+from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WfAna import WfAna
+from waffles.data_classes.WfAnaResult import WfAnaResult
+from waffles.data_classes.Map import Map
+from waffles.data_classes.ChannelMap import ChannelMap
+from waffles.Exceptions import generate_exception_message
 
 class WaveformSet:
 

@@ -1,9 +1,9 @@
 import numpy as np
 from typing import Dict, Optional
 
-from .WaveformSet import WaveformSet
-from .CalibrationHistogram import CalibrationHistogram
-from src.waffles.Exceptions import generate_exception_message
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
+from waffles.Exceptions import generate_exception_message
 
 class ChannelWS(WaveformSet):
 
