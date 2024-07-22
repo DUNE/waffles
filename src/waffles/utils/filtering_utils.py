@@ -93,3 +93,45 @@ def match_endpoint( waveform : Waveform,
     """
 
     return waveform.Endpoint == endpoint
+
+def match_channel(  waveform : Waveform,
+                    channel : int) -> bool:
+    
+    """
+    This function returns True if the Channel attribute
+    of the given Waveform object matches channel, and 
+    False if else.
+
+    Parameters
+    ----------
+    waveform : Waveform
+    channel : int
+
+    Returns
+    ----------
+    bool
+    """
+
+    return waveform.Channel == channel
+
+def match_endpoint_and_channel( waveform : Waveform,
+                                endpoint : int,
+                                channel : int) -> bool:
+    
+    """
+    This function returns True if the Endpoint and Channel
+    attributes of the given Waveform object match endpoint 
+    and channel, respectively.
+
+    Parameters
+    ----------
+    waveform : Waveform
+    endpoint : int
+    channel : int
+
+    Returns
+    ----------
+    bool
+    """
+
+    return waveform.Endpoint == endpoint and waveform.Channel == channel

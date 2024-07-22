@@ -723,7 +723,7 @@ class WaveformSet:
             return type of such callable must be annotated
             as a boolean. If wf_filter is 
                 - wuf.match_run or
-                - WaveformSet.match_endpoint_and_channel,
+                - wuf.match_endpoint_and_channel,
             this method can benefit from the information in
             self.Runs and self.AvailableChannels and its
             execution time may be reduced with respect to
@@ -830,7 +830,7 @@ class WaveformSet:
                 # filter_args and fMaxIsSet are defined
 
             mode_map = {wuf.match_run : 0,
-                        WaveformSet.match_endpoint_and_channel : 1}
+                        wuf.match_endpoint_and_channel : 1}
             try:
                 fMode = mode_map[wf_filter]
             except KeyError:
@@ -857,50 +857,6 @@ class WaveformSet:
                                                             filter_args,
                                                             fMaxIsSet,
                                                             max_wfs_per_axes)
-    
-    @staticmethod
-    def match_channel(  waveform : Waveform,
-                        channel : int) -> bool:
-        
-        """
-        This method returns True if the Channel attribute
-        of the given Waveform object matches channel, and 
-        False if else.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        channel : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.Channel == channel
-    
-    @staticmethod
-    def match_endpoint_and_channel( waveform : Waveform,
-                                    endpoint : int,
-                                    channel : int) -> bool:
-        
-        """
-        This method returns True if the Endpoint and Channel
-        attributes of the given Waveform object match endpoint 
-        and channel, respectively.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        endpoint : int
-        channel : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.Endpoint == endpoint and waveform.Channel == channel
     
     def __get_map_of_wf_idcs_by_run(self,   blank_map : Map,
                                             filter_args : Map,
@@ -969,7 +925,7 @@ class WaveformSet:
         already been performed. This method generates an 
         output as described in such method docstring,
         for the case when wf_filter is 
-        WaveformSet.match_endpoint_and_channel. Refer to
+        wuf.match_endpoint_and_channel. Refer to
         the WaveformSet.get_map_of_wf_idcs() method
         documentation for more information.
 
@@ -1003,18 +959,18 @@ class WaveformSet:
 
                     counter = 0
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_endpoint_and_channel(  self.__waveforms[k],
-                                                                    filter_args.Data[i][j].Endpoint,
-                                                                    filter_args.Data[i][j].Channel):
+                        if wuf.match_endpoint_and_channel(  self.__waveforms[k],
+                                                            filter_args.Data[i][j].Endpoint,
+                                                            filter_args.Data[i][j].Channel):
                             blank_map.Data[i][j].append(k)
                             counter += 1
                             if counter == max_wfs_per_axes:
                                 break
                 else:
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_endpoint_and_channel(  self.__waveforms[k],
-                                                                    filter_args.Data[i][j].Endpoint,
-                                                                    filter_args.Data[i][j].Channel):
+                        if wuf.match_endpoint_and_channel(  self.__waveforms[k],
+                                                            filter_args.Data[i][j].Endpoint,
+                                                            filter_args.Data[i][j].Channel):
                             blank_map.Data[i][j].append(k)
         return blank_map
     
@@ -1031,10 +987,9 @@ class WaveformSet:
         already been performed. This method generates an 
         output as described in such method docstring,
         for the case when wf_filter is neither
-        wuf.match_run nor
-        WaveformSet.match_endpoint_and_channel. Refer 
-        to the WaveformSet.get_map_of_wf_idcs() method
-        documentation for more information.
+        wuf.match_run nor wuf.match_endpoint_and_channel. 
+        Refer to the WaveformSet.get_map_of_wf_idcs() 
+        method documentation for more information.
 
         Parameters
         ----------
