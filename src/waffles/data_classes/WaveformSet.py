@@ -857,56 +857,6 @@ class WaveformSet:
                                                             filter_args,
                                                             fMaxIsSet,
                                                             max_wfs_per_axes)
-    
-    def __get_map_of_wf_idcs_general(self,  blank_map : Map,
-                                            wf_filter : Callable[..., bool],
-                                            filter_args : Map,
-                                            fMaxIsSet : bool,
-                                            max_wfs_per_axes : Optional[int] = 5) -> List[List[List[int]]]:
-        
-        """
-        This method should only be called by the 
-        WaveformSet.get_map_of_wf_idcs() method, where 
-        the well-formedness checks of the input have 
-        already been performed. This method generates an 
-        output as described in such method docstring,
-        for the case when wf_filter is neither
-        wuf.match_run nor wuf.match_endpoint_and_channel. 
-        Refer to the WaveformSet.get_map_of_wf_idcs() 
-        method documentation for more information.
-
-        Parameters
-        ----------
-        blank_map : Map
-        wf_filter : callable
-        filter_args : Map
-        fMaxIsSet : bool
-        max_wfs_per_axes : int
-
-        Returns
-        ----------
-        list of list of list of int
-        """
-
-        for i in range(blank_map.Rows):
-            for j in range(blank_map.Columns):
-
-                if fMaxIsSet:
-                    counter = 0
-                    for k in range(len(self.__waveforms)):
-                        if wf_filter(   self.__waveforms[k],
-                                        *filter_args.Data[i][j]):
-                            
-                            blank_map.Data[i][j].append(k)
-                            counter += 1
-                            if counter == max_wfs_per_axes:
-                                break
-                else:
-                    for k in range(len(self.__waveforms)):
-                        if wf_filter(   self.__waveforms[k],
-                                        *filter_args.Data[i][j]):
-                            blank_map.Data[i][j].append(k)
-        return blank_map
                             
     @staticmethod
     def get_2D_empty_nested_list(   nrows : int = 1,
