@@ -1,4 +1,3 @@
-import math
 import inspect
 
 import numba
@@ -8,11 +7,9 @@ from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
-from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
 from waffles.data_classes.Map import Map
-from waffles.data_classes.ChannelMap import ChannelMap
 
 import waffles.utils.filtering_utils as wuf
 
