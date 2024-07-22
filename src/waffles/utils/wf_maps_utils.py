@@ -397,17 +397,20 @@ def get_map_of_wf_idcs( waveform_set : WaveformSet,
                                         [],
                                         independent_copies = True)
         if fMode == 0:
-            return __get_map_of_wf_idcs_by_run( output,
+            return __get_map_of_wf_idcs_by_run( waveform_set,
+                                                output,
                                                 filter_args,
                                                 fMaxIsSet,
                                                 max_wfs_per_axes)
         elif fMode == 1:
-            return __get_map_of_wf_idcs_by_endpoint_and_channel(output,
+            return __get_map_of_wf_idcs_by_endpoint_and_channel(waveform_set,
+                                                                output,
                                                                 filter_args,
                                                                 fMaxIsSet,
                                                                 max_wfs_per_axes)
         else:
-            return __get_map_of_wf_idcs_general(output,
+            return __get_map_of_wf_idcs_general(waveform_set,
+                                                output,
                                                 wf_filter,
                                                 filter_args,
                                                 fMaxIsSet,
