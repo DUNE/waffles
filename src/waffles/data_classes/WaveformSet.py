@@ -857,34 +857,6 @@ class WaveformSet:
                                                             filter_args,
                                                             fMaxIsSet,
                                                             max_wfs_per_axes)
-                            
-    @staticmethod
-    def get_2D_empty_nested_list(   nrows : int = 1,
-                                    ncols : int = 1) -> List[List[List]]:
-        
-        """
-        This method returns a 2D nested list of empty lists
-        with nrows rows and ncols columns.
-        
-        Parameters
-        ----------
-        nrows (resp. ncols) : int
-            Number of rows (resp. columns) of the returned 
-            nested list.
-
-        Returns
-        ----------
-        list of list of list
-            A list containing nrows lists, each of them
-            containing ncols empty lists.
-        """
-
-        if nrows < 1 or ncols < 1:
-            raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet.get_2D_empty_nested_list()',
-                                                        'The number of rows and columns must be positive.'))
-
-        return [[[] for _ in range(ncols)] for _ in range(nrows)]
     
     def compute_mean_waveform(self, *args,
                                     wf_idcs : Optional[List[int]] = None,
