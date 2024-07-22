@@ -1,16 +1,9 @@
 import math
 import inspect
-import array
 
-import uproot
-try: 
-    import ROOT
-except ImportError: 
-    print("[WaveformSet.py]: Could not import ROOT module. Do not use 'pyroot' library options.")
-    pass
 import numba
 import numpy as np
-from typing import Tuple, List, Dict, Callable, Optional, Union
+from typing import Tuple, List, Dict, Callable, Optional
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -20,6 +13,7 @@ from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
 from waffles.data_classes.Map import Map
 from waffles.data_classes.ChannelMap import ChannelMap
+
 from waffles.Exceptions import generate_exception_message
 
 class WaveformSet:
