@@ -1,6 +1,38 @@
 import numba
 import numpy as np
 
+def gaussian(   x : float, 
+                scale : float, 
+                mean : float, 
+                std : float) -> float:
+
+    """
+    Evaluates an scaled gaussian function
+    in x. The function is defined as:
+    
+    f(x) = scale * exp( -1 * (( x - mean ) / ( 2 * std )) ** 2)
+
+    This function supports numpy arrays as input.
+    
+    Parameters
+    ----------
+    x : float
+        The point at which the function is evaluated.
+    scale : float
+        The scale factor of the gaussian function
+    mean : float
+        The mean value of the gaussian function
+    std : float
+        The standard deviation of the gaussian function
+
+    Returns
+    -------
+    float
+        The value of the function at x
+    """
+
+    return scale * np.exp( -1. * (np.power( ( x - mean ) / ( 2 * std ), 2)))
+
 @numba.njit(nogil=True, parallel=False)                 
 def histogram2d(samples : np.ndarray, 
                 bins : np.ndarray,                      # ~ 20 times faster than numpy.histogram2d

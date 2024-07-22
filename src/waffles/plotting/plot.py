@@ -6,6 +6,7 @@ from plotly import subplots as psu
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWSGrid import ChannelWSGrid
+from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 from waffles.data_classes.Map import Map
 from waffles.Exceptions import generate_exception_message
 
@@ -16,6 +17,8 @@ from waffles.plotting.plot_utils import __add_no_data_annotation
 from waffles.plotting.plot_utils import __subplot_heatmap
 from waffles.plotting.plot_utils import arrange_time_vs_ADC_ranges
 from waffles.plotting.plot_utils import __add_unique_channels_top_annotations
+
+from waffles.utils.numerical_utils import gaussian
 
 def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,  
                         figure : pgo.Figure,
@@ -696,6 +699,110 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                                     f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
     return figure_
 
+def plot_CalibrationHistogram(  calibration_histogram : CalibrationHistogram,  
+                                figure : pgo.Figure,
+                                name : Optional[str] = None,
+                                row : Optional[int] = None,
+                                col : Optional[int] = None,
+                                plot_fits : bool = False,
+                                fit_npoints : int = 200) -> bool:
+    
+    """
+    This function plots the given calibration histogram in 
+    the given figure and returns a boolean which is True if 
+    at least one gaussian fit has been plotted, and False 
+    otherwise. Note that, if the 'plot_fits' parameter is
+    set to False, then this output is automatically False.
+    
+    Parameters
+    ----------
+    calibration_histogram : CalibrationHistogram
+        The CalibrationHistogram object to be plotted
+    figure : plotly.graph_objects.Figure
+        The figure in which the calibration histogram (CH) 
+        will be plotted
+    name : str
+        The name for the CH trace which will be added to 
+        the given figure.
+    row (resp. col) : int
+        The row (resp. column) in which the CH will be 
+        plotted. This parameter is directly handled to
+        the 'row' (resp. 'col') parameter of
+        plotly.graph_objects.Figure.add_trace(). It is the
+        caller's responsibility to ensure two things:
+            
+            -   if the given 'figure' parameter does not contain
+                a subplot grid (p.e. it was not created by
+                plotly.subplots.make_subplots()) then 'row' and
+                'col' must be None.
+                
+            -   if the given 'figure' parameter contains a subplot
+                grid, then 'row' and 'col' must be valid 1-indexed
+                integers.
+    plot_fits : bool
+        If True, then the gaussian fits of the peaks, if any, 
+        will be plotted over the CH. If False, then only the 
+        CH will be plotted. Note that if no fit has been performed
+        yet, then the calibration_histogram.GaussianFitsParameters 
+        attribute will be empty and no fit will be plotted.
+    fit_npoints : int
+        This parameter only makes a difference if 'plot_fits'
+        is set to True. In that case, it gives the number of
+        points to use to plot each gaussian fit. Note that
+        the plot range of the fit will be the same as the
+        range of the CH. It must be greater than 1. It is
+        the caller's responsibility to ensure this.
+
+    Returns
+    ----------
+    fPlottedOneFit : bool
+        If 'plot_fits' is set to False, then this function
+        returns False. If 'plot_fits' is set to True, then
+        this function returns True if at least one fit has
+        been plotted, and False otherwise.
+    """
+
+    histogram_trace = pgo.Scatter(  x = calibration_histogram.Edges,
+                                    y = calibration_histogram.Counts,
+                                    mode = 'lines',
+                                    line=dict(  color = 'black', 
+                                                width = 0.5,
+                                                shape = 'hv'),
+                                    name = name)
+    
+    figure.add_trace(   histogram_trace,
+                        row = row,
+                        col = col)
+    
+    fPlottedOneFit = False
+
+    if plot_fits:
+
+        for i in range(len(calibration_histogram.GaussianFitsParameters['scale'])):
+
+            fPlottedOneFit = True
+
+            fit_x = np.linspace(calibration_histogram.Edges[0],
+                                calibration_histogram.Edges[-1],
+                                num = fit_npoints)
+            
+            fit_y = gaussian(   fit_x,
+                                calibration_histogram.GaussianFitsParameters['scale'][i][0],
+                                calibration_histogram.GaussianFitsParameters['mean'][i][0],
+                                calibration_histogram.GaussianFitsParameters['std'][i][0])
+            
+            fit_trace = pgo.Scatter(x = fit_x,
+                                    y = fit_y,
+                                    mode = 'lines',
+                                    line=dict(  color = 'red', 
+                                                width = 0.5),
+                                    name = f"{name} (Fit {i})")
+            
+            figure.add_trace(   fit_trace,
+                                row = row,
+                                col = col)
+    return fPlottedOneFit
+
 def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                         *args,
                         figure : Optional[pgo.Figure] = None,
@@ -719,6 +826,7 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                         adc_range_below_baseline : int = 200,
                         plot_peaks_fits : bool = False,
                         detailed_label : bool = True,
+                        verbose : bool = True,
                         **kwargs) -> pgo.Figure:
     
     """
@@ -934,7 +1042,7 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
         'mode' parameter is set to 'calibration'. In that
         case, then for the calibration histogram of each 
         subplot, this parameter is given to the 'plot_fits' 
-        parameter of the CalibrationHistogram.plot() method.
+        parameter of the call to plot_CalibrationHistogram().
         It means whether to plot the fits of the peaks, if
         available, over the histogram.
     detailed_label : bool
@@ -951,6 +1059,8 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
         first available waveforms (which were used to 
         compute the 2D-histogram) in the top annotation 
         of each subplot.
+    verbose : bool
+        Whether to print functioning-related messages
     **kwargs
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
@@ -1147,6 +1257,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                                         col = j + 1)
 
     elif mode == 'calibration':
+
+        fPlottedOneFit = False
+
         for i in range(channel_ws_grid.ChMap.Rows):
             for j in range(channel_ws_grid.ChMap.Columns):
 
@@ -1166,12 +1279,17 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                 
                 aux_name = f"C.H. of channel {channel_ws_grid.ChMap.Data[i][j]}"
 
-                channel_ws.CalibHisto.plot( figure_,
-                                            name = aux_name,
-                                            row = i + 1,
-                                            col = j + 1,
-                                            plot_fits = plot_peaks_fits,
-                                            fit_npoints = 200)
+                fPlottedOneFit |= plot_CalibrationHistogram(channel_ws.CalibHisto,
+                                                            figure_,
+                                                            name = aux_name,
+                                                            row = i + 1,
+                                                            col = j + 1,
+                                                            plot_fits = plot_peaks_fits,
+                                                            fit_npoints = 200)
+
+        if verbose:
+            if plot_peaks_fits and not fPlottedOneFit:
+                print("In function plot_ChannelWSGrid(): No gaussian fit was found for plotting. You may have forgotten to call the fit_peaks_of_calibration_histograms() method of ChannelWSGrid.")
     else:                                                                                                           
         raise Exception(generate_exception_message( 4,
                                                     'plot_ChannelWSGrid()',

@@ -6,6 +6,7 @@ from plotly import graph_objects as pgo
 from typing import Tuple, List, Dict, Optional, Union
 
 from waffles.data_classes.WaveformSet import WaveformSet
+import waffles.utils.numerical_utils as wun
 from waffles.Exceptions import generate_exception_message
 
 class CalibrationHistogram:
@@ -324,39 +325,6 @@ class CalibrationHistogram:
                     counts,
                     indices)
     
-    @staticmethod
-    def gaussian(   x : float, 
-                    scale : float, 
-                    mean : float, 
-                    std : float) -> float:
-
-        """
-        Evaluates an scaled gaussian function
-        at x. The function is defined as:
-        
-        f(x) = scale * exp( -1 * (( x - mean ) / ( 2 * std )) ** 2)
-
-        This function supports numpy arrays as input.
-        
-        Parameters
-        ----------
-        x : float
-            The point at which the function is evaluated.
-        scale : float
-            The scale factor of the gaussian function
-        mean : float
-            The mean value of the gaussian function
-        std : float
-            The standard deviation of the gaussian function
-
-        Returns
-        -------
-        float
-            The value of the function at x
-        """
-    
-        return scale * np.exp( -1. * (np.power( ( x - mean ) / ( 2 * std ), 2)))
-    
     def __spot_first_peaks(self,    max_peaks : int,
                                     prominence : float,
                                     initial_percentage = 0.1,
@@ -656,7 +624,7 @@ class CalibrationHistogram:
             aux_counts = self.Counts[aux_lower_lim : aux_upper_lim]
 
             try:
-                aux_optimal_parameters, aux_covariance_matrix  = spopt.curve_fit(   CalibrationHistogram.gaussian, 
+                aux_optimal_parameters, aux_covariance_matrix  = spopt.curve_fit(   wun.gaussian, 
                                                                                     aux_bin_centers, 
                                                                                     aux_counts, 
                                                                                     p0 = aux_seeds)
@@ -678,87 +646,3 @@ class CalibrationHistogram:
                                                 aux_optimal_parameters[2],
                                                 aux_errors[2])
         return fFoundMax
-
-    def plot(self,  figure : pgo.Figure,
-                    name : Optional[str] = None,
-                    row : Optional[int] = None,
-                    col : Optional[int] = None,
-                    plot_fits : bool = False,
-                    fit_npoints : int = 200) -> None:
-        
-        """
-        This method plots this calibration histogram in the given 
-        figure.
-        
-        Parameters
-        ----------
-        figure : plotly.graph_objects.Figure
-            The figure in which the calibration histogram (CH) 
-            will be plotted
-        name : str
-            The name for the CH trace which will be added to 
-            the given figure.
-        row (resp. col) : int
-            The row (resp. column) in which the CH will be 
-            plotted. This parameter is directly handled to
-            the 'row' (resp. 'col') parameter of
-            plotly.graph_objects.Figure.add_trace(). It is the
-            caller's responsibility to ensure two things:
-                
-                - if the given 'figure' parameter does not contain
-                  a subplot grid (p.e. it was not created by
-                  plotly.subplots.make_subplots()) then 'row' and
-                  'col' must be None.
-                   
-                - if the given 'figure' parameter contains a subplot
-                  grid, then 'row' and 'col' must be valid 1-indexed
-                  integers.
-        plot_fits : bool
-            If True, then the gaussian fits of the peaks, if any, 
-            will be plotted over the CH. If False, then only the 
-            CH will be plotted. Note that if no fit has been performed
-            yet, then the self.__gaussian_fits_parameters attribute
-            will be empty and no fit will be plotted.
-        fit_npoints : int
-            This parameter only makes a difference if 'plot_fits'
-            is set to True. In that case, it gives the number of
-            points to use to plot each gaussian fit. Note that
-            the plot range of the fit will be the same as the
-            range of the CH. It must be greater than 1. It is
-            the caller's responsibility to ensure this.
-        """
-
-        histogram_trace = pgo.Scatter(  x = self.Edges,
-                                        y = self.Counts,
-                                        mode = 'lines',
-                                        line=dict(  color = 'black', 
-                                                    width = 0.5,
-                                                    shape = 'hv'),
-                                        name = name)
-        
-        figure.add_trace(   histogram_trace,
-                            row = row,
-                            col = col)
-        if plot_fits:
-
-            for i in range(len(self.GaussianFitsParameters['scale'])):
-
-                fit_x = np.linspace(self.Edges[0],
-                                    self.Edges[-1],
-                                    num = fit_npoints)
-                
-                fit_y = CalibrationHistogram.gaussian(  fit_x,
-                                                        self.GaussianFitsParameters['scale'][i][0],
-                                                        self.GaussianFitsParameters['mean'][i][0],
-                                                        self.GaussianFitsParameters['std'][i][0])
-                fit_trace = pgo.Scatter(x = fit_x,
-                                        y = fit_y,
-                                        mode = 'lines',
-                                        line=dict(  color = 'red', 
-                                                    width = 0.5),
-                                        name = f"{name} (Fit {i})")
-                
-                figure.add_trace(   fit_trace,
-                                    row = row,
-                                    col = col)  
-        return
