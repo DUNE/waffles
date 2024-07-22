@@ -53,3 +53,43 @@ def check_well_formedness_of_generic_waveform_function(wf_function_signature : i
                                                     "check_well_formedness_of_generic_waveform_function()",
                                                     "The return type of the given signature must be hinted as a boolean."))
     return
+
+def match_run(  waveform : Waveform,
+                run : int) -> bool:
+    
+    """
+    This function returns True if the RunNumber attribute
+    of the given Waveform object matches run. It returns 
+    False if else.
+
+    Parameters
+    ----------
+    waveform : Waveform
+    run : int
+
+    Returns
+    ----------
+    bool
+    """
+
+    return waveform.RunNumber == run
+
+def match_endpoint( waveform : Waveform,
+                    endpoint : int) -> bool:
+    
+    """
+    This method returns True if the Endpoint attribute
+    of the given Waveform object matches endpoint, and 
+    False if else.
+
+    Parameters
+    ----------
+    waveform : Waveform
+    endpoint : int
+
+    Returns
+    ----------
+    bool
+    """
+
+    return waveform.Endpoint == endpoint

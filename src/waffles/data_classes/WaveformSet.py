@@ -722,7 +722,7 @@ class WaveformSet:
             must be hinted as a Waveform object. Also, the
             return type of such callable must be annotated
             as a boolean. If wf_filter is 
-                - WaveformSet.match_run or
+                - wuf.match_run or
                 - WaveformSet.match_endpoint_and_channel,
             this method can benefit from the information in
             self.Runs and self.AvailableChannels and its
@@ -829,7 +829,7 @@ class WaveformSet:
         else:   # fFilteringMode is True and so, wf_filter, 
                 # filter_args and fMaxIsSet are defined
 
-            mode_map = {WaveformSet.match_run : 0,
+            mode_map = {wuf.match_run : 0,
                         WaveformSet.match_endpoint_and_channel : 1}
             try:
                 fMode = mode_map[wf_filter]
@@ -857,48 +857,6 @@ class WaveformSet:
                                                             filter_args,
                                                             fMaxIsSet,
                                                             max_wfs_per_axes)
-
-    @staticmethod
-    def match_run(  waveform : Waveform,
-                    run : int) -> bool:
-        
-        """
-        This method returns True if the RunNumber attribute
-        of the given Waveform object matches run. It returns 
-        False if else.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        run : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.RunNumber == run
-    
-    @staticmethod
-    def match_endpoint( waveform : Waveform,
-                        endpoint : int) -> bool:
-        
-        """
-        This method returns True if the Endpoint attribute
-        of the given Waveform object matches endpoint, and 
-        False if else.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        endpoint : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.Endpoint == endpoint
     
     @staticmethod
     def match_channel(  waveform : Waveform,
@@ -955,7 +913,7 @@ class WaveformSet:
         the well-formedness checks of the input have
         already been performed. This method generates an
         output as described in such method docstring,
-        for the case when wf_filter is WaveformSet.match_run.
+        for the case when wf_filter is wuf.match_run.
         Refer to the WaveformSet.get_map_of_wf_idcs()
         method documentation for more information.
 
@@ -984,8 +942,8 @@ class WaveformSet:
 
                     counter = 0
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_run(   self.__waveforms[k],
-                                                    *filter_args.Data[i][j]):
+                        if wuf.match_run(   self.__waveforms[k],
+                                            *filter_args.Data[i][j]):
                             
                             blank_map.Data[i][j].append(k)
                             counter += 1
@@ -993,8 +951,8 @@ class WaveformSet:
                                 break
                 else:
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_run(   self.__waveforms[k],
-                                                    *filter_args.Data[i][j]):
+                        if wuf.match_run(   self.__waveforms[k],
+                                            *filter_args.Data[i][j]):
                             
                             blank_map.Data[i][j].append(k)
         return blank_map
@@ -1073,7 +1031,7 @@ class WaveformSet:
         already been performed. This method generates an 
         output as described in such method docstring,
         for the case when wf_filter is neither
-        WaveformSet.match_run nor
+        wuf.match_run nor
         WaveformSet.match_endpoint_and_channel. Refer 
         to the WaveformSet.get_map_of_wf_idcs() method
         documentation for more information.
