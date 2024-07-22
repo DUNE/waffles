@@ -1,4 +1,9 @@
+from typing import Optional
+
 from waffles.data_classes.Map import Map
+from waffles.data_classes.WaveformSet import WaveformSet
+
+import waffles.utils.filtering_utils as wuf
 
 from waffles.Exceptions import generate_exception_message
 
@@ -50,3 +55,60 @@ def get_contiguous_indices_map( indices_per_slot : int,
                 ncols,
                 list,
                 data = aux)
+
+def __get_map_of_wf_idcs_by_run(waveform_set : WaveformSet,   
+                                blank_map : Map,
+                                filter_args : Map,
+                                fMaxIsSet : bool,
+                                max_wfs_per_axes : Optional[int] = 5) -> Map:
+    
+    """
+    This function should only be called by the
+    get_map_of_wf_idcs() function, where the 
+    well-formedness checks of the input have
+    already been performed. This function generates 
+    an output as described in such function 
+    docstring, for the case when wf_filter is 
+    wuf.match_run. Refer to the get_map_of_wf_idcs() 
+    function documentation for more information.
+
+    Parameters
+    ----------
+    waveform_set : WaveformSet
+    blank_map : Map
+    filter_args : Map
+    fMaxIsSet : bool
+    max_wfs_per_axes : int
+
+    Returns
+    ----------
+    Map
+    """
+
+    for i in range(blank_map.Rows):
+        for j in range(blank_map.Columns):
+
+            if filter_args.Data[i][j][0] not in waveform_set.Runs:
+                continue
+
+            if fMaxIsSet:   # blank_map should not be very big (visualization purposes)
+                            # so we can afford evaluating the fMaxIsSet conditional here
+                            # instead of at the beginning of the function (which would
+                            # be more efficient but would entail a more extensive code)
+
+                counter = 0
+                for k in range(len(waveform_set.Waveforms)):
+                    if wuf.match_run(   waveform_set.Waveforms[k],
+                                        *filter_args.Data[i][j]):
+                        
+                        blank_map.Data[i][j].append(k)
+                        counter += 1
+                        if counter == max_wfs_per_axes:
+                            break
+            else:
+                for k in range(len(waveform_set.Waveforms)):
+                    if wuf.match_run(   waveform_set.Waveforms[k],
+                                        *filter_args.Data[i][j]):
+                        
+                        blank_map.Data[i][j].append(k)
+    return blank_map
