@@ -858,67 +858,6 @@ class WaveformSet:
                                                             fMaxIsSet,
                                                             max_wfs_per_axes)
     
-    def __get_map_of_wf_idcs_by_endpoint_and_channel(self,  blank_map : Map,
-                                                            filter_args : ChannelMap,
-                                                            fMaxIsSet : bool,
-                                                            max_wfs_per_axes : Optional[int] = 5) -> Map:
-        
-        """
-        This method should only be called by the 
-        WaveformSet.get_map_of_wf_idcs() method, where 
-        the well-formedness checks of the input have 
-        already been performed. This method generates an 
-        output as described in such method docstring,
-        for the case when wf_filter is 
-        wuf.match_endpoint_and_channel. Refer to
-        the WaveformSet.get_map_of_wf_idcs() method
-        documentation for more information.
-
-        Parameters
-        ----------
-        blank_map : Map
-        filter_args : ChannelMap
-        fMaxIsSet : bool
-        max_wfs_per_axes : int
-
-        Returns
-        ----------
-        Map
-        """
-
-        aux = self.get_run_collapsed_available_channels()
-
-        for i in range(blank_map.Rows):
-            for j in range(blank_map.Columns):
-
-                if filter_args.Data[i][j].Endpoint not in aux.keys():
-                    continue
-
-                elif filter_args.Data[i][j].Channel not in aux[filter_args.Data[i][j].Endpoint]:
-                    continue    
-          
-                if fMaxIsSet:   # blank_map should not be very big (visualization purposes)
-                                # so we can afford evaluating the fMaxIsSet conditional here
-                                # instead of at the beginning of the method (which would
-                                # be more efficient but would entail a more extensive code)
-
-                    counter = 0
-                    for k in range(len(self.__waveforms)):
-                        if wuf.match_endpoint_and_channel(  self.__waveforms[k],
-                                                            filter_args.Data[i][j].Endpoint,
-                                                            filter_args.Data[i][j].Channel):
-                            blank_map.Data[i][j].append(k)
-                            counter += 1
-                            if counter == max_wfs_per_axes:
-                                break
-                else:
-                    for k in range(len(self.__waveforms)):
-                        if wuf.match_endpoint_and_channel(  self.__waveforms[k],
-                                                            filter_args.Data[i][j].Endpoint,
-                                                            filter_args.Data[i][j].Channel):
-                            blank_map.Data[i][j].append(k)
-        return blank_map
-    
     def __get_map_of_wf_idcs_general(self,  blank_map : Map,
                                             wf_filter : Callable[..., bool],
                                             filter_args : Map,
