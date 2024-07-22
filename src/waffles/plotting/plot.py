@@ -8,17 +8,11 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWSGrid import ChannelWSGrid
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 from waffles.data_classes.Map import Map
+
+import waffles.plotting.plot_utils as wpu
+import waffles.utils.numerical_utils as wun
+
 from waffles.Exceptions import generate_exception_message
-
-from waffles.plotting.plot_utils import check_dimensions_of_suplots_figure
-from waffles.plotting.plot_utils import update_shared_axes_status
-from waffles.plotting.plot_utils import get_string_of_first_n_integers_if_available
-from waffles.plotting.plot_utils import __add_no_data_annotation
-from waffles.plotting.plot_utils import __subplot_heatmap
-from waffles.plotting.plot_utils import arrange_time_vs_ADC_ranges
-from waffles.plotting.plot_utils import __add_unique_channels_top_annotations
-
-from waffles.utils.numerical_utils import gaussian
 
 def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,  
                         figure : pgo.Figure,
@@ -531,9 +525,9 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                                     'plot_WaveformSet()',
                                                     'The number of rows and columns must be positive.'))
     if figure is not None:
-        check_dimensions_of_suplots_figure( figure,
-                                            nrows,
-                                            ncols)
+        wpu.check_dimensions_of_suplots_figure( figure,
+                                                nrows,
+                                                ncols)
         figure_ = figure
     else:
         figure_ = psu.make_subplots(    rows = nrows, 
@@ -572,12 +566,12 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
 
         data_of_map_of_wf_idcs = map_of_wf_idcs.Data
 
-    update_shared_axes_status(  figure_,                    # An alternative way is to specify 
-                                share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
-                                share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
-                                                            # that alternative is only doable for 
-                                                            # the case where the given 'figure'
-                                                            # parameter is None.
+    wpu.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
+                                    share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
+                                    share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
+                                                                # that alternative is only doable for 
+                                                                # the case where the given 'figure'
+                                                                # parameter is None.
     if mode == 'overlay':
         for i in range(nrows):
             for j in range(ncols):
@@ -600,9 +594,9 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                             show_peaks_integration_limits = show_peaks_integration_limits,
                                             analysis_label = analysis_label)
                 else:
-                    __add_no_data_annotation(   figure_,
-                                                i + 1,
-                                                j + 1)
+                    wpu.__add_no_data_annotation(   figure_,
+                                                    i + 1,
+                                                    j + 1)
     elif mode == 'average':
         for i in range(nrows):
             for j in range(ncols):
@@ -614,9 +608,9 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                 except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
                                         ## so that we can handle in parallel exceptions due to different reasons if we need it
                     
-                    __add_no_data_annotation(   figure_,
-                                                i + 1,
-                                                j + 1)
+                    wpu.__add_no_data_annotation(   figure_,
+                                                    i + 1,
+                                                    j + 1)
                     continue
 
                 fAnalyzed = False
@@ -629,7 +623,7 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
 
                 aux_name = f"{len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                 if detailed_label:
-                    aux_name += f": [{get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
+                    aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
 
                 plot_WaveformAdcs(  aux,
                                     figure = figure_,
@@ -651,35 +645,35 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                                         'plot_WaveformSet()',
                                                         "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
 
-        aux_ranges = arrange_time_vs_ADC_ranges(waveform_set,
-                                                time_range_lower_limit = time_range_lower_limit,
-                                                time_range_upper_limit = time_range_upper_limit,
-                                                adc_range_above_baseline = adc_range_above_baseline,
-                                                adc_range_below_baseline = adc_range_below_baseline)
+        aux_ranges = wpu.arrange_time_vs_ADC_ranges(waveform_set,
+                                                    time_range_lower_limit = time_range_lower_limit,
+                                                    time_range_upper_limit = time_range_upper_limit,
+                                                    adc_range_above_baseline = adc_range_above_baseline,
+                                                    adc_range_below_baseline = adc_range_below_baseline)
         for i in range(nrows):
             for j in range(ncols):
                 if len(data_of_map_of_wf_idcs[i][j]) > 0:
 
                     aux_name = f"Heatmap of {len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                     if detailed_label:
-                        aux_name += f": [{get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
+                        aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
 
-                    figure_ = __subplot_heatmap(waveform_set,
-                                                figure_,
-                                                aux_name,
-                                                i + 1,
-                                                j + 1,
-                                                data_of_map_of_wf_idcs[i][j],
-                                                analysis_label,
-                                                time_bins,
-                                                adc_bins,
-                                                aux_ranges,
-                                                show_color_bar = False)     # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
-                                                                            # since it may differ from one plot     ## every plot in the grid, though, but comes at the
-                                                                            # to another.                           ## cost of finding the max and min values of the 
-                                                                                                                    ## union of all of the histograms. Such feature may 
-                                                                                                                    ## be enabled in the future, using a boolean input
-                                                                                                                    ## parameter.
+                    figure_ = wpu.__subplot_heatmap(waveform_set,
+                                                    figure_,
+                                                    aux_name,
+                                                    i + 1,
+                                                    j + 1,
+                                                    data_of_map_of_wf_idcs[i][j],
+                                                    analysis_label,
+                                                    time_bins,
+                                                    adc_bins,
+                                                    aux_ranges,
+                                                    show_color_bar = False)     # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
+                                                                                # since it may differ from one plot     ## every plot in the grid, though, but comes at the
+                                                                                # to another.                           ## cost of finding the max and min values of the 
+                                                                                                                        ## union of all of the histograms. Such feature may 
+                                                                                                                        ## be enabled in the future, using a boolean input
+                                                                                                                        ## parameter.
                     figure_.add_annotation( xref = "x domain", 
                                             yref = "y domain",      
                                             x = 0.,             # The annotation is left-aligned
@@ -690,9 +684,9 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                             col = j + 1)
                 else:
 
-                    __add_no_data_annotation(   figure_,
-                                                i + 1,
-                                                j + 1)
+                    wpu.__add_no_data_annotation(   figure_,
+                                                    i + 1,
+                                                    j + 1)
     else:                                                                                                           
         raise Exception(generate_exception_message( 6,
                                                     'plot_WaveformSet()',
@@ -786,10 +780,10 @@ def plot_CalibrationHistogram(  calibration_histogram : CalibrationHistogram,
                                 calibration_histogram.Edges[-1],
                                 num = fit_npoints)
             
-            fit_y = gaussian(   fit_x,
-                                calibration_histogram.GaussianFitsParameters['scale'][i][0],
-                                calibration_histogram.GaussianFitsParameters['mean'][i][0],
-                                calibration_histogram.GaussianFitsParameters['std'][i][0])
+            fit_y = wun.gaussian(   fit_x,
+                                    calibration_histogram.GaussianFitsParameters['scale'][i][0],
+                                    calibration_histogram.GaussianFitsParameters['mean'][i][0],
+                                    calibration_histogram.GaussianFitsParameters['std'][i][0])
             
             fit_trace = pgo.Scatter(x = fit_x,
                                     y = fit_y,
@@ -1084,9 +1078,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
     """
 
     if figure is not None:
-        check_dimensions_of_suplots_figure( figure,
-                                            channel_ws_grid.ChMap.Rows,
-                                            channel_ws_grid.ChMap.Columns)
+        wpu.check_dimensions_of_suplots_figure( figure,
+                                                channel_ws_grid.ChMap.Rows,
+                                                channel_ws_grid.ChMap.Columns)
         figure_ = figure
     else:
         figure_ = psu.make_subplots(    rows = channel_ws_grid.ChMap.Rows, 
@@ -1100,20 +1094,20 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                                                         'If defined, the number of waveforms per axes must be positive.'))
         fPlotAll = False
 
-    __add_unique_channels_top_annotations(  channel_ws_grid,
-                                            figure_,
-                                            also_add_run_info = True if mode != 'heatmap' else False)       # If mode is 'heatmap', then
-                                                                                                            # there is already a right-aligned
-                                                                                                            # top annotation which shows the
-                                                                                                            # iterator values of the first
-                                                                                                            # waveforms. We are not adding a
-                                                                                                            # new one so that they don't collide.
-    update_shared_axes_status(  figure_,                    # An alternative way is to specify 
-                                share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
-                                share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
-                                                            # that alternative is only doable for 
-                                                            # the case where the given 'figure'
-                                                            # parameter is None.
+    wpu.__add_unique_channels_top_annotations(  channel_ws_grid,
+                                                figure_,
+                                                also_add_run_info = True if mode != 'heatmap' else False)       # If mode is 'heatmap', then
+                                                                                                                # there is already a right-aligned
+                                                                                                                # top annotation which shows the
+                                                                                                                # iterator values of the first
+                                                                                                                # waveforms. We are not adding a
+                                                                                                                # new one so that they don't collide.
+    wpu.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
+                                    share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
+                                    share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
+                                                                # that alternative is only doable for 
+                                                                # the case where the given 'figure'
+                                                                # parameter is None.
     if mode == 'overlay':
         for i in range(channel_ws_grid.ChMap.Rows):
             for j in range(channel_ws_grid.ChMap.Columns):
@@ -1122,9 +1116,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                     channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
 
                 except KeyError:
-                    __add_no_data_annotation(   figure_,
-                                                i + 1,
-                                                j + 1)
+                    wpu.__add_no_data_annotation(   figure_,
+                                                    i + 1,
+                                                    j + 1)
                     continue
 
                 if fPlotAll:
@@ -1160,9 +1154,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                     channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
 
                 except KeyError:
-                    __add_no_data_annotation(   figure_,
-                                                i + 1,
-                                                j + 1)
+                    wpu.__add_no_data_annotation(   figure_,
+                                                    i + 1,
+                                                    j + 1)
                     continue
 
                 if fPlotAll:
@@ -1183,7 +1177,7 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
-                    aux_name += f": [{get_string_of_first_n_integers_if_available(list(aux_idcs), queried_no = 2)}]"
+                    aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(list(aux_idcs), queried_no = 2)}]"
 
                 plot_WaveformAdcs(  aux,
                                     figure = figure_,
@@ -1211,9 +1205,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                     channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
 
                 except KeyError:
-                    __add_no_data_annotation(   figure_,
-                                                i + 1,
-                                                j + 1)
+                    wpu.__add_no_data_annotation(   figure_,
+                                                    i + 1,
+                                                    j + 1)
                     continue
 
                 if fPlotAll:
@@ -1223,30 +1217,30 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
-                    aux_name += f": [{get_string_of_first_n_integers_if_available(list(aux_idcs), queried_no = 2)}]"
+                    aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(list(aux_idcs), queried_no = 2)}]"
 
-                aux_ranges = arrange_time_vs_ADC_ranges(channel_ws,
-                                                        time_range_lower_limit = time_range_lower_limit,
-                                                        time_range_upper_limit = time_range_upper_limit,
-                                                        adc_range_above_baseline = adc_range_above_baseline,
-                                                        adc_range_below_baseline = adc_range_below_baseline)
+                aux_ranges = wpu.arrange_time_vs_ADC_ranges(channel_ws,
+                                                            time_range_lower_limit = time_range_lower_limit,
+                                                            time_range_upper_limit = time_range_upper_limit,
+                                                            adc_range_above_baseline = adc_range_above_baseline,
+                                                            adc_range_below_baseline = adc_range_below_baseline)
             
-                figure_ = __subplot_heatmap(channel_ws,
-                                            figure_,
-                                            aux_name,
-                                            i + 1,
-                                            j + 1,
-                                            list(aux_idcs),
-                                            analysis_label,
-                                            time_bins,
-                                            adc_bins,
-                                            aux_ranges,
-                                            show_color_bar = False) # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
-                                                                    # since it may differ from one plot     ## every plot in the grid, though, but comes at the
-                                                                    # to another.                           ## cost of finding the max and min values of the 
-                                                                                                            ## union of all of the histograms. Such feature may 
-                                                                                                            ## be enabled in the future, using a boolean input
-                                                                                                            ## parameter.
+                figure_ = wpu.__subplot_heatmap(channel_ws,
+                                                figure_,
+                                                aux_name,
+                                                i + 1,
+                                                j + 1,
+                                                list(aux_idcs),
+                                                analysis_label,
+                                                time_bins,
+                                                adc_bins,
+                                                aux_ranges,
+                                                show_color_bar = False) # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
+                                                                        # since it may differ from one plot     ## every plot in the grid, though, but comes at the
+                                                                        # to another.                           ## cost of finding the max and min values of the 
+                                                                                                                ## union of all of the histograms. Such feature may 
+                                                                                                                ## be enabled in the future, using a boolean input
+                                                                                                                ## parameter.
                 figure_.add_annotation( xref = "x domain", 
                                         yref = "y domain",      
                                         x = 1.,             # The annotation is right-aligned,
@@ -1267,9 +1261,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                     channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
 
                 except KeyError:
-                    __add_no_data_annotation(   figure_,
-                                                i + 1,
-                                                j + 1)
+                    wpu.__add_no_data_annotation(   figure_,
+                                                    i + 1,
+                                                    j + 1)
                     continue
 
                 if channel_ws.CalibHisto is None:

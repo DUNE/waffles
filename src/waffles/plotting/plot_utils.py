@@ -4,7 +4,9 @@ from typing import List, Optional
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWSGrid import ChannelWSGrid
-from waffles.utils.numerical_utils import histogram2d
+
+import waffles.utils.numerical_utils as wun
+
 from waffles.Exceptions import generate_exception_message
 
 def check_dimensions_of_suplots_figure( figure : pgo.Figure,
@@ -300,9 +302,9 @@ def __subplot_heatmap(  waveform_set : WaveformSet,
 
     aux_y = np.hstack([waveform_set.Waveforms[idx].Adcs - waveform_set.Waveforms[idx].Analyses[analysis_label].Result.Baseline for idx in wf_idcs])
 
-    aux = histogram2d(  np.vstack((aux_x, aux_y)), 
-                        np.array((time_bins, adc_bins)),
-                        ranges)
+    aux = wun.histogram2d(  np.vstack((aux_x, aux_y)), 
+                            np.array((time_bins, adc_bins)),
+                            ranges)
     
     heatmap =   pgo.Heatmap(z = aux,
                             x0 = ranges[0,0],
