@@ -78,7 +78,7 @@ def match_endpoint( waveform : Waveform,
                     endpoint : int) -> bool:
     
     """
-    This method returns True if the Endpoint attribute
+    This function returns True if the Endpoint attribute
     of the given Waveform object matches endpoint, and 
     False if else.
 
