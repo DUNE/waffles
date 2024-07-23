@@ -1,16 +1,9 @@
 import math
 import inspect
-import array
 
-import uproot
-try: 
-    import ROOT
-except ImportError: 
-    print("[WaveformSet.py]: Could not import ROOT module. Do not use 'pyroot' library options.")
-    pass
 import numba
 import numpy as np
-from typing import Tuple, List, Dict, Callable, Optional, Union
+from typing import Tuple, List, Dict, Callable, Optional
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -20,6 +13,9 @@ from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
 from waffles.data_classes.Map import Map
 from waffles.data_classes.ChannelMap import ChannelMap
+
+import waffles.utils.filtering_utils as wuf
+
 from waffles.Exceptions import generate_exception_message
 
 class WaveformSet:
@@ -726,8 +722,8 @@ class WaveformSet:
             must be hinted as a Waveform object. Also, the
             return type of such callable must be annotated
             as a boolean. If wf_filter is 
-                - WaveformSet.match_run or
-                - WaveformSet.match_endpoint_and_channel,
+                - wuf.match_run or
+                - wuf.match_endpoint_and_channel,
             this method can benefit from the information in
             self.Runs and self.AvailableChannels and its
             execution time may be reduced with respect to
@@ -802,7 +798,7 @@ class WaveformSet:
                                                             'WaveformSet.get_map_of_wf_idcs()',
                                                             "The given wf_filter is not defined or is not callable. It must be suitably defined because the 'wfs_per_axes' parameter is not. At least one of them must be suitably defined."))
 
-            WaveformSet.check_well_formedness_of_generic_waveform_function(signature)
+            wuf.check_well_formedness_of_generic_waveform_function(signature)
 
             if filter_args is None:
                 raise Exception(generate_exception_message( 4,
@@ -833,8 +829,8 @@ class WaveformSet:
         else:   # fFilteringMode is True and so, wf_filter, 
                 # filter_args and fMaxIsSet are defined
 
-            mode_map = {WaveformSet.match_run : 0,
-                        WaveformSet.match_endpoint_and_channel : 1}
+            mode_map = {wuf.match_run : 0,
+                        wuf.match_endpoint_and_channel : 1}
             try:
                 fMode = mode_map[wf_filter]
             except KeyError:
@@ -861,92 +857,6 @@ class WaveformSet:
                                                             filter_args,
                                                             fMaxIsSet,
                                                             max_wfs_per_axes)
-
-    @staticmethod
-    def match_run(  waveform : Waveform,
-                    run : int) -> bool:
-        
-        """
-        This method returns True if the RunNumber attribute
-        of the given Waveform object matches run. It returns 
-        False if else.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        run : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.RunNumber == run
-    
-    @staticmethod
-    def match_endpoint( waveform : Waveform,
-                        endpoint : int) -> bool:
-        
-        """
-        This method returns True if the Endpoint attribute
-        of the given Waveform object matches endpoint, and 
-        False if else.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        endpoint : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.Endpoint == endpoint
-    
-    @staticmethod
-    def match_channel(  waveform : Waveform,
-                        channel : int) -> bool:
-        
-        """
-        This method returns True if the Channel attribute
-        of the given Waveform object matches channel, and 
-        False if else.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        channel : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.Channel == channel
-    
-    @staticmethod
-    def match_endpoint_and_channel( waveform : Waveform,
-                                    endpoint : int,
-                                    channel : int) -> bool:
-        
-        """
-        This method returns True if the Endpoint and Channel
-        attributes of the given Waveform object match endpoint 
-        and channel, respectively.
-
-        Parameters
-        ----------
-        waveform : Waveform
-        endpoint : int
-        channel : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        return waveform.Endpoint == endpoint and waveform.Channel == channel
     
     def __get_map_of_wf_idcs_by_run(self,   blank_map : Map,
                                             filter_args : Map,
@@ -959,7 +869,7 @@ class WaveformSet:
         the well-formedness checks of the input have
         already been performed. This method generates an
         output as described in such method docstring,
-        for the case when wf_filter is WaveformSet.match_run.
+        for the case when wf_filter is wuf.match_run.
         Refer to the WaveformSet.get_map_of_wf_idcs()
         method documentation for more information.
 
@@ -988,8 +898,8 @@ class WaveformSet:
 
                     counter = 0
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_run(   self.__waveforms[k],
-                                                    *filter_args.Data[i][j]):
+                        if wuf.match_run(   self.__waveforms[k],
+                                            *filter_args.Data[i][j]):
                             
                             blank_map.Data[i][j].append(k)
                             counter += 1
@@ -997,8 +907,8 @@ class WaveformSet:
                                 break
                 else:
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_run(   self.__waveforms[k],
-                                                    *filter_args.Data[i][j]):
+                        if wuf.match_run(   self.__waveforms[k],
+                                            *filter_args.Data[i][j]):
                             
                             blank_map.Data[i][j].append(k)
         return blank_map
@@ -1015,7 +925,7 @@ class WaveformSet:
         already been performed. This method generates an 
         output as described in such method docstring,
         for the case when wf_filter is 
-        WaveformSet.match_endpoint_and_channel. Refer to
+        wuf.match_endpoint_and_channel. Refer to
         the WaveformSet.get_map_of_wf_idcs() method
         documentation for more information.
 
@@ -1049,18 +959,18 @@ class WaveformSet:
 
                     counter = 0
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_endpoint_and_channel(  self.__waveforms[k],
-                                                                    filter_args.Data[i][j].Endpoint,
-                                                                    filter_args.Data[i][j].Channel):
+                        if wuf.match_endpoint_and_channel(  self.__waveforms[k],
+                                                            filter_args.Data[i][j].Endpoint,
+                                                            filter_args.Data[i][j].Channel):
                             blank_map.Data[i][j].append(k)
                             counter += 1
                             if counter == max_wfs_per_axes:
                                 break
                 else:
                     for k in range(len(self.__waveforms)):
-                        if WaveformSet.match_endpoint_and_channel(  self.__waveforms[k],
-                                                                    filter_args.Data[i][j].Endpoint,
-                                                                    filter_args.Data[i][j].Channel):
+                        if wuf.match_endpoint_and_channel(  self.__waveforms[k],
+                                                            filter_args.Data[i][j].Endpoint,
+                                                            filter_args.Data[i][j].Channel):
                             blank_map.Data[i][j].append(k)
         return blank_map
     
@@ -1077,10 +987,9 @@ class WaveformSet:
         already been performed. This method generates an 
         output as described in such method docstring,
         for the case when wf_filter is neither
-        WaveformSet.match_run nor
-        WaveformSet.match_endpoint_and_channel. Refer 
-        to the WaveformSet.get_map_of_wf_idcs() method
-        documentation for more information.
+        wuf.match_run nor wuf.match_endpoint_and_channel. 
+        Refer to the WaveformSet.get_map_of_wf_idcs() 
+        method documentation for more information.
 
         Parameters
         ----------
@@ -1285,7 +1194,7 @@ class WaveformSet:
 
             signature = inspect.signature(wf_selector)
 
-            WaveformSet.check_well_formedness_of_generic_waveform_function(signature)
+            wuf.check_well_formedness_of_generic_waveform_function(signature)
 
             output = self.__compute_mean_waveform_with_selector(wf_selector,
                                                                 *args,
@@ -1539,7 +1448,7 @@ class WaveformSet:
 
         signature = inspect.signature(wf_filter)
 
-        WaveformSet.check_well_formedness_of_generic_waveform_function(signature)
+        wuf.check_well_formedness_of_generic_waveform_function(signature)
         
         staying_ones, dumped_ones = [], []      # Better fill the two lists during the WaveformSet scan and then return
                                                 # the desired one, rather than filling just the dumped_ones one and
@@ -1646,57 +1555,7 @@ class WaveformSet:
         ## the original waveformset according to the endpoints. This needs to be 
         ## checked, because it might be an open issue.
 
-        return cls(*waveforms)  
-        
-    @staticmethod
-    def check_well_formedness_of_generic_waveform_function(wf_function_signature : inspect.Signature) -> None:
-
-        """
-        This method gets an argument, wf_function_signature, 
-        and returns None if the following conditions are met:
-
-            -   such signature takes at least one argument
-            -   the first argument of such signature
-                is called 'waveform'
-            -   the type annotation of such argument 
-                must be either the WaveformAdcs class,
-                the Waveform class, the 'WaveformAdcs'
-                string literal or the 'Waveform' string
-                literal
-            -   the return type of such signature 
-                is annotated as a boolean value
-
-        If any of these conditions are not met, this
-        method raises an exception.
-                
-        Parameters
-        ----------
-        wf_function_signature : inspect.Signature
-
-        Returns
-        ----------
-        bool
-        """
-
-        try:
-            if list(wf_function_signature.parameters.keys())[0] != 'waveform':
-                raise Exception(generate_exception_message( 1,
-                                                            "WaveformSet.check_well_formedness_of_generic_waveform_function()",
-                                                            "The name of the first parameter of the given signature must be 'waveform'."))
-        except IndexError:
-            raise Exception(generate_exception_message( 2,
-                                                        "WaveformSet.check_well_formedness_of_generic_waveform_function()",
-                                                        'The given signature must take at least one parameter.'))
-        
-        if wf_function_signature.parameters['waveform'].annotation not in [WaveformAdcs, 'WaveformAdcs', Waveform, 'Waveform']:
-            raise Exception(generate_exception_message( 3,
-                                                        "WaveformSet.check_well_formedness_of_generic_waveform_function()",
-                                                        "The 'waveform' parameter of the given signature must be hinted as a WaveformAdcs (or an inherited class) object."))
-        if wf_function_signature.return_annotation != bool:
-            raise Exception(generate_exception_message( 4,
-                                                        "WaveformSet.check_well_formedness_of_generic_waveform_function()",
-                                                        "The return type of the given signature must be hinted as a boolean."))
-        return
+        return cls(*waveforms)
     
     @staticmethod
     def histogram1d(samples : np.ndarray,
