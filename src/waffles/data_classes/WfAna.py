@@ -1,4 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:                                                   # Import only for type-checking, so as
+    from waffles.data_classes.WaveformAdcs import WaveformAdcs      # to avoid a runtime circular import
                                                     
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAnaResult import WfAnaResult
@@ -63,10 +67,10 @@ class WfAna(ABC):
     #   analyse() instance method
 
     @abstractmethod
-    def analyse(self,   waveform : 'WaveformAdcs',
-                        *args,
-                        **kwargs):
-        
+    def analyse(self,   waveform : 'WaveformAdcs',      # The WaveformAdcs class is not defined at runtime, only
+                        *args,                          # during type-checking (see TYPE_CHECKING). Not enclosing
+                        **kwargs):                      # the type in quotes would raise a `NameError: name
+                                                        # 'WaveformAdcs' is not defined.`
         """
         This abstract method serves as a template for
         the analyser method that MUST be implemented

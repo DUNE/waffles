@@ -1,6 +1,5 @@
 
 import numpy as np
-from scipy import signal as spsi
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:                                                   # Import only for type-checking, so as
@@ -9,7 +8,6 @@ if TYPE_CHECKING:                                                   # Import onl
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
-from waffles.data_classes.WfPeak import WfPeak
 
 import waffles.Exceptions as we
 
@@ -48,10 +46,6 @@ class BasicWfAna(WfAna):
         than AmpUl. These limits are inclusive. I.e., the 
         points which are used for the amplitude calculation 
         are wf.Adcs[AmpLl - wf.TimeOffset : AmpUl + 1 - wf.TimeOffset].
-    PeakFindingKwargs : dict
-        Dictionary of keyword arguments which are passed to
-        scipy.signal.find_peaks(waveform.Adcs, **PeakFindingKwargs)
-        by the analyse() method.
     Result : WfAnaResult (inherited from WfAna)
 
     Methods
@@ -78,9 +72,6 @@ class BasicWfAna(WfAna):
                 - 'int_ul' (int)
                 - 'amp_ll' (int)
                 - 'amp_ul' (int)
-                - 'peak_finding_kwargs' (dict)
-            N.B.: The last key must also be defined,
-            even if it is an empty dictionary.
         """
         
         self.__baseline_limits = input_parameters['baseline_limits']
@@ -88,7 +79,6 @@ class BasicWfAna(WfAna):
         self.__int_ul = input_parameters['int_ul']
         self.__amp_ll = input_parameters['amp_ll']
         self.__amp_ul = input_parameters['amp_ul']
-        self.__peak_finding_kwargs = input_parameters['peak_finding_kwargs']
 
         super().__init__(input_parameters)
 
@@ -113,16 +103,10 @@ class BasicWfAna(WfAna):
     def AmpUl(self):
         return self.__amp_ul
     
-    @property
-    def PeakFindingKwargs(self):
-        return self.__peak_finding_kwargs
-    
-    def analyse(self,   waveform : 'WaveformAdcs',  # The WaveformAdcs class is not defined at runtime, only
-                                                    # during type-checking (see TYPE_CHECKING). Not enclosing
-                                                    # the type in quotes would raise a `NameError: name
-                                                    # 'WaveformAdcs' is not defined.`
-
-                        return_peaks_properties : bool = False) -> dict:
+    def analyse(self, waveform : 'WaveformAdcs') -> None:   # The WaveformAdcs class is not defined at runtime, only
+                                                            # during type-checking (see TYPE_CHECKING). Not enclosing
+                                                            # the type in quotes would raise a `NameError: name
+                                                            # 'WaveformAdcs' is not defined.`
         
         """
         With respect to the given WaveformAdcs object, this analyser 
@@ -131,12 +115,6 @@ class BasicWfAna(WfAna):
             - It computes the baseline as the median of the points
             that are considered, according to the documentation of
             the self.__baseline_limits attribute.
-            - It searches for peaks over the inverted waveform, 
-            by calling 
-            
-                scipy.signal.find_peaks(-1.*waveform.Adcs,
-                                        **self.__peak_finding_kwargs)
-
             - It calculates the integral of 
             waveform.Adcs[IntLl - waveform.TimeOffset : IntUl + 1 - waveform.TimeOffset]. 
             To do so, it assumes that the temporal resolution of 
@@ -158,25 +136,16 @@ class BasicWfAna(WfAna):
 
         For the sake of efficiency, these checks are not done.
         It is the caller's responsibility to ensure that these 
-        requirements are met. Also, regarding 
-        self.__peak_finding_kwargs, it is the caller's 
-        responsibility to ensure that it is well-defined.
+        requirements are met.
 
         Parameters
         ----------
         waveform : WaveformAdcs
             The WaveformAdcs object which will be analysed
-        return_peaks_properties : bool
-            If True, then this method returns information about
-            the spotted-peaks properties. 
 
         Returns
         ----------
-        output : dict
-            If return_peaks_properties is False, then this
-            dictionary is empty. If return_peaks_properties is
-            True, then this is a dictionary containing the 
-            properties for the spotted peaks.
+        None
         """
                     
         split_baseline_samples = [  waveform.Adcs[ self.__baseline_limits[2*i] - waveform.TimeOffset : self.__baseline_limits[(2*i) + 1] - waveform.TimeOffset]
@@ -185,47 +154,15 @@ class BasicWfAna(WfAna):
         baseline_samples = np.concatenate(split_baseline_samples)
         baseline = np.median(baseline_samples)
 
-        peaks, properties = spsi.find_peaks(-1.*waveform.Adcs,              ## Assuming that the waveform is
-                                            **self.__peak_finding_kwargs)   ## inverted. We should find another 
-                                                                            ## way not to hardcode this     
         self._WfAna__result = WfAnaResult(  baseline = baseline,
                                             baseline_min = None,            # Might be set to np.min(baseline_samples) (resp. 
                                             baseline_max = None,            # np.max(baseline_samples), ~np.std(baseline_samples)) 
                                             baseline_rms = None,            # for a deeper analysis for which we need (and
                                                                             # can afford the computation time) for this data
 
-                                            peaks = [ WfPeak(peaks[i]) for i in range(len(peaks)) ],
                                             integral = waveform.TimeStep_ns*(((self.__int_ul - self.__int_ll + 1)*baseline) - np.sum(waveform.Adcs[ self.__int_ll - waveform.TimeOffset : self.__int_ul + 1 - waveform.TimeOffset])),   ## Assuming that the waveform is
                                                                                                                                                                                                                                         ## inverted and using linearity
                                                                                                                                                                                                                                         ## to avoid some multiplications
                                             amplitude = + np.max(waveform.Adcs[self.__amp_ll - waveform.TimeOffset : self.__amp_ul + 1 - waveform.TimeOffset]) 
                                                         - np.min(waveform.Adcs[self.__amp_ll - waveform.TimeOffset : self.__amp_ul + 1 - waveform.TimeOffset]))
-        if return_peaks_properties is True:
-            output = {'peaks_properties': properties}
-        else:
-            output = {}
-            
-        return output
-
-    ## The following method is not supported
-    ## and may be removed in the near future
-
-    def peaks_are_available(self) -> bool:
-        
-        """
-        This method returns True if self.Result
-        is not None and self.Result.Peaks is
-        not None and len(self.Result.Peaks)
-        is greater than 0. It returns False otherwise.
-
-        Returns
-        ----------
-        bool
-        """
-
-        if self.Result is not None:
-            if self.Result.Peaks is not None:
-                if len(self.Result.Peaks) > 0:
-                    return True
-        
-        return False
+        return
