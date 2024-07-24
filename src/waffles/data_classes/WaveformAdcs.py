@@ -294,7 +294,7 @@ class WaveformAdcs:
         If the 'label' parameter is defined, then this 
         method returns the WfAna object which has such 
         label within the self.__analyses OrderedDict. 
-        If there is no analysis which such label, then
+        If there is no analysis with such label, then
         this method raises a KeyError. If the 'label'
         parameter is not defined, then this method returns
         the last WfAna object added to self.__analyses. If
