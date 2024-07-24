@@ -1,7 +1,6 @@
 import numpy as np
 from typing import List, Optional
 from collections import OrderedDict
-from plotly import graph_objects as pgo
 
 from waffles.data_classes.WfAna import WfAna
 from waffles.Exceptions import generate_exception_message
