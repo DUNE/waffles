@@ -9,6 +9,7 @@ from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.WfPeak import WfPeak
 
+import waffles.utils.check_utils as wuc
 import waffles.Exceptions as we
 
 class PeakFindingWfAna(BasicWfAna):
@@ -142,7 +143,63 @@ class PeakFindingWfAna(BasicWfAna):
             output = {}
             
         return output
+    
+    @staticmethod
+    @we.handle_missing_data
+    def check_input_parameters( input_parameters : IPDict,
+                                points_no : int) -> None:
 
+        """
+        Apart from calling the base class check_input_parameters() 
+        method which performs some checks, this method adds
+        another one to check whether the keys in 
+        input_parameters['peak_finding_kwargs'] belong to the
+        set of valid keys for scipy.signal.find_peaks(), i.e.
+        
+            [   'height', 
+                'threshold',
+                'distance',
+                'prominence', 
+                'width', 
+                'wlen', 
+                'rel_height',
+                'plateau_size'  ]
+
+        If any of these checks fail, an exception is raised.
+
+        Parameters
+        ----------
+        input_parameters : IPDict
+            The input parameters to be checked. It is the IPDict
+            that can be potentially given to BasciWfAna.__init__
+            to instantiate a BasicWfAna object.
+        points_no : int
+            The number of points in any waveform that could be
+            analysed. It is assumed to be the same for all the
+            waveforms.
+
+        Returns
+        ----------
+        None
+        """
+
+        BasicWfAna.check_input_parameters(  input_parameters,   # Not using the super() syntax because
+                                            points_no)          # BasicWfAna.check_input_parameters is static
+        aux = [ 'height', 
+                'threshold',
+                'distance',
+                'prominence', 
+                'width', 
+                'wlen', 
+                'rel_height',
+                'plateau_size']
+
+        for kwarg in input_parameters['peak_finding_kwargs']:
+            if kwarg not in aux:
+                raise Exception(we.generate_exception_message(  1,
+                                                                'PeakFindingWfAna.check_input_parameters()',
+                                                                f"A non-valid keyword argument ('{kwarg}') was given to the 'peak_finding_kwargs' input parameter."))
+                
     ## The following method is not supported
     ## and may be removed in the near future
 
