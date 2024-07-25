@@ -7,6 +7,8 @@ if TYPE_CHECKING:                                                   # Import onl
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAnaResult import WfAnaResult
 
+import waffles.Exceptions as we
+
 class WfAna(ABC):
 
     """
@@ -100,3 +102,41 @@ class WfAna(ABC):
 
         self.__result = WfAnaResult()
         return
+    
+    @staticmethod
+    @abstractmethod
+    @we.handle_missing_data
+    def check_input_parameters(input_parameters : IPDict) -> None:
+        
+        """
+        This abstract method, which MUST be implemented
+        for whichever derived class of WfAna, is 
+        responsible for checking whether the input 
+        parameters are well-formed. It should raise
+        an exception if the input parameters are not
+        well-formed. It should end execution normally
+        and return None if they are well-formed.
+
+        For efficiency purposes, the aim is to call
+        it at the WaveformSet level (before instantiating
+        the first WfAna (or derived) object) for
+        cases where the same IPDict is given for every 
+        WaveformAdcs object to be analysed. In these
+        cases, just one check is performed, instead 
+        of N checks, where N is the number of WaveformAdcs 
+        objects and N-1 checks are redundant. That's the 
+        reason why this method is static.
+
+        Parameters
+        ----------
+        input_parameters : IPDict
+            The input parameters to be checked
+
+        Returns
+        ----------
+        bool
+            True if the input parameters are well-formed,
+            False otherwise
+        """
+
+        pass
