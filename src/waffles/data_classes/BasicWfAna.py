@@ -9,6 +9,7 @@ from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
 
+import waffles.utils.check_utils as wuc
 import waffles.Exceptions as we
 
 class BasicWfAna(WfAna):
@@ -166,3 +167,73 @@ class BasicWfAna(WfAna):
                                             amplitude = + np.max(waveform.Adcs[self.__amp_ll - waveform.TimeOffset : self.__amp_ul + 1 - waveform.TimeOffset]) 
                                                         - np.min(waveform.Adcs[self.__amp_ll - waveform.TimeOffset : self.__amp_ul + 1 - waveform.TimeOffset]))
         return
+    
+    @staticmethod
+    @we.handle_missing_data
+    def check_input_parameters( input_parameters : IPDict,
+                                points_no : int) -> None:
+
+        """
+        This method performs three checks:
+
+            - It checks whether the baseline limits, say bl, are 
+            well-formed, i.e. whether they meet
+
+                0 <= bl[0] < bl[1] < ... < bl[-1] <= points_no - 1
+
+            - It checks whether the integration window, say 
+            (int_ll, int_ul) is well-formed, i.e. whether it meets
+
+                0 <= int_ll < int_ul <= points_no - 1
+
+            - It checks whether the amplitude window, say
+            (amp_ll, amp_ul) is well-formed, i.e. whether it meets
+
+                0 <= amp_ll < amp_ul <= points_no - 1
+
+        If any of these checks fail, an exception is raised.
+
+        Parameters
+        ----------
+        input_parameters : IPDict
+            The input parameters to be checked. It is the IPDict
+            that can be potentially given to BasciWfAna.__init__
+            to instantiate a BasicWfAna object.
+        points_no : int
+            The number of points in any waveform that could be
+            analysed. It is assumed to be the same for all the
+            waveforms.
+
+        Returns
+        ----------
+        None
+        """
+
+        if not wuc.baseline_limits_are_well_formed( input_parameters['baseline_limits'],
+                                                    points_no):
+            
+            raise Exception(we.generate_exception_message(  1,
+                                                            'BasicWfAna.check_input_parameters()',
+                                                            f"The baseline limits ({input_parameters['baseline_limits']}) are not well formed."))
+        int_ul_ = input_parameters['int_ul']
+        if int_ul_ is None:
+            int_ul_ = points_no - 1
+
+        if not wuc.subinterval_is_well_formed(  input_parameters['int_ll'],
+                                                int_ul_,
+                                                points_no):
+            
+            raise Exception(we.generate_exception_message(  2,
+                                                            'BasicWfAna.check_input_parameters()',
+                                                            f"The integration window ({input_parameters['int_ll']}, {int_ul_}) is not well formed."))
+        amp_ul_ = input_parameters['amp_ul']
+        if amp_ul_ is None:
+            amp_ul_ = points_no - 1
+
+        if not wuc.subinterval_is_well_formed(  input_parameters['amp_ll'],
+                                                amp_ul_,
+                                                points_no):
+            
+            raise Exception(we.generate_exception_message(  3,
+                                                            'BasicWfAna.check_input_parameters()',
+                                                            f"The amplitude window ({input_parameters['amp_ll']}, {amp_ul_}) is not well formed."))
