@@ -208,32 +208,3 @@ def cluster_integers_by_contiguity(increasingly_sorted_integers : np.ndarray) ->
                                                     'The given numpy array must contain at least two elements.'))
     
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
-
-def fraction_is_well_formed(lower_limit : float = 0.0,
-                            upper_limit : float = 1.0) -> bool:
-    
-    """
-    This function returns True if 
-
-        0.0 <= lower_limit < upper_limit <= 1.0,
-
-    and False if else.
-
-    Parameters
-    ----------
-    lower_limit : float
-    upper_limit : float
-
-    Returns
-    ----------
-    bool
-    """
-
-    if lower_limit < 0.0:
-        return False
-    elif upper_limit <= lower_limit:
-        return False
-    elif upper_limit > 1.0:
-        return False
-    
-    return True

@@ -624,63 +624,6 @@ class WaveformSet:
                                                         **kwargs)
         return output
     
-    def baseline_limits_are_well_formed(self, baseline_limits : List[int]) -> bool:
-
-        """
-        This method returns True if len(baseline_limits) is even and 
-        0 <= baseline_limits[0] < baseline_limits[1] < ... < baseline_limits[-1] <= self.PointsPerWf - 1.
-        It returns False if else.
-
-        Parameters
-        ----------
-        baseline_limits : list of int
-
-        Returns
-        ----------
-        bool
-        """
-
-        if len(baseline_limits)%2 != 0:
-            return False
-
-        if baseline_limits[0] < 0:
-            return False
-            
-        for i in range(0, len(baseline_limits) - 1):
-            if baseline_limits[i] >= baseline_limits[i + 1]:
-                return False
-                
-        if baseline_limits[-1] > self.PointsPerWf - 1:
-            return False
-        
-        return True
-    
-    def subinterval_is_well_formed(self,    i_low : int, 
-                                            i_up : int) -> bool:
-        
-        """
-        This method returns True if 0 <= i_low < i_up <= self.PointsPerWf - 1,
-        and False if else.
-
-        Parameters
-        ----------
-        i_low : int
-        i_up : int
-
-        Returns
-        ----------
-        bool
-        """
-
-        if i_low < 0:
-            return False
-        elif i_up <= i_low:
-            return False
-        elif i_up > self.PointsPerWf - 1:
-            return False
-        
-        return True
-    
     def compute_mean_waveform(self, *args,
                                     wf_idcs : Optional[List[int]] = None,
                                     wf_selector : Optional[Callable[..., bool]] = None,
