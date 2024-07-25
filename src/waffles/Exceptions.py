@@ -39,5 +39,5 @@ def handle_missing_data(func):
         except KeyError as e:
             raise KeyError(generate_exception_message(  1,
                                                         'handle_missing_data()',
-                                                        f"You are trying to instantiate a WfAna-derived class without providing the required input parameters. {str(e)[1:-1]}"))
+                                                        f"You are trying to instantiate/check a WfAna-derived class without providing the required input parameters. {str(e)[1:-1]}"))
     return wrapper
