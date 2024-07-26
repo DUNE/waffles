@@ -11,7 +11,7 @@ except ImportError:
 
 from waffles.data_classes.WaveformSet import WaveformSet
 
-import waffles.utils.numerical_utils as wun
+import waffles.utils.check_utils as wuc
 import waffles.input.input_utils as wii
 
 from waffles.Exceptions import generate_exception_message
@@ -144,7 +144,7 @@ def WaveformSet_from_ROOT_file( filepath : str,
         printed.
     """
 
-    if not wun.fraction_is_well_formed(start_fraction, stop_fraction):
+    if not wuc.fraction_is_well_formed(start_fraction, stop_fraction):
         raise Exception(generate_exception_message( 1,
                                                     'WaveformSet_from_ROOT_file()',
                                                     f"Fraction limits are not well-formed."))

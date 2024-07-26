@@ -1,9 +1,11 @@
 import numpy as np
-from typing import List, Optional
 from collections import OrderedDict
-from plotly import graph_objects as pgo
+from typing import Optional, TYPE_CHECKING
 
-from waffles.data_classes.WfAna import WfAna
+if TYPE_CHECKING:                                   # Import only for type-checking, so as
+    from waffles.data_classes.WfAna import WfAna    # to avoid a runtime circular import
+
+from waffles.data_classes.IPDict import IPDict
 from waffles.Exceptions import generate_exception_message
 
 class WaveformAdcs:
@@ -168,134 +170,95 @@ class WaveformAdcs:
             return len(self.__adcs) - 1
 
     def analyse(self,   label : str,
-                        analyser_name : str,
-                        baseline_limits : List[int],
+                        analysis_class : type,
+                        input_parameters : IPDict,
                         *args,
-                        int_ll : int = 0,
-                        int_ul : Optional[int] = None,
-                        amp_ll : int = 0,
-                        amp_ul : Optional[int] = None,
                         overwrite : bool = False,
                         **kwargs) -> dict:
 
         """
-        This method creates a WfAna object and adds it to the
-        self.__analyses dictionary using label as its key.
-        To do so, it grabs the WfAna instance method whose name
-        matches analyser_name and runs it on this WaveformAdcs
-        object. Then, this method does two things:
-        
-            -   first, it adds the two first outputs of such
-                analyser method to the 'Result' and 'Passed' 
-                attributes of the newly created WfAna object,
-                respectively.
-            -   second, it returns the third output of the
-                analyser method, which should be a dictionary
-                containing any additional information that the
-                analyser method wants to return. Such dictionary
-                is empty if no additional information is
-                provided by the analyser method.
+        This method creates an object of type analysis_class,
+        which must be a class (type) which inherits from the
+        WfAna class. Then, runs its analyse() method on the 
+        self WaveformAdcs object. The created analysis object 
+        is stored in the self.__analyses attribute, using the 
+        label parameter as its key. This method returns the 
+        output of the called method, even if it is None. 
 
         Parameters
         ----------
         label : str
-            Key for the new WfAna object within the self.__analyses
-            OrderedDict
-        analyser_name : str
-            It must match the name of a WfAna method whose first
-            argument must be called 'waveform' and whose type   
-            annotation must match the WaveformAdcs class or the     
-            'WaveformAdcs' string literal. Such method should also  
-            have a defined return-annotation which must match   
-            Tuple[WfAnaResult, bool, dict]. It is the caller's
-            responsibility to check such conditions for this
-            parameter. No checks are performed here for this
-            input.
-        baseline_limits : list of int                                   
-            Given to the 'baseline_limits' parameter of                 
-            WfAna.__init__. It must have an even number
-            of integers which must meet 
-            baseline_limits[i] < baseline_limits[i + 1] for
-            all i. The points which are used for 
-            baseline calculation are 
-            self.__adcs[baseline_limits[2*i]:baseline_limits[(2*i) + 1]],
-            with i = 0,1,...,(len(baseline_limits)/2) - 1. 
-            The upper limits are exclusive. It is the
-            caller's responsibility to ensure the
-            well-formedness of this input. No checks are
-            performed here for 'baseline_limits'.
+            Key for the new WfAna (or derived) object within 
+            the self.__analyses OrderedDict
+        analysis_class : type
+            Class (type) which must inherit from WfAna. For 
+            efficiency reasons, this check is not performed 
+            at this level (WaveformAdcs). The given class 
+            must have an analyse() method which takes a
+            WaveformAdcs object as its first argument. The
+            implementation of such method is enforced by the
+            WfAna abstract class, but it is the user's 
+            responsibility to ensure that such method takes, 
+            indeed, a WaveformAdcs object as its first argument.
+        input_parameters : IPDict
+            The input parameters which will be passed to the
+            analysis_class initializer. It is the user's
+            responsibility to ensure that input_parameters
+            contain the required information to initialize
+            the analysis_class object, and that it is 
+            well-defined.
         *args
-            Positional arguments which are given to the 
-            analyser method.
-        int_ll (resp. int_ul): int
-            Given to the 'int_ll' (resp. 'int_ul') parameter of
-            WfAna.__init__. Iterator value for the first (resp. 
-            last) point of self.__adcs that falls into the 
-            integration window. int_ll must be smaller than 
-            int_ul. These limits are inclusive. If they are 
-            not defined, then the whole self.__adcs is considered.
-            It is the caller's responsibility to ensure the 
-            well-formedness of this input. No checks are
-            performed here for this parameter.
-        amp_ll (resp. amp_ul): int
-            Given to the 'amp_ll' (resp. 'amp_ul') parameter of
-            WfAna.__init__. Iterator value for the first (resp. 
-            last) point of self.__adcs that is considered for
-            the amplitude calculation. amp_ll must be smaller 
-            than amp_ul. These limits are inclusive. If they are 
-            not defined, then the whole self.__adcs is considered.
-            It is the caller's responsibility to ensure the 
-            well-formedness of this input. No checks are
-            performed here for this parameter.
+            Additional positional arguments which are given 
+            to the analyse() method of analysis_class
         overwrite : bool
             If True, the method will overwrite any existing
-            WfAna object with the same label (key) within
-            self.__analyses.
+            WfAna (or derived) object with the same label 
+            (key) within self.__analyses.
         **kwargs
-            Keyword arguments which are given to the analyser
-            method.
+            Additional keyword arguments which are given 
+            to the analyse() method of analysis_class
+        
+        N.B.: It is preferred to keep track of all of the I/O 
+        information of the analysis in the WfAna attributes which 
+        are designed for that purpose, i.e. WfAna.InputParameters 
+        and WfAna.Result. However, *args and **kwargs are enabled 
+        to give more room for the user to potentially configure the
+        analyse() method of WfAna (or derived) with parameters that 
+        have no interest from the point of view of the analysis. 
+        In the same way, the output of WfAna.analyse() is captured 
+        and returned by this method, even if it is None.
 
         Returns
         ----------
-        output_3 : dict
-            The third output of the analyser method, which
-            should be a dictionary containing any additional
-            information that the analyser method wants to
-            return. Note that the analyser method must return
-            a dictionary as its third output, even it its
-            an empty one.
+        output : object
+            It is the output of the analyse() method of the
+            analysis_class object which was created.
         """
 
-        if label in self.__analyses.keys() and not overwrite:
-            raise Exception(generate_exception_message( 1,
-                                                        'WaveformAdcs.analyse()',
-                                                        f"There is already an analysis with label '{label}'. If you want to overwrite it, set the 'overwrite' parameter to True."))
-        else:
+        if not overwrite:
+            if label in self.__analyses.keys():
+                raise Exception(generate_exception_message( 1,
+                                                            'WaveformAdcs.analyse()',
+                                                            f"There is already an analysis with label '{label}'. If you want to overwrite it, set the 'overwrite' parameter to True."))
 
-            aux = WfAna(baseline_limits,
-                        int_ll,
-                        int_ul,
-                        amp_ll,
-                        amp_ul)
-            
-            analyser = getattr(aux, analyser_name)
+        aux = analysis_class(input_parameters)    # Create the analysis object
 
-            output_1, output_2, output_3 = analyser(self,   *args, 
-                                                            **kwargs)
-            aux.Result = output_1
-            aux.Passed = output_2
-
-            self.__analyses[label] = aux
-
-            return output_3
+        output = aux.analyse(self,  *args,      # Run the analysis and grab
+                                    **kwargs)   # the output, even if it is None
+                                                
+        self.__analyses[label] = aux    # Add the created analysis object
+                                        # to the self.__analyses attribute
+        return output
     
-    def get_analysis(self, label : Optional[str] = None) -> WfAna:
-
-        """
-        If the 'label' parameter is defined, then this 
+    def get_analysis(self, label : Optional[str] = None) -> 'WfAna':    # The WfAna class is not defined at runtime, only
+                                                                        # during type-checking (see TYPE_CHECKING). Not 
+                                                                        # enclosing the type in quotes would raise a 
+                                                                        # `NameError: name 'WfAna' is not defined.`
+        """                                                                 
+        If the 'label' parameter is defined, then this                      
         method returns the WfAna object which has such 
         label within the self.__analyses OrderedDict. 
-        If there is no analysis which such label, then
+        If there is no analysis with such label, then
         this method raises a KeyError. If the 'label'
         parameter is not defined, then this method returns
         the last WfAna object added to self.__analyses. If
