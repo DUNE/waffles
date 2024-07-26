@@ -103,6 +103,17 @@ export JUPYTER_CONFIG_DIR=$VIRTUAL_ENV
 
 To deactivate the environment just run `deactivate` in your terminal.
 
+If you are using Jupyter inside VSCode you may want the virtual enviroment to be recognized by the Kernel selector, for that follow:
+
+```bash
+
+#source /path/to/your/venv/bin/activate # Activate the virtual environment
+
+# Install ipykernel in the virtual environment
+pip install ipykernel 
+# Add the virtual environment as a Jupyter kernel
+python -m ipykernel install --user --name=your_env_name --display-name "Python_WAFFLES"
+```
 
 ### 0. Download the library by cloning it from GitHub
 
