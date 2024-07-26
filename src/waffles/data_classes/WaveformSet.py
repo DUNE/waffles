@@ -8,8 +8,8 @@ from plotly import subplots as psu
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WfAna import WfAna
-from waffles.data_classes.WfAnaResult import WfAnaResult
 from waffles.data_classes.Map import Map
+from waffles.data_classes.IPDict import IPDict
 
 import waffles.utils.filtering_utils as wuf
 
@@ -444,102 +444,68 @@ class WaveformSet:
                 self.__available_channels[wf.RunNumber][wf.Endpoint] = set()
                 self.__available_channels[wf.RunNumber][wf.Endpoint].add(wf.Channel)
         return
-    
+
     def analyse(self,   label : str,
-                        analyser_name : str,
-                        baseline_limits : List[int],
+                        analysis_class : type,
+                        input_parameters : IPDict,
                         *args,
-                        int_ll : int = 0,
-                        int_ul : Optional[int] = None,
-                        amp_ll : int = 0,
-                        amp_ul : Optional[int] = None,
-                        overwrite : bool = False,
-                        **kwargs) -> dict:
+                        analysis_kwargs : dict = {},
+                        checks_kwargs : dict = {},
+                        overwrite : bool = False) -> dict:
         
         """
         For each Waveform in this WaveformSet, this method
         calls its 'analyse' method passing to it the parameters
         given to this method. In turn, Waveform.analyse()
-        (actually WaveformAdcs.analyse()) creates a WfAna
-        object and adds it to the Analyses attribute of the 
-        analysed waveform. It also runs the indicated analyser 
-        method (up to the 'analyser_name' parameter) on the 
-        waveform, and adds its results to the 'Result' and 
-        'Passed' attributes of the newly created WfAna object. 
-        Also, it returns a dictionary, say output, whose keys 
-        are integers in [0, len(self.__waveforms) - 1]. 
-        ouptut[i] matches the output of 
-        self.__waveforms[i].analyse(...), which is a dictionary. 
-        I.e. the output of this method is a dictionary of 
-        dictionaries.
-
+        (actually WaveformAdcs.analyse()) creates an object
+        of type analysis_class (which must be a class which
+        inherits from the WfAna class) and runs its analyse()
+        method on the current Waveform object. The created 
+        analysis object is stored in the Analyses attribute
+        of the Waveform object, using the given label parameter 
+        as its key. This method returns a dictionary, say x,
+        where the keys are indices of the waveforms in this 
+        WaveformSet, so that x[i] is the output of the
+        self.__waveforms[i].analyse() method.
+        
         Parameters
         ----------
         label : str
             For every analysed waveform, this is the key
-            for the new WfAna object within its Analyses
-            attribute.
-        analyser_name : str
-            It must match the name of a WfAna method whose first            
-            argument must be called 'waveform' and whose type       # The only way to import the WaveformAdcs class in WfAna without having     # This would not be a problem (and we would not    
-            annotation must match the WaveformAdcs class or the     # a circular import is to use the typing.TYPE_CHECKING variable, which      # need to grab the analyser method using an 
-            'WaveformAdcs' string literal. Such method should       # is only defined for type-checking runs. As a consequence, the type        # string and getattr) if the analyser methods were
-            also have a defined return-annotation which must        # annotation should be an string, which the type-checking software          # defined as WaveformAdcs methods or in a separate
-            match Tuple[WfAnaResult, bool, dict].                   # successfully associates to the class itself, but which is detected        # module. There might be other downsizes to it such
-                                                                    # as so (a string) by inspect.signature().                                  #  as the accesibility to WfAna attributes.
-        baseline_limits : list of int
-            For every analysed waveform, say wf, it 
-            defines the Adcs points which will be used 
-            for baseline calculation (it is given to
-            the 'baseline_limits' parameter of
-            Waveform.analyse() - actually 
-            WaveformAdcs.analyse()). It must have an 
-            even number of integers which must meet 
-            baseline_limits[i] < baseline_limits[i + 1] 
-            for all i. The points which are used for 
-            baseline calculation are 
-            wf.Adcs[baseline_limits[2*i]:baseline_limits[(2*i) + 1]],
-            with i = 0,1,...,(len(baseline_limits)/2) - 1. 
-            The upper limits are exclusive. For more 
-            information check the 'baseline_limits' 
-            parameter documentation in the 
-            Waveform.analyse() docstring.
+            for the new WfAna (or derived) object within its 
+            Analyses attribute.
+        analysis_class : type
+            Class (type) which must inherit from WfAna. The 
+            given class must have an analyse() method which 
+            takes a WaveformAdcs object as its first argument
+            (after self). 
+        input_parameters : IPDict
+            The input parameters which will be passed to the
+            analysis_class initializer by the WaveformAdcs.analyse()
+            method, for each analysed waveform. It is the 
+            user's responsibility to ensure that 
+            input_parameters contain the required information 
+            to initialize the analysis_class object, and that 
+            it is well-defined.
         *args
-            For each analysed waveform, these are the 
-            positional arguments which are given to the
-            analyser method by WaveformAdcs.analyse().
-        int_ll (resp. int_ul): int
-            For every analysed waveform, it defines the
-            integration window (it is given to the 'int_ll'
-            (resp. 'int_ul') parameter of Waveform.analyse()
-            - actually WaveformAdcs.analyse()). int_ll must 
-            be smaller than int_ul. These limits are 
-            inclusive. If they are not defined, then the
-            whole Adcs are considered for each waveform. 
-            For more information check the 'int_ll' and 
-            'int_ul' parameters documentation in the 
-            Waveform.analyse() docstring.
-        amp_ll (resp. amp_ul): int
-            For every analysed waveform, it defines the
-            interval considered for the amplitude calculation 
-            (it is given to the 'amp_ll' (resp. 'amp_ul') 
-            parameter of Waveform.analyse() - actually 
-            WaveformAdcs.analyse()). amp_ll must 
-            be smaller than amp_ul. These limits are 
-            inclusive. If they are not defined, then the
-            whole Adcs are considered for each waveform. 
-            For more information check the 'amp_ll' and 
-            'amp_ul' parameters documentation in the 
-            Waveform.analyse() docstring.
+            Additional positional arguments which are given
+            to the Waveform.analyse() (actually WaveformAdcs.analyse())
+            for each analysed waveform, which in turn,
+            are given to the analyse() method of analysis_class.
+        analysis_kwargs : dict
+            Additional keyword arguments which are given
+            to the Waveform.analyse() (actually WaveformAdcs.analyse())
+            for each analysed waveform, which in turn,
+            are given to the analyse() method of analysis_class.
+        checks_kwargs : dict
+            Additional keyword arguments which are given
+            to the check_input_parameters() method of
+            the analysis_class class.
         overwrite : bool
-            If True, for every analysed Waveform wf, its
+            If True, for every analysed Waveform, its
             'analyse' method will overwrite any existing
-            WfAna object with the same label (key) within
-            its Analyses attribute.
-        **kwargs
-            For each analysed waveform, these are the
-            keyword arguments which are given to the
-            analyser method by WaveformAdcs.analyse().
+            WfAna (or derived) object with the same label 
+            (key) within its Analyses attribute.
 
         Returns
         ----------
@@ -553,75 +519,49 @@ class WaveformSet:
             no additional information.
         """
 
-        if not self.baseline_limits_are_well_formed(baseline_limits):
+        if not issubclass(analysis_class, WfAna):
             raise Exception(generate_exception_message( 1,
                                                         'WaveformSet.analyse()',
-                                                        f"The baseline limits ({baseline_limits}) are not well formed."))
-        int_ul_ = int_ul
-        if int_ul_ is None:
-            int_ul_ = self.PointsPerWf - 1
+                                                        'The analysis class must be derived from the WfAna class.'))
 
-        if not self.subinterval_is_well_formed(int_ll, int_ul_):
-            raise Exception(generate_exception_message( 2,
-                                                        'WaveformSet.analyse()',
-                                                        f"The integration window ({int_ll}, {int_ul_}) is not well formed."))
-        amp_ul_ = amp_ul
-        if amp_ul_ is None:
-            amp_ul_ = self.PointsPerWf - 1
+        analysis_class.check_input_parameters(  input_parameters,
+                                                **checks_kwargs)
 
-        if not self.subinterval_is_well_formed(amp_ll, amp_ul_):
-            raise Exception(generate_exception_message( 3,
-                                                        'WaveformSet.analyse()',
-                                                        f"The amplitude window ({amp_ll}, {amp_ul_}) is not well formed."))
-        aux = WfAna([0,1],  # Dummy object to access
-                    0,      # the analyser instance method
-                    1,
-                    0,
-                    1)
+        signature = inspect.signature(analysis_class.analyse)   # analysis_class may have not implemented an abstract method 
+                                                                # of WfAna, p.e. analyse(), and still produce no errors until 
+                                                                # an object of such class is instantiated. If that's the case, 
+                                                                # 'signature' is actually the signature of WfAna.analyse() and
+                                                                # inspecting it is dumb, since we would not be checking the 
+                                                                # signature of analysis_class.analyse(). This is not a big deal,
+                                                                # though, because the user will, anyway, encounter a descriptive 
+                                                                # error when trying to run the analysis for the first waveform,
+                                                                # where an object of analysis_class is instantiated.
         try:
-            analyser = getattr(aux, analyser_name)
-        except AttributeError:
-            raise Exception(generate_exception_message( 4,
-                                                        'WaveformSet.analyse()',
-                                                        f"The analyser method '{analyser_name}' does not exist in the WfAna class."))
-        try:
-            signature = inspect.signature(analyser)
-        except TypeError:
-            raise Exception(generate_exception_message( 5,
-                                                        'WaveformSet.analyse()',
-                                                        f"'{analyser_name}' does not match a callable attribute of WfAna."))
-        try:
-            if list(signature.parameters.keys())[0] != 'waveform':
-                raise Exception(generate_exception_message( 6,
+
+            aux = list(signature.parameters.keys())[1]
+            if aux != 'waveform':  # The first parameter is 'self'
+
+                raise Exception(generate_exception_message( 2,
                                                             "WaveformSet.analyse()",
-                                                            "The name of the first parameter of the given analyser method must be 'waveform'."))
+                                                            f"The name of the first parameter of the 'analyse()' method ('{aux}') of the given analysis class ({analysis_class.__name__}) must be 'waveform'."))
             
-            if signature.parameters['waveform'].annotation not in ['WaveformAdcs', WaveformAdcs]:
-                raise Exception(generate_exception_message( 7,
+            if signature.parameters['waveform'].annotation != WaveformAdcs:
+                raise Exception(generate_exception_message( 3,
                                                             "WaveformSet.analyse()",
-                                                            "The 'waveform' parameter of the analyser method must be hinted as a WaveformAdcs object."))
-            
-            if signature.return_annotation != Tuple[WfAnaResult, bool, dict]:
-                raise Exception(generate_exception_message( 8,
-                                                            "WaveformSet.analyse()",
-                                                            "The return type of the analyser method must be hinted as Tuple[WfAnaResult, bool, dict]."))
+                                                            f"The 'waveform' parameter of the 'analyse()' method of the given analysis class ({analysis_class.__name__}) must be hinted as a WaveformAdcs object."))
         except IndexError:
-            raise Exception(generate_exception_message( 9,
+            raise Exception(generate_exception_message( 4,
                                                         "WaveformSet.analyse()",
-                                                        'The given analyser method must take at least one parameter.'))
+                                                        f"The 'analyse()' method of the given analysis class ({analysis_class.__name__}) must take at least one parameter."))
         output = {}
 
         for i in range(len(self.__waveforms)):
-            output[i] = self.__waveforms[i].analyse(    label,
-                                                        analyser_name,
-                                                        baseline_limits,
-                                                        *args,
-                                                        int_ll = int_ll,
-                                                        int_ul = int_ul_,
-                                                        amp_ll = amp_ll,
-                                                        amp_ul = amp_ul_,
-                                                        overwrite = overwrite,
-                                                        **kwargs)
+            output[i] = self.__waveforms[i].analyse(label,
+                                                    analysis_class,
+                                                    input_parameters,
+                                                    *args,
+                                                    overwrite = overwrite,
+                                                    **analysis_kwargs)
         return output
     
     def compute_mean_waveform(self, *args,
