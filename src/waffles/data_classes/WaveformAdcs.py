@@ -1,8 +1,10 @@
 import numpy as np
-from typing import Optional
 from collections import OrderedDict
+from typing import Optional, TYPE_CHECKING
 
-from waffles.data_classes.WfAna import WfAna
+if TYPE_CHECKING:                                   # Import only for type-checking, so as
+    from waffles.data_classes.WfAna import WfAna    # to avoid a runtime circular import
+
 from waffles.data_classes.IPDict import IPDict
 from waffles.Exceptions import generate_exception_message
 
@@ -248,10 +250,12 @@ class WaveformAdcs:
                                         # to the self.__analyses attribute
         return output
     
-    def get_analysis(self, label : Optional[str] = None) -> WfAna:
-
-        """
-        If the 'label' parameter is defined, then this 
+    def get_analysis(self, label : Optional[str] = None) -> 'WfAna':    # The WfAna class is not defined at runtime, only
+                                                                        # during type-checking (see TYPE_CHECKING). Not 
+                                                                        # enclosing the type in quotes would raise a 
+                                                                        # `NameError: name 'WfAna' is not defined.`
+        """                                                                 
+        If the 'label' parameter is defined, then this                      
         method returns the WfAna object which has such 
         label within the self.__analyses OrderedDict. 
         If there is no analysis with such label, then

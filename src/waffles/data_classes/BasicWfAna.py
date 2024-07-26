@@ -1,10 +1,7 @@
 
 import numpy as np
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:                                                   # Import only for type-checking, so as
-    from waffles.data_classes.WaveformAdcs import WaveformAdcs      # to avoid a runtime circular import
-                                                    
+from waffles.data_classes.WaveformAdcs import WaveformAdcs                                                    
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
@@ -104,11 +101,8 @@ class BasicWfAna(WfAna):
     def AmpUl(self):
         return self.__amp_ul
     
-    def analyse(self, waveform : 'WaveformAdcs') -> None:   # The WaveformAdcs class is not defined at runtime, only
-                                                            # during type-checking (see TYPE_CHECKING). Not enclosing
-                                                            # the type in quotes would raise a `NameError: name
-                                                            # 'WaveformAdcs' is not defined.`
-        
+    def analyse(self, waveform : WaveformAdcs) -> None:
+
         """
         With respect to the given WaveformAdcs object, this analyser 
         method does the following:

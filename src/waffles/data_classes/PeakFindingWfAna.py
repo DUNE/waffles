@@ -1,10 +1,7 @@
 
 from scipy import signal as spsi
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:                                                   # Import only for type-checking, so as
-    from waffles.data_classes.WaveformAdcs import WaveformAdcs      # to avoid a runtime circular import
-                                                    
+from waffles.data_classes.WaveformAdcs import WaveformAdcs                                                    
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.WfPeak import WfPeak
@@ -71,7 +68,7 @@ class PeakFindingWfAna(BasicWfAna):
     def PeakFindingKwargs(self):
         return self.__peak_finding_kwargs
     
-    def analyse(self,   waveform : 'WaveformAdcs',  
+    def analyse(self,   waveform : WaveformAdcs,
                         return_peaks_properties : bool = False) -> dict:
         
         """
