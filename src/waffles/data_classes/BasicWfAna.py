@@ -219,7 +219,7 @@ class BasicWfAna(WfAna):
             
             raise Exception(we.generate_exception_message(  2,
                                                             'BasicWfAna.check_input_parameters()',
-                                                            f"The integration window ({input_parameters['int_ll']}, {int_ul_}) is not well formed."))
+                                                            f"The integration window ({input_parameters['int_ll']}, {int_ul_}) is not well formed. It must be a subset of [0, {points_no})."))
         amp_ul_ = input_parameters['amp_ul']
         if amp_ul_ is None:
             amp_ul_ = points_no - 1
@@ -230,4 +230,4 @@ class BasicWfAna(WfAna):
             
             raise Exception(we.generate_exception_message(  3,
                                                             'BasicWfAna.check_input_parameters()',
-                                                            f"The amplitude window ({input_parameters['amp_ll']}, {amp_ul_}) is not well formed."))
+                                                            f"The amplitude window ({input_parameters['amp_ll']}, {amp_ul_}) is not well formed. It must be a subset of [0, {points_no})."))
