@@ -31,7 +31,7 @@ def fraction_is_well_formed(lower_limit : float = 0.0,
 
 def subinterval_is_well_formed( i_low : int, 
                                 i_up : int,
-                                points_no : int,) -> bool:
+                                points_no : int) -> bool:
     
     """
     This method returns True if 0 <= i_low < i_up <= points_no - 1,
@@ -62,7 +62,8 @@ def baseline_limits_are_well_formed(baseline_limits : List[int],
                                     points_no : int) -> bool:
 
     """
-    This method returns True if len(baseline_limits) is even and 
+    This method returns True if len(baseline_limits) is an even
+    positive number and
     0 <= baseline_limits[0] < baseline_limits[1] < ... < baseline_limits[-1] <= points_no - 1.
     It returns False if else.
 
@@ -77,7 +78,7 @@ def baseline_limits_are_well_formed(baseline_limits : List[int],
     bool
     """
 
-    if len(baseline_limits)%2 != 0:
+    if len(baseline_limits) == 0 or len(baseline_limits)%2 != 0:
         return False
 
     if baseline_limits[0] < 0:
