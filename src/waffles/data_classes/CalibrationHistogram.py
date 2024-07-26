@@ -2,6 +2,9 @@ import numpy as np
 from typing import List, Optional, Union
 
 from waffles.data_classes.WaveformSet import WaveformSet
+
+import waffles.utils.numerical_utils as wun
+
 from waffles.Exceptions import generate_exception_message
 
 class CalibrationHistogram:
@@ -295,10 +298,10 @@ class CalibrationHistogram:
             The samples to add to the calibration histogram
         bins_number : int
             It is given to the 'bins' parameter of
-            the WaveformSet.histogram1d() static method.
+            the waffles histogram1d() helper function.
         domain : np.ndarray
             It is given to the 'domain' parameter of 
-            the WaveformSet.histogram1d() static method.
+            the waffles histogram1d() helper function
 
         Returns
         ----------
@@ -311,10 +314,10 @@ class CalibrationHistogram:
                             num = bins_number + 1,
                             endpoint = True)
         
-        counts, indices = WaveformSet.histogram1d(  np.array(samples),
-                                                    bins_number,
-                                                    domain,
-                                                    keep_track_of_idcs = True)
+        counts, indices = wun.histogram1d(  np.array(samples),
+                                            bins_number,
+                                            domain,
+                                            keep_track_of_idcs = True)
         return cls( bins_number,
                     edges,
                     counts,
