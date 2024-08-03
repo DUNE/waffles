@@ -19,7 +19,7 @@ This is a python library to process and analyze raw data from the ProtoDUNEs. Th
 
 ## Contributing
 
-The idea of WAFFLES framework is to unify efforts and to develop a robust analysis tool. 
+The idea of `waffles` framework is to unify efforts and to develop a robust analysis tool. 
 Nevertheless, it is very important to keep some common rules not to harm others work.
 
 ```{tip} 
@@ -190,5 +190,7 @@ pip install -r docs/requirements.txt
 * Make sure you know how to connect and work from `@lxplus.cern.ch` machines.
 
 * To access raw data locations you need to be able to generate a `FNAL.GOV` ticket. This is already configured in the `scripts/get_rucio.py` script which is used to generate `txt` files with the data paths and store them in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`
+
+* Request access to the `np04-t0comp-users` and `np04-daq-dev` egroup on the [CERN egroups page](https://egroups.cern.ch). This also adds you to the `np-comp` Linux group.
 
 ### 3. Have a look at the examples and enjoy!
