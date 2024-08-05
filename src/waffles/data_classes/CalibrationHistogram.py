@@ -2,55 +2,34 @@ import numpy as np
 from typing import List, Optional, Union
 
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.TrackedHistogram import TrackedHistogram
 
 import waffles.utils.numerical_utils as wun
 
 from waffles.Exceptions import generate_exception_message
 
-class CalibrationHistogram:
+class CalibrationHistogram(TrackedHistogram):
 
     """
-    Stands for Calibration Histogram. This class
-    implements a histogram which is used for
-    SiPM-based detector calibration. A well formed
+    This class implements a histogram which is used 
+    for SiPM-based detector calibration. A well formed
     calibration histogram displays a number of
     well defined peaks, which match the 0-PE, 1-PE,
-    ..., N-PE waveforms, for some N>=1. This 
-    histogram keeps track of which Waveform 
-    objects contribute to which bin, by keeping 
-    its indices with respect to some assumed 
+    ..., N-PE waveforms, for some N>=1. As it inherits
+    from TrackedHistogram, this histogram keeps track 
+    of which Waveform objects contribute to which bin, 
+    by keeping its indices with respect to some assumed 
     ordering.
     
     Attributes
     ----------
-    BinsNumber : int
-        Number of bins in the histogram. It must
-        be greater than 1.
-    Edges : unidimensional numpy array of floats
-        Its length must match BinsNumber + 1. The
-        i-th bin, with i = 0, ..., BinsNumber - 1, 
-        contains the number of occurrences between 
-        Edges[i] and Edges[i+1].
-    MeanBinWidth : float
-        The mean difference between two consecutive
-        edges. It is computed as
-        (Edges[BinsNumber] - Edges[0]) / BinsNumber.
-        For calibration histograms with an uniform
-        binning, this value matches 
-        (Edges[i+1] - Edges[i]) for all i.
-    Counts : unidimensional numpy array of integers
-        Its length must match BinsNumber. Counts[i] 
-        gives the number of occurrences in the i-th 
-        bin, with i = 0, ..., BinsNumber - 1.
-    Indices : list of lists of integers
-        Its length must match BinsNumber. Indices[i] 
-        gives the list of indices, with respect to 
-        some ordering, of the Waveform objects which 
-        contributed to the i-th bin. Note that the 
-        length of Indices[i] must match Counts[i], 
-        for i = 0, ..., BinsNumber - 1.
+    BinsNumber : int (inherited from TrackedHistogram)
+    Edges : unidimensional numpy array of floats (inherited from TrackedHistogram)
+    MeanBinWidth : float (inherited from TrackedHistogram)
+    Counts : unidimensional numpy array of integers (inherited from TrackedHistogram)
+    Indices : list of lists of integers (inherited from TrackedHistogram)
     GaussianFitsParameters : dict of list of tuples of floats
-        The keys for this dictionary is 
+        The keys for this dictionary are
         'scale', 'mean', and 'std'. The value for
         each key is a list of tuples. The i-th
         element of the list whose key is 'scale'
@@ -84,56 +63,13 @@ class CalibrationHistogram:
         indices : list of lists of integers
         """
 
-        if bins_number < 2:
-            raise Exception(generate_exception_message( 1,
-                                                        'CalibrationHistogram.__init__()',
-                                                        f"The given bins number ({bins_number}) must be greater than 1."))
-        if len(edges) != bins_number + 1:
-            raise Exception(generate_exception_message( 2,
-                                                        'CalibrationHistogram.__init__()',
-                                                        f"The length of the 'edges' parameter ({len(edges)}) must match 'bins_number + 1' ({bins_number + 1})."))
-        if len(counts) != bins_number:
-            raise Exception(generate_exception_message( 3,
-                                                        'CalibrationHistogram.__init__()',
-                                                        f"The length of the 'counts' parameter ({len(counts)}) must match 'bins_number' ({bins_number})."))
-        if len(indices) != bins_number:
-            raise Exception(generate_exception_message( 4,
-                                                        'CalibrationHistogram.__init__()',
-                                                        f"The length of the 'indices' parameter ({len(indices)}) must match 'bins_number' ({bins_number})."))
-        for i in range(bins_number):
-            if len(indices[i]) != counts[i]:
-                raise Exception(generate_exception_message( 5,
-                                                            'CalibrationHistogram.__init__()',
-                                                            f"The length of 'indices[{i}]' parameter ({len(indices[i])}) must match 'counts[{i}]' ({counts[i]})."))
-        self.__bins_number = bins_number
-        self.__edges = edges
-        self.__mean_bin_width = ( self.__edges[self.__bins_number] - self.__edges[0] ) / self.__bins_number
-        self.__counts = counts
-        self.__indices = indices
-
+        super().__init__(   bins_number, 
+                            edges,
+                            counts,
+                            indices)
+        
         self.__gaussian_fits_parameters = None
         self.__reset_gaussian_fit_parameters()
-
-    #Getters
-    @property
-    def BinsNumber(self):
-        return self.__bins_number
-    
-    @property
-    def Edges(self):
-        return self.__edges
-    
-    @property
-    def MeanBinWidth(self):
-        return self.__mean_bin_width
-    
-    @property
-    def Counts(self):
-        return self.__counts
-    
-    @property
-    def Indices(self):
-        return self.__indices
     
     @property
     def GaussianFitsParameters(self):
