@@ -1,3 +1,4 @@
+import numba
 import numpy as np
 from typing import List, Optional, Union
 
@@ -136,16 +137,18 @@ class CalibrationHistogram(TrackedHistogram):
     def from_WaveformSet(cls,   waveform_set : WaveformSet,
                                 bins_number : int,
                                 domain : np.ndarray,
-                                variable : str = 'integral',
+                                variable : str,
                                 analysis_label : Optional[str] = None):
         
         """
-        This method creates a CalibrationHistogram object by
-        adding the values, of the given variable, of the
-        Waveform objects from the given WaveformSet object.
-        It is the caller's responsibility to ensure that the
-        type of the input parameters is suited. No type checks
-        are performed here.
+        This method creates a CalibrationHistogram object
+        by taking one sample per waveform from the given
+        WaveformSet object. For each waveform, the sample
+        is taken by subscribing one of their analyses (up to
+        the analysis_label input parameter) with the given
+        variable. It is the caller's responsibility to 
+        ensure that the type of the input parameters is 
+        suited. No type checks are performed here.
 
         Parameters
         ----------
@@ -162,31 +165,27 @@ class CalibrationHistogram(TrackedHistogram):
             calibration histogram. Any sample which falls 
             outside this range is ignored.
         variable : str
-            If variable is set to 'integral', then the 
-            calibration histogram will be computed using 
-            the integral of the waveforms, up to the 
-            input given to the 'analysis_label' parameter. 
-            If variable is set to 'amplitude', then the 
-            calibration histogram will be computed using 
-            the amplitude of the waveforms. The default
-            behaviour, which is used if the input is 
-            different from 'integral' or 'amplitude',
-            is that of 'integral'.
+            For each Waveform object within the given
+            waveform set, this parameter gives the key
+            for the considered WfAna object (up to the
+            analysis_label input parameter) from where
+            to take the sample to add to the calibration
+            histogram. Namely, for a WfAna object x,
+            x.Result[variable] is the considered
+            sample. It is the caller's responsibility to
+            ensure that the values for the given variable
+            (key) are scalars, i.e. that they are valid
+            samples for a 1D histogram.
         analysis_label : str
-            If variable is set to 'integral' (resp.
-            'amplitude'), this parameter gives the key 
-            for the WfAna object within the Analyses
-            attribute of each considered waveform
-            from where to take the integral (resp.
-            amplitude) value to add to the calibration 
-            histogram. Namely, if such WfAna object is 
-            x, then x.Result.Integral (resp. 
-            x.Result.Amplitude) is the considered
-            integral (resp. amplitude). If 'analysis_label' 
-            is None, then the last analysis added to 
-            the Analyses attribute will be the used
-            one. If there is not even one analysis, 
-            then an exception will be raised.
+            This parameter gives the key for the WfAna 
+            object within the Analyses attribute of 
+            each considered waveform from where to take
+            the sample to add to the calibration 
+            histogram. If 'analysis_label' is None, 
+            then the last analysis added to the Analyses 
+            attribute will be the used one. If there is 
+            not even one analysis, then an exception will 
+            be raised.
 
         Returns
         ----------
@@ -202,19 +201,22 @@ class CalibrationHistogram(TrackedHistogram):
             raise Exception(generate_exception_message( 2,
                                                         'CalibrationHistogram.from_WaveformSet()',
                                                         f"The 'domain' parameter must be a 2x1 numpy array."))
-        if variable != 'amplitude':
-            samples = [ waveform_set.Waveforms[idx].get_analysis(analysis_label).Result.Integral for idx in range(len(waveform_set.Waveforms)) ]    ## Trying to grab the WfAna object
-                                                                                                                                                    ## waveform by waveform using 
-                                                                                                                                                    ## WaveformAdcs.get_analysis()
-                                                                                                                                                    ## might be slow. Find a different
-                                                                                                                                                    ## solution if this becomes a 
-                                                                                                                                                    ## a problem at some point.
-        else:
-            samples = [ waveform_set.Waveforms[idx].get_analysis(analysis_label).Result.Amplitude for idx in range(len(waveform_set.Waveforms)) ] 
+        
+        samples = [ waveform_set.Waveforms[idx].get_analysis(analysis_label).Result[variable] for idx in range(len(waveform_set.Waveforms)) ]   ## Trying to grab the WfAna object
+                                                                                                                                                ## waveform by waveform using 
+                                                                                                                                                ## WaveformAdcs.get_analysis()
+                                                                                                                                                ## might be slow. Find a different
+                                                                                                                                                ## solution if this becomes a 
+                                                                                                                                                ## a problem at some point.
+        try:
+            return cls.__from_samples(  samples,
+                                        bins_number,
+                                        domain)
+        except numba.errors.TypingError:
 
-        return cls.__from_samples(  samples,
-                                    bins_number,
-                                    domain)
+            raise Exception(generate_exception_message( 3,
+                                                        'CalibrationHistogram.from_WaveformSet()',
+                                                        f"The given variable ('{variable}') does not give suited samples for a 1D histogram."))
 
     @classmethod
     def __from_samples(cls, samples : List[Union[int, float]],
