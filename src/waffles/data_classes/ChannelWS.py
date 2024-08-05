@@ -94,7 +94,9 @@ class ChannelWS(WaveformSet):
             (key) are scalars, i.e. that they are valid
             samples for a 1D histogram.
         analysis_label : str
-            For each Waveform object in this ChannelWS,
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True. For 
+            each Waveform object in this ChannelWS,
             this parameter gives the key for the WfAna 
             object within the Analyses attribute from 
             where to take the sample to add to the 
