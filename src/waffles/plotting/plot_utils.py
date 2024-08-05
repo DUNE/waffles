@@ -262,9 +262,12 @@ def __subplot_heatmap(  waveform_set : WaveformSet,
         key for its Analyses attribute which gives
         the WfAna object whose computed baseline
         is subtracted from the waveform prior to
-        addition to the heatmap. This function does
-        not check that an analysis for such label
-        exists.
+        addition to the heatmap. The baseline is
+        grabbed from the 'baseline' key in the
+        Result attribute of the specified WfAna
+        object. I.e. such information must be
+        available. If it is not, an exception will
+        be raised.
     time_bins : int
         The number of bins for the horizontal axis
         of the heatmap
@@ -300,7 +303,14 @@ def __subplot_heatmap(  waveform_set : WaveformSet,
                                     waveform_set.PointsPerWf,
                                     dtype = np.float32) + waveform_set.Waveforms[idx].TimeOffset for idx in wf_idcs])
 
-    aux_y = np.hstack([waveform_set.Waveforms[idx].Adcs - waveform_set.Waveforms[idx].Analyses[analysis_label].Result.Baseline for idx in wf_idcs])
+    try:
+        aux_y = np.hstack([waveform_set.Waveforms[idx].Adcs - waveform_set.Waveforms[idx].Analyses[analysis_label].Result['baseline'] for idx in wf_idcs])
+
+    except KeyError:
+        raise Exception(generate_exception_message( 1,
+                                                    '__subplot_heatmap()',
+                                                    f"Either an analysis with the given analysis_label ({analysis_label}) does not exist for the waveforms in the given waveform_set, or the analysis exists but it does not compute the baseline under the 'baseline' key."))
+                                                    
 
     aux = wun.histogram2d(  np.vstack((aux_x, aux_y)), 
                             np.array((time_bins, adc_bins)),
