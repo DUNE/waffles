@@ -177,15 +177,15 @@ class CalibrationHistogram(TrackedHistogram):
             (key) are scalars, i.e. that they are valid
             samples for a 1D histogram.
         analysis_label : str
-            This parameter gives the key for the WfAna 
-            object within the Analyses attribute of 
-            each considered waveform from where to take
-            the sample to add to the calibration 
-            histogram. If 'analysis_label' is None, 
-            then the last analysis added to the Analyses 
-            attribute will be the used one. If there is 
-            not even one analysis, then an exception will 
-            be raised.
+            For each considered Waveform object, this
+            parameter gives the key for the WfAna 
+            object within the Analyses attribute from 
+            where to take the sample to add to the 
+            calibration histogram. If 'analysis_label' 
+            is None, then the last analysis added to the 
+            Analyses attribute will be the used one. If 
+            there is not even one analysis, then an 
+            exception will be raised.
 
         Returns
         ----------
