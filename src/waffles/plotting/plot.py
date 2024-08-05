@@ -26,7 +26,8 @@ def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,
                         show_general_amplitude_limits : bool = False,
                         show_spotted_peaks : bool = True,
                         show_peaks_integration_limits : bool = False,
-                        analysis_label : Optional[str] = None) -> None:
+                        analysis_label : Optional[str] = None,
+                        verbose : bool = False) -> None:
 
     """
     This function plots the given WaveformAdcs object
@@ -72,27 +73,44 @@ def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,
         'plot_analysis_markers' is set to True. In that case,
         this parameter means whether to plot vertical lines
         framing the intervals which were used to compute
-        the baseline.
+        the baseline. The positions of these lines are
+        grabbed from the 'baseline_limits' key in the
+        InputParameters attribute of the specified WfAna 
+        object, up to the analysis_label input parameter.
     show_baseline : bool
         This parameter only makes a difference if
         'plot_analysis_markers' is set to True. In that case,
         this parameter means whether to plot an horizontal
-        line matching the computed baseline
+        line matching the computed baseline. The baseline
+        value is grabbed from the 'baseline' key in the 
+        Result attribute of the specified WfAna object, 
+        up to the analysis_label input parameter.
     show_general_integration_limits : bool
         This parameter only makes a difference if
         'plot_analysis_markers' is set to True. In that case,
         this parameter means whether to plot vertical lines
-        framing the general integration interval.
+        framing the general integration interval. The
+        positions of these lines are grabbed from the
+        'int_ll' and 'int_ul' keys in the InputParameters
+        attribute of the specified WfAna object, up to the
+        analysis_label input parameter.
     show_general_amplitude_limits : bool
         This parameter only makes a difference if
         'plot_analysis_markers' is set to True. In that case,
         this parameter means whether to plot vertical lines
-        framing the general amplitude interval.
+        framing the general amplitude interval. The
+        positions of these lines are grabbed from the
+        'amp_ll' and 'amp_ul' keys in the InputParameters
+        attribute of the specified WfAna object, up to the
+        analysis_label input parameter.
     show_spotted_peaks : bool
         This parameter only makes a difference if
         'plot_analysis_markers' is set to True. In that case,
         this parameter means whether to plot a triangle
-        marker over each spotted peak.
+        marker over each spotted peak. The positions of 
+        these markers are grabbed from the 'peaks' key 
+        in the Result attribute of the specified WfAna object, 
+        up to the analysis_label input parameter.
     show_peaks_integration_limits : bool
         This parameter only makes a difference if
         'plot_analysis_markers' is set to True. In that case,
@@ -107,6 +125,8 @@ def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,
         for the analysis markers plot. If 'analysis_label' is 
         None, then the last analysis added to waveform_adcs.Analyses 
         will be the used one.
+    verbose : bool
+        Whether to print functioning-related messages
     """
 
     x = np.arange(  len(waveform_adcs.Adcs),
@@ -129,124 +149,163 @@ def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,
 
     if plot_analysis_markers:
 
-        aux = waveform_adcs.get_analysis(analysis_label)
-
-        fBaselineIsAvailable = aux.baseline_is_available()
-        fPeaksAreAvailable = aux.peaks_are_available()
+        ana = waveform_adcs.get_analysis(analysis_label)
         
         if show_baseline_limits:    # Plot the markers for the baseline limits
-                                    # These are always defined for every WfAna object
 
-            for i in range(len(aux.BaselineLimits)//2):
+            try:
+                aux = ana.InputParameters['baseline_limits']
 
-                figure.add_shape(   type = 'line',
-                                    x0 = x[aux.BaselineLimits[2*i]], y0 = 0,                ## If you are wondering why only the trace of
-                                    x1 = x[aux.BaselineLimits[2*i]], y1 = 1,                ## the waveform is offset according to waveform_adcs.TimeOffset,
-                                                                                            ## but not the markers, note that this is, indeed,
-                                                                                            ## the reason why a time offset is useful. The WfAna 
-                                                                                            ## class moves the analysis ranges (p.e. baseline or
-                                                                                            ## integral ranges) according to the TimeOffset. Then
-                                                                                            ## to show a consistent plot, either the markers are
-                                                                                            ## displaced or the waveform is displaced, but not both.
-                                                                                            ## For the sake of having a grid-plot where the analysis
-                                                                                            ## ranges are aligned among different subplots, I chose 
-                                                                                            ## to displace the waveform.
-                                    line = dict(color = 'grey',         # Properties for
-                                                width = 1,              # the beginning of
-                                                dash = 'dash'),         # a baseline chunk
-                                    xref = 'x',
-                                    yref = 'y domain',
+            except KeyError:
+                if verbose:
+                    print("In function plot_WaveformAdcs(): No baseline-limits were found in the specified analysis.")
+            else:
+
+                for i in range(len(aux)//2):
+
+                    figure.add_shape(   type = 'line',
+                                        x0 = x[aux[2*i]], y0 = 0,   ## If you are wondering why only the trace of
+                                        x1 = x[aux[2*i]], y1 = 1,   ## the waveform is offset according to waveform_adcs.TimeOffset,
+                                                                    ## but not the markers, note that this is, indeed,
+                                                                    ## the reason why a time offset is useful. The WfAna 
+                                                                    ## class moves the analysis ranges (p.e. baseline or
+                                                                    ## integral ranges) according to the TimeOffset. Then
+                                                                    ## to show a consistent plot, either the markers are
+                                                                    ## displaced or the waveform is displaced, but not both.
+                                                                    ## For the sake of having a grid-plot where the analysis
+                                                                    ## ranges are aligned among different subplots, I chose 
+                                                                    ## to displace the waveform.
+
+                                        line = dict(color = 'grey',         # Properties for
+                                                    width = 1,              # the beginning of
+                                                    dash = 'dash'),         # a baseline chunk
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
+                    
+                    figure.add_shape(   type = 'line',
+                                        x0 = x[aux[(2*i) + 1]], y0 = 0,
+                                        x1 = x[aux[(2*i) + 1]], y1 = 1,
+                                        line = dict(color = 'grey',         # Properties for
+                                                    width = 1,              # the end of a
+                                                    dash = 'dashdot'),      # baseline chunk
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
+
+        if show_baseline:       # Plot the baseline
+
+            try:
+                aux = ana.Result['baseline']
+
+            except KeyError:
+                if verbose:
+                    print("In function plot_WaveformAdcs(): No baseline was found in the specified analysis.")
+            else:
+
+                figure.add_shape(   type = "line",
+                                    x0 = 0, y0 = aux,
+                                    x1 = 1, y1 = aux,
+                                    line = dict(color = 'grey',             # Properties for
+                                                width = 1,                  # the computed
+                                                dash = 'dot'),              # baseline
+                                    xref = 'x domain',
+                                    yref = 'y',
                                     row = row,
                                     col = col)
-                
-                figure.add_shape(   type = 'line',
-                                    x0 = x[aux.BaselineLimits[(2*i) + 1]], y0 = 0,
-                                    x1 = x[aux.BaselineLimits[(2*i) + 1]], y1 = 1,
-                                    line = dict(color = 'grey',         # Properties for
-                                                width = 1,              # the end of a
-                                                dash = 'dashdot'),      # baseline chunk
-                                    xref = 'x',
-                                    yref = 'y domain',
-                                    row = row,
-                                    col = col)
-
-        if show_baseline and fBaselineIsAvailable:       # Plot the baseline
-        
-            figure.add_shape(   type = "line",
-                                x0 = 0, y0 = aux.Result.Baseline,
-                                x1 = 1, y1 = aux.Result.Baseline,
-                                line = dict(color = 'grey',             # Properties for
-                                            width = 1,                  # the computed
-                                            dash = 'dot'),              # baseline
-                                xref = 'x domain',
-                                yref = 'y',
-                                row = row,
-                                col = col)
             
         if show_general_integration_limits:     # Plot the markers for the general integration limits
-                                                # These are always defined for every WfAna object
-            figure.add_shape(   type = 'line',
-                                x0 = x[aux.IntLl], y0 = 0,
-                                x1 = x[aux.IntLl], y1 = 1,
-                                line = dict(color = 'black',
-                                            width = 1,
-                                            dash = 'solid'),
-                                xref = 'x',
-                                yref = 'y domain',
-                                row = row,
-                                col = col)
-                
-            figure.add_shape(   type = 'line',
-                                x0 = x[aux.IntUl], y0 = 0,
-                                x1 = x[aux.IntUl], y1 = 1,
-                                line = dict(color = 'black',
-                                            width = 1,
-                                            dash = 'solid'),
-                                xref = 'x',
-                                yref = 'y domain',
-                                row = row,
-                                col = col)
-                
-        if show_general_amplitude_limits:       # Plot the markers for the general amplitude limits
-                                                # These are always defined for every WfAna object
-            figure.add_shape(   type = 'line',
-                                x0 = x[aux.AmpLl], y0 = 0,
-                                x1 = x[aux.AmpLl], y1 = 1,
-                                line = dict(color = 'green',
-                                            width = 1,
-                                            dash = 'solid'),
-                                xref = 'x',
-                                yref = 'y domain',
-                                row = row,
-                                col = col)
-            
-            figure.add_shape(   type = 'line',
-                                x0 = x[aux.AmpUl], y0 = 0,
-                                x1 = x[aux.AmpUl], y1 = 1,
-                                line = dict(color = 'green',
-                                            width = 1,
-                                            dash = 'solid'),
-                                xref = 'x',
-                                yref = 'y domain',
-                                row = row,
-                                col = col)
-                    
-        if show_spotted_peaks and fPeaksAreAvailable:      # Plot the markers for the spotted peaks
 
-            for peak in aux.Result.Peaks:
+            try:
+                aux_1 = ana.InputParameters['int_ll']
+                aux_2 = ana.InputParameters['int_ul']
 
-                aux = x[peak.Position]
-
+            except KeyError:
+                if verbose:
+                    print("In function plot_WaveformAdcs(): No general-integration-limits were found in the specified analysis.")
+            else:
+                                                
                 figure.add_shape(   type = 'line',
-                                    x0 = aux, y0 = 0,
-                                    x1 = aux, y1 = 1,
-                                    line = dict(color = 'red',      # Properties for
-                                                width = 1,          # the peaks markers
-                                                dash = 'dot'),
+                                    x0 = x[aux_1], y0 = 0,
+                                    x1 = x[aux_1], y1 = 1,
+                                    line = dict(color = 'black',
+                                                width = 1,
+                                                dash = 'solid'),
                                     xref = 'x',
                                     yref = 'y domain',
                                     row = row,
                                     col = col)
+                    
+                figure.add_shape(   type = 'line',
+                                    x0 = x[aux_2], y0 = 0,
+                                    x1 = x[aux_2], y1 = 1,
+                                    line = dict(color = 'black',
+                                                width = 1,
+                                                dash = 'solid'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+                
+        if show_general_amplitude_limits:       # Plot the markers for the general amplitude limits
+
+            try:
+                aux_1 = ana.InputParameters['amp_ll']
+                aux_2 = ana.InputParameters['amp_ul']
+
+            except KeyError:
+                if verbose:
+                    print("In function plot_WaveformAdcs(): No general-amplitude-limits were found in the specified analysis.")
+            else:
+
+                figure.add_shape(   type = 'line',
+                                    x0 = x[aux_1], y0 = 0,
+                                    x1 = x[aux_1], y1 = 1,
+                                    line = dict(color = 'green',
+                                                width = 1,
+                                                dash = 'solid'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+                
+                figure.add_shape(   type = 'line',
+                                    x0 = x[aux_2], y0 = 0,
+                                    x1 = x[aux_2], y1 = 1,
+                                    line = dict(color = 'green',
+                                                width = 1,
+                                                dash = 'solid'),
+                                    xref = 'x',
+                                    yref = 'y domain',
+                                    row = row,
+                                    col = col)
+                    
+        if show_spotted_peaks:      # Plot the markers for the spotted peaks
+
+            try:
+                peaks = ana.Result['peaks']
+
+            except KeyError:
+                if verbose:
+                    print("In function plot_WaveformAdcs(): No peaks were found in the specified analysis.")
+            else:
+
+                for peak in peaks:
+
+                    aux = x[peak.Position]
+
+                    figure.add_shape(   type = 'line',
+                                        x0 = aux, y0 = 0,
+                                        x1 = aux, y1 = 1,
+                                        line = dict(color = 'red',      # Properties for
+                                                    width = 1,          # the peaks markers
+                                                    dash = 'dot'),
+                                        xref = 'x',
+                                        yref = 'y domain',
+                                        row = row,
+                                        col = col)
                 
         if show_peaks_integration_limits:   # Plot the markers for the peaks integration limits
             raise NotImplementedError(generate_exception_message(   1,
@@ -279,6 +338,7 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                         adc_range_above_baseline : int = 100,
                         adc_range_below_baseline : int = 200,
                         detailed_label : bool = True,
+                        verbose : bool = False,
                         **kwargs) -> pgo.Figure: 
 
     """ 
@@ -396,7 +456,9 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
         parameter is not optional, i.e. it must be 
         defined, and gives the analysis whose baseline 
         will be subtracted from each waveform before 
-        plotting. In this case, it will not be checked 
+        plotting. Namely, the baseline will be grabbed
+        from the 'baseline' key of the specified 
+        analysis. In this case, it will not be checked 
         that, for each waveform, the analysis with the 
         given label is available. It is the caller's 
         responsibility to ensure so.
@@ -500,6 +562,8 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
         first available waveforms (which were used to 
         compute the 2D-histogram) in the top annotation 
         of each subplot.
+    verbose : bool
+        Whether to print functioning-related messages
     **kwargs
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
@@ -592,7 +656,8 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                             show_general_amplitude_limits = show_general_amplitude_limits,
                                             show_spotted_peaks = show_spotted_peaks,
                                             show_peaks_integration_limits = show_peaks_integration_limits,
-                                            analysis_label = analysis_label)
+                                            analysis_label = analysis_label,
+                                            verbose = verbose)
                 else:
                     wpu.__add_no_data_annotation(   figure_,
                                                     i + 1,
@@ -637,7 +702,8 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                     show_general_amplitude_limits = show_general_amplitude_limits,
                                     show_spotted_peaks = show_spotted_peaks,
                                     show_peaks_integration_limits = show_peaks_integration_limits,
-                                    analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None)
+                                    analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None,
+                                    verbose = verbose)
     elif mode == 'heatmap':
 
         if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
@@ -938,7 +1004,9 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
         parameter is not optional, i.e. it must be 
         defined, and gives the analysis whose baseline 
         will be subtracted from each waveform before 
-        plotting. In this case, it will not be checked 
+        plotting. Namely, the baseline will be grabbed
+        from the 'baseline' key of the specified 
+        analysis. In this case, it will not be checked 
         that, for each waveform, the analysis with the 
         given label is available. It is the caller's 
         responsibility to ensure so.
@@ -1145,7 +1213,8 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                                         show_general_amplitude_limits = show_general_amplitude_limits,
                                         show_spotted_peaks = show_spotted_peaks,
                                         show_peaks_integration_limits = show_peaks_integration_limits,
-                                        analysis_label = analysis_label)
+                                        analysis_label = analysis_label,
+                                        verbose = verbose)
     elif mode == 'average':
         for i in range(channel_ws_grid.ChMap.Rows):
             for j in range(channel_ws_grid.ChMap.Columns):
@@ -1191,7 +1260,8 @@ def plot_ChannelWSGrid( channel_ws_grid : ChannelWSGrid,
                                     show_general_amplitude_limits = show_general_amplitude_limits,
                                     show_spotted_peaks = show_spotted_peaks,
                                     show_peaks_integration_limits = show_peaks_integration_limits,
-                                    analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None)
+                                    analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None,
+                                    verbose = verbose)
     elif mode == 'heatmap':
 
         if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
