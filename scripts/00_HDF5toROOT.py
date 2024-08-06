@@ -105,7 +105,7 @@ def root_creator(inputs):
         
     fWaveformTree = TTree("raw_waveforms", "raw_waveforms")
 
-    adcs                 = std.vector('float')()
+    adcs                 = std.vector('short')()
     timestamps           = array('l', [0])
     channel              = array('i', [0])
     baseline             = array('i', [0])
@@ -117,7 +117,7 @@ def root_creator(inputs):
     fWaveformTree.Branch("record", record, "record/I")
     fWaveformTree.Branch("daq_timestamp", daq_timestamp, "daq_timestamp/L")
     fWaveformTree.Branch("adcs", adcs)#, "adcs[{}]/F".format(len(adcs)))
-    fWaveformTree.Branch("timestamps", timestamps, "timestamps/L")
+    fWaveformTree.Branch("timestamp", timestamps, "timestamp/L")
     fWaveformTree.Branch("channel", channel, "channel/I")
     fWaveformTree.Branch("baseline", baseline, "baseline/I")
     fWaveformTree.Branch("trigger_sample_value", trigger_sample_value, "trigger_sample_value/I")
@@ -183,7 +183,7 @@ def root_creator(inputs):
     
                     adcs.clear()
                     for value in adcs_frag[index]:
-                        adcs.push_back(value)
+                        adcs.push_back(int(value))
                     timestamps[0]           = timestamps_frag[index]
                     channel[0]              = ch
                     baseline[0]             = baseline_frag[index]
