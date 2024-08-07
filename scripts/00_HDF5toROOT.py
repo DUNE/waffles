@@ -105,7 +105,7 @@ def root_creator(inputs):
         
     fWaveformTree = TTree("raw_waveforms", "raw_waveforms")
 
-    adcs                 = std.vector('float')()
+    adcs                 = std.vector('short')()
     timestamps           = array('l', [0])
     channel              = array('i', [0])
     baseline             = array('i', [0])
@@ -114,19 +114,19 @@ def root_creator(inputs):
     daq_timestamp        = array('l', [0])
     record               = array('i', [0])
     
-    fWaveformTree.Branch("record", record, "record/I")
-    fWaveformTree.Branch("daq_timestamp", daq_timestamp, "daq_timestamp/L")
+    fWaveformTree.Branch("record", record, "record/i")
+    fWaveformTree.Branch("daq_timestamp", daq_timestamp, "daq_timestamp/l")
     fWaveformTree.Branch("adcs", adcs)#, "adcs[{}]/F".format(len(adcs)))
-    fWaveformTree.Branch("timestamps", timestamps, "timestamps/L")
-    fWaveformTree.Branch("channel", channel, "channel/I")
-    fWaveformTree.Branch("baseline", baseline, "baseline/I")
-    fWaveformTree.Branch("trigger_sample_value", trigger_sample_value, "trigger_sample_value/I")
+    fWaveformTree.Branch("timestamp", timestamps, "timestamp/l")
+    fWaveformTree.Branch("channel", channel, "channel/S")
+    fWaveformTree.Branch("baseline", baseline, "baseline/S")
+    fWaveformTree.Branch("trigger_sample_value", trigger_sample_value, "trigger_sample_value/S")
     fWaveformTree.Branch("is_fullstream", is_fullstream, "is_fullstream/O")
 
     fMetaDataTree = TTree("metadata", "metadata")
 
-    edp           = std.vector('int')()
-    threshold     = std.vector('int')()
+    edp           = std.vector('short')()
+    threshold     = std.vector('short')()
     run_          = array('i', [0])
     nrecords      = array('i', [0])
     date          = array('l', [0])
@@ -135,9 +135,9 @@ def root_creator(inputs):
 
     fMetaDataTree.Branch("endpoint", edp)
     fMetaDataTree.Branch("threshold", threshold)
-    fMetaDataTree.Branch("run", run_, "run/I")
-    fMetaDataTree.Branch("nrecords", nrecords, "nrecords/I")
-    fMetaDataTree.Branch("date", date, "date/L")
+    fMetaDataTree.Branch("run", run_, "run/i")
+    fMetaDataTree.Branch("nrecords", nrecords, "nrecords/i")
+    fMetaDataTree.Branch("date", date, "date/l")
     fMetaDataTree.Branch("ticks_to_nsec", ticks_to_nsec, "ticks_to_nsec/F")
     fMetaDataTree.Branch("adc_to_volts", adc_to_volts, "adc_to_volts/F")
     
@@ -183,7 +183,7 @@ def root_creator(inputs):
     
                     adcs.clear()
                     for value in adcs_frag[index]:
-                        adcs.push_back(value)
+                        adcs.push_back(int(value))
                     timestamps[0]           = timestamps_frag[index]
                     channel[0]              = ch
                     baseline[0]             = baseline_frag[index]
@@ -206,7 +206,7 @@ def root_creator(inputs):
     run_[0]      = int(run)
     nrecords[0]  = len(records)
     date[0]      = np.uint64(run_date)
-    ticks_to_nsec[0] = 1/16
+    ticks_to_nsec[0] = 16
     adc_to_volts[0]  = (1.5 * 3.2)/(2 ** 14 - 1)
     fMetaDataTree.Fill()
     
