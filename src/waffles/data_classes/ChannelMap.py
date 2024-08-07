@@ -1,8 +1,8 @@
 from typing import List, Tuple
 
-from .UniqueChannel import UniqueChannel
-from .Map import Map
-from .Exceptions import generate_exception_message
+from waffles.data_classes.UniqueChannel import UniqueChannel
+from waffles.data_classes.Map import Map
+from waffles.Exceptions import generate_exception_message
 
 class ChannelMap(Map):
 

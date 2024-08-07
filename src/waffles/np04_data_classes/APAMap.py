@@ -1,7 +1,7 @@
 from typing import List
 
-from .UniqueChannel import UniqueChannel
-from .ChannelMap import ChannelMap
+from waffles.data_classes.UniqueChannel import UniqueChannel
+from waffles.data_classes.ChannelMap import ChannelMap
 
 class APAMap(ChannelMap):
 

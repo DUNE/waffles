@@ -2,7 +2,7 @@ import copy
 
 from typing import Optional, List, Any
 
-from src.waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import generate_exception_message
 
 class Map:
 

@@ -77,5 +77,3 @@ def dec_fit_FastSlowIntermediate(t     : np.ndarray,
     return (As / np.sqrt(2)) * np.exp((sigma**2) / (2 * taus**2)) * erfc(((t0 - t) / sigma) + (sigma / taus)) * np.exp((t0 - t) / taus) + \
            (Ai / np.sqrt(2)) * np.exp((sigma**2) / (2 * taui**2)) * erfc(((t0 - t) / sigma) + (sigma / taui)) * np.exp((t0 - t) / taui) + \
            (Af / np.sqrt(2)) * np.exp((sigma**2) / (2 * tauf**2)) * erfc(((t0 - t) / sigma) + (sigma / tauf)) * np.exp((t0 - t) / tauf) - offset
-
-
