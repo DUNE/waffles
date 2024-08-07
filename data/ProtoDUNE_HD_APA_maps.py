@@ -1,5 +1,5 @@
-from src.waffles.UniqueChannel import UniqueChannel
-from src.waffles.APAMap import APAMap
+from waffles.data_classes.UniqueChannel import UniqueChannel
+from waffles.np04_data_classes.APAMap import APAMap
 
 apa_1_data = [  [UniqueChannel(104, 7   ),  UniqueChannel(104, 5 ), UniqueChannel(104, 2 ), UniqueChannel(104, 0    )],
                 [UniqueChannel(104, 1   ),  UniqueChannel(104, 3 ), UniqueChannel(104, 4 ), UniqueChannel(104, 6    )],

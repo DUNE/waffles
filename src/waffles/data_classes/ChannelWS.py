@@ -1,9 +1,9 @@
 import numpy as np
 from typing import Dict, Optional
 
-from .WaveformSet import WaveformSet
-from .CalibrationHistogram import CalibrationHistogram
-from src.waffles.Exceptions import generate_exception_message
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
+from waffles.Exceptions import generate_exception_message
 
 class ChannelWS(WaveformSet):
 
@@ -42,7 +42,7 @@ class ChannelWS(WaveformSet):
                         compute_calib_histo : bool = False,
                         bins_number : Optional[int] = None,
                         domain : Optional[np.ndarray] = None,
-                        variable : str = 'integral',
+                        variable : Optional[str] = None,
                         analysis_label : Optional[str] = None):
         
         """
@@ -79,31 +79,32 @@ class ChannelWS(WaveformSet):
         variable : str
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
-            In that case, if variable is set to 'integral', 
-            then the calibration histogram will be 
-            computed using the integral of the waveforms, 
-            up to the input given to the 'analysis_label' 
-            parameter. If variable is set to 'amplitude', 
-            then the calibration histogram will be 
-            computed using the amplitude of the waveforms.
-            The default behaviour, which is used if
-            the input is different from 'integral' or
-            'amplitude', is that of 'integral'.
+            If so, this parameter must be defined,
+            and it is given to the 'variable' positional
+            argument of the CalibrationHistogram.from_WaveformSet
+            class method. For each Waveform object within 
+            this ChannelWS, this parameter gives the key
+            for the considered WfAna object (up to the
+            analysis_label input parameter) from where
+            to take the sample to add to the computed 
+            calibration histogram. Namely, for a WfAna 
+            object x, x.Result[variable] is the considered
+            sample. It is the caller's responsibility to
+            ensure that the values for the given variable
+            (key) are scalars, i.e. that they are valid
+            samples for a 1D histogram.
         analysis_label : str
-            If variable is set to 'integral' (resp.
-            'amplitude'), this parameter gives the key
-            for the WfAna object within the Analysis
-            attribute of each considered waveform 
-            from where to take the integral (resp.
-            amplitude) value to add to the calibration 
-            histogram. Namely, if such WfAna object is 
-            x, then x.Result.Integral (resp. 
-            x.Result.Amplitude) is the considered
-            integral (resp. amplitude). If 'analysis_label' 
-            is None, then the last analysis added to 
-            the Analyses attribute will be the used 
-            one. If there is not even one analysis, 
-            then an exception will be raised.
+            This parameter only makes a difference if
+            'compute_calib_histo' is set to True. For 
+            each Waveform object in this ChannelWS,
+            this parameter gives the key for the WfAna 
+            object within the Analyses attribute from 
+            where to take the sample to add to the 
+            calibration histogram. If 'analysis_label' 
+            is None, then the last analysis added to the 
+            Analyses attribute will be the used one. If 
+            there is not even one analysis, then an 
+            exception will be raised.
         """
 
         ## Shall we add type checks here?
@@ -130,7 +131,7 @@ class ChannelWS(WaveformSet):
             self.__calib_histo = CalibrationHistogram.from_WaveformSet( self,
                                                                         bins_number,
                                                                         domain,
-                                                                        variable = variable,
+                                                                        variable,
                                                                         analysis_label = analysis_label)
 
     #Getters
