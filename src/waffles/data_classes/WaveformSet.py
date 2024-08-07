@@ -1,6 +1,5 @@
 import inspect
 
-import numba
 import numpy as np
 from typing import Tuple, List, Dict, Callable, Optional
 from plotly import graph_objects as pgo
@@ -11,6 +10,7 @@ from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.Map import Map
 from waffles.data_classes.IPDict import IPDict
 
+import waffles.utils.numerical_utils as wun
 import waffles.utils.filtering_utils as wuf
 
 from waffles.Exceptions import generate_exception_message
@@ -1019,141 +1019,6 @@ class WaveformSet:
 
         return cls(*waveforms)
     
-    @staticmethod
-    def histogram1d(samples : np.ndarray,
-                    bins : int,
-                    domain : np.ndarray,
-                    keep_track_of_idcs : bool = False) -> Tuple[np.ndarray, List[List[int]]]:   # Not calling it 'range' because 
-                                                                                                # it is a reserved keyword in Python
-
-        """
-        This method returns a tuple with two elements. The
-        first one is an unidimensional integer numpy 
-        array, say counts, which is the 1D histogram of the 
-        given samples. I.e. counts[i] gives the number of
-        samples that fall into the i-th bin of the histogram,
-        with i = 0, 1, ..., bins - 1. The second element
-        of the returned tuple is a list containing bins 
-        empty lists. If keep_track_of_idcs is True, then 
-        the returned list of lists contains integers, so 
-        that the i-th list contains the indices of the 
-        samples which fall into the i-th bin of the 
-        histogram. It is the caller's responsibility to 
-        make sure that the given input parameters are 
-        well-formed. No checks are performed here.
-
-        Parameters
-        ----------
-        samples : np.ndarray
-            An unidimensional numpy array where samples[i] 
-            gives the i-th sample.
-        bins : int
-            The number of bins
-        domain : np.ndarray
-            A 2x1 numpy array where (domain[0], domain[1])
-            gives the range to consider for the histogram.
-            Any sample which falls outside this range is 
-            ignored.
-        keep_track_of_idcs : bool
-            If True, then the second element of the returned
-            tuple is not empty
-
-        Returns
-        ----------
-        counts : np.ndarray
-            An unidimensional integer numpy array which 
-            is the 1D histogram of the given samples
-        idcs : list of list of int
-            A list containing bins empty lists. If 
-            keep_track_of_idcs is True, then the i-th 
-            list contains the indices of the samples,
-            with respect to the input samples array,
-            which fall into the i-th bin of the histogram.
-        """
-
-        counts, formatted_idcs = WaveformSet.__histogram1d( samples,
-                                                            bins,
-                                                            domain,
-                                                            keep_track_of_idcs = keep_track_of_idcs)
-        deformatted_idcs = [ [] for _ in range(bins) ]
-
-        if keep_track_of_idcs:
-            for i in range(0, len(formatted_idcs), 2):
-                deformatted_idcs[formatted_idcs[i + 1]].append(formatted_idcs[i])
-
-        return counts, deformatted_idcs
-    
-    @staticmethod
-    @numba.njit(nogil=True, parallel=False)
-    def __histogram1d(  samples : np.ndarray,
-                        bins : int,
-                        domain : np.ndarray,
-                        keep_track_of_idcs : bool = False) -> Tuple[np.ndarray, List[List[int]]]:   # Not calling it 'range' because 
-                                                                                                    # it is a reserved keyword in Python
-        """
-        This method is not intended for user usage. It 
-        must only be called by the WaveformSet.histogram1d() 
-        method. This is the low-level optimized numerical 
-        implementation of the histogramming process.
-
-        Parameters
-        ----------
-        samples : np.ndarray
-        bins : int
-        domain : np.ndarray
-        keep_track_of_idcs : bool
-
-        Returns
-        ----------
-        counts : np.ndarray
-            An unidimensional integer numpy array which 
-            is the 1D histogram of the given samples
-        formatted_idcs : list of int
-            A list of integers. If keep_track_of_idcs is
-            False, then this list is empty. If it is True,
-            then this list is 2*len(samples) long at most.
-            This list is such that formatted_idcs[2*i]
-            gives the index of the i-th sample from
-            samples which actually fell into the 
-            specified domain, and formatted_idcs[2*i + 1] 
-            gives the index of the bin where such sample 
-            falls into.
-        """
-
-        # Of course, building a list of lists with the indices of the 
-        # samples which fell into each bin would be more conceptually 
-        # stragihtforward, but appending to a list which is contained 
-        # within another list is apparently not allowed within a numba.njit 
-        # function. So, we are using this format, which only implies 
-        # appending to a flat list, and it will be latter de-formatted 
-        # into a list of lists in the upper level WaveformSet.histogram1d() 
-        # method, which is not numba decorated and should not perform
-        # very demanding operations.
-
-        counts = np.zeros(bins, dtype = np.uint64)
-        formatted_idcs = []
-
-        inverse_step = 1. / ((domain[1] - domain[0]) / bins)
-
-        if not keep_track_of_idcs:
-            for t in range(samples.shape[0]):
-                i = (samples[t] - domain[0]) * inverse_step
-
-                if 0 <= i < bins:
-                    counts[int(i)] += 1
-        else:
-            for t in range(samples.shape[0]):
-                i = (samples[t] - domain[0]) * inverse_step
-
-                if 0 <= i < bins:
-                    aux = int(i)
-                    counts[aux] += 1
-
-                    formatted_idcs.append(t)
-                    formatted_idcs.append(aux)
-
-        return counts, formatted_idcs
-    
     ## WaveformSet.plot_calibration_histogram() is not supported anymore,
     ## and so, it may not work. ChannelWSGrid.plot() with its 'mode' 
     ## input parameter set to calibration already covers this feature. 
@@ -1337,12 +1202,12 @@ class WaveformSet:
                     if detailed_label:
                          aux_name += f": [{WaveformSet.get_string_of_first_n_integers_if_available(grid_of_wf_idcs_[i][j], queried_no = 2)}]"
                          
-                    data, _ = WaveformSet.histogram1d(  np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]), ## Trying to grab the WfAna object
-                                                        bins,                                                                                                           ## waveform by waveform using 
-                                                        domain,                                                                                                         ## WaveformAdcs.get_analysis()
-                                                        keep_track_of_idcs = False)                                                                                     ## might be slow. Find a different
-                                                                                                                                                                        ## solution if this becomes a 
-                    figure.add_trace(   pgo.Scatter(    x = np.linspace(domain[0] + (step / 2.0),                                                                       ## a problem at some point.
+                    data, _ = wun.histogram1d(  np.array([self.Waveforms[idc].get_analysis(analysis_label).Result.Integral for idc in grid_of_wf_idcs_[i][j]]),     ## Trying to grab the WfAna object
+                                                bins,                                                                                                               ## waveform by waveform using 
+                                                domain,                                                                                                             ## WaveformAdcs.get_analysis()
+                                                keep_track_of_idcs = False)                                                                                         ## might be slow. Find a different
+                                                                                                                                                                    ## solution if this becomes a 
+                    figure.add_trace(   pgo.Scatter(    x = np.linspace(domain[0] + (step / 2.0),                                                                   ## a problem at some point.
                                                                         domain[1] - (step / 2.0), 
                                                                         num = bins,
                                                                         endpoint = True),

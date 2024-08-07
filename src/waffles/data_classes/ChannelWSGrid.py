@@ -49,7 +49,7 @@ class ChannelWSGrid:
                         compute_calib_histo : bool = False,
                         bins_number : Optional[int] = None,
                         domain : Optional[np.ndarray] = None,
-                        variable : str = 'integral',
+                        variable : Optional[str] = None,
                         analysis_label : Optional[str] = None):
                         
         """
@@ -98,7 +98,8 @@ class ChannelWSGrid:
         variable : str
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
-            It is given to the 'variable' parameter of 
+            If so, this parameter must be defined,
+            and it is given to the 'variable' parameter of 
             the 'clusterize_WaveformSet' static method. 
             Check its docstring for more information.
         analysis_label : str
@@ -157,7 +158,7 @@ class ChannelWSGrid:
                                 compute_calib_histo : bool = False,
                                 bins_number : Optional[int] = None,
                                 domain : Optional[np.ndarray] = None,
-                                variable : str = 'integral',
+                                variable : Optional[str] = None,
                                 analysis_label : Optional[str] = None) -> Dict[int, Dict[int, ChannelWS]]:
 
         """
@@ -215,9 +216,10 @@ class ChannelWSGrid:
         variable : str
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
-            It is given to the 'variable' parameter of 
-            the ChannelWS initializer. Check its docstring 
-            for more information.
+            If so, this parameter must be defined,
+            and it is given to the 'variable' parameter
+            of the ChannelWS initializer. Check its
+            docstring for more information.
         analysis_label : str
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
