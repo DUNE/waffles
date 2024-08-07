@@ -1,3 +1,4 @@
+import os
 import array
 import numpy as np
 import uproot
@@ -340,12 +341,12 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
     
     """
     This is a helper function which must only be called by the 
-    from_ROOT_file() function. This function reads a subset of 
-    waveforms from the given uproot.TTree and appends them one 
-    by one to a list of Waveform objects, which is finally 
-    returned by this function. When the uproot library is 
-    specified, from_ROOT_file() delegates such task to this 
-    helper function.
+    WaveformSet_from_ROOT_file() function. This function reads 
+    a subset of waveforms from the given uproot.TTree and appends 
+    them one by one to a list of Waveform objects, which is 
+    finally returned by this function. When the uproot library 
+    is specified, WaveformSet_from_ROOT_file() delegates such 
+    task to this helper function.
 
     Parameters
     ----------
@@ -359,7 +360,7 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
         The tree from which the bulk data (resp. meta data)
         of the waveforms will be read. Branches whose name
         start with 'adcs', 'channel', 'timestamp' and 'record'
-        will be required.
+        (resp. 'run' and 'ticks_to_nsec') will be required.
     set_offset_wrt_daq_window : bool
         If True, then the bulk data tree must also have a
         branch whose name starts with 'daq_timestamp'. In
@@ -374,8 +375,8 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
     first_wf_index : int
         The index of the first waveform of the chunk in
         the bulk data, which can be potentially read. 
-        from_ROOT_file() calculates this value based on 
-        its 'start_fraction' input parameter.
+        WaveformSet_from_ROOT_file() calculates this 
+        value based on its 'start_fraction' input parameter.
     verbose : bool
         If True, then functioning-related messages will be
         printed.
@@ -414,13 +415,15 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
     # exclusive. Also note that the 'entry_stop' parameter of uproot.TBranch.array()
     # is exclusive.
 
+    meta_data = __read_metadata_from_ROOT_file_using_uproot(meta_data_tree)
+
     adcs_branch, _ = find_TBranch_in_ROOT_TTree(bulk_data_tree,
                                                 'adcs',
                                                 'uproot')
 
     channel_branch, _ = find_TBranch_in_ROOT_TTree( bulk_data_tree,
-                                                                'channel',
-                                                                'uproot')
+                                                    'channel',
+                                                    'uproot')
         
     timestamp_branch, _ = find_TBranch_in_ROOT_TTree(   bulk_data_tree,
                                                         'timestamp',
@@ -429,7 +432,7 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
     record_branch, _ = find_TBranch_in_ROOT_TTree(  bulk_data_tree,
                                                     'record',
                                                     'uproot')
-
+    
     waveforms = []                      # Using a list comprehension here is slightly slower than a for loop
                                         # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
 
@@ -459,12 +462,12 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
                 endpoint, channel = split_endpoint_and_channel(current_channel_array[i])
 
                 waveforms.append(Waveform(  current_timestamp_array[i],
-                                            16.,    # TimeStep_ns   ## Hardcoded to 16 ns for now, but
-                                                                    ## it must be implemented from the new
-                                                                    ## 'metadata' TTree in the ROOT file
+                                            16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
+                                                                    ## 'time_to_nsec' value from the
+                                                                    ## 'metadata' TTree is fixed
+                                            # meta_data[1],
                                             np.array(current_adcs_array[i]),
-                                            0,      # RunNumber     ## To be implemented from the new
-                                                                    ## 'metadata' TTree in the ROOT file
+                                            meta_data[0],
                                             current_record_array[i],
                                             endpoint,
                                             channel,
@@ -503,8 +506,9 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
 
                 waveforms.append(Waveform(  current_timestamp_array[i],
                                             16.,    # TimeStep_ns
+                                            # meta_data[1],
                                             np.array(current_adcs_array[i]),
-                                            0,      # RunNumber
+                                            meta_data[0],
                                             current_record_array[i],
                                             endpoint,
                                             channel,
@@ -529,12 +533,12 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
     
     """
     This is a helper function which must only be called by 
-    the from_ROOT_file() function. This function reads a 
-    subset of waveforms from the given ROOT.TTree and 
-    appends them one by one to a list of Waveform objects, 
+    the WaveformSet_from_ROOT_file() function. This function 
+    reads a subset of waveforms from the given ROOT.TTree 
+    and appends them one by one to a list of Waveform objects,
     which is finally returned by this function. When the 
-    pyroot library is specified, from_ROOT_file() delegates 
-    such task to this helper function.
+    pyroot library is specified, WaveformSet_from_ROOT_file() 
+    delegates such task to this helper function.
 
     Parameters
     ----------
@@ -548,9 +552,10 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
         The tree from which the bulk data (resp. meta data)
         of the waveforms will be read. Branches whose name
         start with 'adcs', 'channel', 'timestamp' and 'record'
-        will be required. For more information on the expected
-        data types for these branches, check the 
-        from_ROOT_file() function documentation.
+        (resp. 'run' and 'ticks_to_nsec') will be required. 
+        For more information on the expected data types for 
+        these branches, check the WaveformSet_from_ROOT_file() 
+        function documentation.
     set_offset_wrt_daq_window : bool
         If True, then the bulk data tree must also have a
         branch whose name starts with 'daq_timestamp'. In
@@ -565,8 +570,8 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
     first_wf_index : int
         The index of the first waveform of the chunk in
         the bulk data, which can be potentially read. 
-        from_ROOT_file() calculates this value based on 
-        its 'start_fraction' input parameter.
+        WaveformSet_from_ROOT_file() calculates this value 
+        based on its 'start_fraction' input parameter.
     subsample : int
         It matches one plus the number of waveforms to be 
         skipped between two consecutive waveforms to be read. 
@@ -587,6 +592,8 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
     waveforms : list of Waveform
     """
 
+    meta_data = __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree)
+    
     _, adcs_branch_exact_name = find_TBranch_in_ROOT_TTree( bulk_data_tree,
                                                             'adcs',
                                                             'pyroot')
@@ -638,12 +645,12 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
             endpoint, channel = split_endpoint_and_channel(channel_address[0])
 
             waveforms.append(Waveform(  timestamp_address[0],
-                                        16.,    # TimeStep_ns   ## Hardcoded to 16 ns for now, but
-                                                                ## it must be implemented from the new
-                                                                ## 'metadata' TTree in the ROOT file
+                                        16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
+                                                                ## 'time_to_nsec' value from the
+                                                                ## 'metadata' TTree is fixed
+                                        # meta_data[1],   # TimeStep_ns
                                         np.array(adcs_address),
-                                        0,      # RunNumber     ## To be implemented from the new
-                                                                ## 'metadata' TTree in the ROOT file
+                                        meta_data[0], 
                                         record_address[0],
                                         endpoint,
                                         channel,
@@ -669,9 +676,9 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
 
             waveforms.append(Waveform(  timestamp_address[0],
                                         16.,    # TimeStep_ns
+                                        # meta_data[1],
                                         np.array(adcs_address),
-                                        0,      # RunNumber     ## To be implemented from the new
-                                                                ## 'metadata' TTree in the ROOT file
+                                        meta_data[0],
                                         record_address[0],
                                         endpoint,
                                         channel,
@@ -688,3 +695,118 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
                                             # For more information, check 
                                             # https://root.cern/doc/master/classTTree.html
     return waveforms
+
+def __read_metadata_from_ROOT_file_using_uproot(meta_data_tree : uproot.TTree) -> Tuple[Union[int, float]]:
+
+    """
+    This is a helper function which must only be called by 
+    the __build_waveforms_list_from_ROOT_file_using_uproot()
+    helper function. Such function delegates the task of
+    reading the data in the meta-data tree to this function.
+    This function reads and packs such data into a tuple,
+    which is the returned object.
+    
+    Parameters
+    ----------
+    meta_data_tree : uproot.TTree
+        The tree from which the meta data of the waveforms
+        will be read. Branches whose names start with 'run'
+        and 'ticks_to_nsec' will be required.
+
+    Returns
+    ----------
+    output : tuple of ( int, float, )
+        The first (resp. second) element of the returned 
+        tuple is the run number (resp. nanoseconds per time
+        tick) of the data in the ROOT file.
+    """
+
+    run_branch, _ = find_TBranch_in_ROOT_TTree( meta_data_tree,
+                                                'run',
+                                                'uproot')
+    
+    ticks_to_nsec_branch, _ = find_TBranch_in_ROOT_TTree(   meta_data_tree,
+                                                            'ticks_to_nsec',
+                                                            'uproot')
+    run = int(run_branch.array()[0])
+
+    ticks_to_nsec = float(ticks_to_nsec_branch.array()[0])
+
+    return (run, ticks_to_nsec,)
+
+def __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree : ROOT.TTree) -> Tuple[Union[int, float]]:
+
+    """
+    This is a helper function which must only be called by 
+    the __build_waveforms_list_from_ROOT_file_using_pyroot() 
+    helper function. Such function delegates the task of
+    reading the data in the meta-data tree to this function.
+    This function reads and packs such data into a tuple,
+    which is the returned object.
+    
+    Parameters
+    ----------
+    meta_data_tree : ROOT.TTree
+        The tree from which the meta data of the waveforms
+        will be read. Branches whose names start with 'run'
+        and 'ticks_to_nsec' will be required.
+
+    Returns
+    ----------
+    output : tuple of ( int, float, )
+        The first (resp. second) element of the returned 
+        tuple is the run number (resp. nanoseconds per time
+        tick) of the data in the ROOT file.
+    """
+
+    _, run_branch_exact_name = find_TBranch_in_ROOT_TTree(  meta_data_tree,
+                                                            'run',
+                                                            'pyroot')
+    
+    _, ticks_to_nsec_branch_exact_name = find_TBranch_in_ROOT_TTree(meta_data_tree,
+                                                                    'ticks_to_nsec',
+                                                                    'pyroot')
+    run_address = array.array(  ROOT_to_array_type_code('i'),
+                                [0])
+    
+    ticks_to_nsec_address = array.array(ROOT_to_array_type_code('F'),
+                                        [0])
+    
+    meta_data_tree.SetBranchAddress(run_branch_exact_name,
+                                    run_address)
+    
+    meta_data_tree.SetBranchAddress(ticks_to_nsec_branch_exact_name,
+                                    ticks_to_nsec_address)
+
+    meta_data_tree.GetEntry(0)
+    
+    run = int(run_address[0])
+
+    ticks_to_nsec = float(ticks_to_nsec_address[0])
+
+    meta_data_tree.ResetBranchAddresses()
+
+    return (run, ticks_to_nsec,)
+
+def filepath_is_ROOT_file_candidate(filepath : str) -> bool:
+
+    """
+    This function returns True if the given file path points
+    to a file which exists and whose extension is '.root'. It
+    returns False if else.
+
+    Parameters
+    ----------
+    filepath : str
+        The file path to be checked.
+
+    Returns
+    ----------
+    bool
+    """
+
+    if os.path.isfile(filepath):
+        if filepath.endswith('.root'):
+            return True
+    
+    return False
