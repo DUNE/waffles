@@ -171,7 +171,7 @@ The expected folder structure of the repository should be
 After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` with [NEED TO BE IN THE MAIN FOLDER]:
 
 ```bash
-pip install -r docs/analysis_requirements.txt 
+pip install -r docs/requirements.txt 
 ```
 
 ### 2. Make sure you have access to data to analyze

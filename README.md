@@ -19,7 +19,7 @@ Create a virtual environment and install the dependencies:
 ```bash
 python3 -m venv /path/to/new/virtual/environment
 source /path/to/new/virtual/environment/bin/activate
-pip install -r docs/analysis_requirements.txt
+pip install -r docs/requirements.txt
 ```
 
 Add the `ROOT` library to your environment by adding these lines at the end of the `bin/activate` file:
