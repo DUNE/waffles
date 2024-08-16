@@ -125,7 +125,7 @@ def WaveformSet_from_ROOT_files(library : str,
                                                     f"No valid ROOT files were found in the given folder or filepath list."))
     if verbose:
 
-        print(f"In function WaveformSet_from_ROOT_files(): Found {len(valid_filepaths)} different valid ROOT files: \n\n", end = '')
+        print(f"In function WaveformSet_from_ROOT_files(): Found {len(valid_filepaths)} different valid ROOT file(s): \n\n", end = '')
         
         for filepath in valid_filepaths:
             print(f"\t - {filepath}\n", end = '')
