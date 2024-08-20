@@ -9,7 +9,10 @@ from waffles.data_classes.WfAnaResult import WfAnaResult
 import waffles.utils.check_utils as wuc
 import waffles.Exceptions as we
 
+
+
 class BasicWfAna(WfAna):
+    
 
     """
     Stands for Basic Waveform Analysis. This class
