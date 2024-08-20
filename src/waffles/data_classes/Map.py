@@ -5,7 +5,7 @@ from typing import Optional, List, Any
 from waffles.Exceptions import generate_exception_message
 
 
-class Map:
+class map_:
 
     """
     This class implements a list of lists which make up a
@@ -18,13 +18,13 @@ class Map:
     ----------
     Rows : int
         The number of rows in the map
-    Columns : int
+    columns : int
         The number of columns in the map
     Type : type
         The type of the objects stored in the map
-    Data : list of lists
+    data : list of lists
         Nested list which contains the data of the
-        map. Data[i][j] gives the object stored in
+        map. data[i][j] gives the object stored in
         the i-th row and j-th column of the map.
 
     Methods
@@ -68,7 +68,7 @@ class Map:
                 'Map.__init__()',
                 f"The given number of columns ({columns}) must be positive."))
 
-        if not Map.list_of_lists_is_well_formed(data, rows, columns):
+        if not map_.list_of_lists_is_well_formed(data, rows, columns):
             raise Exception(generate_exception_message(
                 3,
                 'Map.__init__()',
@@ -142,9 +142,9 @@ class Map:
             ncols: int,
             type_: type,
             value,
-            independent_copies=False) -> 'Map':
+            independent_copies=False) -> 'map_':
         """
-        This method returns a Map object whose Rows, Columns
+        This method returns a Map object whose Rows, columns
         and Type attributes match the input parameters nrows,
         ncols and type_, and for which all of its entries
         are equal to the input value.
