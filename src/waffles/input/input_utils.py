@@ -1,11 +1,12 @@
-import os
+# import os
+from pathlib import Path
 import array
 import numpy as np
 import uproot
 
-try: 
+try:
     import ROOT
-except ImportError: 
+except ImportError:
     print("[input_utils.py]: Could not import ROOT module. Do not use 'pyroot' library options.")
     pass
 
@@ -15,10 +16,11 @@ from waffles.data_classes.Waveform import Waveform
 import waffles.utils.numerical_utils as wun
 from waffles.Exceptions import generate_exception_message
 
-def find_TTree_in_ROOT_TFile(   file : Union[uproot.ReadOnlyDirectory, ROOT.TFile],
-                                TTree_pre_name : str,
-                                library : str) -> Union[uproot.TTree, ROOT.TTree]:
-    
+
+def find_TTree_in_ROOT_TFile(
+        file: Union[uproot.ReadOnlyDirectory, ROOT.TFile],
+        TTree_pre_name: str,
+        library: str) -> Union[uproot.TTree, ROOT.TTree]:
     """
     This function returns the first object found in the given
     ROOT file whose name starts with the string given to the
@@ -52,20 +54,20 @@ def find_TTree_in_ROOT_TFile(   file : Union[uproot.ReadOnlyDirectory, ROOT.TFil
 
     if library == 'uproot':
         if not isinstance(file, uproot.ReadOnlyDirectory):
-            raise Exception(generate_exception_message( 1,
-                                                        'find_TTree_in_ROOT_TFile()',
-                                                        'Since the uproot library was specified, the input file must be of type uproot.ReadOnlyDirectory.'))
+            raise Exception(generate_exception_message(1,
+                                                       'find_TTree_in_ROOT_TFile()',
+                                                       'Since the uproot library was specified, the input file must be of type uproot.ReadOnlyDirectory.'))
     elif library == 'pyroot':
         if not isinstance(file, ROOT.TFile):
-            raise Exception(generate_exception_message( 2,
-                                                        'find_TTree_in_ROOT_TFile()',
-                                                        'Since the pyroot library was specified, the input file must be of type ROOT.TFile.'))
+            raise Exception(generate_exception_message(2,
+                                                       'find_TTree_in_ROOT_TFile()',
+                                                       'Since the pyroot library was specified, the input file must be of type ROOT.TFile.'))
     else:
-        raise Exception(generate_exception_message( 3,
-                                                    'find_TTree_in_ROOT_TFile()',
-                                                    f"The library '{library}' is not supported. Either 'uproot' or 'pyroot' must be given."))
+        raise Exception(generate_exception_message(3,
+                                                   'find_TTree_in_ROOT_TFile()',
+                                                   f"The library '{library}' is not supported. Either 'uproot' or 'pyroot' must be given."))
     TTree_name = None
-    
+
     if library == 'uproot':
         for key in file.classnames().keys():
             if key.startswith(TTree_pre_name) and file.classnames()[key] == 'TTree':
@@ -78,15 +80,15 @@ def find_TTree_in_ROOT_TFile(   file : Union[uproot.ReadOnlyDirectory, ROOT.TFil
                 break
 
     if TTree_name is None:
-        raise NameError(generate_exception_message( 4,
-                                                    'find_TTree_in_ROOT_TFile()',
-                                                    f"There is no TTree with a name starting with '{TTree_pre_name}'."))
+        raise NameError(generate_exception_message(4,
+                                                   'find_TTree_in_ROOT_TFile()',
+                                                   f"There is no TTree with a name starting with '{TTree_pre_name}'."))
     return file[TTree_name], TTree_name
 
-def find_TBranch_in_ROOT_TTree( tree : Union[uproot.TTree, ROOT.TTree],
-                                TBranch_pre_name : str,
-                                library : str) -> Tuple[Union[uproot.TBranch, ROOT.TBranch], str]:
-    
+
+def find_TBranch_in_ROOT_TTree(tree: Union[uproot.TTree, ROOT.TTree],
+                               TBranch_pre_name: str,
+                               library: str) -> Tuple[Union[uproot.TBranch, ROOT.TBranch], str]:
     """
     This function returns the first TBranch found in the 
     given ROOT TTree whose name starts with the string 
@@ -121,18 +123,18 @@ def find_TBranch_in_ROOT_TTree( tree : Union[uproot.TTree, ROOT.TTree],
 
     if library == 'uproot':
         if not isinstance(tree, uproot.TTree):
-            raise Exception(generate_exception_message( 1,
-                                                        'find_TBranch_in_ROOT_TTree()',
-                                                        'Since the uproot library was specified, the input tree must be of type uproot.TTree.'))
+            raise Exception(generate_exception_message(1,
+                                                       'find_TBranch_in_ROOT_TTree()',
+                                                       'Since the uproot library was specified, the input tree must be of type uproot.TTree.'))
     elif library == 'pyroot':
         if not isinstance(tree, ROOT.TTree):
-            raise Exception(generate_exception_message( 2,
-                                                        'find_TBranch_in_ROOT_TTree()',
-                                                        'Since the pyroot library was specified, the input tree must be of type ROOT.TTree.'))
+            raise Exception(generate_exception_message(2,
+                                                       'find_TBranch_in_ROOT_TTree()',
+                                                       'Since the pyroot library was specified, the input tree must be of type ROOT.TTree.'))
     else:
-        raise Exception(generate_exception_message( 3,
-                                                    'find_TBranch_in_ROOT_TTree()',
-                                                    f"The library '{library}' is not supported. Either 'uproot' or 'pyroot' must be given."))
+        raise Exception(generate_exception_message(3,
+                                                   'find_TBranch_in_ROOT_TTree()',
+                                                   f"The library '{library}' is not supported. Either 'uproot' or 'pyroot' must be given."))
     TBranch_name = None
 
     if library == 'uproot':
@@ -145,17 +147,18 @@ def find_TBranch_in_ROOT_TTree( tree : Union[uproot.TTree, ROOT.TTree],
             if branch.GetName().startswith(TBranch_pre_name):
                 TBranch_name = branch.GetName()
                 break
-            
+
     if TBranch_name is None:
-        raise NameError(generate_exception_message( 4,
-                                                    'find_TBranch_in_ROOT_TTree()',
-                                                    f"There is no TBranch with a name starting with '{TBranch_pre_name}'."))
-    
-    output = ( tree[TBranch_name] if library == 'uproot' else tree.GetBranch(TBranch_name), TBranch_name )
+        raise NameError(generate_exception_message(4,
+                                                   'find_TBranch_in_ROOT_TTree()',
+                                                   f"There is no TBranch with a name starting with '{TBranch_pre_name}'."))
+
+    output = (tree[TBranch_name] if library ==
+              'uproot' else tree.GetBranch(TBranch_name), TBranch_name)
     return output
 
-def ROOT_to_array_type_code(input : str) -> str:
 
+def ROOT_to_array_type_code(input: str) -> str:
     """
     This function gets a length-one string which matches
     a code type used in ROOT TTree and TBranch objects.
@@ -208,34 +211,34 @@ def ROOT_to_array_type_code(input : str) -> str:
         For more information, check https://docs.python.org/3/library/array.html
     """
 
-    map = { 'B' : 'b',
-            'b' : 'B',
-            'O' : 'B',
-            'S' : 'h',
-            's' : 'H',
-            'I' : 'l',
-            'i' : 'L',
-            'G' : 'q',
-            'L' : 'q',
-            'g' : 'Q',
-            'l' : 'Q',
-            'F' : 'f',
-            'D' : 'd'}
+    map = {'B': 'b',
+           'b': 'B',
+           'O': 'B',
+           'S': 'h',
+           's': 'H',
+           'I': 'l',
+           'i': 'L',
+           'G': 'q',
+           'L': 'q',
+           'g': 'Q',
+           'l': 'Q',
+           'F': 'f',
+           'D': 'd'}
     try:
         output = map[input]
     except KeyError:
-        raise ValueError(generate_exception_message( 1,
+        raise ValueError(generate_exception_message(1,
                                                     'ROOT_to_array_type_code()',
                                                     f"The given data type ({input}) is not recognized."))
     else:
         return output
 
-def get_1d_array_from_pyroot_TBranch(   tree : ROOT.TTree,
-                                        branch_name : str,
-                                        i_low : int = 0, 
-                                        i_up : Optional[int] = None,
-                                        ROOT_type_code : str = 'S') -> np.ndarray:
-    
+
+def get_1d_array_from_pyroot_TBranch(tree: ROOT.TTree,
+                                     branch_name: str,
+                                     i_low: int = 0,
+                                     i_up: Optional[int] = None,
+                                     ROOT_type_code: str = 'S') -> np.ndarray:
     """
     This function returns a 1D numpy array containing the
     values of the branch whose name starts with the string
@@ -275,44 +278,47 @@ def get_1d_array_from_pyroot_TBranch(   tree : ROOT.TTree,
     """
 
     try:
-        branch, exact_branch_name = find_TBranch_in_ROOT_TTree( tree, 
-                                                                branch_name, 
-                                                                'pyroot')
+        branch, exact_branch_name = find_TBranch_in_ROOT_TTree(tree,
+                                                               branch_name,
+                                                               'pyroot')
     except NameError:
-        raise NameError(generate_exception_message( 1,
-                                                    'get_1d_array_from_pyroot_TBranch()',
-                                                    f"There is no TBranch with a name starting with '{branch_name}' in the given tree."))
+        raise NameError(generate_exception_message(1,
+                                                   'get_1d_array_from_pyroot_TBranch()',
+                                                   f"There is no TBranch with a name starting with '{branch_name}' in the given tree."))
     if i_up is None:
         i_up_ = branch.GetEntries()
     else:
         i_up_ = i_up
 
     if i_low < 0 or i_low >= i_up_ or i_up_ > branch.GetEntries():
-        raise Exception(generate_exception_message( 2,
-                                                    'get_1d_array_from_pyroot_TBranch()',
-                                                    f"The given range [{i_low}, {i_up_}) is not well-defined for this branch."))
-    
+        raise Exception(generate_exception_message(2,
+                                                   'get_1d_array_from_pyroot_TBranch()',
+                                                   f"The given range [{i_low}, {i_up_}) is not well-defined for this branch."))
+
     retrieval_address = array.array(ROOT_to_array_type_code(ROOT_type_code),    # ROOT_to_array_type_code()
-                                    [0])                                        # will raise a ValueError if 
-                                                                                # ROOT_type_code is not recognized.
-    
-    output = np.empty((i_up_ - i_low,))     # Specifying a dtype here might speed up the process
-    
+                                    # will raise a ValueError if
+                                    [0])
+    # ROOT_type_code is not recognized.
+
+    # Specifying a dtype here might speed up the process
+    output = np.empty((i_up_ - i_low,))
+
     tree.SetBranchAddress(exact_branch_name, retrieval_address)
 
     for i in range(i_low, i_up_):
         tree.GetEntry(i)
         output[i - i_low] = retrieval_address[0]
 
-    tree.ResetBranchAddresses()     # This is necessary to avoid a segmentation fault. Indeed,
-                                    # from https://root.cern/doc/master/classTTree.html :
-                                    # 'The pointer whose address is passed to TTree::Branch 
-                                    # must not be destroyed (i.e. go out of scope) until the 
-                                    # TTree is deleted or TTree::ResetBranchAddress is called.'
+    # This is necessary to avoid a segmentation fault. Indeed,
+    tree.ResetBranchAddresses()
+    # from https://root.cern/doc/master/classTTree.html :
+    # 'The pointer whose address is passed to TTree::Branch
+    # must not be destroyed (i.e. go out of scope) until the
+    # TTree is deleted or TTree::ResetBranchAddress is called.'
     return output
 
-def split_endpoint_and_channel(input : int) -> Tuple[int, int]:
 
+def split_endpoint_and_channel(input: int) -> Tuple[int, int]:
     """
     Parameters
     ----------
@@ -332,13 +338,13 @@ def split_endpoint_and_channel(input : int) -> Tuple[int, int]:
 
     return int(str(input)[0:3]), int(str(input)[3:5])
 
-def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.ndarray,
-                                                        bulk_data_tree : uproot.TTree,
-                                                        meta_data_tree : uproot.TTree,
-                                                        set_offset_wrt_daq_window : bool = False,
-                                                        first_wf_index : int = 0,
-                                                        verbose : bool = True) -> List[Waveform]:
-    
+
+def __build_waveforms_list_from_ROOT_file_using_uproot(idcs_to_retrieve: np.ndarray,
+                                                       bulk_data_tree: uproot.TTree,
+                                                       meta_data_tree: uproot.TTree,
+                                                       set_offset_wrt_daq_window: bool = False,
+                                                       first_wf_index: int = 0,
+                                                       verbose: bool = True) -> List[Waveform]:
     """
     This is a helper function which must only be called by the 
     WaveformSet_from_ROOT_file() function. This function reads 
@@ -386,31 +392,33 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
     waveforms : list of Waveform
     """
 
-    clustered_idcs_to_retrieve = wun.cluster_integers_by_contiguity(idcs_to_retrieve)
+    clustered_idcs_to_retrieve = wun.cluster_integers_by_contiguity(
+        idcs_to_retrieve)
 
     if verbose:
 
-        print(f"In function __build_waveforms_list_from_ROOT_file_using_uproot(): Found {len(clustered_idcs_to_retrieve)} cluster(s) of contiguous waveforms of the selected type (self-trigger or full-stream) in the ROOT file.")
+        print(f"In function __build_waveforms_list_from_ROOT_file_using_uproot(): Found {len(
+            clustered_idcs_to_retrieve)} cluster(s) of contiguous waveforms of the selected type (self-trigger or full-stream) in the ROOT file.")
         print(f"In function __build_waveforms_list_from_ROOT_file_using_uproot(): Note that, the lesser the clusters the faster the reading process will be.")
 
     # For reference, reading ~1.6e+3 waveforms in 357 clusters takes ~10s,
     # while reading ~176e+3 waveforms in 1 cluster takes the same ~10s.
 
-    ## If the file to read is highly framented (i.e. there is a lot of clusters, 
-    ## then it is highly counterproductive to use this logical structure
-    ## (where we read block-by-block) compared to just reading the whole arrays
-    ## and then discard what we do not need based on the read 'is_fullstream' array.
-    ## That's why we should introduce a criterion based on the number of clusters
-    ## i.e. len(clustered_idcs_to_retrieve) to decide whether to use this block-
-    ## reading structure or not. While lacking a proper criterion, a threshold 
-    ## for the number of clusters above which just reading the whole arrays, 
-    ## could be gotten as an input parameter of this function. The block-reading
-    ## strategy is worth it, though, when the input file is not very fragmented.
-    ## This is an open issue. 
-    
-    # Note that the indices in clustered_idcs_to_retrieve are referred to the block 
-    # which we have read. I.e. clustered_idcs_to_retrieve[0] being, p.e. [0,3], means 
-    # that with respect to the branches in the ROOT file, the first cluster we need 
+    # If the file to read is highly framented (i.e. there is a lot of clusters,
+    # then it is highly counterproductive to use this logical structure
+    # (where we read block-by-block) compared to just reading the whole arrays
+    # and then discard what we do not need based on the read 'is_fullstream' array.
+    # That's why we should introduce a criterion based on the number of clusters
+    # i.e. len(clustered_idcs_to_retrieve) to decide whether to use this block-
+    # reading structure or not. While lacking a proper criterion, a threshold
+    # for the number of clusters above which just reading the whole arrays,
+    # could be gotten as an input parameter of this function. The block-reading
+    # strategy is worth it, though, when the input file is not very fragmented.
+    # This is an open issue.
+
+    # Note that the indices in clustered_idcs_to_retrieve are referred to the block
+    # which we have read. I.e. clustered_idcs_to_retrieve[0] being, p.e. [0,3], means
+    # that with respect to the branches in the ROOT file, the first cluster we need
     # to read goes from index wf_start+0 to index wf_start+3-1 inclusive, or wf_start+3.
     # exclusive. Also note that the 'entry_stop' parameter of uproot.TBranch.array()
     # is exclusive.
@@ -421,100 +429,104 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
                                                 'adcs',
                                                 'uproot')
 
-    channel_branch, _ = find_TBranch_in_ROOT_TTree( bulk_data_tree,
-                                                    'channel',
-                                                    'uproot')
-        
-    timestamp_branch, _ = find_TBranch_in_ROOT_TTree(   bulk_data_tree,
-                                                        'timestamp',
-                                                        'uproot')
-    
-    record_branch, _ = find_TBranch_in_ROOT_TTree(  bulk_data_tree,
-                                                    'record',
-                                                    'uproot')
-    
-    waveforms = []                      # Using a list comprehension here is slightly slower than a for loop
-                                        # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
+    channel_branch, _ = find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                   'channel',
+                                                   'uproot')
+
+    timestamp_branch, _ = find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                     'timestamp',
+                                                     'uproot')
+
+    record_branch, _ = find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                  'record',
+                                                  'uproot')
+
+    # Using a list comprehension here is slightly slower than a for loop
+    waveforms = []
+    # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
 
     if not set_offset_wrt_daq_window:   # Code is more extensive this way, but faster than evaluating
-                                        # the conditional at each iteration within the loop.
+        # the conditional at each iteration within the loop.
 
         for interval in clustered_idcs_to_retrieve:     # Read the waveforms in contiguous blocks
 
             branch_start = first_wf_index + interval[0]
             branch_stop = first_wf_index + interval[1]
 
-            current_adcs_array = adcs_branch.array( entry_start = branch_start,     # It is slightly faster (~106s vs. 114s,
-                                                    entry_stop = branch_stop)       # for a 809 MB input file running on lxplus9)
-                                                                                    # to read branch by branch rather than going
-                                                                                    # for bulk_data_tree.arrays()
+            current_adcs_array = adcs_branch.array(entry_start=branch_start,     # It is slightly faster (~106s vs. 114s,
+                                                   entry_stop=branch_stop)       # for a 809 MB input file running on lxplus9)
+            # to read branch by branch rather than going
+            # for bulk_data_tree.arrays()
 
-            current_channel_array = channel_branch.array(   entry_start = branch_start,
-                                                            entry_stop = branch_stop)
-            
-            current_timestamp_array = timestamp_branch.array(   entry_start = branch_start,
-                                                                entry_stop = branch_stop)
-            
-            current_record_array = record_branch.array( entry_start = branch_start,
-                                                        entry_stop = branch_stop)
+            current_channel_array = channel_branch.array(entry_start=branch_start,
+                                                         entry_stop=branch_stop)
+
+            current_timestamp_array = timestamp_branch.array(entry_start=branch_start,
+                                                             entry_stop=branch_stop)
+
+            current_record_array = record_branch.array(entry_start=branch_start,
+                                                       entry_stop=branch_stop)
             for i in range(len(current_adcs_array)):
 
-                endpoint, channel = split_endpoint_and_channel(current_channel_array[i])
+                endpoint, channel = split_endpoint_and_channel(
+                    current_channel_array[i])
 
-                waveforms.append(Waveform(  current_timestamp_array[i],
-                                            16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
-                                                                    ## 'time_to_nsec' value from the
-                                                                    ## 'metadata' TTree is fixed
-                                            # meta_data[1],
-                                            np.array(current_adcs_array[i]),
-                                            meta_data[0],
-                                            current_record_array[i],
-                                            endpoint,
-                                            channel,
-                                            time_offset = 0))
+                waveforms.append(Waveform(current_timestamp_array[i],
+                                          16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
+                                          # 'time_to_nsec' value from the
+                                          # 'metadata' TTree is fixed
+                                          # meta_data[1],
+                                          np.array(current_adcs_array[i]),
+                                          meta_data[0],
+                                          current_record_array[i],
+                                          endpoint,
+                                          channel,
+                                          time_offset=0))
     else:
 
         raw_time_offsets = []
 
-        daq_timestamp_branch, _ = find_TBranch_in_ROOT_TTree(   bulk_data_tree,
-                                                                'daq_timestamp',
-                                                                'uproot')
-                    
+        daq_timestamp_branch, _ = find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                             'daq_timestamp',
+                                                             'uproot')
+
         for interval in clustered_idcs_to_retrieve:     # Read the waveforms in contiguous blocks
 
             branch_start = first_wf_index + interval[0]
             branch_stop = first_wf_index + interval[1]
 
-            current_adcs_array = adcs_branch.array( entry_start = branch_start,
-                                                    entry_stop = branch_stop)
-            
-            current_channel_array = channel_branch.array(   entry_start = branch_start,
-                                                            entry_stop = branch_stop)
-            
-            current_timestamp_array = timestamp_branch.array(   entry_start = branch_start,
-                                                                entry_stop = branch_stop)
-            
-            current_record_array = record_branch.array( entry_start = branch_start,
-                                                        entry_stop = branch_stop)
-            
-            current_daq_timestamp_array = daq_timestamp_branch.array(   entry_start = branch_start,
-                                                                        entry_stop = branch_stop)
+            current_adcs_array = adcs_branch.array(entry_start=branch_start,
+                                                   entry_stop=branch_stop)
+
+            current_channel_array = channel_branch.array(entry_start=branch_start,
+                                                         entry_stop=branch_stop)
+
+            current_timestamp_array = timestamp_branch.array(entry_start=branch_start,
+                                                             entry_stop=branch_stop)
+
+            current_record_array = record_branch.array(entry_start=branch_start,
+                                                       entry_stop=branch_stop)
+
+            current_daq_timestamp_array = daq_timestamp_branch.array(entry_start=branch_start,
+                                                                     entry_stop=branch_stop)
 
             for i in range(len(current_adcs_array)):
 
-                endpoint, channel = split_endpoint_and_channel(current_channel_array[i])
+                endpoint, channel = split_endpoint_and_channel(
+                    current_channel_array[i])
 
-                waveforms.append(Waveform(  current_timestamp_array[i],
-                                            16.,    # TimeStep_ns
-                                            # meta_data[1],
-                                            np.array(current_adcs_array[i]),
-                                            meta_data[0],
-                                            current_record_array[i],
-                                            endpoint,
-                                            channel,
-                                            time_offset = 0))
-                
-                raw_time_offsets.append(int(current_timestamp_array[i]) - int(current_daq_timestamp_array[i]))
+                waveforms.append(Waveform(current_timestamp_array[i],
+                                          16.,    # TimeStep_ns
+                                          # meta_data[1],
+                                          np.array(current_adcs_array[i]),
+                                          meta_data[0],
+                                          current_record_array[i],
+                                          endpoint,
+                                          channel,
+                                          time_offset=0))
+
+                raw_time_offsets.append(
+                    int(current_timestamp_array[i]) - int(current_daq_timestamp_array[i]))
 
         time_offsets = wun.reference_to_minimum(raw_time_offsets)
 
@@ -523,14 +535,14 @@ def __build_waveforms_list_from_ROOT_file_using_uproot( idcs_to_retrieve : np.nd
 
     return waveforms
 
-def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.ndarray,
-                                                        bulk_data_tree : ROOT.TTree,
-                                                        meta_data_tree : ROOT.TTree,
-                                                        set_offset_wrt_daq_window : bool = False,
-                                                        first_wf_index : int = 0,
-                                                        subsample : int = 1,
-                                                        verbose : bool = True) -> List[Waveform]:
-    
+
+def __build_waveforms_list_from_ROOT_file_using_pyroot(idcs_to_retrieve: np.ndarray,
+                                                       bulk_data_tree: ROOT.TTree,
+                                                       meta_data_tree: ROOT.TTree,
+                                                       set_offset_wrt_daq_window: bool = False,
+                                                       first_wf_index: int = 0,
+                                                       subsample: int = 1,
+                                                       verbose: bool = True) -> List[Waveform]:
     """
     This is a helper function which must only be called by 
     the WaveformSet_from_ROOT_file() function. This function 
@@ -593,42 +605,42 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
     """
 
     meta_data = __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree)
-    
-    _, adcs_branch_exact_name = find_TBranch_in_ROOT_TTree( bulk_data_tree,
-                                                            'adcs',
-                                                            'pyroot')
+
+    _, adcs_branch_exact_name = find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                           'adcs',
+                                                           'pyroot')
     adcs_address = ROOT.std.vector('short')()
     bulk_data_tree.SetBranchAddress(adcs_branch_exact_name,
                                     adcs_address)
 
-    _, channel_branch_exact_name = find_TBranch_in_ROOT_TTree(  bulk_data_tree,
-                                                                'channel',
-                                                                'pyroot')
-    
-    channel_address = array.array(  ROOT_to_array_type_code('S'),
-                                    [0])
-    
+    _, channel_branch_exact_name = find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                              'channel',
+                                                              'pyroot')
+
+    channel_address = array.array(ROOT_to_array_type_code('S'),
+                                  [0])
+
     bulk_data_tree.SetBranchAddress(channel_branch_exact_name,
                                     channel_address)
-    
+
     _, timestamp_branch_exact_name = find_TBranch_in_ROOT_TTree(bulk_data_tree,
                                                                 'timestamp',
                                                                 'pyroot')
-    
+
     timestamp_address = array.array(ROOT_to_array_type_code('l'),
                                     [0])
-    
-    bulk_data_tree.SetBranchAddress(timestamp_branch_exact_name, 
+
+    bulk_data_tree.SetBranchAddress(timestamp_branch_exact_name,
                                     timestamp_address)
-    
-    _, record_branch_exact_name = find_TBranch_in_ROOT_TTree(   bulk_data_tree,
-                                                                'record',
-                                                                'pyroot')
-    
-    record_address = array.array(   ROOT_to_array_type_code('i'),
-                                    [0])
-    
-    bulk_data_tree.SetBranchAddress(record_branch_exact_name, 
+
+    _, record_branch_exact_name = find_TBranch_in_ROOT_TTree(bulk_data_tree,
+                                                             'record',
+                                                             'pyroot')
+
+    record_address = array.array(ROOT_to_array_type_code('i'),
+                                 [0])
+
+    bulk_data_tree.SetBranchAddress(record_branch_exact_name,
                                     record_address)
 
     idcs_to_retrieve_ = first_wf_index + idcs_to_retrieve[::subsample]
@@ -636,7 +648,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
     waveforms = []
 
     if not set_offset_wrt_daq_window:   # Code is more extensive this way, but faster than evaluating
-                                        # the conditional at each iteration within the loop.
+        # the conditional at each iteration within the loop.
 
         for idx in idcs_to_retrieve_:
 
@@ -644,28 +656,28 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
 
             endpoint, channel = split_endpoint_and_channel(channel_address[0])
 
-            waveforms.append(Waveform(  timestamp_address[0],
-                                        16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
-                                                                ## 'time_to_nsec' value from the
-                                                                ## 'metadata' TTree is fixed
-                                        # meta_data[1],   # TimeStep_ns
-                                        np.array(adcs_address),
-                                        meta_data[0], 
-                                        record_address[0],
-                                        endpoint,
-                                        channel,
-                                        time_offset = 0))
+            waveforms.append(Waveform(timestamp_address[0],
+                                      16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
+                                      # 'time_to_nsec' value from the
+                                      # 'metadata' TTree is fixed
+                                      # meta_data[1],   # TimeStep_ns
+                                      np.array(adcs_address),
+                                      meta_data[0],
+                                      record_address[0],
+                                      endpoint,
+                                      channel,
+                                      time_offset=0))
     else:
 
         raw_time_offsets = []
 
         _, daq_timestamp_branch_exact_name = find_TBranch_in_ROOT_TTree(bulk_data_tree,
-                                                                                    'daq_timestamp',
-                                                                                    'pyroot')
-        daq_timestamp_address = array.array(ROOT_to_array_type_code('l'), 
+                                                                        'daq_timestamp',
+                                                                        'pyroot')
+        daq_timestamp_address = array.array(ROOT_to_array_type_code('l'),
                                             [0])
 
-        bulk_data_tree.SetBranchAddress(daq_timestamp_branch_exact_name, 
+        bulk_data_tree.SetBranchAddress(daq_timestamp_branch_exact_name,
                                         daq_timestamp_address)
 
         for idx in idcs_to_retrieve_:
@@ -674,30 +686,32 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot( idcs_to_retrieve : np.nd
 
             endpoint, channel = split_endpoint_and_channel(channel_address[0])
 
-            waveforms.append(Waveform(  timestamp_address[0],
-                                        16.,    # TimeStep_ns
-                                        # meta_data[1],
-                                        np.array(adcs_address),
-                                        meta_data[0],
-                                        record_address[0],
-                                        endpoint,
-                                        channel,
-                                        time_offset = 0))
-            
-            raw_time_offsets.append(int(timestamp_address[0]) - int(daq_timestamp_address[0]))
+            waveforms.append(Waveform(timestamp_address[0],
+                                      16.,    # TimeStep_ns
+                                      # meta_data[1],
+                                      np.array(adcs_address),
+                                      meta_data[0],
+                                      record_address[0],
+                                      endpoint,
+                                      channel,
+                                      time_offset=0))
+
+            raw_time_offsets.append(
+                int(timestamp_address[0]) - int(daq_timestamp_address[0]))
 
         time_offsets = wun.reference_to_minimum(raw_time_offsets)
 
         for i in range(len(waveforms)):
             waveforms[i]._WaveformAdcs__set_time_offset(time_offsets[i])
 
-    bulk_data_tree.ResetBranchAddresses()   # This is necessary to avoid a segmentation fault. 
-                                            # For more information, check 
-                                            # https://root.cern/doc/master/classTTree.html
+    # This is necessary to avoid a segmentation fault.
+    bulk_data_tree.ResetBranchAddresses()
+    #  For more information, check
+    # https://root.cern/doc/master/classTTree.html
     return waveforms
 
-def __read_metadata_from_ROOT_file_using_uproot(meta_data_tree : uproot.TTree) -> Tuple[Union[int, float]]:
 
+def __read_metadata_from_ROOT_file_using_uproot(meta_data_tree: uproot.TTree) -> Tuple[Union[int, float]]:
     """
     This is a helper function which must only be called by 
     the __build_waveforms_list_from_ROOT_file_using_uproot()
@@ -705,7 +719,7 @@ def __read_metadata_from_ROOT_file_using_uproot(meta_data_tree : uproot.TTree) -
     reading the data in the meta-data tree to this function.
     This function reads and packs such data into a tuple,
     which is the returned object.
-    
+
     Parameters
     ----------
     meta_data_tree : uproot.TTree
@@ -721,21 +735,21 @@ def __read_metadata_from_ROOT_file_using_uproot(meta_data_tree : uproot.TTree) -
         tick) of the data in the ROOT file.
     """
 
-    run_branch, _ = find_TBranch_in_ROOT_TTree( meta_data_tree,
-                                                'run',
-                                                'uproot')
-    
-    ticks_to_nsec_branch, _ = find_TBranch_in_ROOT_TTree(   meta_data_tree,
-                                                            'ticks_to_nsec',
-                                                            'uproot')
+    run_branch, _ = find_TBranch_in_ROOT_TTree(meta_data_tree,
+                                               'run',
+                                               'uproot')
+
+    ticks_to_nsec_branch, _ = find_TBranch_in_ROOT_TTree(meta_data_tree,
+                                                         'ticks_to_nsec',
+                                                         'uproot')
     run = int(run_branch.array()[0])
 
     ticks_to_nsec = float(ticks_to_nsec_branch.array()[0])
 
     return (run, ticks_to_nsec,)
 
-def __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree : ROOT.TTree) -> Tuple[Union[int, float]]:
 
+def __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree: ROOT.TTree) -> Tuple[Union[int, float]]:
     """
     This is a helper function which must only be called by 
     the __build_waveforms_list_from_ROOT_file_using_pyroot() 
@@ -743,7 +757,7 @@ def __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree : ROOT.TTree) -> 
     reading the data in the meta-data tree to this function.
     This function reads and packs such data into a tuple,
     which is the returned object.
-    
+
     Parameters
     ----------
     meta_data_tree : ROOT.TTree
@@ -759,27 +773,27 @@ def __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree : ROOT.TTree) -> 
         tick) of the data in the ROOT file.
     """
 
-    _, run_branch_exact_name = find_TBranch_in_ROOT_TTree(  meta_data_tree,
-                                                            'run',
-                                                            'pyroot')
-    
+    _, run_branch_exact_name = find_TBranch_in_ROOT_TTree(meta_data_tree,
+                                                          'run',
+                                                          'pyroot')
+
     _, ticks_to_nsec_branch_exact_name = find_TBranch_in_ROOT_TTree(meta_data_tree,
                                                                     'ticks_to_nsec',
                                                                     'pyroot')
-    run_address = array.array(  ROOT_to_array_type_code('i'),
-                                [0])
-    
+    run_address = array.array(ROOT_to_array_type_code('i'),
+                              [0])
+
     ticks_to_nsec_address = array.array(ROOT_to_array_type_code('F'),
                                         [0])
-    
+
     meta_data_tree.SetBranchAddress(run_branch_exact_name,
                                     run_address)
-    
+
     meta_data_tree.SetBranchAddress(ticks_to_nsec_branch_exact_name,
                                     ticks_to_nsec_address)
 
     meta_data_tree.GetEntry(0)
-    
+
     run = int(run_address[0])
 
     ticks_to_nsec = float(ticks_to_nsec_address[0])
@@ -788,8 +802,8 @@ def __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree : ROOT.TTree) -> 
 
     return (run, ticks_to_nsec,)
 
-def filepath_is_ROOT_file_candidate(filepath : str) -> bool:
 
+def filepath_is_ROOT_file_candidate(filepath: str) -> bool:
     """
     This function returns True if the given file path points
     to a file which exists and whose extension is '.root'. It
@@ -805,8 +819,9 @@ def filepath_is_ROOT_file_candidate(filepath : str) -> bool:
     bool
     """
 
-    if os.path.isfile(filepath):
-        if filepath.endswith('.root'):
-            return True
-    
+    path = Path(filepath)
+
+    if path.is_file() and path.suffix == '.root':
+        return True
+
     return False
