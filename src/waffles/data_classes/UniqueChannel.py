@@ -1,4 +1,4 @@
-class UniqueChannel:
+class unique_channel:
 
     """
     This class implements a unique channel, in the sense
@@ -16,34 +16,31 @@ class UniqueChannel:
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self,  endpoint,
-                        channel):
-        
+    def __init__(self, endpoint, channel):
         """
         UniqueChannel class initializer
-        
+
         Parameters
         ----------
         endpoint : int
         channel : bool
         """
 
-        ## Shall we add type checks here?
+        # Shall we add type checks here?
 
         self.__endpoint = endpoint
         self.__channel = channel
 
-    #Getters
+    # Getters
     @property
-    def Endpoint(self):
+    def endpoint(self):
         return self.__endpoint
-    
-    @property
-    def Channel(self):
-        return self.__channel
-    
-    def __repr__(self) -> str:
 
+    @property
+    def channel(self):
+        return self.__channel
+
+    def __repr__(self) -> str:
         """
         Returns a string representation of the UniqueChannel
         object. P.e. for a UniqueChannel object with endpoint
@@ -51,4 +48,4 @@ class UniqueChannel:
         "105: 3".
         """
 
-        return f"{self.Endpoint}-{self.Channel}"
+        return f"{self.endpoint}-{self.channel}"

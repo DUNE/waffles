@@ -4,7 +4,8 @@ from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.Map import Map
 from waffles.Exceptions import generate_exception_message
 
-class ChannelMap(Map):
+
+class channel_map(Map):
 
     """
     This class implements a Map whose type is UniqueChannel.
@@ -15,19 +16,19 @@ class ChannelMap(Map):
     Columns : int (inherited from Map)
     Type : type (inherited from Map)
     Data : list of lists (inherited from Map)
-    
+
     Methods
     ----------
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self,  rows : int,
-                        columns : int,
-                        data : List[List[UniqueChannel]]):
-        
+    def __init__(
+            self, rows: int,
+            columns: int,
+            data: List[List[UniqueChannel]]):
         """
-        ChannelMap class initializer
-        
+        channel_map class initializer
+
         Parameters
         ----------
         rows : int
@@ -35,46 +36,49 @@ class ChannelMap(Map):
         columns : int
             It must be a positive integer
         data : list of lists of UniqueChannel objects
-            The length of data must be equal to rows 
-            and the length of each one of its lists 
+            The length of data must be equal to rows
+            and the length of each one of its lists
             must be equal to columns.
         """
 
-        ## Shall we add type checks here?
+        # Shall we add type checks here?
 
         if data is None:
-            raise Exception(generate_exception_message( 1,
-                                                        'ChannelMap.__init__()',
-                                                        "The data parameter must be defined."))
-        # The rest of the checks are performed 
+            raise Exception(generate_exception_message(
+                1,
+                'channel_map.__init__()',
+                "The data parameter must be defined."))
+        # The rest of the checks are performed
         # by the base class initializer
 
-        super().__init__(   rows,
-                            columns,
-                            UniqueChannel,                               
-                            data = data)
-        
-    def find_channel(self,  unique_channel : UniqueChannel) -> Tuple[bool, Tuple[int, int]]:
-        
+        super().__init__(
+            rows,
+            columns,
+            UniqueChannel,
+            data=data)
+
+    def find_channel(
+        self, unique_channel: UniqueChannel
+    ) -> Tuple[bool, Tuple[int, int]]:
         """
-        This method gets an UniqueChannel object 
+        This method gets an UniqueChannel object
         and returns a tuple with a boolean and a
-        tuple with two integers. If the given 
-        channel is spotted in this ChannelMap object,
+        tuple with two integers. If the given
+        channel is spotted in this channel_map object,
         the boolean is True and the tuple contains
         the position of the channel in the map,
         i.e. the iterator values i, j so that
         self.Data[i][j] is an UniqueChannel object
         with the same endpoint and channel values as
-        the given unique_channel. If the given 
-        channel is not found, the boolean is False 
+        the given unique_channel. If the given
+        channel is not found, the boolean is False
         and the tuple is (-1, -1).
-        
+
         Parameters
         ----------
         unique_channel : UniqueChannel
             Unique channel to look for within this
-            ChannelMap object
+            channel_map object
 
         Returns
         -------
@@ -87,5 +91,5 @@ class ChannelMap(Map):
                 if aux.Endpoint == unique_channel.Endpoint:
                     if aux.Channel == unique_channel.Channel:
                         return (True, (i, j))
-                
+
         return (False, (-1, -1))
