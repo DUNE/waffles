@@ -26,7 +26,7 @@ class PeakFindingWfAna(basic_wf_ana):
     AmpLl (resp. AmpUl) : int (inherited from BasicWfAna)
     PeakFindingKwargs : dict
         Dictionary of keyword arguments which are passed to
-        scipy.signal.find_peaks(waveform.Adcs, **PeakFindingKwargs)
+        scipy.signal.find_peaks(waveform.plot_waveform_adcs, **PeakFindingKwargs)
         by the analyse() method.
     Result : WfAnaResult (inherited from WfAna)
 
@@ -79,31 +79,31 @@ class PeakFindingWfAna(basic_wf_ana):
             - It searches for peaks over the inverted waveform,
             by calling
 
-                scipy.signal.find_peaks(-1.*waveform.Adcs,
+                scipy.signal.find_peaks(-1.*waveform.plot_waveform_adcs,
                                         **self.__peak_finding_kwargs)
 
             - It calculates the integral of
-            waveform.Adcs[IntLl - waveform.TimeOffset :
-            IntUl + 1 - waveform.TimeOffset].
+            waveform.plot_waveform_adcs[IntLl - waveform.time_offset :
+            IntUl + 1 - waveform.time_offset].
             To do so, it assumes that the temporal resolution of
             the waveform is constant and approximates its integral
             to waveform.
-            TimeStep_ns*np.sum( -b + waveform.Adcs[IntLl -
-            waveform.TimeOffset : IntUl + 1 - waveform.TimeOffset]),
+            TimeStep_ns*np.sum( -b + waveform.plot_waveform_adcs[IntLl -
+            waveform.time_offset : IntUl + 1 - waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
-            waveform.Adcs[AmpLl - waveform.TimeOffset :
-            AmpUl + 1 - waveform.TimeOffset].
+            waveform.plot_waveform_adcs[AmpLl - waveform.time_offset :
+            AmpUl + 1 - waveform.time_offset].
 
         Note that for these computations to be well-defined, it is
         assumed that
 
-            - BaselineLimits[0] - wf.TimeOffset >= 0
-            - BaselineLimits[-1] - wf.TimeOffset <= len(wf.Adcs)
-            - IntLl - wf.TimeOffset >= 0
-            - IntUl - wf.TimeOffset < len(wf.Adcs)
-            - AmpLl - wf.TimeOffset >= 0
-            - AmpUl - wf.TimeOffset < len(wf.Adcs)
+            - BaselineLimits[0] - wf.time_offset >= 0
+            - BaselineLimits[-1] - wf.time_offset <= len(wf.plot_waveform_adcs)
+            - IntLl - wf.time_offset >= 0
+            - IntUl - wf.time_offset < len(wf.plot_waveform_adcs)
+            - AmpLl - wf.time_offset >= 0
+            - AmpUl - wf.time_offset < len(wf.plot_waveform_adcs)
 
         For the sake of efficiency, these checks are not done.
         It is the caller's responsibility to ensure that these
@@ -131,7 +131,7 @@ class PeakFindingWfAna(basic_wf_ana):
         # and amplitude computations
 
         peaks, properties = spsi.find_peaks(
-            -1.*waveform.Adcs,
+            -1.*waveform.plot_waveform_adcs,
             # Assuming that the waveform is
             **self.__peak_finding_kwargs)
         # inverted. We should find another

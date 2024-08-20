@@ -26,8 +26,8 @@ class basic_wf_ana(wf_ana):
         must meet BaselineLimits[i] < BaselineLimits[i + 1].
         Given a WaveformAdcs object, wf, the points which
         are used for baseline calculation are
-        wf.Adcs[BaselineLimits[2*i] - wf.TimeOffset :
-        BaselineLimits[(2*i) + 1] - wf.TimeOffset],
+        wf.plot_waveform_adcs[BaselineLimits[2*i] - wf.time_offset :
+        BaselineLimits[(2*i) + 1] - wf.time_offset],
         with i = 0,1,...,(len(BaselineLimits)/2) - 1. The
         upper limits are exclusive.
     IntLl (resp. IntUl) : int
@@ -37,7 +37,7 @@ class basic_wf_ana(wf_ana):
         window. IntLl must be smaller than IntUl. These
         limits are inclusive. I.e. the points which are
         used for the integral calculation are
-        wf.Adcs[IntLl - wf.TimeOffset : IntUl + 1 - wf.TimeOffset].
+        wf.plot_waveform_adcs[IntLl - wf.time_offset : IntUl + 1 - wf.time_offset].
     AmpLl (resp. AmpUl) : int
         Stands for amplitude lower (resp. upper) limit.
         Iterator value for the first (resp. last) point
@@ -45,7 +45,7 @@ class basic_wf_ana(wf_ana):
         the amplitude of the waveform. AmpLl must be smaller
         than AmpUl. These limits are inclusive. I.e., the
         points which are used for the amplitude calculation
-        are wf.Adcs[AmpLl - wf.TimeOffset : AmpUl + 1 - wf.TimeOffset].
+        are wf.plot_waveform_adcs[AmpLl - wf.time_offset : AmpUl + 1 - wf.time_offset].
     Result : WfAnaResult (inherited from WfAna)
 
     Methods
@@ -111,26 +111,26 @@ class basic_wf_ana(wf_ana):
             that are considered, according to the documentation of
             the self.__baseline_limits attribute.
             - It calculates the integral of
-            waveform.Adcs[IntLl - waveform.TimeOffset :
-            IntUl + 1 - waveform.TimeOffset].
+            waveform.plot_waveform_adcs[IntLl - waveform.time_offset :
+            IntUl + 1 - waveform.time_offset].
             To do so, it assumes that the temporal resolution of
             the waveform is constant and approximates its integral
-            to waveform.TimeStep_ns*np.sum( -b + waveform.Adcs[IntLl -
-            waveform.TimeOffset : IntUl + 1 - waveform.TimeOffset]),
+            to waveform.TimeStep_ns*np.sum( -b + waveform.plot_waveform_adcs[IntLl -
+            waveform.time_offset : IntUl + 1 - waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
-            waveform.Adcs[AmpLl - waveform.TimeOffset : AmpUl + 1 -
-            waveform.TimeOffset].
+            waveform.plot_waveform_adcs[AmpLl - waveform.time_offset : AmpUl + 1 -
+            waveform.time_offset].
 
         Note that for these computations to be well-defined, it is
         assumed that
 
-            - BaselineLimits[0] - wf.TimeOffset >= 0
-            - BaselineLimits[-1] - wf.TimeOffset <= len(wf.Adcs)
-            - IntLl - wf.TimeOffset >= 0
-            - IntUl - wf.TimeOffset < len(wf.Adcs)
-            - AmpLl - wf.TimeOffset >= 0
-            - AmpUl - wf.TimeOffset < len(wf.Adcs)
+            - BaselineLimits[0] - wf.time_offset >= 0
+            - BaselineLimits[-1] - wf.time_offset <= len(wf.plot_waveform_adcs)
+            - IntLl - wf.time_offset >= 0
+            - IntUl - wf.time_offset < len(wf.plot_waveform_adcs)
+            - AmpLl - wf.time_offset >= 0
+            - AmpUl - wf.time_offset < len(wf.plot_waveform_adcs)
 
         For the sake of efficiency, these checks are not done.
         It is the caller's responsibility to ensure that these
@@ -147,9 +147,9 @@ class basic_wf_ana(wf_ana):
         """
 
         split_baseline_samples = [
-            waveform.Adcs[
-                self.__baseline_limits[2 * i] - waveform.TimeOffset:
-                self.__baseline_limits[(2 * i) + 1] - waveform.TimeOffset
+            waveform.plot_waveform_adcs[
+                self.__baseline_limits[2 * i] - waveform.time_offset:
+                self.__baseline_limits[(2 * i) + 1] - waveform.time_offset
             ]
             for i in range(len(self.__baseline_limits) // 2)
         ]
@@ -170,21 +170,21 @@ class basic_wf_ana(wf_ana):
             integral=waveform.TimeStep_ns*(((
                 self.__int_ul - self.__int_ll + 1)*baseline) - np.sum(
                 # Assuming that the waveform is
-                waveform.Adcs[
-                    self.__int_ll - waveform.TimeOffset:
-                        self.__int_ul + 1 - waveform.TimeOffset])),
+                waveform.plot_waveform_adcs[
+                    self.__int_ll - waveform.time_offset:
+                        self.__int_ul + 1 - waveform.time_offset])),
             # inverted and using linearity
             # to avoid some multiplications
             amplitude=(
                 np.max(
-                    waveform.Adcs[
-                        self.__amp_ll - waveform.TimeOffset:
-                        self.__amp_ul + 1 - waveform.TimeOffset
+                    waveform.plot_waveform_adcs[
+                        self.__amp_ll - waveform.time_offset:
+                        self.__amp_ul + 1 - waveform.time_offset
                     ]
                 ) - np.min(
-                    waveform.Adcs[
-                        self.__amp_ll - waveform.TimeOffset:
-                        self.__amp_ul + 1 - waveform.TimeOffset
+                    waveform.plot_waveform_adcs[
+                        self.__amp_ll - waveform.time_offset:
+                        self.__amp_ul + 1 - waveform.time_offset
                     ]
                 )
             )

@@ -15,7 +15,7 @@ except ImportError:
 
 from typing import Union, List, Tuple, Optional
 
-from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.Waveform import waveform
 import waffles.utils.numerical_utils as wun
 from waffles.Exceptions import generate_exception_message
 
@@ -371,18 +371,18 @@ def split_endpoint_and_channel(input: int) -> Tuple[int, int]:
     return int(str(input)[0:3]), int(str(input)[3:5])
 
 
-def __build_waveforms_list_from_ROOT_file_using_uproot(
+def __build_waveforms_list_from_root_file_using_uproot(
         idcs_to_retrieve: np.ndarray,
         bulk_data_tree: uproot.TTree,
         meta_data_tree: uproot.TTree,
         set_offset_wrt_daq_window: bool = False,
         first_wf_index: int = 0,
-        verbose: bool = True) -> List[Waveform]:
+        verbose: bool = True) -> List[waveform]:
     """
     This is a helper function which must only be called by the
     WaveformSet_from_ROOT_file() function. This function reads
     a subset of waveforms from the given uproot.TTree and appends
-    them one by one to a list of Waveform objects, which is
+    them one by one to a list of waveform objects, which is
     finally returned by this function. When the uproot library
     is specified, WaveformSet_from_ROOT_file() delegates such
     task to this helper function.
@@ -403,7 +403,7 @@ def __build_waveforms_list_from_ROOT_file_using_uproot(
     set_offset_wrt_daq_window : bool
         If True, then the bulk data tree must also have a
         branch whose name starts with 'daq_timestamp'. In
-        this case, then the TimeOffset attribute of each
+        this case, then the time_offset attribute of each
         waveform is set as the difference between its
         value for the 'timestamp' branch and the value
         for the 'daq_timestamp' branch, in such order,
@@ -422,7 +422,7 @@ def __build_waveforms_list_from_ROOT_file_using_uproot(
 
     Returns
     ----------
-    waveforms : list of Waveform
+    waveforms : list of waveform
     """
 
     clustered_idcs_to_retrieve = wun.cluster_integers_by_contiguity(
@@ -522,7 +522,7 @@ def __build_waveforms_list_from_ROOT_file_using_uproot(
                 endpoint, channel = split_endpoint_and_channel(
                     current_channel_array[i])
 
-                waveforms.append(Waveform(
+                waveforms.append(waveform(
                     current_timestamp_array[i],
                     16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
                     # 'time_to_nsec' value from the
@@ -574,7 +574,7 @@ def __build_waveforms_list_from_ROOT_file_using_uproot(
                 endpoint, channel = split_endpoint_and_channel(
                     current_channel_array[i])
 
-                waveforms.append(Waveform(
+                waveforms.append(waveform(
                     current_timestamp_array[i],
                     16.,    # TimeStep_ns
                     # meta_data[1],
@@ -603,12 +603,12 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
         set_offset_wrt_daq_window: bool = False,
         first_wf_index: int = 0,
         subsample: int = 1,
-        verbose: bool = True) -> List[Waveform]:
+        verbose: bool = True) -> List[waveform]:
     """
     This is a helper function which must only be called by
     the WaveformSet_from_ROOT_file() function. This function
     reads a subset of waveforms from the given ROOT.TTree
-    and appends them one by one to a list of Waveform objects,
+    and appends them one by one to a list of waveform objects,
     which is finally returned by this function. When the
     pyroot library is specified, WaveformSet_from_ROOT_file()
     delegates such task to this helper function.
@@ -632,7 +632,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
     set_offset_wrt_daq_window : bool
         If True, then the bulk data tree must also have a
         branch whose name starts with 'daq_timestamp'. In
-        this case, then the TimeOffset attribute of each
+        this case, then the time_offset attribute of each
         waveform is set as the difference between its
         value for the 'timestamp' branch and the value
         for the 'daq_timestamp' branch, in such order,
@@ -661,7 +661,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
 
     Returns
     ----------
-    waveforms : list of Waveform
+    waveforms : list of waveform
     """
 
     meta_data = __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree)
@@ -727,7 +727,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
 
             endpoint, channel = split_endpoint_and_channel(channel_address[0])
 
-            waveforms.append(Waveform(
+            waveforms.append(waveform(
                 timestamp_address[0],
                 16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
                 # 'time_to_nsec' value from the
@@ -759,7 +759,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
 
             endpoint, channel = split_endpoint_and_channel(channel_address[0])
 
-            waveforms.append(Waveform(
+            waveforms.append(waveform(
                 timestamp_address[0],
                 16.,
                 # TimeStep_ns

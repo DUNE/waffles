@@ -6,9 +6,9 @@ class unique_channel:
 
     Attributes
     ----------
-    Endpoint : int
+    endpoint : int
         An endpoint value
-    Channel : int
+    channel : int
         A channel value
 
     Methods

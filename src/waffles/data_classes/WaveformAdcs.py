@@ -15,7 +15,7 @@ from waffles.Exceptions import generate_exception_message
 class waveform_adcs:
 
     # It is useful to have such a class so that tools which
-    # only need the Adcs information
+    # only need the plot_waveform_adcs information
     # can be run even in situations where a waveform does not
     # have a defined timestamp,
     # endpoint or any other attribute which could be used to
@@ -27,15 +27,15 @@ class waveform_adcs:
     # is not defined, i.e. it makes no sense.
 
     """
-    This class implements the Adcs array of a waveform.
+    This class implements the plot_waveform_adcs array of a waveform.
 
     Attributes
     ----------
     TimeStep_ns : float
         The time step (in nanoseconds) for this waveform
-    Adcs : unidimensional numpy array of integers
+    plot_waveform_adcs : unidimensional numpy array of integers
         The readout for this waveform, in # of ADCs
-    TimeOffset : int
+    time_offset : int
         A time offset, in units of TimeStep_ns (i.e.
         time ticks) which will be used as a relative
         alignment among different waveform_adcs
@@ -48,7 +48,7 @@ class waveform_adcs:
     ----------
     ## Add the list of methods and a summary for each one here
     """
-    # The restrictions over the TimeOffset attribute
+    # The restrictions over the time_offset attribute
     # ensure that there are always at least two points
     # left in the [0, 1, ..., len(self.__adcs) - 1] range,
     # so that baselines, integrals and amplitudes can be
@@ -95,7 +95,7 @@ class waveform_adcs:
         return self.__adcs
 
     @property
-    def timeOffset(self):
+    def time_offset(self):
         return self.__time_offset
 
     @property
@@ -117,12 +117,12 @@ class waveform_adcs:
     def __set_time_offset(self, input: float) -> None:
         """
         This method is not intended for user usage. It is
-        a setter for the TimeOffset attribute.
+        a setter for the time_offset attribute.
 
         Parameters
         ----------
         input : float
-            The value which will be assigned to the TimeOffset
+            The value which will be assigned to the time_offset
             attribute. It must be semipositive and smaller than
             len(self.__adcs)-1.
 

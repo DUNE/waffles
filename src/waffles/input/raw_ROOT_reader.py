@@ -17,7 +17,7 @@ except ImportError:
 
 import waffles.utils.check_utils as wuc
 import waffles.input.input_utils as wii
-from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.WaveformSet import waveform_set
 from waffles.Exceptions import generate_exception_message
 
 
@@ -34,11 +34,11 @@ def waveform_set_from_root_files(
     stop_fraction: float = 1.0,
     subsample: int = 1,
     verbose: bool = True
-) -> WaveformSet:
+) -> waveform_set:
     """
-    Initializes a WaveformSet object from the waveforms stored in a list
-    of ROOT files. Validates filepaths, reads them into a WaveformSet,
-    and merges all into a single WaveformSet object.
+    Initializes a waveform_set object from the waveforms stored in a list
+    of ROOT files. Validates filepaths, reads them into a waveform_set,
+    and merges all into a single waveform_set object.
 
     Parameters:
     - library: The ROOT processing library ('uproot' or 'pyroot').
@@ -55,7 +55,7 @@ def waveform_set_from_root_files(
     - verbose: Whether to print verbose output.
 
     Returns:
-    - A WaveformSet object containing the waveforms from the ROOT files.
+    - A waveform_set object containing the waveforms from the ROOT files.
     """
 
     if folderpath:
@@ -146,9 +146,9 @@ def waveform_set_from_root_file(
     stop_fraction: float = 1.0,
     subsample: int = 1,
     verbose: bool = True
-) -> WaveformSet:
+) -> waveform_set:
     """
-    Initializes a WaveformSet object from the waveforms stored in a ROOT file.
+    Initializes a waveform_set object from the waveforms stored in a ROOT file.
 
     Parameters:
     - filepath: The path to the ROOT file.
@@ -164,7 +164,7 @@ def waveform_set_from_root_file(
     - verbose: Whether to print verbose output.
 
     Returns:
-    - A WaveformSet object containing the waveforms from the ROOT file.
+    - A waveform_set object containing the waveforms from the ROOT file.
     """
 
     if not wuc.fraction_is_well_formed(start_fraction, stop_fraction):
@@ -229,21 +229,21 @@ def waveform_set_from_root_file(
         )
 
     if library == 'uproot':
-        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_uproot(
+        waveforms = wii.__build_waveforms_list_from_root_file_using_uproot(
             selected_indices, bulk_data_tree, meta_data_tree,
             set_offset_wrt_daq_window=set_offset_wrt_daq_window,
             first_wf_index=wf_start, verbose=verbose
         )
     else:
-        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_pyroot(
+        waveforms = wii.__build_waveforms_list_from_root_file_using_pyroot(
             selected_indices, bulk_data_tree, meta_data_tree,
             set_offset_wrt_daq_window=set_offset_wrt_daq_window,
             first_wf_index=wf_start, subsample=subsample, verbose=verbose
         )
 
     if truncate_wfs_to_minimum:
-        min_length = min(len(wf.Adcs) for wf in waveforms)
+        min_length = min(len(wf.adcs) for wf in waveforms)
         for wf in waveforms:
-            wf._WaveformAdcs__truncate_adcs(min_length)
+            wf._waveform_adcs__truncate_adcs(min_length)
 
-    return WaveformSet(*waveforms)
+    return waveform_set(*waveforms)

@@ -12,10 +12,10 @@ class waveform(waveform_adcs):
 
     Attributes
     ----------
-    Timestamp : int
+    timestamp : int
         The timestamp value for this waveform
     TimeStep_ns : float (inherited from waveform_adcs)
-    Adcs : unidimensional numpy array of integers
+    plot_waveform_adcs : unidimensional numpy array of integers
     (inherited from waveform_adcs)
     RunNumber : int
         Number of the run from which this waveform was
@@ -23,12 +23,12 @@ class waveform(waveform_adcs):
     RecordNumber : int
         Number of the record within which this waveform
         was acquired
-    Endpoint : int
-        Endpoint number from which this waveform was
+    endpoint : int
+        endpoint number from which this waveform was
         acquired
-    Channel : int
-        Channel number for this waveform
-    TimeOffset : int (inherited from waveform_adcs)
+    channel : int
+        channel number for this waveform
+    time_offset : int (inherited from waveform_adcs)
     Analyses : OrderedDict of WfAna objects (inherited from waveform_adcs)
 
     Methods
@@ -105,8 +105,8 @@ class waveform(waveform_adcs):
         return self.__channel
 
 #   #Setters
-#   @Timestamp.setter
-#   def Timestamp(self, input):
+#   @timestamp.setter
+#   def timestamp(self, input):
 #       self.__timestamp = input
 #       return
 

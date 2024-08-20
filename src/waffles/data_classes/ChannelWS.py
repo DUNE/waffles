@@ -8,26 +8,26 @@ from waffles.Exceptions import generate_exception_message
 class channel_ws(waveform_set):
 
     """
-    Stands for Channel Waveform Set. This class inherits
+    Stands for channel Waveform Set. This class inherits
     from the WaveformSet class. It implements a set of
-    Waveform objects for which its Endpoint attribute is
-    the same accross the whole set, and their Channel
+    Waveform objects for which its endpoint attribute is
+    the same accross the whole set, and their channel
     attribute is also homogeneous.
 
     Attributes
     ----------
-    Waveforms : list of Waveform objects (inherited from WaveformSet)
+    waveforms : list of Waveform objects (inherited from WaveformSet)
     PointsPerWf : int (inherited from WaveformSet)
-    Runs : set of int (inherited from WaveformSet)
+    runs : set of int (inherited from WaveformSet)
     RecordNumbers : dictionary of sets (inherited from WaveformSet)
     AvailableChannels : dictionary of dictionaries of sets
                         (inherited from WaveformSet)
     MeanAdcs : WaveformAdcs (inherited from WaveformSet)
     MeanAdcsIdcs : tuple of int (inherited from WaveformSet)
-    Endpoint : int
-        Endpoint number for this set of waveforms
-    Channel : int
-        Channel number for this set of waveforms
+    endpoint : int
+        endpoint number for this set of waveforms
+    channel : int
+        channel number for this set of waveforms
     CalibHisto : CalibrationHistogram
         A calibration histogram for this set of waveforms.
         It is not computed by default. I.e. if
@@ -53,7 +53,7 @@ class channel_ws(waveform_set):
         ----------
         waveforms : unpacked list of Waveform objects
             The waveforms that will be added to the set.
-            Their Endpoint and Channel attributes must be
+            Their endpoint and channel attributes must be
             homogeneous. Otherwise, an exception will be
             raised.
         compute_calib_histo : bool
@@ -157,10 +157,10 @@ class channel_ws(waveform_set):
         """
         This method checks the information returned by
         self.get_run_collapsed_available_channels(), to ensure that
-        the Endpoint and the Channel attributes of every Waveform
+        the endpoint and the channel attributes of every Waveform
         object within this set is homogeneous. If it is not, then
-        it raises an exception. If they are, then the Endpoint and
-        Channel attributes of this ChannelWS object are updated
+        it raises an exception. If they are, then the endpoint and
+        channel attributes of this ChannelWS object are updated
         accordingly.
 
         Returns
@@ -175,7 +175,7 @@ class channel_ws(waveform_set):
                 1,
                 'ChannelWS.update_endpoint_and_channel()',
                 'Every Waveform object within this set must'
-                ' have the same Endpoint attribute.'))
+                ' have the same endpoint attribute.'))
         else:
             endpoint = next(iter(aux.keys()))
             if len(aux[endpoint]) != 1:
@@ -183,7 +183,7 @@ class channel_ws(waveform_set):
                     2,
                     'ChannelWS.update_endpoint_and_channel()',
                     'Every Waveform object within this set must'
-                    ' have the same Channel attribute.'))
+                    ' have the same channel attribute.'))
             else:
                 channel = next(iter(aux[endpoint]))
 

@@ -1,44 +1,41 @@
 from typing import List
 
-from waffles.data_classes.UniqueChannel import UniqueChannel
-from waffles.data_classes.ChannelMap import ChannelMap
+from waffles.data_classes.UniqueChannel import unique_channel
+from waffles.data_classes.ChannelMap import channel_map
 
 
-class APAMap(ChannelMap):
+class APAMap(channel_map):
 
     """
     This class implements a channel map for an APA. I.e.
-    it is a ChannelMap whose Rows (resp. columns) attribute
+    it is a ChannelMap whose rows (resp. columns) attribute
     is fixed to 10 (resp. 4).
 
     Attributes
     ----------
-    Rows : int (inherited from ChannelMap)
+    rows : int (inherited from ChannelMap)
     Columns : int (inherited from ChannelMap)
     Type : type (inherited from ChannelMap)
-    Data : list of lists (inherited from ChannelMap)
+    data : list of lists (inherited from ChannelMap)
 
     Methods
     ----------
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self, data: List[List[UniqueChannel]]):
-
+    def __init__(self, data: List[List[unique_channel]]):
         """
         APAMap class initializer
 
         Parameters
         ----------
         data : list of lists of UniqueChannel objects
-            The length of data must be equal to 10
-            and the length of each one of its lists
-            must be equal to 4.
+        The length of data must be equal to 10
+        and the length of each one of its lists
+        must be equal to 4.
         """
 
         # All of the checks are performed
         # by the base class initializer
 
-        super().__init__(   10,
-                            4,
-                            data)
+        super().__init__(10, 4, data)

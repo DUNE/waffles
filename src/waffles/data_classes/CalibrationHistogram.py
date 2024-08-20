@@ -210,11 +210,11 @@ class calibration_histogram(tracked_histogram):
                 "The 'domain' parameter must be a 2x1 numpy array."))
 
         samples = [
-            waveform_set.Waveforms[idx].get_analysis(
+            waveform_set.waveforms[idx].get_analysis(
                 analysis_label).Result[variable]
             for idx in range(
                 # Trying to grab the WfAna object
-                len(waveform_set.Waveforms))]
+                len(waveform_set.waveforms))]
         # waveform by waveform using
         # WaveformAdcs.get_analysis()
         # might be slow. Find a different

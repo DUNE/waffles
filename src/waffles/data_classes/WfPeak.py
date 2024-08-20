@@ -7,14 +7,14 @@ class wf_peak:
 
     """
     Stands for Waveform Peak. This class implements a
-    peak which has been spotted in the Adcs attribute
+    peak which has been spotted in the plot_waveform_adcs attribute
     of a certain Waveform object.
 
     Attributes
     ----------
     Position : int
         The iterator value for the point within
-        the waveform Adcs attribute where the
+        the waveform plot_waveform_adcs attribute where the
         peak was spotted
     Baseline : float
         The baseline value which was used for the
@@ -22,7 +22,7 @@ class wf_peak:
     IntLl (resp. IntUl): int
         Stands for integration lower (resp. upper)
         limit. Iterator value for the first (resp.
-        last) point of the waveform Adcs range which
+        last) point of the waveform plot_waveform_adcs range which
         was used to compute this WfPeak Integral
         attribute. IntLl must be smaller than IntUl.
         Both limits are inclusive.

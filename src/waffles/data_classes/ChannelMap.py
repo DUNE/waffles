@@ -1,21 +1,21 @@
 from typing import List, Tuple
 
-from waffles.data_classes.UniqueChannel import UniqueChannel
-from waffles.data_classes.Map import Map
+from waffles.data_classes.UniqueChannel import unique_channel
+from waffles.data_classes.Map import map_
 from waffles.Exceptions import generate_exception_message
 
 
-class channel_map(Map):
+class channel_map(map_):
 
     """
     This class implements a Map whose type is UniqueChannel.
 
     Attributes
     ----------
-    Rows : int (inherited from Map)
-    Columns : int (inherited from Map)
+    rows : int (inherited from Map)
+    columns : int (inherited from Map)
     Type : type (inherited from Map)
-    Data : list of lists (inherited from Map)
+    data : list of lists (inherited from Map)
 
     Methods
     ----------
@@ -25,7 +25,7 @@ class channel_map(Map):
     def __init__(
             self, rows: int,
             columns: int,
-            data: List[List[UniqueChannel]]):
+            data: List[List[unique_channel]]):
         """
         channel_map class initializer
 
@@ -54,11 +54,11 @@ class channel_map(Map):
         super().__init__(
             rows,
             columns,
-            UniqueChannel,
+            unique_channel,
             data=data)
 
     def find_channel(
-        self, unique_channel: UniqueChannel
+        self, unique_channel: unique_channel
     ) -> Tuple[bool, Tuple[int, int]]:
         """
         This method gets an UniqueChannel object
@@ -68,7 +68,7 @@ class channel_map(Map):
         the boolean is True and the tuple contains
         the position of the channel in the map,
         i.e. the iterator values i, j so that
-        self.Data[i][j] is an UniqueChannel object
+        self.data[i][j] is an UniqueChannel object
         with the same endpoint and channel values as
         the given unique_channel. If the given
         channel is not found, the boolean is False
@@ -85,11 +85,11 @@ class channel_map(Map):
         output : tuple of ( bool, tuple of (int, int, ), )
         """
 
-        for i in range(self.Rows):
-            for j in range(self.Columns):
-                aux = self.Data[i][j]
-                if aux.Endpoint == unique_channel.Endpoint:
-                    if aux.Channel == unique_channel.Channel:
+        for i in range(self.rows):
+            for j in range(self.columns):
+                aux = self.data[i][j]
+                if aux.endpoint == unique_channel.endpoint:
+                    if aux.channel == unique_channel.channel:
                         return (True, (i, j))
 
         return (False, (-1, -1))
