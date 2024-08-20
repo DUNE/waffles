@@ -188,12 +188,12 @@ def waveform_set_from_root_file(
     input_file = uproot.open(
         filepath) if library == 'uproot' else ROOT.TFile(filepath)
 
-    meta_data_tree, _ = wii.find_TTree_in_ROOT_TFile(
+    meta_data_tree, _ = wii.find_ttree_in_root_tfile(
         input_file, meta_data_tree_name, library)
-    bulk_data_tree, _ = wii.find_TTree_in_ROOT_TFile(
+    bulk_data_tree, _ = wii.find_ttree_in_root_tfile(
         input_file, bulk_data_tree_name, library)
 
-    is_fullstream_branch, is_fullstream_branch_name = wii.find_TBranch_in_ROOT_TTree(
+    is_fullstream_branch, is_fullstream_branch_name = wii.find_tbranch_in_root_ttree(
         bulk_data_tree, 'is_fullstream', library
     )
 
