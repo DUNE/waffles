@@ -138,31 +138,36 @@ def WaveformSet_from_ROOT_file(filepath: str,
         is_fullstream_array = is_fullstream_branch.array(
             entry_start=wf_start, entry_stop=wf_stop)
     else:
-        is_fullstream_array = wii.get_1d_array_from_pyroot_TBranch(bulk_data_tree, is_fullstream_branch_name,
-                                                                   i_low=wf_start,
-                                                                   i_up=wf_stop,
-                                                                   ROOT_type_code='O')
+        is_fullstream_array = wii.get_1d_array_from_pyroot_TBranch(
+            bulk_data_tree, is_fullstream_branch_name,
+            i_low=wf_start,
+            i_up=wf_stop,
+            ROOT_type_code='O')
 
     aux = np.where(is_fullstream_array)[0] if read_full_streaming_data else np.where(
         np.logical_not(is_fullstream_array))[0]
 
     if len(aux) == 0:
-        raise Exception(generate_exception_message(3,
-                                                   'WaveformSet_from_ROOT_file()',
-                                                   f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
+        raise Exception(generate_exception_message(
+            3,
+            'WaveformSet_from_ROOT_file()',
+            f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
     if library == 'uproot':
-        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_uproot(aux, bulk_data_tree, meta_data_tree,
-                                                                           set_offset_wrt_daq_window=set_offset_wrt_daq_window,
-                                                                           first_wf_index=wf_start,
-                                                                           verbose=verbose)
+        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_uproot(
+            aux, bulk_data_tree, meta_data_tree,
+            set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+            first_wf_index=wf_start,
+            verbose=verbose)
     else:
-        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_pyroot(aux, bulk_data_tree, meta_data_tree,
-                                                                           set_offset_wrt_daq_window=set_offset_wrt_daq_window,
-                                                                           first_wf_index=wf_start,
-                                                                           subsample=subsample,
-                                                                           verbose=verbose)
+        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_pyroot(
+            aux, bulk_data_tree, meta_data_tree,
+            set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+            first_wf_index=wf_start,
+            subsample=subsample,
+            verbose=verbose)
     if truncate_wfs_to_minimum:
-        minimum_length = np.array([len(wf.Adcs) for wf in waveforms]).min()
+        minimum_length = np.array([len(wf.plot_waveform_adcs)
+                                  for wf in waveforms]).min()
         for wf in waveforms:
             wf._WaveformAdcs__truncate_adcs(minimum_length)
 

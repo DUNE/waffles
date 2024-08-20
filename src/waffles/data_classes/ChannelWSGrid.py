@@ -16,10 +16,10 @@ class channel_ws_grid:
 
     Attributes
     ----------
-    ChMap : channel_map
+    ch_map : channel_map
         A channel_map object which is used to physically
         order the channel_ws objects
-    ChWfSets : dict of dict of channel_ws
+    ch_wf_sets : dict of dict of channel_ws
         A dictionary whose keys are endpoint values
         for which there is at least one channel_ws object
         in this channel_ws_grid object. The values of such
@@ -36,9 +36,9 @@ class channel_ws_grid:
         will be a channel_ws object in this attribute
         which comes from such unique channel. Hence,
         one should always handle a KeyError exceptions
-        when trying to subscribe ChWfSets with the endpoint
+        when trying to subscribe ch_wf_sets with the endpoint
         and channel coming from an UniqueChannel object
-        within the ChMap attribute.
+        within the ch_map attribute.
 
     Methods
     ----------
@@ -57,7 +57,7 @@ class channel_ws_grid:
         channel_ws_grid class initializer. This initializer
         takes a waveform_set object as an input, and creates
         a channel_ws_grid object by partitioning the given
-        waveform_set object using the Endpoint and channel
+        waveform_set object using the endpoint and channel
         attributes of the UniqueChannel objects which are
         present in the channel_map object given to the
         'ch_map' input parameter. To do so, this initializer
@@ -116,7 +116,7 @@ class channel_ws_grid:
 
         self.__ch_map = ch_map
 
-        self.__ch_wf_sets = channel_ws_grid.clusterize_WaveformSet(
+        self.__ch_wf_sets = channel_ws_grid.clusterize_waveform_set(
             input_waveformset,
             channel_map=ch_map,
             compute_calib_histo=compute_calib_histo,
@@ -181,7 +181,7 @@ class channel_ws_grid:
         This method is useful to partition the given
         waveform_set object into waveform_set objects
         (actually channel_ws objects, which inherit from
-        the waveform_set class but require the Endpoint
+        the waveform_set class but require the endpoint
         and the channel attribute of its constituent
         Waveform objects to be homogeneous) which are
         subsets of the given waveform_set object, and
@@ -240,19 +240,19 @@ class channel_ws_grid:
         if channel_map is None:
             idcs = {}
 
-            for idx in range(len(waveform_set.Waveforms)):
+            for idx in range(len(waveform_set.waveforms)):
                 try:
-                    aux = idcs[waveform_set.Waveforms[idx].Endpoint]
+                    aux = idcs[waveform_set.waveforms[idx].endpoint]
 
                 except KeyError:
-                    idcs[waveform_set.Waveforms[idx].Endpoint] = {}
-                    aux = idcs[waveform_set.Waveforms[idx].Endpoint]
+                    idcs[waveform_set.waveforms[idx].endpoint] = {}
+                    aux = idcs[waveform_set.waveforms[idx].endpoint]
 
                 try:
-                    aux[waveform_set.Waveforms[idx].channel].append(idx)
+                    aux[waveform_set.waveforms[idx].channel].append(idx)
 
                 except KeyError:
-                    aux[waveform_set.Waveforms[idx].channel] = [idx]
+                    aux[waveform_set.waveforms[idx].channel] = [idx]
 
         else:
             idcs = channel_ws_grid.get_nested_dictionary_template(
@@ -262,15 +262,15 @@ class channel_ws_grid:
             # in this case some of the idcs entries may
             # never be filled not even with a single waveform.
             # We will need to remove those after.
-            for idx in range(len(waveform_set.Waveforms)):
+            for idx in range(len(waveform_set.waveforms)):
                 try:
-                    aux = idcs[waveform_set.Waveforms[idx].Endpoint]
+                    aux = idcs[waveform_set.waveforms[idx].endpoint]
 
                 except KeyError:
                     continue
 
                 try:
-                    aux[waveform_set.Waveforms[idx].channel].append(idx)
+                    aux[waveform_set.waveforms[idx].channel].append(idx)
 
                 except KeyError:
                     continue
@@ -300,7 +300,7 @@ class channel_ws_grid:
 
             for channel in idcs[endpoint].keys():
                 aux = [
-                    waveform_set.Waveforms[idx]
+                    waveform_set.waveforms[idx]
                     for idx in idcs[endpoint][channel]]
 
                 output[endpoint][channel] = channel_ws(
@@ -341,11 +341,11 @@ class channel_ws_grid:
             for j in range(channel_map.columns):
 
                 try:
-                    aux = output[channel_map.data[i][j].Endpoint]
+                    aux = output[channel_map.data[i][j].endpoint]
 
                 except KeyError:
-                    output[channel_map.data[i][j].Endpoint] = {}
-                    aux = output[channel_map.data[i][j].Endpoint]
+                    output[channel_map.data[i][j].endpoint] = {}
+                    aux = output[channel_map.data[i][j].endpoint]
 
                 aux[channel_map.data[i][j].channel] = []
 
@@ -376,12 +376,12 @@ class channel_ws_grid:
 
                 if not self.__ch_map.find_channel(aux)[0]:
                     try:
-                        unique_channels_to_remove[aux.Endpoint].append(
+                        unique_channels_to_remove[aux.endpoint].append(
                             aux.channel)
                         # Keep note of the channel to remove,
                     except KeyError:
                         # but not remove it yet, since we are
-                        unique_channels_to_remove[aux.Endpoint] = [
+                        unique_channels_to_remove[aux.endpoint] = [
                             aux.channel]
                         # iterating over the dictionary keys
 

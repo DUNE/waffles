@@ -1,7 +1,7 @@
-from waffles.data_classes.IODict import IODict
+from waffles.data_classes.IODict import io_dict
 
 
-class ip_dict(IODict):
+class ip_dict(io_dict):
 
     """
     Stands for Input Parameters Dictionary. This class

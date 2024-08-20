@@ -26,7 +26,7 @@ class waveform_set:
     waveforms : list of Waveform objects
         waveforms[i] gives the i-th waveform in the set.
     points_per_wf : int
-        Number of entries for the Adcs attribute of
+        Number of entries for the adcs attribute of
         each Waveform object in this waveform_set object.
     runs : set of int
         It contains the run number of any run for which
@@ -39,7 +39,7 @@ class waveform_set:
         then n belongs to record_numbers.keys(). record_numbers[n]
         is a set of record numbers for run n. If there is at
         least one waveform acquired during run n whose
-        RecordNumber is m, then m belongs to record_numbers[n].
+        record_number is m, then m belongs to record_numbers[n].
     available_channels : dictionary of dictionaries of sets
         It is a dictionary whose keys are run numbers (int),
         so that if there is at least one waveform in the set
@@ -60,9 +60,9 @@ class waveform_set:
         is a waveform_adcs object whose TimeStep_ns
         attribute is assumed to match that of the first
         waveform which was used in the average sum.
-        Its Adcs attribute contains points_per_wf entries,
-        so that MeanAdcs.Adcs[i] is the mean of
-        self.waveforms[j].Adcs[i] for every value
+        Its adcs attribute contains points_per_wf entries,
+        so that MeanAdcs.adcs[i] is the mean of
+        self.waveforms[j].adcs[i] for every value
         of j or a subset of values of j, within
         [0, len(self.__waveforms) - 1]. It is not
         computed by default. I.e. if self.MeanAdcs
@@ -72,7 +72,7 @@ class waveform_set:
     MeanAdcsIdcs : tuple of int
         It is a tuple of integers which contains the indices
         of the waveforms, with respect to this waveform_set,
-        which were used to compute the MeanAdcs.Adcs
+        which were used to compute the MeanAdcs.adcs
         attribute. By default, it is None. I.e. if
         self.MeanAdcsIdcs equals to None, it should be
         interpreted as unavailable data. Call the
@@ -109,7 +109,7 @@ class waveform_set:
                 'waveform_set.__init__()',
                 'The length of the given waveforms is not homogeneous.'))
 
-        self.__points_per_wf = len(self.__waveforms[0].Adcs)
+        self.__points_per_wf = len(self.__waveforms[0].adcs)
 
         self.__runs = set()
         self.__update_runs(other_runs=None)
@@ -205,7 +205,7 @@ class waveform_set:
 
     def check_length_homogeneity(self) -> bool:
         """
-        This method returns True if the Adcs attribute
+        This method returns True if the adcs attribute
         of every Waveform object in this waveform_set
         has the same length. It returns False if else.
         In order to call this method, there must be at
@@ -221,9 +221,9 @@ class waveform_set:
                 1,
                 'waveform_set.check_length_homogeneity()',
                 'There must be at least one waveform in the set.'))
-        length = len(self.__waveforms[0].Adcs)
+        length = len(self.__waveforms[0].adcs)
         for i in range(1, len(self.__waveforms)):
-            if len(self.__waveforms[i].Adcs) != length:
+            if len(self.__waveforms[i].adcs) != length:
                 return False
         return True
 
@@ -278,7 +278,7 @@ class waveform_set:
         self.__runs.clear()
 
         for wf in self.__waveforms:
-            self.__runs.add(wf.RunNumber)
+            self.__runs.add(wf.run_number)
 
         return
 
@@ -353,10 +353,10 @@ class waveform_set:
 
         for wf in self.__waveforms:
             try:
-                self.__record_numbers[wf.RunNumber].add(wf.RecordNumber)
+                self.__record_numbers[wf.run_number].add(wf.record_number)
             except KeyError:
-                self.__record_numbers[wf.RunNumber] = set()
-                self.__record_numbers[wf.RunNumber].add(wf.RecordNumber)
+                self.__record_numbers[wf.run_number] = set()
+                self.__record_numbers[wf.run_number].add(wf.record_number)
         return
 
     def __update_available_channels(
@@ -451,20 +451,20 @@ class waveform_set:
 
         for wf in self.__waveforms:
             try:
-                aux = self.__available_channels[wf.RunNumber]
+                aux = self.__available_channels[wf.run_number]
 
                 try:
-                    aux[wf.Endpoint].add(wf.Channel)
+                    aux[wf.endpoint].add(wf.channel)
 
                 except KeyError:
-                    aux[wf.Endpoint] = set()
-                    aux[wf.Endpoint].add(wf.Channel)
+                    aux[wf.endpoint] = set()
+                    aux[wf.endpoint].add(wf.channel)
 
             except KeyError:
-                self.__available_channels[wf.RunNumber] = {}
-                self.__available_channels[wf.RunNumber][wf.Endpoint] = set()
-                self.__available_channels[wf.RunNumber][wf.Endpoint].add(
-                    wf.Channel)
+                self.__available_channels[wf.run_number] = {}
+                self.__available_channels[wf.run_number][wf.endpoint] = set()
+                self.__available_channels[wf.run_number][wf.endpoint].add(
+                    wf.channel)
         return
 
     def analyse(
@@ -610,7 +610,7 @@ class waveform_set:
         """
         If wf_idcs is None and wf_selector is None,
         then this method creates a waveform_adcs
-        object whose Adcs attribute is the mean
+        object whose adcs attribute is the mean
         of the adcs arrays for every waveform in
         this waveform_set. If wf_idcs is not None,
         then such mean is computed using the adcs
@@ -751,11 +751,11 @@ class waveform_set:
         """
 
         # waveform_set.compute_mean_waveform()
-        aux = self.waveforms[0].Adcs
+        aux = self.waveforms[0].adcs
         # has already checked that there is at
         # least one waveform in this waveform_set
         for i in range(1, len(self.__waveforms)):
-            aux += self.waveforms[i].Adcs
+            aux += self.waveforms[i].adcs
 
         output = waveform_adcs(
             self.__waveforms[0].TimeStep_ns,
@@ -805,7 +805,7 @@ class waveform_set:
 
         for i in range(len(self.__waveforms)):
             if wf_selector(self.__waveforms[i], *args, **kwargs):
-                aux += self.__waveforms[i].Adcs
+                aux += self.__waveforms[i].adcs
                 added_wvfs.append(i)
 
         if len(added_wvfs) == 0:
@@ -863,7 +863,7 @@ class waveform_set:
                 # is at least one valid iterator value, but we need to handle
                 # the case where there are invalid iterator values
 
-                aux += self.__waveforms[idx].Adcs
+                aux += self.__waveforms[idx].adcs
             except IndexError:
                 continue
                 # Ignore the invalid iterator values as specified in the
@@ -1000,26 +1000,26 @@ class waveform_set:
             return dumped_ones
 
     @classmethod
-    def from_filtered_WaveformSet(
-            cls, original_WaveformSet: 'waveform_set',
+    def from_filtered_waveform_set(
+            cls, original_waveform_set: 'waveform_set',
             wf_filter: Callable[..., bool],
             *args,
             **kwargs) -> 'waveform_set':
         """
         This method returns a new waveform_set object
         which contains only the waveforms from the
-        given original_WaveformSet object which passed
+        given original_waveform_set object which passed
         the given wf_filter callable, i.e. those Waveform
         objects, wf, for which
         wf_filter(wf, *args, **kwargs) evaluated to True.
         To do so, this method calls the waveform_set.filter()
         instance method of the waveform_set given to the
-        'original_WaveformSet' parameter by setting the
+        'original_waveform_set' parameter by setting the
         its 'actually_filter' parameter to True.
 
         Parameters
         ----------
-        original_WaveformSet : waveform_set
+        original_waveform_set : waveform_set
             The waveform_set object which will be filtered
             so as to create the new waveform_set object
         wf_filter : callable
@@ -1031,12 +1031,12 @@ class waveform_set:
             the given callable is not checked by
             this method, but checked by the
             waveform_set.filter() instance method of
-            the original_WaveformSet object, whose
+            the original_waveform_set object, whose
             'wf_filter' parameter receives the input
             given to the 'wf_filter' parameter of this
             method. The waveforms which end up staying
             in the returned waveform_set object are those
-            within the original_WaveformSet object,
+            within the original_waveform_set object,
             wf, for which wf_filter(wf, *args, **kwargs)
             evaluated to True.
         *args
@@ -1053,11 +1053,11 @@ class waveform_set:
         waveform_set
             A new waveform_set object which contains
             only the waveforms from the given
-            original_WaveformSet object which passed
+            original_waveform_set object which passed
             the given wf_filter callable.
         """
 
-        staying_wfs_idcs = original_WaveformSet.filter(
+        staying_wfs_idcs = original_waveform_set.filter(
             wf_filter,
             *args,
             actually_filter=False,
@@ -1065,7 +1065,7 @@ class waveform_set:
             **kwargs)
 
         waveforms = [
-            original_WaveformSet.waveforms[idx]
+            original_waveform_set.waveforms[idx]
             for idx in staying_wfs_idcs]
 
         # About the waveforms that we will handle to the new
