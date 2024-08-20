@@ -5,10 +5,11 @@ from typing import List, Tuple
 from waffles.Exceptions import generate_exception_message
 
 
-def gaussian(x: float,
-             scale: float,
-             mean: float,
-             std: float) -> float:
+def gaussian(
+        x: float,
+        scale: float,
+        mean: float,
+        std: float) -> float:
     """
     Evaluates an scaled gaussian function
     in x. The function is defined as:
@@ -38,11 +39,13 @@ def gaussian(x: float,
 
 
 @numba.njit(nogil=True, parallel=False)
-def __histogram1d(samples: np.ndarray,
-                  bins: int,
-                  domain: np.ndarray,
-                  # Not calling it 'range' because
-                  keep_track_of_idcs: bool = False) -> Tuple[np.ndarray, List[List[int]]]:
+def __histogram1d(
+    samples: np.ndarray,
+    bins: int,
+    domain: np.ndarray,
+    # Not calling it 'range' because
+    keep_track_of_idcs: bool = False
+) -> Tuple[np.ndarray, List[List[int]]]:
     # it is a reserved keyword in Python
     """
     This function is not intended for user usage. 
@@ -110,12 +113,14 @@ def __histogram1d(samples: np.ndarray,
     return counts, formatted_idcs
 
 
-def histogram1d(samples: np.ndarray,
-                bins: int,
-                # Not calling it 'range' because
-                domain: np.ndarray,
-                # it is a reserved keyword in Python
-                keep_track_of_idcs: bool = False) -> Tuple[np.ndarray, List[List[int]]]:
+def histogram1d(
+    samples: np.ndarray,
+    bins: int,
+    # Not calling it 'range' because
+    domain: np.ndarray,
+    # it is a reserved keyword in Python
+    keep_track_of_idcs: bool = False
+) -> Tuple[np.ndarray, List[List[int]]]:
     """
     This function returns a tuple with two elements. The
     first one is an unidimensional integer numpy 
@@ -161,10 +166,11 @@ def histogram1d(samples: np.ndarray,
         which fall into the i-th bin of the histogram.
     """
 
-    counts, formatted_idcs = __histogram1d(samples,
-                                           bins,
-                                           domain,
-                                           keep_track_of_idcs=keep_track_of_idcs)
+    counts, formatted_idcs = __histogram1d(
+        samples,
+        bins,
+        domain,
+        keep_track_of_idcs=keep_track_of_idcs)
 
     deformatted_idcs = [[] for _ in range(bins)]
 
@@ -176,9 +182,12 @@ def histogram1d(samples: np.ndarray,
 
 
 @numba.njit(nogil=True, parallel=False)
-def histogram2d(samples: np.ndarray,
-                bins: np.ndarray,                      # ~ 20 times faster than numpy.histogram2d
-                ranges: np.ndarray) -> np.ndarray:     # for a dataset with ~1.8e+8 points
+def histogram2d(
+        samples: np.ndarray,
+        bins: np.ndarray,
+        ranges: np.ndarray) -> np.ndarray:
+    # ~ 20 times faster than numpy.histogram2d
+    # # for a dataset with ~1.8e+8 points
     """
     This function returns a bidimensional integer numpy 
     array which is the 2D histogram of the given samples.
@@ -252,7 +261,8 @@ def reference_to_minimum(input: List[int]) -> List[int]:
 
 
 @numba.njit(nogil=True, parallel=False)
-def __cluster_integers_by_contiguity(increasingly_sorted_integers: np.ndarray) -> List[List[int]]:
+def __cluster_integers_by_contiguity(
+        increasingly_sorted_integers: np.ndarray) -> List[List[int]]:
     """
     This function is not intended for user usage. It 
     must only be called by the 
@@ -278,8 +288,7 @@ def __cluster_integers_by_contiguity(increasingly_sorted_integers: np.ndarray) -
         integers in the input array.
     """
 
-    extremals = []
-    extremals.append([increasingly_sorted_integers[0]])
+    extremals = [[increasingly_sorted_integers[0]]]
 
     # The last integer has an exclusive treatment
     for i in range(1, len(increasingly_sorted_integers)-1):
@@ -297,17 +306,20 @@ def __cluster_integers_by_contiguity(increasingly_sorted_integers: np.ndarray) -
         # Add one to get the
         extremals[-1].append(increasingly_sorted_integers[-2]+1)
         # exclusive upper bound
-        extremals.append([increasingly_sorted_integers[-1],
-                         increasingly_sorted_integers[-1]+1])
+        extremals.append(
+            [increasingly_sorted_integers[-1],
+             increasingly_sorted_integers[-1]+1])
 
     else:
 
-        extremals[-1].append(increasingly_sorted_integers[-1]+1)
+        extremals[-1].append(
+            increasingly_sorted_integers[-1]+1)
 
     return extremals
 
 
-def cluster_integers_by_contiguity(increasingly_sorted_integers: np.ndarray) -> List[List[int]]:
+def cluster_integers_by_contiguity(
+        increasingly_sorted_integers: np.ndarray) -> List[List[int]]:
     """
     This function gets an unidimensional numpy array of 
     integers, increasingly_sorted_integers, which 
@@ -347,12 +359,14 @@ def cluster_integers_by_contiguity(increasingly_sorted_integers: np.ndarray) -> 
     """
 
     if increasingly_sorted_integers.ndim != 1:
-        raise Exception(generate_exception_message(1,
-                                                   'cluster_integers_by_contiguity()',
-                                                   'The given numpy array must be unidimensional.'))
+        raise Exception(generate_exception_message(
+            1,
+            'cluster_integers_by_contiguity()',
+            'The given numpy array must be unidimensional.'))
     if len(increasingly_sorted_integers) < 2:
-        raise Exception(generate_exception_message(2,
-                                                   'cluster_integers_by_contiguity()',
-                                                   'The given numpy array must contain at least two elements.'))
+        raise Exception(generate_exception_message(
+            2,
+            'cluster_integers_by_contiguity()',
+            'The given numpy array must contain at least two elements.'))
 
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
