@@ -57,9 +57,14 @@ def read(filename,
          read_full_streaming_data: bool = False,
          set_offset_wrt_daq_window : bool = True):
     
+    print ('reading file ', filename, '...')
+
     wset=reader.WaveformSet_from_ROOT_file(filename,library='pyroot',start_fraction=start_fraction, stop_fraction=stop_fraction,
                                            read_full_streaming_data=read_full_streaming_data,
                                            set_offset_wrt_daq_window=set_offset_wrt_daq_window)
+
+    print ('done !!!')
+
     return wset
 
 ###########################
@@ -208,6 +213,8 @@ def plot_charge(wset: WaveformSet,
             nb: int = 200,
             hl: int = -5000,
             hu: int = 50000,
+            b_ll: int = 0,
+            b_ul: int = 100,
             nwfs: int = -1, 
             variable: str = 'integral',
             op: str = None):        
@@ -221,7 +228,7 @@ def plot_charge(wset: WaveformSet,
     wset2 = get_wfs_in_channel(wset,ep,ch)
     
     # baseline limits
-    bl = [0, 100, 900, 1000]
+    bl = [b_ll, b_ul, 900, 1000]
     peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75])
     ip = IPDict(baseline_limits=bl,
                 int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,
@@ -319,6 +326,8 @@ def compute_charge(wset: WaveformSet,
             ch: int = -1,            
             int_ll: int = 135,
             int_ul: int = 165,
+            b_ll: int = 0,
+            b_ul: int = 100,
             nwfs: int = -1, 
             op: str = None):        
 
@@ -327,7 +336,7 @@ def compute_charge(wset: WaveformSet,
     wset2 = get_wfs_in_channel(wset,ep,ch)
     
     # baseline limits
-    bl = [0, 100, 900, 1000]
+    bl = [b_ll, b_ul, 900, 1000]
     peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75])
     ip = IPDict(baseline_limits=bl,
                 int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,

@@ -21,7 +21,6 @@ wset1_109 = draw.get_wfs_in_channel(wset1,109)
 wset7_109 = draw.get_wfs_in_channel(wset7,109)
 
 if detailed:
-    input()
     #draw the time offset of all waveforms in ep 109 (APA2)
     draw.plot_to(wset1_109,nbins=1000)
 
@@ -51,9 +50,13 @@ draw.plot(wset1_10935_beam,nwfs=100)
 
 input()
 # plot the charge with integration limits between 55 and 85
-draw.plot_charge(wset1_109_beam,109,35,55,85,200,0,200000)
+draw.plot_charge(wset1_109_beam,109,35,
+                    55,85,          # integration limits
+                    200,0,200000,   # binning
+                    0,40)           # baseline limits
+
 
 input()
 # plot the charge with integration limits between 55 and 85
-draw.plot_charge(wset7_109_beam,109,35,55,85,200,0,2000000)
+draw.plot_charge(wset7_109_beam,109,35,55,85,200,0,1500000,0,40)
 
