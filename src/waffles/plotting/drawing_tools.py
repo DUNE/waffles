@@ -25,6 +25,10 @@ from waffles.data_classes.Waveform import Waveform
 file_path = 'temp_plot.html'
 png_file_path = 'temp_plot.png'
 
+#plotting_mode = 'html'
+plotting_mode = 'png'
+
+
 # define a global figure
 fig=go.Figure()
 
@@ -36,27 +40,30 @@ fig=go.Figure()
 def help():
 
     funcs=[
-        ['plot','plot single waveform, list of waveforms or WaveformSet',],
-        ['plot_hm','plot heam map for a WaveformSet'],
+        ['plot','plot waveforms for a single waveform, list of waveforms or WaveformSet',],
+        ['plot_hm','plot heat map for a WaveformSet'],
         ['plot_charge','plot charge histogram for a WaveformSet'],
-        ['plot_avg', 'plot average waveform for a WaveformSet']
+        ['plot_avg', 'plot average waveform for a WaveformSet'],
+        ['plot_to','plot time offset (timestamp-daq_timestamp) for a WaveformSet',]
     ]
 
     for i in funcs:
-        print (i[0],': ', i[1])
+        print (f'{i[0]:15}', i[1])
 
 ###########################
 def read(filename, 
          start_fraction: float = 0, 
          stop_fraction: float = 1,
+         read_full_streaming_data: bool = False,
          set_offset_wrt_daq_window : bool = True):
     
     wset=reader.WaveformSet_from_ROOT_file(filename,library='pyroot',start_fraction=start_fraction, stop_fraction=stop_fraction,
+                                           read_full_streaming_data=read_full_streaming_data,
                                            set_offset_wrt_daq_window=set_offset_wrt_daq_window)
     return wset
 
 ###########################
-def plot_ts(wset: WaveformSet,
+def plot_to(wset: WaveformSet,
             ep: int = -1, 
             ch: int = -1,
             nwfs: int = -1,
@@ -75,7 +82,7 @@ def plot_ts(wset: WaveformSet,
     for wf in wset.Waveforms:
         if (wf.Endpoint==ep or ep==-1) and (wf.Channel==ch or ch==-1):
             n=n+1
-            times.append(wf._WaveformAdcs__time_offset)    
+            times.append(wf._WaveformAdcs__time_offset2)    
         if n>=nwfs and nwfs!=-1:
             break
 
@@ -152,27 +159,29 @@ def plot(object,
          ep: int = -1, 
          ch: int = -1,
          nwfs: int = -1,
+         offset: bool = False,
          op: str = None,
          show: bool = True):
 
 
     # Case when the input object is a Waveform
     if type(object)==Waveform:    
-        plot_wfs(list([object]),ep,ch,nwfs,op)
+        plot_wfs(list([object]),ep,ch,nwfs,offset,op)
     
     # Case when the input object is a list of Waveforms
     if type(object)==list and type(object[0])==Waveform:
-        plot_wfs(object,ep,ch,nwfs,op)
+        plot_wfs(object,ep,ch,nwfs,offset,op)
 
     # Case when the input object is a WaveformSet                    
     if type(object)==WaveformSet:
-        plot_wfs(object.Waveforms,ep,ch,nwfs,op)
+        plot_wfs(object.Waveforms,ep,ch,nwfs,offset,op)
     
 ###########################
 def plot_wfs(wfs: list,                
                 ep: int = -1, 
                 ch: int = -1,
-                nwfs: int = -1, 
+                nwfs: int = -1,
+                offset: bool = False, 
                 op: str = None):
         
     global fig
@@ -184,7 +193,7 @@ def plot_wfs(wfs: list,
     for wf in wfs:
         if (wf.Endpoint==ep or ep==-1) and (wf.Channel==ch or ch==-1):
             n=n+1
-            plot_WaveformAdcs(wf,fig)
+            plot_WaveformAdcs2(wf,fig, offset)
         if n>=nwfs and nwfs!=-1:
             break
 
@@ -342,7 +351,7 @@ def get_wfs_with_variable_in_range(wset:WaveformSet,
     wfs = []
     for w in wset.Waveforms:
         if variable=='timeoffset':
-            var = w._WaveformAdcs__time_offset
+            var = w._WaveformAdcs__time_offset2
         elif  variable == 'integral' or variable =='amplitude':
             var=w.get_analysis('standard').Result[variable]
         else:
@@ -419,7 +428,6 @@ def __subplot_heatmap_ans(  waveform_set : WaveformSet,
                                     waveform_set.PointsPerWf,
                                     dtype = np.float32) + waveform_set.Waveforms[idx].TimeOffset for idx in range(len(waveform_set.Waveforms))])
 
-
     aux_y = np.hstack([waveform_set.Waveforms[idx].Adcs  for idx in range(len(waveform_set.Waveforms))])
 
 
@@ -442,5 +450,62 @@ def __subplot_heatmap_ans(  waveform_set : WaveformSet,
 
 ###########################
 def write_image(fig: go.Figure()):                    
-    pio.write_html(fig, file=file_path, auto_open=True)
-    #pio.write_image(fig, file=png_file_path, format='png')  
+    if plotting_mode == 'html':        
+        pio.write_html(fig, file=file_path, auto_open=True)
+    elif plotting_mode == 'png':  
+        pio.write_image(fig, file=png_file_path, format='png')  
+    else:
+        print ('unknown plotting mode ', plotting_mode, ' it should be png or html !!!')
+
+
+###########################
+# variant of plot_WaveformAdcs with option to consider offsets or not
+def plot_WaveformAdcs2(  waveform_adcs : WaveformAdcs,  
+                        figure : pgo.Figure,
+                        offset: bool = False,
+                        name : Optional[str] = None,
+                        row : Optional[int] = None,
+                        col : Optional[int] = None,
+                        plot_analysis_markers : bool = False,
+                        show_baseline_limits : bool = False, 
+                        show_baseline : bool = True,
+                        show_general_integration_limits : bool = False,
+                        show_general_amplitude_limits : bool = False,
+                        show_spotted_peaks : bool = True,
+                        show_peaks_integration_limits : bool = False,
+                        analysis_label : Optional[str] = None,
+                        verbose : bool = False) -> None:
+
+    x = np.arange(  len(waveform_adcs.Adcs),
+                    dtype = np.float32)
+
+#    wf_trace = pgo.Scatter( x = x + waveform_adcs.TimeOffset,   ## If at some point we think x might match for
+    if offset:
+        wf_trace = pgo.Scatter( x = x + waveform_adcs.TimeOffset2,   ## If at some point we think x might match for
+                                                                ## every waveform, in a certain WaveformSet 
+                                                                ## object, it might be more efficient to let
+                                                                ## the caller define it, so as not to recompute
+                                                                ## this array for each waveform.
+                            y = waveform_adcs.Adcs,
+                            mode = 'lines',
+                            line=dict(  color='black', 
+                                        width=0.5),
+                            name = name)
+    else:
+        wf_trace = pgo.Scatter( x = x,   ## If at some point we think x might match for
+                                                                ## every waveform, in a certain WaveformSet 
+                                                                ## object, it might be more efficient to let
+                                                                ## the caller define it, so as not to recompute
+                                                                ## this array for each waveform.
+                            y = waveform_adcs.Adcs,
+                            mode = 'lines',
+                            line=dict(  color='black', 
+                                        width=0.5),
+                            name = name)
+
+
+    figure.add_trace(   wf_trace,
+                        row = row,
+                        col = col)
+    
+    
