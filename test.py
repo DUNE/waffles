@@ -4,9 +4,7 @@ sys.path.append("src")
 import waffles.plotting.drawing_tools as draw
 
 # read the root file 
-print ('reading file ...')
 wset=draw.read("../DATA/run26687.root",0.,1)
-print ('file loaded indo wset')
 
 # plot 10 wfs for endpoint 111 and channel 45
 draw.plot(wset,111,45,10)
