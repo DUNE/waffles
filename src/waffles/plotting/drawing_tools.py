@@ -2,6 +2,8 @@ import plotly.graph_objs as go
 from plotly import graph_objects as pgo
 import plotly.io as pio
 import numpy as np
+import inspect 
+
 
 
 
@@ -28,39 +30,50 @@ png_file_path = 'temp_plot.png'
 #plotting_mode = 'html'
 plotting_mode = 'png'
 
-
 # define a global figure
 fig=go.Figure()
 
-# the ploted calib histo
-#chist = CalibrationHistogram()
-
 
 ###########################
-def help():
+def help(cls: str = None):
 
-    funcs=[
-        ['plot','plot waveforms for a single waveform, list of waveforms or WaveformSet',],
-        ['plot_hm','plot heat map for a WaveformSet'],
-        ['plot_charge','plot charge histogram for a WaveformSet'],
-        ['plot_avg', 'plot average waveform for a WaveformSet'],
-        ['plot_to','plot time offset (timestamp-daq_timestamp) for a WaveformSet',]
-    ]
+    funcs=[]
+        
+    funcs.append(['plot','plot waveforms for a single waveform, list of waveforms or WaveformSet'])
+    funcs.append(['plot_hm','plot heat map for a WaveformSet'])
+    funcs.append(['plot_charge','plot charge histogram for a WaveformSet'])
+    funcs.append(['plot_avg', 'plot average waveform for a WaveformSet'])
+    funcs.append(['plot_to','plot time offset (timestamp-daq_timestamp) for a WaveformSet']) 
 
-    for i in funcs:
-        print (f'{i[0]:15}', i[1])
+    funcs.append(['zoom','makes a zoom of the current figure'])    
+   
+
+    # print the list of commands and a summary of what they do
+    if cls==None:
+        print ('List of commands. Type draw.help(draw.X) to see the arguments of command X')
+        for i in funcs:
+            print (f'{i[0]:15}', i[1])
+    # pring the usage for a specific command
+    else:
+        for i in funcs:
+            if cls.__qualname__ == i[0]:
+                print (f'{i[0]:15}', i[1])
+        print(inspect.signature(cls)) 
+    
 
 ###########################
 def read(filename, 
          start_fraction: float = 0, 
          stop_fraction: float = 1,
          read_full_streaming_data: bool = False,
+         truncate_wfs_to_minimum: bool = False,
          set_offset_wrt_daq_window : bool = True):
     
     print ('reading file ', filename, '...')
 
     wset=reader.WaveformSet_from_ROOT_file(filename,library='pyroot',start_fraction=start_fraction, stop_fraction=stop_fraction,
                                            read_full_streaming_data=read_full_streaming_data,
+                                           truncate_wfs_to_minimum=truncate_wfs_to_minimum,
                                            set_offset_wrt_daq_window=set_offset_wrt_daq_window)
 
     print ('done !!!')
@@ -164,28 +177,34 @@ def plot(object,
          ep: int = -1, 
          ch: int = -1,
          nwfs: int = -1,
+         xmin: int = None,
+         xmax: int = None,
          offset: bool = False,
          op: str = None,
          show: bool = True):
 
 
+    usage = ['plot','plot waveforms for a single waveform, list of waveforms or WaveformSet']
+
     # Case when the input object is a Waveform
     if type(object)==Waveform:    
-        plot_wfs(list([object]),ep,ch,nwfs,offset,op)
+        plot_wfs(list([object]),ep,ch,nwfs,xmin,xmax,offset,op)
     
     # Case when the input object is a list of Waveforms
     if type(object)==list and type(object[0])==Waveform:
-        plot_wfs(object,ep,ch,nwfs,offset,op)
+        plot_wfs(object,ep,ch,nwfs,xmin,xmax,offset,op)
 
     # Case when the input object is a WaveformSet                    
     if type(object)==WaveformSet:
-        plot_wfs(object.Waveforms,ep,ch,nwfs,offset,op)
+        plot_wfs(object.Waveforms,ep,ch,nwfs,xmin,xmax,offset,op)
     
 ###########################
 def plot_wfs(wfs: list,                
                 ep: int = -1, 
                 ch: int = -1,
                 nwfs: int = -1,
+                xmin: int = None,
+                xmax: int = None,
                 offset: bool = False, 
                 op: str = None):
         
@@ -198,7 +217,7 @@ def plot_wfs(wfs: list,
     for wf in wfs:
         if (wf.Endpoint==ep or ep==-1) and (wf.Channel==ch or ch==-1):
             n=n+1
-            plot_WaveformAdcs2(wf,fig, offset)
+            plot_WaveformAdcs2(wf,fig, offset,xmin,xmax)
         if n>=nwfs and nwfs!=-1:
             break
 
@@ -472,6 +491,8 @@ def write_image(fig: go.Figure()):
 def plot_WaveformAdcs2(  waveform_adcs : WaveformAdcs,  
                         figure : pgo.Figure,
                         offset: bool = False,
+                        xmin: int = None,
+                        xmax: int = None,
                         name : Optional[str] = None,
                         row : Optional[int] = None,
                         col : Optional[int] = None,
@@ -485,36 +506,55 @@ def plot_WaveformAdcs2(  waveform_adcs : WaveformAdcs,
                         analysis_label : Optional[str] = None,
                         verbose : bool = False) -> None:
 
-    x = np.arange(  len(waveform_adcs.Adcs),
-                    dtype = np.float32)
+    if xmin and xmax:
+        x0 = np.arange(  xmin, xmax,
+                        dtype = np.float32)
+        y0 = waveform_adcs.Adcs[xmin:xmax]        
+    else:
+        x0 = np.arange(  len(waveform_adcs.Adcs),
+                        dtype = np.float32)
+        y0 = waveform_adcs.Adcs
 
 #    wf_trace = pgo.Scatter( x = x + waveform_adcs.TimeOffset,   ## If at some point we think x might match for
     if offset:
-        wf_trace = pgo.Scatter( x = x + waveform_adcs.TimeOffset2,   ## If at some point we think x might match for
+        wf_trace = pgo.Scatter( x = x0 + waveform_adcs.TimeOffset2,   ## If at some point we think x might match for
                                                                 ## every waveform, in a certain WaveformSet 
                                                                 ## object, it might be more efficient to let
                                                                 ## the caller define it, so as not to recompute
                                                                 ## this array for each waveform.
-                            y = waveform_adcs.Adcs,
+                            y = y0,
                             mode = 'lines',
                             line=dict(  color='black', 
                                         width=0.5),
                             name = name)
     else:
-        wf_trace = pgo.Scatter( x = x,   ## If at some point we think x might match for
+        wf_trace = pgo.Scatter( x = x0,   ## If at some point we think x might match for
                                                                 ## every waveform, in a certain WaveformSet 
                                                                 ## object, it might be more efficient to let
                                                                 ## the caller define it, so as not to recompute
                                                                 ## this array for each waveform.
-                            y = waveform_adcs.Adcs,
+                            y = y0,
                             mode = 'lines',
                             line=dict(  color='black', 
                                         width=0.5),
                             name = name)
+
+
 
 
     figure.add_trace(   wf_trace,
                         row = row,
                         col = col)
     
-    
+
+
+###########################
+def zoom(xmin: float = None,
+         xmax: float = None,
+         ymin: float = None,
+         ymax: float = None):
+    if xmin and xmax:
+        fig.update_layout(xaxis_range=[xmin,xmax])
+    if ymin and ymax:
+        fig.update_layout(yaxis_range=[ymin,ymax])
+    write_image(fig)
