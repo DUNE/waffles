@@ -102,10 +102,11 @@ class WaveformSet:
                                                         'There must be at least one waveform in the set.'))
         self.__waveforms = list(waveforms)
 
-        if not self.check_length_homogeneity():
-            raise Exception(generate_exception_message( 2,
-                                                        'WaveformSet.__init__()',
-                                                        'The length of the given waveforms is not homogeneous.'))
+        # Anselmo, don't check length homogeneity because for full streaming to all wveforms have exactly the same length
+        #if not self.check_length_homogeneity():
+        #    raise Exception(generate_exception_message( 2,
+        #                                                'WaveformSet.__init__()',
+        #                                                'The length of the given waveforms is not homogeneous.'))
         
         self.__points_per_wf = len(self.__waveforms[0].Adcs)
 
