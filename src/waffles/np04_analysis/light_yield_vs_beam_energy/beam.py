@@ -15,6 +15,8 @@ wset7 = WaveformSet
 ########################
 def plot_selftrigger():
 
+    global wset1,wset7
+
     wset1=draw.read(waffles_dir+"/../DATA/run027338_0000_dataflow0-3_datawriter_0_20240621T111239.root",0,1)
     wset7=draw.read(waffles_dir+"/../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1)
 
@@ -67,7 +69,7 @@ def plot_fullstreaming():
     global wset1,wset7
 
     wset1=draw.read(waffles_dir+"/../DATA/run027338_0000_dataflow0-3_datawriter_0_20240621T111239.root",0,1,True,True)
-    wset7=draw.read(waffles_dir+"/../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1,True,True)
+    wset7=draw.read(waffles_dir+"/../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1,True,True,True)
 
     # Plot 5 wfs in ep 104 ch 15 (APA1)
     draw.plot(wset1,104,15,5)
@@ -78,7 +80,7 @@ def plot_fullstreaming():
 
     input()
     # zoom on the beam peak even more
-    draw.plot(wset1,104,15,200,15600,15700)
+    draw.plot(wset1,104,15,200,15500,15800)
 
     input()
     # Align all waveforms in time applying the offset (timestamp-daq_timestamp)
