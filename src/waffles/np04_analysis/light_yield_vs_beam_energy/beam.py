@@ -17,6 +17,7 @@ def plot_selftrigger():
 
     global wset1,wset7
 
+    # read files for 1 and 7 GeV
     wset1=draw.read(waffles_dir+"/../DATA/run027338_0000_dataflow0-3_datawriter_0_20240621T111239.root",0,1)
     wset7=draw.read(waffles_dir+"/../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1)
 
@@ -68,8 +69,12 @@ def plot_fullstreaming():
 
     global wset1,wset7
 
+    # read files for 1 and 7 GeV. Last two arguments: 
+    # 1. Read full streaming
+    # 2. Truncate wf size to the smallest waveform. This is because for FS there could be a difference of 
+    #    64 ticks in the waveform size  
     wset1=draw.read(waffles_dir+"/../DATA/run027338_0000_dataflow0-3_datawriter_0_20240621T111239.root",0,1,True,True)
-    wset7=draw.read(waffles_dir+"/../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1,True,True,True)
+    wset7=draw.read(waffles_dir+"/../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1,True,True)
 
     # Plot 5 wfs in ep 104 ch 15 (APA1)
     draw.plot(wset1,104,15,5)
