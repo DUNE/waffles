@@ -1,17 +1,22 @@
 # import the drawing tools
 import sys
-sys.path.append("src") 
+waffles_dir = '/Users/acervera/HEP/DUNE/ProtoDUNE-HD/PDS/data_taking/waffles'
+sys.path.append(waffles_dir+'/src') 
 import waffles.plotting.drawing_tools as draw
 
+#open a png plot 
+draw.plotting_mode = 'png'
+draw.png_file_path = waffles_dir+'/temp_plot.png'
+
 # read the root file 
-wset=draw.read("../DATA/run26687.root",0.,1)
+wset=draw.read(waffles_dir+"/../DATA/run26687.root",0,1)
 
 # plot 10 wfs for endpoint 111 and channel 45
 draw.plot(wset,111,45,10)
 
 input()
 # Same plot but now with time with respect to daq window 
-draw.plot(wset,111,45,10,True)
+draw.plot(wset,111,45,10,offset=True)
 
 input()
 
@@ -20,11 +25,18 @@ draw.plot_hm(wset,111,45,40,130,170,100,8000,8200)
 
 input()
 # plot the charge histogram with integration limits 135,165
-draw.plot_charge(wset,111,45,135,165)
+charge_histo = draw.plot_charge(wset,111,45,135,165)
 
 input()
-# plot the charge histogram and show the peaks
+# plot the charge histogram and show the peaks (only two peaks by default)
 draw.plot_charge(wset,111,45,135,165,op="peaks")
+
+input()
+# if we want to change peaks parameters use this method, which takes as argument 
+# the charge histogram produced above
+
+# plot the charge histogram with 3 peaks 
+draw.plot_charge_peaks(charge_histo,3)
 
 input()
 # get a WaveformSet with only wfs in ep 111 and ch 45
