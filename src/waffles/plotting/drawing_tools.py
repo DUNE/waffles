@@ -3,29 +3,25 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 import numpy as np
 import inspect 
-
-
-
-
 from math import sqrt
 
+# import waffles utils
 import waffles.utils.wf_maps_utils as wmu
 from waffles.plotting.plot import *
 import waffles.input.raw_ROOT_reader as reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 
-# import data classes
+# import waffles data classes
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.ChannelWS import ChannelWS
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 
-
-# Define a file path to save the HTML plot
-file_path = 'temp_plot.html'
-png_file_path = 'temp_plot.png'
+# Define a file path to save the HTML/png plot
+html_file_path = 'temp_plot.html'
+png_file_path  = 'temp_plot.png'
 
 #plotting_mode = 'html'
 plotting_mode = 'png'
@@ -42,8 +38,11 @@ def help(cls: str = None):
     funcs.append(['plot','plot waveforms for a single waveform, list of waveforms or WaveformSet'])
     funcs.append(['plot_hm','plot heat map for a WaveformSet'])
     funcs.append(['plot_charge','plot charge histogram for a WaveformSet'])
+    funcs.append(['plot_charge_peaks','plot charge histogram peaks given a charge histogram'])
     funcs.append(['plot_avg', 'plot average waveform for a WaveformSet'])
     funcs.append(['plot_to','plot time offset (timestamp-daq_timestamp) for a WaveformSet']) 
+    funcs.append(['get_wfs_with_variable_in_range', 'get all waveforms with a given variable in a given range'])
+    funcs.append(['get_wfs_in_channel', 'get all waveforms in a given endpoint and channel'])
 
     funcs.append(['zoom','makes a zoom of the current figure'])    
    
@@ -52,12 +51,12 @@ def help(cls: str = None):
     if cls==None:
         print ('List of commands. Type draw.help(draw.X) to see the arguments of command X')
         for i in funcs:
-            print (f'{i[0]:15}', i[1])
+            print (f'{i[0]:32}', i[1])
     # pring the usage for a specific command
     else:
         for i in funcs:
             if cls.__qualname__ == i[0]:
-                print (f'{i[0]:15}', i[1])
+                print (f'{i[0]:32}', i[1])
         print(inspect.signature(cls)) 
     
 
@@ -94,7 +93,7 @@ def plot_to(wset: WaveformSet,
     if op != 'same':
         fig=go.Figure()
 
-    # get the array of time stamps
+    # get the array of time offsets for a given endpoint and channel
     n=0
     times = []
     for wf in wset.Waveforms:
@@ -104,37 +103,10 @@ def plot_to(wset: WaveformSet,
         if n>=nwfs and nwfs!=-1:
             break
 
-    # compute the histogram edges
-    tmin = min(times)
-    tmax = max(times)
+    # get the histogram with times 
+    histogram_trace = get_histogram(times,nbins,xmin,xmax)
 
-    if xmin == None:
-        xmin = tmin-(tmax-tmin)*0.1
-    if xmax == None:
-        xmax = tmax+(tmax-tmin)*0.1
-    
-    domain=[xmin,xmax]
-
-    # create the histogram
-    counts, indices = wun.histogram1d(  np.array(times),
-                                        nbins,
-                                        domain,
-                                        keep_track_of_idcs = True)
-    
-    # plot the histogram
-    edges = np.linspace(domain[0],
-                        domain[1], 
-                        num = nbins + 1,
-                        endpoint = True)
-
-    histogram_trace = pgo.Scatter(  x = edges,
-                                    y = counts,
-                                    mode = 'lines',
-                                    line=dict(  color = 'black', 
-                                                width = 0.5,
-                                                shape = 'hv'),
-                                    name = "Hola")
-    
+    # add it to the figure
     fig.add_trace(histogram_trace)
 
     write_image(fig)
@@ -152,25 +124,27 @@ def plot_hm(object,
             nwfs: int = -1,
             variable = 'integral', 
             op: str = None,
-            imin: float = None,
-            imax: float = None,
+            vmin: float = None,
+            vmax: float = None,
             show: bool = True,             
             bar : bool = False):
  
     global fig
-
     if op != 'same':
         fig=go.Figure()    
 
-    ranges = np.array ([[xmin,xmax],[ymin,ymax]])
+    # get the waveforms in the specific ep and ch
     wset = get_wfs_in_channel(object,ep,ch)
-    if imin != None:
-        wset=get_wfs_with_variable_in_range(wset,imin,imax,variable)
 
-#    fig = wpu.__subplot_heatmap_ans(wset,fig,"name",nx,ny,ranges,show_color_bar=bar)
+    # get the waveforms with variable in range [vmin,vmax]
+    if vmin != None:
+        wset=get_wfs_with_variable_in_range(wset,vmin,vmax,variable)
+
+    # get the heatmap plot
+    ranges = np.array ([[xmin,xmax],[ymin,ymax]])
     fig = __subplot_heatmap_ans(wset,fig,"name",nx,ny,ranges,show_color_bar=bar)
-    write_image(fig)
 
+    write_image(fig)
 
 ###########################
 def plot(object,                   
@@ -182,9 +156,6 @@ def plot(object,
          offset: bool = False,
          op: str = None,
          show: bool = True):
-
-
-    usage = ['plot','plot waveforms for a single waveform, list of waveforms or WaveformSet']
 
     # Case when the input object is a Waveform
     if type(object)==Waveform:    
@@ -209,10 +180,10 @@ def plot_wfs(wfs: list,
                 op: str = None):
         
     global fig
-
     if op != 'same':
         fig=go.Figure()
 
+    # plot all waveforms in a given endpoint and channel
     n=0
     for wf in wfs:
         if (wf.Endpoint==ep or ep==-1) and (wf.Channel==ch or ch==-1):
@@ -239,26 +210,14 @@ def plot_charge(wset: WaveformSet,
             op: str = None):        
 
     global fig
-
     if op != 'same':
         fig=go.Figure()
 
     # get wfs in specific channel
     wset2 = get_wfs_in_channel(wset,ep,ch)
-    
-    # baseline limits
-    bl = [b_ll, b_ul, 900, 1000]
-    peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75])
-    ip = IPDict(baseline_limits=bl,
-                int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,
-                points_no=10,
-                peak_finding_kwargs=peak_finding_kwargs)
-    analysis_kwargs = dict(  return_peaks_properties = False)
-    checks_kwargs   = dict( points_no = wset.PointsPerWf )
-    #if wset.Waveforms[0].has_analysis('standard') == False:
 
-    # analyse the waveforms
-    a=wset2.analyse('standard',BasicWfAna,ip,checks_kwargs = checks_kwargs,overwrite=True)
+    # Compute the charge (amplitude and integral) 
+    compute_charge(wset2,int_ll,int_ul,b_ll,b_ul,nwfs,op)
 
     # Compute the calibration histogram for the channel
     ch_wfs = ChannelWS(*wset2.Waveforms,compute_calib_histo=True,bins_number=nb,domain=np.array([hl,hu]),variable=variable)
@@ -267,12 +226,10 @@ def plot_charge(wset: WaveformSet,
        #plot the calibration histogram
         plot_CalibrationHistogram(ch_wfs.CalibHisto,fig,'hola',None,None,True,200)
         write_image(fig)
-
     else:
         plot_charge_peaks(ch_wfs.CalibHisto)
 
     return ch_wfs.CalibHisto
-
 
 ###########################
 def plot_charge_peaks(calibh: CalibrationHistogram,
@@ -282,10 +239,8 @@ def plot_charge_peaks(calibh: CalibrationHistogram,
                     op: str = None):        
 
     global fig
-
     if op != 'same':
         fig=go.Figure()
-
 
     # fit the peaks of the calibration histogram
     fp.fit_peaks_of_CalibrationHistogram(calibration_histogram=calibh,
@@ -307,7 +262,33 @@ def plot_charge_peaks(calibh: CalibrationHistogram,
         signal_to_noise = gain/sqrt(calibh.GaussianFitsParameters['std'][1][0]**2+calibh.GaussianFitsParameters['std'][0][0]**2)        
         print ('S/N =  ', signal_to_noise)
         print ('gain = ', gain)
+        print ('s.p.e. mean charge = ', calibh.GaussianFitsParameters['mean'][1][0], 
+               ' +- ', 
+               calibh.GaussianFitsParameters['mean'][1][1])
 
+#########################
+def compute_charge(wset: WaveformSet,        
+            int_ll: int = 135,
+            int_ul: int = 165,
+            b_ll: int = 0,
+            b_ul: int = 100,
+            nwfs: int = -1, 
+            op: str = None):        
+    
+    # baseline limits
+    bl = [b_ll, b_ul, 900, 1000]
+
+    peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75])
+    ip = IPDict(baseline_limits=bl,
+                int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,
+                points_no=10,
+                peak_finding_kwargs=peak_finding_kwargs)
+    analysis_kwargs = dict(  return_peaks_properties = False)
+    checks_kwargs   = dict( points_no = wset.PointsPerWf )
+    #if wset.Waveforms[0].has_analysis('standard') == False:
+
+    # analyse the waveforms
+    a=wset.analyse('standard',BasicWfAna,ip,checks_kwargs = checks_kwargs,overwrite=True)
 
 ###########################
 def plot_avg(wset: WaveformSet,
@@ -319,63 +300,35 @@ def plot_avg(wset: WaveformSet,
             op: str = None):        
 
     global fig
-
     if op != 'same':
         fig=go.Figure()
 
     # get wfs in specific channel
     wset2 = get_wfs_in_channel(wset,ep,ch)
 
+    # select an integral range
     if imin != None:
         wset2=get_wfs_with_integral_in_range(wset2,imin,imax)
 
+    # Create the Channel WaveformSet needed to compute the mean waveform
     ch_ws = ChannelWS(*wset2.Waveforms)
+
+    # compute the mean waveform 
     aux = ch_ws.compute_mean_waveform()
 
-    #aux = wset2.compute_mean_waveform() 
+    # plot the mean waveform
     plot_WaveformAdcs(aux,fig)
 
     write_image(fig)
     
-
-
-###########################
-def compute_charge(wset: WaveformSet,
-            ep: int = -1, 
-            ch: int = -1,            
-            int_ll: int = 135,
-            int_ul: int = 165,
-            b_ll: int = 0,
-            b_ul: int = 100,
-            nwfs: int = -1, 
-            op: str = None):        
-
-
-    # get wfs in specific channel
-    wset2 = get_wfs_in_channel(wset,ep,ch)
-    
-    # baseline limits
-    bl = [b_ll, b_ul, 900, 1000]
-    peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75])
-    ip = IPDict(baseline_limits=bl,
-                int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,
-                points_no=10,
-                peak_finding_kwargs=peak_finding_kwargs)
-    analysis_kwargs = dict(  return_peaks_properties = False)
-    checks_kwargs   = dict( points_no = wset.PointsPerWf )
-    #if wset.Waveforms[0].has_analysis('standard') == False:
-
-    # analyse the waveforms
-    a=wset2.analyse('standard',BasicWfAna,ip,checks_kwargs = checks_kwargs,overwrite=True)
-
-    return wset2
-
 ###########################
 def get_wfs_with_variable_in_range(wset:WaveformSet,
-                                 imin: float=-10000,
-                                 imax: float=1000000,
+                                 vmin: float=-10000,
+                                 vmax: float=1000000,
                                  variable: str = 'integral'):
     
+    # three options: timeoffset, integral and amplitude
+
     wfs = []
     for w in wset.Waveforms:
         if variable=='timeoffset':
@@ -386,7 +339,8 @@ def get_wfs_with_variable_in_range(wset:WaveformSet,
             print ('variable ', variable, ' not supported!!!')
             break 
 
-        if var>imin and var<imax:
+        # select waveforms in range
+        if var>vmin and var<vmax:
             wfs.append(w)
 
     return WaveformSet(*wfs)
@@ -397,7 +351,6 @@ def get_wfs_with_timeoffset_in_range(wset:WaveformSet,
                                  imax: float=1000000):
     
     return get_wfs_with_variable_in_range(wset,imin,imax,'timeoffset')
-
 
 ###########################
 def get_wfs_with_amplitude_in_range(wset:WaveformSet,
@@ -412,8 +365,7 @@ def get_wfs_with_integral_in_range(wset:WaveformSet,
                                  imax: float=1000000):
     
     return get_wfs_with_variable_in_range(wset,imin,imax,'integral')
-    
-    
+     
 ###########################
 def get_wfs_with_adcs_in_range(wset:WaveformSet,
                                 amin: float=-10000,
@@ -436,6 +388,26 @@ def get_wfs_in_channel( wset : WaveformSet,
         if (w.Endpoint == ep or ep==-1) and (w.Channel == ch or ch==-1):
             wfs.append(w)
     return WaveformSet(*wfs)
+
+###########################
+def zoom(xmin: float = None,
+         xmax: float = None,
+         ymin: float = None,
+         ymax: float = None):
+    if xmin and xmax:
+        fig.update_layout(xaxis_range=[xmin,xmax])
+    if ymin and ymax:
+        fig.update_layout(yaxis_range=[ymin,ymax])
+    write_image(fig)
+
+###########################
+def write_image(fig: go.Figure()):                    
+    if plotting_mode == 'html':        
+        pio.write_html(fig, file=html_file_path, auto_open=True)
+    elif plotting_mode == 'png':  
+        pio.write_image(fig, file=png_file_path, format='png')  
+    else:
+        print ('unknown plotting mode ', plotting_mode, ' it should be png or html !!!')
 
 ###########################
 def __subplot_heatmap_ans(  waveform_set : WaveformSet, 
@@ -475,16 +447,6 @@ def __subplot_heatmap_ans(  waveform_set : WaveformSet,
     figure_.add_trace(heatmap)
                         
     return figure_
-
-###########################
-def write_image(fig: go.Figure()):                    
-    if plotting_mode == 'html':        
-        pio.write_html(fig, file=file_path, auto_open=True)
-    elif plotting_mode == 'png':  
-        pio.write_image(fig, file=png_file_path, format='png')  
-    else:
-        print ('unknown plotting mode ', plotting_mode, ' it should be png or html !!!')
-
 
 ###########################
 # variant of plot_WaveformAdcs with option to consider offsets or not
@@ -545,16 +507,43 @@ def plot_WaveformAdcs2(  waveform_adcs : WaveformAdcs,
     figure.add_trace(   wf_trace,
                         row = row,
                         col = col)
-    
-
 
 ###########################
-def zoom(xmin: float = None,
-         xmax: float = None,
-         ymin: float = None,
-         ymax: float = None):
-    if xmin and xmax:
-        fig.update_layout(xaxis_range=[xmin,xmax])
-    if ymin and ymax:
-        fig.update_layout(yaxis_range=[ymin,ymax])
-    write_image(fig)
+def get_histogram(values: [],
+                    nbins: int = 100,
+                    xmin: np.uint64 = None,
+                    xmax: np.uint64 = None):
+
+
+    # compute the histogram edges
+    tmin = min(values)
+    tmax = max(values)
+
+    if xmin == None:
+        xmin = tmin-(tmax-tmin)*0.1
+    if xmax == None:
+        xmax = tmax+(tmax-tmin)*0.1
+    
+    domain=[xmin,xmax]
+
+    # create the histogram
+    counts, indices = wun.histogram1d(  np.array(values),
+                                        nbins,
+                                        domain,
+                                        keep_track_of_idcs = True)
+    
+    # plot the histogram
+    edges = np.linspace(domain[0],
+                        domain[1], 
+                        num = nbins + 1,
+                        endpoint = True)
+
+    histogram_trace = pgo.Scatter(  x = edges,
+                                    y = counts,
+                                    mode = 'lines',
+                                    line=dict(  color = 'black', 
+                                                width = 0.5,
+                                                shape = 'hv'),
+                                    name = "Hola")
+    
+    return histogram_trace
