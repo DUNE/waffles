@@ -238,6 +238,8 @@ def plot_charge(wset: WaveformSet,
 
     write_image(fig)
 
+    return chist
+
 ###########################
 def compute_charge_histogram(wset: WaveformSet,
             ep: int = -1, 
