@@ -62,7 +62,6 @@ if [ -f ${rucio_paths_file} ]; then
                setup python v3_9_15
                setup rucio
                setup kx509
-
                kdestroy
                read -p "Enter your @FNAL.GOV username: " username
                echo "Please enter your password: "
@@ -76,22 +75,16 @@ if [ -f ${rucio_paths_file} ]; then
             if [[ $os_name == "Red Hat Enterprise Linux" && $version_id == 9* ]]; then
                echo -e "Configuring rucio in Alma 9"
                echo -e "Work on progress...  Connect to SL7 to get the paths"
-               # source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh 
-               # spack load r-m-dd-config/w7kcz6r experiment=dune
-               # spack load cmake@3.27.7
-               # spack load metacat@4.0.0%gcc@11.3.1
-               # spack load rucio-clients@33.3.0%gcc@11.3.1
-               # spack load kx509@3.1.1%gcc@11.3.1
-
-               # kdestroy
-               # read -p "Enter your @FNAL.GOV username: " username
-               # echo "Please enter your password: "
-               # read -s password
-               # echo "${password}" | kinit ${username}@FNAL.GOV
-               # kx509
-               
-               # export RUCIO_ACCOUNT=${username}
-               # rucio whoami
+               source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
+               spack load r-m-dd-config experiment=dune
+               spack load kx509
+               read -p "Enter your @FNAL.GOV username: " username
+               echo "Please enter your password: "
+               read -s password
+               echo "${password}" | kinit ${username}@FNAL.GOV
+               kx509
+               export RUCIO_ACCOUNT=${username}
+               rucio whoami
             fi
       fi
 
