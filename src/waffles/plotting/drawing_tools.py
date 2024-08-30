@@ -3,6 +3,7 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 import numpy as np
 import inspect 
+import importlib
 from math import sqrt
 
 # import waffles utils
@@ -19,16 +20,11 @@ from waffles.data_classes.ChannelWS import ChannelWS
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 
-# Define a file path to save the HTML/png plot
-html_file_path = 'temp_plot.html'
-png_file_path  = 'temp_plot.png'
-
 #plotting_mode = 'html'
-plotting_mode = 'png'
+#plotting_mode = 'png'
 
 # define a global figure
 fig=go.Figure()
-
 
 ###########################
 def help(cls: str = None):
@@ -41,6 +37,17 @@ def help(cls: str = None):
     funcs.append(['plot_charge_peaks','plot charge histogram peaks given a charge histogram'])
     funcs.append(['plot_avg', 'plot average waveform for a WaveformSet'])
     funcs.append(['plot_to','plot time offset (timestamp-daq_timestamp) for a WaveformSet']) 
+ 
+    funcs.append(['plot_spe_mean_vs_var','plot the s.p.e. mean (charge or amplitude) vs a given '+ 
+                 'variable provided different WaveformSets with various settings (e.g overvoltage)'])
+    funcs.append(['plot_sn_vs_var','plot the signal to noise vs a given '+ 
+                 'variable provided different WaveformSets with various settings (e.g overvoltage)'])
+    funcs.append(['plot_gain_vs_var','plot the gain vs a given '+ 
+                 'variable provided different WaveformSets with various settings (e.g overvoltage)'])
+
+    funcs.append(['plot_spe_mean_vs_channel','plot the s.p.e. mean (charge or amplitude) versus channel '+ 
+                 'provided a list of channels in a given endpoint'])
+
     funcs.append(['get_wfs_with_variable_in_range', 'get all waveforms with a given variable in a given range'])
     funcs.append(['get_wfs_in_channel', 'get all waveforms in a given endpoint and channel'])
 
@@ -84,13 +91,13 @@ def plot_to(wset: WaveformSet,
             ep: int = -1, 
             ch: int = -1,
             nwfs: int = -1,
-            op: str = None,
+            op: str = '',
             nbins: int = 100,
             xmin: np.uint64 = None,
             xmax: np.uint64 = None):
 
     global fig
-    if op != 'same':
+    if not has_option(op,'same'):
         fig=go.Figure()
 
     # get the array of time offsets for a given endpoint and channel
@@ -109,6 +116,9 @@ def plot_to(wset: WaveformSet,
     # add it to the figure
     fig.add_trace(histogram_trace)
 
+    # add axes titles
+    fig.update_layout(xaxis_title="time offset", yaxis_title="entries")
+
     write_image(fig)
 
 ###########################
@@ -123,14 +133,14 @@ def plot_hm(object,
             ymax: int = 15000, 
             nwfs: int = -1,
             variable = 'integral', 
-            op: str = None,
+            op: str = '',
             vmin: float = None,
             vmax: float = None,
             show: bool = True,             
             bar : bool = False):
  
     global fig
-    if op != 'same':
+    if not has_option(op,'same'):
         fig=go.Figure()    
 
     # get the waveforms in the specific ep and ch
@@ -144,6 +154,9 @@ def plot_hm(object,
     ranges = np.array ([[xmin,xmax],[ymin,ymax]])
     fig = __subplot_heatmap_ans(wset,fig,"name",nx,ny,ranges,show_color_bar=bar)
 
+    # add axes titles
+    fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
+
     write_image(fig)
 
 ###########################
@@ -154,7 +167,7 @@ def plot(object,
          xmin: int = None,
          xmax: int = None,
          offset: bool = False,
-         op: str = None,
+         op: str = '',
          show: bool = True):
 
     # Case when the input object is a Waveform
@@ -177,10 +190,10 @@ def plot_wfs(wfs: list,
                 xmin: int = None,
                 xmax: int = None,
                 offset: bool = False, 
-                op: str = None):
+                op: str = ''):
         
     global fig
-    if op != 'same':
+    if not has_option(op,'same'):
         fig=go.Figure()
 
     # plot all waveforms in a given endpoint and channel
@@ -191,6 +204,9 @@ def plot_wfs(wfs: list,
             plot_WaveformAdcs2(wf,fig, offset,xmin,xmax)
         if n>=nwfs and nwfs!=-1:
             break
+
+    # add axes titles
+    fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
 
     write_image(fig)     
         
@@ -207,11 +223,35 @@ def plot_charge(wset: WaveformSet,
             b_ul: int = 100,
             nwfs: int = -1, 
             variable: str = 'integral',
-            op: str = None):        
+            op: str = ''):        
 
     global fig
-    if op != 'same':
+    if not has_option(op,'same'):
         fig=go.Figure()
+
+    chist = compute_charge_histogram(wset,ep,ch,int_ll,int_ul,nb,hl,hu,b_ll,b_ul,nwfs,variable,op+' print')
+
+    plot_CalibrationHistogram(chist,fig,'hola',None,None,True,200)
+
+    # add axes titles
+    fig.update_layout(xaxis_title=variable, yaxis_title="entries")
+
+    write_image(fig)
+
+###########################
+def compute_charge_histogram(wset: WaveformSet,
+            ep: int = -1, 
+            ch: int = -1,            
+            int_ll: int = 135,
+            int_ul: int = 165,
+            nb: int = 200,
+            hl: int = -5000,
+            hu: int = 50000,
+            b_ll: int = 0,
+            b_ul: int = 100,
+            nwfs: int = -1, 
+            variable: str = 'integral',
+            op: str = ''):        
 
     # get wfs in specific channel
     wset2 = get_wfs_in_channel(wset,ep,ch)
@@ -222,12 +262,8 @@ def plot_charge(wset: WaveformSet,
     # Compute the calibration histogram for the channel
     ch_wfs = ChannelWS(*wset2.Waveforms,compute_calib_histo=True,bins_number=nb,domain=np.array([hl,hu]),variable=variable)
 
-    if (op!='peaks'):
-       #plot the calibration histogram
-        plot_CalibrationHistogram(ch_wfs.CalibHisto,fig,'hola',None,None,True,200)
-        write_image(fig)
-    else:
-        plot_charge_peaks(ch_wfs.CalibHisto)
+    if has_option(op,'peaks'):
+        compute_peaks(ch_wfs.CalibHisto,op=op)
 
     return ch_wfs.CalibHisto
 
@@ -236,35 +272,19 @@ def plot_charge_peaks(calibh: CalibrationHistogram,
                     npeaks: int=2, 
                     prominence: float=0.2,
                     half_points_to_fit: int =10,
-                    op: str = None):        
+                    op: str = ''):        
 
     global fig
-    if op != 'same':
+    if not has_option(op,'same'):
         fig=go.Figure()
 
-    # fit the peaks of the calibration histogram
-    fp.fit_peaks_of_CalibrationHistogram(calibration_histogram=calibh,
-                                        max_peaks = npeaks,
-                                        prominence = prominence,
-                                        half_points_to_fit = half_points_to_fit,
-                                        initial_percentage = 0.1,
-                                        percentage_step = 0.1)
+    # find and fit
+    compute_peaks(calibh,npeaks,prominence,half_points_to_fit,op)
 
     #plot the calibration histogram
     plot_CalibrationHistogram(calibh,fig,'hola',None,None,True,200)
+    
     write_image(fig)
-
-    # print the gain and the S/N
-    if len(calibh.GaussianFitsParameters['mean']) < 2:
-        print ('<2 peaks found. S/N and gain cannot be computed')
-    else:
-        gain = (calibh.GaussianFitsParameters['mean'][1][0]-calibh.GaussianFitsParameters['mean'][0][0])
-        signal_to_noise = gain/sqrt(calibh.GaussianFitsParameters['std'][1][0]**2+calibh.GaussianFitsParameters['std'][0][0]**2)        
-        print ('S/N =  ', signal_to_noise)
-        print ('gain = ', gain)
-        print ('s.p.e. mean charge = ', calibh.GaussianFitsParameters['mean'][1][0], 
-               ' +- ', 
-               calibh.GaussianFitsParameters['mean'][1][1])
 
 #########################
 def compute_charge(wset: WaveformSet,        
@@ -273,7 +293,7 @@ def compute_charge(wset: WaveformSet,
             b_ll: int = 0,
             b_ul: int = 100,
             nwfs: int = -1, 
-            op: str = None):        
+            op: str = ''):        
     
     # baseline limits
     bl = [b_ll, b_ul, 900, 1000]
@@ -291,16 +311,48 @@ def compute_charge(wset: WaveformSet,
     a=wset.analyse('standard',BasicWfAna,ip,checks_kwargs = checks_kwargs,overwrite=True)
 
 ###########################
+def compute_peaks(calibh: CalibrationHistogram,
+                    npeaks: int=2, 
+                    prominence: float=0.2,
+                    half_points_to_fit: int =10,
+                    op: str = ''):        
+
+
+    # fit the peaks of the calibration histogram
+    fp.fit_peaks_of_CalibrationHistogram(calibration_histogram=calibh,
+                                        max_peaks = npeaks,
+                                        prominence = prominence,
+                                        half_points_to_fit = half_points_to_fit,
+                                        initial_percentage = 0.1,
+                                        percentage_step = 0.1)
+
+
+    # print the gain and the S/N
+    if op and op.find('print') !=-1:
+        if len(calibh.GaussianFitsParameters['mean']) < 2:
+            print ('<2 peaks found. S/N and gain cannot be computed')
+        else:
+            gain = (calibh.GaussianFitsParameters['mean'][1][0]-calibh.GaussianFitsParameters['mean'][0][0])
+            signal_to_noise = gain/sqrt(calibh.GaussianFitsParameters['std'][1][0]**2+calibh.GaussianFitsParameters['std'][0][0]**2)        
+            print ('S/N =  ', signal_to_noise)
+            print ('gain = ', gain)
+            print ('s.p.e. mean charge = ', calibh.GaussianFitsParameters['mean'][1][0], 
+                ' +- ', 
+                calibh.GaussianFitsParameters['mean'][1][1])
+
+
+
+###########################
 def plot_avg(wset: WaveformSet,
             ep: int = -1, 
             ch: int = -1,            
             nwfs: int = -1,
             imin: float = None,
             imax: float = None, 
-            op: str = None):        
+            op: str = ''):        
 
     global fig
-    if op != 'same':
+    if not has_option(op,'same'):
         fig=go.Figure()
 
     # get wfs in specific channel
@@ -317,7 +369,10 @@ def plot_avg(wset: WaveformSet,
     aux = ch_ws.compute_mean_waveform()
 
     # plot the mean waveform
-    plot_WaveformAdcs(aux,fig)
+    plot_WaveformAdcs2(aux,fig)
+
+    # add axes titles
+    fig.update_layout(xaxis_title='time tick', yaxis_title='average adcs')
 
     write_image(fig)
     
@@ -390,13 +445,14 @@ def get_wfs_in_channel( wset : WaveformSet,
     return WaveformSet(*wfs)
 
 ###########################
-def zoom(xmin: float = None,
-         xmax: float = None,
-         ymin: float = None,
-         ymax: float = None):
-    if xmin and xmax:
+def zoom(xmin: float = -999,
+         xmax: float = -999,
+         ymin: float = -999,
+         ymax: float = -999):
+
+    if xmin!=-999 and xmax!=-999:
         fig.update_layout(xaxis_range=[xmin,xmax])
-    if ymin and ymax:
+    if ymin!=-999 and ymax!=-999:
         fig.update_layout(yaxis_range=[ymin,ymax])
     write_image(fig)
 
@@ -547,3 +603,131 @@ def get_histogram(values: [],
                                     name = "Hola")
     
     return histogram_trace
+
+##########################
+def plot_spe_mean_vs_var(wset_map, ep: int = -1, ch: int = -1, var: str = None, op: str = ''):       
+    plot_chist_param_vs_var(wset_map,ep,ch,'spe_mean',var,op)
+
+##########################
+def plot_sn_vs_var(wset_map, ep: int = -1, ch: int = -1, var: str = None, op: str = ''):       
+    plot_chist_param_vs_var(wset_map,ep,ch,'sn',var,op)
+
+##########################
+def plot_gain_vs_var(wset_map, ep: int = -1, ch: int = -1, var: str = None, op: str = ''):       
+    plot_chist_param_vs_var(wset_map,ep,ch,'gain',var,op)
+
+##########################
+def plot_spe_mean_vs_channel(wset_map, ep: int = -1, chs: list = None, op: str = ''):       
+    plot_param_vs_channel(wset_map,ep,chs,'spe_mean',op)
+
+##########################
+def plot_sn_vs_channel(wset_map, ep: int = -1, chs: list = None, op: str = ''):       
+    plot_param_vs_channel(wset_map,ep,chs,'sn',op)
+
+##########################
+def plot_gain_vs_channel(wset_map, ep: int = -1, chs: list = None, op: str = ''):       
+    plot_param_vs_channel(wset_map,ep,chs,'gain',op)
+
+
+###########################
+def plot_chist_param_vs_var(wset_map, 
+                     ep: int = -1,
+                     ch: int = -1,
+                     param: str = None,
+                     var: str = None,
+                     op: str = ''):
+       
+    global fig
+    if not has_option(op,'same'):
+        fig=go.Figure()    
+
+    par_values = []
+    var_values = []
+    # loop over pairs [WaveformSet, var]
+    for wset in wset_map:
+        # compute the charge/amplitude histogram for this wset and find/fit the peaks
+        calibh = compute_charge_histogram(wset[0],ep,ch,135,165,200,-5000,20000,op="peaks")
+        # get the parameters from the fitted peaks
+        gain,sn,spe_mean = compute_charge_histogram_params(calibh)
+        # add var values to the list
+        var_values.append(wset[1])
+        # add param values to the list, depending on the chosen param
+        if param == 'gain':
+            par_values.append(gain)
+        elif param == 'sn':
+            par_values.append(sn)
+        elif param == 'spe_mean':
+            par_values.append(spe_mean)
+
+
+    # get the trace 
+    trace = pgo.Scatter(x = var_values,
+                        y = par_values)
+    # add it to the figure
+    fig.add_trace(trace)
+
+    # add axes titles
+    fig.update_layout(xaxis_title=var, yaxis_title=param)    
+
+    write_image(fig)
+
+###########################
+def plot_param_vs_channel(wset: WaveformSet, 
+                        ep: int = -1,
+                        chs: list = None,
+                        param: str = None,
+                        op: str = ''):
+       
+    global fig
+    if not has_option(op,'same'):
+        fig=go.Figure()    
+
+    ch_values = []
+    par_values = []
+    # loop over channels
+    for ch in chs:
+        # compute the charge/amplitude histogram for this wset and find/fit the peaks
+        calibh = compute_charge_histogram(wset,ep,ch,135,165,200,-5000,20000,op=op+' peaks')
+        # get the parameters from the fitted peaks
+        gain,sn,spe_mean = compute_charge_histogram_params(calibh)
+        # add var values to the list
+        ch_values.append(ch)
+        # add param values to the list, depending on the chosen param
+        if param == 'gain':
+            par_values.append(gain)
+        elif param == 'sn':
+            par_values.append(sn)
+        elif param == 'spe_mean':
+            par_values.append(spe_mean)
+
+
+    # get the trace 
+    trace = pgo.Scatter(x = ch_values,
+                        y = par_values,
+                        mode = 'markers')
+    # add it to the figure
+    fig.add_trace(trace)
+
+    # add axes titles
+    fig.update_layout(xaxis_title="channel", yaxis_title=param)
+
+    write_image(fig)
+
+##########################
+def compute_charge_histogram_params(calibh: CalibrationHistogram):
+    if len(calibh.GaussianFitsParameters['mean']) > 1:
+        gain = (calibh.GaussianFitsParameters['mean'][1][0]-calibh.GaussianFitsParameters['mean'][0][0])
+        sn = gain/sqrt(calibh.GaussianFitsParameters['std'][1][0]**2+calibh.GaussianFitsParameters['std'][0][0]**2)
+        spe_mean = calibh.GaussianFitsParameters['mean'][1][0]
+    else:
+        gain=sn=spe_mean=0
+
+    return gain,sn,spe_mean
+
+##########################
+def has_option(ops: str, op: str):
+ 
+    if ops.find(op) == -1:
+        return False
+    else:
+        return True
