@@ -73,6 +73,8 @@ class WaveformAdcs:
                                         # attribute as an empty 
                                         # OrderedDict.
 
+        self.__time_offset2 = None
+
         ## Do we need to add trigger primitives as attributes?
 
     #Getters
@@ -87,6 +89,10 @@ class WaveformAdcs:
     @property
     def TimeOffset(self):
         return self.__time_offset
+    
+    @property
+    def TimeOffset2(self):
+        return self.__time_offset2
     
     @property
     def Analyses(self):
@@ -116,13 +122,16 @@ class WaveformAdcs:
         None
         """
 
-        if input < 0 or input >= len(self.__adcs)-1:
+        #if input < 0 or input >= len(self.__adcs)-1:
+        # anselmo. The daq window is 5 ms = 312500 time ticks of 16 ns
+        if input < 0 or input >= 312500:
             
             raise Exception(generate_exception_message( 1,
                                                         'WaveformAdcs.__set_time_offset()',
                                                         f"The given time offset ({input}) must belong to the [0, {len(self.__adcs)-2}] interval."))
         else:
-            self.__time_offset = input
+            self.__time_offset2 = input
+            self.__time_offset = input # 0 for ST, input for FS
 
         return
 
