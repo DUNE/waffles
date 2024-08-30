@@ -2,6 +2,7 @@
 import sys
 waffles_dir = '/Users/acervera/HEP/DUNE/ProtoDUNE-HD/PDS/data_taking/waffles'
 sys.path.append(waffles_dir+'/src') 
+sys.path.append(waffles_dir) 
 import waffles.plotting.drawing_tools as draw
 
 #open a png plot 
@@ -34,6 +35,8 @@ draw.plot_charge(wset,111,45,135,165,op="peaks")
 input()
 # if we want to change peaks parameters use this method, which takes as argument 
 # the charge histogram produced above
+
+charge_histo = draw.plot_charge(wset,111,45,135,165)
 
 # plot the charge histogram with 3 peaks 
 draw.plot_charge_peaks(charge_histo,3)
@@ -83,3 +86,59 @@ wset_40_45 = wset.from_filtered_WaveformSet(wset, filter_example,[40,45])
 
 # print the endpoint of the first 10 waveforms
 a=[print( i, wset_40_45.Waveforms[i].Channel) for i in range(10)]
+
+input()
+# load calibration files for different overvoltages
+wset_ov20=draw.read(waffles_dir+"/../DATA/calib_vs_ov_apa34_1800/run027919_0000_dataflow0_datawriter_0_20240709T095613.root",0,1)
+wset_ov25=draw.read(waffles_dir+"/../DATA/calib_vs_ov_apa34_1800/run027915_0000_dataflow0_datawriter_0_20240709T094426.root",0,1)
+wset_ov30=draw.read(waffles_dir+"/../DATA/calib_vs_ov_apa34_1800/run027911_0000_dataflow0_datawriter_0_20240709T092607.root",0,1)
+
+# plot the gain versus overvoltage for channel 112-42
+draw.plot_gain_vs_var([[wset_ov20,2],[wset_ov25,2.5],[wset_ov30,3]],112,42,'overvoltage')
+
+input()
+# plot the gain versus channel for few channels in ep 112
+draw.plot_gain_vs_channel(wset_ov25,112,[40,42,45,47])
+
+
+"""
+# load calibration files for different overvoltages
+wset_ov20=draw.read(waffles_dir+"/../DATA/run26687.root",0,1)
+wset_ov25=draw.read(waffles_dir+"/../DATA/run26687.root",0,1)
+wset_ov30=draw.read(waffles_dir+"/../DATA/run26687.root",0,1)
+
+# plot the gain versus overvoltage for channel 111-45
+draw.plot_gain_vs_var([[wset_ov20,2],[wset_ov25,2.5],[wset_ov30,3]],111,45,'overvoltage')
+
+
+# Read files fo APA2 LED calibration at different led intensities 
+wset_1400=draw.read(waffles_dir+"/../DATA/run28983.root",0,1)
+wset_1800=draw.read(waffles_dir+"/../DATA/run28984.root",0,1)
+wset_2200=draw.read(waffles_dir+"/../DATA/run28985.root",0,1)
+wset_2800=draw.read(waffles_dir+"/../DATA/run28986.root",0,1)
+wset_3400=draw.read(waffles_dir+"/../DATA/run28987.root",0,1)
+wset_4000=draw.read(waffles_dir+"/../DATA/run28988.root",0,1)
+
+from data.ProtoDUNE_HD_APA_maps import APA_map
+
+
+calib_map_apa2 = [
+    [APA_map[2].Data[0], wset_4000],
+    [APA_map[2].Data[1], wset_3400],
+    [APA_map[2].Data[2], wset_2800],
+    [APA_map[2].Data[3], wset_2200],
+    [APA_map[2].Data[4], wset_1800],
+    [APA_map[2].Data[5], wset_1400],
+    [APA_map[2].Data[6], wset_1800],
+    [APA_map[2].Data[7], wset_2200],
+    [APA_map[2].Data[8], wset_2800],
+    [APA_map[2].Data[9], wset_3400],
+]
+
+#plot the gain vs channel in apa 2
+draw.plot_gain_vs_channel(calib_map_apa2,apa=2, 135,160, op='match_filter')
+
+draw.plot_sn_vs_channel(calib_map_apa2,apa=2, 135,160)
+
+draw.plot_spe_amp_vs_channel(calib_map_apa2,apa=2, 135,160)
+"""
