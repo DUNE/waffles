@@ -1,6 +1,6 @@
 from waffles.data_classes.ChannelMap import ChannelMap
 
-from data.np04.ProtoDUNE_HD_APA_maps import flat_APA_map
+from waffles.np04_data.ProtoDUNE_HD_APA_maps import flat_APA_map
 from waffles.Exceptions import generate_exception_message
 
 def get_channel_iterator(   apa_no : ChannelMap,
