@@ -1,6 +1,6 @@
 import numpy as np
 
-from .WaveformAdcs import WaveformAdcs
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
 
 class Waveform(WaveformAdcs):
 
