@@ -16,15 +16,15 @@ if [ -n "$1" ];then
     else
         read -p "Enter where the files are [local/grid]: " localgrid
          while [[ $localgrid != "local" && $localgrid != "grid" ]]; do
-               read -p "Invalid entry, try again. Enter the localgrid [local/cern/fnal]: " localgrid
+               read -p "Invalid entry, try again. Enter the localgrid [local/grid]: " localgrid
          done
 fi
 if [ -n "$2" ];then
     where=$2
     else
-        read -p "Enter where are you [cern/fnal]: " where
+        read -p "Enter where are you [cern/fnal/all]: " where
          while [[ $where != "cern" && $where != "fnal" ]]; do
-               read -p "Invalid entry, try again. Enter where [cern/fnal]: " where
+               read -p "Invalid entry, try again. Enter where [cern/fnal/all]: " where
          done
 fi
 if [ -n "$3" ];then
@@ -89,28 +89,17 @@ if [ -f ${rucio_paths_file} ]; then
                rucio whoami
             fi
       fi
-
-      for line in $(rucio list-file-replicas hd-protodune:hd-protodune_${run} | sed -n '/'$where'/p')
-      do
+      
+      replicas=$( rucio list-file-replicas --pfns hd-protodune:hd-protodune_${run} )
+      echo "Found mathching results:" $replicas \n
+      for line in $replicas; do
          if [[ $line == *$where* ]]; then
             case $where in
-            fnal)
-               case $localgrid in
-               local)
-               foo="/pnfs"${line//*usr/}
-               fbb=${foo//'dunepro/'/'dunepro'}
-               echo $fbb | tee -a $HOME/${run0}.txt
-               ;;
-               grid)
-               echo $line | tee -a $HOME/${run0}.txt
-               ;;
-               esac
-            ;;
             cern)
                if [[ $line ==  *"experiment/neutplatform"* ]];then
                case $localgrid in
                local)
-               foo="/eos"${line//*'//eos'/}
+               foo="/eos"${line//*'//eos'/} # remove everything before //eos
                echo $foo | tee -a $HOME/${run0}.txt
                ;;
                grid)
@@ -118,6 +107,31 @@ if [ -f ${rucio_paths_file} ]; then
                ;;
                esac
                fi
+            ;;
+            fnal)
+               case $localgrid in
+               local)
+               foo="/pnfs"${line//*'/pnfs'/} 
+               echo "ee" $foo
+               # fbb=${foo//'dunepro/'/'dunepro'} # remove everything before /dunepro
+               echo $foo | tee -a $HOME/${run0}.txt
+               ;;
+               grid)
+               echo $line | tee -a $HOME/${run0}.txt
+               ;;
+               esac
+            ;;
+            pic)
+               case $localgrid in
+               local)
+               foo="/pnfs"${line//*'/pnfs'/} 
+               echo "ee" $foo
+               echo $foo | tee -a $HOME/${run0}.txt
+               ;;
+               grid)
+               echo $line | tee -a $HOME/${run0}.txt
+               ;;
+               esac
             ;;
             esac
          fi

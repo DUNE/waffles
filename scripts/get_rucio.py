@@ -1,18 +1,19 @@
-import os, click, subprocess, platform, shlex
+import os, click, subprocess, shlex
 
-def check_output(homepath, one_run):
+def save_output(homepath, saving_path, one_run):
     one_run = str(one_run).zfill(6)
-    print("\n")
     try: 
+        print("\n")
         with open(f"{homepath}/{one_run}.txt", "r") as f:
             output = f.read()
             print(output)
+        print("\n")
+        subprocess.call(shlex.split(f"mv {homepath}/{one_run}.txt {saving_path}{one_run}.txt"), shell=False)
     except FileNotFoundError:
         output = ""
         print("\033[35mNo files found for this run number.\033[0m")
-    print("\n")
     
-    return output, one_run
+    return output
  
 @click.command()
 @click.option("--runs", help="Run number to be analysed")
@@ -37,22 +38,24 @@ def main(runs):
     ## Loop over the runs ##
     for one_run in runs_list:
         print(f"\033[94m\nGetting the path for run {one_run}:\033[0m")
+        
         # Check if the files are stored in /eos/
         if os.path.exists(f"{saving_path}{str(one_run).zfill(6)}.txt"):
             print(f"\033[92mFound the file {saving_path}{str(one_run).zfill(6)}.txt\n\033[0m")
             with open(f"{saving_path}{str(one_run).zfill(6)}.txt", "r") as f: print(f.read())
+        
         # If not, get the rucio paths
         else:
             print(f"\033[35m\nYou are the first one looking for this file. Let's get the rucio paths!.\033[0m")
             homepath = os.environ['HOME']
 
-            get_rucio = f"bash get_protodunehd_files.sh local cern {one_run}" #This looks for local files in CERN computers
-            subprocess.call(shlex.split(get_rucio), shell=False)
-            
-            output, one_run = check_output(homepath, one_run)
-            if output != "":
-                print("\033[92m\nThe local paths have been saved in the following file:\033[0m")
-                subprocess.call(shlex.split(f"mv {homepath}/{one_run}.txt {saving_path}{one_run}.txt"), shell=False)
-
+            for option in [["local", "cern"], ["grid", "fnal"], ["grid", "pic"]]:
+                print("Looking for rucio paths matching: ", option)
+                get_rucio = f"bash get_protodunehd_files.sh {option[0]} {option[1]} {one_run}" #This looks for local files in CERN computers
+                subprocess.call(shlex.split(get_rucio), shell=False)
+                output = save_output(homepath, saving_path, one_run)
+                if output != "": break
+                   
+                    
 if __name__ == "__main__":
     main()
