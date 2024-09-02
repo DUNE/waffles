@@ -1,10 +1,13 @@
 #!/bin/bash
 # Source the setup script for the environment
-source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
+source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 
 # Load the necessary packages
-spack load r-m-dd-config experiment=dune
-spack load kx509
+setup python v3_9_15
+setup rucio 
+setup kx509
+
+kdestroy
 
 # Prompt the user for their username and password
 read -p "Enter your @FNAL.GOV username: " username

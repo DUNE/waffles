@@ -14,7 +14,7 @@ current_dir=$(pwd)
 if [ -n "$1" ];then
     localgrid=$1
     else
-        read -p "Enter the localgrid [local/grid]: " localgrid
+        read -p "Enter where the files are [local/grid]: " localgrid
          while [[ $localgrid != "local" && $localgrid != "grid" ]]; do
                read -p "Invalid entry, try again. Enter the localgrid [local/cern/fnal]: " localgrid
          done
@@ -22,7 +22,7 @@ fi
 if [ -n "$2" ];then
     where=$2
     else
-        read -p "Enter where [cern/fnal]: " where
+        read -p "Enter where are you [cern/fnal]: " where
          while [[ $where != "cern" && $where != "fnal" ]]; do
                read -p "Invalid entry, try again. Enter where [cern/fnal]: " where
          done
@@ -73,16 +73,18 @@ if [ -f ${rucio_paths_file} ]; then
                rucio whoami
             fi
             if [[ $os_name == "Red Hat Enterprise Linux" && $version_id == 9* ]]; then
-               echo -e "Configuring rucio in Alma 9"
-               echo -e "Work on progress...  Connect to SL7 to get the paths"
+               wget https://authentication.fnal.gov/krb5conf/SL7/krb5.conf
+               export KRB5_CONFIG="$current_dir/krb5.conf"
                source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
                spack load r-m-dd-config experiment=dune
                spack load kx509
+               kdestroy
                read -p "Enter your @FNAL.GOV username: " username
                echo "Please enter your password: "
                read -s password
                echo "${password}" | kinit ${username}@FNAL.GOV
                kx509
+
                export RUCIO_ACCOUNT=${username}
                rucio whoami
             fi
