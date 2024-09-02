@@ -2,13 +2,31 @@
 
 <!-- Missing to add expected outputs -->
 
+## Obtain file paths
+
+Before starting using the decoders you may need to get the paths of the HDF5 files you want to decode. This first step is common for both decoders. To get this `rucio_path` you can find some tools listed below:
+* `get_protodunehd_files.sh`: this script return the filepaths of the input run if `rucio` is setup correctly (if not it tries and setup it per run).
+* `setup_rucio_*.sh`: scripts to setup the `rucio` environment variables in your terminal. After that you can produce all the paths you need without re-authenticating.
+* `get_rucio.py`: script that wraps the needed tools to save the paths of the HDF5 files you want to decode and move it to the shared `eos` folder. This script will ask for the run number and the number of files you want to get. The output will be a list of paths to the HDF5 files. Moreover, this scripts handles the runs that have already been moved to tape and are not available in the `eos` folder. In this case, the script will ask for the tape location `root://filepath/`.
+
+This is summarized in the following steps:
+
+#### Get path for a single run
+```bash
+python get_rucio.py # Optional argument --runs 27632
+```
+
+#### Get path for several runs (without re-authenticating)
+```bash
+source setup_rucio_a9.sh
+python get_rucio.py # Optional argument --runs 27632,27633
+```
+
+For using these scripts you need valid `FNAL` credentials. Have a look at the [RUCIO DOCS](https://github.com/DUNE/data-mgmt-ops/wiki/Using-Rucio-to-find-Protodune-files-at-CERN/) for more details of this process.
+
 ## 00_HDF5toROOT
 
-We have developed two decoders (`C++` and `Python`) which output is a `root` file with the same structure. 
-
-The common input for both decoders is the `rucio_path` of the HDF5 file to be decoded. For that reason, we have developed a script to get them (`get_rucio.py`) which can be used standalone but is already integrated in the decoders. For using this script you need valid `FNAL` credentials. Have a look at the [RUCIO DOCS](https://github.com/DUNE/data-mgmt-ops/wiki/Using-Rucio-to-find-Protodune-files-at-CERN/) for more details of this process.
-
-After running them check `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root/run_YOUR_RUN_NUMBER/` for the output `root` files.
+We have developed two decoders (`C++` and `Python`) which output is a `root` file with the same structure. After running them check `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root/run_YOUR_RUN_NUMBER/` for the output `root` files.
 
 To use the decoders can follow the next instructions:
 
