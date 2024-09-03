@@ -2,7 +2,7 @@ import copy
 
 from typing import Optional, List, Any
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
 class map_:
@@ -58,24 +58,24 @@ class map_:
         # Shall we add type checks here?
 
         if rows < 1:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'Map.__init__()',
                 f"The given number of rows ({rows}) must be positive."))
         if columns < 1:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'Map.__init__()',
                 f"The given number of columns ({columns}) must be positive."))
 
         if not map_.list_of_lists_is_well_formed(data, rows, columns):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 3,
                 'Map.__init__()',
                 f"The shape of the given data is not ({rows}, {columns})."))
 
         if not all([isinstance(item, type_) for row in data for item in row]):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 4,
                 'Map.__init__()',
                 f"The type of the objects in the given data must be {type_}."))
@@ -123,7 +123,7 @@ class map_:
         """
 
         if nrows < 1 or ncols < 1:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'Map.list_of_lists_is_well_formed()',
                 'The number of rows and columns must be positive.'))
@@ -174,12 +174,12 @@ class map_:
         """
 
         if nrows < 1 or ncols < 1:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'Map.from_unique_value()',
                 'The number of rows and columns must be positive.'))
         if not isinstance(value, type_):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'Map.from_unique_value()',
                 'The type of the given value must match the given type.'))

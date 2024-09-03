@@ -2,7 +2,7 @@ import numba
 import numpy as np
 from typing import List, Tuple
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
 def gaussian(
@@ -359,12 +359,12 @@ def cluster_integers_by_contiguity(
     """
 
     if increasingly_sorted_integers.ndim != 1:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             1,
             'cluster_integers_by_contiguity()',
             'The given numpy array must be unidimensional.'))
     if len(increasingly_sorted_integers) < 2:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             2,
             'cluster_integers_by_contiguity()',
             'The given numpy array must contain at least two elements.'))

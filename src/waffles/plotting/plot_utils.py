@@ -2,12 +2,12 @@ import numpy as np
 from plotly import graph_objects as pgo
 from typing import List, Optional
 
-from waffles.data_classes.WaveformSet import waveform_set
-from waffles.data_classes.ChannelWSGrid import channel_ws_grid
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.ChannelWSGrid import ChannelWsGrid
 
 import waffles.utils.numerical_utils as wun
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
 def check_dimensions_of_suplots_figure(
@@ -43,13 +43,13 @@ def check_dimensions_of_suplots_figure(
     except Exception:
         # Happens if figure was not created using plotly.subplots.make_subplots
 
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             1,
             'check_dimensions_of_suplots_figure()',
             'The given figure is not a subplot grid.'))
     if fig_rows != nrows or fig_cols != ncols:
 
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             2,
             'check_dimensions_of_suplots_figure()',
             "The number of rows and columns in the given figure"
@@ -94,7 +94,7 @@ def update_shared_axes_status(
     except Exception:
         # Happens if figure was not created using
         # plotly.subplots.make_subplots
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             1,
             'update_shared_axes_status()',
             'The given figure is not a subplot grid.'))
@@ -199,7 +199,7 @@ def get_string_of_first_n_integers_if_available(
     """
 
     if queried_no < 1:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             1,
             'get_string_of_first_n_integers_if_available()',
             f"The given queried_no ({queried_no}) must be positive."))
@@ -221,7 +221,7 @@ def get_string_of_first_n_integers_if_available(
 
 
 def __subplot_heatmap(
-        waveform_set: waveform_set,
+        WaveformSet: WaveformSet,
         figure: pgo.Figure,
         name: str,
         row: int,
@@ -255,8 +255,8 @@ def __subplot_heatmap(
 
     Parameters
     ----------
-    waveform_set : waveform_set
-        The waveform_set object whose waveforms
+    WaveformSet : WaveformSet
+        The WaveformSet object whose waveforms
         will be plotted in the heatmap
     figure : pgo.Figure
         The figure where the heatmap will be
@@ -274,13 +274,13 @@ def __subplot_heatmap(
         method.
     wf_idcs : list of int
         Indices of the waveforms, with respect
-        to the waveform_set.waveforms list,
+        to the WaveformSet.waveforms list,
         which will be added to the heatmap.
     analysis_label : str
-        For each considered waveform, it is the
+        For each considered Waveform, it is the
         key for its Analyses attribute which gives
         the WfAna object whose computed baseline
-        is subtracted from the waveform prior to
+        is subtracted from the Waveform prior to
         addition to the heatmap. The baseline is
         grabbed from the 'baseline' key in the
         Result attribute of the specified WfAna
@@ -320,19 +320,19 @@ def __subplot_heatmap(
 
     aux_x = np.hstack([np.arange(
         0,
-        waveform_set.PointsPerWf,
-        dtype=np.float32) + waveform_set.waveforms[idx].time_offset for idx in wf_idcs])
+        WaveformSet.PointsPerWf,
+        dtype=np.float32) + WaveformSet.waveforms[idx].time_offset for idx in wf_idcs])
 
     try:
         aux_y = np.hstack([
-            waveform_set.waveforms[idx].plot_waveform_adcs -
-            waveform_set.waveforms[idx].Analyses[analysis_label].Result['baseline'] for idx in wf_idcs])
+            WaveformSet.waveforms[idx].plot_waveform_adcs -
+            WaveformSet.waveforms[idx].Analyses[analysis_label].Result['baseline'] for idx in wf_idcs])
 
     except KeyError:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             1,
             '__subplot_heatmap()',
-            f"Either an analysis with the given analysis_label ({analysis_label}) does not exist for the waveforms in the given waveform_set, or the analysis exists but it does not compute the baseline under the 'baseline' key."))
+            f"Either an analysis with the given analysis_label ({analysis_label}) does not exist for the waveforms in the given WaveformSet, or the analysis exists but it does not compute the baseline under the 'baseline' key."))
 
     aux = wun.histogram2d(
         np.vstack((aux_x, aux_y)),
@@ -355,7 +355,7 @@ def __subplot_heatmap(
     return figure_
 
 
-def arrange_time_vs_ADC_ranges(waveform_set: waveform_set,
+def arrange_time_vs_ADC_ranges(WaveformSet: WaveformSet,
                                time_range_lower_limit: Optional[int] = None,
                                time_range_upper_limit: Optional[int] = None,
                                adc_range_above_baseline: int = 100,
@@ -363,19 +363,19 @@ def arrange_time_vs_ADC_ranges(waveform_set: waveform_set,
     """
     This function arranges a 2x2 numpy array with a time and 
     ADC range which is constrained to the number of points 
-    in the waveforms of the given waveform_set, i.e. 
-    waveform_set.PointsPerWf.
+    in the waveforms of the given WaveformSet, i.e. 
+    WaveformSet.PointsPerWf.
 
     Parameters
     ----------
-    waveform_set : waveform_set
-        The waveform_set object for which the time and ADC
+    WaveformSet : WaveformSet
+        The WaveformSet object for which the time and ADC
         ranges will be built.
     time_range_lower_limit (resp. time_range_upper_limit) : int
         If it is defined, then it gives the lower (resp. upper) 
         limit of the time range, in time ticks. If it is not
         defined, then the lower (resp. upper) will be set to 
-        0 (resp. waveform_set.PointsPerWf - 1). It must be 
+        0 (resp. WaveformSet.PointsPerWf - 1). It must be 
         smaller (resp. greater) than time_range_upper_limit 
         (resp. time_range_lower_limit).
     adc_range_above_baseline (resp. adc_range_below_baseline) : int
@@ -394,12 +394,12 @@ def arrange_time_vs_ADC_ranges(waveform_set: waveform_set,
     if time_range_lower_limit is not None:
         time_range_lower_limit_ = time_range_lower_limit
 
-    time_range_upper_limit_ = waveform_set.PointsPerWf - 1
+    time_range_upper_limit_ = WaveformSet.PointsPerWf - 1
     if time_range_upper_limit is not None:
         time_range_upper_limit_ = time_range_upper_limit
 
     if time_range_lower_limit_ >= time_range_upper_limit_:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             1,
             'arrange_time_vs_ADC_ranges()',
             f"The time range limits ({time_range_lower_limit_}, "
@@ -411,7 +411,7 @@ def arrange_time_vs_ADC_ranges(waveform_set: waveform_set,
 
 
 def __add_unique_channels_top_annotations(
-        channel_ws_grid: channel_ws_grid,
+        ChannelWsGrid: ChannelWsGrid,
         figure: pgo.Figure,
         also_add_run_info: bool = False) -> pgo.Figure:
     """
@@ -419,17 +419,17 @@ def __add_unique_channels_top_annotations(
     meant to be called uniquely by the plot_ChannelWSGrid() 
     function, where the well-formedness of the input 
     figure has been checked. This function receives a
-    channel_ws_grid object and a pgo.Figure object, and 
+    ChannelWsGrid object and a pgo.Figure object, and 
     adds annotations on top of each subplot of the given 
     figure. The annotations are the string representation 
     of the UniqueChannel object, each of which is placed
     on top of a subplot according to its position in
-    the channel_ws_grid.ch_map attribute.
+    the ChannelWsGrid.ch_map attribute.
 
     Parameters
     ----------
-    channel_ws_grid : channel_ws_grid
-        The channel_ws_grid object whose ch_map attribute
+    ChannelWsGrid : ChannelWsGrid
+        The ChannelWsGrid object whose ch_map attribute
         will be used to add annotations to the given 
         figure.
     figure : plotly.graph_objects.Figure
@@ -437,12 +437,12 @@ def __add_unique_channels_top_annotations(
     also_add_run_info : bool
         If True, then for each subplot for which there
         is a ChannelWS object, say chws, present in the 
-        channel_ws_grid.ch_wf_sets attribute, the first run 
+        ChannelWsGrid.ch_wf_sets attribute, the first run 
         number which appears in the chws.runs attribute 
         will be additionally added to the annotation. 
         For each subplot for which there is no ChannelWS 
         object, according to the physical position given 
-        by the channel_ws_grid.ch_map attribute, no additional 
+        by the ChannelWsGrid.ch_map attribute, no additional 
         annotation will be added.
 
     Returns
@@ -451,8 +451,8 @@ def __add_unique_channels_top_annotations(
         The given figure with the annotations added
     """
 
-    for i in range(channel_ws_grid.ch_map.rows):
-        for j in range(channel_ws_grid.ch_map.columns):
+    for i in range(ChannelWsGrid.ch_map.rows):
+        for j in range(ChannelWsGrid.ch_map.columns):
             figure.add_annotation(
                 xref="x domain",
                 yref="y domain",
@@ -460,23 +460,23 @@ def __add_unique_channels_top_annotations(
                 y=1.25,           # and on top of each subplot
                 showarrow=False,
                 # Implicitly using UniqueChannel.__repr__()
-                text=str(channel_ws_grid.ch_map.data[i][j]),
+                text=str(ChannelWsGrid.ch_map.data[i][j]),
                 row=i + 1,
                 col=j + 1)
     if also_add_run_info:
-        for i in range(channel_ws_grid.ch_map.rows):
-            for j in range(channel_ws_grid.ch_map.columns):
+        for i in range(ChannelWsGrid.ch_map.rows):
+            for j in range(ChannelWsGrid.ch_map.columns):
                 try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i]
-                        [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
+                    ChannelWs = ChannelWsGrid.ch_wf_sets[
+                        ChannelWsGrid.ch_map.data[i]
+                        [j].endpoint][ChannelWsGrid.ch_map.data[i][j].channel]
 
                 except KeyError:
                     continue
 
-                # Since a waveform_set must contain at
-                aux = list(channel_ws.runs)
-                # least one waveform, it is ensured that
+                # Since a WaveformSet must contain at
+                aux = list(ChannelWs.runs)
+                # least one Waveform, it is ensured that
                 # there is at least one run value here
                 if len(aux) > 1:
                     annotation = f"runs {aux[0]}, ..."

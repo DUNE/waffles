@@ -1,14 +1,14 @@
-from waffles.data_classes.IODict import io_dict
+from waffles.data_classes.IODict import IoDict
 
 
-class or_dict(io_dict):
+class OrDict(IoDict):
 
     """
     Stands for Output Result Dictionary. This class
-    inherits from the io_dict class, and it is intended
+    inherits from the IoDict class, and it is intended
     to store a set of resulting parameters from an
     arbitrary computation. This class adds no further
-    members to the io_dict class and its base class
+    members to the IoDict class and its base class
     (the built-in dictionary) except for the fact that
     it re-implements the subscription (__getitem__) method.
     """

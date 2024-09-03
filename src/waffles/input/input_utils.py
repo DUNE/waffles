@@ -15,9 +15,9 @@ except ImportError:
 
 from typing import Union, List, Tuple, Optional
 
-from waffles.data_classes.Waveform import waveform
+from waffles.data_classes.Waveform import Waveform
 import waffles.utils.numerical_utils as wun
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
 def find_ttree_in_root_tfile(
@@ -58,20 +58,20 @@ def find_ttree_in_root_tfile(
     if library == 'uproot':
         if not isinstance(
                 file, uproot.ReadOnlyDirectory):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'find_ttree_in_root_tfile()',
                 'Since the uproot library was specified, the input file'
                 ' must be of type uproot.ReadOnlyDirectory.'))
     elif library == 'pyroot':
         if not isinstance(file, ROOT.TFile):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'find_ttree_in_root_tfile()',
                 'Since the pyroot library was specified, the input file '
                 'must be of type ROOT.TFile.'))
     else:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             3,
             'find_ttree_in_root_tfile()',
             f"The library '{library}' is not supported. Either 'uproot' "
@@ -90,7 +90,7 @@ def find_ttree_in_root_tfile(
                 break
 
     if TTree_name is None:
-        raise NameError(generate_exception_message(
+        raise NameError(GenerateExceptionMessage(
             4,
             'find_ttree_in_root_tfile()',
             f"There is no TTree with a name starting with '{TTree_pre_name}'."))
@@ -135,20 +135,20 @@ def find_tbranch_in_root_ttree(
 
     if library == 'uproot':
         if not isinstance(tree, uproot.TTree):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'find_tbranch_in_root_ttree()',
                 'Since the uproot library was specified, '
                 'the input tree must be of type uproot.TTree.'))
     elif library == 'pyroot':
         if not isinstance(tree, ROOT.TTree):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'find_tbranch_in_root_ttree()',
                 'Since the pyroot library was specified, '
                 'the input tree must be of type ROOT.TTree.'))
     else:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             3,
             'find_tbranch_in_root_ttree()',
             f"The library '{library}' is not supported. "
@@ -167,7 +167,7 @@ def find_tbranch_in_root_ttree(
                 break
 
     if TBranch_name is None:
-        raise NameError(generate_exception_message(
+        raise NameError(GenerateExceptionMessage(
             4,
             'find_tbranch_in_root_ttree()',
             "There is no TBranch with a name starting with"
@@ -250,7 +250,7 @@ def root_to_array_type_code(input: str) -> str:
     try:
         output = map[input]
     except KeyError:
-        raise ValueError(generate_exception_message(
+        raise ValueError(GenerateExceptionMessage(
             1,
             'root_to_array_type_code()',
             f"The given data type ({input}) is not recognized."))
@@ -308,7 +308,7 @@ def get_1d_array_from_pyroot_tbranch(
             branch_name,
             'pyroot')
     except NameError:
-        raise NameError(generate_exception_message(
+        raise NameError(GenerateExceptionMessage(
             1,
             'get_1d_array_from_pyroot_tbranch()',
             "There is no TBranch with a name starting with"
@@ -319,7 +319,7 @@ def get_1d_array_from_pyroot_tbranch(
         i_up_ = i_up
 
     if i_low < 0 or i_low >= i_up_ or i_up_ > branch.GetEntries():
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             2,
             'get_1d_array_from_pyroot_tbranch()',
             f"The given range [{i_low}, {i_up_}) "
@@ -377,12 +377,12 @@ def __build_waveforms_list_from_root_file_using_uproot(
         meta_data_tree: uproot.TTree,
         set_offset_wrt_daq_window: bool = False,
         first_wf_index: int = 0,
-        verbose: bool = True) -> List[waveform]:
+        verbose: bool = True) -> List[Waveform]:
     """
     This is a helper function which must only be called by the
     WaveformSet_from_ROOT_file() function. This function reads
     a subset of waveforms from the given uproot.TTree and appends
-    them one by one to a list of waveform objects, which is
+    them one by one to a list of Waveform objects, which is
     finally returned by this function. When the uproot library
     is specified, WaveformSet_from_ROOT_file() delegates such
     task to this helper function.
@@ -404,7 +404,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
         If True, then the bulk data tree must also have a
         branch whose name starts with 'daq_timestamp'. In
         this case, then the time_offset attribute of each
-        waveform is set as the difference between its
+        Waveform is set as the difference between its
         value for the 'timestamp' branch and the value
         for the 'daq_timestamp' branch, in such order,
         referenced to the minimum value of such difference
@@ -412,7 +412,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
         waveforms whose time overlap is not null, for
         plotting and analysis purposes.
     first_wf_index : int
-        The index of the first waveform of the chunk in
+        The index of the first Waveform of the chunk in
         the bulk data, which can be potentially read.
         WaveformSet_from_ROOT_file() calculates this
         value based on its 'start_fraction' input parameter.
@@ -422,7 +422,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
 
     Returns
     ----------
-    waveforms : list of waveform
+    waveforms : list of Waveform
     """
 
     clustered_idcs_to_retrieve = wun.cluster_integers_by_contiguity(
@@ -522,7 +522,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
                 endpoint, channel = split_endpoint_and_channel(
                     current_channel_array[i])
 
-                waveforms.append(waveform(
+                waveforms.append(Waveform(
                     current_timestamp_array[i],
                     16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
                     # 'time_to_nsec' value from the
@@ -574,7 +574,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
                 endpoint, channel = split_endpoint_and_channel(
                     current_channel_array[i])
 
-                waveforms.append(waveform(
+                waveforms.append(Waveform(
                     current_timestamp_array[i],
                     16.,    # TimeStep_ns
                     # meta_data[1],
@@ -603,12 +603,12 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
         set_offset_wrt_daq_window: bool = False,
         first_wf_index: int = 0,
         subsample: int = 1,
-        verbose: bool = True) -> List[waveform]:
+        verbose: bool = True) -> List[Waveform]:
     """
     This is a helper function which must only be called by
     the WaveformSet_from_ROOT_file() function. This function
     reads a subset of waveforms from the given ROOT.TTree
-    and appends them one by one to a list of waveform objects,
+    and appends them one by one to a list of Waveform objects,
     which is finally returned by this function. When the
     pyroot library is specified, WaveformSet_from_ROOT_file()
     delegates such task to this helper function.
@@ -633,7 +633,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
         If True, then the bulk data tree must also have a
         branch whose name starts with 'daq_timestamp'. In
         this case, then the time_offset attribute of each
-        waveform is set as the difference between its
+        Waveform is set as the difference between its
         value for the 'timestamp' branch and the value
         for the 'daq_timestamp' branch, in such order,
         referenced to the minimum value of such difference
@@ -641,19 +641,19 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
         waveforms whose time overlap is not null, for
         plotting and analysis purposes.
     first_wf_index : int
-        The index of the first waveform of the chunk in
+        The index of the first Waveform of the chunk in
         the bulk data, which can be potentially read.
         WaveformSet_from_ROOT_file() calculates this value
         based on its 'start_fraction' input parameter.
     subsample : int
         It matches one plus the number of waveforms to be
         skipped between two consecutive waveforms to be read.
-        I.e. if subsample is set to N, then the i-th waveform
+        I.e. if subsample is set to N, then the i-th Waveform
         to be read is the one with index equal to
         first_wf_index + idcs_to_retrieve[i*N]. P.e.
-        the 0-th waveform to be read is the one with
+        the 0-th Waveform to be read is the one with
         index equal to first_wf_index + idcs_to_retrieve[0],
-        the 1-th waveform to be read is the one with
+        the 1-th Waveform to be read is the one with
         index equal to first_wf_index + idcs_to_retrieve[N]
         and so on.
         If True, then functioning-related messages will be
@@ -661,7 +661,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
 
     Returns
     ----------
-    waveforms : list of waveform
+    waveforms : list of Waveform
     """
 
     meta_data = __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree)
@@ -727,7 +727,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
 
             endpoint, channel = split_endpoint_and_channel(channel_address[0])
 
-            waveforms.append(waveform(
+            waveforms.append(Waveform(
                 timestamp_address[0],
                 16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
                 # 'time_to_nsec' value from the
@@ -759,7 +759,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
 
             endpoint, channel = split_endpoint_and_channel(channel_address[0])
 
-            waveforms.append(waveform(
+            waveforms.append(Waveform(
                 timestamp_address[0],
                 16.,
                 # TimeStep_ns

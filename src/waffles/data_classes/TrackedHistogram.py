@@ -3,10 +3,10 @@ from typing import List, Union
 
 import waffles.utils.numerical_utils as wun
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
-class tracked_histogram:
+class TrackedHistogram:
 
     """
     This class implements a histogram which keeps
@@ -67,32 +67,32 @@ class tracked_histogram:
         """
 
         if bins_number < 2:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'TrackedHistogram.__init__()',
                 f"The given bins number ({bins_number})"
                 " must be greater than 1."))
         if len(edges) != bins_number + 1:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'TrackedHistogram.__init__()',
                 f"The length of the 'edges' parameter ({len(edges)})"
                 f" must match 'bins_number + 1' ({bins_number + 1})."))
         if len(counts) != bins_number:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 3,
                 'TrackedHistogram.__init__()',
                 f"The length of the 'counts' parameter ({len(counts)})"
                 f" must match 'bins_number' ({bins_number})."))
         if len(indices) != bins_number:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 4,
                 'TrackedHistogram.__init__()',
                 f"The length of the 'indices' parameter ({len(indices)})"
                 f" must match 'bins_number' ({bins_number})."))
         for i in range(bins_number):
             if len(indices[i]) != counts[i]:
-                raise Exception(generate_exception_message(
+                raise Exception(GenerateExceptionMessage(
                     5,
                     'TrackedHistogram.__init__()',
                     f"The length of 'indices[{i}]' parameter"
@@ -131,7 +131,7 @@ class tracked_histogram:
     def from_samples(
             cls, samples: List[Union[int, float]],
             bins_number: int,
-            domain: np.ndarray) -> 'tracked_histogram':
+            domain: np.ndarray) -> 'TrackedHistogram':
         """
         Alternative initializer for the TrackedHistogram class.
         It creates a tracked histogram from a list of samples.
@@ -156,13 +156,13 @@ class tracked_histogram:
         """
 
         if bins_number < 2:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'TrackedHistogram.from_samples()',
                 f"The given bins number ({bins_number})"
                 " must be greater than 1."))
         if np.ndim(domain) != 1 or len(domain) != 2:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'TrackedHistogram.from_samples()',
                 "The 'domain' parameter must be a "

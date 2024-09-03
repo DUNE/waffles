@@ -1,9 +1,9 @@
 import inspect
 
-from waffles.data_classes.WaveformAdcs import waveform_adcs
-from waffles.data_classes.Waveform import waveform
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
+from waffles.data_classes.Waveform import Waveform
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
 def check_well_formedness_of_generic_waveform_function(
@@ -14,11 +14,11 @@ def check_well_formedness_of_generic_waveform_function(
 
         -   such signature takes at least one argument
         -   the first argument of such signature
-            is called 'waveform'
+            is called 'Waveform'
         -   the type annotation of such argument 
-            must be either the waveform_adcs class,
-            the waveform class, the 'waveform_adcs'
-            string literal or the 'waveform' string
+            must be either the WaveformAdcs class,
+            the Waveform class, the 'WaveformAdcs'
+            string literal or the 'Waveform' string
             literal
         -   the return type of such signature 
             is annotated as a boolean value
@@ -36,27 +36,27 @@ def check_well_formedness_of_generic_waveform_function(
     """
 
     try:
-        if list(wf_function_signature.parameters.keys())[0] != 'waveform':
-            raise Exception(generate_exception_message(
+        if list(wf_function_signature.parameters.keys())[0] != 'Waveform':
+            raise Exception(GenerateExceptionMessage(
                 1,
                 "check_well_formedness_of_generic_waveform_function()",
                 "The name of the first parameter of the given signature "
-                "must be 'waveform'."))
+                "must be 'Waveform'."))
     except IndexError:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             2,
             "check_well_formedness_of_generic_waveform_function()",
             'The given signature must take at least one parameter.'))
 
-    if wf_function_signature.parameters['waveform'].annotation not in [
-            waveform_adcs, 'waveform_adcs', waveform, 'waveform']:
-        raise Exception(generate_exception_message(
+    if wf_function_signature.parameters['Waveform'].annotation not in [
+            WaveformAdcs, 'WaveformAdcs', Waveform, 'Waveform']:
+        raise Exception(GenerateExceptionMessage(
             3,
             "check_well_formedness_of_generic_waveform_function()",
-            "The 'waveform' parameter of the given signature must be "
-            "hinted as a waveform_adcs (or an inherited class) object."))
+            "The 'Waveform' parameter of the given signature must be "
+            "hinted as a WaveformAdcs (or an inherited class) object."))
     if wf_function_signature.return_annotation != bool:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             4,
             "check_well_formedness_of_generic_waveform_function()",
             "The return type of the given signature must be hinted as a "
@@ -65,16 +65,16 @@ def check_well_formedness_of_generic_waveform_function(
 
 
 def match_run(
-        waveform: waveform,
+        Waveform: Waveform,
         run: int) -> bool:
     """
     This function returns True if the RunNumber attribute
-    of the given waveform object matches run. It returns 
+    of the given Waveform object matches run. It returns 
     False if else.
 
     Parameters
     ----------
-    waveform : waveform
+    Waveform : Waveform
     run : int
 
     Returns
@@ -82,20 +82,20 @@ def match_run(
     bool
     """
 
-    return waveform.run_number == run
+    return Waveform.run_number == run
 
 
 def match_endpoint(
-        waveform: waveform,
+        Waveform: Waveform,
         endpoint: int) -> bool:
     """
     This function returns True if the endpoint attribute
-    of the given waveform object matches endpoint, and 
+    of the given Waveform object matches endpoint, and 
     False if else.
 
     Parameters
     ----------
-    waveform : waveform
+    Waveform : Waveform
     endpoint : int
 
     Returns
@@ -103,20 +103,20 @@ def match_endpoint(
     bool
     """
 
-    return waveform.endpoint == endpoint
+    return Waveform.endpoint == endpoint
 
 
 def match_channel(
-        waveform: waveform,
+        Waveform: Waveform,
         channel: int) -> bool:
     """
     This function returns True if the channel attribute
-    of the given waveform object matches channel, and 
+    of the given Waveform object matches channel, and 
     False if else.
 
     Parameters
     ----------
-    waveform : waveform
+    Waveform : Waveform
     channel : int
 
     Returns
@@ -124,21 +124,21 @@ def match_channel(
     bool
     """
 
-    return waveform.channel == channel
+    return Waveform.channel == channel
 
 
 def match_endpoint_and_channel(
-        waveform: waveform,
+        Waveform: Waveform,
         endpoint: int,
         channel: int) -> bool:
     """
     This function returns True if the endpoint and channel
-    attributes of the given waveform object match endpoint 
+    attributes of the given Waveform object match endpoint 
     and channel, respectively.
 
     Parameters
     ----------
-    waveform : waveform
+    Waveform : Waveform
     endpoint : int
     channel : int
 
@@ -147,4 +147,4 @@ def match_endpoint_and_channel(
     bool
     """
 
-    return waveform.endpoint == endpoint and waveform.channel == channel
+    return Waveform.endpoint == endpoint and Waveform.channel == channel

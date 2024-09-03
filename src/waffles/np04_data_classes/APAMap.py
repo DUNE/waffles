@@ -1,10 +1,10 @@
 from typing import List
 
-from waffles.data_classes.UniqueChannel import unique_channel
-from waffles.data_classes.ChannelMap import channel_map
+from waffles.data_classes.UniqueChannel import UniqueChannel
+from waffles.data_classes.ChannelMap import ChannelMap
 
 
-class APAMap(channel_map):
+class APAMap(ChannelMap):
 
     """
     This class implements a channel map for an APA. I.e.
@@ -23,7 +23,7 @@ class APAMap(channel_map):
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self, data: List[List[unique_channel]]):
+    def __init__(self, data: List[List[UniqueChannel]]):
         """
         APAMap class initializer
 
