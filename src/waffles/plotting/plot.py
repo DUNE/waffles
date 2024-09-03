@@ -7,7 +7,7 @@ from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWSGrid import ChannelWsGrid
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
-from waffles.data_classes.Map import map_
+from waffles.data_classes.Map import Map
 
 import waffles.plotting.plot_utils as wpu
 import waffles.utils.numerical_utils as wun
@@ -348,7 +348,7 @@ def plot_WaveformSet(
         ncols: int = 1,
         figure: Optional[pgo.Figure] = None,
         wfs_per_axes: Optional[int] = 1,
-        map_of_wf_idcs: Optional[map_] = None,
+        Mapof_wf_idcs: Optional[Map] = None,
         share_x_scale: bool = False,
         share_y_scale: bool = False,
         mode: str = 'overlay',
@@ -407,7 +407,7 @@ def plot_WaveformSet(
         (resp. 'ncols') parameter.
     wfs_per_axes : int
         If it is not None, then the argument given to 
-        'map_of_wf_idcs' will be ignored. In this case,
+        'Mapof_wf_idcs' will be ignored. In this case,
         the number of waveforms considered for each
         axes is wfs_per_axes. P.e. for wfs_per_axes 
         equal to 2, the axes at the first row and first
@@ -415,9 +415,9 @@ def plot_WaveformSet(
         two waveforms in the set. The axes in the first 
         row and second column will consider the 
         following two, and so on.
-    map_of_wf_idcs : map_ of lists of integers
-        This map_ must contain lists of integers.
-        map_of_wf_idcs.data[i][j] gives the indices of the 
+    Mapof_wf_idcs : Map of lists of integers
+        This Map must contain lists of integers.
+        Mapof_wf_idcs.data[i][j] gives the indices of the 
         waveforms, with respect to the given WaveformSet, 
         WaveformSet, which should be considered for 
         plotting in the axes which are located at the i-th 
@@ -627,9 +627,9 @@ def plot_WaveformSet(
         figure_ = psu.make_subplots(rows=nrows,
                                     cols=ncols)
 
-    data_of_map_of_wf_idcs = None         # Logically useless
+    data_of_Mapof_wf_idcs = None         # Logically useless
 
-    if wfs_per_axes is not None:    # wfs_per_axes is defined, so ignore map_of_wf_idcs
+    if wfs_per_axes is not None:    # wfs_per_axes is defined, so ignore Mapof_wf_idcs
 
         if wfs_per_axes < 1:
             raise Exception(GenerateExceptionMessage(
@@ -637,33 +637,33 @@ def plot_WaveformSet(
                 'plot_WaveformSet()',
                 'The number of waveforms per axes must be positive.'))
 
-        data_of_map_of_wf_idcs = WaveformSet.get_map_of_wf_idcs(
+        data_of_Mapof_wf_idcs = WaveformSet.get_Mapof_wf_idcs(
             nrows,
             ncols,
             wfs_per_axes=wfs_per_axes).data
 
-    elif map_of_wf_idcs is None:    # Nor wf_per_axes, nor
-        # map_of_wf_idcs are defined
+    elif Mapof_wf_idcs is None:    # Nor wf_per_axes, nor
+        # Mapof_wf_idcs are defined
 
         raise Exception(GenerateExceptionMessage(
             3,
             'plot_WaveformSet()',
-            "The 'map_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
+            "The 'Mapof_wf_idcs' parameter must be defined if wfs_per_axes is not."))
 
-    elif not map_.list_of_lists_is_well_formed(
-            map_of_wf_idcs.data,    # wf_per_axes is not defined,
-            nrows,                  # but map_of_wf_idcs is, but
+    elif not Map.list_of_lists_is_well_formed(
+            Mapof_wf_idcs.data,    # wf_per_axes is not defined,
+            nrows,                  # but Mapof_wf_idcs is, but
             ncols):                 # it is not well-formed
 
         raise Exception(GenerateExceptionMessage(
             4,
             'plot_WaveformSet()',
-            f"The given map_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
+            f"The given Mapof_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
     else:   # wf_per_axes is not defined,
-        # but map_of_wf_idcs is,
+        # but Mapof_wf_idcs is,
         # and it is well-formed
 
-        data_of_map_of_wf_idcs = map_of_wf_idcs.data
+        data_of_Mapof_wf_idcs = Mapof_wf_idcs.data
 
     wpu.update_shared_axes_status(
         figure_,                    # An alternative way is to specify
@@ -677,8 +677,8 @@ def plot_WaveformSet(
     if mode == 'overlay':
         for i in range(nrows):
             for j in range(ncols):
-                if len(data_of_map_of_wf_idcs[i][j]) > 0:
-                    for k in data_of_map_of_wf_idcs[i][j]:
+                if len(data_of_Mapof_wf_idcs[i][j]) > 0:
+                    for k in data_of_Mapof_wf_idcs[i][j]:
 
                         aux_name = f"({i+1}, {j+1}) - Wf {k}, Ch {WaveformSet.waveforms[k].channel}, Ep {
                             WaveformSet.waveforms[k].endpoint}"
@@ -710,8 +710,8 @@ def plot_WaveformSet(
                 try:
                     # WaveformSet.compute_mean_waveform() will raise an
                     aux = WaveformSet.compute_mean_waveform(
-                        wf_idcs=data_of_map_of_wf_idcs[i][j])
-                    # exception if data_of_map_of_wf_idcs[i][j] is empty
+                        wf_idcs=data_of_Mapof_wf_idcs[i][j])
+                    # exception if data_of_Mapof_wf_idcs[i][j] is empty
 
                 except Exception:  # At some point we should implement a number of exceptions which are self-explanatory,
                     # so that we can handle in parallel exceptions due to different reasons if we need it
@@ -730,10 +730,10 @@ def plot_WaveformSet(
                                     **kwargs)
                     fAnalyzed = True
 
-                aux_name = f"{len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
+                aux_name = f"{len(data_of_Mapof_wf_idcs[i][j])} Wf(s)"
                 if detailed_label:
                     aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(
-                        data_of_map_of_wf_idcs[i][j], queried_no=2)}]"
+                        data_of_Mapof_wf_idcs[i][j], queried_no=2)}]"
 
                 plot_waveform_adcs(
                     aux,
@@ -766,20 +766,20 @@ def plot_WaveformSet(
                                                     adc_range_below_baseline=adc_range_below_baseline)
         for i in range(nrows):
             for j in range(ncols):
-                if len(data_of_map_of_wf_idcs[i][j]) > 0:
+                if len(data_of_Mapof_wf_idcs[i][j]) > 0:
 
                     aux_name = f"Heatmap of {
-                        len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
+                        len(data_of_Mapof_wf_idcs[i][j])} Wf(s)"
                     if detailed_label:
                         aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(
-                            data_of_map_of_wf_idcs[i][j], queried_no=2)}]"
+                            data_of_Mapof_wf_idcs[i][j], queried_no=2)}]"
 
                     figure_ = wpu.__subplot_heatmap(WaveformSet,
                                                     figure_,
                                                     aux_name,
                                                     i + 1,
                                                     j + 1,
-                                                    data_of_map_of_wf_idcs[i][j],
+                                                    data_of_Mapof_wf_idcs[i][j],
                                                     analysis_label,
                                                     time_bins,
                                                     adc_bins,

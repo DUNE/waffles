@@ -1,11 +1,11 @@
 from typing import List, Tuple
 
 from waffles.data_classes.UniqueChannel import UniqueChannel
-from waffles.data_classes.Map import map_
+from waffles.data_classes.Map import Map
 from waffles.Exceptions import GenerateExceptionMessage
 
 
-class ChannelMap(map_):
+class ChannelMap(Map):
 
     """
     This class implements a Map whose type is UniqueChannel.
