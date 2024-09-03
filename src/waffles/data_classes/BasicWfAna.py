@@ -101,7 +101,7 @@ class BasicWfAna(WfAna):
     def AmpUl(self):
         return self.__amp_ul
 
-    def analyse(self, Waveform: WaveformAdcs) -> None:
+    def analyse(self, waveform: WaveformAdcs) -> None:
         """
         With respect to the given WaveformAdcs object, this analyser
         method does the following:
@@ -110,16 +110,16 @@ class BasicWfAna(WfAna):
             that are considered, according to the documentation of
             the self.__baseline_limits attribute.
             - It calculates the integral of
-            Waveform.adcs[IntLl - Waveform.time_offset :
-            IntUl + 1 - Waveform.time_offset].
+            waveform.adcs[IntLl - waveform.time_offset :
+            IntUl + 1 - waveform.time_offset].
             To do so, it assumes that the temporal resolution of
-            the Waveform is constant and approximates its integral
-            to Waveform.TimeStep_ns*np.sum( -b + Waveform.adcs[IntLl -
-            Waveform.time_offset : IntUl + 1 - Waveform.time_offset]),
+            the waveform is constant and approximates its integral
+            to waveform.TimeStep_ns*np.sum( -b + waveform.adcs[IntLl -
+            waveform.time_offset : IntUl + 1 - waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
-            Waveform.adcs[AmpLl - Waveform.time_offset : AmpUl + 1 -
-            Waveform.time_offset].
+            waveform.adcs[AmpLl - waveform.time_offset : AmpUl + 1 -
+            waveform.time_offset].
 
         Note that for these computations to be well-defined, it is
         assumed that
@@ -137,7 +137,7 @@ class BasicWfAna(WfAna):
 
         Parameters
         ----------
-        Waveform : WaveformAdcs
+        waveform : WaveformAdcs
             The WaveformAdcs object which will be analysed
 
         Returns
@@ -146,9 +146,9 @@ class BasicWfAna(WfAna):
         """
 
         split_baseline_samples = [
-            Waveform.adcs[
-                self.__baseline_limits[2 * i] - Waveform.time_offset:
-                self.__baseline_limits[(2 * i) + 1] - Waveform.time_offset
+            waveform.adcs[
+                self.__baseline_limits[2 * i] - waveform.time_offset:
+                self.__baseline_limits[(2 * i) + 1] - waveform.time_offset
             ]
             for i in range(len(self.__baseline_limits) // 2)
         ]
@@ -166,24 +166,24 @@ class BasicWfAna(WfAna):
             baseline_rms=None,
             # can afford the computation time) for this data
 
-            integral=Waveform.TimeStep_ns*(((
+            integral=waveform.TimeStep_ns*(((
                 self.__int_ul - self.__int_ll + 1)*baseline) - np.sum(
-                # Assuming that the Waveform is
-                Waveform.adcs[
-                    self.__int_ll - Waveform.time_offset:
-                        self.__int_ul + 1 - Waveform.time_offset])),
+                # Assuming that the waveform is
+                waveform.adcs[
+                    self.__int_ll - waveform.time_offset:
+                        self.__int_ul + 1 - waveform.time_offset])),
             # inverted and using linearity
             # to avoid some multiplications
             amplitude=(
                 np.max(
-                    Waveform.adcs[
-                        self.__amp_ll - Waveform.time_offset:
-                        self.__amp_ul + 1 - Waveform.time_offset
+                    waveform.adcs[
+                        self.__amp_ll - waveform.time_offset:
+                        self.__amp_ul + 1 - waveform.time_offset
                     ]
                 ) - np.min(
-                    Waveform.adcs[
-                        self.__amp_ll - Waveform.time_offset:
-                        self.__amp_ul + 1 - Waveform.time_offset
+                    waveform.adcs[
+                        self.__amp_ll - waveform.time_offset:
+                        self.__amp_ul + 1 - waveform.time_offset
                     ]
                 )
             )
@@ -222,7 +222,7 @@ class BasicWfAna(WfAna):
             that can be potentially given to BasciWfAna.__init__
             to instantiate a BasicWfAna object.
         points_no : int
-            The number of points in any Waveform that could be
+            The number of points in any waveform that could be
             analysed. It is assumed to be the same for all the
             waveforms.
 
