@@ -1,4 +1,4 @@
-class io_dict(dict):
+class IoDict(dict):
 
     """
     Stands for Input/Output Dictionary. This class

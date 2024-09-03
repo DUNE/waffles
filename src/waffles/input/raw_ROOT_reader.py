@@ -17,11 +17,11 @@ except ImportError:
 
 import waffles.utils.check_utils as wuc
 import waffles.input.input_utils as wii
-from waffles.data_classes.WaveformSet import waveform_set
-from waffles.Exceptions import generate_exception_message
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.Exceptions import GenerateExceptionMessage
 
 
-def waveform_set_from_root_files(
+def WaveformSetFromRootFiles(
     library: str,
     folderpath: Optional[str] = None,
     filepath_list: Optional[List[str]] = None,
@@ -34,38 +34,38 @@ def waveform_set_from_root_files(
     stop_fraction: float = 1.0,
     subsample: int = 1,
     verbose: bool = True
-) -> waveform_set:
+) -> WaveformSet:
     """
-    Initializes a waveform_set object from the waveforms stored in a list
-    of ROOT files. Validates filepaths, reads them into a waveform_set,
-    and merges all into a single waveform_set object.
+    Initializes a WaveformSet object from the waveforms stored in a list
+    of ROOT files. Validates filepaths, reads them into a WaveformSet,
+    and merges all into a single WaveformSet object.
 
     Parameters:
     - library: The ROOT processing library ('uproot' or 'pyroot').
     - folderpath: The path to the folder containing ROOT files.
     - filepath_list: List of ROOT file paths.
-    - bulk_data_tree_name: Name of the tree containing bulk waveform data.
+    - bulk_data_tree_name: Name of the tree containing bulk Waveform data.
     - meta_data_tree_name: Name of the tree containing metadata.
     - set_offset_wrt_daq_window: Whether to set offset with respect to DAQ window.
     - read_full_streaming_data: Whether to read full streaming data.
     - truncate_wfs_to_minimum: Whether to truncate waveforms to minimum length.
-    - start_fraction: Start fraction for waveform selection.
-    - stop_fraction: Stop fraction for waveform selection.
-    - subsample: Subsampling factor for waveform data.
+    - start_fraction: Start fraction for Waveform selection.
+    - stop_fraction: Stop fraction for Waveform selection.
+    - subsample: Subsampling factor for Waveform data.
     - verbose: Whether to print verbose output.
 
     Returns:
-    - A waveform_set object containing the waveforms from the ROOT files.
+    - A WaveformSet object containing the waveforms from the ROOT files.
     """
 
     if folderpath:
         folder = Path(folderpath)
         if not folder.is_dir():
             raise Exception(
-                generate_exception_message(
+                GenerateExceptionMessage(
                     1,
-                    'waveform_set_from_root_files',
-                    f"The given folderpath ({
+                    'WaveformSet_from_root_files',
+                    f"The given folderpath({
                         folderpath}) is not a valid directory."
                 )
             )
@@ -81,9 +81,9 @@ def waveform_set_from_root_files(
 
     if not valid_filepaths:
         raise Exception(
-            generate_exception_message(
+            GenerateExceptionMessage(
                 2,
-                'waveform_set_from_root_files',
+                'WaveformSet_from_root_files',
                 f"No valid ROOT files were found in the given folder "
                 f"'{folderpath}' or filepath list."
             )
@@ -95,7 +95,7 @@ def waveform_set_from_root_files(
         print('\n'.join(f"\t - {f}" for f in valid_filepaths))
         print(f"Reading file 1/{file_count} ...")
 
-    output = waveform_set_from_root_file(
+    output = WaveformSet_from_root_file(
         valid_filepaths[0],
         library,
         bulk_data_tree_name=bulk_data_tree_name,
@@ -113,7 +113,7 @@ def waveform_set_from_root_files(
         if verbose:
             print(f"Reading file {count}/{file_count} ...")
 
-        aux = waveform_set_from_root_file(
+        aux = WaveformSet_from_root_file(
             filepath,
             library,
             bulk_data_tree_name=bulk_data_tree_name,
@@ -134,7 +134,7 @@ def waveform_set_from_root_files(
     return output
 
 
-def waveform_set_from_root_file(
+def WaveformSetFromRootFile(
     filepath: str,
     library: str,
     bulk_data_tree_name: str = 'raw_waveforms',
@@ -146,41 +146,41 @@ def waveform_set_from_root_file(
     stop_fraction: float = 1.0,
     subsample: int = 1,
     verbose: bool = True
-) -> waveform_set:
+) -> WaveformSet:
     """
-    Initializes a waveform_set object from the waveforms stored in a ROOT file.
+    Initializes a WaveformSet object from the waveforms stored in a ROOT file.
 
     Parameters:
     - filepath: The path to the ROOT file.
     - library: The ROOT processing library ('uproot' or 'pyroot').
-    - bulk_data_tree_name: Name of the tree containing bulk waveform data.
+    - bulk_data_tree_name: Name of the tree containing bulk Waveform data.
     - meta_data_tree_name: Name of the tree containing metadata.
     - set_offset_wrt_daq_window: Whether to set offset with respect to DAQ window.
     - read_full_streaming_data: Whether to read full streaming data.
     - truncate_wfs_to_minimum: Whether to truncate waveforms to minimum length.
-    - start_fraction: Start fraction for waveform selection.
-    - stop_fraction: Stop fraction for waveform selection.
-    - subsample: Subsampling factor for waveform data.
+    - start_fraction: Start fraction for Waveform selection.
+    - stop_fraction: Stop fraction for Waveform selection.
+    - subsample: Subsampling factor for Waveform data.
     - verbose: Whether to print verbose output.
 
     Returns:
-    - A waveform_set object containing the waveforms from the ROOT file.
+    - A WaveformSet object containing the waveforms from the ROOT file.
     """
 
     if not wuc.fraction_is_well_formed(start_fraction, stop_fraction):
         raise Exception(
-            generate_exception_message(
+            GenerateExceptionMessage(
                 1,
-                'waveform_set_from_root_file',
+                'WaveformSet_from_root_file',
                 "Fraction limits are not well-formed."
             )
         )
 
     if library not in ['uproot', 'pyroot']:
         raise Exception(
-            generate_exception_message(
+            GenerateExceptionMessage(
                 2,
-                'waveform_set_from_root_file',
+                'WaveformSet_from_root_file',
                 f"The given library ({library}) is not supported."
             )
         )
@@ -220,10 +220,10 @@ def waveform_set_from_root_file(
 
     if len(selected_indices) == 0:
         raise Exception(
-            generate_exception_message(
+            GenerateExceptionMessage(
                 3,
-                'waveform_set_from_root_file',
-                f"No waveforms of the specified type ({
+                'WaveformSet_from_root_file',
+                f"No waveforms of the specified type({
                     'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."
             )
         )
@@ -246,4 +246,4 @@ def waveform_set_from_root_file(
         for wf in waveforms:
             wf._waveform_adcs__truncate_adcs(min_length)
 
-    return waveform_set(*waveforms)
+    return WaveformSet(*waveforms)

@@ -3,20 +3,20 @@ from typing import Optional
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
-from waffles.data_classes.WaveformAdcs import waveform_adcs
-from waffles.data_classes.WaveformSet import waveform_set
-from waffles.data_classes.ChannelWSGrid import channel_ws_grid
-from waffles.data_classes.CalibrationHistogram import calibration_histogram
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.ChannelWSGrid import ChannelWsGrid
+from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 from waffles.data_classes.Map import map_
 
 import waffles.plotting.plot_utils as wpu
 import waffles.utils.numerical_utils as wun
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
 def plot_waveform_adcs(
-        waveform_adcs: waveform_adcs,
+        WaveformAdcs: WaveformAdcs,
         figure: pgo.Figure,
         name: Optional[str] = None,
         row: Optional[int] = None,
@@ -31,18 +31,18 @@ def plot_waveform_adcs(
         analysis_label: Optional[str] = None,
         verbose: bool = False) -> None:
     """
-    This function plots the given waveform_adcs object
+    This function plots the given WaveformAdcs object
     in the given figure.
 
     Parameters
     ----------
     figure : plotly.graph_objects.Figure
-        The figure in which the waveform will be plotted
+        The figure in which the Waveform will be plotted
     name : str
-        The name for the waveform trace which will be added
+        The name for the Waveform trace which will be added
         to the given figure.
     row (resp. col) : int
-        The row (resp. column) in which the waveform will
+        The row (resp. column) in which the Waveform will
         be plotted. This parameter is directly handled to
         the 'row' (resp. 'col') parameter of
         plotly.graph_objects.Figure.add_trace() and
@@ -59,7 +59,7 @@ def plot_waveform_adcs(
                 integers.
     plot_analysis_markers : bool
         If True, this function will potentially plot the
-        analysis markers for the given waveform in the given
+        analysis markers for the given Waveform in the given
         figure. If False, it will not. By analysis markers
         we mean those which are available among:
 
@@ -122,26 +122,26 @@ def plot_waveform_adcs(
         This parameter only makes a difference if 
         'plot_analysis_markers' is set to True. In that case, 
         'analysis_label' is the key for the WfAna object within 
-        waveform_adcs.Analyses from where to take the information 
+        WaveformAdcs.Analyses from where to take the information 
         for the analysis markers plot. If 'analysis_label' is 
-        None, then the last analysis added to waveform_adcs.Analyses 
+        None, then the last analysis added to WaveformAdcs.Analyses 
         will be the used one.
     verbose : bool
         Whether to print functioning-related messages
     """
 
     x = np.arange(
-        len(waveform_adcs.adcs),
+        len(WaveformAdcs.adcs),
         dtype=np.float32)
 
     wf_trace = pgo.Scatter(
-        x=x + waveform_adcs.time_offset,
+        x=x + WaveformAdcs.time_offset,
         # If at some point we think x might match for
-        # every waveform, in a certain waveform_set
+        # every Waveform, in a certain WaveformSet
         # object, it might be more efficient to let
         # the caller define it, so as not to recompute
-        # this array for each waveform.
-        y=waveform_adcs.adcs,
+        # this array for each Waveform.
+        y=WaveformAdcs.adcs,
         mode='lines',
         line=dict(
             color='black',
@@ -155,7 +155,7 @@ def plot_waveform_adcs(
 
     if plot_analysis_markers:
 
-        ana = waveform_adcs.get_analysis(analysis_label)
+        ana = WaveformAdcs.get_analysis(analysis_label)
 
         if show_baseline_limits:    # Plot the markers for the baseline limits
 
@@ -174,17 +174,17 @@ def plot_waveform_adcs(
                         type='line',
                         # If you are wondering why only the trace of
                         x0=x[aux[2*i]], y0=0,
-                        # the waveform is offset according to waveform_adcs.time_offset,
+                        # the Waveform is offset according to WaveformAdcs.time_offset,
                         x1=x[aux[2*i]], y1=1,
                         # but not the markers, note that this is, indeed,
                         # the reason why a time offset is useful. The WfAna
                         # class moves the analysis ranges (p.e. baseline or
                         # integral ranges) according to the time_offset. Then
                         # to show a consistent plot, either the markers are
-                        # displaced or the waveform is displaced, but not both.
+                        # displaced or the Waveform is displaced, but not both.
                         # For the sake of having a grid-plot where the analysis
                         # ranges are aligned among different subplots, I chose
-                        # to displace the waveform.
+                        # to displace the Waveform.
 
                         line=dict(
                             color='grey',         # Properties for
@@ -334,15 +334,15 @@ def plot_waveform_adcs(
                         col=col)
 
         if show_peaks_integration_limits:   # Plot the markers for the peaks integration limits
-            raise NotImplementedError(generate_exception_message(
+            raise NotImplementedError(GenerateExceptionMessage(
                 1,
                 'plot_waveform_adcs()',
                 "The 'show_peaks_integration_limits' parameter is not implemented yet."))
     return
 
 
-def plot_waveform_set(
-        waveform_set: waveform_set,
+def plot_WaveformSet(
+        WaveformSet: WaveformSet,
         *args,
         nrows: int = 1,
         ncols: int = 1,
@@ -372,23 +372,23 @@ def plot_waveform_set(
     """ 
     This function returns a plotly.graph_objects.Figure 
     with a nrows x ncols grid of axes, with plots of
-    some of the waveforms in the given waveform_set object.
+    some of the waveforms in the given WaveformSet object.
 
     Parameters
     ----------
-    waveform_set : waveform_set
-        The waveform_set object which contains the 
+    WaveformSet : WaveformSet
+        The WaveformSet object which contains the 
         waveforms to be plotted.
     *args
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
         'analysis_label' parameter is not None. In such
         case, these are the positional arguments handled 
-        to the waveform_adcs.analyse() instance method of 
-        the computed mean waveform. I.e. for the mean 
-        waveform wf, the call to its analyse() method
+        to the WaveformAdcs.analyse() instance method of 
+        the computed mean Waveform. I.e. for the mean 
+        Waveform wf, the call to its analyse() method
         is wf.analyse(analysis_label, *args, **kwargs).
-        The waveform_adcs.analyse() method does not 
+        The WaveformAdcs.analyse() method does not 
         perform any well-formedness checks, so it is 
         the caller's responsibility to ensure so for 
         these parameters.
@@ -418,8 +418,8 @@ def plot_waveform_set(
     map_of_wf_idcs : map_ of lists of integers
         This map_ must contain lists of integers.
         map_of_wf_idcs.data[i][j] gives the indices of the 
-        waveforms, with respect to the given waveform_set, 
-        waveform_set, which should be considered for 
+        waveforms, with respect to the given WaveformSet, 
+        WaveformSet, which should be considered for 
         plotting in the axes which are located at the i-th 
         row and j-th column.
     share_x_scale (resp. share_y_scale) : bool
@@ -431,13 +431,13 @@ def plot_waveform_set(
         exception will be raised. The default setting is 
         'overlay', which means that all of the considered 
         waveforms will be plotted. If it set to 'average', 
-        instead of plotting every waveform, only the 
-        averaged waveform of the considered waveforms will 
+        instead of plotting every Waveform, only the 
+        averaged Waveform of the considered waveforms will 
         be plotted. If it is set to 'heatmap', then a 
         2D-histogram, whose entries are the union of all 
-        of the points of every considered waveform, will 
+        of the points of every considered Waveform, will 
         be plotted. In the 'heatmap' mode, the baseline 
-        of each waveform is subtracted from each waveform 
+        of each Waveform is subtracted from each Waveform 
         before plotting. Note that to perform such a 
         correction, the waveforms should have been 
         previously analysed, so that at least one baseline
@@ -455,17 +455,17 @@ def plot_waveform_set(
         parameter is set to True. In such case, this 
         parameter is given to the 'analysis_label'
         parameter of the plot_waveform_adcs() function 
-        for each waveform_adcs object(s) which will be 
+        for each WaveformAdcs object(s) which will be 
         plotted. This parameter gives the key for the 
         WfAna object within the Analyses attribute of 
-        each plotted waveform from where to take the 
+        each plotted Waveform from where to take the 
         information for the analysis markers plot. In 
         this case, if 'analysis_label' is None, then 
         the last analysis added to the Analyses attribute 
         will be the used one. 
             If mode is set to 'average' and this 
         parameter is defined, then this function will 
-        analyse the newly computed average waveform, 
+        analyse the newly computed average Waveform, 
         say wf, by calling 
         wf.analyse(analysis_label, *args, **kwargs).
         Additionally, if the 'plot_analysis_markers'
@@ -473,21 +473,21 @@ def plot_waveform_set(
         is defined, then this parameter is given to 
         the 'analysis_label' parameter of the 
         plot_waveform_adcs(wf, ...) function for the 
-        newly computed average waveform, i.e. the 
+        newly computed average Waveform, i.e. the 
         analysis markers for the plotted average 
-        waveform are those of the newly computed analysis. 
+        Waveform are those of the newly computed analysis. 
         This parameter gives the key for the WfAna 
         object within the Analyses attribute of the 
-        average waveform where to take the information 
+        average Waveform where to take the information 
         for the analysis markers plot.
             If 'mode' is set to 'heatmap', this 
         parameter is not optional, i.e. it must be 
         defined, and gives the analysis whose baseline 
-        will be subtracted from each waveform before 
+        will be subtracted from each Waveform before 
         plotting. Namely, the baseline will be grabbed
         from the 'baseline' key of the specified 
         analysis. In this case, it will not be checked 
-        that, for each waveform, the analysis with the 
+        that, for each Waveform, the analysis with the 
         given label is available. It is the caller's 
         responsibility to ensure so.
     plot_analysis_markers : bool
@@ -496,20 +496,20 @@ def plot_waveform_set(
             If mode is set to 'overlay', then this 
         parameter is given to the 
         'plot_analysis_markers' argument of the 
-        plot_waveform_adcs() function for each waveform 
+        plot_waveform_adcs() function for each Waveform 
         which will be plotted. 
             If mode is set to 'average' and the
         'analysis_label' parameter is defined, then this
         parameter is given to the 'plot_analysis_markers'
         argument of the plot_waveform_adcs() function for
-        the newly computed average waveform. If the
+        the newly computed average Waveform. If the
         'analysis_label' parameter is not defined, then
         this parameter will be automatically interpreted
         as False.
             In both cases, if True, analysis markers 
-        for the plotted waveform_adcs objects will 
+        for the plotted WaveformAdcs objects will 
         potentially be plotted together with each 
-        waveform. For more information, check the 
+        Waveform. For more information, check the 
         'plot_analysis_markers' parameter documentation 
         in the plot_waveform_adcs() function. If False, 
         no analysis markers will be plot.
@@ -565,7 +565,7 @@ def plot_waveform_set(
         it gives the inclusive lower (resp. upper) limit of 
         the time range, in time ticks, which will be considered 
         for the heatmap plot. If it is not defined, then it 
-        is assumed to be 0 (resp. waveform_set.PointsPerWf - 1).
+        is assumed to be 0 (resp. WaveformSet.PointsPerWf - 1).
         It must be smaller (resp. greater) than
         time_range_upper_limit (resp. time_range_lower_limit).
     adc_range_above_baseline (resp. adc_range_below_baseline) : int
@@ -574,7 +574,7 @@ def plot_waveform_set(
         its absolute value times one (resp. minus one) is 
         the upper (resp. lower) limit of the ADCs range 
         which will be considered for the heatmap plot. 
-        Note that, in this case, each waveform is 
+        Note that, in this case, each Waveform is 
         corrected by its own baseline.
     detailed_label : bool
         This parameter only makes a difference if
@@ -583,8 +583,8 @@ def plot_waveform_set(
         is set to 'average', then this parameter means
         whether to show the iterator values of the two
         first available waveforms (which were used to
-        compute the mean waveform) in the label of the
-        mean waveform plot. If the 'mode' parameter is 
+        compute the mean Waveform) in the label of the
+        mean Waveform plot. If the 'mode' parameter is 
         set to 'heatmap', then this parameter means 
         whether to show the iterator values of the two 
         first available waveforms (which were used to 
@@ -597,11 +597,11 @@ def plot_waveform_set(
         'mode' parameter is set to 'average' and the
         'analysis_label' parameter is not None. In such
         case, these are the keyword arguments handled 
-        to the waveform_adcs.analyse() instance method of 
-        the computed mean waveform. I.e. for the mean 
-        waveform wf, the call to its analyse() method
+        to the WaveformAdcs.analyse() instance method of 
+        the computed mean Waveform. I.e. for the mean 
+        Waveform wf, the call to its analyse() method
         is wf.analyse(analysis_label, *args, **kwargs).
-        The waveform_adcs.analyse() method does not 
+        The WaveformAdcs.analyse() method does not 
         perform any well-formedness checks, so it is 
         the caller's responsibility to ensure so for 
         these parameters.
@@ -613,7 +613,7 @@ def plot_waveform_set(
     """
 
     if nrows < 1 or ncols < 1:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             1,
             'plot_WaveformSet()',
             'The number of rows and columns must be positive.'))
@@ -632,12 +632,12 @@ def plot_waveform_set(
     if wfs_per_axes is not None:    # wfs_per_axes is defined, so ignore map_of_wf_idcs
 
         if wfs_per_axes < 1:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'plot_WaveformSet()',
                 'The number of waveforms per axes must be positive.'))
 
-        data_of_map_of_wf_idcs = waveform_set.get_map_of_wf_idcs(
+        data_of_map_of_wf_idcs = WaveformSet.get_map_of_wf_idcs(
             nrows,
             ncols,
             wfs_per_axes=wfs_per_axes).data
@@ -645,7 +645,7 @@ def plot_waveform_set(
     elif map_of_wf_idcs is None:    # Nor wf_per_axes, nor
         # map_of_wf_idcs are defined
 
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             3,
             'plot_WaveformSet()',
             "The 'map_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
@@ -655,7 +655,7 @@ def plot_waveform_set(
             nrows,                  # but map_of_wf_idcs is, but
             ncols):                 # it is not well-formed
 
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             4,
             'plot_WaveformSet()',
             f"The given map_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
@@ -680,11 +680,11 @@ def plot_waveform_set(
                 if len(data_of_map_of_wf_idcs[i][j]) > 0:
                     for k in data_of_map_of_wf_idcs[i][j]:
 
-                        aux_name = f"({i+1},{j+1}) - Wf {k}, Ch {waveform_set.waveforms[k].channel}, Ep {
-                            waveform_set.waveforms[k].endpoint}"
+                        aux_name = f"({i+1}, {j+1}) - Wf {k}, Ch {WaveformSet.waveforms[k].channel}, Ep {
+                            WaveformSet.waveforms[k].endpoint}"
 
                         plot_waveform_adcs(
-                            waveform_set.waveforms[k],
+                            WaveformSet.waveforms[k],
                             figure=figure_,
                             name=aux_name,
                             row=i + 1,  # Plotly uses 1-based indexing
@@ -708,8 +708,8 @@ def plot_waveform_set(
             for j in range(ncols):
 
                 try:
-                    # waveform_set.compute_mean_waveform() will raise an
-                    aux = waveform_set.compute_mean_waveform(
+                    # WaveformSet.compute_mean_waveform() will raise an
+                    aux = WaveformSet.compute_mean_waveform(
                         wf_idcs=data_of_map_of_wf_idcs[i][j])
                     # exception if data_of_map_of_wf_idcs[i][j] is empty
 
@@ -754,12 +754,12 @@ def plot_waveform_set(
     elif mode == 'heatmap':
 
         if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 5,
                 'plot_WaveformSet()',
                 "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
 
-        aux_ranges = wpu.arrange_time_vs_adc_ranges(waveform_set,
+        aux_ranges = wpu.arrange_time_vs_adc_ranges(WaveformSet,
                                                     time_range_lower_limit=time_range_lower_limit,
                                                     time_range_upper_limit=time_range_upper_limit,
                                                     adc_range_above_baseline=adc_range_above_baseline,
@@ -774,7 +774,7 @@ def plot_waveform_set(
                         aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(
                             data_of_map_of_wf_idcs[i][j], queried_no=2)}]"
 
-                    figure_ = wpu.__subplot_heatmap(waveform_set,
+                    figure_ = wpu.__subplot_heatmap(WaveformSet,
                                                     figure_,
                                                     aux_name,
                                                     i + 1,
@@ -804,13 +804,13 @@ def plot_waveform_set(
                                                  i + 1,
                                                  j + 1)
     else:
-        raise Exception(generate_exception_message(6,
-                                                   'plot_WaveformSet()',
-                                                   f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
+        raise Exception(GenerateExceptionMessage(6,
+                                                 'plot_WaveformSet()',
+                                                 f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
     return figure_
 
 
-def plot_calibration_histogram(calibration_histogram: calibration_histogram,
+def plot_calibration_histogram(CalibrationHistogram: CalibrationHistogram,
                                figure: pgo.Figure,
                                name: Optional[str] = None,
                                row: Optional[int] = None,
@@ -826,8 +826,8 @@ def plot_calibration_histogram(calibration_histogram: calibration_histogram,
 
     Parameters
     ----------
-    calibration_histogram : calibration_histogram
-        The calibration_histogram object to be plotted
+    CalibrationHistogram : CalibrationHistogram
+        The CalibrationHistogram object to be plotted
     figure : plotly.graph_objects.Figure
         The figure in which the calibration histogram (CH) 
         will be plotted
@@ -853,7 +853,7 @@ def plot_calibration_histogram(calibration_histogram: calibration_histogram,
         If True, then the gaussian fits of the peaks, if any, 
         will be plotted over the CH. If False, then only the 
         CH will be plotted. Note that if no fit has been performed
-        yet, then the calibration_histogram.GaussianFitsParameters 
+        yet, then the CalibrationHistogram.GaussianFitsParameters 
         attribute will be empty and no fit will be plotted.
     fit_npoints : int
         This parameter only makes a difference if 'plot_fits'
@@ -873,8 +873,8 @@ def plot_calibration_histogram(calibration_histogram: calibration_histogram,
     """
 
     histogram_trace = pgo.Scatter(
-        x=calibration_histogram.Edges,
-        y=calibration_histogram.Counts,
+        x=CalibrationHistogram.Edges,
+        y=CalibrationHistogram.Counts,
         mode='lines',
         line=dict(
             color='black',
@@ -891,20 +891,20 @@ def plot_calibration_histogram(calibration_histogram: calibration_histogram,
 
     if plot_fits:
 
-        for i in range(len(calibration_histogram.GaussianFitsParameters['scale'])):
+        for i in range(len(CalibrationHistogram.GaussianFitsParameters['scale'])):
 
             fPlottedOneFit = True
 
             fit_x = np.linspace(
-                calibration_histogram.Edges[0],
-                calibration_histogram.Edges[-1],
+                CalibrationHistogram.Edges[0],
+                CalibrationHistogram.Edges[-1],
                 num=fit_npoints)
 
             fit_y = wun.gaussian(
                 fit_x,
-                calibration_histogram.GaussianFitsParameters['scale'][i][0],
-                calibration_histogram.GaussianFitsParameters['mean'][i][0],
-                calibration_histogram.GaussianFitsParameters['std'][i][0])
+                CalibrationHistogram.GaussianFitsParameters['scale'][i][0],
+                CalibrationHistogram.GaussianFitsParameters['mean'][i][0],
+                CalibrationHistogram.GaussianFitsParameters['std'][i][0])
 
             fit_trace = pgo.Scatter(
                 x=fit_x,
@@ -923,7 +923,7 @@ def plot_calibration_histogram(calibration_histogram: calibration_histogram,
 
 
 def plot_channel_ws_grid(
-        channel_ws_grid: channel_ws_grid,
+        channel_ws_grid: ChannelWsGrid,
         *args,
         figure: Optional[pgo.Figure] = None,
         share_x_scale: bool = False,
@@ -951,30 +951,30 @@ def plot_channel_ws_grid(
     """
     This function returns a plotly.graph_objects.Figure 
     with a grid of subplots which are arranged according
-    to the channel_ws_grid.ch_map attribute. The subplot at 
+    to the ChannelWsGrid.ch_map attribute. The subplot at 
     position i,j may be empty if there is no ChannelWS object 
-    in channel_ws_grid.ch_wf_sets which matches the UniqueChannel 
-    object at position i,j in the channel_ws_grid.ch_map 
+    in ChannelWsGrid.ch_wf_sets which matches the UniqueChannel 
+    object at position i,j in the ChannelWsGrid.ch_map 
     attribute. If it is not empty, a subplot may contain a 
-    waveform representation (either overlayed, averaged or 
+    Waveform representation (either overlayed, averaged or 
     heatmapped), or a calibration histogram. The type of 
     representation is determined by the 'mode' parameter.
 
     Parameters
     ----------
-    channel_ws_grid : channel_ws_grid
-        The channel_ws_grid object which contains the 
+    ChannelWsGrid : ChannelWsGrid
+        The ChannelWsGrid object which contains the 
         ChannelWS objects to be plotted.
     *args
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
         'analysis_label' parameter is not None. In such
         case, these are the positional arguments handled 
-        to the waveform_adcs.analyse() instance method of 
-        the computed mean waveform. I.e. for the mean 
-        waveform wf, the call to its analyse() method
+        to the WaveformAdcs.analyse() instance method of 
+        the computed mean Waveform. I.e. for the mean 
+        Waveform wf, the call to its analyse() method
         is wf.analyse(analysis_label, *args, **kwargs).
-        The waveform_adcs.analyse() method does not 
+        The WaveformAdcs.analyse() method does not 
         perform any well-formedness checks, so it is 
         the caller's responsibility to ensure so for 
         these parameters.
@@ -983,7 +983,7 @@ def plot_channel_ws_grid(
         generated using plotly.subplots.make_subplots()
         with a 'rows' and 'cols' parameters matching
         the rows and columns attribute of 
-        channel_ws_grid.ch_map. If that's the case, then 
+        ChannelWsGrid.ch_map. If that's the case, then 
         this function adds the plots to this figure and 
         eventually returns it. If it is None, then this 
         function generates a new figure and returns it.
@@ -998,13 +998,13 @@ def plot_channel_ws_grid(
         that all of the considered waveforms, up to the 
         'wfs_per_axes' parameter, will be plotted. 
             If it set to 'average', instead of plotting 
-        every considered waveform, only the averaged 
-        waveform of the considered waveforms will be plotted. 
+        every considered Waveform, only the averaged 
+        Waveform of the considered waveforms will be plotted. 
             If it is set to 'heatmap', then a 2D-histogram, 
         whose entries are the union of all of the points 
-        of every considered waveform, will be plotted. In 
-        the 'heatmap' mode, the baseline of each waveform 
-        is subtracted from each waveform before plotting. 
+        of every considered Waveform, will be plotted. In 
+        the 'heatmap' mode, the baseline of each Waveform 
+        is subtracted from each Waveform before plotting. 
         Note that to perform such a correction, the waveforms 
         should have been previously analysed, so that at 
         least one baseline value is available. The analysis 
@@ -1018,7 +1018,7 @@ def plot_channel_ws_grid(
         defined, i.e. it must be different to None.
         If it is not, then an exception will be raised.
     wfs_per_axes : int
-        If it is None, then every waveform in each
+        If it is None, then every Waveform in each
         ChannelWS object will be considered. Otherwise,
         only the first wfs_per_axes waveforms of each
         ChannelWS object will be considered. If 
@@ -1035,17 +1035,17 @@ def plot_channel_ws_grid(
         parameter is set to True. In such case, this 
         parameter is given to the 'analysis_label'
         parameter of the plot_waveform_adcs() function 
-        for each waveform_adcs object(s) which will be 
+        for each WaveformAdcs object(s) which will be 
         plotted. This parameter gives the key for the 
         WfAna object within the Analyses attribute of 
-        each plotted waveform from where to take the 
+        each plotted Waveform from where to take the 
         information for the analysis markers plot. In 
         this case, if 'analysis_label' is None, then 
         the last analysis added to the Analyses attribute 
         will be the used one. 
             If mode is set to 'average' and this 
         parameter is defined, then this function will 
-        analyse the newly computed average waveform, 
+        analyse the newly computed average Waveform, 
         say wf, by calling 
         wf.analyse(analysis_label, *args, **kwargs).
         Additionally, if the 'plot_analysis_markers'
@@ -1053,20 +1053,20 @@ def plot_channel_ws_grid(
         is defined, then this parameter is given to 
         the 'analysis_label' parameter of the 
         plot_waveform_adcs(wf, ...) function, i.e. the 
-        analysis markers for the plotted average waveform 
+        analysis markers for the plotted average Waveform 
         are those of the newly computed analysis. This 
         parameter gives the key for the WfAna object 
         within the Analyses attribute of the average 
-        waveform where to take the information for the 
+        Waveform where to take the information for the 
         analysis markers plot.
             If 'mode' is set to 'heatmap', this 
         parameter is not optional, i.e. it must be 
         defined, and gives the analysis whose baseline 
-        will be subtracted from each waveform before 
+        will be subtracted from each Waveform before 
         plotting. Namely, the baseline will be grabbed
         from the 'baseline' key of the specified 
         analysis. In this case, it will not be checked 
-        that, for each waveform, the analysis with the 
+        that, for each Waveform, the analysis with the 
         given label is available. It is the caller's 
         responsibility to ensure so.
             If 'mode' is set to 'calibration', then
@@ -1077,20 +1077,20 @@ def plot_channel_ws_grid(
             If mode is set to 'overlay', then this 
         parameter is given to the 
         'plot_analysis_markers' argument of the 
-        plot_waveform_adcs() function for each waveform 
+        plot_waveform_adcs() function for each Waveform 
         which will be plotted. 
             If mode is set to 'average' and the
         'analysis_label' parameter is defined, then this
         parameter is given to the 'plot_analysis_markers'
         argument of the plot_waveform_adcs() function for
-        the newly computed average waveform. If the
+        the newly computed average Waveform. If the
         'analysis_label' parameter is not defined, then
         this parameter will be automatically interpreted
         as False.
             In both cases, if True, analysis markers 
-        for the plotted waveform_adcs objects will 
+        for the plotted WaveformAdcs objects will 
         potentially be plotted together with each 
-        waveform. For more information, check the 
+        Waveform. For more information, check the 
         'plot_analysis_markers' parameter documentation 
         in the plot_waveform_adcs() function. If False, no 
         analysis markers will be plot.
@@ -1146,8 +1146,8 @@ def plot_channel_ws_grid(
         it gives the inclusive lower (resp. upper) limit of 
         the time range, in time ticks, which will be considered 
         for the heatmap plot. If it is not defined, then it 
-        is assumed to be 0 (resp. channel_ws.PointsPerWf - 1, 
-        where channel_ws is the ChannelWS object to be plotted 
+        is assumed to be 0 (resp. ChannelWs.PointsPerWf - 1, 
+        where ChannelWs is the ChannelWS object to be plotted 
         in each subplot). It must be smaller (resp. greater) 
         than time_range_upper_limit (resp. time_range_lower_limit).
     adc_range_above_baseline (resp. adc_range_below_baseline) : int
@@ -1156,7 +1156,7 @@ def plot_channel_ws_grid(
         its absolute value times one (resp. minus one) is 
         the upper (resp. lower) limit of the ADCs range 
         which will be considered for the heatmap plot. 
-        Note that, in this case, each waveform is 
+        Note that, in this case, each Waveform is 
         corrected by its own baseline.
     plot_peaks_fits : bool
         This parameter only makes a difference if the
@@ -1173,8 +1173,8 @@ def plot_channel_ws_grid(
         is set to 'average', then this parameter means
         whether to show the iterator values of the two
         first available waveforms (which were used to
-        compute the mean waveform) in the label of the
-        mean waveform plot. If the 'mode' parameter is 
+        compute the mean Waveform) in the label of the
+        mean Waveform plot. If the 'mode' parameter is 
         set to 'heatmap', then this parameter means 
         whether to show the iterator values of the two 
         first available waveforms (which were used to 
@@ -1187,11 +1187,11 @@ def plot_channel_ws_grid(
         'mode' parameter is set to 'average' and the
         'analysis_label' parameter is not None. In such
         case, these are the keyword arguments handled 
-        to the waveform_adcs.analyse() instance method of 
-        the computed mean waveform. I.e. for the mean 
-        waveform wf, the call to its analyse() method
+        to the WaveformAdcs.analyse() instance method of 
+        the computed mean Waveform. I.e. for the mean 
+        Waveform wf, the call to its analyse() method
         is wf.analyse(analysis_label, *args, **kwargs).
-        The waveform_adcs.analyse() method does not 
+        The WaveformAdcs.analyse() method does not 
         perform any well-formedness checks, so it is 
         the caller's responsibility to ensure so for 
         these parameters.
@@ -1201,7 +1201,7 @@ def plot_channel_ws_grid(
     figure : plotly.graph_objects.Figure
         This function returns a plotly.graph_objects.Figure 
         with a grid of subplots which are arranged 
-        according to the channel_ws_grid.ch_map attribute.
+        according to the ChannelWsGrid.ch_map attribute.
     """
 
     if figure is not None:
@@ -1217,9 +1217,9 @@ def plot_channel_ws_grid(
     if wfs_per_axes is not None:
 
         if wfs_per_axes < 1:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
-                'plot_ChannelWSGrid()',
+                'plot_channel_ws_grid()',
                 'If defined, the number of waveforms per axes must be positive.'))
         fPlotAll = False
 
@@ -1247,8 +1247,8 @@ def plot_channel_ws_grid(
             for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
-                                                            [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
+                    ChannelWs = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
+                                                           [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
                     wpu.__add_no_data_annotation(
@@ -1258,22 +1258,22 @@ def plot_channel_ws_grid(
                     continue
 
                 if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
+                    aux_idcs = range(len(ChannelWs.waveforms))
                 else:
                     # If wfs_per_axes is defined, then it has been
                     aux_idcs = range(
-                        min(wfs_per_axes, len(channel_ws.waveforms)))
+                        min(wfs_per_axes, len(ChannelWs.waveforms)))
                     # checked to be >=1. If it is not defined, then
-                    # still len(channel_ws.waveforms) is >=1 (which
-                    # is ensured by waveform_set.__init__), so the
+                    # still len(ChannelWs.waveforms) is >=1 (which
+                    # is ensured by WaveformSet.__init__), so the
                     # minimum is always >=1.
                 for idx in aux_idcs:
 
                     aux_name = f"({
-                        i+1},{j+1}) - Wf {idx}, Ch {channel_ws_grid.ch_map.data[i][j]}"
+                        i+1}, {j+1}) - Wf {idx}, Ch {channel_ws_grid.ch_map.data[i][j]}"
 
                     plot_waveform_adcs(
-                        channel_ws.waveforms[idx],
+                        ChannelWs.waveforms[idx],
                         figure=figure_,
                         name=aux_name,
                         row=i + 1,  # Plotly uses 1-based indexing
@@ -1292,8 +1292,8 @@ def plot_channel_ws_grid(
             for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
-                                                            [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
+                    ChannelWs = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
+                                                           [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
                     wpu.__add_no_data_annotation(
@@ -1303,13 +1303,13 @@ def plot_channel_ws_grid(
                     continue
 
                 if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
+                    aux_idcs = range(len(ChannelWs.waveforms))
                 else:
                     aux_idcs = range(
-                        min(wfs_per_axes, len(channel_ws.waveforms)))
+                        min(wfs_per_axes, len(ChannelWs.waveforms)))
 
-                aux = channel_ws.compute_mean_waveform(wf_idcs=list(
-                    aux_idcs))    # waveform_set.compute_mean_waveform()
+                aux = ChannelWs.compute_mean_waveform(wf_idcs=list(
+                    aux_idcs))    # WaveformSet.compute_mean_waveform()
                 # will raise an exception if
                 # list(aux_idcs) is empty
                 fAnalyzed = False
@@ -1344,16 +1344,16 @@ def plot_channel_ws_grid(
     elif mode == 'heatmap':
 
         if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
-                'plot_ChannelWSGrid()',
+                'plot_channel_ws_grid()',
                 "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
-                                                            [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
+                    ChannelWs = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
+                                                           [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
                     wpu.__add_no_data_annotation(
@@ -1363,10 +1363,10 @@ def plot_channel_ws_grid(
                     continue
 
                 if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
+                    aux_idcs = range(len(ChannelWs.waveforms))
                 else:
                     aux_idcs = range(
-                        min(wfs_per_axes, len(channel_ws.waveforms)))
+                        min(wfs_per_axes, len(ChannelWs.waveforms)))
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
@@ -1374,14 +1374,14 @@ def plot_channel_ws_grid(
                         list(aux_idcs), queried_no=2)}]"
 
                 aux_ranges = wpu.arrange_time_vs_adc_ranges(
-                    channel_ws,
+                    ChannelWs,
                     time_range_lower_limit=time_range_lower_limit,
                     time_range_upper_limit=time_range_upper_limit,
                     adc_range_above_baseline=adc_range_above_baseline,
                     adc_range_below_baseline=adc_range_below_baseline)
 
                 figure_ = wpu.__subplot_heatmap(
-                    channel_ws,
+                    ChannelWs,
                     figure_,
                     aux_name,
                     i + 1,
@@ -1416,8 +1416,8 @@ def plot_channel_ws_grid(
             for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
-                                                            [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
+                    ChannelWs = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i]
+                                                           [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
                     wpu.__add_no_data_annotation(
@@ -1426,17 +1426,17 @@ def plot_channel_ws_grid(
                         j + 1)
                     continue
 
-                if channel_ws.CalibHisto is None:
-                    raise Exception(generate_exception_message(
+                if ChannelWs.CalibHisto is None:
+                    raise Exception(GenerateExceptionMessage(
                         3,
-                        'plot_ChannelWSGrid()',
+                        'plot_channel_ws_grid()',
                         f"In 'calibration' mode, the CalibHisto attribute of each considered ChannelWS object must be defined."))
 
                 aux_name = f"C.H. of channel {
                     channel_ws_grid.ch_map.data[i][j]}"
 
                 fPlottedOneFit |= plot_CalibrationHistogram(
-                    channel_ws.CalibHisto,
+                    ChannelWs.CalibHisto,
                     figure_,
                     name=aux_name,
                     row=i + 1,
@@ -1446,10 +1446,10 @@ def plot_channel_ws_grid(
 
         if verbose:
             if plot_peaks_fits and not fPlottedOneFit:
-                print("In function plot_ChannelWSGrid(): No gaussian fit was found for plotting. You may have forgotten to call the fit_peaks_of_calibration_histograms() method of channel_ws_grid.")
+                print("In function plot_channel_ws_grid(): No gaussian fit was found for plotting. You may have forgotten to call the fit_peaks_of_calibration_histograms() method of ChannelWsGrid.")
     else:
-        raise Exception(generate_exception_message(
+        raise Exception(GenerateExceptionMessage(
             4,
-            'plot_ChannelWSGrid()',
+            'plot_channel_ws_grid()',
             f"The given mode ({mode}) must match either 'overlay', 'average', 'heatmap' or 'calibration'."))
     return figure_

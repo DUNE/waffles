@@ -1,15 +1,15 @@
 
 from scipy import signal as spsi
 
-from waffles.data_classes.WaveformAdcs import waveform_adcs
-from waffles.data_classes.IPDict import ip_dict
-from waffles.data_classes.BasicWfAna import basic_wf_ana
-from waffles.data_classes.WfPeak import wf_peak
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
+from waffles.data_classes.IPDict import IpDict
+from waffles.data_classes.BasicWfAna import BasicWfAna
+from waffles.data_classes.WfPeak import WfPeak
 
 import waffles.Exceptions as we
 
 
-class PeakFindingWfAna(basic_wf_ana):
+class PeakFindingWfAna(BasicWfAna):
 
     """
     This class inherits from BasicWfAna. This class
@@ -26,7 +26,7 @@ class PeakFindingWfAna(basic_wf_ana):
     AmpLl (resp. AmpUl) : int (inherited from BasicWfAna)
     PeakFindingKwargs : dict
         Dictionary of keyword arguments which are passed to
-        scipy.signal.find_peaks(waveform.plot_waveform_adcs, **PeakFindingKwargs)
+        scipy.signal.find_peaks(Waveform.plot_WaveformAdcs, **PeakFindingKwargs)
         by the analyse() method.
     Result : WfAnaResult (inherited from WfAna)
 
@@ -36,7 +36,7 @@ class PeakFindingWfAna(basic_wf_ana):
     """
 
     @we.handle_missing_data
-    def __init__(self, input_parameters: ip_dict):
+    def __init__(self, input_parameters: IpDict):
         """
         BasicWfAna class initializer. It is assumed that it is
         the caller responsibility to check the well-formedness
@@ -67,43 +67,43 @@ class PeakFindingWfAna(basic_wf_ana):
     def PeakFindingKwargs(self):
         return self.__peak_finding_kwargs
 
-    def analyse(self, waveform: waveform_adcs,
+    def analyse(self, Waveform: WaveformAdcs,
                 return_peaks_properties: bool = False) -> dict:
         """
-        With respect to the given waveform_adcs object, this analyser
+        With respect to the given WaveformAdcs object, this analyser
         method does the following:
 
             - It computes the baseline as the median of the points
             that are considered, according to the documentation of
             the BaselineLimits attribute.
-            - It searches for peaks over the inverted waveform,
+            - It searches for peaks over the inverted Waveform,
             by calling
 
-                scipy.signal.find_peaks(-1.*waveform.plot_waveform_adcs,
+                scipy.signal.find_peaks(-1.*Waveform.plot_WaveformAdcs,
                                         **self.__peak_finding_kwargs)
 
             - It calculates the integral of
-            waveform.plot_waveform_adcs[IntLl - waveform.time_offset :
-            IntUl + 1 - waveform.time_offset].
+            Waveform.plot_WaveformAdcs[IntLl - Waveform.time_offset :
+            IntUl + 1 - Waveform.time_offset].
             To do so, it assumes that the temporal resolution of
-            the waveform is constant and approximates its integral
-            to waveform.
-            TimeStep_ns*np.sum( -b + waveform.plot_waveform_adcs[IntLl -
-            waveform.time_offset : IntUl + 1 - waveform.time_offset]),
+            the Waveform is constant and approximates its integral
+            to Waveform.
+            TimeStep_ns*np.sum( -b + Waveform.plot_WaveformAdcs[IntLl -
+            Waveform.time_offset : IntUl + 1 - Waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
-            waveform.plot_waveform_adcs[AmpLl - waveform.time_offset :
-            AmpUl + 1 - waveform.time_offset].
+            Waveform.plot_WaveformAdcs[AmpLl - Waveform.time_offset :
+            AmpUl + 1 - Waveform.time_offset].
 
         Note that for these computations to be well-defined, it is
         assumed that
 
             - BaselineLimits[0] - wf.time_offset >= 0
-            - BaselineLimits[-1] - wf.time_offset <= len(wf.plot_waveform_adcs)
+            - BaselineLimits[-1] - wf.time_offset <= len(wf.plot_WaveformAdcs)
             - IntLl - wf.time_offset >= 0
-            - IntUl - wf.time_offset < len(wf.plot_waveform_adcs)
+            - IntUl - wf.time_offset < len(wf.plot_WaveformAdcs)
             - AmpLl - wf.time_offset >= 0
-            - AmpUl - wf.time_offset < len(wf.plot_waveform_adcs)
+            - AmpUl - wf.time_offset < len(wf.plot_WaveformAdcs)
 
         For the sake of efficiency, these checks are not done.
         It is the caller's responsibility to ensure that these
@@ -113,8 +113,8 @@ class PeakFindingWfAna(basic_wf_ana):
 
         Parameters
         ----------
-        waveform : waveform_adcs
-            The waveform_adcs object which will be analysed
+        Waveform : WaveformAdcs
+            The WaveformAdcs object which will be analysed
         return_peaks_properties : bool
             If True, then this method returns information about
             the spotted-peaks properties.
@@ -127,18 +127,18 @@ class PeakFindingWfAna(basic_wf_ana):
             True, then this is a dictionary containing the
             properties for the spotted peaks.
         """
-        super().analyse(waveform)   # Takes care of baseline, integral
+        super().analyse(Waveform)   # Takes care of baseline, integral
         # and amplitude computations
 
         peaks, properties = spsi.find_peaks(
-            -1.*waveform.plot_waveform_adcs,
-            # Assuming that the waveform is
+            -1.*Waveform.plot_WaveformAdcs,
+            # Assuming that the Waveform is
             **self.__peak_finding_kwargs)
         # inverted. We should find another
         #  way not to hardcode this
 
         self._wf_ana__result['peaks'] = [
-            wf_peak(peaks[i]) for i in range(len(peaks))]
+            WfPeak(peaks[i]) for i in range(len(peaks))]
 
         if return_peaks_properties is True:
             output = properties
@@ -150,7 +150,7 @@ class PeakFindingWfAna(basic_wf_ana):
     @staticmethod
     @we.handle_missing_data
     def check_input_parameters(
-            input_parameters: ip_dict,
+            input_parameters: IpDict,
             points_no: int) -> None:
         """
         Apart from calling the base class check_input_parameters()
@@ -177,7 +177,7 @@ class PeakFindingWfAna(basic_wf_ana):
             that can be potentially given to BasciWfAna.__init__
             to instantiate a BasicWfAna object.
         points_no : int
-            The number of points in any waveform that could be
+            The number of points in any Waveform that could be
             analysed. It is assumed to be the same for all the
             waveforms.
 
@@ -186,7 +186,7 @@ class PeakFindingWfAna(basic_wf_ana):
         None
         """
 
-        basic_wf_ana.check_input_parameters(
+        BasicWfAna.check_input_parameters(
             input_parameters,   # Not using the super() syntax because
             points_no)          # BasicWfAna.check_input_parameters is static
         aux = [
@@ -201,7 +201,7 @@ class PeakFindingWfAna(basic_wf_ana):
 
         for kwarg in input_parameters['peak_finding_kwargs']:
             if kwarg not in aux:
-                raise Exception(we.generate_exception_message(
+                raise Exception(we.GenerateExceptionMessage(
                     1,
                     'PeakFindingWfAna.check_input_parameters()',
                     f"A non-valid keyword argument ('{kwarg}')"

@@ -1,25 +1,25 @@
 from abc import ABC, abstractmethod
 
-from waffles.data_classes.WaveformAdcs import waveform_adcs
-from waffles.data_classes.IPDict import ip_dict
-from waffles.data_classes.WfAnaResult import wf_ana_result
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
+from waffles.data_classes.IPDict import IpDict
+from waffles.data_classes.WfAnaResult import WfAnaResult
 
 import waffles.Exceptions as we
 
 
-class wf_ana(ABC):
+class WfAna(ABC):
 
     """
     Stands for Waveform Analysis. This abstract
     class is intended to be the base class for
     any class which implements a certain type of
     analysis which is performed over an arbitrary
-    waveform_adcs object.
+    WaveformAdcs object.
 
     Attributes
     ----------
-    InputParameters : ip_dict
-        An ip_dict object (a dictionary) containing the
+    InputParameters : IpDict
+        An IpDict object (a dictionary) containing the
         input parameters of this analysis. The keys (resp.
         values) are the names (resp. values) of the input
         parameters.
@@ -32,7 +32,7 @@ class wf_ana(ABC):
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self, input_parameters: ip_dict):
+    def __init__(self, input_parameters: IpDict):
         """
         WfAna class initializer. It is assumed that it is
         the caller responsibility to check the well-formedness
@@ -42,7 +42,7 @@ class wf_ana(ABC):
 
         Parameters
         ----------
-        input_parameters : ip_dict
+        input_parameters : IpDict
         """
 
         self.__input_parameters = input_parameters
@@ -69,7 +69,7 @@ class wf_ana(ABC):
     @abstractmethod
     def analyse(
             self,
-            waveform: waveform_adcs,
+            Waveform: WaveformAdcs,
             *args,
             **kwargs):
         """
@@ -82,8 +82,8 @@ class wf_ana(ABC):
 
         Parameters
         ----------
-        waveform : waveform_adcs
-            The waveform_adcs object which will be
+        Waveform : WaveformAdcs
+            The WaveformAdcs object which will be
             analysed
         *args
             Additional positional arguments
@@ -99,13 +99,13 @@ class wf_ana(ABC):
         # methods to perform an analysis and
         # create the WfAnaResult object
 
-        self.__result = wf_ana_result()
+        self.__result = WfAnaResult()
         return
 
     @staticmethod
     @abstractmethod
     @we.handle_missing_data
-    def check_input_parameters(input_parameters: ip_dict) -> None:
+    def check_input_parameters(input_parameters: IpDict) -> None:
         """
         This abstract method, which MUST be implemented
         for whichever derived class of WfAna, is
@@ -118,16 +118,16 @@ class wf_ana(ABC):
         For efficiency purposes, the aim is to call
         it at the WaveformSet level (before instantiating
         the first WfAna (or derived) object) for
-        cases where the same ip_dict is given for every
-        waveform_adcs object to be analysed. In these
+        cases where the same IpDict is given for every
+        WaveformAdcs object to be analysed. In these
         cases, just one check is performed, instead
-        of N checks, where N is the number of waveform_adcs
+        of N checks, where N is the number of WaveformAdcs
         objects and N-1 checks are redundant. That's the
         reason why this method is static.
 
         Parameters
         ----------
-        input_parameters : ip_dict
+        input_parameters : IpDict
             The input parameters to be checked
 
         Returns

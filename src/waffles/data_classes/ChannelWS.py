@@ -1,11 +1,11 @@
 import numpy as np
 from typing import Optional
-from waffles.data_classes.CalibrationHistogram import calibration_histogram
-from waffles.data_classes.WaveformSet import waveform_set
-from waffles.Exceptions import generate_exception_message
+from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.Exceptions import GenerateExceptionMessage
 
 
-class channel_ws(waveform_set):
+class ChannelWs(WaveformSet):
 
     """
     Stands for channel Waveform Set. This class inherits
@@ -121,19 +121,19 @@ class channel_ws(waveform_set):
         if compute_calib_histo:
 
             if bins_number is None:
-                raise Exception(generate_exception_message(
+                raise Exception(GenerateExceptionMessage(
                     1,
                     'ChannelWS.__init__()',
                     'The bins number must be provided if the'
                     ' calibration histogram is to be computed.'))
             if domain is None:
-                raise Exception(generate_exception_message(
+                raise Exception(GenerateExceptionMessage(
                     2,
                     'ChannelWS.__init__()',
                     'The domain must be provided if the '
                     'calibration histogram is to be computed.'))
 
-            self.__calib_histo = calibration_histogram.from_waveform_set(
+            self.__calib_histo = CalibrationHistogram.from_WaveformSet(
                 self,
                 bins_number,
                 domain,
@@ -171,7 +171,7 @@ class channel_ws(waveform_set):
         aux = self.get_run_collapsed_available_channels()
 
         if (len(aux) != 1):
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'ChannelWS.update_endpoint_and_channel()',
                 'Every Waveform object within this set must'
@@ -179,7 +179,7 @@ class channel_ws(waveform_set):
         else:
             endpoint = next(iter(aux.keys()))
             if len(aux[endpoint]) != 1:
-                raise Exception(generate_exception_message(
+                raise Exception(GenerateExceptionMessage(
                     2,
                     'ChannelWS.update_endpoint_and_channel()',
                     'Every Waveform object within this set must'

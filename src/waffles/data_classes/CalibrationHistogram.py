@@ -2,15 +2,15 @@ import numba
 import numpy as np
 from typing import List, Optional, Union
 
-from waffles.data_classes.WaveformSet import waveform_set
-from waffles.data_classes.TrackedHistogram import tracked_histogram
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.TrackedHistogram import TrackedHistogram
 
 import waffles.utils.numerical_utils as wun
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
-class calibration_histogram(tracked_histogram):
+class CalibrationHistogram(TrackedHistogram):
 
     """
     This class implements a histogram which is used
@@ -27,7 +27,7 @@ class calibration_histogram(tracked_histogram):
     ----------
     BinsNumber : int (inherited from TrackedHistogram)
     Edges : unidimensional numpy array of floats
-    (inherited from tracked_histogram)
+    (inherited from TrackedHistogram)
     MeanBinWidth : float (inherited from TrackedHistogram)
     Counts : unidimensional numpy array of integers
     (inherited from tracked_Histogram)
@@ -138,16 +138,16 @@ class calibration_histogram(tracked_histogram):
         return
 
     @classmethod
-    def from_waveform_set(
-            cls, waveform_set: waveform_set,
+    def from_WaveformSet(
+            cls, WaveformSet: WaveformSet,
             bins_number: int,
             domain: np.ndarray,
             variable: str,
             analysis_label: Optional[str] = None):
         """
         This method creates a CalibrationHistogram object
-        by taking one sample per waveform from the given
-        WaveformSet object. For each waveform, the sample
+        by taking one sample per Waveform from the given
+        WaveformSet object. For each Waveform, the sample
         is taken by subscribing one of their analyses (up to
         the analysis_label input parameter) with the given
         variable. It is the caller's responsibility to
@@ -156,7 +156,7 @@ class calibration_histogram(tracked_histogram):
 
         Parameters
         ----------
-        waveform_set : WaveformSet
+        WaveformSet : WaveformSet
             The WaveformSet object from where to take the
             Waveform objects to add to the calibration
             histogram.
@@ -170,7 +170,7 @@ class calibration_histogram(tracked_histogram):
             outside this range is ignored.
         variable : str
             For each Waveform object within the given
-            waveform set, this parameter gives the key
+            Waveform set, this parameter gives the key
             for the considered WfAna object (up to the
             analysis_label input parameter) from where
             to take the sample to add to the calibration
@@ -198,24 +198,24 @@ class calibration_histogram(tracked_histogram):
         """
 
         if bins_number < 2:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,
                 'CalibrationHistogram.from_WaveformSet()',
                 f"The given bins number ({bins_number}) must be"
                 " greater than 1."))
         if np.ndim(domain) != 1 or len(domain) != 2:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 2,
                 'CalibrationHistogram.from_WaveformSet()',
                 "The 'domain' parameter must be a 2x1 numpy array."))
 
         samples = [
-            waveform_set.waveforms[idx].get_analysis(
+            WaveformSet.waveforms[idx].get_analysis(
                 analysis_label).Result[variable]
             for idx in range(
                 # Trying to grab the WfAna object
-                len(waveform_set.waveforms))]
-        # waveform by waveform using
+                len(WaveformSet.waveforms))]
+        # Waveform by Waveform using
         # WaveformAdcs.get_analysis()
         # might be slow. Find a different
         # solution if this becomes a
@@ -227,7 +227,7 @@ class calibration_histogram(tracked_histogram):
                 domain)
         except numba.errors.TypingError:
 
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 3,
                 'CalibrationHistogram.from_WaveformSet()',
                 f"The given variable ('{variable}') does not give"
@@ -237,7 +237,7 @@ class calibration_histogram(tracked_histogram):
     def __from_samples(
             cls, samples: List[Union[int, float]],
             bins_number: int,
-            domain: np.ndarray) -> 'calibration_histogram':
+            domain: np.ndarray) -> 'CalibrationHistogram':
         """
         This method is not intended for user usage. It must
         be only called by the

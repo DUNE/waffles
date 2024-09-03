@@ -1,35 +1,35 @@
 import numpy as np
 
-from waffles.data_classes.WaveformAdcs import waveform_adcs
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
 
 
-class waveform(waveform_adcs):
+class Waveform(WaveformAdcs):
 
     """
-    This class implements a waveform which includes
+    This class implements a Waveform which includes
     information which is relative to detector readout.
-    It inherits from the waveform_adcs class.
+    It inherits from the WaveformAdcs class.
 
     Attributes
     ----------
     timestamp : int
-        The timestamp value for this waveform
-    TimeStep_ns : float (inherited from waveform_adcs)
-    plot_waveform_adcs : unidimensional numpy array of integers
-    (inherited from waveform_adcs)
+        The timestamp value for this Waveform
+    TimeStep_ns : float (inherited from WaveformAdcs)
+    plot_WaveformAdcs : unidimensional numpy array of integers
+    (inherited from WaveformAdcs)
     RunNumber : int
-        Number of the run from which this waveform was
+        Number of the run from which this Waveform was
         acquired
     RecordNumber : int
-        Number of the record within which this waveform
+        Number of the record within which this Waveform
         was acquired
     endpoint : int
-        endpoint number from which this waveform was
+        endpoint number from which this Waveform was
         acquired
     channel : int
-        channel number for this waveform
-    time_offset : int (inherited from waveform_adcs)
-    Analyses : OrderedDict of WfAna objects (inherited from waveform_adcs)
+        channel number for this Waveform
+    time_offset : int (inherited from WaveformAdcs)
+    Analyses : OrderedDict of WfAna objects (inherited from WaveformAdcs)
 
     Methods
     ----------
@@ -46,7 +46,7 @@ class waveform(waveform_adcs):
             channel: int,
             time_offset: int = 0):
         """
-        waveform class initializer
+        Waveform class initializer
 
         Parameters
         ----------
@@ -111,9 +111,9 @@ class waveform(waveform_adcs):
 #       return
 
 # For the moment there are no setters for
-# the attributes of waveform. I.e. you can
+# the attributes of Waveform. I.e. you can
 # only set the value of its attributes
-# through waveform.__init__. Here's an example
+# through Waveform.__init__. Here's an example
 # of what a setter would look like, though.
 
     def get_global_channel(self):

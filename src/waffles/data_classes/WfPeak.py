@@ -1,9 +1,9 @@
 from typing import Optional
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 
-class wf_peak:
+class WfPeak:
 
     """
     Stands for Waveform Peak. This class implements a
@@ -14,7 +14,7 @@ class wf_peak:
     ----------
     Position : int
         The iterator value for the point within
-        the waveform plot_waveform_adcs attribute where the
+        the Waveform plot_waveform_adcs attribute where the
         peak was spotted
     Baseline : float
         The baseline value which was used for the
@@ -22,7 +22,7 @@ class wf_peak:
     IntLl (resp. IntUl): int
         Stands for integration lower (resp. upper)
         limit. Iterator value for the first (resp.
-        last) point of the waveform plot_waveform_adcs range which
+        last) point of the Waveform plot_waveform_adcs range which
         was used to compute this WfPeak Integral
         attribute. IntLl must be smaller than IntUl.
         Both limits are inclusive.
@@ -69,7 +69,7 @@ class wf_peak:
 
         # If this check makes the execution time
         if position < 0:
-            raise Exception(generate_exception_message(
+            raise Exception(GenerateExceptionMessage(
                 1,  # be prohibitively high, it may be removed
                 'WfPeak.__init__()',
                 f"The provided position is negative ({position})."))
@@ -177,7 +177,7 @@ class wf_peak:
                 if amplitude <= 0.0:
                     # If this check makes the execution time
                     # be prohibitively high, it may be removed
-                    raise Exception(generate_exception_message(
+                    raise Exception(GenerateExceptionMessage(
                         1,
                         'WfPeak.set_amplitude_and_integral()',
                         f"The provided amplitude is negative ({amplitude})."))
@@ -198,7 +198,7 @@ class wf_peak:
                 if int_ll < 0:
                     # If the execution time goes prohibitively high due to this
                     # and the int_ul < int_ll checks, we shall remove them.
-                    raise Exception(generate_exception_message(
+                    raise Exception(GenerateExceptionMessage(
                         2,
                         'WfPeak.set_amplitude_and_integral()',
                         f"The provided int_ll is negative ({int_ll})."))
@@ -206,7 +206,7 @@ class wf_peak:
                 if int_ul is not None:
                     # Check for int_ul only if int_ll is OK
                     if int_ul <= int_ll:
-                        raise Exception(generate_exception_message(
+                        raise Exception(GenerateExceptionMessage(
                             3,
                             'WfPeak.set_amplitude_and_integral()',
                             f"The provided int_ul ({int_ul}) is smaller "

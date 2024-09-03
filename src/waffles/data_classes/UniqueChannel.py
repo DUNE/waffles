@@ -1,4 +1,4 @@
-class unique_channel:
+class UniqueChannel:
 
     """
     This class implements a unique channel, in the sense
