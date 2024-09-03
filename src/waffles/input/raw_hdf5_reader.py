@@ -1,4 +1,4 @@
-import os, io, click, subprocess, stat, math, h5py
+import os, io, click, subprocess, stat, math, shlex
 from array import array
 from tqdm import tqdm
 import numpy as np
@@ -68,7 +68,7 @@ def extract_fragment_info(frag, trig):
         trigger              = 'self_trigger'
         frame_obj            = fddetdataformats.DAPHNEFrame
         daphne_headers       = [frame_obj(frag.get_data(iframe*frame_obj.sizeof())).get_header() for iframe in range(get_n_frames(frag))]
-        threshold            = daphne_headers[0].threshold  #[header.threshold for header in daphne_headers]
+        # threshold            = daphne_headers[0].threshold  #[header.threshold for header in daphne_headers]
         baseline             = [header.baseline for header in daphne_headers]
         trigger_sample_value = [header.trigger_sample_value for header in daphne_headers]
 
@@ -203,42 +203,11 @@ def WaveformSet_from_hdf5_file( filepath : str,
 
     if "/eos" not in filepath:
         print("Using XROOTD")
-        xrd_client = client.File()
-        # Open the file
-        status, response = xrd_client.open(filepath)
-
-        if not status.ok:
-            raise RuntimeError(f"Failed to open file: {status.message}")
         
-        # Read the file content into a buffer
-        buffer = io.BytesIO()
-        offset = 0
-        chunk_size = 1024 * 1024  # 1 MB
-
-        while True:
-            status, data = xrd_client.read(offset, chunk_size)
-            if not status.ok:
-                raise RuntimeError(f"Failed to read file: {status.message}")
-            if not data:
-                break
-            buffer.write(data)
-            offset += len(data)
-
-        # Close the XRootD file
-        xrd_client.close()
-
-        # Use h5py to read the HDF5 file from the buffer
-        buffer.seek(0)
-        # h5_file  = HDF5RawDataFile(buffer) 
-        # TypeError: __init__(): incompatible constructor arguments. The following argument types are supported:
-        # 1. hdf5libs._daq_hdf5libs_py._HDF5RawDataFile(arg0: str)
-        # Invoked with: <_io.BytesIO object at 0x7fb7f0429210>
-        h5_file = h5py.File(buffer, 'r')
-        print(h5_file.keys())
+        subprocess.call(shlex.split(f"xrdcp {filepath} /tmp/."), shell=False)
+        filepath = f"/tmp/{filepath.split('/')[-1]}"
         
-    else: 
-        h5_file = HDF5RawDataFile(filepath)
-    
+    h5_file = HDF5RawDataFile(filepath)
     det        = 'HD_PDS'
     run_date   = h5_file.get_attribute('creation_timestamp')
     run_id     = filepath.split('/')[-1].split('_')[3]
