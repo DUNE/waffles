@@ -1,6 +1,7 @@
-def GenerateExceptionMessage(code,
-                             issuer,
-                             reason=''):
+def GenerateExceptionMessage(
+        code,
+        issuer,
+        reason=''):
     """
     Parameters
     ----------
@@ -36,7 +37,10 @@ def handle_missing_data(func):
         try:
             func(*args, **kwargs)
         except KeyError as e:
-            raise KeyError(GenerateExceptionMessage(1,
-                                                    'handle_missing_data()',
-                                                    f"You are trying to instantiate/check a WfAna-derived class without providing the required input parameters. {str(e)[1:-1]}"))
+            raise KeyError(GenerateExceptionMessage(
+                1,
+                'handle_missing_data()',
+                "You are trying to instantiate/check a "
+                "WfAna-derived class without providing the required"
+                f" input parameters. {str(e)[1:-1]}"))
     return wrapper
