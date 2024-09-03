@@ -2,7 +2,6 @@
 *.root
 *.npy
 *.hdf5
-*.ipynb
 test/
 .vscode/
 *krb5.conf*
