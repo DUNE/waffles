@@ -7,7 +7,7 @@ from plotly import subplots as psu
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WfAna import WfAna
-from waffles.data_classes.Map import map_
+from waffles.data_classes.Map import Map
 from waffles.data_classes.IPDict import IpDict
 
 import waffles.utils.numerical_utils as wun

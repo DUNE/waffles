@@ -64,7 +64,7 @@ def WaveformSetFromRootFiles(
             raise Exception(
                 GenerateExceptionMessage(
                     1,
-                    'WaveformSet_from_root_files',
+                    'WaveformSetFromRootFiles',
                     f"The given folderpath({
                         folderpath}) is not a valid directory."
                 )
@@ -83,7 +83,7 @@ def WaveformSetFromRootFiles(
         raise Exception(
             GenerateExceptionMessage(
                 2,
-                'WaveformSet_from_root_files',
+                'WaveformSetFromRootFiles',
                 f"No valid ROOT files were found in the given folder "
                 f"'{folderpath}' or filepath list."
             )
@@ -95,7 +95,7 @@ def WaveformSetFromRootFiles(
         print('\n'.join(f"\t - {f}" for f in valid_filepaths))
         print(f"Reading file 1/{file_count} ...")
 
-    output = WaveformSet_from_root_file(
+    output = WaveformSetFromRootFile(
         valid_filepaths[0],
         library,
         bulk_data_tree_name=bulk_data_tree_name,
@@ -113,7 +113,7 @@ def WaveformSetFromRootFiles(
         if verbose:
             print(f"Reading file {count}/{file_count} ...")
 
-        aux = WaveformSet_from_root_file(
+        aux = WaveformSetFromRootFile(
             filepath,
             library,
             bulk_data_tree_name=bulk_data_tree_name,
@@ -171,7 +171,7 @@ def WaveformSetFromRootFile(
         raise Exception(
             GenerateExceptionMessage(
                 1,
-                'WaveformSet_from_root_file',
+                'WaveformSetFromRootFile',
                 "Fraction limits are not well-formed."
             )
         )
@@ -180,7 +180,7 @@ def WaveformSetFromRootFile(
         raise Exception(
             GenerateExceptionMessage(
                 2,
-                'WaveformSet_from_root_file',
+                'WaveformSetFromRootFile',
                 f"The given library ({library}) is not supported."
             )
         )
@@ -222,7 +222,7 @@ def WaveformSetFromRootFile(
         raise Exception(
             GenerateExceptionMessage(
                 3,
-                'WaveformSet_from_root_file',
+                'WaveformSetFromRootFile',
                 f"No waveforms of the specified type({
                     'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."
             )
