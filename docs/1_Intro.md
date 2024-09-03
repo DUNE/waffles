@@ -179,11 +179,14 @@ The expected folder structure of the repository should be
 
 ### 1. Install packages needed for the library to run
 
-After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` with [NEED TO BE IN THE MAIN FOLDER]:
+After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` by navigating to the repository main folder and running:
 
 ```bash
-pip install -r docs/requirements.txt 
+pip install -r docs/requirements.txt
+pip install .
 ```
+
+If at some point you needed to re-run waffles with the changes you have introduced to the source code, you would just need to run the second command.
 
 ### 2. Make sure you have access to data to analyze
 
