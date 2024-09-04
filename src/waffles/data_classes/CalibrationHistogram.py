@@ -11,9 +11,7 @@ from waffles.Exceptions import GenerateExceptionMessage
 
 
 class CalibrationHistogram(TrackedHistogram):
-
-    """
-    This class implements a histogram which is used
+    """This class implements a histogram which is used
     for SiPM-based detector calibration. A well formed
     calibration histogram displays a number of
     well defined peaks, which match the 0-PE, 1-PE,
@@ -25,14 +23,14 @@ class CalibrationHistogram(TrackedHistogram):
 
     Attributes
     ----------
-    BinsNumber : int (inherited from TrackedHistogram)
-    Edges : unidimensional numpy array of floats
+    BinsNumber: int (inherited from TrackedHistogram)
+    Edges: unidimensional numpy array of floats
     (inherited from TrackedHistogram)
-    MeanBinWidth : float (inherited from TrackedHistogram)
-    Counts : unidimensional numpy array of integers
+    MeanBinWidth: float (inherited from TrackedHistogram)
+    Counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)
-    Indices : list of lists of integers (inherited from TrackedHistogram)
-    GaussianFitsParameters : dict of list of tuples of floats
+    Indices: list of lists of integers (inherited from TrackedHistogram)
+    GaussianFitsParameters: dict of list of tuples of floats
         The keys for this dictionary are
         'scale', 'mean', and 'std'. The value for
         each key is a list of tuples. The i-th
@@ -50,21 +48,22 @@ class CalibrationHistogram(TrackedHistogram):
     """
 
     def __init__(
-            self, bins_number: int,
-            edges: np.ndarray,
-            counts: np.ndarray,
-            indices: List[List[int]]):
-        """
-        CalibrationHistogram class initializer. It is the
+        self, 
+        bins_number: int,
+        edges: np.ndarray,
+        counts: np.ndarray,
+        indices: List[List[int]]
+    ):
+        """CalibrationHistogram class initializer. It is the
         caller's responsibility to check the types of the
         input parameters. No type checks are perfomed here.
 
         Parameters
         ----------
-        bins_number : int
-        edges : unidimensional numpy array of floats
-        counts : unidimensional numpy array of integers
-        indices : list of lists of integers
+        bins_number: int
+        edges: unidimensional numpy array of floats
+        counts: unidimensional numpy array of integers
+        indices: list of lists of integers
         """
 
         super().__init__(
@@ -81,10 +80,9 @@ class CalibrationHistogram(TrackedHistogram):
         return self.__gaussian_fits_parameters
 
     def __reset_gaussian_fit_parameters(self) -> None:
-        """
-        This method is not intended for user usage. It
-        resets the GaussianFitsParameters attribute to
-        its initial state.
+        """This method is not intended for user usage. 
+        It resets the GaussianFitsParameters attribute 
+        to its initial state.
         """
 
         self.__gaussian_fits_parameters = {
@@ -94,14 +92,15 @@ class CalibrationHistogram(TrackedHistogram):
         return
 
     def __add_gaussian_fit_parameters(
-            self, scale: float,
-            scale_err: float,
-            mean: float,
-            mean_err: float,
-            std: float,
-            std_err: float) -> None:
-        """
-        This method is not intended for user usage.
+        self, 
+        scale: float,
+        scale_err: float,
+        mean: float,
+        mean_err: float,
+        std: float,
+        std_err: float
+    ) -> None:
+        """This method is not intended for user usage.
         It takes care of adding the given fit parameters
         to the GaussianFitsParameters attribute according
         to its structure. No checks are performed in this
@@ -110,19 +109,19 @@ class CalibrationHistogram(TrackedHistogram):
 
         Parameters
         ----------
-        scale : float
+        scale: float
             The scaling factor of the gaussian fit
-        scale_err : float
+        scale_err: float
             The error of the scaling factor of the
             gaussian fit
-        mean : float
+        mean: float
             The mean value of the gaussian fit
-        mean_err : float
+        mean_err: float
             The error of the mean value of the
             gaussian fit
-        std : float
+        std: float
             The standard deviation of the gaussian fit
-        std_err : float
+        std_err: float
             The error of the standard deviation of the
             gaussian fit
 
@@ -139,13 +138,14 @@ class CalibrationHistogram(TrackedHistogram):
 
     @classmethod
     def from_WaveformSet(
-            cls, WaveformSet: WaveformSet,
-            bins_number: int,
-            domain: np.ndarray,
-            variable: str,
-            analysis_label: Optional[str] = None):
-        """
-        This method creates a CalibrationHistogram object
+        cls, 
+        waveform_set: WaveformSet,
+        bins_number: int,
+        domain: np.ndarray,
+        variable: str,
+        analysis_label: Optional[str] = None
+    ):
+        """This method creates a CalibrationHistogram object
         by taking one sample per Waveform from the given
         WaveformSet object. For each Waveform, the sample
         is taken by subscribing one of their analyses (up to
@@ -156,19 +156,19 @@ class CalibrationHistogram(TrackedHistogram):
 
         Parameters
         ----------
-        WaveformSet : WaveformSet
+        waveform_set: WaveformSet
             The WaveformSet object from where to take the
             Waveform objects to add to the calibration
             histogram.
-        bins_number : int
+        bins_number: int
             The number of bins for the created calibration
             histogram. It must be greater than 1.
-        domain : np.ndarray
+        domain: np.ndarray
             A 2x1 numpy array where (domain[0], domain[1])
             gives the range to consider for the created
             calibration histogram. Any sample which falls
             outside this range is ignored.
-        variable : str
+        variable: str
             For each Waveform object within the given
             Waveform set, this parameter gives the key
             for the considered WfAna object (up to the
@@ -180,7 +180,7 @@ class CalibrationHistogram(TrackedHistogram):
             ensure that the values for the given variable
             (key) are scalars, i.e. that they are valid
             samples for a 1D histogram.
-        analysis_label : str
+        analysis_label: str
             For each considered Waveform object, this
             parameter gives the key for the WfAna
             object within the Analyses attribute from
@@ -193,7 +193,7 @@ class CalibrationHistogram(TrackedHistogram):
 
         Returns
         ----------
-        output : CalibrationHistogram
+        output: CalibrationHistogram
             The created calibration histogram
         """
 
@@ -209,17 +209,15 @@ class CalibrationHistogram(TrackedHistogram):
                 'CalibrationHistogram.from_WaveformSet()',
                 "The 'domain' parameter must be a 2x1 numpy array."))
 
+        # Trying to grab the WfAna object Waveform by Waveform using
+        # WaveformAdcs.get_analysis() might be slow. Find a different
+        # solution if this becomesa problem at some point.
         samples = [
-            WaveformSet.waveforms[idx].get_analysis(
-                analysis_label).Result[variable]
-            for idx in range(
-                # Trying to grab the WfAna object
-                len(WaveformSet.waveforms))]
-        # Waveform by Waveform using
-        # WaveformAdcs.get_analysis()
-        # might be slow. Find a different
-        # solution if this becomes a
-        # a problem at some point.
+            waveform_set.waveforms[idx].get_analysis(
+                analysis_label
+            ).Result[variable]
+            for idx in range(    
+                len(waveform_set.waveforms))]
         try:
             return cls.__from_samples(
                 samples,
@@ -235,30 +233,31 @@ class CalibrationHistogram(TrackedHistogram):
 
     @classmethod
     def __from_samples(
-            cls, samples: List[Union[int, float]],
-            bins_number: int,
-            domain: np.ndarray) -> 'CalibrationHistogram':
-        """
-        This method is not intended for user usage. It must
-        be only called by the
+        cls, 
+        samples: List[Union[int, float]],
+        bins_number: int,
+        domain: np.ndarray
+    ) -> 'CalibrationHistogram':
+        """This method is not intended for user usage. It 
+        must be only called by the
         CalibrationHistogram.from_WaveformSet() class
         method, which ensures that the input parameters
         are well-formed. No checks are perfomed here.
 
         Parameters
         ----------
-        samples : list of int or float
+        samples: list of int or float
             The samples to add to the calibration histogram
-        bins_number : int
+        bins_number: int
             It is given to the 'bins' parameter of
             the waffles histogram1d() helper function.
-        domain : np.ndarray
+        domain: np.ndarray
             It is given to the 'domain' parameter of
             the waffles histogram1d() helper function
 
         Returns
         ----------
-        output : CalibrationHistogram
+        output: CalibrationHistogram
             The created calibration histogram
         """
 
@@ -272,6 +271,7 @@ class CalibrationHistogram(TrackedHistogram):
             bins_number,
             domain,
             keep_track_of_idcs=True)
+        
         return cls(
             bins_number,
             edges,
