@@ -122,9 +122,9 @@ def plot_waveform_adcs(
         This parameter only makes a difference if 
         'plot_analysis_markers' is set to True. In that case, 
         'analysis_label' is the key for the WfAna object within 
-        WaveformAdcs.Analyses from where to take the information 
+        WaveformAdcs.analyses from where to take the information 
         for the analysis markers plot. If 'analysis_label' is 
-        None, then the last analysis added to WaveformAdcs.Analyses 
+        None, then the last analysis added to WaveformAdcs.analyses 
         will be the used one.
     verbose : bool
         Whether to print functioning-related messages
@@ -457,11 +457,11 @@ def plot_WaveformSet(
         parameter of the plot_waveform_adcs() function 
         for each WaveformAdcs object(s) which will be 
         plotted. This parameter gives the key for the 
-        WfAna object within the Analyses attribute of 
+        WfAna object within the analyses attribute of 
         each plotted Waveform from where to take the 
         information for the analysis markers plot. In 
         this case, if 'analysis_label' is None, then 
-        the last analysis added to the Analyses attribute 
+        the last analysis added to the analyses attribute 
         will be the used one. 
             If mode is set to 'average' and this 
         parameter is defined, then this function will 
@@ -477,7 +477,7 @@ def plot_WaveformSet(
         analysis markers for the plotted average 
         Waveform are those of the newly computed analysis. 
         This parameter gives the key for the WfAna 
-        object within the Analyses attribute of the 
+        object within the analyses attribute of the 
         average Waveform where to take the information 
         for the analysis markers plot.
             If 'mode' is set to 'heatmap', this 
@@ -1037,11 +1037,11 @@ def plot_channel_ws_grid(
         parameter of the plot_waveform_adcs() function 
         for each WaveformAdcs object(s) which will be 
         plotted. This parameter gives the key for the 
-        WfAna object within the Analyses attribute of 
+        WfAna object within the analyses attribute of 
         each plotted Waveform from where to take the 
         information for the analysis markers plot. In 
         this case, if 'analysis_label' is None, then 
-        the last analysis added to the Analyses attribute 
+        the last analysis added to the analyses attribute 
         will be the used one. 
             If mode is set to 'average' and this 
         parameter is defined, then this function will 
@@ -1056,7 +1056,7 @@ def plot_channel_ws_grid(
         analysis markers for the plotted average Waveform 
         are those of the newly computed analysis. This 
         parameter gives the key for the WfAna object 
-        within the Analyses attribute of the average 
+        within the analyses attribute of the average 
         Waveform where to take the information for the 
         analysis markers plot.
             If 'mode' is set to 'heatmap', this 

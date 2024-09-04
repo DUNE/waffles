@@ -38,7 +38,7 @@ class WaveformAdcs:
         objects for plotting and analysis purposes.
         It must be semipositive and smaller than
         len(self.__adcs)-1. It is set to 0 by default.
-    Analyses: OrderedDict of WfAna objects
+    analyses: OrderedDict of WfAna objects
 
     Methods
     ----------

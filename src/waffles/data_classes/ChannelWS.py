@@ -99,11 +99,11 @@ class ChannelWs(WaveformSet):
             'compute_calib_histo' is set to True. For
             each Waveform object in this ChannelWS,
             this parameter gives the key for the WfAna
-            object within the Analyses attribute from
+            object within the analyses attribute from
             where to take the sample to add to the
             calibration histogram. If 'analysis_label'
             is None, then the last analysis added to the
-            Analyses attribute will be the used one. If
+            analyses attribute will be the used one. If
             there is not even one analysis, then an
             exception will be raised.
         """

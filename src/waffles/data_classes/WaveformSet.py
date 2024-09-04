@@ -484,7 +484,7 @@ class WaveformSet:
         of type analysis_class (which must be a class which
         inherits from the WfAna class) and runs its analyse()
         method on the current Waveform object. The created
-        analysis object is stored in the Analyses attribute
+        analysis object is stored in the analyses attribute
         of the Waveform object, using the given label parameter
         as its key. This method returns a dictionary, say x,
         where the keys are indices of the waveforms in this
@@ -496,7 +496,7 @@ class WaveformSet:
         label : str
             For every analysed Waveform, this is the key
             for the new WfAna (or derived) object within its
-            Analyses attribute.
+            analyses attribute.
         analysis_class : type
             Class (type) which must inherit from WfAna. The
             given class must have an analyse() method which
@@ -528,7 +528,7 @@ class WaveformSet:
             If True, for every analysed Waveform, its
             'analyse' method will overwrite any existing
             WfAna (or derived) object with the same label
-            (key) within its Analyses attribute.
+            (key) within its analyses attribute.
 
         Returns
         ----------
@@ -1101,7 +1101,7 @@ class WaveformSet:
         figure: Optional[pgo.Figure] = None,
         # can be defined. Eventually, a method like this should
         wfs_per_axes: Optional[int] = 100,
-        # inspect the Analyses attribute of each Waveform
+        # inspect the analyses attribute of each Waveform
         grid_of_wf_idcs: Optional[List[List[List[int]]]] = None,
         # in search for the spotted WfPeaks and their integrals.
         analysis_label: Optional[str] = None,
@@ -1161,14 +1161,14 @@ class WaveformSet:
             and j-th column.
         analysis_label : str
             This parameter gives the key for the WfAna
-            object within the Analyses attribute of each
+            object within the analyses attribute of each
             considered Waveform from where to take the
             integral value to add to the calibration
             histogram. Namely, if such WfAna object is
             x, then x.result.Integral is the considered
             integral. If 'analysis_label' is None,
             then the last analysis added to
-            the Analyses attribute will be the used one.
+            the analyses attribute will be the used one.
         bins : int
             A positive integer giving the number of bins
             in each histogram
