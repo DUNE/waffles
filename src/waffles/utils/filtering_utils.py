@@ -68,7 +68,7 @@ def match_run(
         Waveform: Waveform,
         run: int) -> bool:
     """
-    This function returns True if the RunNumber attribute
+    This function returns True if the run_number attribute
     of the given Waveform object matches run. It returns 
     False if else.
 

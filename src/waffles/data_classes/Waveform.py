@@ -15,21 +15,22 @@ class Waveform(WaveformAdcs):
     timestamp : int
         The timestamp value for this Waveform
     time_step_ns : float (inherited from WaveformAdcs)
-    plot_WaveformAdcs : unidimensional numpy array of integers
+    adcs : unidimensional numpy array of integers
     (inherited from WaveformAdcs)
-    RunNumber : int
+    run_number : int
         Number of the run from which this Waveform was
         acquired
-    RecordNumber : int
+    record_number : int
         Number of the record within which this Waveform
         was acquired
     endpoint : int
-        endpoint number from which this Waveform was
+        Endpoint number from which this Waveform was
         acquired
     channel : int
-        channel number for this Waveform
+        Channel number for this Waveform
     time_offset : int (inherited from WaveformAdcs)
-    Analyses : OrderedDict of WfAna objects (inherited from WaveformAdcs)
+    analyses : OrderedDict of WfAna objects 
+    (inherited from WaveformAdcs)
 
     Methods
     ----------
