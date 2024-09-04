@@ -4,31 +4,29 @@ from waffles.Exceptions import GenerateExceptionMessage
 
 
 class WfPeak:
-
-    """
-    Stands for Waveform Peak. This class implements a
-    peak which has been spotted in the plot_waveform_adcs attribute
+    """Stands for Waveform Peak. This class implements 
+    a peak which has been spotted in the adcs attribute
     of a certain Waveform object.
 
     Attributes
     ----------
-    Position : int
+    position: int
         The iterator value for the point within
-        the Waveform plot_waveform_adcs attribute where the
+        the Waveform adcs attribute where the
         peak was spotted
-    Baseline : float
+    baseline: float
         The baseline value which was used for the
         Amplitude and Integral attributes evaluation
-    IntLl (resp. IntUl): int
+    int_ll (resp. int_ul): int
         Stands for integration lower (resp. upper)
         limit. Iterator value for the first (resp.
-        last) point of the Waveform plot_waveform_adcs range which
+        last) point of the Waveform adcs range which
         was used to compute this WfPeak Integral
-        attribute. IntLl must be smaller than IntUl.
+        attribute. int_ll must be smaller than int_ul.
         Both limits are inclusive.
-    Amplitude : float
+    amplitude: float
         Amplitude of this peak
-    Integral : float
+    integral: float
         Integral of this peak
 
     Methods
@@ -37,15 +35,15 @@ class WfPeak:
     """
 
     def __init__(
-            self,
-            position: int,
-            baseline: Optional[float] = None,
-            int_ll: Optional[int] = None,
-            int_ul: Optional[int] = None,
-            amplitude: Optional[float] = None,
-            integral: Optional[float] = None):
-        """
-        WfPeak class initializer. The only requirement to initialize
+        self,
+        position: int,
+        baseline: Optional[float] = None,
+        int_ll: Optional[int] = None,
+        int_ul: Optional[int] = None,
+        amplitude: Optional[float] = None,
+        integral: Optional[float] = None
+    ):
+        """WfPeak class initializer. The only requirement to initialize
         a WfPeak object is to provide its position. The rest of the
         attributes can be setted later using the
         WfPeak.set_amplitude_and_integral() instance method.
@@ -55,29 +53,33 @@ class WfPeak:
 
         Parameters
         ----------
-        position : int
+        position: int
             It must be semipositive.
-        baseline : float
-        int_ll (resp. int_ul) : int
+        baseline: float
+        int_ll (resp. int_ul): int
             If defined, it must be semipositive.
-        amplitude : float
+        amplitude: float
             If defined, it must be positive.
-        integral : float
-
+        integral: float
         """
         # Shall we add type checks here?
 
         # If this check makes the execution time
+        # be prohibitively high, it may be removed
         if position < 0:
             raise Exception(GenerateExceptionMessage(
-                1,  # be prohibitively high, it may be removed
+                1,  
                 'WfPeak.__init__()',
                 f"The provided position is negative ({position})."))
+            
         self.__position = position
 
-        self.__baseline = None      # These might never be set by
-        self.__int_ll = None        # self.set_amplitude_and_integral()
-        self.__int_ul = None        # We want them to be None at least.
+        # These might never be set by
+        # self.set_amplitude_and_integral()
+        # We want them to be None at least.
+        self.__baseline = None      
+        self.__int_ll = None        
+        self.__int_ul = None        
         self.__amplitude = None
         self.__integral = None
 
@@ -114,18 +116,19 @@ class WfPeak:
         return self.__integral
 
     def set_amplitude_and_integral(
-        self, baseline: Optional[float] = None,
+        self, 
+        baseline: Optional[float] = None,
         # Attributes should be set mutually
         # to make sure that the baseline
-        int_ll: Optional[int] = None,
         # in self.__baseline matches the
-        int_ul: Optional[int] = None,
         # one that was used to compute
-        amplitude: Optional[float] = None,
         # self.__amplitude and self.__integral
-            integral: Optional[float] = None) -> None:
-        """
-        Method to jointly set the
+        int_ll: Optional[int] = None,
+        int_ul: Optional[int] = None,
+        amplitude: Optional[float] = None,
+        integral: Optional[float] = None
+    ) -> None:
+        """Method to jointly set the
 
             - self.__baseline,
             - self.__int_ll,
@@ -141,17 +144,17 @@ class WfPeak:
 
         Parameters
         ----------
-        baseline : float
+        baseline: float
             It is loaded into the self.__baseline attribute.
-        int_ll (resp. int_ul) : int
+        int_ll (resp. int_ul): int
             If defined, it must be a semipositive integer. It
             is loaded into the self.__int_ll (resp. self.__int_ul)
             attribute. int_ll must be smaller than int_ul.
-        amplitude : float
+        amplitude: float
             If defined, it must be a positive float. It is loaded
             into the self.__amplitude attribute if the 'baseline'
             input parameter is defined.
-        integral : float
+        integral: float
             It is loaded into the self.__integral attribute
             if the 'baseline', 'int_ll' and 'int_ul' input
             parameters are defined.
@@ -168,7 +171,8 @@ class WfPeak:
             # then there is no information to set
             # the amplitude nor the integral.
             # In this case we are also ignoring
-            # the 'int_ll' and 'int_ul' input parameters.
+            # the 'int_ll' and 'int_ul' input 
+            # parameters.
 
             self.__baseline = baseline
             # At this point the amplitude can be defined
@@ -182,14 +186,14 @@ class WfPeak:
                         'WfPeak.set_amplitude_and_integral()',
                         f"The provided amplitude is negative ({amplitude})."))
 
-            self.__amplitude = amplitude
             # Set the amplitude even if it is None
-
+            self.__amplitude = amplitude
+            
             # Reset the integral to None, since the baseline has changed.
-            self.reset_integral()
             #  This is to avoid inconsistencies between the baseline used
             # to compute the integral and the one that is stored in
             # self.__baseline as of now.
+            self.reset_integral()
 
             if int_ll is not None:
                 # If the lower integration limit is not defined, then
@@ -220,8 +224,7 @@ class WfPeak:
         return
 
     def reset_integral(self) -> None:
-        """
-        Method to reset the
+        """Method to reset the
 
                 - self.__int_ll,
                 - self.__int_ul and
