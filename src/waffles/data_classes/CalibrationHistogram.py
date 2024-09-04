@@ -23,13 +23,13 @@ class CalibrationHistogram(TrackedHistogram):
 
     Attributes
     ----------
-    BinsNumber: int (inherited from TrackedHistogram)
-    Edges: unidimensional numpy array of floats
+    bins_number: int (inherited from TrackedHistogram)
+    edges: unidimensional numpy array of floats
     (inherited from TrackedHistogram)
-    MeanBinWidth: float (inherited from TrackedHistogram)
-    Counts: unidimensional numpy array of integers
+    mean_bin_width: float (inherited from TrackedHistogram)
+    counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)
-    Indices: list of lists of integers (inherited from TrackedHistogram)
+    indices: list of lists of integers (inherited from TrackedHistogram)
     GaussianFitsParameters: dict of list of tuples of floats
         The keys for this dictionary are
         'scale', 'mean', and 'std'. The value for

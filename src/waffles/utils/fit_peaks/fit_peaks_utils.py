@@ -63,7 +63,7 @@ def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: Calibration
     parameters have been performed. This function tries 
     to find peaks over the signal which is computed as
 
-        signal = (CalibrationHistogram.Counts - np.min(CalibrationHistogram.Counts))/np.max(CalibrationHistogram.Counts)
+        signal = (CalibrationHistogram.counts - np.min(CalibrationHistogram.counts))/np.max(CalibrationHistogram.counts)
 
     This function iteratively calls
 
@@ -138,8 +138,8 @@ def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: Calibration
         scipy.signal.find_peaks() documentation.
     """
 
-    signal = (CalibrationHistogram.Counts - np.min(CalibrationHistogram.Counts)
-              ) / np.max(CalibrationHistogram.Counts)
+    signal = (CalibrationHistogram.counts - np.min(CalibrationHistogram.counts)
+              ) / np.max(CalibrationHistogram.counts)
 
     fFoundMax = False
     fReachedEnd = False

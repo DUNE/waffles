@@ -75,10 +75,10 @@ def fit_peaks_of_calibration_histogram(
         gives the number of points to consider on either 
         side of the peak maximum, to fit each gaussian 
         function. I.e. if i is the iterator value for
-        CalibrationHistogram.Counts of the i-th peak, 
+        CalibrationHistogram.counts of the i-th peak, 
         then the histogram bins which will be considered 
         for the fit are given by the slice 
-        CalibrationHistogram.Counts[i - half_points_to_fit : i + half_points_to_fit + 1].
+        CalibrationHistogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
     initial_percentage : float
         It must be greater than 0.0 and smaller than 1.0.
         This parameter is passed to the 'initial_percentage' 
@@ -140,13 +140,13 @@ def fit_peaks_of_calibration_histogram(
         aux_idx = spsi_output[0][i]
 
         aux_seeds = [
-            CalibrationHistogram.Counts[aux_idx],
+            CalibrationHistogram.counts[aux_idx],
             # Scale seed
             # Mean seed
-            (CalibrationHistogram.Edges[aux_idx] + \
-             CalibrationHistogram.Edges[aux_idx + 1]) / 2.,
+            (CalibrationHistogram.edges[aux_idx] + \
+             CalibrationHistogram.edges[aux_idx + 1]) / 2.,
             # Std seed : Note that
-            spsi_output[1]['widths'][i] * CalibrationHistogram.MeanBinWidth / 2.355]
+            spsi_output[1]['widths'][i] * CalibrationHistogram.mean_bin_width / 2.355]
         # wuff.fit_peaks_of_calibration_histogram()
         # is computing the widths of the peaks, in
         # number of samples, at half of their height
@@ -157,17 +157,17 @@ def fit_peaks_of_calibration_histogram(
         aux_lower_lim = max(0,
                             aux_idx - half_points_to_fit)   # Restrict the fit lower limit to 0
 
-        aux_upper_lim = min(len(CalibrationHistogram.Counts) - 1,      # The upper limit should be restricted to
-                            # len(CalibrationHistogram.Counts). Making it
+        aux_upper_lim = min(len(CalibrationHistogram.counts) - 1,      # The upper limit should be restricted to
+                            # len(CalibrationHistogram.counts). Making it
                             aux_idx + half_points_to_fit + 1)
         # be further restricted to
-        # len(CalibrationHistogram.Counts) - 1 so that
+        # len(CalibrationHistogram.counts) - 1 so that
         # there is always available data to compute
         # the center of the bins, in the following line.
 
-        aux_bin_centers = (CalibrationHistogram.Edges[aux_lower_lim: aux_upper_lim] +
-                           CalibrationHistogram.Edges[aux_lower_lim + 1: aux_upper_lim + 1]) / 2.
-        aux_counts = CalibrationHistogram.Counts[aux_lower_lim: aux_upper_lim]
+        aux_bin_centers = (CalibrationHistogram.edges[aux_lower_lim: aux_upper_lim] +
+                           CalibrationHistogram.edges[aux_lower_lim + 1: aux_upper_lim + 1]) / 2.
+        aux_counts = CalibrationHistogram.counts[aux_lower_lim: aux_upper_lim]
 
         try:
             aux_optimal_parameters, aux_covariance_matrix = spopt.curve_fit(wun.gaussian,

@@ -873,8 +873,8 @@ def plot_calibration_histogram(CalibrationHistogram: CalibrationHistogram,
     """
 
     histogram_trace = pgo.Scatter(
-        x=CalibrationHistogram.Edges,
-        y=CalibrationHistogram.Counts,
+        x=CalibrationHistogram.edges,
+        y=CalibrationHistogram.counts,
         mode='lines',
         line=dict(
             color='black',
@@ -896,8 +896,8 @@ def plot_calibration_histogram(CalibrationHistogram: CalibrationHistogram,
             fPlottedOneFit = True
 
             fit_x = np.linspace(
-                CalibrationHistogram.Edges[0],
-                CalibrationHistogram.Edges[-1],
+                CalibrationHistogram.edges[0],
+                CalibrationHistogram.edges[-1],
                 num=fit_npoints)
 
             fit_y = wun.gaussian(
