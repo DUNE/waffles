@@ -1165,7 +1165,7 @@ class WaveformSet:
             considered Waveform from where to take the
             integral value to add to the calibration
             histogram. Namely, if such WfAna object is
-            x, then x.result.Integral is the considered
+            x, then x.result.integral is the considered
             integral. If 'analysis_label' is None,
             then the last analysis added to
             the analyses attribute will be the used one.
@@ -1303,7 +1303,7 @@ class WaveformSet:
 
                     data, _ = wun.histogram1d(
                         np.array([self.waveforms[idc].get_analysis(
-                            analysis_label).result.Integral
+                            analysis_label).result.integral
                             for idc in grid_of_wf_idcs_[i][j]]),
                         # Trying to grab the WfAna object
                         bins,  # Waveform by Waveform using
