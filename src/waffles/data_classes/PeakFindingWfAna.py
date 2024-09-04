@@ -20,7 +20,7 @@ class PeakFindingWfAna(BasicWfAna):
 
     Attributes
     ----------
-    InputParameters : IPDict (inherited from WfAna)
+    input_parameters : IPDict (inherited from WfAna)
     BaselineLimits : list of int (inherited from BasicWfAna)
     IntLl (resp. IntUl) : int (inherited from BasicWfAna)
     AmpLl (resp. AmpUl) : int (inherited from BasicWfAna)
@@ -28,7 +28,7 @@ class PeakFindingWfAna(BasicWfAna):
         Dictionary of keyword arguments which are passed to
         scipy.signal.find_peaks(Waveform.plot_WaveformAdcs, **PeakFindingKwargs)
         by the analyse() method.
-    Result : WfAnaResult (inherited from WfAna)
+    result : WfAnaResult (inherited from WfAna)
 
     Methods
     ----------
@@ -213,9 +213,9 @@ class PeakFindingWfAna(BasicWfAna):
 
     def peaks_are_available(self) -> bool:
         """
-        This method returns True if self.Result
-        is not None and self.Result.Peaks is
-        not None and len(self.Result.Peaks)
+        This method returns True if self.result
+        is not None and self.result.Peaks is
+        not None and len(self.result.Peaks)
         is greater than 0. It returns False otherwise.
 
         Returns
@@ -223,9 +223,9 @@ class PeakFindingWfAna(BasicWfAna):
         bool
         """
 
-        if self.Result is not None:
-            if self.Result.Peaks is not None:
-                if len(self.Result.Peaks) > 0:
+        if self.result is not None:
+            if self.result.Peaks is not None:
+                if len(self.result.Peaks) > 0:
                     return True
 
         return False

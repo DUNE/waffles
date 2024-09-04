@@ -76,7 +76,7 @@ def plot_waveform_adcs(
         framing the intervals which were used to compute
         the baseline. The positions of these lines are
         grabbed from the 'baseline_limits' key in the
-        InputParameters attribute of the specified WfAna 
+        input_parameters attribute of the specified WfAna 
         object, up to the analysis_label input parameter.
     show_baseline : bool
         This parameter only makes a difference if
@@ -84,7 +84,7 @@ def plot_waveform_adcs(
         this parameter means whether to plot an horizontal
         line matching the computed baseline. The baseline
         value is grabbed from the 'baseline' key in the 
-        Result attribute of the specified WfAna object, 
+        result attribute of the specified WfAna object, 
         up to the analysis_label input parameter.
     show_general_integration_limits : bool
         This parameter only makes a difference if
@@ -92,7 +92,7 @@ def plot_waveform_adcs(
         this parameter means whether to plot vertical lines
         framing the general integration interval. The
         positions of these lines are grabbed from the
-        'int_ll' and 'int_ul' keys in the InputParameters
+        'int_ll' and 'int_ul' keys in the input_parameters
         attribute of the specified WfAna object, up to the
         analysis_label input parameter.
     show_general_amplitude_limits : bool
@@ -101,7 +101,7 @@ def plot_waveform_adcs(
         this parameter means whether to plot vertical lines
         framing the general amplitude interval. The
         positions of these lines are grabbed from the
-        'amp_ll' and 'amp_ul' keys in the InputParameters
+        'amp_ll' and 'amp_ul' keys in the input_parameters
         attribute of the specified WfAna object, up to the
         analysis_label input parameter.
     show_spotted_peaks : bool
@@ -110,7 +110,7 @@ def plot_waveform_adcs(
         this parameter means whether to plot a triangle
         marker over each spotted peak. The positions of 
         these markers are grabbed from the 'peaks' key 
-        in the Result attribute of the specified WfAna object, 
+        in the result attribute of the specified WfAna object, 
         up to the analysis_label input parameter.
     show_peaks_integration_limits : bool
         This parameter only makes a difference if
@@ -160,7 +160,7 @@ def plot_waveform_adcs(
         if show_baseline_limits:    # Plot the markers for the baseline limits
 
             try:
-                aux = ana.InputParameters['baseline_limits']
+                aux = ana.input_parameters['baseline_limits']
 
             except KeyError:
                 if verbose:
@@ -211,7 +211,7 @@ def plot_waveform_adcs(
         if show_baseline:       # Plot the baseline
 
             try:
-                aux = ana.Result['baseline']
+                aux = ana.result['baseline']
 
             except KeyError:
                 if verbose:
@@ -235,8 +235,8 @@ def plot_waveform_adcs(
         if show_general_integration_limits:     # Plot the markers for the general integration limits
 
             try:
-                aux_1 = ana.InputParameters['int_ll']
-                aux_2 = ana.InputParameters['int_ul']
+                aux_1 = ana.input_parameters['int_ll']
+                aux_2 = ana.input_parameters['int_ul']
 
             except KeyError:
                 if verbose:
@@ -272,8 +272,8 @@ def plot_waveform_adcs(
         if show_general_amplitude_limits:       # Plot the markers for the general amplitude limits
 
             try:
-                aux_1 = ana.InputParameters['amp_ll']
-                aux_2 = ana.InputParameters['amp_ul']
+                aux_1 = ana.input_parameters['amp_ll']
+                aux_2 = ana.input_parameters['amp_ul']
 
             except KeyError:
                 if verbose:
@@ -308,7 +308,7 @@ def plot_waveform_adcs(
         if show_spotted_peaks:      # Plot the markers for the spotted peaks
 
             try:
-                peaks = ana.Result['peaks']
+                peaks = ana.result['peaks']
 
             except KeyError:
                 if verbose:

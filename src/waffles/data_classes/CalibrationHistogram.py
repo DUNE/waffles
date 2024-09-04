@@ -175,7 +175,7 @@ class CalibrationHistogram(TrackedHistogram):
             analysis_label input parameter) from where
             to take the sample to add to the calibration
             histogram. Namely, for a WfAna object x,
-            x.Result[variable] is the considered
+            x.result[variable] is the considered
             sample. It is the caller's responsibility to
             ensure that the values for the given variable
             (key) are scalars, i.e. that they are valid
@@ -215,7 +215,7 @@ class CalibrationHistogram(TrackedHistogram):
         samples = [
             waveform_set.waveforms[idx].get_analysis(
                 analysis_label
-            ).Result[variable]
+            ).result[variable]
             for idx in range(    
                 len(waveform_set.waveforms))]
         try:

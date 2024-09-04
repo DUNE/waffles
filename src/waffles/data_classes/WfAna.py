@@ -16,12 +16,12 @@ class WfAna(ABC):
 
     Attributes
     ----------
-    InputParameters: IPDict
+    input_parameters: IPDict
         An IPDict object (a dictionary) containing the
         input parameters of this analysis. The keys (resp.
         values) are the names (resp. values) of the input
         parameters.
-    Result: WfAnaResult
+    result: WfAnaResult
         A WfAnaResult object (a dictionary) containing
         the result of the analysis
 
@@ -51,18 +51,18 @@ class WfAna(ABC):
 
     # Getters
     @property
-    def InputParameters(self):
+    def input_parameters(self):
         return self.__input_parameters
 
     @property
-    def Result(self):
+    def result(self):
         return self.__result
 
     # Not adding setters for the attributes
     # of this class:
-    # - InputParameters should be fixed
+    # - input_parameters should be fixed
     #   since the initialization
-    # - Result should be set by the
+    # - result should be set by the
     #   analyse() instance method
 
     @abstractmethod

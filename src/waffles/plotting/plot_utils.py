@@ -283,7 +283,7 @@ def __subplot_heatmap(
         is subtracted from the Waveform prior to
         addition to the heatmap. The baseline is
         grabbed from the 'baseline' key in the
-        Result attribute of the specified WfAna
+        result attribute of the specified WfAna
         object. I.e. such information must be
         available. If it is not, an exception will
         be raised.
@@ -326,7 +326,7 @@ def __subplot_heatmap(
     try:
         aux_y = np.hstack([
             WaveformSet.waveforms[idx].plot_waveform_adcs -
-            WaveformSet.waveforms[idx].Analyses[analysis_label].Result['baseline'] for idx in wf_idcs])
+            WaveformSet.waveforms[idx].Analyses[analysis_label].result['baseline'] for idx in wf_idcs])
 
     except KeyError:
         raise Exception(GenerateExceptionMessage(

@@ -237,7 +237,7 @@ class WaveformAdcs:
 
         N.B.: It is preferred to keep track of all of the I/O
         information of the analysis in the WfAna attributes which
-        are designed for that purpose, i.e. WfAna.InputParameters
+        are designed for that purpose, i.e. WfAna.input_parameters
         and WfAna.Result. However, *args and **kwargs are enabled
         to give more room for the user to potentially configure the
         analyse() method of WfAna (or derived) with parameters that

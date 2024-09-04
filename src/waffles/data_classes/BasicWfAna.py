@@ -17,7 +17,7 @@ class BasicWfAna(WfAna):
 
     Attributes
     ----------
-    InputParameters: IPDict (inherited from WfAna)
+    input_parameters: IPDict (inherited from WfAna)
     BaselineLimits: list of int
         It must have an even number of integers which
         must meet BaselineLimits[i] < BaselineLimits[i + 1].
@@ -43,7 +43,7 @@ class BasicWfAna(WfAna):
         than AmpUl. These limits are inclusive. I.e., the
         points which are used for the amplitude calculation
         are wf.adcs[AmpLl - wf.time_offset : AmpUl + 1 - wf.time_offset].
-    Result: WfAnaResult (inherited from WfAna)
+    result: WfAnaResult (inherited from WfAna)
 
     Methods
     ----------

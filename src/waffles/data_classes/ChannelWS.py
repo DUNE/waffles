@@ -89,7 +89,7 @@ class ChannelWs(WaveformSet):
             analysis_label input parameter) from where
             to take the sample to add to the computed
             calibration histogram. Namely, for a WfAna
-            object x, x.Result[variable] is the considered
+            object x, x.result[variable] is the considered
             sample. It is the caller's responsibility to
             ensure that the values for the given variable
             (key) are scalars, i.e. that they are valid
