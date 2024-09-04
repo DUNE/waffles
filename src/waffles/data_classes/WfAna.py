@@ -8,9 +8,7 @@ import waffles.Exceptions as we
 
 
 class WfAna(ABC):
-
-    """
-    Stands for Waveform Analysis. This abstract
+    """Stands for Waveform Analysis. This abstract
     class is intended to be the base class for
     any class which implements a certain type of
     analysis which is performed over an arbitrary
@@ -18,12 +16,12 @@ class WfAna(ABC):
 
     Attributes
     ----------
-    InputParameters : IPDict
+    InputParameters: IPDict
         An IPDict object (a dictionary) containing the
         input parameters of this analysis. The keys (resp.
         values) are the names (resp. values) of the input
         parameters.
-    Result : WfAnaResult
+    Result: WfAnaResult
         A WfAnaResult object (a dictionary) containing
         the result of the analysis
 
@@ -33,8 +31,7 @@ class WfAna(ABC):
     """
 
     def __init__(self, input_parameters: IPDict):
-        """
-        WfAna class initializer. It is assumed that it is
+        """WfAna class initializer. It is assumed that it is
         the caller responsibility to check the well-formedness
         of the input parameter, according to the attributes
         documentation in the class documentation. No checks
@@ -42,13 +39,15 @@ class WfAna(ABC):
 
         Parameters
         ----------
-        input_parameters : IPDict
+        input_parameters: IPDict
         """
 
         self.__input_parameters = input_parameters
-        self.__result = None
+
         # To be determined a posteriori
         # by the analyse() instance method
+        self.__result = None
+
 
     # Getters
     @property
@@ -68,13 +67,13 @@ class WfAna(ABC):
 
     @abstractmethod
     def analyse(
-            self,
-            Waveform: WaveformAdcs,
-            *args,
-            **kwargs):
-        """
-        This abstract method serves as a template for
-        the analyser method that MUST be implemented
+        self,
+        waveform: WaveformAdcs,
+        *args,
+        **kwargs
+    ):
+        """This abstract method serves as a template 
+        for the analyser method that MUST be implemented
         for whichever derived class of WfAna. This
         method must be responsible for creating an
         object of class WfAnaResult and assigning it
@@ -82,7 +81,7 @@ class WfAna(ABC):
 
         Parameters
         ----------
-        Waveform : WaveformAdcs
+        waveform: WaveformAdcs
             The WaveformAdcs object which will be
             analysed
         *args
@@ -106,13 +105,12 @@ class WfAna(ABC):
     @abstractmethod
     @we.handle_missing_data
     def check_input_parameters(input_parameters: IPDict) -> None:
-        """
-        This abstract method, which MUST be implemented
-        for whichever derived class of WfAna, is
-        responsible for checking whether the input
-        parameters are well-formed. It should raise
-        an exception if the input parameters are not
-        well-formed. It should end execution normally
+        """This abstract method, which MUST be 
+        implemented for whichever derived class of 
+        WfAna, is responsible for checking whether 
+        the input parameters are well-formed. It should 
+        raise an exception if the input parameters are 
+        not well-formed. It should end execution normally
         and return None if they are well-formed.
 
         For efficiency purposes, the aim is to call
@@ -127,7 +125,7 @@ class WfAna(ABC):
 
         Parameters
         ----------
-        input_parameters : IPDict
+        input_parameters: IPDict
             The input parameters to be checked
 
         Returns
