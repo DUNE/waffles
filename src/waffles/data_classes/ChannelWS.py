@@ -17,13 +17,13 @@ class ChannelWs(WaveformSet):
     Attributes
     ----------
     waveforms : list of Waveform objects (inherited from WaveformSet)
-    PointsPerWf : int (inherited from WaveformSet)
+    points_per_wf : int (inherited from WaveformSet)
     runs : set of int (inherited from WaveformSet)
-    RecordNumbers : dictionary of sets (inherited from WaveformSet)
-    AvailableChannels : dictionary of dictionaries of sets
+    record_numbers : dictionary of sets (inherited from WaveformSet)
+    available_channels : dictionary of dictionaries of sets
                         (inherited from WaveformSet)
-    MeanAdcs : WaveformAdcs (inherited from WaveformSet)
-    MeanAdcsIdcs : tuple of int (inherited from WaveformSet)
+    mean_adcs : WaveformAdcs (inherited from WaveformSet)
+    mean_adcs_idcs : tuple of int (inherited from WaveformSet)
     endpoint : int
         endpoint number for this set of waveforms
     channel : int
