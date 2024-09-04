@@ -1,7 +1,7 @@
 from waffles.data_classes.IODict import IODict
 
 
-class OrDict(IODict):
+class ORDict(IODict):
     """Stands for Output Result Dictionary. This class
     inherits from the IODict class, and it is intended
     to store a set of resulting parameters from an

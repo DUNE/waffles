@@ -1,7 +1,7 @@
-from waffles.data_classes.ORDict import OrDict
+from waffles.data_classes.ORDict import ORDict
 
 
-class WfAnaResult(OrDict):
+class WfAnaResult(ORDict):
 
     """
     Stands for Waveform Analysis Result. This class
