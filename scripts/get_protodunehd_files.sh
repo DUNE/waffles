@@ -22,9 +22,9 @@ fi
 if [ -n "$2" ];then
     where=$2
     else
-        read -p "Enter where are you [cern/fnal/all]: " where
+        read -p "Enter where are you [cern/fnal]: " where
          while [[ $where != "cern" && $where != "fnal" ]]; do
-               read -p "Invalid entry, try again. Enter where [cern/fnal/all]: " where
+               read -p "Invalid entry, try again. Enter where [cern/fnal]: " where
          done
 fi
 if [ -n "$3" ];then
@@ -91,7 +91,6 @@ if [ -f ${rucio_paths_file} ]; then
       fi
       
       replicas=$( rucio list-file-replicas --pfns hd-protodune:hd-protodune_${run} )
-      echo "Found mathching results:" $replicas \n
       for line in $replicas; do
          if [[ $line == *$where* ]]; then
             case $where in
@@ -114,18 +113,6 @@ if [ -f ${rucio_paths_file} ]; then
                foo="/pnfs"${line//*'/pnfs'/} 
                echo "ee" $foo
                # fbb=${foo//'dunepro/'/'dunepro'} # remove everything before /dunepro
-               echo $foo | tee -a $HOME/${run0}.txt
-               ;;
-               grid)
-               echo $line | tee -a $HOME/${run0}.txt
-               ;;
-               esac
-            ;;
-            pic)
-               case $localgrid in
-               local)
-               foo="/pnfs"${line//*'/pnfs'/} 
-               echo "ee" $foo
                echo $foo | tee -a $HOME/${run0}.txt
                ;;
                grid)
