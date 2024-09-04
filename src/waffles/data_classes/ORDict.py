@@ -2,9 +2,7 @@ from waffles.data_classes.IODict import IoDict
 
 
 class OrDict(IoDict):
-
-    """
-    Stands for Output Result Dictionary. This class
+    """Stands for Output Result Dictionary. This class
     inherits from the IoDict class, and it is intended
     to store a set of resulting parameters from an
     arbitrary computation. This class adds no further
@@ -14,11 +12,10 @@ class OrDict(IoDict):
     """
 
     def __getitem__(self, key):
-        """
-        This re-implementation of the __getitem__ method
-        of the built-in dict class rewords the KeyError
-        message that is raised when a key is not found
-        in the dictionary.
+        """This re-implementation of the __getitem__ 
+        method of the built-in dict class rewords the 
+        KeyError message that is raised when a key is 
+        not found in the dictionary.
         """
 
         try:
