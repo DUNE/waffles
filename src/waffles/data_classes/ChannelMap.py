@@ -6,16 +6,14 @@ from waffles.Exceptions import GenerateExceptionMessage
 
 
 class ChannelMap(Map):
-
-    """
-    This class implements a Map whose type is UniqueChannel.
+    """This class implements a Map whose type is UniqueChannel.
 
     Attributes
     ----------
-    rows : int (inherited from Map)
-    columns : int (inherited from Map)
-    Type : type (inherited from Map)
-    data : list of lists (inherited from Map)
+    rows: int (inherited from Map)
+    columns: int (inherited from Map)
+    type: type (inherited from Map)
+    data: list of lists (inherited from Map)
 
     Methods
     ----------
@@ -23,19 +21,20 @@ class ChannelMap(Map):
     """
 
     def __init__(
-            self, rows: int,
-            columns: int,
-            data: List[List[UniqueChannel]]):
-        """
-        ChannelMap class initializer
+        self, 
+        rows: int,
+        columns: int,
+        data: List[List[UniqueChannel]]
+    ):
+        """ChannelMap class initializer
 
         Parameters
         ----------
-        rows : int
+        rows: int
             It must be a positive integer
-        columns : int
+        columns: int
             It must be a positive integer
-        data : list of lists of UniqueChannel objects
+        data: list of lists of UniqueChannel objects
             The length of data must be equal to rows
             and the length of each one of its lists
             must be equal to columns.
@@ -58,10 +57,10 @@ class ChannelMap(Map):
             data=data)
 
     def find_channel(
-        self, UniqueChannel: UniqueChannel
+        self, 
+        unique_channel: UniqueChannel
     ) -> Tuple[bool, Tuple[int, int]]:
-        """
-        This method gets an UniqueChannel object
+        """This method gets an UniqueChannel object
         and returns a tuple with a boolean and a
         tuple with two integers. If the given
         channel is spotted in this ChannelMap object,
@@ -76,7 +75,7 @@ class ChannelMap(Map):
 
         Parameters
         ----------
-        UniqueChannel : UniqueChannel
+        unique_channel: UniqueChannel
             Unique channel to look for within this
             ChannelMap object
 
@@ -88,8 +87,8 @@ class ChannelMap(Map):
         for i in range(self.rows):
             for j in range(self.columns):
                 aux = self.data[i][j]
-                if aux.endpoint == UniqueChannel.endpoint:
-                    if aux.channel == UniqueChannel.channel:
+                if aux.endpoint == unique_channel.endpoint:
+                    if aux.channel == unique_channel.channel:
                         return (True, (i, j))
 
         return (False, (-1, -1))
