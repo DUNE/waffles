@@ -19,9 +19,9 @@ class PeakFindingWfAna(BasicWfAna):
     Attributes
     ----------
     input_parameters: IPDict (inherited from WfAna)
-    BaselineLimits: list of int (inherited from BasicWfAna)
-    IntLl (resp. IntUl): int (inherited from BasicWfAna)
-    AmpLl (resp. AmpUl): int (inherited from BasicWfAna)
+    baseline_limits: list of int (inherited from BasicWfAna)
+    int_ll (resp. int_ul): int (inherited from BasicWfAna)
+    amp_ll (resp. amp_ul): int (inherited from BasicWfAna)
     PeakFindingKwargs: dict
         Dictionary of keyword arguments which are passed to
         scipy.signal.find_peaks(Waveform.adcs, **PeakFindingKwargs)
@@ -74,7 +74,7 @@ class PeakFindingWfAna(BasicWfAna):
 
             - It computes the baseline as the median of the points
             that are considered, according to the documentation of
-            the BaselineLimits attribute.
+            the baseline_limits attribute.
             - It searches for peaks over the inverted Waveform,
             by calling
 
@@ -82,26 +82,26 @@ class PeakFindingWfAna(BasicWfAna):
                                         **self.__peak_finding_kwargs)
 
             - It calculates the integral of
-            waveform.adcs[IntLl - waveform.time_offset :
-            IntUl + 1 - waveform.time_offset].
+            waveform.adcs[int_ll - waveform.time_offset :
+            int_ul + 1 - waveform.time_offset].
             To do so, it assumes that the temporal resolution of
             the Waveform is constant and approximates its integral
-            to waveform.time_step_ns*np.sum( -b + waveform.adcs[IntLl -
-            waveform.time_offset : IntUl + 1 - waveform.time_offset]),
+            to waveform.time_step_ns*np.sum( -b + waveform.adcs[int_ll -
+            waveform.time_offset : int_ul + 1 - waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
-            waveform.adcs[AmpLl - waveform.time_offset :
-            AmpUl + 1 - waveform.time_offset].
+            waveform.adcs[amp_ll - waveform.time_offset :
+            amp_ul + 1 - waveform.time_offset].
 
         Note that for these computations to be well-defined, it is
         assumed that
 
-            - BaselineLimits[0] - wf.time_offset >= 0
-            - BaselineLimits[-1] - wf.time_offset <= len(wf.adcs)
-            - IntLl - wf.time_offset >= 0
-            - IntUl - wf.time_offset < len(wf.adcs)
-            - AmpLl - wf.time_offset >= 0
-            - AmpUl - wf.time_offset < len(wf.adcs)
+            - baseline_limits[0] - wf.time_offset >= 0
+            - baseline_limits[-1] - wf.time_offset <= len(wf.adcs)
+            - int_ll - wf.time_offset >= 0
+            - int_ul - wf.time_offset < len(wf.adcs)
+            - amp_ll - wf.time_offset >= 0
+            - amp_ul - wf.time_offset < len(wf.adcs)
 
         For the sake of efficiency, these checks are not done.
         It is the caller's responsibility to ensure that these
