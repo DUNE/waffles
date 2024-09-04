@@ -1,7 +1,5 @@
 class UniqueChannel:
-
-    """
-    This class implements a unique channel, in the sense
+    """This class implements a unique channel, in the sense
     that its endpoint and channel number is identified.
 
     Attributes
@@ -17,13 +15,12 @@ class UniqueChannel:
     """
 
     def __init__(self, endpoint, channel):
-        """
-        UniqueChannel class initializer
+        """UniqueChannel class initializer
 
         Parameters
         ----------
-        endpoint : int
-        channel : bool
+        endpoint: int
+        channel: bool
         """
 
         # Shall we add type checks here?
@@ -41,11 +38,10 @@ class UniqueChannel:
         return self.__channel
 
     def __repr__(self) -> str:
-        """
-        Returns a string representation of the UniqueChannel
+        """Returns a string representation of the UniqueChannel
         object. P.e. for a UniqueChannel object with endpoint
         105 and channel 3, the string representation would be
-        "105: 3".
+        "105-3".
         """
 
         return f"{self.endpoint}-{self.channel}"
