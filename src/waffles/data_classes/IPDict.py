@@ -1,7 +1,7 @@
 from waffles.data_classes.IODict import IoDict
 
 
-class IpDict(IoDict):
+class IPDict(IoDict):
     """Stands for Input Parameters Dictionary. This class
     inherits from the IODict class, and it is intended
     to store a set of input parameters for an arbitrary

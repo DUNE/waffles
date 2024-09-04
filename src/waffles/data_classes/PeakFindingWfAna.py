@@ -2,7 +2,7 @@
 from scipy import signal as spsi
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
-from waffles.data_classes.IPDict import IpDict
+from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.WfPeak import WfPeak
 

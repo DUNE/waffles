@@ -8,7 +8,7 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from waffles.data_classes.WfAna import WfAna
 
-from waffles.data_classes.IPDict import IpDict
+from waffles.data_classes.IPDict import IPDict
 from waffles.Exceptions import GenerateExceptionMessage
 
 

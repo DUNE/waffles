@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
-from waffles.data_classes.IPDict import IpDict
+from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAnaResult import WfAnaResult
 
 import waffles.Exceptions as we

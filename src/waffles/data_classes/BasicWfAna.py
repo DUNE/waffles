@@ -1,7 +1,7 @@
 import numpy as np
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
-from waffles.data_classes.IPDict import IpDict
+from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
 
