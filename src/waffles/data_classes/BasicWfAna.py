@@ -110,7 +110,7 @@ class BasicWfAna(WfAna):
             IntUl + 1 - waveform.time_offset].
             To do so, it assumes that the temporal resolution of
             the waveform is constant and approximates its integral
-            to waveform.TimeStep_ns*np.sum(-b + waveform.adcs[IntLl -
+            to waveform.time_step_ns*np.sum(-b + waveform.adcs[IntLl -
             waveform.time_offset: IntUl + 1 - waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
@@ -164,7 +164,7 @@ class BasicWfAna(WfAna):
             baseline_rms=None,
             # Assuming that the waveform is inverted and
             # using linearity to avoid some multiplications
-            integral=waveform.TimeStep_ns * (((
+            integral=waveform.time_step_ns * (((
                 self.__int_ul - self.__int_ll + 1) * baseline) - np.sum(
                 waveform.adcs[
                     self.__int_ll - waveform.time_offset:

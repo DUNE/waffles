@@ -524,7 +524,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
 
                 waveforms.append(Waveform(
                     current_timestamp_array[i],
-                    16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
+                    16.,    # time_step_ns   ## Hardcoded to 16 ns until the
                     # 'time_to_nsec' value from the
                     # 'metadata' TTree is fixed
                     # meta_data[1],
@@ -576,7 +576,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
 
                 waveforms.append(Waveform(
                     current_timestamp_array[i],
-                    16.,    # TimeStep_ns
+                    16.,    # time_step_ns
                     # meta_data[1],
                     np.array(current_adcs_array[i]),
                     meta_data[0],
@@ -729,10 +729,10 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
 
             waveforms.append(Waveform(
                 timestamp_address[0],
-                16.,    # TimeStep_ns   ## Hardcoded to 16 ns until the
+                16.,    # time_step_ns   ## Hardcoded to 16 ns until the
                 # 'time_to_nsec' value from the
                 # 'metadata' TTree is fixed
-                # meta_data[1],   # TimeStep_ns
+                # meta_data[1],   # time_step_ns
                 np.array(adcs_address),
                 meta_data[0],
                 record_address[0],
@@ -762,7 +762,7 @@ def __build_waveforms_list_from_ROOT_file_using_pyroot(
             waveforms.append(Waveform(
                 timestamp_address[0],
                 16.,
-                # TimeStep_ns
+                # time_step_ns
                 # meta_data[1],
                 np.array(adcs_address),
                 meta_data[0],

@@ -57,7 +57,7 @@ class WaveformSet:
     MeanAdcs : WaveformAdcs
         The mean of the adcs arrays for every Waveform
         or a subset of waveforms in this WaveformSet. It
-        is a WaveformAdcs object whose TimeStep_ns
+        is a WaveformAdcs object whose time_step_ns
         attribute is assumed to match that of the first
         Waveform which was used in the average sum.
         Its adcs attribute contains points_per_wf entries,
@@ -622,7 +622,7 @@ class WaveformSet:
         of the waveforms, wf, within this
         WaveformSet for which
         wf_selector(wf, *args, **kwargs) evaluates
-        to True. In any case, the TimeStep_ns
+        to True. In any case, the time_step_ns
         attribute of the newly created WaveformAdcs
         object assumed to match that of the first
         Waveform which was used in the average sum.
@@ -758,7 +758,7 @@ class WaveformSet:
             aux += self.waveforms[i].adcs
 
         output = WaveformAdcs(
-            self.__waveforms[0].TimeStep_ns,
+            self.__waveforms[0].time_step_ns,
             aux/len(self.__waveforms),
             time_offset=0)
 
@@ -816,7 +816,7 @@ class WaveformSet:
                 'passed the given selector.'))
 
         output = WaveformAdcs(
-            self.__waveforms[added_wvfs[0]].TimeStep_ns,
+            self.__waveforms[added_wvfs[0]].time_step_ns,
             aux/len(added_wvfs),
             time_offset=0)
 
@@ -872,7 +872,7 @@ class WaveformSet:
                 added_wvfs.append(idx)
 
         output = WaveformAdcs(
-            self.__waveforms[added_wvfs[0]].TimeStep_ns,
+            self.__waveforms[added_wvfs[0]].time_step_ns,
             # len(added_wvfs) must be at least 1.
             aux/len(added_wvfs),
             # This was already checked by

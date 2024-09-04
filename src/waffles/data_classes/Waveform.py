@@ -14,7 +14,7 @@ class Waveform(WaveformAdcs):
     ----------
     timestamp : int
         The timestamp value for this Waveform
-    TimeStep_ns : float (inherited from WaveformAdcs)
+    time_step_ns : float (inherited from WaveformAdcs)
     plot_WaveformAdcs : unidimensional numpy array of integers
     (inherited from WaveformAdcs)
     RunNumber : int

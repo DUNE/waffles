@@ -249,7 +249,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
                 #    adcs.append(int(value))
                 if read_full_streaming_data == is_fullstream_frag[index]:
                     waveforms.append(Waveform(timestamps_frag[index],
-                                              16.,    # TimeStep_ns
+                                              16.,    # time_step_ns
                                               np.array(adcs),
                                               run_numb,
                                               r[0],

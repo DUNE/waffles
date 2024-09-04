@@ -88,7 +88,7 @@ class PeakFindingWfAna(BasicWfAna):
             To do so, it assumes that the temporal resolution of
             the Waveform is constant and approximates its integral
             to Waveform.
-            TimeStep_ns*np.sum( -b + Waveform.plot_WaveformAdcs[IntLl -
+            time_step_ns*np.sum( -b + Waveform.plot_WaveformAdcs[IntLl -
             Waveform.time_offset : IntUl + 1 - Waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
