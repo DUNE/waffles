@@ -22,9 +22,9 @@ class PeakFindingWfAna(BasicWfAna):
     baseline_limits: list of int (inherited from BasicWfAna)
     int_ll (resp. int_ul): int (inherited from BasicWfAna)
     amp_ll (resp. amp_ul): int (inherited from BasicWfAna)
-    PeakFindingKwargs: dict
+    peak_finding_kwargs: dict
         Dictionary of keyword arguments which are passed to
-        scipy.signal.find_peaks(Waveform.adcs, **PeakFindingKwargs)
+        scipy.signal.find_peaks(Waveform.adcs, **peak_finding_kwargs)
         by the analyse() method.
     result: WfAnaResult (inherited from WfAna)
 
@@ -61,7 +61,7 @@ class PeakFindingWfAna(BasicWfAna):
 
     # Getters
     @property
-    def PeakFindingKwargs(self):
+    def peak_finding_kwargs(self):
         return self.__peak_finding_kwargs
 
     def analyse(
