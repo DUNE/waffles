@@ -189,7 +189,7 @@ class WaveformAdcs:
     def analyse(
             self, label: str,
             analysis_class: type,
-            input_parameters: IpDict,
+            input_parameters: IPDict,
             *args,
             overwrite: bool = False,
             **kwargs) -> dict:
@@ -217,7 +217,7 @@ class WaveformAdcs:
             WfAna abstract class, but it is the user's
             responsibility to ensure that such method takes,
             indeed, a WaveformAdcs object as its first argument.
-        input_parameters : IpDict
+        input_parameters : IPDict
             The input parameters which will be passed to the
             analysis_class initializer. It is the user's
             responsibility to ensure that input_parameters

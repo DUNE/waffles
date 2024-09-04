@@ -18,8 +18,8 @@ class WfAna(ABC):
 
     Attributes
     ----------
-    InputParameters : IpDict
-        An IpDict object (a dictionary) containing the
+    InputParameters : IPDict
+        An IPDict object (a dictionary) containing the
         input parameters of this analysis. The keys (resp.
         values) are the names (resp. values) of the input
         parameters.
@@ -32,7 +32,7 @@ class WfAna(ABC):
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self, input_parameters: IpDict):
+    def __init__(self, input_parameters: IPDict):
         """
         WfAna class initializer. It is assumed that it is
         the caller responsibility to check the well-formedness
@@ -42,7 +42,7 @@ class WfAna(ABC):
 
         Parameters
         ----------
-        input_parameters : IpDict
+        input_parameters : IPDict
         """
 
         self.__input_parameters = input_parameters
@@ -105,7 +105,7 @@ class WfAna(ABC):
     @staticmethod
     @abstractmethod
     @we.handle_missing_data
-    def check_input_parameters(input_parameters: IpDict) -> None:
+    def check_input_parameters(input_parameters: IPDict) -> None:
         """
         This abstract method, which MUST be implemented
         for whichever derived class of WfAna, is
@@ -118,7 +118,7 @@ class WfAna(ABC):
         For efficiency purposes, the aim is to call
         it at the WaveformSet level (before instantiating
         the first WfAna (or derived) object) for
-        cases where the same IpDict is given for every
+        cases where the same IPDict is given for every
         WaveformAdcs object to be analysed. In these
         cases, just one check is performed, instead
         of N checks, where N is the number of WaveformAdcs
@@ -127,7 +127,7 @@ class WfAna(ABC):
 
         Parameters
         ----------
-        input_parameters : IpDict
+        input_parameters : IPDict
             The input parameters to be checked
 
         Returns

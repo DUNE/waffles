@@ -51,7 +51,7 @@ class BasicWfAna(WfAna):
     """
 
     @we.handle_missing_data
-    def __init__(self, input_parameters: IpDict):
+    def __init__(self, input_parameters: IPDict):
         """BasicWfAna class initializer. It is assumed that it is
         the caller responsibility to check the well-formedness
         of the input parameters, according to the attributes
@@ -188,7 +188,7 @@ class BasicWfAna(WfAna):
     @staticmethod
     @we.handle_missing_data
     def check_input_parameters(
-            input_parameters: IpDict,
+            input_parameters: IPDict,
             points_no: int
     ) -> None:
         """This method performs three checks:

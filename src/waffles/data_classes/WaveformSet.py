@@ -470,7 +470,7 @@ class WaveformSet:
     def analyse(
             self, label: str,
             analysis_class: type,
-            input_parameters: IpDict,
+            input_parameters: IPDict,
             *args,
             analysis_kwargs: dict = {},
             checks_kwargs: dict = {},
