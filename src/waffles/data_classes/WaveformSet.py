@@ -1091,7 +1091,7 @@ class WaveformSet:
         # checked, because it might be an open issue.
 
         return cls(*waveforms)
-    
+
     def merge(self, other: 'WaveformSet') -> None:
         """This method merges the given other WaveformSet
         object into this WaveformSet object. For every
