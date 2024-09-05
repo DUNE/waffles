@@ -76,6 +76,6 @@ def main(runs):
                         f.write(cleaned_path + "\n")
                 print(f"Saved REPLICA paths for RSE {user_input[0]} to {saving_path}{str(one_run).zfill(6)}.txt")
 
-                    
+                   
 if __name__ == "__main__":
     main()

@@ -29,6 +29,5 @@ rucio whoami
 # Enable use of xrootd to open files outside eos
 voms-proxy-init -rfc -noregen -voms=dune:/dune/Role=Analysis -valid 120:00
 
-
 # Ensure the script exits cleanly
 # exit 0

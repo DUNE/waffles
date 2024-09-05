@@ -24,7 +24,7 @@ if [ -n "$2" ];then
     else
         read -p "Enter where are you [cern/fnal]: " where
          while [[ $where != "cern" && $where != "fnal" ]]; do
-               read -p "Invalid entry, try again. Enter where [cern/fnal]: " where
+               read -p "Invalid entry, try again. Enter where [cern/fnal/all]: " where
          done
 fi
 if [ -n "$3" ];then
@@ -111,7 +111,6 @@ if [ -f ${rucio_paths_file} ]; then
                case $localgrid in
                local)
                foo="/pnfs"${line//*'/pnfs'/} 
-               echo "ee" $foo
                # fbb=${foo//'dunepro/'/'dunepro'} # remove everything before /dunepro
                echo $foo | tee -a $HOME/${run0}.txt
                ;;
