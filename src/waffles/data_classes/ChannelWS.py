@@ -6,9 +6,7 @@ from waffles.Exceptions import GenerateExceptionMessage
 
 
 class ChannelWs(WaveformSet):
-
-    """
-    Stands for channel Waveform Set. This class inherits
+    """Stands for Channel Waveform Set. This class inherits
     from the WaveformSet class. It implements a set of
     Waveform objects for which its endpoint attribute is
     the same accross the whole set, and their channel
@@ -25,13 +23,13 @@ class ChannelWs(WaveformSet):
     mean_adcs : WaveformAdcs (inherited from WaveformSet)
     mean_adcs_idcs : tuple of int (inherited from WaveformSet)
     endpoint : int
-        endpoint number for this set of waveforms
+        Endpoint number for this set of waveforms
     channel : int
-        channel number for this set of waveforms
-    CalibHisto : CalibrationHistogram
+        Channel number for this set of waveforms
+    calib_histo : CalibrationHistogram
         A calibration histogram for this set of waveforms.
         It is not computed by default. I.e. if
-        self.CalibHisto equals to None, it should be
+        self.calib_histo equals to None, it should be
         interpreted as unavailable data.
 
     Methods

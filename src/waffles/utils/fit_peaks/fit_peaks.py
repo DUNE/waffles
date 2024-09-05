@@ -209,7 +209,7 @@ def fit_peaks_of_channel_ws_grid(
     in the ch_map attribute of the ChannelWsGrid, this
     function calls the
 
-        fit_peaks_of_calibration_histogram(chws.CalibHisto, ...)
+        fit_peaks_of_calibration_histogram(chws.calib_histo, ...)
 
     function. It returns False if at least one 
     of the fit_peaks_of_calibration_histogram() calls 
@@ -281,7 +281,7 @@ def fit_peaks_of_channel_ws_grid(
             except KeyError:
                 continue
 
-            output *= fit_peaks_of_calibration_histogram(ChannelWs.CalibHisto,
+            output *= fit_peaks_of_calibration_histogram(ChannelWs.calib_histo,
                                                          max_peaks,
                                                          prominence,
                                                          half_points_to_fit,

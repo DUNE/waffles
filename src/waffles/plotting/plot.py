@@ -1013,7 +1013,7 @@ def plot_channel_ws_grid(
         Check its documentation for more information.
             If it is set to 'calibration', then the
         calibration histogram of each ChannelWS object
-        will be plotted. In this case, the CalibHisto
+        will be plotted. In this case, the calib_histo
         attribute of each ChannelWS object must be
         defined, i.e. it must be different to None.
         If it is not, then an exception will be raised.
@@ -1426,17 +1426,17 @@ def plot_channel_ws_grid(
                         j + 1)
                     continue
 
-                if ChannelWs.CalibHisto is None:
+                if ChannelWs.calib_histo is None:
                     raise Exception(GenerateExceptionMessage(
                         3,
                         'plot_channel_ws_grid()',
-                        f"In 'calibration' mode, the CalibHisto attribute of each considered ChannelWS object must be defined."))
+                        f"In 'calibration' mode, the calib_histo attribute of each considered ChannelWS object must be defined."))
 
                 aux_name = f"C.H. of channel {
                     channel_ws_grid.ch_map.data[i][j]}"
 
                 fPlottedOneFit |= plot_CalibrationHistogram(
-                    ChannelWs.CalibHisto,
+                    ChannelWs.calib_histo,
                     figure_,
                     name=aux_name,
                     row=i + 1,
