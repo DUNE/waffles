@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.data_classes.ChannelWS import ChannelWs
+from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.ChannelMap import ChannelMap
 
 
