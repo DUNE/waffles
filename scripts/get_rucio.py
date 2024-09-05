@@ -1,4 +1,4 @@
-import os, click, subprocess, shlex
+import os, re, click, subprocess, shlex, inquirer
 
 def save_output(homepath, saving_path, one_run):
     one_run = str(one_run).zfill(6)
@@ -49,13 +49,33 @@ def main(runs):
             print(f"\033[35m\nYou are the first one looking for this file. Let's get the rucio paths!.\033[0m")
             homepath = os.environ['HOME']
 
-            for option in [["local", "cern"], ["grid", "fnal"], ["grid", "pic"]]:
-                print("Looking for rucio paths matching: ", option)
-                get_rucio = f"bash get_protodunehd_files.sh {option[0]} {option[1]} {one_run}" #This looks for local files in CERN computers
-                subprocess.call(shlex.split(get_rucio), shell=False)
-                output = save_output(homepath, saving_path, one_run)
-                if output != "": break
+            get_rucio = f"bash get_protodunehd_files.sh local cern {one_run}" #This looks for local files in CERN computers
+            subprocess.call(shlex.split(get_rucio), shell=False)
+            output = save_output(homepath, saving_path, one_run)
+            
+            if output == "":
+                get_sites = f"rucio list-file-replicas hd-protodune:hd-protodune_{one_run}" #This looks for local files in CERN computers
+                sites_list = subprocess.check_output(shlex.split(get_sites), shell=False)
+                sites_list = sites_list.decode('utf-8')  # Decode bytes to string
+                
+                rse_pattern = re.compile(r'\|\s+(\w+):')
+                rse_values = set(rse_pattern.findall(sites_list))
+                list_rse = list(rse_values)
+                list_rse.remove("RSE")
+                
+                #question to choose the site with inquirer
+                question = [ inquirer.Checkbox("RSE", message=f"Choose the RSE to save the rucio paths of your run", choices=list_rse) ]
+                user_input = inquirer.prompt(question)["RSE"]
+                
+                # Extract and save associated REPLICA paths
+                replica_pattern = re.compile(rf'{user_input[0]}: (.+)')
+                replica_paths = replica_pattern.findall(sites_list)
+                with open(f"{saving_path}{str(one_run).zfill(6)}.txt", "w") as f:
+                    for path in replica_paths:
+                        cleaned_path = path.strip().rstrip('|')
+                        f.write(cleaned_path + "\n")
+                print(f"Saved REPLICA paths for RSE {user_input[0]} to {saving_path}{str(one_run).zfill(6)}.txt")
+
                    
-                    
 if __name__ == "__main__":
     main()

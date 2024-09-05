@@ -15,3 +15,4 @@ dash
 dash_bootstrap_components
 jupyter
 kaleido
+tqdm

@@ -2,10 +2,12 @@
 *.root
 *.npy
 *.hdf5
-test/
+*.ipynb
+test/*
 .vscode/
 *krb5.conf*
 
+!test/wtest_*
 !docs/examples/00_CheckData.ipynb
 !docs/examples/01_Calibration.ipynb
 
