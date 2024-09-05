@@ -38,14 +38,15 @@ class Waveform(WaveformAdcs):
     """
 
     def __init__(
-            self, timestamp: int,
-            time_step_ns: float,
-            adcs: np.ndarray,
-            run_number: int,
-            record_number: int,
-            endpoint: int,
-            channel: int,
-            time_offset: int = 0):
+        self, 
+        timestamp: int,
+        time_step_ns: float,
+        adcs: np.ndarray,
+        run_number: int,
+        record_number: int,
+        endpoint: int,
+        channel: int,
+        time_offset: int = 0):
         """
         Waveform class initializer
 

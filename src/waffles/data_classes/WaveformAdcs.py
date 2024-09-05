@@ -52,7 +52,8 @@ class WaveformAdcs:
     # computed using points in that range.
 
     def __init__(
-        self, time_step_ns: float,
+        self, 
+        time_step_ns: float,
         adcs: np.ndarray,
         time_offset: int = 0
     ):

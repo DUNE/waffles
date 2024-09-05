@@ -44,7 +44,8 @@ class ChannelWsGrid:
     """
 
     def __init__(
-        self, ch_map: ChannelMap,
+        self, 
+        ch_map: ChannelMap,
         input_waveformset: WaveformSet,
         compute_calib_histo: bool = False,
         bins_number: Optional[int] = None,
@@ -292,7 +293,7 @@ class ChannelWsGrid:
                 # Then remove them. This process is staged to
                 # prevent a 'RuntimeError: dictionary changed
                 # size during iteration' error
-                
+
                 for channel in empty_channels[endpoint]:    
                     del idcs[endpoint][channel]
 

@@ -132,7 +132,8 @@ class TrackedHistogram:
 
     @classmethod
     def from_samples(
-        cls, samples: List[Union[int, float]],
+        cls, 
+        samples: List[Union[int, float]],
         bins_number: int,
         domain: np.ndarray
     ) -> 'TrackedHistogram':
