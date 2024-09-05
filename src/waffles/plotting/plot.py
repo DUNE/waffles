@@ -952,7 +952,7 @@ def plot_channel_ws_grid(
     This function returns a plotly.graph_objects.Figure 
     with a grid of subplots which are arranged according
     to the ChannelWsGrid.ch_map attribute. The subplot at 
-    position i,j may be empty if there is no ChannelWS object 
+    position i,j may be empty if there is no ChannelWs object 
     in ChannelWsGrid.ch_wf_sets which matches the UniqueChannel 
     object at position i,j in the ChannelWsGrid.ch_map 
     attribute. If it is not empty, a subplot may contain a 
@@ -964,7 +964,7 @@ def plot_channel_ws_grid(
     ----------
     ChannelWsGrid : ChannelWsGrid
         The ChannelWsGrid object which contains the 
-        ChannelWS objects to be plotted.
+        ChannelWs objects to be plotted.
     *args
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
@@ -1012,18 +1012,18 @@ def plot_channel_ws_grid(
         is specified via the 'analysis_label' parameter. 
         Check its documentation for more information.
             If it is set to 'calibration', then the
-        calibration histogram of each ChannelWS object
+        calibration histogram of each ChannelWs object
         will be plotted. In this case, the calib_histo
-        attribute of each ChannelWS object must be
+        attribute of each ChannelWs object must be
         defined, i.e. it must be different to None.
         If it is not, then an exception will be raised.
     wfs_per_axes : int
         If it is None, then every Waveform in each
-        ChannelWS object will be considered. Otherwise,
+        ChannelWs object will be considered. Otherwise,
         only the first wfs_per_axes waveforms of each
-        ChannelWS object will be considered. If 
+        ChannelWs object will be considered. If 
         wfs_per_axes is greater than the number of 
-        waveforms in a certain ChannelWS object, then 
+        waveforms in a certain ChannelWs object, then 
         all of its waveforms will be considered.
     analysis_label : str
         The meaning of this parameter varies slightly
@@ -1147,7 +1147,7 @@ def plot_channel_ws_grid(
         the time range, in time ticks, which will be considered 
         for the heatmap plot. If it is not defined, then it 
         is assumed to be 0 (resp. ChannelWs.PointsPerWf - 1, 
-        where ChannelWs is the ChannelWS object to be plotted 
+        where ChannelWs is the ChannelWs object to be plotted 
         in each subplot). It must be smaller (resp. greater) 
         than time_range_upper_limit (resp. time_range_lower_limit).
     adc_range_above_baseline (resp. adc_range_below_baseline) : int
@@ -1430,7 +1430,7 @@ def plot_channel_ws_grid(
                     raise Exception(GenerateExceptionMessage(
                         3,
                         'plot_channel_ws_grid()',
-                        f"In 'calibration' mode, the calib_histo attribute of each considered ChannelWS object must be defined."))
+                        f"In 'calibration' mode, the calib_histo attribute of each considered ChannelWs object must be defined."))
 
                 aux_name = f"C.H. of channel {
                     channel_ws_grid.ch_map.data[i][j]}"

@@ -46,7 +46,7 @@ class ChannelWs(WaveformSet):
         variable: Optional[str] = None,
         analysis_label: Optional[str] = None
     ):
-        """ChannelWS class initializer
+        """ChannelWs class initializer
 
         Parameters
         ----------
@@ -57,10 +57,10 @@ class ChannelWs(WaveformSet):
             raised.
         compute_calib_histo: bool
             If True, then the calibration histogram for
-            this ChannelWS object will be computed, up to
+            this ChannelWs object will be computed, up to
             the input given to the 'variable' parameter.
             If False, then the calibration histogram for
-            this ChannelWS object will be set to None.
+            this ChannelWs object will be set to None.
         bins_number: int
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
@@ -83,7 +83,7 @@ class ChannelWs(WaveformSet):
             and it is given to the 'variable' positional
             argument of the CalibrationHistogram.from_WaveformSet
             class method. For each Waveform object within
-            this ChannelWS, this parameter gives the key
+            this ChannelWs, this parameter gives the key
             for the considered WfAna object (up to the
             analysis_label input parameter) from where
             to take the sample to add to the computed
@@ -96,7 +96,7 @@ class ChannelWs(WaveformSet):
         analysis_label: str
             This parameter only makes a difference if
             'compute_calib_histo' is set to True. For
-            each Waveform object in this ChannelWS,
+            each Waveform object in this ChannelWs,
             this parameter gives the key for the WfAna
             object within the analyses attribute from
             where to take the sample to add to the
@@ -122,13 +122,13 @@ class ChannelWs(WaveformSet):
             if bins_number is None:
                 raise Exception(GenerateExceptionMessage(
                     1,
-                    'ChannelWS.__init__()',
+                    'ChannelWs.__init__()',
                     'The bins number must be provided if the'
                     ' calibration histogram is to be computed.'))
             if domain is None:
                 raise Exception(GenerateExceptionMessage(
                     2,
-                    'ChannelWS.__init__()',
+                    'ChannelWs.__init__()',
                     'The domain must be provided if the '
                     'calibration histogram is to be computed.'))
 
@@ -158,7 +158,7 @@ class ChannelWs(WaveformSet):
         that the endpoint and the channel attributes of every 
         Waveform object within this set is homogeneous. If it 
         is not, then it raises an exception. If they are, then 
-        the endpoint and channel attributes of this ChannelWS 
+        the endpoint and channel attributes of this ChannelWs 
         object are updated accordingly.
 
         Returns
@@ -171,7 +171,7 @@ class ChannelWs(WaveformSet):
         if (len(aux) != 1):
             raise Exception(GenerateExceptionMessage(
                 1,
-                'ChannelWS.update_endpoint_and_channel()',
+                'ChannelWs.update_endpoint_and_channel()',
                 'Every Waveform object within this set must'
                 ' have the same endpoint attribute.'))
         else:
@@ -179,7 +179,7 @@ class ChannelWs(WaveformSet):
             if len(aux[endpoint]) != 1:
                 raise Exception(GenerateExceptionMessage(
                     2,
-                    'ChannelWS.update_endpoint_and_channel()',
+                    'ChannelWs.update_endpoint_and_channel()',
                     'Every Waveform object within this set must'
                     ' have the same channel attribute.'))
             else:

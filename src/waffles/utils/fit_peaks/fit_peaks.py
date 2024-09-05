@@ -203,7 +203,7 @@ def fit_peaks_of_channel_ws_grid(
         initial_percentage=0.1,
         percentage_step=0.1) -> bool:
     """
-    For each ChannelWS object, say chws, contained in
+    For each ChannelWs object, say chws, contained in
     the ch_wf_sets attribute of the given ChannelWsGrid
     object, ChannelWsGrid, whose channel is present
     in the ch_map attribute of the ChannelWsGrid, this

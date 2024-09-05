@@ -436,11 +436,11 @@ def __add_unique_channels_top_annotations(
         The figure to which the annotations will be added
     also_add_run_info : bool
         If True, then for each subplot for which there
-        is a ChannelWS object, say chws, present in the 
+        is a ChannelWs object, say chws, present in the 
         ChannelWsGrid.ch_wf_sets attribute, the first run 
         number which appears in the chws.runs attribute 
         will be additionally added to the annotation. 
-        For each subplot for which there is no ChannelWS 
+        For each subplot for which there is no ChannelWs 
         object, according to the physical position given 
         by the ChannelWsGrid.ch_map attribute, no additional 
         annotation will be added.
