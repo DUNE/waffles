@@ -37,7 +37,7 @@ def fit_peaks_of_calibration_histogram(
             as a seed for the fit.
 
         -   Finally, it stores the fit parameters in the
-            GaussianFitsParameters attribute of the given
+            guassian_fits_parameters attribute of the given
             CalibrationHistogram object, according to its 
             structure, which can be found in the CalibrationHistogram
             class documentation.

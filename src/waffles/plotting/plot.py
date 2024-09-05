@@ -853,7 +853,7 @@ def plot_calibration_histogram(CalibrationHistogram: CalibrationHistogram,
         If True, then the gaussian fits of the peaks, if any, 
         will be plotted over the CH. If False, then only the 
         CH will be plotted. Note that if no fit has been performed
-        yet, then the CalibrationHistogram.GaussianFitsParameters 
+        yet, then the CalibrationHistogram.guassian_fits_parameters 
         attribute will be empty and no fit will be plotted.
     fit_npoints : int
         This parameter only makes a difference if 'plot_fits'
@@ -891,7 +891,7 @@ def plot_calibration_histogram(CalibrationHistogram: CalibrationHistogram,
 
     if plot_fits:
 
-        for i in range(len(CalibrationHistogram.GaussianFitsParameters['scale'])):
+        for i in range(len(CalibrationHistogram.guassian_fits_parameters['scale'])):
 
             fPlottedOneFit = True
 
@@ -902,9 +902,9 @@ def plot_calibration_histogram(CalibrationHistogram: CalibrationHistogram,
 
             fit_y = wun.gaussian(
                 fit_x,
-                CalibrationHistogram.GaussianFitsParameters['scale'][i][0],
-                CalibrationHistogram.GaussianFitsParameters['mean'][i][0],
-                CalibrationHistogram.GaussianFitsParameters['std'][i][0])
+                CalibrationHistogram.guassian_fits_parameters['scale'][i][0],
+                CalibrationHistogram.guassian_fits_parameters['mean'][i][0],
+                CalibrationHistogram.guassian_fits_parameters['std'][i][0])
 
             fit_trace = pgo.Scatter(
                 x=fit_x,
