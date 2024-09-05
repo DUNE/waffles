@@ -13,11 +13,11 @@ from waffles.Exceptions import GenerateExceptionMessage
 
 
 def get_contiguous_indices_map(
-        indices_per_slot: int,
-        nrows: int = 1,
-        ncols: int = 1) -> Map:
-    """
-    This function creates and returns a Map object whose 
+    indices_per_slot: int,
+    nrows: int = 1,
+    ncols: int = 1
+) -> Map:
+    """This function creates and returns a Map object whose 
     Type attribute is list. Namely, each entry of the output 
     Map is a list of integers. Such Map contains nrows rows 
     and ncols columns. The resulting Map, say output, contains 
@@ -30,10 +30,10 @@ def get_contiguous_indices_map(
 
     Parameters
     ----------
-    indices_per_slot : int
+    indices_per_slot: int
         The number of indices contained within each 
         entry of the returned Map object
-    nrows (resp. ncols) : int
+    nrows (resp. ncols): int
         Number of rows (resp. columns) of the returned 
         Map object
 
@@ -68,13 +68,14 @@ def get_contiguous_indices_map(
         data=aux)
 
 
-def __get_map_of_wf_idcs_by_run(WaveformSet: WaveformSet,
-                                blank_map: Map,
-                                filter_args: Map,
-                                fMaxIsSet: bool,
-                                max_wfs_per_axes: Optional[int] = 5) -> Map:
-    """
-    This function should only be called by the
+def __get_map_of_wf_idcs_by_run(
+    waveform_set: WaveformSet,
+    blank_map: Map,
+    filter_args: Map,
+    fMaxIsSet: bool,
+    max_wfs_per_axes: Optional[int] = 5
+) -> Map:
+    """This function should only be called by the
     get_map_of_wf_idcs() function, where the 
     well-formedness checks of the input have
     already been performed. This function generates 
@@ -85,11 +86,11 @@ def __get_map_of_wf_idcs_by_run(WaveformSet: WaveformSet,
 
     Parameters
     ----------
-    WaveformSet : WaveformSet
-    blank_map : Map
-    filter_args : Map
-    fMaxIsSet : bool
-    max_wfs_per_axes : int
+    waveform_set: WaveformSet
+    blank_map: Map
+    filter_args: Map
+    fMaxIsSet: bool
+    max_wfs_per_axes: int
 
     Returns
     ----------
@@ -99,18 +100,19 @@ def __get_map_of_wf_idcs_by_run(WaveformSet: WaveformSet,
     for i in range(blank_map.rows):
         for j in range(blank_map.columns):
 
-            if filter_args.data[i][j][0] not in WaveformSet.runs:
+            if filter_args.data[i][j][0] not in waveform_set.runs:
                 continue
 
             # blank_map should not be very big (visualization purposes)
+            # so we can afford evaluating the fMaxIsSet conditional here
+            # instead of at the beginning of the function (which would
+            # be more efficient but would entail a more extensive code)
+
             if fMaxIsSet:
-                # so we can afford evaluating the fMaxIsSet conditional here
-                # instead of at the beginning of the function (which would
-                # be more efficient but would entail a more extensive code)
 
                 counter = 0
-                for k in range(len(WaveformSet.waveforms)):
-                    if wuf.match_run(WaveformSet.waveforms[k],
+                for k in range(len(waveform_set.waveforms)):
+                    if wuf.match_run(waveform_set.waveforms[k],
                                      *filter_args.data[i][j]):
 
                         blank_map.data[i][j].append(k)
@@ -118,8 +120,8 @@ def __get_map_of_wf_idcs_by_run(WaveformSet: WaveformSet,
                         if counter == max_wfs_per_axes:
                             break
             else:
-                for k in range(len(WaveformSet.waveforms)):
-                    if wuf.match_run(WaveformSet.waveforms[k],
+                for k in range(len(waveform_set.waveforms)):
+                    if wuf.match_run(waveform_set.waveforms[k],
                                      *filter_args.data[i][j]):
 
                         blank_map.data[i][j].append(k)
@@ -127,13 +129,13 @@ def __get_map_of_wf_idcs_by_run(WaveformSet: WaveformSet,
 
 
 def __get_map_of_wf_idcs_by_endpoint_and_channel(
-        WaveformSet: WaveformSet,
-        blank_map: Map,
-        filter_args: ChannelMap,
-        fMaxIsSet: bool,
-        max_wfs_per_axes: Optional[int] = 5) -> Map:
-    """
-    This function should only be called by the 
+    waveform_set: WaveformSet,
+    blank_map: Map,
+    filter_args: ChannelMap,
+    fMaxIsSet: bool,
+    max_wfs_per_axes: Optional[int] = 5
+) -> Map:
+    """This function should only be called by the 
     get_map_of_wf_idcs() function, where the 
     well-formedness checks of the input have 
     already been performed. This function 
@@ -145,18 +147,18 @@ def __get_map_of_wf_idcs_by_endpoint_and_channel(
 
     Parameters
     ----------
-    WaveformSet : WaveformSet
-    blank_map : Map
-    filter_args : ChannelMap
-    fMaxIsSet : bool
-    max_wfs_per_axes : int
+    waveform_set: WaveformSet
+    blank_map: Map
+    filter_args: ChannelMap
+    fMaxIsSet: bool
+    max_wfs_per_axes: int
 
     Returns
     ----------
     Map
     """
 
-    aux = WaveformSet.get_run_collapsed_available_channels()
+    aux = waveform_set.get_run_collapsed_available_channels()
 
     for i in range(blank_map.rows):
         for j in range(blank_map.columns):
@@ -168,15 +170,15 @@ def __get_map_of_wf_idcs_by_endpoint_and_channel(
                 continue
 
             # blank_map should not be very big (visualization purposes)
-            if fMaxIsSet:
-                # so we can afford evaluating the fMaxIsSet conditional here
-                # instead of at the beginning of the function (which would
-                # be more efficient but would entail a more extensive code)
+            # so we can afford evaluating the fMaxIsSet conditional here
+            # instead of at the beginning of the function (which would
+            # be more efficient but would entail a more extensive code)
 
+            if fMaxIsSet:
                 counter = 0
-                for k in range(len(WaveformSet.waveforms)):
+                for k in range(len(waveform_set.waveforms)):
                     if wuf.match_endpoint_and_channel(
-                            WaveformSet.waveforms[k],
+                            waveform_set.waveforms[k],
                             filter_args.data[i][j].endpoint,
                             filter_args.data[i][j].channel):
                         blank_map.data[i][j].append(k)
@@ -184,9 +186,9 @@ def __get_map_of_wf_idcs_by_endpoint_and_channel(
                         if counter == max_wfs_per_axes:
                             break
             else:
-                for k in range(len(WaveformSet.waveforms)):
+                for k in range(len(waveform_set.waveforms)):
                     if wuf.match_endpoint_and_channel(
-                            WaveformSet.waveforms[k],
+                            waveform_set.waveforms[k],
                             filter_args.data[i][j].endpoint,
                             filter_args.data[i][j].channel):
                         blank_map.data[i][j].append(k)
@@ -194,14 +196,14 @@ def __get_map_of_wf_idcs_by_endpoint_and_channel(
 
 
 def __get_map_of_wf_idcs_general(
-        WaveformSet: WaveformSet,
-        blank_map: Map,
-        wf_filter: Callable[..., bool],
-        filter_args: Map,
-        fMaxIsSet: bool,
-        max_wfs_per_axes: Optional[int] = 5) -> List[List[List[int]]]:
-    """
-    This function should only be called by the 
+    waveform_set: WaveformSet,
+    blank_map: Map,
+    wf_filter: Callable[..., bool],
+    filter_args: Map,
+    fMaxIsSet: bool,
+    max_wfs_per_axes: Optional[int] = 5
+) -> List[List[List[int]]]:
+    """This function should only be called by the 
     get_map_of_wf_idcs() function, where the 
     well-formedness checks of the input have 
     already been performed. This function generates 
@@ -214,12 +216,12 @@ def __get_map_of_wf_idcs_general(
 
     Parameters
     ----------
-    WaveformSet : WaveformSet
-    blank_map : Map
-    wf_filter : callable
-    filter_args : Map
-    fMaxIsSet : bool
-    max_wfs_per_axes : int
+    waveform_set: WaveformSet
+    blank_map: Map
+    wf_filter: callable
+    filter_args: Map
+    fMaxIsSet: bool
+    max_wfs_per_axes: int
 
     Returns
     ----------
@@ -231,8 +233,8 @@ def __get_map_of_wf_idcs_general(
 
             if fMaxIsSet:
                 counter = 0
-                for k in range(len(WaveformSet.waveforms)):
-                    if wf_filter(WaveformSet.waveforms[k],
+                for k in range(len(waveform_set.waveforms)):
+                    if wf_filter(waveform_set.waveforms[k],
                                  *filter_args.data[i][j]):
 
                         blank_map.data[i][j].append(k)
@@ -240,47 +242,48 @@ def __get_map_of_wf_idcs_general(
                         if counter == max_wfs_per_axes:
                             break
             else:
-                for k in range(len(WaveformSet.waveforms)):
-                    if wf_filter(WaveformSet.waveforms[k],
+                for k in range(len(waveform_set.waveforms)):
+                    if wf_filter(waveform_set.waveforms[k],
                                  *filter_args.data[i][j]):
                         blank_map.data[i][j].append(k)
     return blank_map
 
 
-def get_map_of_wf_idcs(WaveformSet: WaveformSet,
-                       nrows: int,
-                       ncols: int,
-                       wfs_per_axes: Optional[int] = None,
-                       wf_filter: Optional[Callable[..., bool]] = None,
-                       filter_args: Optional[Map] = None,
-                       max_wfs_per_axes: Optional[int] = 5) -> Map:
-    """
-    This function returns a Map of lists of integers,
+def get_map_of_wf_idcs(
+    waveform_set: WaveformSet,
+    nrows: int,
+    ncols: int,
+    wfs_per_axes: Optional[int] = None,
+    wf_filter: Optional[Callable[..., bool]] = None,
+    filter_args: Optional[Map] = None,
+    max_wfs_per_axes: Optional[int] = 5
+) -> Map:
+    """This function returns a Map of lists of integers,
     i.e. a Map object whose Type attribute equals 
     list. The contained integers should be interpreted 
     as iterator values for waveforms in the given
-    WaveformSet object, WaveformSet.
+    WaveformSet object, waveform_set.
 
     Parameters
     ----------
-    WaveformSet : WaveformSet
+    waveform_set: WaveformSet
         The WaveformSet object whose waveforms will be
         iterated through to fill the output Map object
-    nrows : int
+    nrows: int
         The number of rows of the returned Map object
-    ncols : int
+    ncols: int
         The number of columns of the returned Map object
-    wfs_per_axes : int
+    wfs_per_axes: int
         If it is not None, then it must be a positive
         integer which is smaller or equal to
-        math.floor(len(WaveformSet.waveforms) / (nrows * ncols)),
+        math.floor(len(waveform_set.waveforms) / (nrows * ncols)),
         so that the iterator values contained 
         in the output Map are contiguous in
         [0, nrows*ncols*wfs_per_axes - 1]. I.e.
         output.data[0][0] contains 0, 1, ... , wfs_per_axes - 1,
         output.data[0][1] contains wfs_per_axes, wfs_per_axes + 1,
         ... , 2*wfs_per_axes - 1, and so on. 
-    wf_filter : callable
+    wf_filter: callable
         This parameter only makes a difference if
         the 'wfs_per_axes' parameter is None. In such
         case, this one must be a callable object whose 
@@ -291,12 +294,12 @@ def get_map_of_wf_idcs(WaveformSet: WaveformSet,
             - wuf.match_run or
             - wuf.match_endpoint_and_channel,
         this function can benefit from the information 
-        in WaveformSet.runs and 
-        WaveformSet.AvailableChannels and its execution 
+        in waveform_set.runs and 
+        waveform_set.available_channels and its execution 
         time may be reduced with respect to the case 
         where an arbitrary (but compliant) callable 
         is passed to wf_filter.
-    filter_args : Map
+    filter_args: Map
         This parameter only makes a difference if 
         the 'wfs_per_axes' parameter is None. In such
         case, this parameter must be defined and
@@ -310,13 +313,13 @@ def get_map_of_wf_idcs(WaveformSet: WaveformSet,
         which comply with the signature of the 
         specified wf_filter. For more information 
         check the return value documentation.
-    max_wfs_per_axes : int
+    max_wfs_per_axes: int
         This parameter only makes a difference if           ## If max_wfs_per_axes applies and 
         the 'wfs_per_axes' parameter is None. In such       ## is a positive integer, it is never
         case, and if 'max_wfs_per_axes' is not None,        ## checked that there are enough waveforms
         then output.data[i][j] will contain the indices     ## in the WaveformSet to fill the map.
         for the first max_wfs_per_axes waveforms in the     ## This is an open issue.
-        given WaveformSet object, WaveformSet, which 
+        given WaveformSet object, waveform_set, which 
         passed the filter. If it is None, then this 
         function iterates through the whole WaveformSet 
         for every i,j pair. Note that setting this 
@@ -325,7 +328,7 @@ def get_map_of_wf_idcs(WaveformSet: WaveformSet,
 
     Returns
     ----------
-    output : Map
+    output: Map
         It is a Map object whose Type attribute is list.
         Namely, output.data[i][j] is a list of integers.
         If the 'wfs_per_axes' parameter is defined, then
@@ -349,14 +352,17 @@ def get_map_of_wf_idcs(WaveformSet: WaveformSet,
                                                  'The number of rows and columns must be positive.'))
     fFilteringMode = True
     if wfs_per_axes is not None:
-        if wfs_per_axes < 1 or wfs_per_axes > math.floor(len(WaveformSet.waveforms) / (nrows * ncols)):
+        if wfs_per_axes < 1 or wfs_per_axes > math.floor(len(waveform_set.waveforms) / (nrows * ncols)):
             raise Exception(GenerateExceptionMessage(2,
                                                      'get_map_of_wf_idcs()',
-                                                     f"The given wfs_per_axes ({wfs_per_axes}) must belong to the range [1, math.floor(len(WaveformSet.waveforms) / (nrows * ncols))] ( = {[1, math.floor(len(WaveformSet.waveforms) / (nrows * ncols))]})."))
+                                                     f"The given wfs_per_axes ({wfs_per_axes}) must belong to the range [1, math.floor(len(waveform_set.waveforms) / (nrows * ncols))] ( = {[1, math.floor(len(waveform_set.waveforms) / (nrows * ncols))]})."))
         fFilteringMode = False
 
-    fMaxIsSet = None    # This one should only be defined as
+    # This one should only be defined as
     # a boolean if fFilteringMode is True
+    
+    fMaxIsSet = None    
+    
     if fFilteringMode:
 
         try:
@@ -394,9 +400,11 @@ def get_map_of_wf_idcs(WaveformSet: WaveformSet,
                                           nrows=nrows,
                                           ncols=ncols)
 
-    else:   # fFilteringMode is True and so, wf_filter,
-        # filter_args and fMaxIsSet are defined
+    # fFilteringMode is True and so, wf_filter,
+    # filter_args and fMaxIsSet are defined
 
+    else:   
+        
         mode_map = {wuf.match_run: 0,
                     wuf.match_endpoint_and_channel: 1}
         try:
@@ -410,19 +418,19 @@ def get_map_of_wf_idcs(WaveformSet: WaveformSet,
                                        [],
                                        independent_copies=True)
         if fMode == 0:
-            return __get_map_of_wf_idcs_by_run(WaveformSet,
+            return __get_map_of_wf_idcs_by_run(waveform_set,
                                                output,
                                                filter_args,
                                                fMaxIsSet,
                                                max_wfs_per_axes)
         elif fMode == 1:
-            return __get_map_of_wf_idcs_by_endpoint_and_channel(WaveformSet,
+            return __get_map_of_wf_idcs_by_endpoint_and_channel(waveform_set,
                                                                 output,
                                                                 filter_args,
                                                                 fMaxIsSet,
                                                                 max_wfs_per_axes)
         else:
-            return __get_map_of_wf_idcs_general(WaveformSet,
+            return __get_map_of_wf_idcs_general(waveform_set,
                                                 output,
                                                 wf_filter,
                                                 filter_args,
