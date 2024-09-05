@@ -30,7 +30,7 @@ class ChannelWsGrid:
         objects. Note that there might be a certain
         UniqueChannel object which is present in the
         ChannelMap, but for which there is no ChannelWs
-        object in this attribute (ch_wf_ets). I.e.
+        object in this attribute (ch_wf_sets). I.e.
         appearance of a certain UniqueChannel object
         in the ChannelMap does not guarantee that there
         will be a ChannelWs object in this attribute
