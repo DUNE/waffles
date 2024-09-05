@@ -1,7 +1,8 @@
 def GenerateExceptionMessage(
-        code,
-        issuer,
-        reason=''):
+    code,
+    issuer,
+    reason=''
+):
     """
     Parameters
     ----------
@@ -23,8 +24,7 @@ def GenerateExceptionMessage(
 
 
 def handle_missing_data(func):
-    """
-    This is a decorator which is meant to decorate
+    """This is a decorator which is meant to decorate
     the initialiser method (__init__) of any class
     which derives from WfAna. It is meant to catch
     the KeyError exception raised when there is
@@ -43,4 +43,5 @@ def handle_missing_data(func):
                 "You are trying to instantiate/check a "
                 "WfAna-derived class without providing the required"
                 f" input parameters. {str(e)[1:-1]}"))
+        
     return wrapper
