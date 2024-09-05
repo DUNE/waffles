@@ -5,7 +5,7 @@ from plotly import subplots as psu
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.data_classes.ChannelWSGrid import ChannelWsGrid
+from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 from waffles.data_classes.Map import Map
 

@@ -2,7 +2,7 @@ import numpy as np
 from scipy import optimize as spopt
 
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
-from waffles.data_classes.ChannelWSGrid import ChannelWsGrid
+from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
 import waffles.utils.numerical_utils as wun
 import waffles.utils.fit_peaks.fit_peaks_utils as wuff
