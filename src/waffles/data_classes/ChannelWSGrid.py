@@ -118,7 +118,7 @@ class ChannelWsGrid:
 
         self.__ch_wf_sets = ChannelWsGrid.clusterize_waveform_set(
             input_waveformset,
-            ChannelMap=ch_map,
+            channel_map=ch_map,
             compute_calib_histo=compute_calib_histo,
             bins_number=bins_number,
             domain=domain,
@@ -158,8 +158,8 @@ class ChannelWsGrid:
 
     @staticmethod
     def clusterize_waveform_set(
-            WaveformSet: WaveformSet,
-            ChannelMap: Optional[ChannelMap] = None,
+            waveform_set: WaveformSet,
+            channel_map: Optional[ChannelMap] = None,
             compute_calib_histo: bool = False,
             bins_number: Optional[int] = None,
             domain: Optional[np.ndarray] = None,
@@ -190,10 +190,10 @@ class ChannelWsGrid:
 
         Parameters
         ----------
-        WaveformSet : WaveformSet
+        waveform_set : WaveformSet
             The WaveformSet object which will be partitioned
             into ChannelWs objects.
-        ChannelMap : ChannelMap
+        channel_map : ChannelMap
             If it is not given, then all of the waveforms
             in this WaveformSet object will be considered
             for partitioning. If it is given, then only
@@ -237,40 +237,40 @@ class ChannelWsGrid:
         output : dict of dict of ChannelWs
         """
 
-        if ChannelMap is None:
+        if channel_map is None:
             idcs = {}
 
-            for idx in range(len(WaveformSet.waveforms)):
+            for idx in range(len(waveform_set.waveforms)):
                 try:
-                    aux = idcs[WaveformSet.waveforms[idx].endpoint]
+                    aux = idcs[waveform_set.waveforms[idx].endpoint]
 
                 except KeyError:
-                    idcs[WaveformSet.waveforms[idx].endpoint] = {}
-                    aux = idcs[WaveformSet.waveforms[idx].endpoint]
+                    idcs[waveform_set.waveforms[idx].endpoint] = {}
+                    aux = idcs[waveform_set.waveforms[idx].endpoint]
 
                 try:
-                    aux[WaveformSet.waveforms[idx].channel].append(idx)
+                    aux[waveform_set.waveforms[idx].channel].append(idx)
 
                 except KeyError:
-                    aux[WaveformSet.waveforms[idx].channel] = [idx]
+                    aux[waveform_set.waveforms[idx].channel] = [idx]
 
         else:
             idcs = ChannelWsGrid.get_nested_dictionary_template(
-                ChannelMap)    # idcs contains the endpoints and channels for
+                channel_map)    # idcs contains the endpoints and channels for
             # which we can potentially save waveforms.
-            # Contrary to the ChannelMap == None case,
+            # Contrary to the channel_map == None case,
             # in this case some of the idcs entries may
             # never be filled not even with a single Waveform.
             # We will need to remove those after.
-            for idx in range(len(WaveformSet.waveforms)):
+            for idx in range(len(waveform_set.waveforms)):
                 try:
-                    aux = idcs[WaveformSet.waveforms[idx].endpoint]
+                    aux = idcs[waveform_set.waveforms[idx].endpoint]
 
                 except KeyError:
                     continue
 
                 try:
-                    aux[WaveformSet.waveforms[idx].channel].append(idx)
+                    aux[waveform_set.waveforms[idx].channel].append(idx)
 
                 except KeyError:
                     continue
@@ -300,7 +300,7 @@ class ChannelWsGrid:
 
             for channel in idcs[endpoint].keys():
                 aux = [
-                    WaveformSet.waveforms[idx]
+                    waveform_set.waveforms[idx]
                     for idx in idcs[endpoint][channel]]
 
                 output[endpoint][channel] = ChannelWs(
@@ -314,7 +314,7 @@ class ChannelWsGrid:
 
     @staticmethod
     def get_nested_dictionary_template(
-            ChannelMap: ChannelMap) -> Dict[int, Dict[int, List]]:
+            channel_map: ChannelMap) -> Dict[int, Dict[int, List]]:
         """
         This method returns a dictionary which has the same
         structure as the ch_wf_sets attribute of ChannelWsGrid,
@@ -325,7 +325,7 @@ class ChannelWsGrid:
 
         Parameters
         ----------
-        ChannelMap : ChannelMap
+        channel_map : ChannelMap
             The ChannelMap object which contains the endpoints
             and channels which will end up in the ouput of
             this method.
@@ -337,17 +337,17 @@ class ChannelWsGrid:
 
         output = {}
 
-        for i in range(ChannelMap.rows):
-            for j in range(ChannelMap.columns):
+        for i in range(channel_map.rows):
+            for j in range(channel_map.columns):
 
                 try:
-                    aux = output[ChannelMap.data[i][j].endpoint]
+                    aux = output[channel_map.data[i][j].endpoint]
 
                 except KeyError:
-                    output[ChannelMap.data[i][j].endpoint] = {}
-                    aux = output[ChannelMap.data[i][j].endpoint]
+                    output[channel_map.data[i][j].endpoint] = {}
+                    aux = output[channel_map.data[i][j].endpoint]
 
-                aux[ChannelMap.data[i][j].channel] = []
+                aux[channel_map.data[i][j].channel] = []
 
         return output
 
