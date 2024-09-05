@@ -14,19 +14,19 @@ class ChannelWs(WaveformSet):
 
     Attributes
     ----------
-    waveforms : list of Waveform objects (inherited from WaveformSet)
-    points_per_wf : int (inherited from WaveformSet)
-    runs : set of int (inherited from WaveformSet)
-    record_numbers : dictionary of sets (inherited from WaveformSet)
-    available_channels : dictionary of dictionaries of sets
+    waveforms: list of Waveform objects (inherited from WaveformSet)
+    points_per_wf: int (inherited from WaveformSet)
+    runs: set of int (inherited from WaveformSet)
+    record_numbers: dictionary of sets (inherited from WaveformSet)
+    available_channels: dictionary of dictionaries of sets
                         (inherited from WaveformSet)
-    mean_adcs : WaveformAdcs (inherited from WaveformSet)
-    mean_adcs_idcs : tuple of int (inherited from WaveformSet)
-    endpoint : int
+    mean_adcs: WaveformAdcs (inherited from WaveformSet)
+    mean_adcs_idcs: tuple of int (inherited from WaveformSet)
+    endpoint: int
         Endpoint number for this set of waveforms
-    channel : int
+    channel: int
         Channel number for this set of waveforms
-    calib_histo : CalibrationHistogram
+    calib_histo: CalibrationHistogram
         A calibration histogram for this set of waveforms.
         It is not computed by default. I.e. if
         self.calib_histo equals to None, it should be
@@ -38,36 +38,37 @@ class ChannelWs(WaveformSet):
     """
 
     def __init__(
-            self, *waveforms,
-            compute_calib_histo: bool = False,
-            bins_number: Optional[int] = None,
-            domain: Optional[np.ndarray] = None,
-            variable: Optional[str] = None,
-            analysis_label: Optional[str] = None):
-        """
-        ChannelWS class initializer
+        self, 
+        *waveforms,
+        compute_calib_histo: bool = False,
+        bins_number: Optional[int] = None,
+        domain: Optional[np.ndarray] = None,
+        variable: Optional[str] = None,
+        analysis_label: Optional[str] = None
+    ):
+        """ChannelWS class initializer
 
         Parameters
         ----------
-        waveforms : unpacked list of Waveform objects
+        waveforms: unpacked list of Waveform objects
             The waveforms that will be added to the set.
             Their endpoint and channel attributes must be
             homogeneous. Otherwise, an exception will be
             raised.
-        compute_calib_histo : bool
+        compute_calib_histo: bool
             If True, then the calibration histogram for
             this ChannelWS object will be computed, up to
             the input given to the 'variable' parameter.
             If False, then the calibration histogram for
             this ChannelWS object will be set to None.
-        bins_number : int
+        bins_number: int
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
             If so, this parameter must be defined.
             In that case, it gives the number of bins
             that the calibration histogram will have.
             It must be greater than 1.
-        domain : np.ndarray
+        domain: np.ndarray
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
             If so, this parameter must be defined.
@@ -75,7 +76,7 @@ class ChannelWs(WaveformSet):
             gives the range to consider for the
             calibration histogram. Any sample which falls
             outside this range is ignored.
-        variable : str
+        variable: str
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
             If so, this parameter must be defined,
@@ -92,7 +93,7 @@ class ChannelWs(WaveformSet):
             ensure that the values for the given variable
             (key) are scalars, i.e. that they are valid
             samples for a 1D histogram.
-        analysis_label : str
+        analysis_label: str
             This parameter only makes a difference if
             'compute_calib_histo' is set to True. For
             each Waveform object in this ChannelWS,
@@ -152,14 +153,13 @@ class ChannelWs(WaveformSet):
         return self.__calib_histo
 
     def update_endpoint_and_channel(self) -> None:
-        """
-        This method checks the information returned by
-        self.get_run_collapsed_available_channels(), to ensure that
-        the endpoint and the channel attributes of every Waveform
-        object within this set is homogeneous. If it is not, then
-        it raises an exception. If they are, then the endpoint and
-        channel attributes of this ChannelWS object are updated
-        accordingly.
+        """This method checks the information returned by
+        self.get_run_collapsed_available_channels(), to ensure 
+        that the endpoint and the channel attributes of every 
+        Waveform object within this set is homogeneous. If it 
+        is not, then it raises an exception. If they are, then 
+        the endpoint and channel attributes of this ChannelWS 
+        object are updated accordingly.
 
         Returns
         ----------
