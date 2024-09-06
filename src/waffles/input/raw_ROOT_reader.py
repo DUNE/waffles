@@ -345,74 +345,101 @@ def WaveformSet_from_ROOT_file(
     """
 
     if not wuc.fraction_is_well_formed(start_fraction, stop_fraction):
-        raise Exception(GenerateExceptionMessage( 1,
-                                                    'WaveformSet_from_ROOT_file()',
-                                                    f"Fraction limits are not well-formed."))
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'WaveformSet_from_ROOT_file()',
+            f"Fraction limits are not well-formed."))
+    
     if library not in ['uproot', 'pyroot']:
-        raise Exception(GenerateExceptionMessage( 2,
-                                                    'WaveformSet_from_ROOT_file()',
-                                                    f"The given library ({library}) is not supported."))
+        raise Exception(GenerateExceptionMessage(
+            2,
+            'WaveformSet_from_ROOT_file()',
+            f"The given library ({library}) is not supported."))
+    
     elif library == 'uproot':
         input_file = uproot.open(filepath)
     else:
         input_file = ROOT.TFile(filepath)
     
-    meta_data_tree, _ = wii.find_TTree_in_ROOT_TFile(   input_file,
-                                                        meta_data_tree_name,
-                                                        library)
+    meta_data_tree, _ = wii.find_TTree_in_ROOT_TFile(
+        input_file,
+        meta_data_tree_name,
+        library)
 
-    bulk_data_tree, _ = wii.find_TTree_in_ROOT_TFile(   input_file,
-                                                        bulk_data_tree_name,
-                                                        library)
+    bulk_data_tree, _ = wii.find_TTree_in_ROOT_TFile(
+        input_file,
+        bulk_data_tree_name,
+        library)
     
-    is_fullstream_branch, is_fullstream_branch_name = wii.find_TBranch_in_ROOT_TTree(   bulk_data_tree,
-                                                                                        'is_fullstream',
-                                                                                        library)
+    is_fullstream_branch, is_fullstream_branch_name = \
+    wii.find_TBranch_in_ROOT_TTree(
+        bulk_data_tree,
+        'is_fullstream',
+        library)
 
-    aux = is_fullstream_branch.num_entries if library == 'uproot' else is_fullstream_branch.GetEntries()
+    aux = is_fullstream_branch.num_entries \
+    if library == 'uproot' \
+    else is_fullstream_branch.GetEntries()
 
-    wf_start = math.floor(start_fraction*aux)   # Get the start and stop iterator values for
-    wf_stop = math.ceil(stop_fraction*aux)      # the chunk which contains the waveforms which
-                                                # could be potentially read.
+    # Get the start and stop iterator values for
+    # the chunk which contains the waveforms which
+    # could be potentially read.
+
+    wf_start = math.floor(start_fraction*aux)
+    wf_stop = math.ceil(stop_fraction*aux)
+      
     if library == 'uproot':
-        is_fullstream_array = is_fullstream_branch.array(   entry_start = wf_start,
-                                                            entry_stop = wf_stop)
+        is_fullstream_array = is_fullstream_branch.array(
+            entry_start=wf_start,
+            entry_stop=wf_stop)
     else:
 
-        is_fullstream_array = wii.get_1d_array_from_pyroot_TBranch( bulk_data_tree,
-                                                                    is_fullstream_branch_name,
-                                                                    i_low = wf_start, 
-                                                                    i_up = wf_stop,
-                                                                    ROOT_type_code = 'O')
+        is_fullstream_array = wii.get_1d_array_from_pyroot_TBranch(
+            bulk_data_tree,
+            is_fullstream_branch_name,
+            i_low=wf_start, 
+            i_up=wf_stop,
+            ROOT_type_code='O')
 
-    aux = np.where(is_fullstream_array)[0] if read_full_streaming_data else np.where(np.logical_not(is_fullstream_array))[0]
+    aux = np.where(is_fullstream_array)[0] if read_full_streaming_data \
+    else np.where(np.logical_not(is_fullstream_array))[0]
     
-    # One could consider summing wf_start to every entry of aux at this point, so that the __build... helper
-    # functions do not need to take both parameters idcs_to_retrieve and first_wf_index. However, for
-    # the library == 'uproot' case, it is more efficient to clusterize first (which is done within the
-    # helper function for the uproot case), then sum wf_start. That's why we carry both parameters until then.
+    # One could consider summing wf_start to every entry of aux at 
+    # this point, so that the __build... helper functions do not 
+    # need to take both parameters idcs_to_retrieve and 
+    # first_wf_index. However, for the library == 'uproot' case, 
+    # it is more efficient to clusterize first (which is done within 
+    # the helper function for the uproot case), then sum wf_start. 
+    # That's why we carry both parameters until then.
 
     if len(aux) == 0:
-        raise Exception(GenerateExceptionMessage( 3,
-                                                    'WaveformSet_from_ROOT_file()',
-                                                    f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
+        raise Exception(GenerateExceptionMessage(
+            3,
+            'WaveformSet_from_ROOT_file()',
+            f"No waveforms of the specified type "
+            f"({'full-stream' if read_full_streaming_data else 'self-trigger'})"
+            " were found."))
+    
     if library == 'uproot':
 
-        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_uproot( aux,
-                                                                            bulk_data_tree,
-                                                                            meta_data_tree,
-                                                                            set_offset_wrt_daq_window = set_offset_wrt_daq_window,
-                                                                            first_wf_index = wf_start,
-                                                                            verbose = verbose)
+        waveforms = wii.__build_waveforms_list_from_root_file_using_uproot(
+            aux,
+            bulk_data_tree,
+            meta_data_tree,
+            set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+            first_wf_index=wf_start,
+            verbose=verbose)
     else:
     
-        waveforms = wii.__build_waveforms_list_from_ROOT_file_using_pyroot( aux,
-                                                                            bulk_data_tree,
-                                                                            meta_data_tree,
-                                                                            set_offset_wrt_daq_window = set_offset_wrt_daq_window,
-                                                                            first_wf_index = wf_start,
-                                                                            subsample = subsample,
-                                                                            verbose = verbose)
+        waveforms = wii.__build_waveforms_list_from_root_file_using_pyroot(
+            aux,
+            bulk_data_tree,
+            meta_data_tree,
+            set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+            first_wf_index=wf_start,
+            subsample=subsample,
+            verbose=verbose)
+        
     if truncate_wfs_to_minimum:
                 
         minimum_length = np.array([len(wf.Adcs) for wf in waveforms]).min()
