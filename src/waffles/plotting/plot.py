@@ -12,7 +12,7 @@ from waffles.data_classes.Map import Map
 import waffles.plotting.plot_utils as wpu
 import waffles.utils.numerical_utils as wun
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 def plot_WaveformAdcs(  
     waveform_adcs: WaveformAdcs,  
@@ -129,94 +129,124 @@ def plot_WaveformAdcs(
         Whether to print functioning-related messages
     """
 
-    x = np.arange(  len(waveform_adcs.Adcs),
-                    dtype = np.float32)
-
-    wf_trace = pgo.Scatter( x = x + waveform_adcs.TimeOffset,   ## If at some point we think x might match for
-                                                                ## every waveform, in a certain WaveformSet 
-                                                                ## object, it might be more efficient to let
-                                                                ## the caller define it, so as not to recompute
-                                                                ## this array for each waveform.
-                            y = waveform_adcs.Adcs,
-                            mode = 'lines',
-                            line=dict(  color='black', 
-                                        width=0.5),
-                            name = name)
+    x = np.arange(  
+        len(waveform_adcs.adcs),
+        dtype=np.float32)
     
-    figure.add_trace(   wf_trace,
-                        row = row,
-                        col = col)
+    ## If at some point we think x might match for
+    ## every waveform, in a certain WaveformSet 
+    ## object, it might be more efficient to let
+    ## the caller define it, so as not to recompute
+    ## this array for each waveform.
+
+    wf_trace = pgo.Scatter( 
+        x=x + waveform_adcs.time_offset,
+        y=waveform_adcs.adcs,
+        mode='lines',
+        line=dict(
+            color='black', 
+            width=0.5),
+        name=name)
+    
+    figure.add_trace(
+        wf_trace,
+        row=row,
+        col=col)
 
     if plot_analysis_markers:
 
         ana = waveform_adcs.get_analysis(analysis_label)
         
-        if show_baseline_limits:    # Plot the markers for the baseline limits
+        # Plot the markers for the baseline limits
+
+        if show_baseline_limits:
 
             try:
                 aux = ana.input_parameters['baseline_limits']
 
             except KeyError:
                 if verbose:
-                    print("In function plot_WaveformAdcs(): No baseline-limits were found in the specified analysis.")
+                    print("In function plot_WaveformAdcs(): "
+                          "No baseline-limits were found in "
+                          "the specified analysis.")
             else:
 
                 for i in range(len(aux)//2):
 
-                    figure.add_shape(   type = 'line',
-                                        x0 = x[aux[2*i]], y0 = 0,   ## If you are wondering why only the trace of
-                                        x1 = x[aux[2*i]], y1 = 1,   ## the waveform is offset according to waveform_adcs.TimeOffset,
-                                                                    ## but not the markers, note that this is, indeed,
-                                                                    ## the reason why a time offset is useful. The WfAna 
-                                                                    ## class moves the analysis ranges (p.e. baseline or
-                                                                    ## integral ranges) according to the TimeOffset. Then
-                                                                    ## to show a consistent plot, either the markers are
-                                                                    ## displaced or the waveform is displaced, but not both.
-                                                                    ## For the sake of having a grid-plot where the analysis
-                                                                    ## ranges are aligned among different subplots, I chose 
-                                                                    ## to displace the waveform.
+                    ## If you are wondering why only the trace of
+                    ## the waveform is offset according to waveform_adcs.time_offset,
+                    ## but not the markers, note that this is, indeed,
+                    ## the reason why a time offset is useful. The WfAna 
+                    ## class moves the analysis ranges (p.e. baseline or
+                    ## integral ranges) according to the time_offset. Then
+                    ## to show a consistent plot, either the markers are
+                    ## displaced or the waveform is displaced, but not both.
+                    ## For the sake of having a grid-plot where the analysis
+                    ## ranges are aligned among different subplots, I chose 
+                    ## to displace the waveform.
 
-                                        line = dict(color = 'grey',         # Properties for
-                                                    width = 1,              # the beginning of
-                                                    dash = 'dash'),         # a baseline chunk
-                                        xref = 'x',
-                                        yref = 'y domain',
-                                        row = row,
-                                        col = col)
+                    figure.add_shape(   
+                        type='line',
+                        x0=x[aux[2*i]], y0=0,
+                        x1=x[aux[2*i]], y1=1,
+                        # Properties for
+                        # the beginning of
+                        # a baseline chunk
+                        line=dict(
+                            color='grey',
+                            width=1,
+                            dash='dash'),
+                        xref='x',
+                        yref='y domain',
+                        row=row,
+                        col=col)
                     
-                    figure.add_shape(   type = 'line',
-                                        x0 = x[aux[(2*i) + 1]], y0 = 0,
-                                        x1 = x[aux[(2*i) + 1]], y1 = 1,
-                                        line = dict(color = 'grey',         # Properties for
-                                                    width = 1,              # the end of a
-                                                    dash = 'dashdot'),      # baseline chunk
-                                        xref = 'x',
-                                        yref = 'y domain',
-                                        row = row,
-                                        col = col)
-
-        if show_baseline:       # Plot the baseline
+                    figure.add_shape(
+                        type='line',
+                        x0=x[aux[(2*i) + 1]], y0=0,
+                        x1=x[aux[(2*i) + 1]], y1=1,
+                        # Properties for
+                        # the end of a
+                        # baseline chunk
+                        line=dict(
+                            color='grey',
+                            width=1,
+                            dash='dashdot'),
+                        xref='x',
+                        yref='y domain',
+                        row=row,
+                        col=col)
+                    
+        # Plot the baseline
+        if show_baseline:
 
             try:
                 aux = ana.result['baseline']
 
             except KeyError:
                 if verbose:
-                    print("In function plot_WaveformAdcs(): No baseline was found in the specified analysis.")
+                    print("In function plot_WaveformAdcs(): No "
+                          "baseline was found in the specified analysis.")
             else:
 
-                figure.add_shape(   type = "line",
-                                    x0 = 0, y0 = aux,
-                                    x1 = 1, y1 = aux,
-                                    line = dict(color = 'grey',             # Properties for
-                                                width = 1,                  # the computed
-                                                dash = 'dot'),              # baseline
-                                    xref = 'x domain',
-                                    yref = 'y',
-                                    row = row,
-                                    col = col)
+                figure.add_shape(   
+                    type="line",
+                    x0=0, y0=aux,
+                    x1=1, y1=aux,
+                    # Properties for
+                    # the computed
+                    # baseline
+                    line=dict(
+                        color='grey',
+                        width=1,
+                        dash='dot'),
+                    xref='x domain',
+                    yref='y',
+                    row=row,
+                    col=col)
             
-        if show_general_integration_limits:     # Plot the markers for the general integration limits
+        # Plot the markers for the general integration limits
+        if show_general_integration_limits:
 
             try:
                 aux_1 = ana.input_parameters['int_ll']
@@ -224,32 +254,39 @@ def plot_WaveformAdcs(
 
             except KeyError:
                 if verbose:
-                    print("In function plot_WaveformAdcs(): No general-integration-limits were found in the specified analysis.")
+                    print("In function plot_WaveformAdcs(): No "
+                          "general-integration-limits were found"
+                          " in the specified analysis.")
             else:
                                                 
-                figure.add_shape(   type = 'line',
-                                    x0 = x[aux_1], y0 = 0,
-                                    x1 = x[aux_1], y1 = 1,
-                                    line = dict(color = 'black',
-                                                width = 1,
-                                                dash = 'solid'),
-                                    xref = 'x',
-                                    yref = 'y domain',
-                                    row = row,
-                                    col = col)
+                figure.add_shape(   
+                    type='line',
+                    x0=x[aux_1], y0=0,
+                    x1=x[aux_1], y1=1,
+                    line=dict(
+                        color='black',
+                        width=1,
+                        dash='solid'),
+                    xref='x',
+                    yref='y domain',
+                    row=row,
+                    col=col)
                     
-                figure.add_shape(   type = 'line',
-                                    x0 = x[aux_2], y0 = 0,
-                                    x1 = x[aux_2], y1 = 1,
-                                    line = dict(color = 'black',
-                                                width = 1,
-                                                dash = 'solid'),
-                                    xref = 'x',
-                                    yref = 'y domain',
-                                    row = row,
-                                    col = col)
+                figure.add_shape(   
+                    type='line',
+                    x0=x[aux_2], y0=0,
+                    x1=x[aux_2], y1=1,
+                    line=dict(
+                        color='black',
+                        width=1,
+                        dash='solid'),
+                    xref='x',
+                    yref='y domain',
+                    row=row,
+                    col=col)
                 
-        if show_general_amplitude_limits:       # Plot the markers for the general amplitude limits
+        # Plot the markers for the general amplitude limits
+        if show_general_amplitude_limits:
 
             try:
                 aux_1 = ana.input_parameters['amp_ll']
@@ -257,60 +294,75 @@ def plot_WaveformAdcs(
 
             except KeyError:
                 if verbose:
-                    print("In function plot_WaveformAdcs(): No general-amplitude-limits were found in the specified analysis.")
+                    print("In function plot_WaveformAdcs(): No"
+                          " general-amplitude-limits were found"
+                          " in the specified analysis.")
             else:
 
-                figure.add_shape(   type = 'line',
-                                    x0 = x[aux_1], y0 = 0,
-                                    x1 = x[aux_1], y1 = 1,
-                                    line = dict(color = 'green',
-                                                width = 1,
-                                                dash = 'solid'),
-                                    xref = 'x',
-                                    yref = 'y domain',
-                                    row = row,
-                                    col = col)
+                figure.add_shape(
+                    type='line',
+                    x0=x[aux_1], y0=0,
+                    x1=x[aux_1], y1=1,
+                    line=dict(
+                        color='green',
+                        width=1,
+                        dash='solid'),
+                    xref='x',
+                    yref='y domain',
+                    row=row,
+                    col=col)
                 
-                figure.add_shape(   type = 'line',
-                                    x0 = x[aux_2], y0 = 0,
-                                    x1 = x[aux_2], y1 = 1,
-                                    line = dict(color = 'green',
-                                                width = 1,
-                                                dash = 'solid'),
-                                    xref = 'x',
-                                    yref = 'y domain',
-                                    row = row,
-                                    col = col)
+                figure.add_shape(   
+                    type='line',
+                    x0=x[aux_2], y0=0,
+                    x1=x[aux_2], y1=1,
+                    line=dict(
+                        color='green',
+                        width=1,
+                        dash='solid'),
+                    xref='x',
+                    yref='y domain',
+                    row=row,
+                    col=col)
                     
-        if show_spotted_peaks:      # Plot the markers for the spotted peaks
+        # Plot the markers for the spotted peaks
+        if show_spotted_peaks:
 
             try:
                 peaks = ana.result['peaks']
 
             except KeyError:
                 if verbose:
-                    print("In function plot_WaveformAdcs(): No peaks were found in the specified analysis.")
+                    print("In function plot_WaveformAdcs(): No"
+                          " peaks were found in the specified analysis.")
             else:
 
                 for peak in peaks:
 
-                    aux = x[peak.Position]
+                    aux = x[peak.position]
 
-                    figure.add_shape(   type = 'line',
-                                        x0 = aux, y0 = 0,
-                                        x1 = aux, y1 = 1,
-                                        line = dict(color = 'red',      # Properties for
-                                                    width = 1,          # the peaks markers
-                                                    dash = 'dot'),
-                                        xref = 'x',
-                                        yref = 'y domain',
-                                        row = row,
-                                        col = col)
+                    figure.add_shape(
+                        type='line',
+                        x0=aux, y0=0,
+                        x1=aux, y1=1,
+                        # Properties for
+                        # the peaks markers
+                        line=dict(
+                            color='red',
+                            width=1,
+                            dash='dot'),
+                        xref='x',
+                        yref='y domain',
+                        row=row,
+                        col=col)
                 
-        if show_peaks_integration_limits:   # Plot the markers for the peaks integration limits
-            raise NotImplementedError(generate_exception_message(   1,
-                                                                    'plot_WaveformAdcs()',
-                                                                    "The 'show_peaks_integration_limits' parameter is not implemented yet."))
+        # Plot the markers for the peaks integration limits
+        if show_peaks_integration_limits:
+            raise NotImplementedError(GenerateExceptionMessage(
+                1,
+                'plot_WaveformAdcs()',
+                "The 'show_peaks_integration_limits' "
+                "parameter is not implemented yet."))
     return
 
 def plot_WaveformSet(   
@@ -389,7 +441,7 @@ def plot_WaveformSet(
         following two, and so on.
     map_of_wf_idcs: Map of lists of integers
         This Map must contain lists of integers.
-        map_of_wf_idcs.Data[i][j] gives the indices of the 
+        map_of_wf_idcs.data[i][j] gives the indices of the 
         waveforms, with respect to the given WaveformSet, 
         waveform_set, which should be considered for 
         plotting in the axes which are located at the i-th 
@@ -537,7 +589,7 @@ def plot_WaveformSet(
         it gives the inclusive lower (resp. upper) limit of 
         the time range, in time ticks, which will be considered 
         for the heatmap plot. If it is not defined, then it 
-        is assumed to be 0 (resp. waveform_set.PointsPerWf - 1).
+        is assumed to be 0 (resp. waveform_set.points_per_wf - 1).
         It must be smaller (resp. greater) than
         time_range_upper_limit (resp. time_range_lower_limit).
     adc_range_above_baseline (resp. adc_range_below_baseline): int
@@ -585,178 +637,268 @@ def plot_WaveformSet(
     """
 
     if nrows < 1 or ncols < 1:
-        raise Exception(generate_exception_message( 1,
-                                                    'plot_WaveformSet()',
-                                                    'The number of rows and columns must be positive.'))
+        raise Exception(GenerateExceptionMessage( 
+            1,
+            'plot_WaveformSet()',
+            'The number of rows and columns must be positive.'))
+    
     if figure is not None:
-        wpu.check_dimensions_of_suplots_figure( figure,
-                                                nrows,
-                                                ncols)
+        wpu.check_dimensions_of_suplots_figure( 
+            figure,
+            nrows,
+            ncols)
+        
         figure_ = figure
     else:
-        figure_ = psu.make_subplots(    rows = nrows, 
-                                        cols = ncols)
+        figure_ = psu.make_subplots(    
+            rows=nrows, 
+            cols=ncols)
 
-    data_of_map_of_wf_idcs = None         # Logically useless
+    # Logically useless
+    data_of_map_of_wf_idcs = None
 
-    if wfs_per_axes is not None:    # wfs_per_axes is defined, so ignore map_of_wf_idcs
+    # wfs_per_axes is defined, so ignore map_of_wf_idcs
+    if wfs_per_axes is not None:
 
         if wfs_per_axes < 1:
-            raise Exception(generate_exception_message( 2,
-                                                        'plot_WaveformSet()',
-                                                        'The number of waveforms per axes must be positive.'))
+            raise Exception(GenerateExceptionMessage( 
+                2,
+                'plot_WaveformSet()',
+                'The number of waveforms per axes must be positive.'))
 
-        data_of_map_of_wf_idcs = waveform_set.get_map_of_wf_idcs(   nrows,
-                                                                    ncols,
-                                                                    wfs_per_axes = wfs_per_axes).Data
+        data_of_map_of_wf_idcs = waveform_set.get_map_of_wf_idcs(   
+            nrows,
+            ncols,
+            wfs_per_axes=wfs_per_axes).data
 
-    elif map_of_wf_idcs is None:    # Nor wf_per_axes, nor 
-                                    # map_of_wf_idcs are defined
+    # Nor wf_per_axes, nor map_of_wf_idcs are defined    
+    elif map_of_wf_idcs is None:
 
-        raise Exception(generate_exception_message( 3,
-                                                    'plot_WaveformSet()',
-                                                    "The 'map_of_wf_idcs' parameter must be defined if wfs_per_axes is not."))
+        raise Exception(GenerateExceptionMessage( 
+            3,
+            'plot_WaveformSet()',
+            "The 'map_of_wf_idcs' parameter must "
+            "be defined if wfs_per_axes is not."))
     
-    elif not Map.list_of_lists_is_well_formed(  map_of_wf_idcs.Data,    # wf_per_axes is not defined, 
-                                                nrows,                  # but map_of_wf_idcs is, but 
-                                                ncols):                 # it is not well-formed
+    # wf_per_axes is not defined, 
+    # but map_of_wf_idcs is, but 
+    # it is not well-formed
+    
+    elif not Map.list_of_lists_is_well_formed(
+        map_of_wf_idcs.data,
+        nrows,
+        ncols):
         
-        raise Exception(generate_exception_message( 4,
-                                                    'plot_WaveformSet()',
-                                                    f"The given map_of_wf_idcs is not well-formed according to nrows ({nrows}) and ncols ({ncols})."))
-    else:   # wf_per_axes is not defined,
-            # but map_of_wf_idcs is,
-            # and it is well-formed
+        raise Exception(GenerateExceptionMessage(
+            4,
+            'plot_WaveformSet()',
+            f"The given map_of_wf_idcs is not well-formed"
+            f" according to nrows ({nrows}) and ncols ({ncols})."))
+    
+    # wf_per_axes is not defined,
+    # but map_of_wf_idcs is,
+    # and it is well-formed
+    
+    else:
 
-        data_of_map_of_wf_idcs = map_of_wf_idcs.Data
+        data_of_map_of_wf_idcs = map_of_wf_idcs.data
 
-    wpu.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
-                                    share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
-                                    share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
-                                                                # that alternative is only doable for 
-                                                                # the case where the given 'figure'
-                                                                # parameter is None.
+    # An alternative way is to specify 
+    # shared_xaxes=True (or share_yaxes=True)
+    # in psu.make_subplots(), but, for us, 
+    # that alternative is only doable for 
+    # the case where the given 'figure'
+    # parameter is None.
+    
+    wpu.update_shared_axes_status(
+        figure_,
+        share_x=share_x_scale,
+        share_y=share_y_scale)
+
     if mode == 'overlay':
         for i in range(nrows):
             for j in range(ncols):
                 if len(data_of_map_of_wf_idcs[i][j]) > 0:
                     for k in data_of_map_of_wf_idcs[i][j]:
 
-                        aux_name = f"({i+1},{j+1}) - Wf {k}, Ch {waveform_set.Waveforms[k].Channel}, Ep {waveform_set.Waveforms[k].Endpoint}"
+                        aux_name = f"({i+1},{j+1}) - Wf {k}, "
+                        f"Ch {waveform_set.waveforms[k].channel}, "
+                        f"Ep {waveform_set.waveforms[k].endpoint}"
 
-                        plot_WaveformAdcs(  waveform_set.Waveforms[k],
-                                            figure = figure_,
-                                            name = aux_name,
-                                            row = i + 1,  # Plotly uses 1-based indexing
-                                            col = j + 1,
-                                            plot_analysis_markers = plot_analysis_markers,
-                                            show_baseline_limits = show_baseline_limits,
-                                            show_baseline = show_baseline,
-                                            show_general_integration_limits = show_general_integration_limits,
-                                            show_general_amplitude_limits = show_general_amplitude_limits,
-                                            show_spotted_peaks = show_spotted_peaks,
-                                            show_peaks_integration_limits = show_peaks_integration_limits,
-                                            analysis_label = analysis_label,
-                                            verbose = verbose)
+                        plot_WaveformAdcs(  
+                            waveform_set.waveforms[k],
+                            figure=figure_,
+                            name=aux_name,
+                            # Plotly uses 1-based indexing
+                            row=i + 1,
+                            col=j + 1,
+                            plot_analysis_markers=
+                            plot_analysis_markers,
+                            show_baseline_limits=
+                            show_baseline_limits,
+                            show_baseline=
+                            show_baseline,
+                            show_general_integration_limits=
+                            show_general_integration_limits,
+                            show_general_amplitude_limits=
+                            show_general_amplitude_limits,
+                            show_spotted_peaks=
+                            show_spotted_peaks,
+                            show_peaks_integration_limits=
+                            show_peaks_integration_limits,
+                            analysis_label=
+                            analysis_label,
+                            verbose=verbose)
                 else:
-                    wpu.__add_no_data_annotation(   figure_,
-                                                    i + 1,
-                                                    j + 1)
+                    wpu.__add_no_data_annotation(
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
     elif mode == 'average':
         for i in range(nrows):
             for j in range(ncols):
 
-                try: 
-                    aux = waveform_set.compute_mean_waveform(wf_idcs = data_of_map_of_wf_idcs[i][j])    # WaveformSet.compute_mean_waveform() will raise an
-                                                                                                        # exception if data_of_map_of_wf_idcs[i][j] is empty
+                try:
 
-                except Exception:       ## At some point we should implement a number of exceptions which are self-explanatory,
-                                        ## so that we can handle in parallel exceptions due to different reasons if we need it
+                    # WaveformSet.compute_mean_waveform() will raise an
+                    # exception if data_of_map_of_wf_idcs[i][j] is empty
                     
-                    wpu.__add_no_data_annotation(   figure_,
-                                                    i + 1,
-                                                    j + 1)
+                    aux = waveform_set.compute_mean_waveform(
+                        wf_idcs=data_of_map_of_wf_idcs[i][j])
+
+                ## At some point we should implement a number 
+                ## of exceptions which are self-explanatory,
+                ## so that we can handle in parallel exceptions 
+                ## due to different reasons if we need it
+
+                except Exception:
+
+                    wpu.__add_no_data_annotation(
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
                     continue
 
                 fAnalyzed = False
                 if analysis_label is not None:
                     
-                    _ = aux.analyse(    analysis_label,
-                                        *args,
-                                        **kwargs)
+                    _ = aux.analyse(
+                        analysis_label,
+                        *args,
+                        **kwargs)
+                    
                     fAnalyzed = True
 
                 aux_name = f"{len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                 if detailed_label:
-                    aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
+                    aux_name += \
+                        f": [{wpu.get_string_of_first_n_integers_if_available(
+                            data_of_map_of_wf_idcs[i][j], 
+                            queried_no=2)}]"
 
-                plot_WaveformAdcs(  aux,
-                                    figure = figure_,
-                                    name = f"({i+1},{j+1}) - Mean of " + aux_name,
-                                    row = i + 1,
-                                    col = j + 1,
-                                    plot_analysis_markers = plot_analysis_markers if fAnalyzed else False,
-                                    show_baseline_limits = show_baseline_limits,
-                                    show_baseline = show_baseline,
-                                    show_general_integration_limits = show_general_integration_limits,
-                                    show_general_amplitude_limits = show_general_amplitude_limits,
-                                    show_spotted_peaks = show_spotted_peaks,
-                                    show_peaks_integration_limits = show_peaks_integration_limits,
-                                    analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None,
-                                    verbose = verbose)
+                plot_WaveformAdcs(  
+                    aux,
+                    figure=figure_,
+                    name=f"({i+1},{j+1}) - Mean of " + aux_name,
+                    row=i + 1,
+                    col=j + 1,
+                    plot_analysis_markers=
+                    plot_analysis_markers if fAnalyzed else False,
+                    show_baseline_limits=
+                    show_baseline_limits,
+                    show_baseline=
+                    show_baseline,
+                    show_general_integration_limits=
+                    show_general_integration_limits,
+                    show_general_amplitude_limits=
+                    show_general_amplitude_limits,
+                    show_spotted_peaks=
+                    show_spotted_peaks,
+                    show_peaks_integration_limits=
+                    show_peaks_integration_limits,
+                    analysis_label=
+                    analysis_label if (plot_analysis_markers and fAnalyzed) else None,
+                    verbose=verbose)
+                
     elif mode == 'heatmap':
 
-        if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
-            raise Exception(generate_exception_message( 5,
-                                                        'plot_WaveformSet()',
-                                                        "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
+        # In the 'heatmap' mode, the 'analysis_label'
+        # parameter must be defined
 
-        aux_ranges = wpu.arrange_time_vs_ADC_ranges(waveform_set,
-                                                    time_range_lower_limit = time_range_lower_limit,
-                                                    time_range_upper_limit = time_range_upper_limit,
-                                                    adc_range_above_baseline = adc_range_above_baseline,
-                                                    adc_range_below_baseline = adc_range_below_baseline)
+        if analysis_label is None:
+            raise Exception(GenerateExceptionMessage( 
+                5,
+                'plot_WaveformSet()',
+                "The 'analysis_label' parameter must be defined if "
+                "the 'mode' parameter is set to 'heatmap'."))
+
+        aux_ranges = wpu.arrange_time_vs_ADC_ranges(
+            waveform_set,
+            time_range_lower_limit=time_range_lower_limit,
+            time_range_upper_limit=time_range_upper_limit,
+            adc_range_above_baseline=adc_range_above_baseline,
+            adc_range_below_baseline=adc_range_below_baseline)
+        
         for i in range(nrows):
             for j in range(ncols):
                 if len(data_of_map_of_wf_idcs[i][j]) > 0:
 
                     aux_name = f"Heatmap of {len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                     if detailed_label:
-                        aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(data_of_map_of_wf_idcs[i][j], queried_no = 2)}]"
+                        aux_name += \
+                            f": [{wpu.get_string_of_first_n_integers_if_available(
+                                data_of_map_of_wf_idcs[i][j], 
+                                queried_no=2)}]"
 
-                    figure_ = wpu.__subplot_heatmap(waveform_set,
-                                                    figure_,
-                                                    aux_name,
-                                                    i + 1,
-                                                    j + 1,
-                                                    data_of_map_of_wf_idcs[i][j],
-                                                    analysis_label,
-                                                    time_bins,
-                                                    adc_bins,
-                                                    aux_ranges,
-                                                    show_color_bar = False)     # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
-                                                                                # since it may differ from one plot     ## every plot in the grid, though, but comes at the
-                                                                                # to another.                           ## cost of finding the max and min values of the 
-                                                                                                                        ## union of all of the histograms. Such feature may 
-                                                                                                                        ## be enabled in the future, using a boolean input
-                                                                                                                        ## parameter.
-                    figure_.add_annotation( xref = "x domain", 
-                                            yref = "y domain",      
-                                            x = 0.,             # The annotation is left-aligned
-                                            y = 1.25,           # and on top of each subplot
-                                            showarrow = False,
-                                            text = aux_name,
-                                            row = i + 1,
-                                            col = j + 1)
+                    figure_ = wpu.__subplot_heatmap(
+                        waveform_set,
+                        figure_,
+                        aux_name,
+                        i + 1,
+                        j + 1,
+                        data_of_map_of_wf_idcs[i][j],
+                        analysis_label,
+                        time_bins,
+                        adc_bins,
+                        aux_ranges,
+                        # The color scale is not shown
+                        # since it may differ from one plot
+                        # to another
+                        show_color_bar=False)         
+                    
+                    ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
+                    ## every plot in the grid, though, but comes at the
+                    ## cost of finding the max and min values of the 
+                    ## union of all of the histograms. Such feature may 
+                    ## be enabled in the future, using a boolean input
+                    ## parameter.
+
+                    figure_.add_annotation(
+                        xref="x domain",
+                        yref="y domain",
+                        # The annotation is left-aligned
+                        # and on top of each subplot
+                        x=0.,
+                        y=1.25,
+                        showarrow=False,
+                        text=aux_name,
+                        row=i + 1,
+                        col=j + 1)
                 else:
 
-                    wpu.__add_no_data_annotation(   figure_,
-                                                    i + 1,
-                                                    j + 1)
+                    wpu.__add_no_data_annotation(   
+                        figure_,
+                        i + 1,
+                        j + 1)
     else:                                                                                                           
-        raise Exception(generate_exception_message( 6,
-                                                    'plot_WaveformSet()',
-                                                    f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
+        raise Exception(GenerateExceptionMessage( 
+            6,
+            'plot_WaveformSet()',
+            f"The given mode ({mode}) must match either "
+            "'overlay', 'average', or 'heatmap'."))
+    
     return figure_
 
 def plot_CalibrationHistogram(  
@@ -822,45 +964,58 @@ def plot_CalibrationHistogram(
         been plotted, and False otherwise.
     """
 
-    histogram_trace = pgo.Scatter(  x = calibration_histogram.edges,
-                                    y = calibration_histogram.counts,
-                                    mode = 'lines',
-                                    line=dict(  color = 'black', 
-                                                width = 0.5,
-                                                shape = 'hv'),
-                                    name = name)
+    histogram_trace = pgo.Scatter(  
+        x=calibration_histogram.edges,
+        y=calibration_histogram.counts,
+        mode='lines',
+        line=dict(  
+            color='black', 
+            width=0.5,
+            shape='hv'),
+        name=name)
     
-    figure.add_trace(   histogram_trace,
-                        row = row,
-                        col = col)
+    figure.add_trace(
+        histogram_trace,
+        row=row,
+        col=col)
     
     fPlottedOneFit = False
 
     if plot_fits:
 
-        for i in range(len(calibration_histogram.gaussian_fits_parameters['scale'])):
+        for i in range(len(calibration_histogram.
+                           gaussian_fits_parameters['scale'])):
 
             fPlottedOneFit = True
 
-            fit_x = np.linspace(calibration_histogram.edges[0],
-                                calibration_histogram.edges[-1],
-                                num = fit_npoints)
+            fit_x = np.linspace(
+                calibration_histogram.edges[0],
+                calibration_histogram.edges[-1],
+                num=fit_npoints)
             
-            fit_y = wun.gaussian(   fit_x,
-                                    calibration_histogram.gaussian_fits_parameters['scale'][i][0],
-                                    calibration_histogram.gaussian_fits_parameters['mean'][i][0],
-                                    calibration_histogram.gaussian_fits_parameters['std'][i][0])
+            fit_y = wun.gaussian(   
+                fit_x,
+                calibration_histogram.
+                gaussian_fits_parameters['scale'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['mean'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['std'][i][0])
             
-            fit_trace = pgo.Scatter(x = fit_x,
-                                    y = fit_y,
-                                    mode = 'lines',
-                                    line=dict(  color = 'red', 
-                                                width = 0.5),
-                                    name = f"{name} (Fit {i})")
+            fit_trace = pgo.Scatter(
+                x=fit_x,
+                y=fit_y,
+                mode='lines',
+                line=dict(
+                    color='red', 
+                    width=0.5),
+                name=f"{name} (Fit {i})")
             
-            figure.add_trace(   fit_trace,
-                                row = row,
-                                col = col)
+            figure.add_trace(
+                fit_trace,
+                row=row,
+                col=col)
+            
     return fPlottedOneFit
 
 def plot_ChannelWsGrid( 
@@ -892,10 +1047,10 @@ def plot_ChannelWsGrid(
 ) -> pgo.Figure:
     """This function returns a plotly.graph_objects.Figure 
     with a grid of subplots which are arranged according
-    to the channel_ws_grid.ChMap attribute. The subplot at 
+    to the channel_ws_grid.ch_map attribute. The subplot at 
     position i,j may be empty if there is no ChannelWs object 
-    in channel_ws_grid.ChWfSets which matches the UniqueChannel 
-    object at position i,j in the channel_ws_grid.ChMap 
+    in channel_ws_grid.ch_wf_sets which matches the UniqueChannel 
+    object at position i,j in the channel_ws_grid.ch_map 
     attribute. If it is not empty, a subplot may contain a 
     waveform representation (either overlayed, averaged or 
     heatmapped), or a calibration histogram. The type of 
@@ -923,8 +1078,8 @@ def plot_ChannelWsGrid(
         If it is not None, then it must have been
         generated using plotly.subplots.make_subplots()
         with a 'rows' and 'cols' parameters matching
-        the Rows and Columns attribute of 
-        channel_ws_grid.ChMap. If that's the case, then 
+        the rows and columns attribute of 
+        channel_ws_grid.ch_map. If that's the case, then 
         this function adds the plots to this figure and 
         eventually returns it. If it is None, then this 
         function generates a new figure and returns it.
@@ -1087,7 +1242,7 @@ def plot_ChannelWsGrid(
         it gives the inclusive lower (resp. upper) limit of 
         the time range, in time ticks, which will be considered 
         for the heatmap plot. If it is not defined, then it 
-        is assumed to be 0 (resp. channel_ws.PointsPerWf - 1, 
+        is assumed to be 0 (resp. channel_ws.points_per_wf - 1, 
         where channel_ws is the ChannelWs object to be plotted 
         in each subplot). It must be smaller (resp. greater) 
         than time_range_upper_limit (resp. time_range_lower_limit).
@@ -1142,220 +1297,327 @@ def plot_ChannelWsGrid(
     figure: plotly.graph_objects.Figure
         This function returns a plotly.graph_objects.Figure 
         with a grid of subplots which are arranged 
-        according to the channel_ws_grid.ChMap attribute.
+        according to the channel_ws_grid.ch_map attribute.
     """
 
     if figure is not None:
-        wpu.check_dimensions_of_suplots_figure( figure,
-                                                channel_ws_grid.ChMap.Rows,
-                                                channel_ws_grid.ChMap.Columns)
+        wpu.check_dimensions_of_suplots_figure( 
+            figure,
+            channel_ws_grid.ch_map.rows,
+            channel_ws_grid.ch_map.columns)
+        
         figure_ = figure
     else:
-        figure_ = psu.make_subplots(    rows = channel_ws_grid.ChMap.Rows, 
-                                        cols = channel_ws_grid.ChMap.Columns)
+        figure_ = psu.make_subplots(
+            rows=channel_ws_grid.ch_map.rows, 
+            cols=channel_ws_grid.ch_map.columns)
+        
     fPlotAll = True
     if wfs_per_axes is not None:
 
         if wfs_per_axes < 1:
-            raise Exception(generate_exception_message( 1,
-                                                        'plot_ChannelWsGrid()',
-                                                        'If defined, the number of waveforms per axes must be positive.'))
+            raise Exception(GenerateExceptionMessage(
+                1,
+                'plot_ChannelWsGrid()',
+                'If defined, the number of waveforms'
+                ' per axes must be positive.'))
+        
         fPlotAll = False
 
-    wpu.__add_unique_channels_top_annotations(  channel_ws_grid,
-                                                figure_,
-                                                also_add_run_info = True if mode != 'heatmap' else False)       # If mode is 'heatmap', then
-                                                                                                                # there is already a right-aligned
-                                                                                                                # top annotation which shows the
-                                                                                                                # iterator values of the first
-                                                                                                                # waveforms. We are not adding a
-                                                                                                                # new one so that they don't collide.
-    wpu.update_shared_axes_status(  figure_,                    # An alternative way is to specify 
-                                    share_x = share_x_scale,    # shared_xaxes=True (or share_yaxes=True)
-                                    share_y = share_y_scale)    # in psu.make_subplots(), but, for us, 
-                                                                # that alternative is only doable for 
-                                                                # the case where the given 'figure'
-                                                                # parameter is None.
+    # If mode is 'heatmap', then
+    # there is already a right-aligned
+    # top annotation which shows the
+    # iterator values of the first
+    # waveforms. We are not adding a
+    # new one so that they don't collide.
+
+    wpu.__add_unique_channels_top_annotations(  
+        channel_ws_grid,
+        figure_,
+        also_add_run_info=True if mode != 'heatmap' else False)
+
+    # An alternative way is to specify 
+    # shared_xaxes=True (or share_yaxes=True)
+    # in psu.make_subplots(), but, for us, 
+    # that alternative is only doable for 
+    # the case where the given 'figure'
+    # parameter is None.
+    
+    wpu.update_shared_axes_status(  
+        figure_,              
+        share_x=share_x_scale,
+        share_y=share_y_scale)
+
     if mode == 'overlay':
-        for i in range(channel_ws_grid.ChMap.Rows):
-            for j in range(channel_ws_grid.ChMap.Columns):
+        for i in range(channel_ws_grid.ch_map.rows):
+            for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
+                    channel_ws = channel_ws_grid.ch_wf_sets[
+                        channel_ws_grid.ch_map.data[i][j].endpoint][
+                            channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
-                    wpu.__add_no_data_annotation(   figure_,
-                                                    i + 1,
-                                                    j + 1)
+                    wpu.__add_no_data_annotation(   
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
                     continue
 
                 if fPlotAll:
-                    aux_idcs = range(len(channel_ws.Waveforms))
+                    aux_idcs = range(len(channel_ws.waveforms))
                 else:
-                    aux_idcs = range(min(wfs_per_axes, len(channel_ws.Waveforms)))  # If wfs_per_axes is defined, then it has been
-                                                                                    # checked to be >=1. If it is not defined, then
-                                                                                    # still len(channel_ws.Waveforms) is >=1 (which
-                                                                                    # is ensured by WaveformSet.__init__), so the 
-                                                                                    # minimum is always >=1.
+
+                    # If wfs_per_axes is defined, then it has been
+                    # checked to be >=1. If it is not defined, then
+                    # still len(channel_ws.waveforms) is >=1 (which
+                    # is ensured by WaveformSet.__init__), so the 
+                    # minimum is always >=1.
+
+                    aux_idcs = range(min(
+                        wfs_per_axes, 
+                        len(channel_ws.waveforms)))
+
                 for idx in aux_idcs:
 
-                    aux_name = f"({i+1},{j+1}) - Wf {idx}, Ch {channel_ws_grid.ChMap.Data[i][j]}"
+                    aux_name = f"({i+1},{j+1}) - Wf {idx}, "
+                    f"Ch {channel_ws_grid.ch_map.data[i][j]}"
 
-                    plot_WaveformAdcs(  channel_ws.Waveforms[idx],
-                                        figure = figure_,
-                                        name = aux_name,
-                                        row = i + 1,  # Plotly uses 1-based indexing
-                                        col = j + 1,
-                                        plot_analysis_markers = plot_analysis_markers,
-                                        show_baseline_limits = show_baseline_limits,
-                                        show_baseline = show_baseline,
-                                        show_general_integration_limits = show_general_integration_limits,
-                                        show_general_amplitude_limits = show_general_amplitude_limits,
-                                        show_spotted_peaks = show_spotted_peaks,
-                                        show_peaks_integration_limits = show_peaks_integration_limits,
-                                        analysis_label = analysis_label,
-                                        verbose = verbose)
+                    plot_WaveformAdcs(  
+                        channel_ws.waveforms[idx],
+                        figure=figure_,
+                        name=aux_name,
+                        row=i + 1,  # Plotly uses 1-based indexing
+                        col=j + 1,
+                        plot_analysis_markers=
+                        plot_analysis_markers,
+                        show_baseline_limits=
+                        show_baseline_limits,
+                        show_baseline=
+                        show_baseline,
+                        show_general_integration_limits=
+                        show_general_integration_limits,
+                        show_general_amplitude_limits=
+                        show_general_amplitude_limits,
+                        show_spotted_peaks=
+                        show_spotted_peaks,
+                        show_peaks_integration_limits=
+                        show_peaks_integration_limits,
+                        analysis_label=
+                        analysis_label,
+                        verbose=
+                        verbose)
+                    
     elif mode == 'average':
-        for i in range(channel_ws_grid.ChMap.Rows):
-            for j in range(channel_ws_grid.ChMap.Columns):
+        for i in range(channel_ws_grid.ch_map.rows):
+            for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
+                    channel_ws = channel_ws_grid.ch_wf_sets[
+                        channel_ws_grid.ch_map.data[i][j].endpoint][
+                            channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
-                    wpu.__add_no_data_annotation(   figure_,
-                                                    i + 1,
-                                                    j + 1)
+                    wpu.__add_no_data_annotation(   
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
                     continue
 
                 if fPlotAll:
-                    aux_idcs = range(len(channel_ws.Waveforms))
+                    aux_idcs = range(len(channel_ws.waveforms))
                 else:
-                    aux_idcs = range(min(wfs_per_axes, len(channel_ws.Waveforms)))
+                    aux_idcs = range(min(
+                        wfs_per_axes, 
+                        len(channel_ws.waveforms)))
 
-                aux = channel_ws.compute_mean_waveform(wf_idcs = list(aux_idcs))    # WaveformSet.compute_mean_waveform()
-                                                                                    # will raise an exception if
-                                                                                    # list(aux_idcs) is empty 
+                # WaveformSet.compute_mean_waveform()
+                # will raise an exception if
+                # list(aux_idcs) is empty 
+
+                aux = channel_ws.compute_mean_waveform(
+                    wf_idcs=list(aux_idcs))
+
                 fAnalyzed = False
                 if analysis_label is not None:
                     
-                    _ = aux.analyse(    analysis_label,
-                                        *args,
-                                        **kwargs)
+                    _ = aux.analyse(    
+                        analysis_label,
+                        *args,
+                        **kwargs)
+                    
                     fAnalyzed = True
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
-                    aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(list(aux_idcs), queried_no = 2)}]"
+                    aux_name += \
+                        f": [{wpu.get_string_of_first_n_integers_if_available(
+                            list(aux_idcs), 
+                            queried_no=2)}]"
 
-                plot_WaveformAdcs(  aux,
-                                    figure = figure_,
-                                    name = f"({i+1},{j+1}) - Mean of " + aux_name,
-                                    row = i + 1,
-                                    col = j + 1,
-                                    plot_analysis_markers = plot_analysis_markers if fAnalyzed else False,
-                                    show_baseline_limits = show_baseline_limits,
-                                    show_baseline = show_baseline,
-                                    show_general_integration_limits = show_general_integration_limits,
-                                    show_general_amplitude_limits = show_general_amplitude_limits,
-                                    show_spotted_peaks = show_spotted_peaks,
-                                    show_peaks_integration_limits = show_peaks_integration_limits,
-                                    analysis_label = analysis_label if (plot_analysis_markers and fAnalyzed) else None,
-                                    verbose = verbose)
+                plot_WaveformAdcs(
+                    aux,
+                    figure=figure_,
+                    name=f"({i+1},{j+1}) - Mean of " + aux_name,
+                    row=i + 1,
+                    col=j + 1,
+                    plot_analysis_markers=
+                    plot_analysis_markers if fAnalyzed else False,
+                    show_baseline_limits=
+                    show_baseline_limits,
+                    show_baseline=
+                    show_baseline,
+                    show_general_integration_limits=
+                    show_general_integration_limits,
+                    show_general_amplitude_limits=
+                    show_general_amplitude_limits,
+                    show_spotted_peaks=
+                    show_spotted_peaks,
+                    show_peaks_integration_limits=
+                    show_peaks_integration_limits,
+                    analysis_label=
+                    analysis_label if (plot_analysis_markers and fAnalyzed) else None,
+                    verbose=verbose)
+                
     elif mode == 'heatmap':
 
-        if analysis_label is None:  # In the 'heatmap' mode, the 'analysis_label' parameter must be defined
-            raise Exception(generate_exception_message( 2,
-                                                        'plot_ChannelWsGrid()',
-                                                        "The 'analysis_label' parameter must be defined if the 'mode' parameter is set to 'heatmap'."))
-        for i in range(channel_ws_grid.ChMap.Rows):
-            for j in range(channel_ws_grid.ChMap.Columns):
+        # In the 'heatmap' mode, the 
+        # 'analysis_label' parameter must be defined
+        
+        if analysis_label is None:
+            raise Exception(GenerateExceptionMessage( 
+                2,
+                'plot_ChannelWsGrid()',
+                "The 'analysis_label' parameter must be "
+                "defined if the 'mode' parameter is set to 'heatmap'."))
+        
+        for i in range(channel_ws_grid.ch_map.rows):
+            for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
+                    channel_ws = channel_ws_grid.ch_wf_sets[
+                        channel_ws_grid.ch_map.data[i][j].endpoint][
+                            channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
-                    wpu.__add_no_data_annotation(   figure_,
-                                                    i + 1,
-                                                    j + 1)
+                    wpu.__add_no_data_annotation(
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
                     continue
 
                 if fPlotAll:
-                    aux_idcs = range(len(channel_ws.Waveforms))
+                    aux_idcs = range(len(channel_ws.waveforms))
                 else:
-                    aux_idcs = range(min(wfs_per_axes, len(channel_ws.Waveforms)))
+                    aux_idcs = range(min(
+                        wfs_per_axes, 
+                        len(channel_ws.waveforms)))
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
-                    aux_name += f": [{wpu.get_string_of_first_n_integers_if_available(list(aux_idcs), queried_no = 2)}]"
+                    aux_name += \
+                        f": [{wpu.get_string_of_first_n_integers_if_available(
+                            list(aux_idcs),
+                            queried_no=2)}]"
 
-                aux_ranges = wpu.arrange_time_vs_ADC_ranges(channel_ws,
-                                                            time_range_lower_limit = time_range_lower_limit,
-                                                            time_range_upper_limit = time_range_upper_limit,
-                                                            adc_range_above_baseline = adc_range_above_baseline,
-                                                            adc_range_below_baseline = adc_range_below_baseline)
+                aux_ranges = wpu.arrange_time_vs_ADC_ranges(
+                    channel_ws,
+                    time_range_lower_limit=time_range_lower_limit,
+                    time_range_upper_limit=time_range_upper_limit,
+                    adc_range_above_baseline=adc_range_above_baseline,
+                    adc_range_below_baseline=adc_range_below_baseline)
             
-                figure_ = wpu.__subplot_heatmap(channel_ws,
-                                                figure_,
-                                                aux_name,
-                                                i + 1,
-                                                j + 1,
-                                                list(aux_idcs),
-                                                analysis_label,
-                                                time_bins,
-                                                adc_bins,
-                                                aux_ranges,
-                                                show_color_bar = False) # The color scale is not shown          ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
-                                                                        # since it may differ from one plot     ## every plot in the grid, though, but comes at the
-                                                                        # to another.                           ## cost of finding the max and min values of the 
-                                                                                                                ## union of all of the histograms. Such feature may 
-                                                                                                                ## be enabled in the future, using a boolean input
-                                                                                                                ## parameter.
-                figure_.add_annotation( xref = "x domain", 
-                                        yref = "y domain",      
-                                        x = 1.,             # The annotation is right-aligned,
-                                        y = 1.25,           # and placed on top of each subplot.
-                                        showarrow = False,
-                                        text = aux_name,
-                                        row = i + 1,
-                                        col = j + 1)
+                figure_ = wpu.__subplot_heatmap(
+                    channel_ws,
+                    figure_,
+                    aux_name,
+                    i + 1,
+                    j + 1,
+                    list(aux_idcs),
+                    analysis_label,
+                    time_bins,
+                    adc_bins,
+                    aux_ranges,
+                    # The color scale is not shown
+                    # since it may differ from one plot
+                    # to another.
+                    show_color_bar=False)
+
+                ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
+                ## every plot in the grid, though, but comes at the
+                ## cost of finding the max and min values of the 
+                ## union of all of the histograms. Such feature may 
+                ## be enabled in the future, using a boolean input
+                ## parameter.
+
+                figure_.add_annotation( 
+                    xref="x domain", 
+                    yref="y domain",      
+                    # The annotation is right-aligned,
+                    # and placed on top of each subplot.
+                    x=1.,
+                    y=1.25,
+                    showarrow=False,
+                    text=aux_name,
+                    row=i + 1,
+                    col=j + 1)
 
     elif mode == 'calibration':
 
         fPlottedOneFit = False
 
-        for i in range(channel_ws_grid.ChMap.Rows):
-            for j in range(channel_ws_grid.ChMap.Columns):
+        for i in range(channel_ws_grid.ch_map.rows):
+            for j in range(channel_ws_grid.ch_map.columns):
 
                 try:
-                    channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
+                    channel_ws = channel_ws_grid.ch_wf_sets[
+                        channel_ws_grid.ch_map.data[i][j].endpoint][
+                            channel_ws_grid.ch_map.data[i][j].channel]
 
                 except KeyError:
-                    wpu.__add_no_data_annotation(   figure_,
-                                                    i + 1,
-                                                    j + 1)
+                    wpu.__add_no_data_annotation(
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
                     continue
 
                 if channel_ws.calib_histo is None:
-                    raise Exception(generate_exception_message( 3,
-                                                                'plot_ChannelWsGrid()',
-                                                                f"In 'calibration' mode, the calib_histo attribute of each considered ChannelWs object must be defined."))
+                    raise Exception(GenerateExceptionMessage( 
+                        3,
+                        'plot_ChannelWsGrid()',
+                        f"In 'calibration' mode, the calib_histo "
+                        "attribute of each considered ChannelWs "
+                        "object must be defined."))
                 
-                aux_name = f"C.H. of channel {channel_ws_grid.ChMap.Data[i][j]}"
+                aux_name = f"C.H. of channel "
+                f"{channel_ws_grid.ch_map.data[i][j]}"
 
-                fPlottedOneFit |= plot_CalibrationHistogram(channel_ws.calib_histo,
-                                                            figure_,
-                                                            name = aux_name,
-                                                            row = i + 1,
-                                                            col = j + 1,
-                                                            plot_fits = plot_peaks_fits,
-                                                            fit_npoints = 200)
+                fPlottedOneFit |= plot_CalibrationHistogram(
+                    channel_ws.calib_histo,
+                    figure_,
+                    name=aux_name,
+                    row=i + 1,
+                    col=j + 1,
+                    plot_fits=plot_peaks_fits,
+                    fit_npoints=200)
 
         if verbose:
             if plot_peaks_fits and not fPlottedOneFit:
-                print("In function plot_ChannelWsGrid(): No gaussian fit was found for plotting. You may have forgotten to call the fit_peaks_of_calibration_histograms() method of ChannelWsGrid.")
+                print("In function plot_ChannelWsGrid(): "
+                      "No gaussian fit was found for plotting. "
+                      "You may have forgotten to call the "
+                      "fit_peaks_of_calibration_histograms() "
+                      "method of ChannelWsGrid.")
     else:                                                                                                           
-        raise Exception(generate_exception_message( 4,
-                                                    'plot_ChannelWsGrid()',
-                                                    f"The given mode ({mode}) must match either 'overlay', 'average', 'heatmap' or 'calibration'."))
+        raise Exception(GenerateExceptionMessage( 
+            4,
+            'plot_ChannelWsGrid()',
+            f"The given mode ({mode}) must match "
+            "either 'overlay', 'average', 'heatmap'"
+            " or 'calibration'."))
+    
     return figure_
