@@ -121,13 +121,13 @@ def WaveformSet_from_ROOT_files(library : str,
     else:
 
         # Remove possible duplicates
-        
+
         valid_filepaths = [ Path(filepath)
                             for filepath in set(filepath_list)
                             if wii.filepath_is_ROOT_file_candidate(filepath)]
         
     if len(valid_filepaths) == 0:
-        raise Exception(generate_exception_message( 2,
+        raise Exception(GenerateExceptionMessage( 2,
                                                     'WaveformSet_from_ROOT_files()',
                                                     f"No valid ROOT files were found in the given folder or filepath list."))
     if verbose:
@@ -322,11 +322,11 @@ def WaveformSet_from_ROOT_file( filepath : str,
     """
 
     if not wuc.fraction_is_well_formed(start_fraction, stop_fraction):
-        raise Exception(generate_exception_message( 1,
+        raise Exception(GenerateExceptionMessage( 1,
                                                     'WaveformSet_from_ROOT_file()',
                                                     f"Fraction limits are not well-formed."))
     if library not in ['uproot', 'pyroot']:
-        raise Exception(generate_exception_message( 2,
+        raise Exception(GenerateExceptionMessage( 2,
                                                     'WaveformSet_from_ROOT_file()',
                                                     f"The given library ({library}) is not supported."))
     elif library == 'uproot':
@@ -370,7 +370,7 @@ def WaveformSet_from_ROOT_file( filepath : str,
     # helper function for the uproot case), then sum wf_start. That's why we carry both parameters until then.
 
     if len(aux) == 0:
-        raise Exception(generate_exception_message( 3,
+        raise Exception(GenerateExceptionMessage( 3,
                                                     'WaveformSet_from_ROOT_file()',
                                                     f"No waveforms of the specified type ({'full-stream' if read_full_streaming_data else 'self-trigger'}) were found."))
     if library == 'uproot':
