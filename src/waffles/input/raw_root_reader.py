@@ -394,7 +394,7 @@ def WaveformSet_from_root_file(
             entry_stop=wf_stop)
     else:
 
-        is_fullstream_array = wii.get_1d_array_from_pyroot_TBranch(
+        is_fullstream_array = wii.get_1d_array_from_pyroot_tbranch(
             bulk_data_tree,
             is_fullstream_branch_name,
             i_low=wf_start, 
