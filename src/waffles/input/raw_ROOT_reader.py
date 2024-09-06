@@ -1,5 +1,6 @@
 import os
 import math
+from pathlib import Path
 
 import numpy as np
 import uproot
@@ -105,18 +106,24 @@ def WaveformSet_from_ROOT_files(library : str,
 
     if folderpath is not None:
 
-        if not os.path.isdir(folderpath):
-            raise Exception(generate_exception_message( 1,
-                                                        'WaveformSet_from_ROOT_files()',
-                                                        f"The given folderpath ({folderpath}) is not a valid directory."))
+        folder = Path(folderpath)
+        if not folder.is_dir():
+
+            raise Exception(GenerateExceptionMessage(
+                1,
+                'WaveformSet_from_ROOT_files()',
+                f"The given folderpath ({folderpath})"
+                " is not a valid directory."))
         
         valid_filepaths = [ os.path.join(folderpath, filename) 
                             for filename in os.listdir(folderpath) 
                             if wii.filepath_is_ROOT_file_candidate(os.path.join(folderpath, filename))]
     else:
 
-        valid_filepaths = [ filepath 
-                            for filepath in set(filepath_list)                  # Remove possible duplicates
+        # Remove possible duplicates
+        
+        valid_filepaths = [ Path(filepath)
+                            for filepath in set(filepath_list)
                             if wii.filepath_is_ROOT_file_candidate(filepath)]
         
     if len(valid_filepaths) == 0:
