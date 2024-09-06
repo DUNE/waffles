@@ -604,7 +604,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
     return waveforms
 
 
-def __build_waveforms_list_from_ROOT_file_using_pyroot(
+def __build_waveforms_list_from_root_file_using_pyroot(
     idcs_to_retrieve: np.ndarray,
     bulk_data_tree: ROOT.TTree,
     meta_data_tree: ROOT.TTree,
@@ -842,7 +842,7 @@ def __read_metadata_from_ROOT_file_using_pyroot(
     meta_data_tree: ROOT.TTree
 ) -> Tuple[Union[int, float]]:
     """This is a helper function which must only be called by
-    the __build_waveforms_list_from_ROOT_file_using_pyroot()
+    the __build_waveforms_list_from_root_file_using_pyroot()
     helper function. Such function delegates the task of
     reading the data in the meta-data tree to this function.
     This function reads and packs such data into a tuple,
