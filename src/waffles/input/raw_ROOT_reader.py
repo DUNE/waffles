@@ -7,18 +7,21 @@ import uproot
 
 try: 
     import ROOT
+    ROOT_IMPORTED = True
 except ImportError: 
-    print("[raw_ROOT_reader.py]: Could not import ROOT module. Do not use 'pyroot' library options.")
+    print(
+        "[raw_ROOT_reader.py]: Could not import ROOT module. "
+        "'pyroot' library options will not be available."
+    )
+    ROOT_IMPORTED = False
     pass
 
 from typing import List, Optional
 
-from waffles.data_classes.WaveformSet import WaveformSet
-
 import waffles.utils.check_utils as wuc
 import waffles.input.input_utils as wii
-
-from waffles.Exceptions import generate_exception_message
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.Exceptions import GenerateExceptionMessage
 
 def WaveformSet_from_ROOT_files(
     library: str,
