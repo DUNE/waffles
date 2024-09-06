@@ -14,20 +14,22 @@ import waffles.utils.numerical_utils as wun
 
 from waffles.Exceptions import generate_exception_message
 
-def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,  
-                        figure : pgo.Figure,
-                        name : Optional[str] = None,
-                        row : Optional[int] = None,
-                        col : Optional[int] = None,
-                        plot_analysis_markers : bool = False,
-                        show_baseline_limits : bool = False, 
-                        show_baseline : bool = True,
-                        show_general_integration_limits : bool = False,
-                        show_general_amplitude_limits : bool = False,
-                        show_spotted_peaks : bool = True,
-                        show_peaks_integration_limits : bool = False,
-                        analysis_label : Optional[str] = None,
-                        verbose : bool = False) -> None:
+def plot_WaveformAdcs(  
+    waveform_adcs: WaveformAdcs,  
+    figure: pgo.Figure,
+    name: Optional[str] = None,
+    row: Optional[int] = None,
+    col: Optional[int] = None,
+    plot_analysis_markers: bool = False,
+    show_baseline_limits: bool = False, 
+    show_baseline: bool = True,
+    show_general_integration_limits: bool = False,
+    show_general_amplitude_limits: bool = False,
+    show_spotted_peaks: bool = True,
+    show_peaks_integration_limits: bool = False,
+    analysis_label: Optional[str] = None,
+    verbose: bool = False
+) -> None:
 
     """
     This function plots the given WaveformAdcs object
@@ -313,33 +315,35 @@ def plot_WaveformAdcs(  waveform_adcs : WaveformAdcs,
                                                                     "The 'show_peaks_integration_limits' parameter is not implemented yet."))
     return
 
-def plot_WaveformSet(   waveform_set : WaveformSet,  
-                        *args,
-                        nrows : int = 1,
-                        ncols : int = 1,
-                        figure : Optional[pgo.Figure] = None,
-                        wfs_per_axes : Optional[int] = 1,
-                        map_of_wf_idcs : Optional[Map] = None,
-                        share_x_scale : bool = False,
-                        share_y_scale : bool = False,
-                        mode : str = 'overlay',
-                        analysis_label : Optional[str] = None,
-                        plot_analysis_markers : bool = False,
-                        show_baseline_limits : bool = False, 
-                        show_baseline : bool = True,
-                        show_general_integration_limits : bool = False,
-                        show_general_amplitude_limits : bool = False,
-                        show_spotted_peaks : bool = True,
-                        show_peaks_integration_limits : bool = False,
-                        time_bins : int = 512,
-                        adc_bins : int = 100,
-                        time_range_lower_limit : Optional[int] = None,
-                        time_range_upper_limit : Optional[int] = None,
-                        adc_range_above_baseline : int = 100,
-                        adc_range_below_baseline : int = 200,
-                        detailed_label : bool = True,
-                        verbose : bool = False,
-                        **kwargs) -> pgo.Figure: 
+def plot_WaveformSet(   
+    waveform_set: WaveformSet,  
+    *args,
+    nrows: int = 1,
+    ncols: int = 1,
+    figure: Optional[pgo.Figure] = None,
+    wfs_per_axes: Optional[int] = 1,
+    map_of_wf_idcs: Optional[Map] = None,
+    share_x_scale: bool = False,
+    share_y_scale: bool = False,
+    mode: str = 'overlay',
+    analysis_label: Optional[str] = None,
+    plot_analysis_markers: bool = False,
+    show_baseline_limits: bool = False, 
+    show_baseline: bool = True,
+    show_general_integration_limits: bool = False,
+    show_general_amplitude_limits: bool = False,
+    show_spotted_peaks: bool = True,
+    show_peaks_integration_limits: bool = False,
+    time_bins: int = 512,
+    adc_bins: int = 100,
+    time_range_lower_limit: Optional[int] = None,
+    time_range_upper_limit: Optional[int] = None,
+    adc_range_above_baseline: int = 100,
+    adc_range_below_baseline: int = 200,
+    detailed_label: bool = True,
+    verbose: bool = False,
+    **kwargs
+) -> pgo.Figure: 
 
     """ 
     This function returns a plotly.graph_objects.Figure 
@@ -759,13 +763,15 @@ def plot_WaveformSet(   waveform_set : WaveformSet,
                                                     f"The given mode ({mode}) must match either 'overlay', 'average', or 'heatmap'."))
     return figure_
 
-def plot_CalibrationHistogram(  calibration_histogram : CalibrationHistogram,  
-                                figure : pgo.Figure,
-                                name : Optional[str] = None,
-                                row : Optional[int] = None,
-                                col : Optional[int] = None,
-                                plot_fits : bool = False,
-                                fit_npoints : int = 200) -> bool:
+def plot_CalibrationHistogram(  
+    calibration_histogram: CalibrationHistogram,  
+    figure: pgo.Figure,
+    name: Optional[str] = None,
+    row: Optional[int] = None,
+    col: Optional[int] = None,
+    plot_fits: bool = False,
+    fit_npoints: int = 200
+) -> bool:
     
     """
     This function plots the given calibration histogram in 
@@ -863,31 +869,33 @@ def plot_CalibrationHistogram(  calibration_histogram : CalibrationHistogram,
                                 col = col)
     return fPlottedOneFit
 
-def plot_ChannelWsGrid( channel_ws_grid : ChannelWsGrid,
-                        *args,
-                        figure : Optional[pgo.Figure] = None,
-                        share_x_scale : bool = False,
-                        share_y_scale : bool = False,
-                        mode : str = 'overlay',
-                        wfs_per_axes : Optional[int] = 1,
-                        analysis_label : Optional[str] = None,
-                        plot_analysis_markers : bool = False,
-                        show_baseline_limits : bool = False, 
-                        show_baseline : bool = True,
-                        show_general_integration_limits : bool = False,
-                        show_general_amplitude_limits : bool = False,
-                        show_spotted_peaks : bool = True,
-                        show_peaks_integration_limits : bool = False,
-                        time_bins : int = 512,
-                        adc_bins : int = 100,
-                        time_range_lower_limit : Optional[int] = None,
-                        time_range_upper_limit : Optional[int] = None,
-                        adc_range_above_baseline : int = 100,
-                        adc_range_below_baseline : int = 200,
-                        plot_peaks_fits : bool = False,
-                        detailed_label : bool = True,
-                        verbose : bool = True,
-                        **kwargs) -> pgo.Figure:
+def plot_ChannelWsGrid( 
+    channel_ws_grid: ChannelWsGrid,
+    *args,
+    figure: Optional[pgo.Figure] = None,
+    share_x_scale: bool = False,
+    share_y_scale: bool = False,
+    mode: str = 'overlay',
+    wfs_per_axes: Optional[int] = 1,
+    analysis_label: Optional[str] = None,
+    plot_analysis_markers: bool = False,
+    show_baseline_limits: bool = False, 
+    show_baseline: bool = True,
+    show_general_integration_limits: bool = False,
+    show_general_amplitude_limits: bool = False,
+    show_spotted_peaks: bool = True,
+    show_peaks_integration_limits: bool = False,
+    time_bins: int = 512,
+    adc_bins: int = 100,
+    time_range_lower_limit: Optional[int] = None,
+    time_range_upper_limit: Optional[int] = None,
+    adc_range_above_baseline: int = 100,
+    adc_range_below_baseline: int = 200,
+    plot_peaks_fits: bool = False,
+    detailed_label: bool = True,
+    verbose: bool = True,
+    **kwargs
+) -> pgo.Figure:
     
     """
     This function returns a plotly.graph_objects.Figure 
