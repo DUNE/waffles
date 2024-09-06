@@ -120,64 +120,84 @@ def WaveformSet_from_ROOT_files(
         
         valid_filepaths = [ os.path.join(folderpath, filename) 
                             for filename in os.listdir(folderpath) 
-                            if wii.filepath_is_ROOT_file_candidate(os.path.join(folderpath, filename))]
+                            if wii.filepath_is_ROOT_file_candidate(
+                                os.path.join(
+                                    folderpath, 
+                                    filename))]
     else:
 
         # Remove possible duplicates
 
         valid_filepaths = [ Path(filepath)
                             for filepath in set(filepath_list)
-                            if wii.filepath_is_ROOT_file_candidate(filepath)]
+                            if wii.filepath_is_ROOT_file_candidate(
+                                filepath)]
         
     if len(valid_filepaths) == 0:
-        raise Exception(GenerateExceptionMessage( 2,
-                                                    'WaveformSet_from_ROOT_files()',
-                                                    f"No valid ROOT files were found in the given folder or filepath list."))
+        raise Exception(GenerateExceptionMessage(
+            2,
+            'WaveformSet_from_ROOT_files()',
+            f"No valid ROOT files were found in the "
+            "given folder or filepath list."))
+    
     if verbose:
 
-        print(f"In function WaveformSet_from_ROOT_files(): Found {len(valid_filepaths)} different valid ROOT file(s): \n\n", end = '')
+        print(f"In function WaveformSet_from_ROOT_files():"
+              f" Found {len(valid_filepaths)} different"
+              " valid ROOT file(s): \n\n", end = '')
         
         for filepath in valid_filepaths:
             print(f"\t - {filepath}\n", end = '')
 
         print("\n", end = '')
-        print(f"In function WaveformSet_from_ROOT_files(): Reading file 1/{len(valid_filepaths)} ...")
+        print(f"In function WaveformSet_from_ROOT_files():"
+              f" Reading file 1/{len(valid_filepaths)} ...")
     
-    output = WaveformSet_from_ROOT_file(valid_filepaths[0],                         # There's at least one entry in valid_filepaths
-                                        library,                                    # The first WaveformSet is handled separatedly, so
-                                        bulk_data_tree_name = bulk_data_tree_name,  # that the rest of them can be merged into this one
-                                        meta_data_tree_name = meta_data_tree_name,      
-                                        set_offset_wrt_daq_window = set_offset_wrt_daq_window,
-                                        read_full_streaming_data = read_full_streaming_data,
-                                        truncate_wfs_to_minimum = truncate_wfs_to_minimum,
-                                        start_fraction = start_fraction,
-                                        stop_fraction = stop_fraction,
-                                        subsample = subsample,
-                                        verbose = verbose)
+    # There's at least one entry in valid_filepaths
+    # The first WaveformSet is handled separatedly, so
+    # that the rest of them can be merged into this one
+
+    output = WaveformSet_from_ROOT_file(
+        valid_filepaths[0],
+        library,
+        bulk_data_tree_name=bulk_data_tree_name,
+        meta_data_tree_name=meta_data_tree_name,      
+        set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+        read_full_streaming_data=read_full_streaming_data,
+        truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+        start_fraction=start_fraction,
+        stop_fraction=stop_fraction,
+        subsample=subsample,
+        verbose=verbose)
     
     count = 2
 
-    for filepath in valid_filepaths[1:]:  # If len(valid_filepaths) == 1, then this loop is not executed
+    # If len(valid_filepaths) == 1, then this loop is not executed
+    for filepath in valid_filepaths[1:]:
 
         if verbose:
-            print(f"In function WaveformSet_from_ROOT_files(): Reading file {count}/{len(valid_filepaths)} ...")
+            print(f"In function WaveformSet_from_ROOT_files():"
+                  f" Reading file {count}/{len(valid_filepaths)} ...")
             count += 1
 
-        aux = WaveformSet_from_ROOT_file(   filepath,
-                                            library,
-                                            bulk_data_tree_name = bulk_data_tree_name,
-                                            meta_data_tree_name = meta_data_tree_name,
-                                            set_offset_wrt_daq_window = set_offset_wrt_daq_window,
-                                            read_full_streaming_data = read_full_streaming_data,
-                                            truncate_wfs_to_minimum = truncate_wfs_to_minimum,
-                                            start_fraction = start_fraction,
-                                            stop_fraction = stop_fraction,
-                                            subsample = subsample,
-                                            verbose = verbose)
+        aux = WaveformSet_from_ROOT_file(
+            filepath,
+            library,
+            bulk_data_tree_name=bulk_data_tree_name,
+            meta_data_tree_name=meta_data_tree_name,
+            set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+            read_full_streaming_data=read_full_streaming_data,
+            truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+            start_fraction=start_fraction,
+            stop_fraction=stop_fraction,
+            subsample=subsample,
+            verbose=verbose)
+        
         output.merge(aux)
 
     if verbose:
-        print(f"In function WaveformSet_from_ROOT_files(): Reading finished")
+        print(f"In function WaveformSet_from_ROOT_files():"
+              " Reading finished")
 
     return output
 
