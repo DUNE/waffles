@@ -5,8 +5,8 @@ from waffles.data_classes.WfAna import *
 from waffles.data_classes.WaveformAdcs import *
 from waffles.data_classes.WaveformSet import *
 from waffles.data_classes.Waveform import *
-from waffles.data_classes.ChannelWS import *
-from waffles.data_classes.ChannelWSGrid import *
+from waffles.data_classes.ChannelWs import *
+from waffles.data_classes.ChannelWsGrid import *
 from waffles.data_classes.CalibrationHistogram import *
 from waffles.data_classes.UniqueChannel import *
 from waffles.data_classes.Map import *
