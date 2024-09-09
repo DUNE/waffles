@@ -1,5 +1,8 @@
 from waffles.data_classes.UniqueChannel import UniqueChannel
+from waffles.data_classes.ChannelMap import ChannelMap
 from waffles.np04_data_classes.APAMap import APAMap
+
+import waffles.utils.wf_maps_utils as wuw
 
 apa_1_data = [  [UniqueChannel(104, 7   ),  UniqueChannel(104, 5 ), UniqueChannel(104, 2 ), UniqueChannel(104, 0    )],
                 [UniqueChannel(104, 1   ),  UniqueChannel(104, 3 ), UniqueChannel(104, 4 ), UniqueChannel(104, 6    )],
@@ -57,3 +60,8 @@ APA_map = { 1 : apa_1,
             2 : apa_2, 
             3 : apa_3, 
             4 : apa_4}
+
+flat_APA_map = {1 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[1].Data) ]), 
+                2 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[2].Data) ]),
+                3 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[3].Data) ]), 
+                4 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[4].Data) ])}
