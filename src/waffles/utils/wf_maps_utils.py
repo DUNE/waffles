@@ -436,3 +436,26 @@ def get_map_of_wf_idcs(
                                                 filter_args,
                                                 fMaxIsSet,
                                                 max_wfs_per_axes)
+        
+def flatten_2D_list(input : List[List]) -> List: 
+
+    """
+    This function gets a list of lists and flattens it.
+    The flattening process only takes into account 2
+    levels of nesting. I.e. if the input is a list of
+    lists, the output will be a list, but if the input
+    is a list of lists of lists, the output will be a
+    list of lists.
+
+    Parameters
+    ----------
+    input : list of list
+        The list of lists to be flattened
+
+    Returns
+    ----------
+    list
+        The flattened list
+    """
+
+    return [ item for sublist in input for item in sublist ]

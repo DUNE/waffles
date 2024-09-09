@@ -3,11 +3,12 @@
 *.npy
 *.hdf5
 *.ipynb
-test/
+test/*
 .vscode/
 *krb5.conf*
 *.DS_Store
 
+!test/wtest_*
 !docs/examples/00_CheckData.ipynb
 !docs/examples/01_Calibration.ipynb
 

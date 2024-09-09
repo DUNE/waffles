@@ -19,7 +19,7 @@ This is a python library to process and analyze raw data from the ProtoDUNEs. Th
 
 ## Contributing
 
-The idea of WAFFLES framework is to unify efforts and to develop a robust analysis tool. 
+The idea of `waffles` framework is to unify efforts and to develop a robust analysis tool. 
 Nevertheless, it is very important to keep some common rules not to harm others work.
 
 ```{tip} 
@@ -103,6 +103,17 @@ export JUPYTER_CONFIG_DIR=$VIRTUAL_ENV
 
 To deactivate the environment just run `deactivate` in your terminal.
 
+If you are using Jupyter inside VSCode you may want the virtual enviroment to be recognized by the Kernel selector, for that follow:
+
+```bash
+
+#source /path/to/your/venv/bin/activate # Activate the virtual environment
+
+# Install ipykernel in the virtual environment
+pip install ipykernel 
+# Add the virtual environment as a Jupyter kernel
+python -m ipykernel install --user --name=your_env_name --display-name "Python_WAFFLES"
+```
 
 ### 0. Download the library by cloning it from GitHub
 
@@ -168,16 +179,21 @@ The expected folder structure of the repository should be
 
 ### 1. Install packages needed for the library to run
 
-After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` with [NEED TO BE IN THE MAIN FOLDER]:
+After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` by navigating to the repository main folder and running:
 
 ```bash
-pip install -r docs/requirements.txt 
+pip install -r docs/requirements.txt
+pip install .
 ```
+
+If at some point you needed to re-run waffles with the changes you have introduced to the source code, you would just need to run the second command.
 
 ### 2. Make sure you have access to data to analyze
 
 * Make sure you know how to connect and work from `@lxplus.cern.ch` machines.
 
 * To access raw data locations you need to be able to generate a `FNAL.GOV` ticket. This is already configured in the `scripts/get_rucio.py` script which is used to generate `txt` files with the data paths and store them in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`
+
+* Request access to the `np04-t0comp-users` and `np04-daq-dev` egroup on the [CERN egroups page](https://egroups.cern.ch). This also adds you to the `np-comp` Linux group.
 
 ### 3. Have a look at the examples and enjoy!
