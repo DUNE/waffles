@@ -228,7 +228,7 @@ def fit_peaks_of_ChannelWsGrid(
     """For each ChannelWs object, say chws, contained in
     the ChWfSets attribute of the given ChannelWsGrid
     object, channel_ws_grid, whose channel is present
-    in the ChMap attribute of the channel_ws_grid, this
+    in the ch_map attribute of the channel_ws_grid, this
     function calls the
     
         fit_peaks_of_CalibrationHistogram(chws.calib_histo, ...)
@@ -293,13 +293,13 @@ def fit_peaks_of_ChannelWsGrid(
 
     output = True
 
-    for i in range(channel_ws_grid.ChMap.Rows):
-        for j in range(channel_ws_grid.ChMap.Columns):
+    for i in range(channel_ws_grid.ch_map.rows):
+        for j in range(channel_ws_grid.ch_map.columns):
 
             try:
-                channel_ws = channel_ws_grid.ChWfSets[
-                    channel_ws_grid.ChMap.Data[i][j].Endpoint][
-                        channel_ws_grid.ChMap.Data[i][j].Channel]
+                channel_ws = channel_ws_grid.ch_wf_sets[
+                    channel_ws_grid.ch_map.data[i][j].endpoint][
+                        channel_ws_grid.ch_map.data[i][j].channel]
 
             except KeyError:
                 continue
