@@ -1004,7 +1004,7 @@ class WaveformSet:
             return dumped_ones
 
     @classmethod
-    def from_filtered_waveform_set(
+    def from_filtered_WaveformSet(
         cls, 
         original_WaveformSet: 'WaveformSet',
         wf_filter: Callable[..., bool],
