@@ -6,6 +6,7 @@
 test/
 .vscode/
 *krb5.conf*
+*.DS_Store
 
 !docs/examples/00_CheckData.ipynb
 !docs/examples/01_Calibration.ipynb
