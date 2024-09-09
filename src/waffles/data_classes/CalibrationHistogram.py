@@ -30,7 +30,7 @@ class CalibrationHistogram(TrackedHistogram):
     counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)
     indices: list of lists of integers (inherited from TrackedHistogram)
-    guassian_fits_parameters: dict of list of tuples of floats
+    gaussian_fits_parameters: dict of list of tuples of floats
         The keys for this dictionary are
         'scale', 'mean', and 'std'. The value for
         each key is a list of tuples. The i-th
@@ -76,12 +76,12 @@ class CalibrationHistogram(TrackedHistogram):
         self.__reset_gaussian_fit_parameters()
 
     @property
-    def guassian_fits_parameters(self):
+    def gaussian_fits_parameters(self):
         return self.__gaussian_fits_parameters
 
     def __reset_gaussian_fit_parameters(self) -> None:
         """This method is not intended for user usage. 
-        It resets the guassian_fits_parameters attribute 
+        It resets the gaussian_fits_parameters attribute 
         to its initial state.
         """
 
@@ -102,7 +102,7 @@ class CalibrationHistogram(TrackedHistogram):
     ) -> None:
         """This method is not intended for user usage.
         It takes care of adding the given fit parameters
-        to the guassian_fits_parameters attribute according
+        to the gaussian_fits_parameters attribute according
         to its structure. No checks are performed in this
         function regarding the values of the input
         parameters.
