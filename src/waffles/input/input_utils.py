@@ -468,7 +468,7 @@ def __build_waveforms_list_from_root_file_using_uproot(
     # Also note that the 'entry_stop' parameter of uproot.TBranch.array()
     # is exclusive.
 
-    meta_data = __read_metadata_from_ROOT_file_using_uproot(meta_data_tree)
+    meta_data = __read_metadata_from_root_file_using_uproot(meta_data_tree)
 
     adcs_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
@@ -672,7 +672,7 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     waveforms: list of Waveform
     """
 
-    meta_data = __read_metadata_from_ROOT_file_using_pyroot(meta_data_tree)
+    meta_data = __read_metadata_from_root_file_using_pyroot(meta_data_tree)
 
     _, adcs_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
@@ -797,7 +797,7 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     return waveforms
 
 
-def __read_metadata_from_ROOT_file_using_uproot(
+def __read_metadata_from_root_file_using_uproot(
     meta_data_tree: uproot.TTree
 ) -> Tuple[Union[int, float]]:
     """This is a helper function which must only be called by
@@ -838,7 +838,7 @@ def __read_metadata_from_ROOT_file_using_uproot(
     return (run, ticks_to_nsec,)
 
 
-def __read_metadata_from_ROOT_file_using_pyroot(
+def __read_metadata_from_root_file_using_pyroot(
     meta_data_tree: ROOT.TTree
 ) -> Tuple[Union[int, float]]:
     """This is a helper function which must only be called by
@@ -900,7 +900,7 @@ def __read_metadata_from_ROOT_file_using_pyroot(
     return (run, ticks_to_nsec,)
 
 
-def filepath_is_ROOT_file_candidate(filepath: str) -> bool:
+def filepath_is_root_file_candidate(filepath: str) -> bool:
     """This function returns True if the given file path points
     to a file which exists and whose extension is '.root'. It
     returns False if else.
