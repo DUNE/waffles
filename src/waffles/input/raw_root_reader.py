@@ -41,7 +41,7 @@ def WaveformSet_from_root_files(
     waveforms stored in a list of ROOT files. This function
     checks that the given filepaths, up to the 'folderpath' and
     'filepath_list' input parameters, are valid ROOT files, 
-    according to the filepath_is_ROOT_file_candidate() function. 
+    according to the filepath_is_root_file_candidate() function. 
     The valid ROOT files are read into a WaveformSet, and every 
     WaveformSet is merged together into a single one. The resulting 
     WaveformSet is returned.
@@ -120,7 +120,7 @@ def WaveformSet_from_root_files(
         
         valid_filepaths = [ os.path.join(folderpath, filename) 
                             for filename in os.listdir(folderpath) 
-                            if wii.filepath_is_ROOT_file_candidate(
+                            if wii.filepath_is_root_file_candidate(
                                 os.path.join(
                                     folderpath, 
                                     filename))]
@@ -130,7 +130,7 @@ def WaveformSet_from_root_files(
 
         valid_filepaths = [ Path(filepath)
                             for filepath in set(filepath_list)
-                            if wii.filepath_is_ROOT_file_candidate(
+                            if wii.filepath_is_root_file_candidate(
                                 filepath)]
         
     if len(valid_filepaths) == 0:
