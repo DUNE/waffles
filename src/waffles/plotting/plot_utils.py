@@ -330,7 +330,7 @@ def __subplot_heatmap(
 
     try:
         aux_y = np.hstack([
-            waveform_set.waveforms[idx].plot_waveform_adcs -
+            waveform_set.waveforms[idx].adcs -
             waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
 
     except KeyError:
