@@ -7,20 +7,21 @@ from typing import Tuple, Dict
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 
 
-def trim_spsi_find_peaks_output_to_max_peaks(spsi_output: Tuple[np.ndarray, Dict[str, np.ndarray]],
-                                             max_peaks: int) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-    """
-    This function gets the output of a certain call to 
+def trim_spsi_find_peaks_output_to_max_peaks(
+    spsi_output: Tuple[np.ndarray, Dict[str, np.ndarray]],
+    max_peaks: int
+) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+    """This function gets the output of a certain call to 
     scipy.signal.find_peaks() and returns the same output, 
     but truncated to the first max_peaks found peaks. 
 
     Parameters
     ----------
-    spsi_output : tuple of ( np.ndarray,  dict, )
+    spsi_output: tuple of ( np.ndarray,  dict, )
         The output of a call to scipy.signal.find_peaks().
         No checks are performed here regarding the
         well-formedness of this input.
-    max_peaks : int
+    max_peaks: int
         The maximum number of peaks to keep. It must be a
         positive integer. This is not checked here. It is
         the caller's responsibility to ensure this. If the 
@@ -34,7 +35,7 @@ def trim_spsi_find_peaks_output_to_max_peaks(spsi_output: Tuple[np.ndarray, Dict
 
     Returns
     -------
-    output : tuple of ( np.ndarray, dict, )
+    output: tuple of ( np.ndarray, dict, )
         The first element is an unidimensional numpy array 
         which contains the first max_peaks elements of the 
         first element of the given spsi_output. The second 
@@ -51,19 +52,20 @@ def trim_spsi_find_peaks_output_to_max_peaks(spsi_output: Tuple[np.ndarray, Dict
         return (spsi_output[0][0:max_peaks], {key: value[0:max_peaks] for key, value in spsi_output[1].items()})
 
 
-def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: CalibrationHistogram,
-                                               max_peaks: int,
-                                               prominence: float,
-                                               initial_percentage=0.1,
-                                               percentage_step=0.1) -> Tuple[bool, Tuple]:
-    """
-    This function is not intended for user usage. It 
+def __spot_first_peaks_in_CalibrationHistogram(
+    calibration_histogram: CalibrationHistogram,
+    max_peaks: int,
+    prominence: float,
+    initial_percentage=0.1,
+    percentage_step=0.1
+) -> Tuple[bool, Tuple]:
+    """This function is not intended for user usage. It 
     must be only called by fit_peaks_of_CalibrationHistogram(),
     where the well-formedness checks of the input
     parameters have been performed. This function tries 
     to find peaks over the signal which is computed as
 
-        signal = (CalibrationHistogram.Counts - np.min(CalibrationHistogram.Counts))/np.max(CalibrationHistogram.Counts)
+        signal = (calibration_histogram.counts - np.min(calibration_histogram.counts))/np.max(calibration_histogram.counts)
 
     This function iteratively calls
 
@@ -97,13 +99,13 @@ def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: Calibration
 
     Parameters
     ----------
-    CalibrationHistogram : CalibrationHistogram
+    calibration_histogram: CalibrationHistogram
         The CalibrationHistogram object to spot peaks on
-    max_peaks : int
+    max_peaks: int
         The maximum number of peaks to spot. It must 
         be a positive integer. This is not checked here, 
         it is the caller's responsibility to ensure this.
-    prominence : float
+    prominence: float
         The prominence parameter to pass to the
         scipy.signal.find_peaks() function. Since the
         signal is normalized, this prominence can be
@@ -112,11 +114,11 @@ def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: Calibration
         will prevent scipy.signal.find_peaks() from
         spotting peaks whose amplitude is less than
         half of the total amplitude of the signal.
-    initial_percentage : float
+    initial_percentage: float
         The initial percentage of the signal to
         consider. It must be greater than 0.0
         and smaller than 1.0.
-    percentage_step : float
+    percentage_step: float
         The percentage step to increase the signal
         to consider in successive calls of 
         scipy.signal.find_peaks(). It must be greater 
@@ -124,7 +126,7 @@ def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: Calibration
 
     Returns
     -------
-    output : tuple of ( bool,  tuple, )
+    output: tuple of ( bool,  tuple, )
         The first entry is a boolean which is True if 
         the number of peaks found is greater than or 
         equal to max_peaks, and False otherwise. The
@@ -138,8 +140,8 @@ def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: Calibration
         scipy.signal.find_peaks() documentation.
     """
 
-    signal = (CalibrationHistogram.Counts - np.min(CalibrationHistogram.Counts)
-              ) / np.max(CalibrationHistogram.Counts)
+    signal = (calibration_histogram.counts - np.min(calibration_histogram.counts)
+              ) / np.max(calibration_histogram.counts)
 
     fFoundMax = False
     fReachedEnd = False
@@ -149,12 +151,15 @@ def __spot_first_peaks_in_CalibrationHistogram(CalibrationHistogram: Calibration
 
         points = min(points, len(signal))
 
+        # Adding a minimal 0 width, which constraints nothing,
+        # but which makes scipy.signal.find_peaks() return
+        # information about each peak-width at half its height.
+
         spsi_output = spsi.find_peaks(signal[0:points],
                                       prominence=prominence,
-                                      width=0,                  # Adding a minimal 0 width, which constraints nothing,
-                                      # but which makes scipy.signal.find_peaks() return
+                                      width=0,
                                       rel_height=0.5)
-        # information about each peak-width at half its height.
+        
         if len(spsi_output[0]) >= max_peaks:
 
             spsi_output = trim_spsi_find_peaks_output_to_max_peaks(spsi_output,

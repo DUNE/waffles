@@ -1,4 +1,4 @@
-class IoDict(dict):
+class IODict(dict):
     """Stands for Input/Output Dictionary. This class
     inherits from the built-in dict class. This class
     adds no further members to the built-in dict, except

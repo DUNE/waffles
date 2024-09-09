@@ -1,10 +1,8 @@
-from waffles.data_classes.ORDict import OrDict
+from waffles.data_classes.ORDict import ORDict
 
 
-class WfAnaResult(OrDict):
-
-    """
-    Stands for Waveform Analysis Result. This class
+class WfAnaResult(ORDict):
+    """Stands for Waveform Analysis Result. This class
     inherits from the ORDict class, and it is intended
     to store the results of an analysis (i.e. a class
     which derives from WfAna) which has been performed

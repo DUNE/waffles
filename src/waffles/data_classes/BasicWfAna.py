@@ -1,7 +1,7 @@
 import numpy as np
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
-from waffles.data_classes.IPDict import IpDict
+from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
 
@@ -17,33 +17,33 @@ class BasicWfAna(WfAna):
 
     Attributes
     ----------
-    InputParameters: IPDict (inherited from WfAna)
-    BaselineLimits: list of int
+    input_parameters: IPDict (inherited from WfAna)
+    baseline_limits: list of int
         It must have an even number of integers which
-        must meet BaselineLimits[i] < BaselineLimits[i + 1].
+        must meet baseline_limits[i] < baseline_limits[i + 1].
         Given a WaveformAdcs object, wf, the points which
         are used for baseline calculation are
-        wf.adcs[BaselineLimits[2*i] - wf.time_offset :
-        BaselineLimits[(2*i) + 1] - wf.time_offset],
-        with i = 0,1,...,(len(BaselineLimits)/2) - 1. The
+        wf.adcs[baseline_limits[2*i] - wf.time_offset :
+        baseline_limits[(2*i) + 1] - wf.time_offset],
+        with i = 0,1,...,(len(baseline_limits)/2) - 1. The
         upper limits are exclusive.
-    IntLl (resp. IntUl): int
+    int_ll (resp. int_ul): int
         Stands for integration lower (resp. upper) limit.
         Iterator value for the first (resp. last) point
         of the Waveform that falls into the integration
-        window. IntLl must be smaller than IntUl. These
+        window. int_ll must be smaller than int_ul. These
         limits are inclusive. I.e. the points which are
         used for the integral calculation are
-        wf.adcs[IntLl - wf.time_offset : IntUl + 1 - wf.time_offset].
-    AmpLl (resp. AmpUl): int
+        wf.adcs[int_ll - wf.time_offset : int_ul + 1 - wf.time_offset].
+    amp_ll (resp. amp_ul): int
         Stands for amplitude lower (resp. upper) limit.
         Iterator value for the first (resp. last) point
         of the Waveform that is considered to compute
-        the amplitude of the Waveform. AmpLl must be smaller
-        than AmpUl. These limits are inclusive. I.e., the
+        the amplitude of the Waveform. amp_ll must be smaller
+        than amp_ul. These limits are inclusive. I.e., the
         points which are used for the amplitude calculation
-        are wf.adcs[AmpLl - wf.time_offset : AmpUl + 1 - wf.time_offset].
-    Result: WfAnaResult (inherited from WfAna)
+        are wf.adcs[amp_ll - wf.time_offset : amp_ul + 1 - wf.time_offset].
+    result: WfAnaResult (inherited from WfAna)
 
     Methods
     ----------
@@ -51,7 +51,7 @@ class BasicWfAna(WfAna):
     """
 
     @we.handle_missing_data
-    def __init__(self, input_parameters: IpDict):
+    def __init__(self, input_parameters: IPDict):
         """BasicWfAna class initializer. It is assumed that it is
         the caller responsibility to check the well-formedness
         of the input parameters, according to the attributes
@@ -79,23 +79,23 @@ class BasicWfAna(WfAna):
 
     # Getters
     @property
-    def BaselineLimits(self):
+    def baseline_limits(self):
         return self.__baseline_limits
 
     @property
-    def IntLl(self):
+    def int_ll(self):
         return self.__int_ll
 
     @property
-    def IntUl(self):
+    def int_ul(self):
         return self.__int_ul
 
     @property
-    def AmpLl(self):
+    def amp_ll(self):
         return self.__amp_ll
 
     @property
-    def AmpUl(self):
+    def amp_ul(self):
         return self.__amp_ul
 
     def analyse(self, waveform: WaveformAdcs) -> None:
@@ -106,26 +106,26 @@ class BasicWfAna(WfAna):
             that are considered, according to the documentation of
             the self.__baseline_limits attribute.
             - It calculates the integral of
-            waveform.adcs[IntLl - waveform.time_offset:
-            IntUl + 1 - waveform.time_offset].
+            waveform.adcs[int_ll - waveform.time_offset:
+            int_ul + 1 - waveform.time_offset].
             To do so, it assumes that the temporal resolution of
             the waveform is constant and approximates its integral
-            to waveform.TimeStep_ns*np.sum(-b + waveform.adcs[IntLl -
-            waveform.time_offset: IntUl + 1 - waveform.time_offset]),
+            to waveform.time_step_ns*np.sum(-b + waveform.adcs[int_ll -
+            waveform.time_offset: int_ul + 1 - waveform.time_offset]),
             where b is the computed baseline.
             - It calculates the amplitude of
-            waveform.adcs[AmpLl - waveform.time_offset: AmpUl + 1 -
+            waveform.adcs[amp_ll - waveform.time_offset: amp_ul + 1 -
             waveform.time_offset].
 
         Note that for these computations to be well-defined, it is
         assumed that
 
-            - BaselineLimits[0] - wf.time_offset >= 0
-            - BaselineLimits[-1] - wf.time_offset <= len(wf.adcs)
-            - IntLl - wf.time_offset >= 0
-            - IntUl - wf.time_offset < len(wf.adcs)
-            - AmpLl - wf.time_offset >= 0
-            - AmpUl - wf.time_offset < len(wf.adcs)
+            - baseline_limits[0] - wf.time_offset >= 0
+            - baseline_limits[-1] - wf.time_offset <= len(wf.adcs)
+            - int_ll - wf.time_offset >= 0
+            - int_ul - wf.time_offset < len(wf.adcs)
+            - amp_ll - wf.time_offset >= 0
+            - amp_ul - wf.time_offset < len(wf.adcs)
 
         For the sake of efficiency, these checks are not done.
         It is the caller's responsibility to ensure that these
@@ -164,7 +164,7 @@ class BasicWfAna(WfAna):
             baseline_rms=None,
             # Assuming that the waveform is inverted and
             # using linearity to avoid some multiplications
-            integral=waveform.TimeStep_ns * (((
+            integral=waveform.time_step_ns * (((
                 self.__int_ul - self.__int_ll + 1) * baseline) - np.sum(
                 waveform.adcs[
                     self.__int_ll - waveform.time_offset:
@@ -188,7 +188,7 @@ class BasicWfAna(WfAna):
     @staticmethod
     @we.handle_missing_data
     def check_input_parameters(
-            input_parameters: IpDict,
+            input_parameters: IPDict,
             points_no: int
     ) -> None:
         """This method performs three checks:
