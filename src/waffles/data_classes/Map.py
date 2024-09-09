@@ -95,7 +95,7 @@ class Map:
         return self.__columns
 
     @property
-    def type_(self):
+    def type(self):
         return self.__type
 
     @property
