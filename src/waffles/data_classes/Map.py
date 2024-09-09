@@ -31,7 +31,8 @@ class Map:
     """
 
     def __init__(
-        self, : int,
+        self : int,
+        rows : int,
         columns: int,
         type_: type,
         data: Optional[List[List[Any]]] = None
@@ -94,7 +95,7 @@ class Map:
         return self.__columns
 
     @property
-    def type_(self):
+    def type(self):
         return self.__type
 
     @property
@@ -145,8 +146,8 @@ class Map:
         value,
         independent_copies=False
     ) -> 'Map':
-        """This method returns a Map object whose Rows, columns
-        and Type attributes match the input parameters nrows,
+        """This method returns a Map object whose rows, columns
+        and type attributes match the input parameters nrows,
         ncols and type_, and for which all of its entries
         are equal to the input value.
 

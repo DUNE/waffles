@@ -23,14 +23,14 @@ class CalibrationHistogram(TrackedHistogram):
 
     Attributes
     ----------
-    BinsNumber: int (inherited from TrackedHistogram)
-    Edges: unidimensional numpy array of floats
+    bins_number: int (inherited from TrackedHistogram)
+    edges: unidimensional numpy array of floats
     (inherited from TrackedHistogram)
-    MeanBinWidth: float (inherited from TrackedHistogram)
-    Counts: unidimensional numpy array of integers
+    mean_bin_width: float (inherited from TrackedHistogram)
+    counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)
-    Indices: list of lists of integers (inherited from TrackedHistogram)
-    GaussianFitsParameters: dict of list of tuples of floats
+    indices: list of lists of integers (inherited from TrackedHistogram)
+    guassian_fits_parameters: dict of list of tuples of floats
         The keys for this dictionary are
         'scale', 'mean', and 'std'. The value for
         each key is a list of tuples. The i-th
@@ -76,12 +76,12 @@ class CalibrationHistogram(TrackedHistogram):
         self.__reset_gaussian_fit_parameters()
 
     @property
-    def GaussianFitsParameters(self):
+    def guassian_fits_parameters(self):
         return self.__gaussian_fits_parameters
 
     def __reset_gaussian_fit_parameters(self) -> None:
         """This method is not intended for user usage. 
-        It resets the GaussianFitsParameters attribute 
+        It resets the guassian_fits_parameters attribute 
         to its initial state.
         """
 
@@ -102,7 +102,7 @@ class CalibrationHistogram(TrackedHistogram):
     ) -> None:
         """This method is not intended for user usage.
         It takes care of adding the given fit parameters
-        to the GaussianFitsParameters attribute according
+        to the guassian_fits_parameters attribute according
         to its structure. No checks are performed in this
         function regarding the values of the input
         parameters.
@@ -175,7 +175,7 @@ class CalibrationHistogram(TrackedHistogram):
             analysis_label input parameter) from where
             to take the sample to add to the calibration
             histogram. Namely, for a WfAna object x,
-            x.Result[variable] is the considered
+            x.result[variable] is the considered
             sample. It is the caller's responsibility to
             ensure that the values for the given variable
             (key) are scalars, i.e. that they are valid
@@ -183,11 +183,11 @@ class CalibrationHistogram(TrackedHistogram):
         analysis_label: str
             For each considered Waveform object, this
             parameter gives the key for the WfAna
-            object within the Analyses attribute from
+            object within the analyses attribute from
             where to take the sample to add to the
             calibration histogram. If 'analysis_label'
             is None, then the last analysis added to the
-            Analyses attribute will be the used one. If
+            analyses attribute will be the used one. If
             there is not even one analysis, then an
             exception will be raised.
 
@@ -215,7 +215,7 @@ class CalibrationHistogram(TrackedHistogram):
         samples = [
             waveform_set.waveforms[idx].get_analysis(
                 analysis_label
-            ).Result[variable]
+            ).result[variable]
             for idx in range(    
                 len(waveform_set.waveforms))]
         try:

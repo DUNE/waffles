@@ -14,22 +14,23 @@ class Waveform(WaveformAdcs):
     ----------
     timestamp : int
         The timestamp value for this Waveform
-    TimeStep_ns : float (inherited from WaveformAdcs)
-    plot_WaveformAdcs : unidimensional numpy array of integers
+    time_step_ns : float (inherited from WaveformAdcs)
+    adcs : unidimensional numpy array of integers
     (inherited from WaveformAdcs)
-    RunNumber : int
+    run_number : int
         Number of the run from which this Waveform was
         acquired
-    RecordNumber : int
+    record_number : int
         Number of the record within which this Waveform
         was acquired
     endpoint : int
-        endpoint number from which this Waveform was
+        Endpoint number from which this Waveform was
         acquired
     channel : int
-        channel number for this Waveform
+        Channel number for this Waveform
     time_offset : int (inherited from WaveformAdcs)
-    Analyses : OrderedDict of WfAna objects (inherited from WaveformAdcs)
+    analyses : OrderedDict of WfAna objects 
+    (inherited from WaveformAdcs)
 
     Methods
     ----------
@@ -37,14 +38,15 @@ class Waveform(WaveformAdcs):
     """
 
     def __init__(
-            self, timestamp: int,
-            time_step_ns: float,
-            adcs: np.ndarray,
-            run_number: int,
-            record_number: int,
-            endpoint: int,
-            channel: int,
-            time_offset: int = 0):
+        self, 
+        timestamp: int,
+        time_step_ns: float,
+        adcs: np.ndarray,
+        run_number: int,
+        record_number: int,
+        endpoint: int,
+        channel: int,
+        time_offset: int = 0):
         """
         Waveform class initializer
 

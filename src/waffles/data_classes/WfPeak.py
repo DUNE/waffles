@@ -16,12 +16,12 @@ class WfPeak:
         peak was spotted
     baseline: float
         The baseline value which was used for the
-        Amplitude and Integral attributes evaluation
+        amplitude and integral attributes evaluation
     int_ll (resp. int_ul): int
         Stands for integration lower (resp. upper)
         limit. Iterator value for the first (resp.
         last) point of the Waveform adcs range which
-        was used to compute this WfPeak Integral
+        was used to compute this WfPeak integral
         attribute. int_ll must be smaller than int_ul.
         Both limits are inclusive.
     amplitude: float
