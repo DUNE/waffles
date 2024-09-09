@@ -325,7 +325,7 @@ def __subplot_heatmap(
 
     aux_x = np.hstack([np.arange(
         0,
-        waveform_set.PointsPerWf,
+        waveform_set.points_per_wf,
         dtype=np.float32) + waveform_set.waveforms[idx].time_offset for idx in wf_idcs])
 
     try:
@@ -370,7 +370,7 @@ def arrange_time_vs_ADC_ranges(
     """This function arranges a 2x2 numpy array with a time and 
     ADC range which is constrained to the number of points 
     in the waveforms of the given WaveformSet, i.e. 
-    waveform_set.PointsPerWf.
+    waveform_set.points_per_wf.
 
     Parameters
     ----------
@@ -381,7 +381,7 @@ def arrange_time_vs_ADC_ranges(
         If it is defined, then it gives the lower (resp. upper) 
         limit of the time range, in time ticks. If it is not
         defined, then the lower (resp. upper) will be set to 
-        0 (resp. waveform_set.PointsPerWf - 1). It must be 
+        0 (resp. waveform_set.points_per_wf - 1). It must be 
         smaller (resp. greater) than time_range_upper_limit 
         (resp. time_range_lower_limit).
     adc_range_above_baseline (resp. adc_range_below_baseline): int
@@ -400,7 +400,7 @@ def arrange_time_vs_ADC_ranges(
     if time_range_lower_limit is not None:
         time_range_lower_limit_ = time_range_lower_limit
 
-    time_range_upper_limit_ = waveform_set.PointsPerWf - 1
+    time_range_upper_limit_ = waveform_set.points_per_wf - 1
     if time_range_upper_limit is not None:
         time_range_upper_limit_ = time_range_upper_limit
 
