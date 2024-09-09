@@ -285,7 +285,8 @@ def __cluster_integers_by_contiguity(
         integers in the input array.
     """
 
-    extremals = [[increasingly_sorted_integers[0]]]
+    extremals = []
+    extremals.append([increasingly_sorted_integers[0]])
 
     # The last integer has an exclusive treatment
     for i in range(1, len(increasingly_sorted_integers) - 1):
