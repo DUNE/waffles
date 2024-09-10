@@ -3,29 +3,30 @@ from plotly import graph_objects as pgo
 from typing import List, Optional
 
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.data_classes.ChannelWSGrid import ChannelWSGrid
+from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
 import waffles.utils.numerical_utils as wun
 
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
-def check_dimensions_of_suplots_figure( figure : pgo.Figure,
-                                        nrows : int,
-                                        ncols : int) -> None:
-    
-    """
-    This function checks that the given figure has
+
+def check_dimensions_of_suplots_figure(
+    figure: pgo.Figure,
+    nrows: int,
+    ncols: int
+) -> None:
+    """This function checks that the given figure has
     the given number of rows and columns. If not,
     it raises an exception.
 
     Parameters
     ----------
-    figure : plotly.graph_objects.Figure
+    figure: plotly.graph_objects.Figure
         The figure to be checked. It must have been
         generated using plotly.subplots.make_subplots()
         with a 'rows' and 'cols' parameters matching
         the given nrows and ncols parameters.
-    nrows (resp. ncols) : int
+    nrows (resp. ncols): int
         The number of rows (resp. columns) that the
         given figure must have
 
@@ -35,27 +36,34 @@ def check_dimensions_of_suplots_figure( figure : pgo.Figure,
     """
 
     try:
-        fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
+        fig_rows, fig_cols = figure._get_subplot_rows_columns()
+        # Returns two range objects
         fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
 
-    except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
-
-        raise Exception(generate_exception_message( 1,
-                                                    'check_dimensions_of_suplots_figure()',
-                                                    'The given figure is not a subplot grid.'))
-    if fig_rows != nrows or fig_cols != ncols:
+    # Happens if figure was not created using plotly.subplots.make_subplots
+    except Exception:
         
-        raise Exception(generate_exception_message( 2,
-                                                    'check_dimensions_of_suplots_figure()',
-                                                    f"The number of rows and columns in the given figure ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) and ncols ({ncols}) parameters."))
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'check_dimensions_of_suplots_figure()',
+            'The given figure is not a subplot grid.'))
+    if fig_rows != nrows or fig_cols != ncols:
+
+        raise Exception(GenerateExceptionMessage(
+            2,
+            'check_dimensions_of_suplots_figure()',
+            "The number of rows and columns in the given figure"
+            f" ({fig_rows}, {fig_cols}) must match the nrows ({nrows}) "
+            f"and ncols ({ncols}) parameters."))
     return
 
-def update_shared_axes_status(  figure : pgo.Figure,
-                                share_x : bool = False,
-                                share_y : bool = True) -> pgo.Figure:
-    
-    """
-    If share_x (resp. share_y) is True, then this
+
+def update_shared_axes_status(
+    figure: pgo.Figure,
+    share_x: bool = False,
+    share_y: bool = True
+) -> pgo.Figure:
+    """If share_x (resp. share_y) is True, then this
     function makes the x-axis (resp. y-axis) scale 
     of every subplot in the given figure shared.
     If share_x (resp. share_y) is False, then this
@@ -66,7 +74,7 @@ def update_shared_axes_status(  figure : pgo.Figure,
 
     Parameters
     ----------
-    figure : plotly.graph_objects.Figure
+    figure: plotly.graph_objects.Figure
         The figure whose subplots will share the
         selected axes scale.
     share_x (resp. share_y): bool
@@ -74,24 +82,31 @@ def update_shared_axes_status(  figure : pgo.Figure,
         shared among all the subplots. If False, the
         x-axis (resp. y-axis) scale will not be shared
         anymore.
-    
+
     Returns
     ----------
-    figure : plotly.graph_objects.Figure
+    figure: plotly.graph_objects.Figure
     """
-    
+
     try:
-        fig_rows, fig_cols = figure._get_subplot_rows_columns() # Returns two range objects
-    except Exception:   # Happens if figure was not created using plotly.subplots.make_subplots
-        raise Exception(generate_exception_message( 1,
-                                                    'update_shared_axes_status()',
-                                                    'The given figure is not a subplot grid.'))
-    
+        fig_rows, fig_cols = figure._get_subplot_rows_columns()
+        # Returns two range objects
+
+    except Exception:
+
+        # Happens if figure was not created using
+        # plotly.subplots.make_subplots
+
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'update_shared_axes_status()',
+            'The given figure is not a subplot grid.'))
+
     fig_rows, fig_cols = list(fig_rows)[-1], list(fig_cols)[-1]
 
     aux_x = None if not share_x else 'x'
     aux_y = None if not share_y else 'y'
-    
+
     for i in range(fig_rows):
         for j in range(fig_cols):
             figure.update_xaxes(matches=aux_x, row=i+1, col=j+1)
@@ -99,12 +114,13 @@ def update_shared_axes_status(  figure : pgo.Figure,
 
     return figure
 
-def __add_no_data_annotation(   figure : pgo.Figure,
-                                row : int,
-                                col : int) -> pgo.Figure:
-    
-    """
-    It is the caller's responsibility to ensure
+
+def __add_no_data_annotation(
+    figure: pgo.Figure,
+    row: int,
+    col: int
+) -> pgo.Figure:
+    """It is the caller's responsibility to ensure
     that the well-formedness of the input
     parameters, such as the fact that the
     'figure' parameter is, indeed, a pgo.Figure
@@ -119,10 +135,10 @@ def __add_no_data_annotation(   figure : pgo.Figure,
 
     Parameters
     ----------
-    figure : pgo.Figure
+    figure: pgo.Figure
         The figure where the annotation will be
         added
-    row (resp. col) : int
+    row (resp. col): int
         The row (resp. column) where the annotation
         will be added. These values are expected 
         to be 1-indexed, so they are directly passed 
@@ -133,34 +149,39 @@ def __add_no_data_annotation(   figure : pgo.Figure,
 
     Returns
     ----------
-    figure_ : plotly.graph_objects.Figure
+    figure_: plotly.graph_objects.Figure
         The figure with the annotation added
     """
 
     figure_ = figure
 
-    figure_.add_trace(  pgo.Scatter(x = [], 
-                                    y = []), 
-                        row = row, 
-                        col = col)
+    figure_.add_trace(
+        pgo.Scatter(x=[],
+                    y=[]),
+        row=row,
+        col=col)
 
-    figure_.add_annotation( text = "No data",
-                            xref = 'x domain',
-                            yref = 'y domain',
-                            x = 0.5,
-                            y = 0.5,
-                            showarrow = False,
-                            font = dict(size = 14, 
-                                        color='black'),
-                            row = row,
-                            col = col)
+    figure_.add_annotation(
+        text="No data",
+        xref='x domain',
+        yref='y domain',
+        x=0.5,
+        y=0.5,
+        showarrow=False,
+        font=dict(
+            size=14,
+            color='black'),
+        row=row,
+        col=col)
+    
     return figure_
 
-def get_string_of_first_n_integers_if_available(input_list : List[int],
-                                                queried_no : int = 3) -> str:
 
-    """
-    This function returns an string with the first
+def get_string_of_first_n_integers_if_available(
+    input_list: List[int],
+    queried_no: int = 3
+) -> str:
+    """This function returns an string with the first
     comma-separated n integers of the given list
     where n is the minimum between queried_no and 
     the length of the given list, input_list. If 
@@ -172,19 +193,21 @@ def get_string_of_first_n_integers_if_available(input_list : List[int],
 
     Parameters
     ----------
-    input_list : list of int
-    queried_no : int
+    input_list: list of int
+    queried_no: int
         It must be a positive integer
 
     Returns
     ----------
-    output : str
+    output: str
     """
 
     if queried_no < 1:
-        raise Exception(generate_exception_message( 1,
-                                                    'get_string_of_first_n_integers_if_available()',
-                                                    f"The given queried_no ({queried_no}) must be positive."))
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'get_string_of_first_n_integers_if_available()',
+            f"The given queried_no ({queried_no}) must be positive."))
+    
     actual_no = queried_no
     fAppend = True
 
@@ -201,20 +224,21 @@ def get_string_of_first_n_integers_if_available(input_list : List[int],
 
     return output
 
-def __subplot_heatmap(  waveform_set : WaveformSet, 
-                        figure : pgo.Figure,
-                        name : str,
-                        row : int,
-                        col : int,
-                        wf_idcs : List[int],
-                        analysis_label : str,
-                        time_bins : int,
-                        adc_bins : int,
-                        ranges : np.ndarray,
-                        show_color_bar : bool = False) -> pgo.Figure:
 
-    """
-    This is a helper function for the 
+def __subplot_heatmap(
+    waveform_set: WaveformSet,
+    figure: pgo.Figure,
+    name: str,
+    row: int,
+    col: int,
+    wf_idcs: List[int],
+    analysis_label: str,
+    time_bins: int,
+    adc_bins: int,
+    ranges: np.ndarray,
+    show_color_bar: bool = False
+) -> pgo.Figure:
+    """This is a helper function for the 
     plot_WaveformSet() function. It should only
     be called by that one, where the 
     data-availability and the well-formedness 
@@ -236,125 +260,131 @@ def __subplot_heatmap(  waveform_set : WaveformSet,
 
     Parameters
     ----------
-    waveform_set : WaveformSet
+    waveform_set: WaveformSet
         The WaveformSet object whose waveforms
         will be plotted in the heatmap
-    figure : pgo.Figure
+    figure: pgo.Figure
         The figure where the heatmap will be
         plotted
-    name : str
+    name: str
         The name of the heatmap. It is given
-        to the 'name' parameter of 
+        to the 'name' parameter of
         plotly.graph_objects.Heatmap().
-    row (resp. col) : int
-        The row (resp. column) where the 
+    row (resp. col): int
+        The row (resp. column) where the
         heatmap will be plotted. These values
         are expected to be 1-indexed, so they
         are directly passed to the 'row' and
         'col' parameters of the figure.add_trace()
         method.
-    wf_idcs : list of int
+    wf_idcs: list of int
         Indices of the waveforms, with respect
-        to the waveform_set.Waveforms list, 
+        to the waveform_set.waveforms list,
         which will be added to the heatmap.
-    analysis_label : str
-        For each considered waveform, it is the
-        key for its Analyses attribute which gives
+    analysis_label: str
+        For each considered Waveform, it is the
+        key for its analyses attribute which gives
         the WfAna object whose computed baseline
-        is subtracted from the waveform prior to
+        is subtracted from the Waveform prior to
         addition to the heatmap. The baseline is
         grabbed from the 'baseline' key in the
-        Result attribute of the specified WfAna
+        result attribute of the specified WfAna
         object. I.e. such information must be
         available. If it is not, an exception will
         be raised.
-    time_bins : int
+    time_bins: int
         The number of bins for the horizontal axis
         of the heatmap
-    adc_bins : int
+    adc_bins: int
         The number of bins for the vertical axis
         of the heatmap
-    ranges : np.ndarray
+    ranges: np.ndarray
         A 2x2 integer numpy array where ranges[0,0]
         (resp. ranges[0,1]) gives the lower (resp.
         upper) bound of the horizontal axis of the
         heatmap, and ranges[1,0] (resp. ranges[1,1])
         gives the lower (resp. upper) bound of the
         vertical axis of the heatmap.
-    show_color_bar : bool
+    show_color_bar: bool
         It is given to the 'showscale' parameter of
         plotly.graph_objects.Heatmap(). If True, a
         bar with the color scale of the plotted 
         heatmap is shown. If False, it is not.
-    
+
     Returns
     ----------
-    figure_ : plotly.graph_objects.Figure
+    figure_: plotly.graph_objects.Figure
         The figure whose subplot at position 
         (row, col) has been filled with the heatmap
     """
 
     figure_ = figure
 
-    time_step   = (ranges[0,1] - ranges[0,0]) / time_bins
-    adc_step    = (ranges[1,1] - ranges[1,0]) / adc_bins
-    
-    aux_x = np.hstack([np.arange(   0,
-                                    waveform_set.PointsPerWf,
-                                    dtype = np.float32) + waveform_set.Waveforms[idx].TimeOffset for idx in wf_idcs])
+    time_step = (ranges[0, 1] - ranges[0, 0]) / time_bins
+    adc_step = (ranges[1, 1] - ranges[1, 0]) / adc_bins
+
+    aux_x = np.hstack([np.arange(
+        0,
+        waveform_set.points_per_wf,
+        dtype=np.float32) + waveform_set.waveforms[idx].time_offset for idx in wf_idcs])
 
     try:
-        aux_y = np.hstack([waveform_set.Waveforms[idx].Adcs - waveform_set.Waveforms[idx].Analyses[analysis_label].Result['baseline'] for idx in wf_idcs])
+        aux_y = np.hstack([
+            waveform_set.waveforms[idx].adcs -
+            waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
 
     except KeyError:
-        raise Exception(generate_exception_message( 1,
-                                                    '__subplot_heatmap()',
-                                                    f"Either an analysis with the given analysis_label ({analysis_label}) does not exist for the waveforms in the given waveform_set, or the analysis exists but it does not compute the baseline under the 'baseline' key."))
-                                                    
+        raise Exception(GenerateExceptionMessage(
+            1,
+            '__subplot_heatmap()',
+            f"Either an analysis with the given analysis_label ({analysis_label}) does not exist for the waveforms in the given WaveformSet, or the analysis exists but it does not compute the baseline under the 'baseline' key."))
 
-    aux = wun.histogram2d(  np.vstack((aux_x, aux_y)), 
-                            np.array((time_bins, adc_bins)),
-                            ranges)
-    
-    heatmap =   pgo.Heatmap(z = aux,
-                            x0 = ranges[0,0],
-                            dx = time_step,
-                            y0 = ranges[1,0],
-                            dy = adc_step,
-                            name = name,
-                            transpose = True,
-                            showscale = show_color_bar)
+    aux = wun.histogram2d(
+        np.vstack((aux_x, aux_y)),
+        np.array((time_bins, adc_bins)),
+        ranges)
 
-    figure_.add_trace(  heatmap,
-                        row = row,
-                        col = col)
+    heatmap = pgo.Heatmap(
+        z=aux,
+        x0=ranges[0, 0],
+        dx=time_step,
+        y0=ranges[1, 0],
+        dy=adc_step,
+        name=name,
+        transpose=True,
+        showscale=show_color_bar)
+
+    figure_.add_trace(heatmap,
+                      row=row,
+                      col=col)
     return figure_
 
-def arrange_time_vs_ADC_ranges( waveform_set : WaveformSet,
-                                time_range_lower_limit : Optional[int] = None,
-                                time_range_upper_limit : Optional[int] = None,
-                                adc_range_above_baseline : int = 100,
-                                adc_range_below_baseline : int = 200) -> np.ndarray:
-    
-    """
-    This function arranges a 2x2 numpy array with a time and 
+
+def arrange_time_vs_ADC_ranges(
+    waveform_set: WaveformSet,
+    time_range_lower_limit: Optional[int] = None,
+    time_range_upper_limit: Optional[int] = None,
+    adc_range_above_baseline: int = 100,
+    adc_range_below_baseline: int = 200
+) -> np.ndarray:
+    """This function arranges a 2x2 numpy array with a time and 
     ADC range which is constrained to the number of points 
-    in the waveforms of the given waveform_set, i.e. 
-    waveform_set.PointsPerWf.
-    
+    in the waveforms of the given WaveformSet, i.e. 
+    waveform_set.points_per_wf.
+
     Parameters
     ----------
-    waveform_set : WaveformSet
+    waveform_set: WaveformSet
         The WaveformSet object for which the time and ADC
         ranges will be built.
-    time_range_lower_limit (resp. time_range_upper_limit) : int
+    time_range_lower_limit (resp. time_range_upper_limit): int
         If it is defined, then it gives the lower (resp. upper) 
         limit of the time range, in time ticks. If it is not
         defined, then the lower (resp. upper) will be set to 
-        0 (resp. waveform_set.PointsPerWf - 1). It must be 
+        0 (resp. waveform_set.points_per_wf - 1). It must be 
         smaller (resp. greater) than time_range_upper_limit 
         (resp. time_range_lower_limit).
-    adc_range_above_baseline (resp. adc_range_below_baseline) : int
+    adc_range_above_baseline (resp. adc_range_below_baseline): int
         Its absolute value times one (resp. minus one) gives
         the upper (resp. lower) limit of the ADC range.
 
@@ -370,92 +400,108 @@ def arrange_time_vs_ADC_ranges( waveform_set : WaveformSet,
     if time_range_lower_limit is not None:
         time_range_lower_limit_ = time_range_lower_limit
 
-    time_range_upper_limit_ = waveform_set.PointsPerWf - 1
+    time_range_upper_limit_ = waveform_set.points_per_wf - 1
     if time_range_upper_limit is not None:
         time_range_upper_limit_ = time_range_upper_limit
 
     if time_range_lower_limit_ >= time_range_upper_limit_:
-        raise Exception(generate_exception_message( 1,
-                                                    'arrange_time_vs_ADC_ranges()',
-                                                    f"The time range limits ({time_range_lower_limit_}, {time_range_upper_limit_}) are not well-formed."))
-    
-    return np.array([   [time_range_lower_limit_,           time_range_upper_limit_         ],
-                        [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)   ]])
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'arrange_time_vs_ADC_ranges()',
+            f"The time range limits ({time_range_lower_limit_}, "
+            f"{time_range_upper_limit_}) are not well-formed."))
 
-def __add_unique_channels_top_annotations(  channel_ws_grid : ChannelWSGrid,
-                                            figure : pgo.Figure,
-                                            also_add_run_info : bool = False) -> pgo.Figure:
+    return np.array([
+        [time_range_lower_limit_, time_range_upper_limit_],
+        [-1*abs(adc_range_below_baseline),  abs(adc_range_above_baseline)]])
 
-    """
-    This function is not intended for user usage. It is
+
+def __add_unique_channels_top_annotations(
+    channel_ws_grid: ChannelWsGrid,
+    figure: pgo.Figure,
+    also_add_run_info: bool = False
+) -> pgo.Figure:
+    """This function is not intended for user usage. It is
     meant to be called uniquely by the plot_ChannelWSGrid() 
     function, where the well-formedness of the input 
     figure has been checked. This function receives a
-    ChannelWSGrid object and a pgo.Figure object, and 
+    ChannelWsGrid object and a pgo.Figure object, and 
     adds annotations on top of each subplot of the given 
     figure. The annotations are the string representation 
     of the UniqueChannel object, each of which is placed
     on top of a subplot according to its position in
-    the channel_ws_grid.ChMap attribute.
+    the channel_ws_grid.ch_map attribute.
 
     Parameters
     ----------
-    channel_ws_grid : ChannelWSGrid
-        The ChannelWSGrid object whose ChMap attribute
+    channel_ws_grid: ChannelWsGrid
+        The ChannelWsGrid object whose ch_map attribute
         will be used to add annotations to the given 
         figure.
-    figure : plotly.graph_objects.Figure
+    figure: plotly.graph_objects.Figure
         The figure to which the annotations will be added
-    also_add_run_info : bool
+    also_add_run_info: bool
         If True, then for each subplot for which there
-        is a ChannelWS object, say chws, present in the 
-        channel_ws_grid.ChWfSets attribute, the first run 
-        number which appears in the chws.Runs attribute 
+        is a ChannelWs object, say chws, present in the 
+        channel_ws_grid.ch_wf_sets attribute, the first run 
+        number which appears in the chws.runs attribute 
         will be additionally added to the annotation. 
-        For each subplot for which there is no ChannelWS 
+        For each subplot for which there is no ChannelWs 
         object, according to the physical position given 
-        by the channel_ws_grid.ChMap attribute, no additional 
-        annotation will be added.
+        by the channel_ws_grid.ch_map attribute, no 
+        additional annotation will be added.
 
     Returns
     ----------
-    figure : plotly.graph_objects.Figure
+    figure: plotly.graph_objects.Figure
         The given figure with the annotations added
     """
 
-    for i in range(channel_ws_grid.ChMap.Rows):
-        for j in range(channel_ws_grid.ChMap.Columns):
-            figure.add_annotation(  xref = "x domain", 
-                                    yref = "y domain",      
-                                    x = 0.,             # The annotation is left-aligned
-                                    y = 1.25,           # and on top of each subplot
-                                    showarrow = False,
-                                    text = str(channel_ws_grid.ChMap.Data[i][j]),   # Implicitly using UniqueChannel.__repr__()
-                                    row = i + 1,
-                                    col = j + 1)    
+    for i in range(channel_ws_grid.ch_map.rows):
+        for j in range(channel_ws_grid.ch_map.columns):
+            figure.add_annotation(
+                xref="x domain",
+                yref="y domain",
+                # The annotation is left-aligned
+                # and on top of each subplot
+                x=0.,
+                y=1.25,
+                showarrow=False,
+                # Implicitly using UniqueChannel.__repr__()
+                text=str(channel_ws_grid.ch_map.data[i][j]),
+                row=i + 1,
+                col=j + 1)
+            
     if also_add_run_info:
-        for i in range(channel_ws_grid.ChMap.Rows):
-            for j in range(channel_ws_grid.ChMap.Columns):
+        for i in range(channel_ws_grid.ch_map.rows):
+            for j in range(channel_ws_grid.ch_map.columns):
                 try:
-                    channel_ws = channel_ws_grid.ChWfSets[channel_ws_grid.ChMap.Data[i][j].Endpoint][channel_ws_grid.ChMap.Data[i][j].Channel]
-                
+                    ChannelWs = channel_ws_grid.ch_wf_sets[
+                        channel_ws_grid.ch_map.data[i]
+                        [j].endpoint][channel_ws_grid.ch_map.data[i][j].channel]
+
                 except KeyError:
                     continue
 
-                aux = list(channel_ws.Runs) # Since a WaveformSet must contain at
-                                            # least one waveform, it is ensured that
-                                            # there is at least one run value here
-                if len(aux)>1:
-                    annotation = f"Runs {aux[0]}, ..."
+                # Since a WaveformSet must contain at
+                # least one Waveform, it is ensured that
+                # there is at least one run value here
+                
+                aux = list(ChannelWs.runs)
+
+                if len(aux) > 1:
+                    annotation = f"runs {aux[0]}, ..."
                 else:
                     annotation = f"Run {aux[0]}"
 
-                figure.add_annotation(  xref = "x domain", 
-                                        yref = "y domain",      
-                                        x = 1.,             # The run annotation is right-aligned
-                                        y = 1.25,
-                                        showarrow = False,
-                                        text = annotation,
-                                        row = i + 1,
-                                        col = j + 1)
+                figure.add_annotation(
+                    xref="x domain",
+                    yref="y domain",
+                    # The run annotation is right-aligned
+                    x=1.,
+                    y=1.25,
+                    showarrow=False,
+                    text=annotation,
+                    row=i + 1,
+                    col=j + 1)
     return figure

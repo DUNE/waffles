@@ -6,6 +6,7 @@
 test/*
 .vscode/
 *krb5.conf*
+*.DS_Store
 
 !test/wtest_*
 !docs/examples/00_CheckData.ipynb
