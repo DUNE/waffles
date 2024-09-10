@@ -793,10 +793,11 @@ def plot_WaveformSet(
 
                 aux_name = f"{len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                 if detailed_label:
-                    aux_name += \
-                        f": [{wpu.get_string_of_first_n_integers_if_available(
-                            data_of_map_of_wf_idcs[i][j], 
-                            queried_no=2)}]"
+                    aux_name += '['
+                    aux_name += wpu.get_string_of_first_n_integers_if_available(
+                                    data_of_map_of_wf_idcs[i][j],
+                                    queried_no=2)
+                    aux_name += ']'
 
                 plot_WaveformAdcs(  
                     aux,
@@ -847,10 +848,11 @@ def plot_WaveformSet(
 
                     aux_name = f"Heatmap of {len(data_of_map_of_wf_idcs[i][j])} Wf(s)"
                     if detailed_label:
-                        aux_name += \
-                            f": [{wpu.get_string_of_first_n_integers_if_available(
-                                data_of_map_of_wf_idcs[i][j], 
-                                queried_no=2)}]"
+                        aux_name += '['
+                        aux_name += wpu.get_string_of_first_n_integers_if_available(
+                                        data_of_map_of_wf_idcs[i][j],
+                                        queried_no=2)
+                        aux_name += ']'
 
                     figure_ = wpu.__subplot_heatmap(
                         waveform_set,
@@ -1452,10 +1454,11 @@ def plot_ChannelWsGrid(
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
-                    aux_name += \
-                        f": [{wpu.get_string_of_first_n_integers_if_available(
-                            list(aux_idcs), 
-                            queried_no=2)}]"
+                    aux_name += '['
+                    aux_name += wpu.get_string_of_first_n_integers_if_available(
+                                    list(aux_idcs),
+                                    queried_no=2)
+                    aux_name += ']'
 
                 plot_WaveformAdcs(
                     aux,
@@ -1518,10 +1521,11 @@ def plot_ChannelWsGrid(
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
-                    aux_name += \
-                        f": [{wpu.get_string_of_first_n_integers_if_available(
-                            list(aux_idcs),
-                            queried_no=2)}]"
+                    aux_name += '['
+                    aux_name += wpu.get_string_of_first_n_integers_if_available(
+                                    list(aux_idcs),
+                                    queried_no=2)
+                    aux_name += ']'
 
                 aux_ranges = wpu.arrange_time_vs_ADC_ranges(
                     channel_ws,
