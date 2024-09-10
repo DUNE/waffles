@@ -61,7 +61,7 @@ APA_map = { 1 : apa_1,
             3 : apa_3, 
             4 : apa_4}
 
-flat_APA_map = {1 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[1].Data) ]), 
-                2 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[2].Data) ]),
-                3 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[3].Data) ]), 
-                4 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[4].Data) ])}
+flat_APA_map = {1 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[1].data) ]), 
+                2 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[2].data) ]),
+                3 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[3].data) ]), 
+                4 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[4].data) ])}
