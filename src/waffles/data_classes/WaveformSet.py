@@ -1,4 +1,5 @@
 import inspect
+import copy
 
 import numpy as np
 from typing import List, Dict, Callable, Optional
@@ -747,7 +748,7 @@ class WaveformSet:
         # WaveformSet.compute_mean_waveform()
         # has already checked that there is at
         # least one Waveform in this WaveformSet
-        aux = self.waveforms[0].adcs
+        aux = copy.deepcopy(self.waveforms[0].adcs)
 
         for i in range(1, len(self.__waveforms)):
             aux += self.waveforms[i].adcs
