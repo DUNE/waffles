@@ -1,15 +1,12 @@
 import inspect
 
 import numpy as np
-from typing import Tuple, List, Dict, Callable, Optional
-from plotly import graph_objects as pgo
-from plotly import subplots as psu
+from typing import List, Dict, Callable, Optional
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.IPDict import IPDict
 
-import waffles.utils.numerical_utils as wun
 import waffles.utils.filtering_utils as wuf
 
 from waffles.Exceptions import GenerateExceptionMessage
