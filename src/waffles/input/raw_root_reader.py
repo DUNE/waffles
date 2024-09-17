@@ -413,7 +413,7 @@ def WaveformSet_from_root_file(
     # That's why we carry both parameters until then.
 
     if len(aux) == 0:
-        raise Exception(we.GenerateExceptionMessage(
+        raise we.NoDataInFile(we.GenerateExceptionMessage(
             3,
             'WaveformSet_from_root_file()',
             f"No waveforms of the specified type "
