@@ -21,7 +21,7 @@ from typing import List, Optional
 import waffles.utils.check_utils as wuc
 import waffles.input.input_utils as wii
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.Exceptions import GenerateExceptionMessage
+import waffles.Exceptions as we
 
 def WaveformSet_from_root_files(
     library: str,
@@ -112,7 +112,7 @@ def WaveformSet_from_root_files(
         folder = Path(folderpath)
         if not folder.is_dir():
 
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 1,
                 'WaveformSet_from_root_files()',
                 f"The given folderpath ({folderpath})"
@@ -134,7 +134,7 @@ def WaveformSet_from_root_files(
                                 filepath)]
         
     if len(valid_filepaths) == 0:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             2,
             'WaveformSet_from_root_files()',
             f"No valid ROOT files were found in the "
@@ -345,13 +345,13 @@ def WaveformSet_from_root_file(
     """
 
     if not wuc.fraction_is_well_formed(start_fraction, stop_fraction):
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             1,
             'WaveformSet_from_root_file()',
             f"Fraction limits are not well-formed."))
     
     if library not in ['uproot', 'pyroot']:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             2,
             'WaveformSet_from_root_file()',
             f"The given library ({library}) is not supported."))
@@ -413,7 +413,7 @@ def WaveformSet_from_root_file(
     # That's why we carry both parameters until then.
 
     if len(aux) == 0:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             3,
             'WaveformSet_from_root_file()',
             f"No waveforms of the specified type "
