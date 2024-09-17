@@ -45,3 +45,14 @@ def handle_missing_data(func):
                 f" input parameters. {str(e)[1:-1]}"))
         
     return wrapper
+
+class WafflesBaseException(Exception):
+    """Exception raised when a Waffles-related error occurs.
+    Waffles custom exceptions should derive from this class."""
+    pass
+
+class NoDataInFile(WafflesBaseException):
+    """Exception raised when the file to be read is empty, 
+    or it is not empty but there is no data of the expected 
+    type (self-trigger or full-stream) in it."""
+    pass
