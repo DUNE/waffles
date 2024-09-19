@@ -196,7 +196,11 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
     return output
 
 def WaveformSet_from_hdf5_file( filepath : str, 
-                                read_full_streaming_data : bool = False) -> WaveformSet:
+                                read_full_streaming_data : bool = False, \
+                                nrecord_start_fraction : float = 0.0, \
+                                nrecord_stop_fraction : float = 1.0, \
+                                subsample : int = 1, \
+                                wvfm_count : int = 1e9) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
 
@@ -208,8 +212,20 @@ def WaveformSet_from_hdf5_file( filepath : str,
         If True (resp. False), then only the waveforms for which 
         the 'is_fullstream' parameter in the fragment has a 
         value equal to True (resp. False) will be considered.
+    nrecord_start_fraction : float
+        Used to select at which record to start reading. 
+        In particular floor(nrecord_start_fraction*(total records)) is the first record.
+    nrecord_stop_fraction : float
+        Used to select at which record to stop reading.
+        In particular ceiling(nrecord_stop_fraction*(total records)) is the last record.
+    subsample : int
+        Select a subsampling of waveforms from the file. 
+        So 1 (default) selects every waveform, 2 selects every other, 3 selects every third, etc.
+        Can combine with nrecord selection parameters.
+    wvfm_count : int
+        Select total number of waveforms to save.
     """
-
+    
     if "/eos" not in filepath:
         print("Using XROOTD")
         
@@ -231,7 +247,16 @@ def WaveformSet_from_hdf5_file( filepath : str,
     threshold_list = []
 
     records = h5_file.get_all_record_ids()
+    if nrecord_stop_fraction > 1.0:
+        nrecord_stop_fraction = 1.0
+    if nrecord_start_fraction > 1.0 or nrecord_start_fraction < 0.0:
+        raise ValueError('Invalid value for nrecord_start_fraction. Must be >=0 or <=1.')
+    nrecord_start_index = int(np.floor(nrecord_start_fraction*(len(records)-1)))
+    nrecord_stop_index = int(np.ceil(nrecord_stop_fraction*(len(records)-1)))
+    records = records[nrecord_start_index:nrecord_stop_index+1]
     # print(f'total number of records = {len(records)}')
+
+    wvfm_index = 0
     for i, r in tqdm(enumerate(records)):
         pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
             r, detdataformats.DetID.string_to_subdetector(det)))
@@ -274,13 +299,17 @@ def WaveformSet_from_hdf5_file( filepath : str,
                 #    #adcs.push_back(int(value))
                 #    adcs.append(int(value))
                 if read_full_streaming_data == is_fullstream_frag[index]:
-                    waveforms.append(Waveform(timestamps_frag[index],
-                                              16.,    # time_step_ns
-                                              np.array(adcs),
-                                              run_numb,
-                                              r[0],
-                                              endpoint,
-                                              ch,
-                                              time_offset=0))
+                    if not wvfm_index % subsample:
+                        waveforms.append(Waveform(timestamps_frag[index],
+                                                  16.,    # time_step_ns
+                                                  np.array(adcs),
+                                                  run_numb,
+                                                  r[0],
+                                                  endpoint,
+                                                  ch,
+                                                  time_offset=0))
+                    wvfm_index += 1
+                    if wvfm_index >= wvfm_count:
+                        return WaveformSet(*waveforms)
 
     return WaveformSet(*waveforms)
