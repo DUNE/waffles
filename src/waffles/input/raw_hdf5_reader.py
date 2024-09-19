@@ -2,7 +2,6 @@ import os, io, click, subprocess, stat, math, shlex
 from array import array
 from tqdm import tqdm
 import numpy as np
-from XRootD import client
 from typing import List, Optional
 from hdf5libs import HDF5RawDataFile
 
@@ -16,7 +15,7 @@ import fddetdataformats
 from multiprocessing import Pool, current_process, cpu_count
 
 import waffles.utils.check_utils as wuc
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 
