@@ -1,8 +1,10 @@
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelMap import ChannelMap
 from waffles.np04_data_classes.APAMap import APAMap
+from waffles.data_classes.ChannelInfo import ChannelInfo 
 
 import waffles.utils.wf_maps_utils as wuw
+import pandas as pd
 
 apa_1_data = [  [UniqueChannel(104, 7   ),  UniqueChannel(104, 5 ), UniqueChannel(104, 2 ), UniqueChannel(104, 0    )],
                 [UniqueChannel(104, 1   ),  UniqueChannel(104, 3 ), UniqueChannel(104, 4 ), UniqueChannel(104, 6    )],
@@ -65,3 +67,12 @@ flat_APA_map = {1 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[1].data) ]),
                 2 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[2].data) ]),
                 3 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[3].data) ]), 
                 4 : ChannelMap(1, 40, [ wuw.flatten_2D_list(APA_map[4].data) ])}
+
+position_map = {} # maps channel to object with APA,TPC,X,Y,Z info
+
+df = pd.read_csv('bin/PDHD_PDS_ChannelMap.csv', sep=",")
+channel = df['daphne_ch'].values + 100*df['endpoint'].values
+print(ChannelInfo)
+for i in range(len(channel)):
+    position_map[channel[i]] = \
+        ChannelInfo(df['APA'][i], df['TPC'][i], df['det_center_x'][i], df['det_center_y'][i], df['ch_center_z'][i])
