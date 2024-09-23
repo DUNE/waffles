@@ -2,6 +2,7 @@ import os, io, click, subprocess, stat, math, shlex
 from array import array
 from tqdm import tqdm
 import numpy as np
+from XRootD import client
 from typing import List, Optional
 from hdf5libs import HDF5RawDataFile
 
