@@ -285,7 +285,7 @@ def WaveformSet_from_hdf5_file( filepath : str,
                 frag, trig)
 
             endpoint = int(find_endpoint(map_id, scr_id))
-            channels_frag = 100 * int(endpoint) + channels_frag
+            # channels_frag = 100 * int(endpoint) + channels_frag
 
             # if debug:
             #    print("GEO ID:", gid)
