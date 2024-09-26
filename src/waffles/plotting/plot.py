@@ -237,7 +237,7 @@ def plot_WaveformAdcs(
                     # the computed
                     # baseline
                     line=dict(
-                        color='grey',
+                        color='red',
                         width=1,
                         dash='dot'),
                     xref='x domain',
@@ -1044,6 +1044,8 @@ def plot_ChannelWsGrid(
     adc_range_below_baseline: int = 200,
     plot_peaks_fits: bool = False,
     detailed_label: bool = True,
+    plot_event: bool = False,
+    event_id: Optional[int] = 0,
     verbose: bool = True,
     **kwargs
 ) -> pgo.Figure:
@@ -1278,6 +1280,16 @@ def plot_ChannelWsGrid(
         first available waveforms (which were used to 
         compute the 2D-histogram) in the top annotation 
         of each subplot.
+    plot_event: bool
+        This parameter allows to plot an individual waveform
+        in the ChannelWs object. If it is set to True, then
+        the 'event_id' parameter must be defined. If it is
+        set to False, then the 'event_id' parameter is ignored.
+    event_id: int
+        This parameter only makes a difference if the 'plot_event'
+        parameter is set to True. In that case, it is the index
+        of the waveform in the ChannelWs object which will be
+        plotted. It must be a valid index.
     verbose: bool
         Whether to print functioning-related messages
     **kwargs
@@ -1380,6 +1392,9 @@ def plot_ChannelWsGrid(
                     aux_idcs = range(min(
                         wfs_per_axes, 
                         len(channel_ws.waveforms)))
+                
+                if plot_event:
+                    aux_idcs = [event_id]
 
                 for idx in aux_idcs:
 
