@@ -343,6 +343,9 @@ def __subplot_heatmap(
         np.vstack((aux_x, aux_y)),
         np.array((time_bins, adc_bins)),
         ranges)
+    
+    aux = aux.astype(float)
+    aux[aux == 0] = np.nan
 
     heatmap = pgo.Heatmap(
         z=aux,
