@@ -17,6 +17,8 @@ def main(run, debug):
     if run is None: 
         q = [ inquirer.Text("run", message="Please provide the run(s) number(s) to be analysed, separated by commas:)")]
         run_list = inquirer.prompt(q)["run"].split(",")
+    else:
+        run_list = run.split(",")
     
     for r in run_list:
         rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{str(r).zfill(6)}.txt"
