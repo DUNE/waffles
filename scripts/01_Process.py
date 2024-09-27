@@ -1,4 +1,4 @@
-import click, pickle
+import click, pickle, inquirer
 
 from waffles.utils.utils import print_colored
 import waffles.input.raw_hdf5_reader as reader
@@ -15,12 +15,10 @@ def main(run, debug):
     Example: python 01Process.py --run 123456 or --run 123456,123457
     '''
     if run is None: 
-        print_colored("Please provide a run(s) number(s) to be analysed, separated by commas:)", color="yellow", styles=["bold"])
-        run = [int(input("Run(s) number(s): "))]
-    if len(run)!=1: runs_list = list(map(int, list(run.split(","))))
-    else: runs_list = run
+        q = [ inquirer.Text("run", message="Please provide the run(s) number(s) to be analysed, separated by commas:)")]
+        run_list = inquirer.prompt(q)["run"].split(",")
     
-    for r in runs_list:
+    for r in run_list:
         rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{str(r).zfill(6)}.txt"
         if debug: 
             print_colored(f"Processing {str(r).zfill(6)}...", color="DEBUG")

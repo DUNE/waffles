@@ -7,7 +7,7 @@ from waffles.utils.utils import print_colored
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.np04_analysis.np04_ana import comes_from_channel
 from waffles.data_classes.IPDict import IPDict
-from waffles.data_classes.BeamWfAna import BeamWfAna
+from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.np04_data_classes.APAMap import APAMap
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -32,25 +32,24 @@ def main(run,chs, eps, debug):
     '''
     
     if run is None: 
-        print_colored("Please provide a run(s) number(s) to be analysed, separated by commas:)", color="yellow", styles=["bold"])
-        run = [int(input("Run(s) number(s): "))]
-    if type(run)==list and len(run)!=1: runs_list = list(map(int, list(run.split(","))))
-    else: runs_list = [run]
+        q = [ inquirer.Text("run", message="Please provide the run(s) number(s) to be analysed, separated by commas:)")]
+        run_list = inquirer.prompt(q)["run"].split(",")
+    else:
+        run_list = [run]
     
     if chs is None: 
-        print_colored("Please provide the channel(s) number(s) to be analysed, separated by commas:)", color="yellow", styles=["bold"])
-        chs = [int(input("Channel(s) number(s): "))]
-    if type(chs)==list and len(chs)!=1: chs_list = list(map(int, list(chs.split(","))))
-    else: chs_list = [chs]
+        q = [ inquirer.Text("chs", message="Please provide the channel(s) number(s) to be analysed, separated by commas:)")]
+        chs_list = inquirer.prompt(q)["chs"].split(",")
+    else:
+        chs_list = [chs]
     
     if eps is None:
-        print_colored("Please provide the endpoint number to be analysed, separated by commas:)", color="yellow", styles=["bold"])
-        eps = int(input("Endpoint number: "))
+        q = [ inquirer.Text("eps", message="Please provide the endpoint number  to be analysed, separated by commas:)")]
+        eps = int(inquirer.prompt(q)["eps"].split(",")[0])
     
-    
-    for r in runs_list:
+    for r in run_list:
         # Read from output JSON file
-        json_file_path = f"conf/{str(r).zfill(6)}.json"
+        json_file_path = f"../conf/{str(r).zfill(6)}.json"
         try:
             with open(json_file_path, 'r') as json_file:
                 analysis_conf = json.load(json_file)
@@ -91,13 +90,14 @@ def main(run,chs, eps, debug):
             print_colored(f"\nProcessing run {str(r).zfill(6)}. Loaded WfSet with {len(wfset.waveforms)} wvfs.", color="DEBUG")
         
         for ch in chs_list:
+            ch = int(ch)
             filter_wfset = WaveformSet.from_filtered_WaveformSet( wfset, comes_from_channel, eps, [ch])
             checks_kwargs['points_no'] = filter_wfset.points_per_wf
             
             #Analysis saved in the Waveform object
             print_colored(f"Processing channel {ch} ({len(filter_wfset.waveforms)} wvfs) with analysis label {analysis_label}.", color="INFO")
             _ = filter_wfset.analyse(  analysis_label,
-                                       BeamWfAna,
+                                       BasicWfAna,
                                        input_parameters,
                                        *[], # *args,
                                        analysis_kwargs = {},
@@ -135,30 +135,9 @@ def main(run,chs, eps, debug):
             if confirmation.lower() == 'y':
                 with open(f"../data/{str(r).zfill(6)}_wfset_ana_ep{eps}_ch{ch}.pkl", 'wb') as file:
                     pickle.dump(filter_wfset, file)
-                print_colored(f"\nWaveformSet saved in {str(r).zfill(6)}_wfset.pkl", color="SUCCESS")
+                print_colored(f"\nWaveformSet saved in ../data/{str(r).zfill(6)}_wfset_ana_ep{eps}_ch{ch}.pkl", color="SUCCESS")
             else:
                 print_colored(f"\nWaveformSet not saved. Exiting...", color="INFO")
-            
-            # for wf in filter_wfset.waveforms:
-            #     plot_WaveformAdcs(  wf, figure = figure,
-            #                         plot_analysis_markers = True,
-            #                         show_baseline_limits = True, 
-            #                         show_baseline = True,
-            #                         show_general_integration_limits = True,
-            #                         show_general_amplitude_limits = True,
-            #                         show_spotted_peaks = True,
-            #                         show_peaks_integration_limits = False,)
-            
-            # save_plot(figure, f"eps_{eps}_ch_{ch}_wvfs.png")
-            
-            # custom_plotly_layout(figure, xaxis_title="Time [ticks]", yaxis_title="Amplitude [ADC]", title=f"Waveform ADCs for EP {eps} - CH {ch}")
-            
-            #Opcion1: bulce and plot with plotly
-            #Opcion2: ChannelWSGrid con Unique channel grid de tu canal creado en la linea anterior. lo bueno de esto es que luego se puede pintar el analisis
-            
-            #Cleaning memory
-            # del filter_wfset
-            # gc.collect()
             
 
 if __name__ == "__main__":
