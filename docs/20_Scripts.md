@@ -107,4 +107,36 @@ After that, every time you log in, you need to source ROOT, or you can edit ``en
 ``source ../root_install/bin/thisroot.sh``
 
 
-## 01_ANA...
+## 01_Process
+
+This script is used to convert the raw `.hdf5` files into `waffles` classes and save it locally in `.pkl` format. In order to run this script make sure you have a `waffles/data` folder to store the output files. In summary what this script does is:
+```python
+import waffles.input.raw_hdf5_reader as reader
+
+rucio_files = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/028602.txt"
+allfilepath = reader.get_filepaths_from_rucio(rucio_filepath)
+waveformset = reader.WaveformSet_from_hdf5_files( filepaths[:int(file_lim)], read_full_streaming_data = False)
+with open(f"data/{run}_full_wfset_raw.pkl", "wb") as f:
+            pickle.dump(wfset, f)
+```
+Some decorators are included to require the user inputs, such as the run number and the number of files to process. This allows the analysers to have a common starting point and avoid the need to change the code every time they want to process a new run.
+
+## 02_RawAna
+
+Following the same structure as the previous script, this one reads the `WaveformSet` objects stored in the `.pkl` files from `01_Process` and performs some basic analysis. The goal of this script is to provide the user quick visualization of the BasicAnalysis output channel by channel. Make sure you have a `waffles/config/run_number.json` folder and file with the input parameters for the analysis. A template for these configuration files could be:
+
+```python
+{
+    "standard": {                                       #analysis_label
+                    "base_lim": [0, 70, 900, 1000],     #limits for the baseline computation
+                    "int_ll": 50,                       #lower limit for the integral computation
+                    "int_ul": 130,                      #upper limit for the integral computation
+                    "amp_ll": 0,                        #lower limit for the amplitude computation
+                    "amp_ul": 1000                      #upper limit for the amplitude computation
+                },
+    "avanced": { ... }
+}
+
+```
+
+After filtering the full `WaveformSet` object, a plot will be displayed using `plot_ChannelWsGrid` from the `waffles.plotting` module. This plot will show 10 `Waveform` objects together with the baseline and analysis limits.
