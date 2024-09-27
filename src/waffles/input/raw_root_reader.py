@@ -21,7 +21,7 @@ from typing import List, Optional
 import waffles.utils.check_utils as wuc
 import waffles.input.input_utils as wii
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.Exceptions import GenerateExceptionMessage
+import waffles.Exceptions as we
 
 def WaveformSet_from_root_files(
     library: str,
@@ -112,7 +112,7 @@ def WaveformSet_from_root_files(
         folder = Path(folderpath)
         if not folder.is_dir():
 
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 1,
                 'WaveformSet_from_root_files()',
                 f"The given folderpath ({folderpath})"
@@ -134,7 +134,7 @@ def WaveformSet_from_root_files(
                                 filepath)]
         
     if len(valid_filepaths) == 0:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             2,
             'WaveformSet_from_root_files()',
             f"No valid ROOT files were found in the "
@@ -157,18 +157,34 @@ def WaveformSet_from_root_files(
     # The first WaveformSet is handled separatedly, so
     # that the rest of them can be merged into this one
 
-    output = WaveformSet_from_root_file(
-        valid_filepaths[0],
-        library,
-        bulk_data_tree_name=bulk_data_tree_name,
-        meta_data_tree_name=meta_data_tree_name,      
-        set_offset_wrt_daq_window=set_offset_wrt_daq_window,
-        read_full_streaming_data=read_full_streaming_data,
-        truncate_wfs_to_minimum=truncate_wfs_to_minimum,
-        start_fraction=start_fraction,
-        stop_fraction=stop_fraction,
-        subsample=subsample,
-        verbose=verbose)
+    # Flag that is set to True if at least
+    # one WaveformSet has been already read
+    fReadOne = False
+
+    try:
+        output = WaveformSet_from_root_file(
+            valid_filepaths[0],
+            library,
+            bulk_data_tree_name=bulk_data_tree_name,
+            meta_data_tree_name=meta_data_tree_name,      
+            set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+            read_full_streaming_data=read_full_streaming_data,
+            truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+            start_fraction=start_fraction,
+            stop_fraction=stop_fraction,
+            subsample=subsample,
+            verbose=verbose)
+        
+        fReadOne = True
+        
+    except we.NoDataInFile:
+        if verbose:
+            print(
+                f"In function WaveformSet_from_root_files(): "
+                f"No waveforms of the specified type "
+                f"({'full-stream' if read_full_streaming_data else 'self-trigger'})"
+                f" were found in file 1/{len(valid_filepaths)}"
+                f" ({valid_filepaths[0]}). Skipping it.")
     
     count = 2
 
@@ -178,28 +194,50 @@ def WaveformSet_from_root_files(
         if verbose:
             print(f"In function WaveformSet_from_root_files():"
                   f" Reading file {count}/{len(valid_filepaths)} ...")
-            count += 1
+        try:
+            aux = WaveformSet_from_root_file(
+                filepath,
+                library,
+                bulk_data_tree_name=bulk_data_tree_name,
+                meta_data_tree_name=meta_data_tree_name,
+                set_offset_wrt_daq_window=set_offset_wrt_daq_window,
+                read_full_streaming_data=read_full_streaming_data,
+                truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+                start_fraction=start_fraction,
+                stop_fraction=stop_fraction,
+                subsample=subsample,
+                verbose=verbose)
+            
+            if fReadOne:
+                output.merge(aux)
+            else:
+                output = aux
+                fReadOne = True
+            
+        except we.NoDataInFile:
+            if verbose:
+                print(
+                    f"In function WaveformSet_from_root_files(): "
+                    f"No waveforms of the specified type "
+                    f"({'full-stream' if read_full_streaming_data else 'self-trigger'})"
+                    f" were found in file {count}/{len(valid_filepaths)}"
+                    f" ({valid_filepaths[count-1]}). Skipping it.")
 
-        aux = WaveformSet_from_root_file(
-            filepath,
-            library,
-            bulk_data_tree_name=bulk_data_tree_name,
-            meta_data_tree_name=meta_data_tree_name,
-            set_offset_wrt_daq_window=set_offset_wrt_daq_window,
-            read_full_streaming_data=read_full_streaming_data,
-            truncate_wfs_to_minimum=truncate_wfs_to_minimum,
-            start_fraction=start_fraction,
-            stop_fraction=stop_fraction,
-            subsample=subsample,
-            verbose=verbose)
-        
-        output.merge(aux)
+        count += 1
 
     if verbose:
         print(f"In function WaveformSet_from_root_files():"
               " Reading finished")
 
-    return output
+    if fReadOne:
+        return output
+    else:
+        raise we.NoDataInFile(we.GenerateExceptionMessage(
+            3,
+            'WaveformSet_from_root_files()',
+            f"No waveforms of the specified type "
+            f"({'full-stream' if read_full_streaming_data else 'self-trigger'})"
+            f" were found in any of the target files."))
 
 def WaveformSet_from_root_file( 
     filepath: str,
@@ -345,13 +383,13 @@ def WaveformSet_from_root_file(
     """
 
     if not wuc.fraction_is_well_formed(start_fraction, stop_fraction):
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             1,
             'WaveformSet_from_root_file()',
             f"Fraction limits are not well-formed."))
     
     if library not in ['uproot', 'pyroot']:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             2,
             'WaveformSet_from_root_file()',
             f"The given library ({library}) is not supported."))
@@ -413,7 +451,7 @@ def WaveformSet_from_root_file(
     # That's why we carry both parameters until then.
 
     if len(aux) == 0:
-        raise Exception(GenerateExceptionMessage(
+        raise we.NoDataInFile(we.GenerateExceptionMessage(
             3,
             'WaveformSet_from_root_file()',
             f"No waveforms of the specified type "

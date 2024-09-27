@@ -2,7 +2,7 @@ import os
 import _pickle as pickle    # Making sure that cPickle is used
 
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.Exceptions import generate_exception_message
+from waffles.Exceptions import GenerateExceptionMessage
 
 def WaveformSet_to_file(
         waveform_set : WaveformSet,
