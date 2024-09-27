@@ -4,7 +4,7 @@
 
 ## Obtain file paths
 
-Before starting using the decoders you may need to get the paths of the HDF5 files you want to decode. This first step is common for both decoders. To get this `rucio_path` you can find some tools listed below:
+Before starting with the analysis you may need to get the paths of the HDF5 files you want to use. This first step is common for both decoders. To get this `rucio_path` you can find some tools listed below:
 * `get_protodunehd_files.sh`: this script return the filepaths of the input run if `rucio` is setup correctly (if not it tries and setup it per run).
 * `setup_rucio_*.sh`: scripts to setup the `rucio` environment variables in your terminal. After that you can produce all the paths you need without re-authenticating.
 * `get_rucio.py`: script that wraps the needed tools to save the paths of the HDF5 files you want to decode and move it to the shared `eos` folder. This script will ask for the run number and the number of files you want to get. The output will be a list of paths to the HDF5 files. Moreover, this scripts handles the runs that have already been moved to tape and are not available in the `eos` folder. In this case, the script will ask for the tape location `root://filepath/`.

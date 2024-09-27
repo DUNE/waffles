@@ -1,0 +1,45 @@
+NP04 
+==============
+
+.. admonition:: **NP04 Analysis
+
+    Here the different functions and classes related to the analysis of the NP04 data are presented.
+    * np04_ana: general analysis functions for the analysers of NP04 data.
+    * LED_calibration: functions for the LED calibration of the NP04 data.
+
+
+np04_ana
+---------
+
+.. inheritance-diagram::  waffles.np04_analysis.np04_ana
+
+.. autoclass:: waffles.np04_analysis.np04_ana
+   :members:
+
+
+.. admonition:: **NP04 Data
+
+    Information related to the NP04 data.
+    * ProtoDUNE_HD_APA_maps: APA maps for the ProtoDUNE HD.
+
+
+.. admonition:: **NP04 Data Classes
+
+    Information related to the NP04 data.
+    * APAMap: class for the APA maps of the ProtoDUNE HD.
+
+
+.. admonition:: **NP04 Utils
+
+    Information related to the NP04 data.
+    * utils: general functions for the NP04 data.
+
+utils
+---------
+
+.. inheritance-diagram::  waffles.np04_utils.utils
+
+.. autoclass:: waffles.np04_utils.utils
+   :members:
+
+
