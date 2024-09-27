@@ -101,14 +101,12 @@ TrackedHistogram
 
 Map
 -----------------
-.. inheritance-diagram::  waffles.Map
 
 .. autoclass:: waffles.Map
    :members:
 
 UniqueChannel
 ------------------
-.. inheritance-diagram::  waffles.UniqueChannel
 
 .. autoclass:: waffles.UniqueChannel
    :members:
@@ -129,14 +127,12 @@ ChannelWs
 
 ChannelWsGrid
 -----------------
-.. inheritance-diagram::  waffles.ChannelWsGrid
 
 .. autoclass:: waffles.ChannelWsGrid
    :members:
 
 IODict
 -----------------
-.. inheritance-diagram::  waffles.IODict
 
 .. autoclass:: waffles.IODict
    :members:
@@ -154,6 +150,3 @@ ORDict
 
 .. autoclass:: waffles.ORDict
    :members:
-
-
-

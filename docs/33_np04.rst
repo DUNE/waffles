@@ -14,7 +14,7 @@ np04_ana
 
 .. inheritance-diagram::  waffles.np04_analysis.np04_ana
 
-.. autoclass:: waffles.np04_analysis.np04_ana
+.. autoclass:: waffles.np04_ana
    :members:
 
 
@@ -35,7 +35,7 @@ np04_ana
 .. admonition:: **NP04 Utils**
 
     Information related to the NP04 data:
-    
+
     * utils: general functions for the NP04 data.
 
 utils
@@ -43,7 +43,7 @@ utils
 
 .. inheritance-diagram::  waffles.np04_utils.utils
 
-.. autoclass:: waffles.np04_utils.utils
+.. autoclass:: waffles.utils
    :members:
 
 
