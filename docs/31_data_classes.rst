@@ -3,7 +3,8 @@ GENERAL DATA CLASSES
 
 .. admonition:: **Waveforms related classes**
 
-   The following classes are related to the waveforms.
+   The following classes are related to the waveforms:
+
    * WaveformAdcs: implements the adcs array of a Waveform.
    * Waveform: implements a Waveform from WaveformAdcs.
    * WaveformSet: implements a set of Waveforms.
@@ -12,50 +13,44 @@ GENERAL DATA CLASSES
 
 WaveformAdcs
 -----------------
-.. inheritance-diagram::  waffles.data_classes.WaveformAdcs
 
-.. autoclass:: waffles.data_classes.WaveformAdcs
+.. autoclass:: waffles.WaveformAdcs
    :members:
 
 Waveform
 -----------------
-.. inheritance-diagram::  waffles.data_classes.Waveform
+.. inheritance-diagram::  waffles.Waveform
 
-.. autoclass:: waffles.data_classes.Waveform
+.. autoclass:: waffles.Waveform
    :members:
 
 WaveformSet
 -----------------
-.. inheritance-diagram::  waffles.data_classes.WaveformSet
-
-.. autoclass:: waffles.data_classes.WaveformSet
+.. autoclass:: waffles.WaveformSet
    :members:
 
 WfAna
 -----------------
-.. inheritance-diagram::  waffles.data_classes.WfAna
-
-.. autoclass:: waffles.data_classes.WfAna
+.. autoclass:: waffles.WfAna
    :members:
 
 WfAnaResult
 -----------------
-.. inheritance-diagram::  waffles.data_classes.WfAnaResult
+.. inheritance-diagram::  waffles.WfAnaResult
 
-.. autoclass:: waffles.data_classes.WfAnaResult
+.. autoclass:: waffles.WfAnaResult
    :members:
 
 WfPeak
 -----------------
-.. inheritance-diagram::  waffles.data_classes.WfPeak
-
-.. autoclass:: waffles.data_classes.WfPeak
+.. autoclass:: waffles.WfPeak
    :members:
 
 
 .. admonition:: **Analysis related classes**
    
-      The following classes are related to the analysis of the waveforms.
+      The following classes are related to the analysis of the waveforms:
+
       * BasicWfAna: implements a basic analysis over a waveform.
       **Each analyser can create a particular class for their analysis (i.e. BeamWfAna.py) from BasicWfAna as template.**
       * CalibrationHistogram: implements a histogram for the calibration of the waveforms.
@@ -64,38 +59,37 @@ WfPeak
       
 BasicWfAna
 -----------------
-.. inheritance-diagram::  waffles.data_classes.BasicWfAna
+.. inheritance-diagram::  waffles.BasicWfAna
 
-.. autoclass:: waffles.data_classes.BasicWfAna
+.. autoclass:: waffles.BasicWfAna
    :members:
 
 CalibrationHistogram
 ----------------------
-.. inheritance-diagram::  waffles.data_classes.CalibrationHistogram
+.. inheritance-diagram::  waffles.CalibrationHistogram
 
-.. autoclass:: waffles.data_classes.CalibrationHistogram
+.. autoclass:: waffles.CalibrationHistogram
    :members:
 
 PeakFindingWfAna
 ------------------
-.. inheritance-diagram::  waffles.data_classes.PeakFindingWfAna
+.. inheritance-diagram::  waffles.PeakFindingWfAna
 
-.. autoclass:: waffles.data_classes.PeakFindingWfAna
+.. autoclass:: waffles.PeakFindingWfAna
    :members:
 
 TrackedHistogram
 ------------------
 
-.. inheritance-diagram::  waffles.data_classes.TrackedHistogram
-
-.. autoclass:: waffles.data_classes.TrackedHistogram
+.. autoclass:: waffles.TrackedHistogram
    :members:
 
 
 
 .. admonition:: **Structural classes**
    
-      The following classes are related to the structure of the data.
+      The following classes are related to the structure of the data:
+
       * Map: implements a map of the channels.
       * UniqueChannel: implements a unique channel.
       * ChannelMap: implements a map of the channels.
@@ -107,58 +101,58 @@ TrackedHistogram
 
 Map
 -----------------
-.. inheritance-diagram::  waffles.data_classes.Map
+.. inheritance-diagram::  waffles.Map
 
-.. autoclass:: waffles.data_classes.Map
+.. autoclass:: waffles.Map
    :members:
 
 UniqueChannel
 ------------------
-.. inheritance-diagram::  waffles.data_classes.UniqueChannel
+.. inheritance-diagram::  waffles.UniqueChannel
 
-.. autoclass:: waffles.data_classes.UniqueChannel
+.. autoclass:: waffles.UniqueChannel
    :members:
 
 ChannelMap
 -----------------
-.. inheritance-diagram::  waffles.data_classes.ChannelMap
+.. inheritance-diagram::  waffles.ChannelMap
 
-.. autoclass:: waffles.data_classes.ChannelMap
+.. autoclass:: waffles.ChannelMap
    :members:
 
 ChannelWs
 -----------------
-.. inheritance-diagram::  waffles.data_classes.ChannelWs
+.. inheritance-diagram::  waffles.ChannelWs
 
-.. autoclass:: waffles.data_classes.ChannelWs
+.. autoclass:: waffles.ChannelWs
    :members:
 
 ChannelWsGrid
 -----------------
-.. inheritance-diagram::  waffles.data_classes.ChannelWsGrid
+.. inheritance-diagram::  waffles.ChannelWsGrid
 
-.. autoclass:: waffles.data_classes.ChannelWsGrid
+.. autoclass:: waffles.ChannelWsGrid
    :members:
 
 IODict
 -----------------
-.. inheritance-diagram::  waffles.data_classes.IODict
+.. inheritance-diagram::  waffles.IODict
 
-.. autoclass:: waffles.data_classes.IODict
+.. autoclass:: waffles.IODict
    :members:
 
 IPDict
 -----------------
-.. inheritance-diagram::  waffles.data_classes.IPDict
+.. inheritance-diagram::  waffles.IPDict
 
-.. autoclass:: waffles.data_classes.IPDict
+.. autoclass:: waffles.IPDict
    :members:
 
 ORDict
 -----------------
-.. inheritance-diagram::  waffles.data_classes.ORDict
+.. inheritance-diagram::  waffles.ORDict
 
-.. autoclass:: waffles.data_classes.ORDict
+.. autoclass:: waffles.ORDict
    :members:
 
 

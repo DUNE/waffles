@@ -49,10 +49,11 @@ with open(f"data/028602_full_wfset_raw.pkl", "wb") as f:
 ```
 In this way, you can store the `WaveformSet` object in a `.pkl` file and load it whenever you want to work with it. 
 
-3. **Analysis and Visualization**: the `WaveformSet` object can be visualized using the `waffles.plotting.plot` module. For example, to plot the first 10 waveforms of the `WaveformSet` object you can run:
+3. **Analysis and Visualization**: the `WaveformSet` object can be visualized using the `waffles.plotting.plot` module.
 
 
 [Deprecated] -- try to avoid conversion to ROOT files
+
 After running our extractors (see `scripts/00_HDF5toROOT`) a folder will be generated in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root` with your selected run. The structure inside this `.root` files is:
 
 ```bash
