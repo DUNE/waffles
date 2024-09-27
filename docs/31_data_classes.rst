@@ -51,8 +51,7 @@ WfPeak
    
       The following classes are related to the analysis of the waveforms:
 
-      * BasicWfAna: implements a basic analysis over a waveform.
-      **Each analyser can create a particular class for their analysis (i.e. BeamWfAna.py) from BasicWfAna as template.**
+      * BasicWfAna: implements a basic analysis over a waveform. **Each analyser can create a particular class for their analysis (i.e. BeamWfAna.py) from BasicWfAna as template.**
       * CalibrationHistogram: implements a histogram for the calibration of the waveforms.
       * PeakFindingWfAna: implements a peak finding analysis over a waveform.
       * TrackedHistogram: implements a histogram for the tracking of the waveforms. 

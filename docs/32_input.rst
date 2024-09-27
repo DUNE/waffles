@@ -12,24 +12,36 @@ INPUT CLASSES
 raw_hdf5_reader
 -----------------
 
-.. inheritance-diagram::  waffles.input_classes.raw_hdf5_reader
+.. autofunction:: waffles.input.raw_hdf5_reader.get_filepaths_from_rucio
 
-.. autoclass:: waffles.raw_hdf5_reader
-   :members:
+.. autofunction:: waffles.input.raw_hdf5_reader.WaveformSet_from_hdf5_files
+
+.. autofunction:: waffles.input.raw_hdf5_reader.WaveformSet_from_hdf5_file
+
 
 raw_root_reader
 -----------------
 
-.. inheritance-diagram::  waffles.input_classes.raw_root_reader
+.. autofunction:: waffles.input.raw_root_reader.WaveformSet_from_root_files
 
-.. autoclass:: waffles.raw_root_reader
-   :members:
+.. autofunction:: waffles.input.raw_root_reader.WaveformSet_from_root_file
+
 
 input_utils
 -----------------
 
-.. inheritance-diagram::  waffles.input_classes.input_utils
+.. autofunction:: waffles.input.input_utils.find_ttree_in_root_tfile
 
-.. autoclass:: waffles.input_utils
-   :members:
+.. autofunction:: waffles.input.input_utils.find_tbranch_in_root_ttree
+
+.. autofunction:: waffles.input.input_utils.root_to_array_type_code
+
+.. autofunction:: waffles.input.input_utils.get_1d_array_from_pyroot_tbranch
+
+.. autofunction:: waffles.input.input_utils.split_endpoint_and_channel
+
+
+
+   
+
    

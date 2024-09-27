@@ -9,13 +9,11 @@ NP04
     * LED_calibration: functions for the LED calibration of the NP04 data.
 
 
-np04_ana
----------
+.. autofunction:: waffles.np04_analysis.np04_ana.get_run_folderpath
 
-.. inheritance-diagram::  waffles.np04_analysis.np04_ana
+.. autofunction:: waffles.np04_analysis.np04_ana.comes_from_channel
 
-.. autoclass:: waffles.np04_ana
-   :members:
+.. autofunction:: waffles.np04_analysis.np04_ana.allow_certain_endpoints
 
 
 .. admonition:: **NP04 Data**
@@ -38,12 +36,4 @@ np04_ana
 
     * utils: general functions for the NP04 data.
 
-utils
----------
-
-.. inheritance-diagram::  waffles.np04_utils.utils
-
-.. autoclass:: waffles.utils
-   :members:
-
-
+.. autofunction:: waffles.np04_analysis.np04_ana.get_channel_iterator

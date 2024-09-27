@@ -30,7 +30,7 @@ plot
 np04_display
 -----------------
 
-.. autoclass:: waffles.Display
+.. autoclass:: waffles.plotting.display.Display
    :members:
 
    
