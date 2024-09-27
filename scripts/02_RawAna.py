@@ -81,7 +81,7 @@ def main(run,chs, eps, debug):
         print(input_parameters)
         
         try:
-            with open(f"data/{str(r).zfill(6)}_full_wfset_raw.pkl", 'rb') as file:
+            with open(f"../data/{str(r).zfill(6)}_full_wfset_raw.pkl", 'rb') as file:
                 wfset = pickle.load(file)
         except FileNotFoundError:
             print_colored(f"\nFile {str(r).zfill(6)}_full_wfset_raw.pkl not found. Please run 01Process.py first.", color="ERROR")
@@ -133,7 +133,7 @@ def main(run,chs, eps, debug):
             
             confirmation = input("Do you want to save the analysed WvfSet? (y/n): ")
             if confirmation.lower() == 'y':
-                with open(f"data/{str(r).zfill(6)}_wfset_ana_ep{eps}_ch{ch}.pkl", 'wb') as file:
+                with open(f"../data/{str(r).zfill(6)}_wfset_ana_ep{eps}_ch{ch}.pkl", 'wb') as file:
                     pickle.dump(filter_wfset, file)
                 print_colored(f"\nWaveformSet saved in {str(r).zfill(6)}_wfset.pkl", color="SUCCESS")
             else:

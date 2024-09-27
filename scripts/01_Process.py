@@ -38,7 +38,7 @@ def main(run, debug):
 
         if debug: 
             print_colored("Saving the WaveformSet object in a pickle file...", color="DEBUG")
-        with open(f"{str(r).zfill(6)}_full_wfset_raw.pkl", "wb") as f:
+        with open(f"../data/{str(r).zfill(6)}_full_wfset_raw.pkl", "wb") as f:
             pickle.dump(wfset, f)
         
         print_colored(f"\nDone! WaveformSet saved in {str(r).zfill(6)}_wfset.pkl\n", color="SUCCESS")
