@@ -1,15 +1,13 @@
 import inspect
+import copy
 
 import numpy as np
-from typing import Tuple, List, Dict, Callable, Optional
-from plotly import graph_objects as pgo
-from plotly import subplots as psu
+from typing import List, Dict, Callable, Optional
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.IPDict import IPDict
 
-import waffles.utils.numerical_utils as wun
 import waffles.utils.filtering_utils as wuf
 
 from waffles.Exceptions import GenerateExceptionMessage
@@ -750,7 +748,7 @@ class WaveformSet:
         # WaveformSet.compute_mean_waveform()
         # has already checked that there is at
         # least one Waveform in this WaveformSet
-        aux = self.waveforms[0].adcs
+        aux = copy.deepcopy(self.waveforms[0].adcs)
 
         for i in range(1, len(self.__waveforms)):
             aux += self.waveforms[i].adcs
