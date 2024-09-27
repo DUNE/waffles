@@ -139,4 +139,15 @@ Following the same structure as the previous script, this one reads the `Wavefor
 
 ```
 
-After filtering the full `WaveformSet` object, a plot will be displayed using `plot_ChannelWsGrid` from the `waffles.plotting` module. This plot will show 10 `Waveform` objects together with the baseline and analysis limits.
+After filtering the full `WaveformSet` object, a plot will be displayed using `plot_ChannelWsGrid` from the `waffles.plotting` module. This plot will show 10 `Waveform` objects together with the baseline and analysis limits. Additionally, the analyser can plot the waveforms objects using the `plot_WaveformAdcs` function from the same module with a loop as follows:
+```python
+    for wf in filter_wfset.waveforms:
+        plot_WaveformAdcs(  wf, figure = figure,
+                            plot_analysis_markers = True,
+                            show_baseline_limits = True, 
+                            show_baseline = True,
+                            show_general_integration_limits = True,
+                            show_general_amplitude_limits = True,
+                            show_spotted_peaks = True,
+                            show_peaks_integration_limits = False)
+```
