@@ -44,7 +44,7 @@ def main(run,chs, eps, debug):
         chs_list = [chs]
     
     if eps is None:
-        q = [ inquirer.Text("eps", message="Please provide the endpoint number  to be analysed, separated by commas:)")]
+        q = [ inquirer.Text("eps", message="Please provide the endpoint number to be analysed, separated by commas:)")]
         eps = int(inquirer.prompt(q)["eps"].split(",")[0])
     
     for r in run_list:
@@ -77,7 +77,7 @@ def main(run,chs, eps, debug):
         input_parameters['amp_ul'] =  analysis_conf[analysis_label]['amp_ul']
         checks_kwargs = IPDict()
         
-        print(input_parameters)
+        print("The loaded input parameters are:\n", input_parameters)
         
         try:
             with open(f"../data/{str(r).zfill(6)}_full_wfset_raw.pkl", 'rb') as file:
@@ -131,7 +131,8 @@ def main(run,chs, eps, debug):
             figure.update_layout(template="presentation", title = "", xaxis_title="Time [ticks]", yaxis_title="Amplitude [ADC]")
             figure.show()
             
-            confirmation = input("Do you want to save the analysed WvfSet? (y/n): ")
+            confirmation = [ inquirer.List("confirmation", message="Do you want to save the analysed WvfSet?", choices=["y", "n"], default=["y"]) ]
+            confirmation = inquirer.prompt(confirmation)["confirmation"]
             if confirmation.lower() == 'y':
                 with open(f"../data/{str(r).zfill(6)}_wfset_ana_ep{eps}_ch{ch}.pkl", 'wb') as file:
                     pickle.dump(filter_wfset, file)
