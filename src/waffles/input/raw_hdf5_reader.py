@@ -286,12 +286,6 @@ def WaveformSet_from_hdf5_file( filepath : str,
 
             endpoint = int(find_endpoint(map_id, scr_id))
 
-            # if debug:
-            #    print("GEO ID:", gid)
-            #    print("FRAG ID:", frag_id)
-            #    print("EP:", endpoint)
-            #    print("CH:", channels)
-            #    print("ADCS:", adcs)
 
             if trigger == 'full_stream':
                 adcs_frag = adcs_frag.transpose()
