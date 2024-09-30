@@ -1,0 +1,35 @@
+SIDEBAR_STYLE:
+  border: '2px solid #000000'
+  position: fixed
+  top: 0  # Ensure this matches the actual height of your navbar
+  left: 0
+  bottom: 0
+  width: "24rem"
+  padding: "2rem 1rem"
+  background-color: "teal"
+  font-size: "14px"
+  color: "#ffffff"
+  zIndex: "99999"  # Ensure sidebar is below modal dialogs or overlays
+
+NAVBAR_STYLE:
+  border: '2px solid #000000'
+  position: fixed
+  top: 0
+  left: "24rem"
+  right: 0
+  height: "56px"
+  background-color: "teal"
+  padding: '10px 20px'        # Padding around the navbar
+  font-size: "20px"
+  color: "#ffffff"
+  display: 'flex'             # Use Flexbox for the layout
+  justify-content: 'space-between' # Space between items
+  align-items: 'center' # Center items vertically
+  zIndex: "2"  # Ensure navbar is above the sidebar
+
+CONTENT_STYLE:
+  margin-top: "56px"
+  bottom: 0
+  margin-left: "24rem"
+  margin-right: "2rem"
+  padding: "2rem"

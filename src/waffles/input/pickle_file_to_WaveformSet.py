@@ -30,11 +30,11 @@ def pickle_file_to_WaveformSet(
         with open(path_to_pickle_file, 'rb') as file:
             output = pickle.load(file)
     else:
-        raise Exception(generate_exception_message(1, 
+        raise Exception(GenerateExceptionMessage(1, 
                                                    'pickle_file_to_WaveformSet()',
                                                    'The given file path is not a valid pickle file.'))
     if not isinstance(output, WaveformSet):
-        raise Exception(generate_exception_message(2,
+        raise Exception(GenerateExceptionMessage(2,
                                                     'pickle_file_to_WaveformSet()',
                                                     'The object loaded from the given file is not a WaveformSet object.'))
     return output

@@ -21,7 +21,7 @@ class APAMap(ChannelMap):
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self, data: List[List[UniqueChannel]]):
+    def __init__(self, data: List[List[UniqueChannel]], r: int = 10, c: int = 4):
         """APAMap class initializer
 
         Parameters
@@ -35,4 +35,4 @@ class APAMap(ChannelMap):
         # All of the checks are performed
         # by the base class initializer
 
-        super().__init__(10, 4, data)
+        super().__init__(r, c, data)

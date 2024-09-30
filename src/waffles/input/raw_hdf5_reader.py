@@ -130,7 +130,7 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
     """
 
     if not os.path.isfile(rucio_filepath):
-            raise Exception(generate_exception_message( 1,
+            raise Exception(GenerateExceptionMessage( 1,
                                                         'get_filepaths_from_rucio()',
                                                         f"The given rucio_filepath ({rucio_filepath}) is not a valid file."))
 
@@ -142,7 +142,7 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
     if "eos" in quality_check:
         print("Your files are stored in /eos/")
         if not os.path.isfile(filepaths[0]):
-                raise Exception(generate_exception_message( 2,
+                raise Exception(GenerateExceptionMessage( 2,
                                                             'get_filepaths_from_rucio()',
                                                             f"The given filepaths[0] ({quality_check}) is not a valid file."))
     else:
@@ -285,7 +285,6 @@ def WaveformSet_from_hdf5_file( filepath : str,
                 frag, trig)
 
             endpoint = int(find_endpoint(map_id, scr_id))
-
 
             if trigger == 'full_stream':
                 adcs_frag = adcs_frag.transpose()
