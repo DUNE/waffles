@@ -3,6 +3,7 @@
 *.npy
 *.hdf5
 *.ipynb
+*.pkl
 test/*
 .vscode/
 *krb5.conf*

@@ -41,10 +41,10 @@ You can navigate through the documentation using the table of contents below, an
 .. toctree::   
     :maxdepth: 2
 
-    1_Intro  
-    2_Scripts  
-    3_Libraries
-    examples/4_Examples
+    10_Intro  
+    20_Scripts  
+    30_Libraries
+    examples/40_Examples
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 

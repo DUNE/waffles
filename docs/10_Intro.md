@@ -34,6 +34,25 @@ Nevertheless, it is very important to keep some common rules not to harm others 
 ## Current Workflow
 
 <!-- IMAGE SUMMARISING THE WORKFLOW? -->
+1. **Files location**: the `rucio` paths for the runs we want to analyse are stored in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`. You can generate these files by running the `scripts/get_rucio.py` script.
+
+2. **Data extraction**: the raw data is stored in `.hdf5` files. The optimal way of extracting the data is by running the following lines:
+
+```python
+import waffles.input.raw_hdf5_reader as reader
+
+rucio_files = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/028602.txt"
+allfilepath = reader.get_filepaths_from_rucio(rucio_filepath)
+waveformset = reader.WaveformSet_from_hdf5_files( filepaths[:int(file_lim)], read_full_streaming_data = False)
+with open(f"data/028602_full_wfset_raw.pkl", "wb") as f:
+            pickle.dump(wfset, f)
+```
+In this way, you can store the `WaveformSet` object in a `.pkl` file and load it whenever you want to work with it. 
+
+3. **Analysis and Visualization**: the `WaveformSet` object can be visualized using the `waffles.plotting.plot` module.
+
+
+[Deprecated] -- try to avoid conversion to ROOT files
 
 After running our extractors (see `scripts/00_HDF5toROOT`) a folder will be generated in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root` with your selected run. The structure inside this `.root` files is:
 
@@ -71,7 +90,7 @@ We recommend installing [VSCode](https://code.visualstudio.com/) as editor. Some
 
 If it is your first time here you need to create an environment to be able to use all their tools. Depending on the scope of your work you can create a `daq_env` (run `hdf5` file processing) or a `ana_env` (general analysis scope) environment.
 
-### DAQ ENVIRONMENT
+### DAQ ENVIRONMENT [**NEEDED TO READ THE HDF5!!**]
 
 In this case all the dependencies from the DAQ needed to translate the information from the `.hdf5` files to `.root` files are included. (We are still working to have `ROOT` directly available in this environment from a `Python` interpreter). You don't need this environment unless you plan to work on the decoding side.
 
@@ -80,11 +99,11 @@ source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh
 
 setup_dbt latest
 dbt-create -l 
-dbt-create fddaq-v4.4.3-a9 <my_dir>
+dbt-create fddaq-v4.4.7-a9 <my_dir>
 ```
 
 
-### ANA ENVIRONMENT
+### ANA ENVIRONMENT [OPTIONAL]
 
 This general environment is used to run the `waffles` library and all the tools needed to analyze the data. To create it just run in your terminal (from whatever `lxplus` machine or locally):
 
@@ -132,7 +151,14 @@ The expected folder structure of the repository should be
     ├── '2_Scripts.md'
     ├── '3_Libraries.rst'
     ├── 'conf.py'
-    └── 'requirements.txt'
+    ├── 'data_classes.rst'
+    ├── 'input.rst'
+    ├── 'np04_data.rst'
+    ├── 'np04_data_classes.rst'
+    ├── 'np04_utils.rst'
+    ├── 'output.rst'
+    ├── 'plotting.rst'
+    └── 'utils.rst'
 
 └── 'scripts'/ # FOLDER WITH THE SCRIPTS
     ├── 'cpp_utils'/ # C++raw functions and scripts (can be used in standalone mode) [Thanks Jairo!]
@@ -143,9 +169,9 @@ The expected folder structure of the repository should be
         ├── 'CMakeLists.txt'
         ├── 'compile_decoder.sh' #Script to compile c++ scripts (just 1st time) and be able to use them
         ├── 'HDF5LIBS_duplications.cpp' # C++ script to check for duplications in the hdf5 files
-        ├── 'HDF5toROOT_decoder.cpp' # C++ script to decode hdf5 files to root files
+        ├── 'HDF5toROOT_decoder.cpp'    # C++ script to decode hdf5 files to root files
         ├── 'plotsAPA.C' # ROOT script to plot the APA map
-        └── 'README.md' # Instructions to compile and run the C++ scripts
+        └── 'README.md'  # Instructions to compile and run the C++ scripts
     ├── '00_HDF5toROOT.py' # Python decoder (hdf5 to root) with multithreading
     ├── '00_HDF5toROOT.sh' # Bash script for managing CPP macros. If you already compiled (cpp_utils) them you can run this one.
     ├── 'get_protodunehd_files.sh' # Script to get rucio_paths from the hdf5 daq files
@@ -155,26 +181,57 @@ The expected folder structure of the repository should be
 
 └── 'src'/  # MAIN CODE CORE WITH ALL THE CLASSES DEFINITIONS HERE#
     ├── 'waffles'/
-        ├── '__init__.py'
-        ├── 'APAmap.py'
-        ├── 'CalibrationHistogram.py'
-        ├── 'ChannelWS.py'
-        ├── 'ChannelWSGrid..py'
-        ├── 'Exceptions.c.py'
-        ├── 'Map.c.py'
-        ├── 'UniqueChannel.py'
-        └── 'Waveform.py'
-        └── 'WaveformAdcs.py'
-        └── 'WaveformSet.py'
-        └── 'WfAna.py'
-        └── 'WfAnaResult.py'
-        └── 'WfPeak.py'
-
-└── '.gitattributes'/
-└── '.gitignore'/
-└── '.readthedocs.yaml'/
-└── '.README.md'/
-└── '.setup.py'/
+        ├── 'data_classes'/ # FOLDER WITH THE DATA CLASSES DEFINITIONS
+            ├── 'BasicWfAna.py'
+            ├── 'CalibrationHistogram.py'
+            ├── 'ChannelWs.py'
+            ├── 'ChannelWsGrid..py'
+            ├── 'IODict.py'
+            ├── 'IPDict.py'
+            ├── 'Map.py'
+            ├── 'ORDict.py'
+            ├── 'PeakFindingWfAna.py'
+            ├── 'TrackedHistogram.py'
+            ├── 'Waveform.py'
+            ├── 'WaveformAdcs.py'
+            ├── 'WaveformSet.py'
+            ├── 'WfAna.py'
+            ├── 'WfAnaResult.py'
+            └── 'WfPeak.py'
+        ├── 'input'/ # FOLDER WITH THE INPUT UTILS
+            ├── 'input_utils.py'
+            ├── 'pickle_file_to_WaveformSet.py'
+            ├── 'raw_hdf5_reader.py'
+            └── 'raw_root_reader..py'
+        ├── 'np04_analysis'/ # FOLDER WITH THE ANALYSIS UTILS
+            ├── 'LED_calibration'
+            └── 'np04_ana.py'
+        ├── 'np04_data'/ # FOLDER WITH THE DATA UTILS
+            └── 'ProtoDUNE_HD_APA_maps.py'
+        ├── 'np04_data_classes'/ # FOLDER WITH THE DATA CLASSES 
+            └── 'APAmap.py'
+        ├── 'np04_utils'/ # FOLDER WITH NP04 UTILS
+            └── 'utils.py'
+        ├── 'plotting'/ # FOLDER WITH THE PLOTTING UTILS
+            └── 'display'
+            ├── 'plot_utils.py'
+            └── 'plot.py'
+        └── 'utils'/ # FOLDER WITH THE GENERAL UTILS
+            ├── 'deconvolution'/ # FOLDER WITH THE DECONVOLUTION METHODS
+            ├── 'fit_peaks'/     # FOLDER WITH THE FITTING PEAKS METHODS 
+            ├── 'check_utils.py' 
+            ├── 'filtering_utils.py' 
+            ├── 'numerical_utils.py'
+            ├── 'wf_maps_utils.py'
+            └── 'Exceptions.py'
+        └── 'test' # FOLDER WITH FILES UNDER TEST (temporary)
+├── '.gitattributes'
+├── '.gitignore'
+├── '.readthedocs.yaml' # Configuration file for the documentation
+├── 'environment.yaml'  # Environment file for the conda environment
+├── '.README.md'
+├── 'requirements.md' # Requirements for the evironment
+└── 'setup.py'        # Setup file for the library
 ```
 
 ### 1. Install packages needed for the library to run
@@ -182,7 +239,7 @@ The expected folder structure of the repository should be
 After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` by navigating to the repository main folder and running:
 
 ```bash
-pip install -r docs/requirements.txt
+pip install -r requirements.txt
 pip install .
 ```
 
