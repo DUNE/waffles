@@ -9,6 +9,31 @@ import waffles.utils.numerical_utils as wun
 
 from waffles.Exceptions import GenerateExceptionMessage
 
+def save_plot(figure: pgo.Figure,
+              name: str 
+              )-> None:
+    """
+    This function saves the plotly figure in the desired format.
+    
+    Parameters
+    ----------
+    figure: plotly.graph_objects.Figure
+        The figure to be saved
+    name: str
+        Name of the file to be saved. The file extension determines the format of the saved file. 
+    
+    Returns
+    ----------
+    None   
+    """
+    if ".hmtl" in name: 
+        figure.write_html(name, include_mathjax = 'cdn')
+    if ".json" in name: 
+        figure.write_json(name)
+    if ".png" in name: 
+        figure.write_image(name)
+    
+    return
 
 def check_dimensions_of_suplots_figure(
     figure: pgo.Figure,
