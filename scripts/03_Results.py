@@ -78,8 +78,9 @@ def main(run,chs, eps, debug):
                 histogram = pgo.Histogram(x=result_values, nbinsx=500, name=f'{my_result}')
                 figure.add_trace(histogram, row=1, col=1)
                 
-                figure.update_layout(template="presentation", title = "", xaxis_title="Charge [ADC*ticks]", yaxis_title="Counts")
-                save_plot(figure, f"../data/{my_result}_dist_ep{eps}_ch{ch}.png")
+                title = f"{my_result}_dist_ep{eps}_ch{ch}"
+                figure.update_layout(template="presentation", title=title, xaxis_title="", yaxis_title="Counts")
+                save_plot(figure, f"../data/{title}.png")
                 figure.show()
             
 
