@@ -139,8 +139,8 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
 
     filepaths = [line.strip() for line in lines]
     quality_check = filepaths[0]
-    if "eos" in quality_check:
-        print("Your files are stored in /eos/")
+    if "/eos/experiment/neutplatform/protodune/" in quality_check:
+        print("Your files are stored in /eos/experiment/neutplatform/protodune/. No need to use XROOTD.")
         if not os.path.isfile(filepaths[0]):
                 raise Exception(GenerateExceptionMessage( 2,
                                                             'get_filepaths_from_rucio()',
@@ -242,7 +242,7 @@ def WaveformSet_from_hdf5_file( filepath : str,
         Select total number of waveforms to save.
     """
 
-    if "/eos" not in filepath:
+    if "/eos/experiment/neutplatform/protodune/" not in filepath:
         print("Using XROOTD")
 
         subprocess.call(shlex.split(f"xrdcp {filepath} /tmp/."), shell=False)
