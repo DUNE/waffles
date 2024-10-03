@@ -109,7 +109,7 @@ def main(run,chs, eps, debug):
             grid_apa = ChannelWsGrid( my_map, filter_wfset, compute_calib_histo = False )
             
             
-            print(f"Plotting a sample of waveforms with the analysis parameters as in conf/{r}.json ...")
+            print(f"Plotting a sample of waveforms with the analysis parameters as in conf/{r.zfill(6)}.json ...")
             figure = psu.make_subplots( rows = 1, cols = 1 )
             plot_ChannelWsGrid( grid_apa,
                                 figure = figure,

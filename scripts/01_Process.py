@@ -41,7 +41,7 @@ def main(run, debug):
         with open(f"../data/{str(r).zfill(6)}_full_wfset_raw.pkl", "wb") as f:
             pickle.dump(wfset, f)
         
-        print_colored(f"\nDone! WaveformSet saved in {str(r).zfill(6)}_wfset.pkl\n", color="SUCCESS")
+        print_colored(f"\nDone! WaveformSet saved in {str(r).zfill(6)}_full_wfset_raw.pkl\n", color="SUCCESS")
         
 
 if __name__ == "__main__":
