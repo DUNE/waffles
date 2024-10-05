@@ -24,11 +24,11 @@ from waffles.data_classes.WaveformSet import WaveformSet
 map_id = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 9], '107': [
     10, 8], '109': [11], '111': [12], '112': [13], '113': [14]}
 
+inv_map_id = {v: k for k, vals in map_id.items() for v in vals}
+
 
 def find_endpoint(map_id, target_value):
-    for key, value_list in map_id.items():
-        if target_value in value_list:
-            return key
+    return map_id[target_value]
 
 
 def split_list(original_list, n_splits):
@@ -53,6 +53,22 @@ def check_PDS(raw_file):
     else:
         output = True
     return output
+
+
+def hdf5_check_allowed_ids(
+    frag,
+    allowed_ids:list = [] # see argument `allowed_endpoints`
+) -> bool:
+
+    if not allowed_ids:
+        return True
+    frh = frag.get_header() 
+    scr_id = frh.element_id.id
+    
+    if scr_id in allowed_ids:
+        return True
+
+    return False
 
 
 def extract_fragment_info(frag, trig):
@@ -131,20 +147,23 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
 
     if not os.path.isfile(rucio_filepath):
             raise Exception(GenerateExceptionMessage( 1,
-                                                        'get_filepaths_from_rucio()',
-                                                        f"The given rucio_filepath ({rucio_filepath}) is not a valid file."))
-
+                                                      'get_filepaths_from_rucio()',
+                                                      f"The given rucio_filepath ({rucio_filepath}) is not a valid file."))
+            
     with open(rucio_filepath, 'r') as file:
         lines = file.readlines()
-
-    filepaths = [line.strip() for line in lines]
+    
+    # if entire path is given when data is in eos, remove the first part
+    filepaths = [line.strip().replace('root://eospublic.cern.ch:1094/', '') for line in lines]  
+    # avoid tpwriter files
+    filepaths = [line for line in filepaths if 'tpwriter' not in line]  
     quality_check = filepaths[0]
     if "eos" in quality_check:
         print("Your files are stored in /eos/")
         if not os.path.isfile(filepaths[0]):
                 raise Exception(GenerateExceptionMessage( 2,
-                                                            'get_filepaths_from_rucio()',
-                                                            f"The given filepaths[0] ({quality_check}) is not a valid file."))
+                                                          'get_filepaths_from_rucio()',
+                                                          f"The given filepaths[0] ({quality_check}) is not a valid file."))
     else:
         print("\nYour files are stored around the world. \n[WARNING] Check you have a correct configuration to use XRootD" )
 
@@ -153,10 +172,12 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
 def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 read_full_streaming_data : bool = False,
                                 folderpath : Optional[str] = None,
-                                nrecord_start_fraction : float = 0.0, \
-                                nrecord_stop_fraction : float = 1.0, \
-                                subsample : int = 1, \
-                                wvfm_count : int = 1e9) -> WaveformSet:
+                                nrecord_start_fraction : float = 0.0,
+                                nrecord_stop_fraction : float = 1.0,
+                                subsample : int = 1,
+                                wvfm_count : int = 1e9,
+                                allowed_endpoints: Optional[list] = [],
+                                ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
     The WaveformSet object made from each hdf5 file is combined into a single WaveformSet object.
@@ -186,6 +207,9 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
         Can combine with nrecord selection parameters.
     wvfm_count : int
         Select total number of waveforms to save.
+    allowed_endpoints : list(str)
+        List of endpoints that will be decoded. Leave empty for getting all
+        endpoints. Avoid reading waveforms unnecessarily 
     """
     if folderpath is not None:
 
@@ -202,21 +226,31 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                            # Remove possible duplicates
                            for filepath in set(filepath_list)
                            if filepath_is_hdf5_file_candidate(filepath)]
-    output = WaveformSet_from_hdf5_file(
-        filepath_list[0], read_full_streaming_data, nrecord_start_fraction, nrecord_stop_fraction, subsample, wvfm_count)
-
-    for filepath in filepath_list[1:]:
-        aux = WaveformSet_from_hdf5_file(filepath, read_full_streaming_data, nrecord_start_fraction, nrecord_stop_fraction, subsample, wvfm_count)
-        output.merge(aux)
-
+    output = 0
+    created=False
+    for filepath in filepath_list:
+        try:
+            aux = WaveformSet_from_hdf5_file(filepath, read_full_streaming_data, nrecord_start_fraction, nrecord_stop_fraction, subsample, wvfm_count, allowed_endpoints)
+        except Exception as error:
+            print(error, "\n")
+            print('Error reading file...')
+            continue
+        if not created: 
+            output = aux
+            created = True
+        else:
+            output.merge(aux)
+        print('wset len: ', len(output.waveforms))
     return output
 
-def WaveformSet_from_hdf5_file( filepath : str,
-                                read_full_streaming_data : bool = False, \
-                                nrecord_start_fraction : float = 0.0, \
-                                nrecord_stop_fraction : float = 1.0, \
-                                subsample : int = 1, \
-                                wvfm_count : int = 1e9) -> WaveformSet:
+def WaveformSet_from_hdf5_file(filepath : str, 
+                               read_full_streaming_data : bool = False,
+                               nrecord_start_fraction : float = 0.0,
+                               nrecord_stop_fraction : float = 1.0,
+                               subsample : int = 1,
+                               wvfm_count : int = 1e9,
+                               allowed_endpoints: Optional[list] = [],
+                               ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
 
@@ -240,6 +274,9 @@ def WaveformSet_from_hdf5_file( filepath : str,
         Can combine with nrecord selection parameters.
     wvfm_count : int
         Select total number of waveforms to save.
+    allowed_endpoints : list(str)
+        List of endpoints that will be decoded. Leave empty for getting all
+        endpoints. Avoid reading waveforms unnecessarily 
     """
 
     if "/eos" not in filepath:
@@ -263,6 +300,11 @@ def WaveformSet_from_hdf5_file( filepath : str,
     threshold_list = []
 
     records = h5_file.get_all_record_ids()
+
+    allowed_ids = []
+    for endpoint_allowed in allowed_endpoints:
+        allowed_ids += map_id[str(endpoint_allowed)]
+
     if nrecord_stop_fraction > 1.0:
         nrecord_stop_fraction = 1.0
     if nrecord_start_fraction > 1.0 or nrecord_start_fraction < 0.0:
@@ -281,10 +323,15 @@ def WaveformSet_from_hdf5_file( filepath : str,
             frag = h5_file.get_frag(r, gid)
             trig = h5_file.get_trh(r)
 
+            if (not hdf5_check_allowed_ids(frag, allowed_ids)):
+                continue
+
+
             trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, daq_pretrigger_frag = extract_fragment_info(
                 frag, trig)
 
-            endpoint = int(find_endpoint(map_id, scr_id))
+            endpoint = int(find_endpoint(inv_map_id, scr_id))
+            channels_frag = 100 * int(endpoint) + channels_frag
 
             if trigger == 'full_stream':
                 adcs_frag = adcs_frag.transpose()
@@ -304,8 +351,8 @@ def WaveformSet_from_hdf5_file( filepath : str,
                 adcs = []
                 adcs = adcs_frag[index]
                 # for value in adcs_frag[index]:
-                #    #adcs.push_back(int(value))
-                #    adcs.append(int(value))
+                   # adcs.push_back(int(value))
+                   # adcs.append(int(value))
                 if read_full_streaming_data == is_fullstream_frag[index]:
                     if not wvfm_index % subsample:
                         waveforms.append(Waveform(timestamps_frag[index],
