@@ -321,17 +321,15 @@ def WaveformSet_from_hdf5_file(filepath : str,
 
         for gid in pds_geo_ids:
             frag = h5_file.get_frag(r, gid)
-            trig = h5_file.get_trh(r)
-
             if (not hdf5_check_allowed_ids(frag, allowed_ids)):
                 continue
 
+            trig = h5_file.get_trh(r)
 
             trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, daq_pretrigger_frag = extract_fragment_info(
                 frag, trig)
 
             endpoint = int(find_endpoint(inv_map_id, scr_id))
-            channels_frag = 100 * int(endpoint) + channels_frag
 
             if trigger == 'full_stream':
                 adcs_frag = adcs_frag.transpose()

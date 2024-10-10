@@ -17,3 +17,4 @@ jupyter
 kaleido
 tqdm
 xrootd
+iminuit

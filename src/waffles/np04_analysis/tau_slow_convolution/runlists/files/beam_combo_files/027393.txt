@@ -1,0 +1,15 @@
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/35/c8/np04hd_raw_run027393_0000_dataflow0_datawriter_0_20240623T162449.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/61/0a/np04hd_raw_run027393_0000_dataflow1_datawriter_0_20240623T162449.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/3c/12/np04hd_raw_run027393_0000_dataflow2_datawriter_0_20240623T162449.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/b6/e1/np04hd_raw_run027393_0000_dataflow3_datawriter_0_20240623T162449.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/4f/31/np04hd_raw_run027393_0001_dataflow0_datawriter_0_20240623T162516.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/b8/87/np04hd_raw_run027393_0001_dataflow1_datawriter_0_20240623T162515.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/5f/ec/np04hd_raw_run027393_0001_dataflow2_datawriter_0_20240623T162515.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/d3/d6/np04hd_raw_run027393_0001_dataflow3_datawriter_0_20240623T162515.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/a0/bb/np04hd_raw_run027393_0002_dataflow0_datawriter_0_20240623T162538.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/81/94/np04hd_raw_run027393_0002_dataflow1_datawriter_0_20240623T162531.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/66/1a/np04hd_raw_run027393_0002_dataflow2_datawriter_0_20240623T162536.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/fb/68/np04hd_raw_run027393_0002_dataflow3_datawriter_0_20240623T162537.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/f0/80/np04hd_raw_run027393_0003_dataflow1_datawriter_0_20240623T162554.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/a6/dd/np04hd_raw_run027393_0003_dataflow2_datawriter_0_20240623T162554.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/d5/3c/np04hd_raw_run027393_0003_dataflow3_datawriter_0_20240623T162555.hdf5

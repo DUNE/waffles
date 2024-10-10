@@ -1,0 +1,12 @@
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/c3/29/np04hd_raw_run027508_0000_dataflow0_datawriter_0_20240627T232546.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/c2/a1/np04hd_raw_run027508_0001_dataflow0_datawriter_0_20240627T232613.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/44/fd/np04hd_raw_run027508_0002_dataflow0_datawriter_0_20240627T232641.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/e6/c4/np04hd_raw_run027508_0003_dataflow0_datawriter_0_20240627T232708.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/97/30/np04hd_raw_run027508_0004_dataflow0_datawriter_0_20240627T232735.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/4c/20/np04hd_raw_run027508_0005_dataflow0_datawriter_0_20240627T232802.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/5e/24/np04hd_raw_run027508_0006_dataflow0_datawriter_0_20240627T232829.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/d3/56/np04hd_raw_run027508_0007_dataflow0_datawriter_0_20240627T232856.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/b3/79/np04hd_raw_run027508_0008_dataflow0_datawriter_0_20240627T232923.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/26/98/np04hd_raw_run027508_0009_dataflow0_datawriter_0_20240627T232950.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/d6/a9/np04hd_raw_run027508_0010_dataflow0_datawriter_0_20240627T233017.hdf5
+root://dcdndoor.sdcc.bnl.gov:1094/pnfs/sdcc.bnl.gov/data/dune/RSE/hd-protodune/ba/13/np04hd_raw_run027508_0011_dataflow0_datawriter_0_20240627T233044.hdf5
