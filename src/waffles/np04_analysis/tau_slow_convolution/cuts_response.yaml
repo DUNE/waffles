@@ -1,0 +1,19 @@
+11225: &default112
+  cuts:
+    - { t0:  62, tf:   75, threshold: 2400, type: higher, filter:  0, stop: false, npop: max }
+    - { t0:  62, tf:   75, threshold: 5000, type:  lower, filter:  0, stop: false, npop: max }
+    - { t0: 185, tf: 1024, threshold:  400, type:  lower, filter:  0, stop: false, npop: max }
+    # - { t0: 312, tf:  318, threshold: -400, type: higher, filter:  0, stop: false, npop: min }
+    # - { t0: 381, tf:  387, threshold: -20., type: higher, filter:  0, stop: false, npop: min }
+
+11227:
+  <<: *default112
+
+11114: &default111
+  cuts:
+    - { t0:  62, tf:   75, threshold: 2400, type: higher, filter:  0, stop: false, npop: max }
+    - { t0:  62, tf:   75, threshold: 5000, type:  lower, filter:  0, stop: false, npop: max }
+    - { t0: 185, tf: 1024, threshold:  600, type:  lower, filter:  0, stop: false, npop: max }
+
+11116:
+  <<: *default111
