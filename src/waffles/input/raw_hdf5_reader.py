@@ -320,9 +320,16 @@ def WaveformSet_from_hdf5_file(filepath : str,
             r, detdataformats.DetID.string_to_subdetector(det)))
 
         for gid in pds_geo_ids:
-            frag = h5_file.get_frag(r, gid)
-            if (not hdf5_check_allowed_ids(frag, allowed_ids)):
+            try:
+                frag = h5_file.get_frag(r, gid)
+                if (not hdf5_check_allowed_ids(frag, allowed_ids)):
+                    continue
+            except Exception as e:
+                print(f"Corrupted fragment:\n {frag}\n{trig}\n{r}\n{gid}")
+                #print(traceback.format_exc())
                 continue
+                
+            
 
             trig = h5_file.get_trh(r)
 
