@@ -28,6 +28,8 @@ class Waveform(WaveformAdcs):
         acquired
     channel : int
         Channel number for this Waveform
+    baseline : int
+        Baseline for self-triggered waveforms (-1 for streaming)
     time_offset : int (inherited from WaveformAdcs)
     analyses : OrderedDict of WfAna objects 
     (inherited from WaveformAdcs)
@@ -63,6 +65,7 @@ class Waveform(WaveformAdcs):
         record_number : int
         endpoint : int
         channel : int
+        baseline : int
         time_offset : int
             It is given to the 'time_offset' parameter of the
             base class initializer. It must be semipositive
@@ -77,7 +80,7 @@ class Waveform(WaveformAdcs):
         self.__record_number = record_number
         self.__endpoint = endpoint
         self.__channel = channel
-
+        self.__baseline = baseline
         # Do we need to add trigger primitives as attributes?
 
         super().__init__(
@@ -105,7 +108,10 @@ class Waveform(WaveformAdcs):
     @property
     def channel(self):
         return self.__channel
-
+    
+    @property
+    def baseline(self):
+        return self.__baseline
 #   #Setters
 #   @timestamp.setter
 #   def timestamp(self, input):

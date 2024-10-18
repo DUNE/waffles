@@ -355,6 +355,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
 
                 adcs = []
                 adcs = adcs_frag[index]
+                baseline = baseline_frag[index]
                 # for value in adcs_frag[index]:
                    # adcs.push_back(int(value))
                    # adcs.append(int(value))
@@ -367,6 +368,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                                   r[0],
                                                   endpoint,
                                                   ch,
+                                                  baseline,
                                                   time_offset=0))
                     wvfm_index += 1
                     if wvfm_index >= wvfm_count:
