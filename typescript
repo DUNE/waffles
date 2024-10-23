@@ -1,0 +1,31 @@
+Script started on 2024-10-23 09:09:31+02:00 [TERM="xterm-256color" TTY="/dev/pts/51" COLUMNS="110" LINES="50"]
+^C]0;fegalizz@lxplus934:/afs/cern.ch/work/f/fegalizz/wafflesbash: get_working_dir: command not found
+bash: parse_git_branch: command not found
+[?2004h(dbt) [0;38;5;39mfegalizz(B[m[38;5;172m@(B[m[38;5;172mlxplus934(B[m:(B[m[38;5;69m[(B[m[38;5;75m(B[m[38;5;69m](B[m[38;5;172m 
+>(B[m (B[mls
+[?2004lbash: ls: command not found
+]0;fegalizz@lxplus934:/afs/cern.ch/work/f/fegalizz/wafflesbash: get_working_dir: command not found
+bash: parse_git_branch: command not found
+[?2004h(dbt) [0;38;5;39mfegalizz(B[m[38;5;172m@(B[m[38;5;172mlxplus934(B[m:(B[m[38;5;69m[(B[m[38;5;75m(B[m[38;5;69m](B[m[38;5;172m 
+>(B[m (B[mcd 
+[?2004l]0;fegalizz@lxplus934:~bash: get_working_dir: command not found
+bash: parse_git_branch: command not found
+[?2004h(dbt) [0;38;5;39mfegalizz(B[m[38;5;172m@(B[m[38;5;172mlxplus934(B[m:(B[m[38;5;69m[(B[m[38;5;75m(B[m[38;5;69m](B[m[38;5;172m 
+>(B[m (B[mrxi[K[K[Kpwd
+[?2004l/afs/cern.ch/user/f/fegalizz
+]0;fegalizz@lxplus934:~bash: get_working_dir: command not found
+bash: parse_git_branch: command not found
+[?2004h(dbt) [0;38;5;39mfegalizz(B[m[38;5;172m@(B[m[38;5;172mlxplus934(B[m:(B[m[38;5;69m[(B[m[38;5;75m(B[m[38;5;69m](B[m[38;5;172m 
+>(B[m (B[msource .barhrc[K[K[K[Kshrc
+[?2004l]0;fegalizz@lxplus934:~bash: sed: command not found
+[?2004h[0;38;5;39mfegalizz(B[m[38;5;172m@(B[m[38;5;172mlxplus934(B[m:(B[m[38;5;69m[(B[m[38;5;75m/afs/cern.ch/user/f/fegalizz(B[m[38;5;69m](B[m[38;5;172m 
+>(B[m (B[mcd $work
+[?2004l]0;fegalizz@lxplus934:/afs/cern.ch/work/f/fegalizzbash: sed: command not found
+[?2004h[0;38;5;39mfegalizz(B[m[38;5;172m@(B[m[38;5;172mlxplus934(B[m:(B[m[38;5;69m[(B[m[38;5;75m/afs/cern.ch/work/f/fegalizz(B[m[38;5;69m](B[m[38;5;172m 
+>(B[m (B[mcd waffles/
+[?2004l]0;fegalizz@lxplus934:/afs/cern.ch/work/f/fegalizz/wafflesbash: sed: command not found
+[?2004h[0;38;5;39mfegalizz(B[m[38;5;172m@(B[m[38;5;172mlxplus934(B[m:(B[m[38;5;69m[(B[m[38;5;75m/afs/cern.ch/work/f/fegalizz/waffles(B[m[38;5;69m](B[m[38;5;172m 
+>(B[m (B[mexit
+[?2004lexit
+
+Script done on 2024-10-23 09:10:21+02:00 [COMMAND_EXIT_CODE="0"]

@@ -4,6 +4,7 @@
 *.hdf5
 *.ipynb
 *.pkl
+*.swp
 test/*
 .vscode/
 *krb5.conf*
