@@ -1,4 +1,5 @@
 from waffles.np04_analysis.LED_calibration.calibration_batches.batch_1.excluded_channels import excluded_channels as batch_1
+from waffles.np04_analysis.LED_calibration.calibration_batches.batch_1.excluded_channels import excluded_channels as batch_2
 
 excluded_channels = {}  # excluded_channels is a 5-levels nested dictionary where:
                         # - the first key level is an integer which labels a certain measurements batch
@@ -11,4 +12,4 @@ excluded_channels = {}  # excluded_channels is a 5-levels nested dictionary wher
 # the first calibration batch, for APA 1 at 0.40 PDE
 
 excluded_channels[1] = batch_1
-# run_to_config[2] = batch_2.run_to_config # For a new measurements batch
+excluded_channels[2] = batch_2
