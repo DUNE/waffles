@@ -34,12 +34,14 @@ def pickle_file_to_WaveformSet(
             we.GenerateExceptionMessage(
                 1, 
                 'WaveformSet_from_pickle_file()',
-                'The given path does not point to an existing file.'))
+                f"The given path ({path_to_pickle_file}) "
+                "does not point to an existing file."))
     
     if not isinstance(output, WaveformSet):
         raise Exception(
             we.GenerateExceptionMessage(2,
             'WaveformSet_from_pickle_file()',
-            'The object loaded from the given file is not a WaveformSet object.'))
+            "The object loaded from the given "
+            "file is not a WaveformSet object."))
     
     return output
