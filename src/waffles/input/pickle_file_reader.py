@@ -16,25 +16,30 @@ def pickle_file_to_WaveformSet(
 
     Parameters
     ----------
-    path_to_pickle_file : str
+    path_to_pickle_file: str
         Path to the file which will be loaded. Its extension
         must match '.pkl'.
 
     Returns
     ----------        
-    output : WaveformSet
+    output: WaveformSet
         The WaveformSet object loaded from the given file
     """
 
-    if os.path.isfile(path_to_pickle_file) and path_to_pickle_file.endswith('.pkl'):
+    if os.path.isfile(path_to_pickle_file):
         with open(path_to_pickle_file, 'rb') as file:
             output = pickle.load(file)
     else:
-        raise Exception(GenerateExceptionMessage(1, 
-                                                 'pickle_file_to_WaveformSet()',
-                                                 'The given file path is not a valid pickle file.'))
+        raise Exception(
+            we.GenerateExceptionMessage(
+                1, 
+                'WaveformSet_from_pickle_file()',
+                'The given path does not point to an existing file.'))
+    
     if not isinstance(output, WaveformSet):
-        raise Exception(GenerateExceptionMessage(2,
-                                                 'pickle_file_to_WaveformSet()',
-                                                 'The object loaded from the given file is not a WaveformSet object.'))
+        raise Exception(
+            we.GenerateExceptionMessage(2,
+            'WaveformSet_from_pickle_file()',
+            'The object loaded from the given file is not a WaveformSet object.'))
+    
     return output
