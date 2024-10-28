@@ -118,9 +118,9 @@ config_to_channels[3][0.40][(1 , 1, 1600)] = {111 : [10, 12, 14, 16, 20, 24, 26,
 
 config_to_channels[3][0.40][(1 , 1, 1800)] = {111 : [0, 2, 5, 7, 31, 33, 34, 35, 37]}
 
-config_to_channels[3][0.40][(12, 1, 2000)] = {111 : [27, 25, 22, 20, 36, 1, 3, 4, 6]}
+config_to_channels[3][0.40][(12, 1, 2000)] = {111 : [6, 27, 25, 22, 20, 36]}
 
-config_to_channels[3][0.40][(12, 1, 2200)] = {} # Not used
+config_to_channels[3][0.40][(12, 1, 2200)] = {111: [1, 3, 4]}
 
 
 config_to_channels[3][0.45][(1 , 1, 1400)] = {111 : [11, 13, 15, 17, 21, 23, 44, 45, 46, 47]}
@@ -129,22 +129,28 @@ config_to_channels[3][0.45][(1 , 1, 1600)] = {111 : [32, 30, 41, 43, 16, 14, 12,
 
 config_to_channels[3][0.45][(1 , 1, 1800)] = {111 : [34, 33, 31, 0, 2, 5, 7, 37, 35, 10, 27, 25]}
 
-config_to_channels[3][0.45][(12, 1, 2000)] = {111 : [1, 3, 4, 6, 36, 22, 20]}
+config_to_channels[3][0.45][(12, 1, 2000)] = {111 : [6, 36, 22, 20]}
 
-config_to_channels[3][0.45][(12, 1, 2200)] = {} # Not used
+config_to_channels[3][0.45][(12, 1, 2200)] = {111: [1, 3, 4]}
 
 
-config_to_channels[3][0.50][(1 , 1, 1400)] = {111 : [11, 13, 15, 17, 21, 23, 44, 45, 46, 47]}
+config_to_channels[3][0.50][(1 , 1, 1400)] = {111 : [11, 13, 15, 17, 21, 23, 44, 45, 46, 47]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+                                                    [32, 14, 12, 24]}
 
 # config_to_channels[3][0.50][(1 , 1, 1600)] = {111 : [32, 30, 41, 43, 16, 14, 12, 40, 42, 26, 24]}
 # This data (APA 3, PDE 0.50, using (1, 1, 1600) LED-config.) was acquired during run 28177
 # 2024/10/25: Rucio is not able to find data for run 28149
 
-config_to_channels[3][0.50][(1 , 1, 1800)] = {111 : [34, 33, 31, 36, 0, 2, 5, 7, 37, 35, 10, 27, 25]}
+config_to_channels[3][0.50][(1 , 1, 1800)] = {111 : [34, 33, 31, 36, 0, 2, 5, 7, 37, 35, 10, 27, 25]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+                                                    [30, 41, 43, 16, 40, 42, 26]}
 
-config_to_channels[3][0.50][(12, 1, 2000)] = {111 : [1, 3, 4, 6, 22, 20]}
+config_to_channels[3][0.50][(12, 1, 2000)] = {111 : [6, 22, 20]}
 
-config_to_channels[3][0.50][(12, 1, 2200)] = {} # Not used
+config_to_channels[3][0.50][(12, 1, 2200)] = {111: [1, 3, 4]}
 
 
 
