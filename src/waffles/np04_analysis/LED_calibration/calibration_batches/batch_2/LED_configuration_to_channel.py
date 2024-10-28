@@ -158,10 +158,10 @@ config_to_channels[3][0.50][(12, 1, 2200)] = {111: [1, 3, 4]}
 config_to_channels[4][0.40][(1 , 1, 1400)] = {  112: [27, 25, 21, 23, 37, 35, 31],
                                                 113: [0]}
 
-config_to_channels[4][0.40][(1 , 1, 1600)] = {  112: [16, 22, 20, 24, 32, 33, 34, 47, 45, 42],
+config_to_channels[4][0.40][(1 , 1, 1600)] = {  112: [16, 22, 20, 24, 32, 33, 34, 47, 45],
                                                 113: [2, 5, 7]}
 
-config_to_channels[4][0.40][(1 , 1, 1800)] = { 112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 14, 13, 11, 26, 30, 36, 40]}
+config_to_channels[4][0.40][(1 , 1, 1800)] = { 112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 14, 13, 11, 26, 30, 36, 40, 42]}
 
 config_to_channels[4][0.40][(12, 1, 2000)] = {} # Not used
 
@@ -172,24 +172,39 @@ config_to_channels[4][0.45][(1 , 1, 1400)] = {  112 : [27, 25, 37, 35, 31, 21, 2
                                                 113 : [0]}
 
 config_to_channels[4][0.45][(1 , 1, 1600)] = {  112 : [16, 14, 24, 32, 30, 33, 34, 45, 47, 22, 20],
-                                                113 : [2, 5]}
+                                                113 : [2, 5, 7]}
 
-config_to_channels[4][0.45][(1 , 1, 1800)] = {  112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 13, 11, 26, 36, 40, 42],
-                                                113 : [7]}
+# Based on batch 1, one would calibrate 113-7 based on (1, 1, 1800). 
+# However, for some reason, there is not data from endpoint 113 for this data taking (run 28167)
+config_to_channels[4][0.45][(1 , 1, 1800)] = {  112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 13, 11, 26, 36, 40, 42]}
 
 config_to_channels[4][0.45][(12, 1, 2000)] = {} # Not used
 
 config_to_channels[4][0.45][(12, 1, 2200)] = {} # Not used
 
 
-config_to_channels[4][0.50][(1 , 1, 1400)] = {  112 : [27, 25, 21, 23, 37, 35, 31],
-                                                113 : [0]}
+config_to_channels[4][0.50][(1 , 1, 1400)] = {  112 : [27, 25, 21, 23, 37, 35, 31]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+                                                      [22, 32, 33],
+                                                113 : [0]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+                                                      [2]}
 
-config_to_channels[4][0.50][(1 , 1, 1600)] = {  112 : [16, 14, 22, 20, 24, 32, 30, 33, 34, 47, 45],
-                                                113 : [2, 5]}
+# config_to_channels[4][0.50][(1 , 1, 1600)] = {  112 : [16, 14, 22, 20, 24, 32, 30, 33, 34, 47, 45],
+#                                                 113 : [2, 5]}
+# This data (APA 3, PDE 0.50, using (1, 1, 1600) LED-config.) was acquired during run 28177
+# 2024/10/25: Rucio is not able to find data for run 28149
 
-config_to_channels[4][0.50][(1 , 1, 1800)] = {  112 : [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 13, 11, 26, 36, 40, 42],
-                                                113 : [7]}
+config_to_channels[4][0.50][(1 , 1, 1800)] = {  112 : [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 13, 11, 26, 36, 40, 42]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+                                                      [14, 16, 30, 34, 20, 47, 45, 24, 32],
+                                                113 : [7]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+                                                      [5]}
                                                 
 config_to_channels[4][0.50][(12, 1, 2000)] = {} # Not used
 
