@@ -17,11 +17,11 @@ excluded_channels[1][0.45] = {  107 : []}
 excluded_channels[1][0.50] = {  107 : []}
 
 
-excluded_channels[2][0.40] = {  109 : [7]}
+excluded_channels[2][0.40] = {  109 : [17, 11, 13, 14, 16, 10, 7]}
 
-excluded_channels[2][0.45] = {  109 : []}
+excluded_channels[2][0.45] = {  109 : [17, 11, 13, 14, 16, 10]}
 
-excluded_channels[2][0.50] = {  109 : []}
+excluded_channels[2][0.50] = {  109 : [17, 11, 13, 14, 16, 10]}
 
 
 excluded_channels[3][0.40] = {  111 : []}
