@@ -24,17 +24,18 @@ excluded_channels[2][0.45] = {  109 : [17, 11, 13, 14, 16, 10]}
 excluded_channels[2][0.50] = {  109 : [17, 11, 13, 14, 16, 10]}
 
 
-excluded_channels[3][0.40] = {  111 : []}
+excluded_channels[3][0.40] = {  111 : [31]}
 
-excluded_channels[3][0.45] = {  111 : []}
+excluded_channels[3][0.45] = {  111 : [31]}
 
-excluded_channels[3][0.50] = {  111 : []}
+excluded_channels[3][0.50] = {  111 : [15, 31]}
 
 
-excluded_channels[4][0.40] = {  112 : [],
-                                113 : []}
+excluded_channels[4][0.40] = {  112 : [11, 33],
+                                113 : [0, 2, 7]}
 
-excluded_channels[4][0.45] = {  112 : [],
-                                113 : []}
+excluded_channels[4][0.45] = {  112 : [11],
+                                113 : [7]}
 
-excluded_channels[4][0.50] = {  112 : []}
+excluded_channels[4][0.50] = {  112 : [11, 22],
+                                113 : [2]}
