@@ -1,5 +1,6 @@
 from waffles.np04_analysis.LED_calibration.calibration_batches.batch_1.configurations import configs as batch_1
 from waffles.np04_analysis.LED_calibration.calibration_batches.batch_2.configurations import configs as batch_2
+from waffles.np04_analysis.LED_calibration.calibration_batches.batch_3.configurations import configs as batch_3
 
 run_to_config = {}  # run_to_config is a 5-levels nested dictionary where:
                     # - the first key level is an integer which labels a certain measurements batch
@@ -15,3 +16,4 @@ run_to_config = {}  # run_to_config is a 5-levels nested dictionary where:
 
 run_to_config[1] = batch_1
 run_to_config[2] = batch_2
+run_to_config[3] = batch_3
