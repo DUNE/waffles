@@ -2,9 +2,10 @@ from waffles.np04_analysis.LED_calibration.calibration_batches.batch_1.metadata 
 from waffles.np04_analysis.LED_calibration.calibration_batches.batch_2.metadata import metadata as batch_2
 from waffles.np04_analysis.LED_calibration.calibration_batches.batch_3.metadata import metadata as batch_3
 
-metadata = {}   # metadata is a dictionary of dictionaries
-                # - the first key level is an integer which labels a certain measurements batch
-                # - the values are metadata dictionaries for the given measurements batch
+# metadata is a dictionary of dictionaries
+# - the first key level is an integer which labels a certain measurements batch
+# - the values are metadata dictionaries for the given measurements batch
+metadata = {}
 
 # P.e. metadata[2] gives the metadata dictionary for the second measurements batch
 
