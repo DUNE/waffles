@@ -15,7 +15,7 @@ for apa in range(2, 5):
 configs[2][0.40] = {
     28481: (50, 20, 1400),
     28483: (50, 20, 1800),
-    # Cannot access data from this run, I am getting the follwing error:
+    # 2024/10/28: Cannot access data from this run:
     # Unable to open file /tmp/np04hd_raw_run028485_0000_dataflow0_datawriter_0_20240730T123701.hdf5 (File accessibility) File has been truncated
     # 28485: (50, 20, 2200),
     28486: (50, 20, 2800),
@@ -45,7 +45,9 @@ configs[2][0.50] = {
 
 configs[3][0.40] = {
     28361: (1, 1, 1400),
-    28362: (1, 1, 1600),
+    # 2024/10/29: Rucio is not able to find data for this run
+    # Details: Data identifier 'hd-protodune:hd-protodune_28362' not found
+    # 28362: (1, 1, 1600),
     28364: (1, 1, 1800),
     28365: (12, 1, 2000),
     28366: (12, 1, 2200),
@@ -62,7 +64,9 @@ configs[3][0.45] = {
 configs[3][0.50] = {
     28373: (1, 1, 1400),
     28374: (1, 1, 1600),
-    28375: (1, 1, 1800),
+    # 2024/10/29: Cannot access data from this run:
+    # Unable to open file /tmp/np04hd_raw_run028375_0000_dataflow0_datawriter_0_20240729T230744.hdf5 (File accessibility) File has been truncated
+    # 28375: (1, 1, 1800),
     28376: (12, 1, 2000),
     28377: (12, 1, 2200),
 }
