@@ -1,9 +1,10 @@
-configs = {}    # batch_N is a 4-levels nested dictionary where:
+# batch_N is a 4-levels nested dictionary where:
 # - the first key level is the APA number (1,2,3,4)
 # - the second key level is the PDE value (0.4, 0.45, 0.5)
 # - the third key level is the run number
 # - the fourth key level is the LED configuration
 #     - an LED configuration is a 3-tuple whose format is (channel_mask, ticks_width, pulse_bias_percent)
+configs = {}
 
 for apa in range(1, 5):
     configs[apa] = {}
