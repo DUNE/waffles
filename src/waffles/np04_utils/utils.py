@@ -1,12 +1,11 @@
-from waffles.data_classes.ChannelMap import ChannelMap
 
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import flat_APA_map
 from waffles.Exceptions import GenerateExceptionMessage
 
 def get_channel_iterator(   
-    apa_no: ChannelMap,
+    apa_no: int,
     endpoint: int,
-    channel: int):
+    channel: int) -> int:
     """
     This function returns the iterator value of the given
     channel in the flattened map of the specified APA.
