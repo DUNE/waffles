@@ -102,11 +102,11 @@ config_to_channels[2][0.40][(50, 20, 2200)] = {
     109: [21, 37, 35, 33, 34, 2, 4, 12]+\
 # Ideally one would calibrate these channels using data from (50, 20, 1800)
 # LED-config., but that data is not available in this particular case.
-    [40, 31, 5, 40, 43, 44, 46]
+    [40, 31, 5, 43, 44, 46]
 }
 
 config_to_channels[2][0.40][(50, 20, 2800)] = {
-    109: [27, 25, 23, 24, 26, 32, 36, 6]
+    109: [27, 25, 23, 24, 26, 32, 6]
 }
 
 config_to_channels[2][0.40][(50, 20, 3400)] = {
@@ -156,7 +156,7 @@ config_to_channels[2][0.50][(50, 20, 2200)] = {
 }
 
 config_to_channels[2][0.50][(50, 20, 2800)] = {
-    109: [6, 0, 36, 32, 30, 26, 24, 27, 25, 22, 20]
+    109: [6, 0, 36, 32, 30, 24, 27, 25]
 }
 
 config_to_channels[2][0.50][(50, 20, 3400)] = {
@@ -173,7 +173,7 @@ config_to_channels[3][0.40][(1 , 1, 1400)] = {
 }
 
 config_to_channels[3][0.40][(1 , 1, 1600)] = {
-    111: [10, 12, 14, 16, 20, 24, 26, 30, 32, 40, 41, 42, 43]
+    111: [10, 12, 14, 16, 24, 26, 30, 32, 40, 41, 42, 43]
 }
 
 config_to_channels[3][0.40][(1 , 1, 1800)] = {
@@ -299,7 +299,7 @@ config_to_channels[4][0.50][(1 , 1, 1800)] = {
     112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 13, 11, 26, 36, 40, 42]+\
 # Ideally one would calibrate these channels using data from (1, 1, 1600)
 # LED-config., but that data is not available in this particular case.
-    [14, 16, 30, 34, 20, 47, 45, 24, 32],
+    [14, 16, 30, 34, 20, 47, 45, 24],
     113: [7]+\
 # Ideally one would calibrate these channels using data from (1, 1, 1600)
 # LED-config., but that data is not available in this particular case.
