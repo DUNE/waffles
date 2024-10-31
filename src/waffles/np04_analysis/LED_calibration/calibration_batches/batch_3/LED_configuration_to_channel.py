@@ -22,25 +22,39 @@ config_to_channels[2][0.40][(50, 20, 1400)] = {
 }
 
 config_to_channels[2][0.40][(50, 20, 1800)] = {
-109: [31, 5, 42, 40, 41, 43, 44, 46]
+109: [31, 5, 42, 40, 41, 43, 44, 46]+\
+# Ideally one would calibrate these channels using data from (50, 20, 2200)
+# LED-config., but that data is not available in this particular case.
+    [21, 37, 33, 4, 12]
 }
 
-# This data is not available in this particular case
 # config_to_channels[2][0.40][(50, 20, 2200)] = {
 #     109: [21, 37, 35, 33, 34, 2, 4, 12]
 # }
+# This data (APA 2, PDE 0.40, using (50, 20, 2200) LED-config.) was acquired during run 28485
+# 2024/10/28: Cannot access data from this run
 
 config_to_channels[2][0.40][(50, 20, 2800)] = {
-    109: [27, 25, 23, 24, 26, 32, 36, 6]
+    109: [27, 25, 23, 24, 26, 32, 6]+\
+# Ideally one would calibrate these channels using data from (50, 20, 2200)
+# LED-config., but that data is not available in this particular case.
+    [35, 34, 2]+\
+# Ideally one would calibrate these channels using data from (50, 20, 3400)
+# LED-config., but that data is not available in this particular case.
+    [36, 0]
 }
 
-# This data is not available in this particular case
 # config_to_channels[2][0.40][(50, 20, 3400)] = {
 #     109: [22, 30, 36, 0]
 # }
+# This data (APA 2, PDE 0.40, using (50, 20, 3400) LED-config.) was acquired during run 28487
+# 2024/10/28: Cannot access data from this run
 
 config_to_channels[2][0.40][(50, 20, 4000)] = {
-    109: [20]
+    109: [20]+\
+# Ideally one would calibrate these channels using data from (50, 20, 3400)
+# LED-config., but that data is not available in this particular case.
+    [22, 30]
 }
 
 
@@ -82,7 +96,7 @@ config_to_channels[2][0.50][(50, 20, 2200)] = {
 }
 
 config_to_channels[2][0.50][(50, 20, 2800)] = {
-    109: [6, 0, 36, 32, 30, 26, 24, 27, 25, 22, 20]
+    109: [6, 0, 36, 32, 30, 24, 27, 25]
 }
 
 config_to_channels[2][0.50][(50, 20, 3400)] = {
@@ -95,16 +109,23 @@ config_to_channels[2][0.50][(50, 20, 4000)] = {
 
 
 config_to_channels[3][0.40][(1 , 1, 1400)] = {
-    111: [11, 13, 15, 17, 21, 23, 44, 45, 46, 47]
+    111: [11, 13, 15, 17, 21, 23, 44, 45, 46, 47]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+    [14]
 }
 
-# This data is not available in this particular case
 # config_to_channels[3][0.40][(1 , 1, 1600)] = {
 #     111: [10, 12, 14, 16, 20, 24, 26, 30, 32, 40, 41, 42, 43]
 # }
+# This data (APA 3, PDE 0.40, using (1, 1, 1600) LED-config.) was acquired during run 28362
+# 2024/10/29: Rucio is not able to find data for this run
 
 config_to_channels[3][0.40][(1 , 1, 1800)] = {
-    111: [0, 2, 5, 7, 31, 33, 34, 35, 37]
+    111: [0, 2, 5, 7, 31, 33, 34, 35, 37]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+    [10, 12, 16, 24, 26, 30, 32, 40, 41, 42, 43]
 }
 
 config_to_channels[3][0.40][(12, 1, 2000)] = {
@@ -142,16 +163,23 @@ config_to_channels[3][0.50][(1 , 1, 1400)] = {
 }
 
 config_to_channels[3][0.50][(1 , 1, 1600)] = {
-111: [32, 30, 41, 43, 16, 14, 12, 40, 42, 26, 24]
+    111: [32, 30, 41, 43, 16, 14, 12, 40, 42, 26, 24]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1800)
+# LED-config., but that data is not available in this particular case.
+    [34, 31, 2, 5, 7, 37, 35, 10]
 }
 
-# This data is not available in this particular case
 # config_to_channels[3][0.50][(1 , 1, 1800)] = {
 #     111: [34, 33, 31, 36, 0, 2, 5, 7, 37, 35, 10, 27, 25]
 # }
+# This data (APA 3, PDE 0.50, using (1, 1, 1800) LED-config.) was acquired during run 28375
+# 2024/10/29: Cannot access data from this run
 
 config_to_channels[3][0.50][(12, 1, 2000)] = {
-    111: [6, 22, 20]
+    111: [6, 22, 20]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1800)
+# LED-config., but that data is not available in this particular case.
+    [36, 33, 0, 27, 25]
 }
 
 config_to_channels[3][0.50][(12, 1, 2200)] = {
@@ -164,14 +192,22 @@ config_to_channels[4][0.40][(1, 1, 1400)] = {
     113: [0],
 }
 
-# This data is not available in this particular case
 # config_to_channels[4][0.40][(1, 1, 1600)] = {
 #     112: [16, 22, 20, 24, 32, 33, 34, 47, 45],
 #     113: [2, 5, 7],
 # }
+# This data (APA 4, PDE 0.40, using (1, 1, 1600) LED-config.) was acquired during run 28362
+# 2024/10/29: Rucio is not able to find data for this run
 
 config_to_channels[4][0.40][(1, 1, 1800)] = {
-    112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 14, 13, 11, 26, 30, 36, 40, 42]
+    112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 14, 13, 11, 26, 30, 36, 40, 42]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+        [16, 22, 20, 24, 32, 33, 34, 47, 45],
+    113: []+\
+# Ideally one would calibrate these channels using data from (1, 1, 1600)
+# LED-config., but that data is not available in this particular case.
+        [2, 5, 7]
 }
 
 config_to_channels[4][0.40][(12, 1, 2000)] = {}  # Not used
@@ -205,15 +241,22 @@ config_to_channels[4][0.50][(1 , 1, 1400)] = {
 }
 
 config_to_channels[4][0.50][(1 , 1, 1600)] = {
-112: [16, 14, 22, 20, 24, 32, 30, 33, 34, 47, 45],
-113: [2, 5]
+    112: [16, 14, 22, 20, 24, 32, 30, 33, 34, 47, 45]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1800)
+# LED-config., but that data is not available in this particular case.
+    [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 13, 11, 26, 36, 40, 42],
+    113: [2, 5]+\
+# Ideally one would calibrate these channels using data from (1, 1, 1800)
+# LED-config., but that data is not available in this particular case.
+    [7],
 }
 
-# This data is not available in this particular case
 # config_to_channels[4][0.50][(1 , 1, 1800)] = {
 #     112: [0, 2, 5, 7, 1, 3, 4, 6, 10, 12, 15, 17, 13, 11, 26, 36, 40, 42],
 #     113: [7]
 # }
+# This data (APA 4, PDE 0.50, using (1, 1, 1800) LED-config.) was acquired during run 28375
+# 2024/10/29: Cannot access data from this run
 
 config_to_channels[4][0.50][(12, 1, 2000)] = {} # Not used
 
