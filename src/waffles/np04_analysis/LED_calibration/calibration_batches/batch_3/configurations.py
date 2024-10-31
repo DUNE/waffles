@@ -20,7 +20,7 @@ configs[2][0.40] = {
     # Unable to open file /tmp/np04hd_raw_run028485_0000_dataflow0_datawriter_0_20240730T123701.hdf5 (File accessibility) File has been truncated
     # 28485: (50, 20, 2200),
     28486: (50, 20, 2800),
-    # Cannot access data from this run:
+    # 2024/10/28: Cannot access data from this run:
     # The first chunk apparently contains no waveform. Inspection of further chunk is needed.
     # 28487: (50, 20, 3400),
     28488: (50, 20, 4000),
