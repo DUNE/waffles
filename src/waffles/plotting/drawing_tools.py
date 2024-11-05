@@ -23,45 +23,30 @@ from waffles.data_classes.Waveform import Waveform
 fig = go.Figure()
 line_color = 'black'
 
-###########################
 def help(cls: str = None):
-
-    funcs=[]
-        
-    funcs.append(['plot','plot waveforms for a single waveform, list of waveforms or WaveformSet'])
-    funcs.append(['plot_hm','plot heat map for a WaveformSet'])
-    funcs.append(['plot_charge','plot charge histogram for a WaveformSet'])
-    funcs.append(['plot_charge_peaks','plot charge histogram peaks given a charge histogram'])
-    funcs.append(['plot_avg', 'plot average waveform for a WaveformSet'])
-    funcs.append(['plot_to','plot time offset (timestamp-daq_timestamp) for a WaveformSet']) 
- 
-    funcs.append(['plot_spe_mean_vs_var','plot the s.p.e. mean (charge or amplitude) vs a given '+ 
-                 'variable provided different WaveformSets with various settings (e.g overvoltage)'])
-    funcs.append(['plot_sn_vs_var','plot the signal to noise vs a given '+ 
-                 'variable provided different WaveformSets with various settings (e.g overvoltage)'])
-    funcs.append(['plot_gain_vs_var','plot the gain vs a given '+ 
-                 'variable provided different WaveformSets with various settings (e.g overvoltage)'])
-
-    funcs.append(['plot_spe_mean_vs_channel','plot the s.p.e. mean (charge or amplitude) versus channel '+ 
-                 'provided a list of channels in a given endpoint'])
-
-    funcs.append(['get_wfs_with_variable_in_range', 'get all waveforms with a given variable in a given range'])
-    funcs.append(['get_wfs_in_channel', 'get all waveforms in a given endpoint and channel'])
-
-    funcs.append(['zoom','makes a zoom of the current figure'])    
-   
-
-    # print the list of commands and a summary of what they do
-    if cls==None:
-        print ('List of commands. Type draw.help(draw.X) to see the arguments of command X')
-        for i in funcs:
-            print (f'{i[0]:32}', i[1])
-    # pring the usage for a specific command
+    """Print available commands or specific help for a command."""
+    funcs = [
+        ['plot', 'plot waveforms for a single waveform, list of waveforms or WaveformSet'],
+        ['plot_hm', 'plot heat map for a WaveformSet'],
+        ['plot_charge', 'plot charge histogram for a WaveformSet'],
+        ['plot_charge_peaks', 'plot charge histogram peaks given a charge histogram'],
+        ['plot_avg', 'plot average waveform for a WaveformSet'],
+        ['plot_to', 'plot time offset (timestamp-daq_timestamp) for a WaveformSet'],
+        ['plot_spe_mean_vs_var', 'plot s.p.e. mean vs variable for various WaveformSets'],
+        ['plot_sn_vs_var', 'plot signal to noise ratio vs variable for various WaveformSets'],
+        ['plot_gain_vs_var', 'plot gain vs variable for various WaveformSets'],
+        ['plot_spe_mean_vs_channel', 'plot s.p.e. mean vs channel for endpoint']
+    ]
+    
+    if cls is None:
+        print("List of commands. Type draw.help(draw.X) to see the arguments of command X")
+        for func in funcs:
+            print(f"{func[0]:32} {func[1]}")
     else:
-        for i in funcs:
-            if cls.__qualname__ == i[0]:
-                print (f'{i[0]:32}', i[1])
-        print(inspect.signature(cls)) 
+        for func in funcs:
+            if cls.__qualname__ == func[0]:
+                print(f"{func[0]:32} {func[1]}")
+        print(inspect.signature(cls))
     
 
 ###########################
