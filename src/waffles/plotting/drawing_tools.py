@@ -81,43 +81,33 @@ def plot_to(wset: WaveformSet, ep: int = -1, ch: int = -1, nwfs: int = -1,
     fig.update_layout(xaxis_title="time offset", yaxis_title="entries")
     write_image(fig)
 
-###########################
-def plot_hm(object,
-            ep: int = -1, 
-            ch: int = -1,
-            nx:   int = 100, 
-            xmin: int = 0, 
-            xmax: int = 1024, 
-            ny:   int = 100, 
-            ymin: int = 0, 
-            ymax: int = 15000, 
-            nwfs: int = -1,
-            variable = 'integral', 
-            op: str = '',
-            vmin: float = None,
-            vmax: float = None,
-            show: bool = True,             
-            bar : bool = False):
- 
+def plot_hm(object, ep: int = -1, ch: int = -1, nx: int = 100, xmin: int = 0,
+            xmax: int = 1024, ny: int = 100, ymin: int = 0, ymax: int = 15000,
+            nwfs: int = -1, variable='integral', op: str = '', vmin: float = None,
+            vmax: float = None, show: bool = True, bar: bool = False):
+    """Plot heatmap for waveforms in a specified range."""
     global fig
-    if not has_option(op,'same'):
-        fig=go.Figure()    
+    if not has_option(op, 'same'):
+        fig = go.Figure()
 
-    # get the waveforms in the specific ep and ch
-    wset = get_wfs_in_channel(object,ep,ch)
+    wset = get_wfs_in_channel(object, ep, ch)
+    if vmin is not None:
+        wset = get_wfs_with_variable_in_range(wset, vmin, vmax, variable)
 
-    # get the waveforms with variable in range [vmin,vmax]
-    if vmin != None:
-        wset=get_wfs_with_variable_in_range(wset,vmin,vmax,variable)
-
-    # get the heatmap plot
-    ranges = np.array ([[xmin,xmax],[ymin,ymax]])
-    fig = __subplot_heatmap_ans(wset,fig,"name",nx,ny,ranges,show_color_bar=bar)
-
-    # add axes titles
+    ranges = np.array([[xmin, xmax], [ymin, ymax]])
+    fig = __subplot_heatmap_ans(wset, fig, "name", nx, ny, ranges, show_color_bar=bar)
     fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
-
     write_image(fig)
+
+
+def write_image(fig: go.Figure) -> None:
+    """Save or display the figure based on plotting mode."""
+    if plotting_mode == 'html':
+        pio.write_html(fig, file=html_file_path, auto_open=True)
+    elif plotting_mode == 'png':
+        pio.write_image(fig, file=png_file_path, format='png')
+    else:
+        print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
 
 ###########################
 def plot(object,                   
@@ -435,14 +425,7 @@ def zoom(xmin: float = -999,
         fig.update_layout(yaxis_range=[ymin,ymax])
     write_image(fig)
 
-###########################
-def write_image(fig: go.Figure()):                    
-    if plotting_mode == 'html':        
-        pio.write_html(fig, file=html_file_path, auto_open=True)
-    elif plotting_mode == 'png':  
-        pio.write_image(fig, file=png_file_path, format='png')  
-    else:
-        print ('unknown plotting mode ', plotting_mode, ' it should be png or html !!!')
+
 
 ###########################
 def __subplot_heatmap_ans(  waveform_set : WaveformSet, 
