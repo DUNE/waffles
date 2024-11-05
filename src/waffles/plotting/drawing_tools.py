@@ -49,23 +49,21 @@ def help(cls: str = None):
         print(inspect.signature(cls))
     
 
-###########################
-def read(filename, 
-         start_fraction: float = 0, 
-         stop_fraction: float = 1,
-         read_full_streaming_data: bool = False,
-         truncate_wfs_to_minimum: bool = False,
-         set_offset_wrt_daq_window : bool = False):
-    
-    print ('reading file ', filename, '...')
-
-    wset=reader.WaveformSet_from_root_file(filename,library='pyroot',start_fraction=start_fraction, stop_fraction=stop_fraction,
-                                           read_full_streaming_data=read_full_streaming_data,
-                                           truncate_wfs_to_minimum=truncate_wfs_to_minimum,
-                                           set_offset_wrt_daq_window=set_offset_wrt_daq_window)
-
-    print ('done !!!')
-
+def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
+         read_full_streaming_data: bool = False, truncate_wfs_to_minimum: bool = False,
+         set_offset_wrt_daq_window: bool = False) -> WaveformSet:
+    """Read waveform data from file."""
+    print(f"Reading file {filename}...")
+    wset = reader.WaveformSet_from_root_file(
+        filename,
+        library='pyroot',
+        start_fraction=start_fraction,
+        stop_fraction=stop_fraction,
+        read_full_streaming_data=read_full_streaming_data,
+        truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+        set_offset_wrt_daq_window=set_offset_wrt_daq_window
+    )
+    print("Done!")
     return wset
 
 ###########################
