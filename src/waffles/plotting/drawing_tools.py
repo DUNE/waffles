@@ -1,31 +1,27 @@
-import plotly.graph_objs as go
-from plotly import graph_objects as pgo
-import plotly.io as pio
-import numpy as np
-import inspect 
+import inspect
 import importlib
 from math import sqrt
 
-# import waffles utils
+import numpy as np
+import plotly.graph_objs as go
+from plotly import graph_objects as pgo
+import plotly.io as pio
+
 import waffles.utils.wf_maps_utils as wmu
 from waffles.plotting.plot import *
 import waffles.input.raw_root_reader as reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 
-# import waffles data classes
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 
-#plotting_mode = 'html'
-#plotting_mode = 'png'
-
-# define a global figure
-fig=go.Figure()
-line_color='black'
+# Global plotting settings
+fig = go.Figure()
+line_color = 'black'
 
 ###########################
 def help(cls: str = None):
