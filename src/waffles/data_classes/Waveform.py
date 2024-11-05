@@ -15,6 +15,9 @@ class Waveform(WaveformAdcs):
     timestamp : int
         The timestamp value for this Waveform
     time_step_ns : float (inherited from WaveformAdcs)
+    daq_window_timestamp : int
+        The timestamp value for the DAQ window in which
+        this Waveform was acquired
     adcs : unidimensional numpy array of integers
     (inherited from WaveformAdcs)
     run_number : int
@@ -41,6 +44,7 @@ class Waveform(WaveformAdcs):
         self, 
         timestamp: int,
         time_step_ns: float,
+        daq_window_timestamp: int,
         adcs: np.ndarray,
         run_number: int,
         record_number: int,
@@ -56,6 +60,7 @@ class Waveform(WaveformAdcs):
         time_step_ns : float
             It is given to the 'time_step_ns' parameter of
             the base class initializer.
+        daq_window_timestamp : int
         adcs : unidimensional numpy array of integers
             It is given to the 'adcs' parameter of the base
             class initializer.
@@ -73,6 +78,7 @@ class Waveform(WaveformAdcs):
         # Shall we add add type checks here?
 
         self.__timestamp = timestamp
+        self.__daq_window_timestamp = daq_window_timestamp
         self.__run_number = run_number
         self.__record_number = record_number
         self.__endpoint = endpoint
@@ -89,6 +95,10 @@ class Waveform(WaveformAdcs):
     @property
     def timestamp(self):
         return self.__timestamp
+    
+    @property
+    def daq_window_timestamp(self):
+        return self.__daq_window_timestamp
 
     @property
     def run_number(self):

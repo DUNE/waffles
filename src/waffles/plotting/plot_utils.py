@@ -493,7 +493,7 @@ def __add_unique_channels_top_annotations(
                 aux = list(ChannelWs.runs)
 
                 if len(aux) > 1:
-                    annotation = f"runs {aux[0]}, ..."
+                    annotation = f"Runs {aux[0]}, ..."
                 else:
                     annotation = f"Run {aux[0]}"
 

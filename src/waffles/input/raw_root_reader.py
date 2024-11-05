@@ -271,21 +271,22 @@ def WaveformSet_from_root_file(
             - 'ticks_to_nsec' 
             
         from which the values for the Waveform objects attributes 
-        RunNumber and TimeStep_ns will be taken respectively.
-            The bulk data TTree must have at least five branches,
+        run_number and time_step_ns will be taken respectively.
+            The bulk data TTree must have at least six branches,
         whose names should start with
 
             - 'adcs'
             - 'channel'
             - 'timestamp'
+            - 'daq_timestamp'
             - 'record'
             - 'is_fullstream'
 
         from which the values for the Waveform objects attributes
-        Adcs, Channel, Timestamp and RecordNumber will be taken 
-        respectively. The 'is_fullstream' branch is used to 
-        decide whether a certain waveform should be grabbed 
-        or not, depending on the value given to the
+        adcs, channel, timestamp, daq_window_timestamp, and 
+        record_number will be taken respectively. The 'is_fullstream' 
+        branch is used to decide whether a certain waveform should 
+        be grabbed or not, depending on the value given to the
         'read_full_streaming_data' parameter.
     library: str
         The library to be used to read the input ROOT file. 
@@ -303,15 +304,13 @@ def WaveformSet_from_root_file(
             - 'adcs'            : vector<short>
             - 'channel'         : 'S', i.e. a 16 bit signed integer
             - 'timestamp'       : 'l', i.e. a 64 bit unsigned integer
+            - 'daq_timestamp'   : 'l', i.e. a 64 bit unsigned integer
             - 'record'          : 'i', i.e. a 32 bit unsigned integer
             - 'is_fullstream'   : 'O', i.e. a boolean
 
-        Additionally, if set_offset_wrt_daq_window is True,
-        then the 'daq_timestamp' branch must be of type 'l',
-        i.e. a 64 bit unsigned integer. Type checks are not
-        implemented here. If these requirements are not met,
-        the read data may be corrupted or a a segmentation 
-        fault may occur in the reading process.
+        Type checks are not implemented here. If these 
+        requirements are not met, the read data may be corrupted 
+        or a segmentation fault may occur in the reading process.
     bulk_data_tree_name (resp. meta_data_tree_name): str
         Name of the bulk-data (meta-data) tree which will be 
         extracted from the given ROOT file. The first object 
@@ -320,10 +319,8 @@ def WaveformSet_from_root_file(
         will be identified as the bulk-data (resp. meta-data) 
         tree.
     set_offset_wrt_daq_window: bool
-        If True, then the bulk data tree must also have a
-        branch whose name starts with 'daq_timestamp'. In
-        this case, then the TimeOffset attribute of each
-        waveform is set as the difference between its
+        If True, then the time_offset attribute of each
+        waveform is set to the difference between its
         value for the 'timestamp' branch and the value
         for the 'daq_timestamp' branch, in such order,
         referenced to the minimum value of such difference
@@ -333,8 +330,7 @@ def WaveformSet_from_root_file(
         that the time overlap of every waveform is not 
         null, otherwise an exception will be eventually
         raised by the WaveformSet initializer. If False, 
-        then the 'daq_timestamp' branch is not queried 
-        and the TimeOffset attribute of each waveform 
+        then the time_offset attribute of each waveform 
         is set to 0.
     read_full_streaming_data: bool
         If True (resp. False), then only the waveforms for which 
@@ -480,7 +476,7 @@ def WaveformSet_from_root_file(
         
     if truncate_wfs_to_minimum:
                 
-        minimum_length = np.array([len(wf.Adcs) for wf in waveforms]).min()
+        minimum_length = np.array([len(wf.adcs) for wf in waveforms]).min()
 
         for wf in waveforms:
             wf._WaveformAdcs__truncate_adcs(minimum_length)

@@ -171,6 +171,7 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
 
 def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 read_full_streaming_data : bool = False,
+                                truncate_wfs_to_minimum : bool = False,
                                 folderpath : Optional[str] = None,
                                 nrecord_start_fraction : float = 0.0,
                                 nrecord_stop_fraction : float = 1.0,
@@ -190,6 +191,17 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
         If True (resp. False), then only the waveforms for which
         the 'is_fullstream' parameter in the fragment has a
         value equal to True (resp. False) will be considered.
+    truncate_wfs_to_minimum: bool
+        If True, then the waveforms will be truncated to
+        the minimum length among all the waveforms in the input 
+        file before being handled to the WaveformSet class 
+        initializer. If False, then the waveforms will be 
+        read and handled to the WaveformSet initializer as 
+        they are. Note that WaveformSet.__init__() will raise 
+        an exception if the given waveforms are not homogeneous 
+        in length, so this parameter should be set to False 
+        only if the user is sure that all the waveforms in 
+        the input file have the same length.
     folderpath : str
         If given, then the value given to the 'filepath_list'
         parameter is ignored, and the list of filepaths to be
@@ -230,7 +242,17 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
     created=False
     for filepath in filepath_list:
         try:
-            aux = WaveformSet_from_hdf5_file(filepath, read_full_streaming_data, nrecord_start_fraction, nrecord_stop_fraction, subsample, wvfm_count, allowed_endpoints)
+            aux = WaveformSet_from_hdf5_file(
+                filepath,
+                read_full_streaming_data,
+                truncate_wfs_to_minimum,
+                nrecord_start_fraction,
+                nrecord_stop_fraction,
+                subsample,
+                wvfm_count,
+                allowed_endpoints,
+            )
+
         except Exception as error:
             print(error, "\n")
             print('Error reading file...')
@@ -245,6 +267,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
 
 def WaveformSet_from_hdf5_file(filepath : str, 
                                read_full_streaming_data : bool = False,
+                               truncate_wfs_to_minimum : bool = False,
                                nrecord_start_fraction : float = 0.0,
                                nrecord_stop_fraction : float = 1.0,
                                subsample : int = 1,
@@ -262,6 +285,17 @@ def WaveformSet_from_hdf5_file(filepath : str,
         If True (resp. False), then only the waveforms for which
         the 'is_fullstream' parameter in the fragment has a
         value equal to True (resp. False) will be considered.
+    truncate_wfs_to_minimum: bool
+        If True, then the waveforms will be truncated to
+        the minimum length among all the waveforms in the input 
+        file before being handled to the WaveformSet class 
+        initializer. If False, then the waveforms will be 
+        read and handled to the WaveformSet initializer as 
+        they are. Note that WaveformSet.__init__() will raise 
+        an exception if the given waveforms are not homogeneous 
+        in length, so this parameter should be set to False 
+        only if the user is sure that all the waveforms in 
+        the input file have the same length.
     nrecord_start_fraction : float
         Used to select at which record to start reading.
         In particular floor(nrecord_start_fraction*(total records)) is the first record.
@@ -362,6 +396,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                     if not wvfm_index % subsample:
                         waveforms.append(Waveform(timestamps_frag[index],
                                                   16.,    # time_step_ns
+                                                  0,
                                                   np.array(adcs),
                                                   run_numb,
                                                   r[0],
@@ -370,6 +405,25 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                                   time_offset=0))
                     wvfm_index += 1
                     if wvfm_index >= wvfm_count:
+
+                        if truncate_wfs_to_minimum:
+                            minimum_length = np.array(
+                                [len(wf.adcs) for wf in waveforms]
+                            ).min()
+
+                            for wf in waveforms:
+                                wf._WaveformAdcs__truncate_adcs(
+                                    minimum_length)
+
                         return WaveformSet(*waveforms)
+                    
+    if truncate_wfs_to_minimum:
+        minimum_length = np.array(
+            [len(wf.adcs) for wf in waveforms]
+        ).min()
+
+        for wf in waveforms:
+            wf._WaveformAdcs__truncate_adcs(
+                minimum_length)
 
     return WaveformSet(*waveforms)

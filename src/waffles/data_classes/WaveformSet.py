@@ -3,7 +3,7 @@ import copy
 
 import numpy as np
 from tqdm import tqdm
-from typing import Tuple, List, Dict, Callable, Optional
+from typing import List, Dict, Callable, Optional
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WfAna import WfAna
