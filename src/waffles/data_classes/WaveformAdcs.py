@@ -131,7 +131,7 @@ class WaveformAdcs:
                                                         f"The given time offset ({input}) must belong to the [0, {len(self.__adcs)-2}] interval."))
         else:
             self.__time_offset2 = input
-            self.__time_offset = input # 0 for ST, input for FS
+            self.__time_offset = 0 # 0 for ST, input for FS
 
         return
 

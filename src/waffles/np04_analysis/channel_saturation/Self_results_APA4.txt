@@ -1,0 +1,179 @@
+Endpoint 112 Channel: 7
+Number of selected waveforms: 17
+[7953, 8016, 7984, 7859, 7983, 7991, 7887, 7167, 8017, 8017, 7994, 8001, 8016, 8018, 8009, 7988, 7994]
+
+
+Channel: 5
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 112 Channel: 2
+Number of selected waveforms: 15
+[7774, 7800, 7901, 8010, 7938, 7763, 7970, 7878, 8006, 7932, 8013, 7928, 7813, 7945, 8025]
+
+
+Endpoint 112 Channel: 0
+Number of selected waveforms: 25
+[7740, 8008, 7297, 8013, 7879, 7975, 7933, 7988, 8015, 8013, 7783, 7917, 7968, 7978, 7834, 8026, 8033, 8042, 8007, 7904, 8036, 8005, 8015, 8033, 7937]
+
+
+Endpoint 112 Channel: 6
+Number of selected waveforms: 20
+[8006, 8026, 7810, 7739, 8016, 7889, 7984, 7621, 8020, 8023, 7949, 8032, 7942, 7994, 7889, 7961, 7803, 7911, 7990, 7996]
+
+
+Endpoint 112 Channel: 4
+Number of selected waveforms: 20
+[7987, 8018, 7897, 7959, 7964, 8002, 8025, 7648, 8019, 8004, 7989, 7657, 8011, 8048, 7798, 7828, 8017, 7886, 8025, 7869]
+
+
+Endpoint 112 Channel: 3
+Number of selected waveforms: 24
+[7811, 7713, 7980, 7843, 7835, 7996, 8012, 7863, 7896, 7959, 8013, 7980, 7970, 7539, 7927, 7962, 7780, 8001, 7947, 8015, 7927, 7984, 6424, 7895]
+
+
+Channel: 1
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 17
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 15
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 112 Channel: 12
+Number of selected waveforms: 9
+[7979, 8009, 8007, 7999, 7922, 7892, 7974, 8026, 7958]
+
+
+Channel: 10
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 112 Channel: 16
+Number of selected waveforms: 10
+[7932, 8019, 7958, 7825, 7893, 8018, 7805, 8025, 7792, 8039]
+
+
+Channel: 14
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 112 Channel: 13
+Number of selected waveforms: 3
+[7616, 7938, 7954]
+
+
+Endpoint 112 Channel: 11
+Number of selected waveforms: 4
+[8025, 7952, 7876, 7812]
+
+
+Channel: 27
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 112 Channel: 25
+Number of selected waveforms: 17
+[8016, 8042, 8018, 8031, 7997, 7975, 8013, 7981, 7969, 8037, 7767, 8011, 7919, 7733, 7975, 7785, 7812]
+
+
+Endpoint 112 Channel: 22
+Number of selected waveforms: 8
+[8035, 8014, 8035, 8024, 7996, 7984, 7651, 7717]
+
+
+Channel: 20
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 26
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 24
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 23
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 21
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 37
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 35
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 32
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 112 Channel: 30
+Number of selected waveforms: 4
+[7589, 8015, 8021, 7811]
+
+
+Channel: 36
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 34
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 33
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 31
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 112 Channel: 47
+Number of selected waveforms: 15
+[7874, 8016, 7991, 8026, 7988, 7832, 7862, 8029, 8001, 8030, 7999, 8020, 7990, 8020, 8018]
+
+
+Endpoint 112 Channel: 45
+Number of selected waveforms: 12
+[7937, 8040, 7939, 8032, 7996, 8017, 8023, 8002, 7977, 7962, 7752, 8026]
+
+
+Channel: 42
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 40
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 113 Channel: 7
+Number of selected waveforms: 13
+[8051, 8071, 8049, 8055, 8092, 7831, 8066, 8062, 8043, 8075, 8069, 7681, 8037]
+
+
+Endpoint 113 Channel: 5
+Number of selected waveforms: 18
+[8074, 7985, 8007, 8083, 8067, 8076, 8078, 8054, 8060, 8091, 8073, 8009, 8071, 8063, 8084, 8087, 8037, 7765]
+
+
+Endpoint 113 Channel: 2
+Number of selected waveforms: 22
+[7902, 8073, 8089, 7893, 8051, 8061, 8040, 8055, 8079, 8067, 8074, 8089, 8035, 8082, 8068, 7986, 7881, 8051, 7931, 7979, 7331, 7985]
+
+
+Endpoint 113 Channel: 0
+Number of selected waveforms: 28
+[8093, 8066, 8021, 8015, 7971, 7977, 8082, 8065, 7628, 7923, 8080, 8086, 7815, 8079, 8089, 7912, 8057, 8067, 8101, 8046, 8043, 8052, 8072, 8065, 8000, 8031, 7918, 7937]
+
+

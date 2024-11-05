@@ -1,0 +1,175 @@
+Channel: 1
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 3
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 4
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 6
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 0
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 2
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 5
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 7
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 11
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 13
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 14
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 16
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 10
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 12
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 15
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 17
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 21
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 23
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 24
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 26
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 20
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 22
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 25
+ Number of selected waveforms: 0
+Skipped
+
+Channel: 27
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 111 Channel: 31
+Number of selected waveforms: 22
+[7955, 7974, 7809, 8019, 7303, 7886, 8018, 7981, 7532, 8009, 7946, 8022, 7923, 7940, 7918, 7957, 6028, 7914, 7989, 7922, 7702, 7823]
+
+
+Endpoint 111 Channel: 33
+Number of selected waveforms: 30
+[7311, 7907, 7734, 7527, 8025, 7834, 7972, 7996, 7963, 7914, 7890, 7964, 8030, 7812, 7941, 7894, 8026, 7697, 7989, 7947, 8028, 7887, 7743, 7830, 7845, 7988, 8029, 7857, 8026, 8015]
+
+
+Endpoint 111 Channel: 34
+Number of selected waveforms: 26
+[7991, 8011, 7968, 7914, 7742, 7718, 7656, 8004, 8006, 7990, 7485, 7930, 7957, 7960, 8026, 7992, 7938, 0, 8010, 8046, 8039, 7897, 8043, 7966, 7936, 7824]
+1 saturated waveforms
+
+Endpoint 111 Channel: 36
+Number of selected waveforms: 15
+[7789, 7953, 7574, 7750, 7952, 8015, 7956, 7968, 5898, 7978, 7768, 7729, 7987, 7635, 8013]
+
+
+Endpoint 111 Channel: 30
+Number of selected waveforms: 50
+[8021, 7962, 7961, 7937, 8008, 7979, 7760, 7989, 7891, 8030, 7748, 7878, 7791, 7828, 7932, 7930, 7999, 7149, 7938, 7863, 6933, 8001, 7953, 7905, 7910, 7879, 7940, 7959, 8003, 7902, 7476, 7942, 7895, 7869, 7794, 7072, 7986, 7646, 7734, 8002, 7930, 7997, 7976, 7259, 7660, 8016, 7994, 7861, 7904, 6955]
+
+
+Endpoint 111 Channel: 32
+Number of selected waveforms: 34
+[8010, 7795, 7951, 7874, 7897, 7971, 7952, 7755, 7986, 7951, 7740, 7727, 7973, 7992, 7946, 8009, 7892, 8009, 7824, 7748, 7136, 7978, 7918, 7910, 7985, 7874, 8009, 8028, 7830, 7998, 7983, 8045, 8017, 8027]
+
+
+Endpoint 111 Channel: 35
+Number of selected waveforms: 32
+[7611, 7925, 7801, 7992, 7949, 8048, 8082, 7639, 8023, 7906, 7493, 8020, 8041, 7782, 7746, 7927, 7750, 7988, 8036, 7977, 8037, 7966, 7960, 7782, 7890, 8048, 7966, 8011, 8005, 8018, 8052, 7865]
+
+
+Endpoint 111 Channel: 37
+Number of selected waveforms: 18
+[8008, 8041, 7994, 8030, 8003, 8043, 7931, 7985, 8017, 7993, 8028, 7869, 8035, 8048, 8036, 7947, 7929, 7990]
+
+
+Endpoint 111 Channel: 41
+Number of selected waveforms: 26
+[7918, 7859, 7847, 7877, 7929, 7911, 7943, 7955, 7961, 7822, 8006, 7966, 7958, 7690, 7982, 7856, 7965, 8008, 7966, 7804, 7681, 7716, 7979, 7976, 7950, 7990]
+
+
+Endpoint 111 Channel: 43
+Number of selected waveforms: 14
+[7899, 7946, 7891, 8019, 7933, 8007, 8039, 7885, 7965, 8003, 7982, 7996, 8005, 8039]
+
+
+Endpoint 111 Channel: 44
+Number of selected waveforms: 28
+[8007, 7914, 7961, 7996, 8029, 7694, 7915, 7912, 7986, 7888, 7674, 7858, 7927, 8022, 7938, 8022, 8005, 7970, 7988, 7896, 7974, 7888, 7142, 8032, 8010, 8004, 8027, 7492]
+
+
+Endpoint 111 Channel: 46
+Number of selected waveforms: 33
+[7781, 7679, 7928, 7958, 7973, 7834, 7971, 7922, 7907, 7916, 7958, 7981, 7914, 7913, 7915, 7619, 7826, 7940, 7945, 7981, 7831, 7968, 7972, 7989, 7990, 7956, 7940, 7969, 7898, 7892, 7801, 7718, 7416]
+
+
+Endpoint 111 Channel: 40
+Number of selected waveforms: 18
+[7973, 7993, 7910, 7952, 7988, 7920, 8030, 8031, 7686, 7948, 8033, 8026, 7978, 8018, 8000, 7948, 7794, 7958]
+
+
+Endpoint 111 Channel: 42
+Number of selected waveforms: 11
+[7953, 7900, 7973, 7994, 8015, 7964, 8015, 7948, 8022, 7889, 7729]
+
+
+Channel: 45
+ Number of selected waveforms: 0
+Skipped
+
+Endpoint 111 Channel: 47
+Number of selected waveforms: 15
+[7973, 7982, 7670, 7886, 7939, 7968, 7709, 7925, 7825, 7852, 7758, 7934, 7809, 7962, 7619]
+
+

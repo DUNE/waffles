@@ -58,7 +58,7 @@ wfset = WaveformSet_from_ROOT_files( library = 'pyroot',
                                     read_full_streaming_data = False,
                                     truncate_wfs_to_minimum = False,
                                     start_fraction = 0.0,
-                                    stop_fraction = 1.0,
+                                    stop_fraction = 1,
                                     subsample = 1,
                                     verbose = True)
 
