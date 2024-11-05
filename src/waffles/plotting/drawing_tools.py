@@ -66,39 +66,19 @@ def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
     print("Done!")
     return wset
 
-###########################
-def plot_to(wset: WaveformSet,
-            ep: int = -1, 
-            ch: int = -1,
-            nwfs: int = -1,
-            op: str = '',
-            nbins: int = 100,
-            xmin: np.uint64 = None,
+def plot_to(wset: WaveformSet, ep: int = -1, ch: int = -1, nwfs: int = -1,
+            op: str = '', nbins: int = 100, xmin: np.uint64 = None,
             xmax: np.uint64 = None):
-
+    """Plot time offset histogram for a WaveformSet."""
     global fig
-    if not has_option(op,'same'):
-        fig=go.Figure()
-
-    # get the array of time offsets for a given endpoint and channel
-    n=0
-    times = []
-    for wf in wset.waveforms:
-        if (wf.endpoint==ep or ep==-1) and (wf.channel==ch or ch==-1):
-            n=n+1
-            times.append(wf._Waveform__timestamp-wf._Waveform__daq_window_timestamp)    
-        if n>=nwfs and nwfs!=-1:
-            break
-
-    # get the histogram with times 
-    histogram_trace = get_histogram(times,nbins,xmin,xmax)
-
-    # add it to the figure
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+    times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp
+             for wf in wset.waveforms
+             if (wf.endpoint == ep or ep == -1) and (wf.channel == ch or ch == -1)]
+    histogram_trace = get_histogram(times, nbins, xmin, xmax)
     fig.add_trace(histogram_trace)
-
-    # add axes titles
     fig.update_layout(xaxis_title="time offset", yaxis_title="entries")
-
     write_image(fig)
 
 ###########################
