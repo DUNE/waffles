@@ -10,7 +10,7 @@ draw.plotting_mode = 'png'
 draw.png_file_path = waffles_dir+'/temp_plot.png'
 
 # read the root file 
-wset=draw.read(waffles_dir+"/../DATA/run26687.root",0,0.01,set_offset_wrt_daq_window = True)
+wset=draw.read(waffles_dir+"/../DATA/run26687.root",0,1)
 
 # plot 10 wfs for endpoint 111 and channel 45
 draw.plot(wset,111,45,10)
@@ -76,7 +76,7 @@ from waffles.data_classes.Waveform import Waveform
 # example of general filtering method
 def filter_example(waveform: Waveform, allowed_channels) -> bool:
     # This condition could be whatever (use all Waveforms data members)
-    if waveform.Endpoint == 111 and waveform.Channel in allowed_channels:
+    if waveform.endpoint == 111 and waveform.channel in allowed_channels:
         return True
     else:
         return False
@@ -85,7 +85,7 @@ def filter_example(waveform: Waveform, allowed_channels) -> bool:
 wset_40_45 = wset.from_filtered_WaveformSet(wset, filter_example,[40,45])
 
 # print the endpoint of the first 10 waveforms
-a=[print( i, wset_40_45.Waveforms[i].Channel) for i in range(10)]
+a=[print( i, wset_40_45.waveforms[i].channel) for i in range(10)]
 
 input()
 # load calibration files for different overvoltages

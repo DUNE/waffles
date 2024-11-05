@@ -74,7 +74,7 @@ def read(filename,
          stop_fraction: float = 1,
          read_full_streaming_data: bool = False,
          truncate_wfs_to_minimum: bool = False,
-         set_offset_wrt_daq_window : bool = True):
+         set_offset_wrt_daq_window : bool = False):
     
     print ('reading file ', filename, '...')
 
@@ -107,7 +107,7 @@ def plot_to(wset: WaveformSet,
     for wf in wset.waveforms:
         if (wf.endpoint==ep or ep==-1) and (wf.channel==ch or ch==-1):
             n=n+1
-            times.append(wf._WaveformAdcs__time_offset2)    
+            times.append(wf._Waveform__timestamp-wf._Waveform__daq_window_timestamp)    
         if n>=nwfs and nwfs!=-1:
             break
 
@@ -392,7 +392,7 @@ def get_wfs_with_variable_in_range(wset:WaveformSet,
     wfs = []
     for w in wset.waveforms:
         if variable=='timeoffset':
-            var = w._WaveformAdcs__time_offset2
+            var = w._Waveform__timestamp-w._Waveform__daq_window_timestamp
         elif  variable == 'integral' or variable =='amplitude':
             var=w.get_analysis('standard').result[variable]
         else:
@@ -547,10 +547,7 @@ def plot_WaveformAdcs2( waveform_adcs : Waveform,
     if xmin!=-1 and xmax!=-1:
         x0 = np.arange(  xmin, xmax,
                         dtype = np.float32)
-        y0 = waveform_adcs.adcs[xmin:xmax]
-        print (xmin, xmax)
-        print(len(x0))
-        print(len(y0))        
+        y0 = waveform_adcs.adcs[xmin:xmax]    
     else:
         x0 = np.arange(  len(waveform_adcs.adcs),
                         dtype = np.float32)
@@ -560,7 +557,8 @@ def plot_WaveformAdcs2( waveform_adcs : Waveform,
 
 #    wf_trace = pgo.Scatter( x = x + waveform_adcs.time_offsetn,   ## If at some point we think x might match for
     if offset:
-        wf_trace = pgo.Scatter( x = x0 + waveform_adcs.timestamp-waveform_adcs.daq_window_timestamp,   ## If at some point we think x might match for
+        wf_trace = pgo.Scatter( x = x0 + np.float32(waveform_adcs.timestamp-waveform_adcs.daq_window_timestamp),   
+                                                                ## If at some point we think x might match for
                                                                 ## every waveform, in a certain WaveformSet 
                                                                 ## object, it might be more efficient to let
                                                                 ## the caller define it, so as not to recompute
