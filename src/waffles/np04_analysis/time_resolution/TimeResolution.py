@@ -1,20 +1,11 @@
 import waffles
 import numpy as np
 
-def allow_channel_wfs(waveform: waffles.Waveform, endpoint: int, channel: int) -> bool:
-    return waveform.endpoint == endpoint and waveform.channel == channel
+from TimeResolution_Utils import *
 
-def create_float_waveforms(waveforms: waffles.Waveform) -> None:
-    for wf in waveforms:
-        wf.adcs_float = wf.adcs.astype(np.float64)
 
-def sub_baseline_to_wfs(waveforms: waffles.Waveform, prepulse_ticks: int):
-    norm = 1./prepulse_ticks
-    for wf in waveforms:
-        baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
-        wf.adcs_float -= baseline
-        wf.adcs_float *= -1
-
+################################################################
+############## CLASS IMPLEMENTATION ############################
 class TimeResolution:
     def __init__(self,
                  wf_set: waffles.WaveformSet,
@@ -35,8 +26,8 @@ class TimeResolution:
         self.min_amplitude = min_amplitude
         self.max_amplitude = max_amplitude
         self.baseline_rms = baseline_rms
-        self.qq = qq
-        self.qq = qq
+        # self.qq = qq
+        # self.qq = qq
 
         self.ref_ep = ref_ep
         self.ref_ch = ref_ch
@@ -52,12 +43,12 @@ class TimeResolution:
 
     def create_ref_wfs(self) -> None:
         self.ref_wfs = self.create_wfs(self.ref_ep, self.ref_ch)
-        self.ref_wfs.adcs_float = create_float_waveforms(self.ref_wfs)
+        create_float_waveforms(self.ref_wfs)
         sub_baseline_to_wfs(self.ref_wfs, self.prepulse_ticks)
         
     def create_tag_wfs(self) -> None:
         self.tag_wfs = self.create_wfs(self.tag_ep, self.tag_ch)
-        self.tag_wfs.adcs_float = create_float_waveforms(self.tag_wfs)
+        create_float_waveforms(self.tag_wfs)
         sub_baseline_to_wfs(self.tag_wfs, self.prepulse_ticks)
 
     def select_time_resolution_wfs(self, waveforms) -> None:
@@ -86,3 +77,44 @@ class TimeResolution:
 
             else:
                 wf.time_resolution_selection = False
+
+    def set_wfs_t0(self, waveforms: waffles.Waveform) -> None:
+        """
+        Set the t0 of the selected waveforms
+        Args:
+        - waveforms: self.ref_wfs or self.tag_wfs
+        
+        Returns:
+        - waveforms.t0 for each of the selected wvfs
+        - wavefomrs.avg_t0
+        """
+        avg_t0 = 0.
+        t0_counts = 0
+        for wf in waveforms:
+            if (wf.time_resolution_selection == True):
+                half = 0.5*np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
+                wf.t0 = find_threshold_crossing(wf.adcs_float, self.prepulse_ticks, self.postpulse_ticks, half)
+                avg_t0 += wf.t0
+                t0_counts += 1
+
+        waveforms.avg_t0 = avg_t0/t0_counts
+
+
+    def calculate_t0_differences(self) -> np.array:
+        """
+        Calculate differences in t0 values for wf objects with matching ts values and selection==True.
+        Args:
+        
+        Returns:
+            np.ndarray: Array of t0 differences for matching ts values.
+        """
+        
+        # Filter wf objects where selection is True
+        wf1_filtered = {wf.timestamp: wf.t0 for wf in self.ref_wfs if wf.time_resolution_selection}
+        wf2_filtered = {wf.timestamp: wf.t0 for wf in self.tag_wfs if wf.time_resolution_selection}
+        
+        # Find common ts values and calculate t0 differences
+        common_ts = set(wf1_filtered.keys()).intersection(wf2_filtered.keys())
+        t0_differences = [wf1_filtered[ts] - wf2_filtered[ts] for ts in common_ts]
+        
+        return np.array(t0_differences)
