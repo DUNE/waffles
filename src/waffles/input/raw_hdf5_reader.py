@@ -99,7 +99,7 @@ def extract_fragment_info(frag, trig):
         adcs = np_array_adc(frag)
         channels = np_array_channels(frag)
 
-    elif fragType == 13:  # For full_stream
+    elif fragType == FragmentType.kDAPHNEStream:  # For full_stream
         trigger = 'full_stream'
         timestamps = np_array_timestamp_stream(frag)
         adcs = np_array_adc_stream(frag)
@@ -363,7 +363,12 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 #print(traceback.format_exc())
                 continue
                 
+            if frag.get_data_size() == 0:
+                print(f"Empty fragment:\n {frag}\n{trig}\n{r}\n{gid}")
+                continue
             
+            if frag.get_fragment_type() == FragmentType.kDAPHNEStream and not read_full_streaming_data:
+                continue
 
             trig = h5_file.get_trh(r)
 
