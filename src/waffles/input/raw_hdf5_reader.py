@@ -363,6 +363,9 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 #print(traceback.format_exc())
                 continue
                 
+            if frag.get_data_size() == 0:
+                print(f"Empty fragment:\n {frag}\n{trig}\n{r}\n{gid}")
+                continue
             
 
             trig = h5_file.get_trh(r)
