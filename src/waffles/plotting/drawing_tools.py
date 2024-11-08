@@ -23,6 +23,7 @@ from waffles.data_classes.Waveform import Waveform
 fig = go.Figure()
 line_color = 'black'
 
+###########################
 def help(cls: str = None):
     """Print available commands or specific help for a command."""
     funcs = [
@@ -48,7 +49,7 @@ def help(cls: str = None):
                 print(f"{func[0]:32} {func[1]}")
         print(inspect.signature(cls))
     
-
+###########################
 def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
          read_full_streaming_data: bool = False, truncate_wfs_to_minimum: bool = False,
          set_offset_wrt_daq_window: bool = False) -> WaveformSet:
@@ -66,40 +67,55 @@ def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
     print("Done!")
     return wset
 
+###########################
 def plot_to(wset: WaveformSet, ep: int = -1, ch: int = -1, nwfs: int = -1,
             op: str = '', nbins: int = 100, xmin: np.uint64 = None,
             xmax: np.uint64 = None):
     """Plot time offset histogram for a WaveformSet."""
+    
     global fig
     if not has_option(op, 'same'):
         fig = go.Figure()
+    
+    # get the time offset for all wfs in the specific ep and channel
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp
              for wf in wset.waveforms
              if (wf.endpoint == ep or ep == -1) and (wf.channel == ch or ch == -1)]
+    
+    # build an histogram with those times
     histogram_trace = get_histogram(times, nbins, xmin, xmax)
+    
     fig.add_trace(histogram_trace)
     fig.update_layout(xaxis_title="time offset", yaxis_title="entries")
+    
+    
     write_image(fig)
 
+###########################
 def plot_hm(object, ep: int = -1, ch: int = -1, nx: int = 100, xmin: int = 0,
             xmax: int = 1024, ny: int = 100, ymin: int = 0, ymax: int = 15000,
             nwfs: int = -1, variable='integral', op: str = '', vmin: float = None,
             vmax: float = None, show: bool = True, bar: bool = False):
     """Plot heatmap for waveforms in a specified range."""
+    
     global fig
     if not has_option(op, 'same'):
         fig = go.Figure()
 
+    # get all wfs in a specific ep and channel
     wset = get_wfs_in_channel(object, ep, ch)
-    if vmin is not None:
+
+    # filter with appropriate variables limits
+    if vmin is not None:        
         wset = get_wfs_with_variable_in_range(wset, vmin, vmax, variable)
 
+    # build the plot
     ranges = np.array([[xmin, xmax], [ymin, ymax]])
     fig = __subplot_heatmap_ans(wset, fig, "name", nx, ny, ranges, show_color_bar=bar)
     fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
     write_image(fig)
 
-
+###########################
 def write_image(fig: go.Figure) -> None:
     """Save or display the figure based on plotting mode."""
     if plotting_mode == 'html':
