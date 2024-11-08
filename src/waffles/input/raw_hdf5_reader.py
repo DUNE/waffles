@@ -367,6 +367,8 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 print(f"Empty fragment:\n {frag}\n{trig}\n{r}\n{gid}")
                 continue
             
+            if frag.get_fragment_type() == FragmentType.kDAPHNEStream and not read_full_streaming_data:
+                continue
 
             trig = h5_file.get_trh(r)
 
