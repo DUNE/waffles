@@ -1,5 +1,6 @@
 import waffles
 import numpy as np
+import TimeResolution as tr
 
 def allow_channel_wfs(waveform: waffles.Waveform, endpoint: int, channel: int) -> bool:
     return waveform.endpoint == endpoint and waveform.channel == channel
@@ -44,4 +45,14 @@ def find_threshold_crossing(y: np.array,
     # Interpolate the exact crossing point
     x_cross = x1 + (threshold - y1) * (x2 - x1) / (y2 - y1)
     return x_cross
+
+def smooth_wfs(waveforms: waffles.Waveform, sigma: int) -> None:
+    """
+
+    """
+    gx = np.linspace(-4*sigma, 4*sigma, 8*sigma+1)
+    gauss = np.exp(-0.5*((gx/sigma)**2))*(1/(sigma*(2*np.pi)**0.5))
+
+    for wf in waveforms:
+        wf = np.convolve(wf,gauss,"same")
 

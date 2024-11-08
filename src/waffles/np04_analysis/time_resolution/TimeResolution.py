@@ -33,12 +33,14 @@ class TimeResolution:
         self.ref_ep = ref_ep        #Endpoint reference channel
         self.ref_ch = ref_ch        #channel
         self.ref_wfs = []           #waveforms
-        self.ref_t0 = 0.                #Average t0
-        self.ref_t0_std = 0.            #Standard deviation to t0
+        self.ref_n_select_wfs = 0   #number of selected wfs
+        self.ref_t0 = 0.            #Average t0 among the selected wfs
+        self.ref_t0_std = 0.        #Standard deviation to t0
         
         self.com_ep = com_ep        #Same for comparison channel
         self.com_ch = com_ch
         self.com_wfs = []
+        self.com_n_select_wfs = 0
         self.com_t0 = 0.
         self.com_t0_std = 0.
 
@@ -69,6 +71,8 @@ class TimeResolution:
         if tag == "com":
             waveforms = self.com_wfs
 
+        n_selected = 0
+
         for wf in waveforms:
             max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
             min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
@@ -77,16 +81,25 @@ class TimeResolution:
             if max_el_pre < 4*self.baseline_rms and min_el_pre > -(4*self.baseline_rms):
                 # Calculate max and min in the signal region (after the pre region)
                 max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
+                ampl_post = wf.adcs_float[self.postpulse_ticks]
 
                 # Check if the signal is within saturation limits
-                if max_el_signal < self.max_amplitude and max_el_signal > self.min_amplitude:
+                if (max_el_signal < self.max_amplitude and
+                    max_el_signal > self.min_amplitude and
+                    ampl_post < 0.8*max_el_signal):
                     wf.time_resolution_selection = True
+                    n_selected += 1
 
                 else:
                     wf.time_resolution_selection = False
 
             else:
                 wf.time_resolution_selection = False
+        
+        if tag == "ref":
+            self.ref_n_select_wfs = n_selected
+        if tag == "com":
+            self.com_n_select_wfs = n_selected
 
     def set_wfs_t0(self, tag: Literal["ref","com"]) -> None:
         """
