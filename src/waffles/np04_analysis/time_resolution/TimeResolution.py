@@ -10,13 +10,14 @@ from TimeResolution_Utils import *
 class TimeResolution:
     def __init__(self,
                  wf_set: waffles.WaveformSet,
-                 ref_ep: int, ref_ch: int,
-                 com_ep: int, com_ch: int,
                  prepulse_ticks: int,
                  postpulse_ticks: int,
                  min_amplitude: int,
                  max_amplitude: int,
-                 baseline_rms: float) -> None:
+                 baseline_rms: float
+                 ref_ep = 0,  ref_ch = 0,
+                 com_ep = 0,  com_ch = 0,
+                 ) -> None:
         """
         This class is used to estimate the time resolution.
         """
@@ -123,14 +124,15 @@ class TimeResolution:
                 wf.t0 = find_threshold_crossing(wf.adcs_float, self.prepulse_ticks, self.postpulse_ticks, half)
                 t0_list.append(wf.t0)
 
-        t0 = np.average(t0_list)
-        std= np.std(t0_list)
-        if tag == "ref":
-            self.ref_t0 = t0
-            self.ref_t0_std = std
-        if tag == "com":
-            self.com_t0 = t0
-            self.com_t0_std = std
+        if len(t0_list) > 10:
+            t0 = np.average(t0_list)
+            std= np.std(t0_list)
+            if tag == "ref":
+                self.ref_t0 = t0
+                self.ref_t0_std = std
+            if tag == "com":
+                self.com_t0 = t0
+                self.com_t0_std = std
 
 
     def calculate_t0_differences(self) -> np.array:
