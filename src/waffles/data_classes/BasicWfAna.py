@@ -133,7 +133,7 @@ class BasicWfAna(WfAna):
 
         Parameters
         ----------
-        waveform : WaveformAdcs
+        waveform: WaveformAdcs
             The WaveformAdcs object which will be analysed
 
         Returns
@@ -212,11 +212,11 @@ class BasicWfAna(WfAna):
 
         Parameters
         ----------
-        input_parameters : IPDict
+        input_parameters: IPDict
             The input parameters to be checked. It is the IPDict
             that can be potentially given to BasciWfAna.__init__
             to instantiate a BasicWfAna object.
-        points_no : int
+        points_no: int
             The number of points in any waveform that could be
             analysed. It is assumed to be the same for all the
             waveforms.

@@ -4,9 +4,9 @@ class UniqueChannel:
 
     Attributes
     ----------
-    endpoint : int
+    endpoint: int
         An endpoint value
-    channel : int
+    channel: int
         A channel value
 
     Methods

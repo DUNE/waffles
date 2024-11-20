@@ -81,7 +81,7 @@ class ChannelMap(Map):
 
         Returns
         -------
-        output : tuple of ( bool, tuple of (int, int, ), )
+        output: tuple of ( bool, tuple of (int, int, ), )
         """
 
         for i in range(self.rows):
