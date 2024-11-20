@@ -61,9 +61,9 @@ class WaveformAdcs:
 
         Parameters
         ----------
-        time_step_ns : float
-        adcs : unidimensional numpy array of integers
-        time_offset : int
+        time_step_ns: float
+        adcs: unidimensional numpy array of integers
+        time_offset: int
             It must be semipositive and smaller than
             len(self.__adcs)-1. It is set to 0 by
             default.
