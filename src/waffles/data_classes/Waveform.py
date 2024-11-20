@@ -12,27 +12,36 @@ class Waveform(WaveformAdcs):
 
     Attributes
     ----------
-    timestamp : int
+    timestamp: int
         The timestamp value for this Waveform
-    time_step_ns : float (inherited from WaveformAdcs)
-    daq_window_timestamp : int
+    time_step_ns: float (inherited from WaveformAdcs)
+    daq_window_timestamp: int
         The timestamp value for the DAQ window in which
         this Waveform was acquired
-    adcs : unidimensional numpy array of integers
+    adcs: unidimensional numpy array of integers
     (inherited from WaveformAdcs)
-    run_number : int
+    run_number: int
         Number of the run from which this Waveform was
         acquired
-    record_number : int
+    record_number: int
         Number of the record within which this Waveform
         was acquired
-    endpoint : int
+    endpoint: int
         Endpoint number from which this Waveform was
         acquired
-    channel : int
+    channel: int
         Channel number for this Waveform
-    time_offset : int (inherited from WaveformAdcs)
-    analyses : OrderedDict of WfAna objects 
+    time_offset: int (inherited from WaveformAdcs)
+    starting_tick: int
+        The iterator value (zero-indexed) for the
+        first point of this Waveform, with respect
+        to the full acquired waveform. P.e. if this
+        Waveform is the result of eliminating the
+        first two points of a certain waveform,
+        then this attribute equals 2. If no initial
+        points have been truncated, then this
+        attribute equals 0.
+    analyses: OrderedDict of WfAna objects 
     (inherited from WaveformAdcs)
 
     Methods
@@ -50,29 +59,31 @@ class Waveform(WaveformAdcs):
         record_number: int,
         endpoint: int,
         channel: int,
-        time_offset: int = 0):
+        time_offset: int = 0,
+        starting_tick: int = 0):
         """
         Waveform class initializer
 
         Parameters
         ----------
-        timestamp : int
-        time_step_ns : float
+        timestamp: int
+        time_step_ns: float
             It is given to the 'time_step_ns' parameter of
             the base class initializer.
-        daq_window_timestamp : int
-        adcs : unidimensional numpy array of integers
+        daq_window_timestamp: int
+        adcs: unidimensional numpy array of integers
             It is given to the 'adcs' parameter of the base
             class initializer.
-        run_number : int
-        record_number : int
-        endpoint : int
-        channel : int
-        time_offset : int
+        run_number: int
+        record_number: int
+        endpoint: int
+        channel: int
+        time_offset: int
             It is given to the 'time_offset' parameter of the
             base class initializer. It must be semipositive
             and smaller than len(self.__adcs)-1. Its default
             value is 0.
+        starting_tick: int
         """
 
         # Shall we add add type checks here?
@@ -83,6 +94,7 @@ class Waveform(WaveformAdcs):
         self.__record_number = record_number
         self.__endpoint = endpoint
         self.__channel = channel
+        self.__starting_tick = starting_tick
 
         # Do we need to add trigger primitives as attributes?
 
@@ -116,6 +128,10 @@ class Waveform(WaveformAdcs):
     def channel(self):
         return self.__channel
 
+    @property
+    def starting_tick(self):
+        return self.__starting_tick
+
 #   #Setters
 #   @timestamp.setter
 #   def timestamp(self, input):
@@ -127,6 +143,37 @@ class Waveform(WaveformAdcs):
 # only set the value of its attributes
 # through Waveform.__init__. Here's an example
 # of what a setter would look like, though.
+
+    # Overrides WaveformAdcs.__slice_adcs()
+    def __slice_adcs(
+        self,
+        start: int,
+        end: int
+    ) -> None:
+        """This method is not intended for user usage.
+        No well-formedness checks are performed here.
+        This method slices the self.__adcs attribute
+        array to self.__adcs[start:end] and sets
+        the self.__starting_tick attribute to start.
+        This method applies the change in place.
+
+        Parameters
+        ----------
+        start: int
+            Iterator value for the (inclusive) start of
+            the slice
+        end: int
+            Iterator value for the (exclusive) end of
+            the slice
+
+        Returns
+        ----------
+        None
+        """
+
+        self.__starting_tick = start
+        super()._WaveformAdcs__slice_adcs(start, end)
+        return
 
     def get_global_channel(self):
         """

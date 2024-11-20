@@ -897,6 +897,17 @@ class WaveformSet:
             return True
         else:
             return False
+        
+    def reset_mean_waveform(self) -> None:
+        """This method resets the self.__mean_adcs
+        and the self.__mean_adcs_idcs attributes
+        of this WaveformSet object to None.
+        """
+
+        self.__mean_adcs = None
+        self.__mean_adcs_idcs = None
+
+        return
 
     def filter(
         self, 

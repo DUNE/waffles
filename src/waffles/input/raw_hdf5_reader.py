@@ -410,7 +410,10 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                                   r[0],
                                                   endpoint,
                                                   ch,
-                                                  time_offset=0))
+                                                  time_offset=0,
+                                                  # Open task: Implement the truncation of the Waveform
+                                                  # objects at this level (reading from an HDF5 file)
+                                                  starting_tick=0))
                     wvfm_index += 1
                     if wvfm_index >= wvfm_count:
 
@@ -420,8 +423,10 @@ def WaveformSet_from_hdf5_file(filepath : str,
                             ).min()
 
                             for wf in waveforms:
-                                wf._WaveformAdcs__truncate_adcs(
-                                    minimum_length)
+                                wf._WaveformAdcs__slice_adcs(
+                                    0,
+                                    minimum_length
+                                )
 
                         return WaveformSet(*waveforms)
                     
@@ -431,7 +436,9 @@ def WaveformSet_from_hdf5_file(filepath : str,
         ).min()
 
         for wf in waveforms:
-            wf._WaveformAdcs__truncate_adcs(
-                minimum_length)
+            wf._WaveformAdcs__slice_adcs(
+                0,
+                minimum_length
+            )
 
     return WaveformSet(*waveforms)

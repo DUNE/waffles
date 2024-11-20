@@ -11,6 +11,7 @@ from waffles.data_classes.Map import Map
 
 import waffles.plotting.plot_utils as wpu
 import waffles.utils.numerical_utils as wun
+import waffles.utils.wf_maps_utils as wuw
 
 from waffles.Exceptions import GenerateExceptionMessage
 
@@ -666,7 +667,8 @@ def plot_WaveformSet(
                 'plot_WaveformSet()',
                 'The number of waveforms per axes must be positive.'))
 
-        data_of_map_of_wf_idcs = waveform_set.get_map_of_wf_idcs(   
+        data_of_map_of_wf_idcs = wuw.get_map_of_wf_idcs(   
+            waveform_set,
             nrows,
             ncols,
             wfs_per_axes=wfs_per_axes).data

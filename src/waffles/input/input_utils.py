@@ -550,7 +550,11 @@ def __build_waveforms_list_from_root_file_using_uproot(
                     current_record_array[i],
                     endpoint,
                     channel,
-                    time_offset=0))
+                    time_offset=0,
+                    # Open task: Implement the truncation of the 
+                    # Waveform objects at this level (reading 
+                    # from a ROOT file using uproot)
+                    starting_tick=0))
     else:
 
         raw_time_offsets = []
@@ -596,7 +600,11 @@ def __build_waveforms_list_from_root_file_using_uproot(
                     current_record_array[i],
                     endpoint,
                     channel,
-                    time_offset=0))
+                    time_offset=0,
+                    # Open task: Implement the truncation of the Waveform
+                    # objects at this level (reading from a ROOT file
+                    # using uproot)
+                    starting_tick=0))
 
                 raw_time_offsets.append(
                     int(current_timestamp_array[i]) - int(current_daq_timestamp_array[i]))
@@ -765,7 +773,11 @@ def __build_waveforms_list_from_root_file_using_pyroot(
                 record_address[0],
                 endpoint,
                 channel,
-                time_offset=0))
+                time_offset=0,
+                # Open task: Implement the truncation of the Waveform
+                # objects at this level (reading from a ROOT file
+                # using pyroot)
+                starting_tick=0))
     else:
 
         raw_time_offsets = []
@@ -787,7 +799,11 @@ def __build_waveforms_list_from_root_file_using_pyroot(
                 record_address[0],
                 endpoint,
                 channel,
-                time_offset=0))
+                time_offset=0,
+                # Open task: Implement the truncation of the Waveform
+                # objects at this level (reading from a ROOT file
+                # using pyroot)
+                starting_tick=0))
 
             raw_time_offsets.append(
                 int(timestamp_address[0]) - int(daq_timestamp_address[0]))
