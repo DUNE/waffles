@@ -479,6 +479,9 @@ def WaveformSet_from_root_file(
         minimum_length = np.array([len(wf.adcs) for wf in waveforms]).min()
 
         for wf in waveforms:
-            wf._WaveformAdcs__truncate_adcs(minimum_length)
+            wf._WaveformAdcs__slice_adcs(
+                0,
+                minimum_length
+            )
 
     return WaveformSet(*waveforms)
