@@ -144,6 +144,37 @@ class Waveform(WaveformAdcs):
 # through Waveform.__init__. Here's an example
 # of what a setter would look like, though.
 
+    # Overrides WaveformAdcs.__slice_adcs()
+    def __slice_adcs(
+        self,
+        start: int,
+        end: int
+    ) -> None:
+        """This method is not intended for user usage.
+        No well-formedness checks are performed here.
+        This method slices the self.__adcs attribute
+        array to self.__adcs[start:end] and sets
+        the self.__starting_tick attribute to start.
+        This method applies the change in place.
+
+        Parameters
+        ----------
+        start: int
+            Iterator value for the (inclusive) start of
+            the slice
+        end: int
+            Iterator value for the (exclusive) end of
+            the slice
+
+        Returns
+        ----------
+        None
+        """
+
+        self.__starting_tick = start
+        super()._WaveformAdcs__slice_adcs(start, end)
+        return
+
     def get_global_channel(self):
         """
         Returns
