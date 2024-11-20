@@ -32,6 +32,15 @@ class Waveform(WaveformAdcs):
     channel: int
         Channel number for this Waveform
     time_offset: int (inherited from WaveformAdcs)
+    starting_tick: int
+        The iterator value (zero-indexed) for the
+        first point of this Waveform, with respect
+        to the full acquired waveform. P.e. if this
+        Waveform is the result of eliminating the
+        first two points of a certain waveform,
+        then this attribute equals 2. If no initial
+        points have been truncated, then this
+        attribute equals 0.
     analyses: OrderedDict of WfAna objects 
     (inherited from WaveformAdcs)
 
@@ -50,7 +59,8 @@ class Waveform(WaveformAdcs):
         record_number: int,
         endpoint: int,
         channel: int,
-        time_offset: int = 0):
+        time_offset: int = 0,
+        starting_tick: int = 0):
         """
         Waveform class initializer
 
@@ -73,6 +83,7 @@ class Waveform(WaveformAdcs):
             base class initializer. It must be semipositive
             and smaller than len(self.__adcs)-1. Its default
             value is 0.
+        starting_tick: int
         """
 
         # Shall we add add type checks here?
@@ -83,6 +94,7 @@ class Waveform(WaveformAdcs):
         self.__record_number = record_number
         self.__endpoint = endpoint
         self.__channel = channel
+        self.__starting_tick = starting_tick
 
         # Do we need to add trigger primitives as attributes?
 
@@ -115,6 +127,10 @@ class Waveform(WaveformAdcs):
     @property
     def channel(self):
         return self.__channel
+
+    @property
+    def starting_tick(self):
+        return self.__starting_tick
 
 #   #Setters
 #   @timestamp.setter
