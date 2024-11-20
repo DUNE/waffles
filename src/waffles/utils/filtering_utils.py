@@ -263,7 +263,7 @@ def truncate_waveforms_in_WaveformSet(
     # input WaveformSet is preserved, so there's no need to
     # call input_WaveformSet.check_length_homogeneity()
     for wf in input_WaveformSet.waveforms:
-        wf._WaveformAdcs__slice_adcs(
+        wf._Waveform__slice_adcs(
             starting_tick,
             ending_tick_
         )
