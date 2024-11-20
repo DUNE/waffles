@@ -12,27 +12,27 @@ class Waveform(WaveformAdcs):
 
     Attributes
     ----------
-    timestamp : int
+    timestamp: int
         The timestamp value for this Waveform
-    time_step_ns : float (inherited from WaveformAdcs)
-    daq_window_timestamp : int
+    time_step_ns: float (inherited from WaveformAdcs)
+    daq_window_timestamp: int
         The timestamp value for the DAQ window in which
         this Waveform was acquired
-    adcs : unidimensional numpy array of integers
+    adcs: unidimensional numpy array of integers
     (inherited from WaveformAdcs)
-    run_number : int
+    run_number: int
         Number of the run from which this Waveform was
         acquired
-    record_number : int
+    record_number: int
         Number of the record within which this Waveform
         was acquired
-    endpoint : int
+    endpoint: int
         Endpoint number from which this Waveform was
         acquired
-    channel : int
+    channel: int
         Channel number for this Waveform
-    time_offset : int (inherited from WaveformAdcs)
-    analyses : OrderedDict of WfAna objects 
+    time_offset: int (inherited from WaveformAdcs)
+    analyses: OrderedDict of WfAna objects 
     (inherited from WaveformAdcs)
 
     Methods
@@ -56,19 +56,19 @@ class Waveform(WaveformAdcs):
 
         Parameters
         ----------
-        timestamp : int
-        time_step_ns : float
+        timestamp: int
+        time_step_ns: float
             It is given to the 'time_step_ns' parameter of
             the base class initializer.
-        daq_window_timestamp : int
-        adcs : unidimensional numpy array of integers
+        daq_window_timestamp: int
+        adcs: unidimensional numpy array of integers
             It is given to the 'adcs' parameter of the base
             class initializer.
-        run_number : int
-        record_number : int
-        endpoint : int
-        channel : int
-        time_offset : int
+        run_number: int
+        record_number: int
+        endpoint: int
+        channel: int
+        time_offset: int
             It is given to the 'time_offset' parameter of the
             base class initializer. It must be semipositive
             and smaller than len(self.__adcs)-1. Its default
