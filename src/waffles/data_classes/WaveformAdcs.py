@@ -148,7 +148,7 @@ class WaveformAdcs:
         """This method is not intended for user usage.
         No well-formedness checks are performed here.
         This method slices the self.__adcs attribute
-        array to the [start, end] interval. This method
+        array to self.__adcs[start, end]. This method
         applies the change in place.
 
         Parameters
