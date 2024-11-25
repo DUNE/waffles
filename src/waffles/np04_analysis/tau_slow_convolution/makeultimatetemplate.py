@@ -2,7 +2,7 @@
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
-from waffles.input.pickle_file_to_WaveformSet import pickle_file_to_WaveformSet
+from waffles.input.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.np04_data.tau_slow_runs.load_runs_csv import ReaderCSV
 from extract_selection import Extractor
 import argparse
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             print(f'run {run}', end=' ')
             wfset:WaveformSet
             try:
-                wfset = pickle_file_to_WaveformSet(f"/eos/home-h/hvieirad/waffles/analysis/templates/template_run0{run}_ch{ch}.pkl")
+                wfset = WaveformSet_from_pickle_file(f"/eos/home-h/hvieirad/waffles/analysis/templates/template_run0{run}_ch{ch}.pkl")
             except:
                 print('nope...')
                 continue
