@@ -11,7 +11,7 @@ class ReaderCSV:
         self.dataframes:dict = {}
         self.load_dataframes()
     def load_dataframes(self):
-        dftypes = ["purity", "beam"]
+        dftypes = ["purity", "beam", "led"]
         for dt in dftypes:
             self.dataframes[dt] = pd.read_csv(f"{self.__path_to_csv}/{dt}_runs.csv")
 
