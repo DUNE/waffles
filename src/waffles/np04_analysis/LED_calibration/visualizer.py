@@ -27,18 +27,10 @@ class visualizer(WafflesAnalysis):
         self.batch  = args['batch']
         self.data_folderpath = self.path_to_input_file
 
-        # calibration configurations 
-        self.run_to_config_      =      run_to_config[self.batch][self.apa_no][self.pde]  # runs for a given configuration
-        self.config_to_channels_ = config_to_channels[self.batch][self.apa_no][self.pde]  # channels for each run
-        self.excluded_channels_  =  excluded_channels[self.batch]
-
         self.apa_nos = [self.apa_no ]
         self.batches = [self.batch]
         self.variable = 'snr'
         showlegend = False
-
-        self.input_base_folderpath = '/Users/acervera/HEP/DUNE/ProtoDUNE-HD/PDS/data_taking/waffles/src/waffles/np04_analysis/LED_calibration/calibration_batches'
-        path_to_output_folderpath = ''
 
         if self.variable not in ['gain', 'snr']:
             raise Exception('Either gain or snr must be selected')
@@ -58,9 +50,10 @@ class visualizer(WafflesAnalysis):
             with open(aux_file_path, "rb") as file:
                 self.dataframes[batch] = pickle.load(file)
         
+        return True
 
     ##################################################################
-    def analize(self):
+    def analyze(self):
 
         
         for batch in self.dataframes.keys():
@@ -72,6 +65,8 @@ class visualizer(WafflesAnalysis):
         self.general_df = pd.concat(
             list(self.dataframes.values()), 
             ignore_index=True)
+
+        return True
 
     ##################################################################
     def write_output(self):
