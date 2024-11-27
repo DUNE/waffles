@@ -258,10 +258,10 @@ def save_data_to_dataframe(data: list, path_to_output_file: str, self):
             for channel in data[endpoint]:
                 # Assemble the new row
                 new_row = {
-                    "APA":      [int(self.apa_no)],
+                    "APA":      [int(self.apa)],
                     "endpoint": [endpoint],
                     "channel":  [channel],
-                    "channel_iterator":   [get_channel_iterator(self.apa_no, endpoint, channel)],
+                    "channel_iterator":   [get_channel_iterator(self.apa, endpoint, channel)],
                     "PDE":      [self.pde],
                     "gain":     [data[endpoint][channel]["gain"]],
                     "snr":      [data[endpoint][channel]["snr"]],
