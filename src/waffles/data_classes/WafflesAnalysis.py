@@ -4,9 +4,29 @@ import argparse
 
 class WafflesAnalysis(ABC):
 
+    read_input_itr: int
+    analyze_itr: int
+
     def __init__(self):
+
+
+        # self.path_to_input_file 
+        # self.path_to_output_file 
+        
+        # self.read_input_loop = self.define_read_input_loop()
+        # self.analyze_loop
+
+        # self.analyze_itr    = None 
+        # self.read_input_itr = None
+        
+
+
         pass
 
+    
+    # @abstractmethod
+    # def define_read_input_loop():
+    #     pass
     
     @abstractmethod
     def arguments(parse: argparse.ArgumentParser):
@@ -17,11 +37,11 @@ class WafflesAnalysis(ABC):
         pass
 
     @abstractmethod
-    def read_input():
+    def read_input()->bool:
         pass
 
     @abstractmethod
-    def analize():
+    def analyze()->bool:
         pass
 
     @abstractmethod    
@@ -58,6 +78,10 @@ class WafflesAnalysis(ABC):
         print ('Input  file:', self.path_to_input_file)
         print ('Output file:', self.path_to_output_file)
 
+        # by default there is no iteration (only one elemet in list)
+        self.read_input_loop =[0]
+        self.analyze_loop =[0]
+
         # call the method of the derived class
         self.initialize(args)
 
@@ -66,9 +90,17 @@ class WafflesAnalysis(ABC):
 
         args = self.base_arguments(first_arg)
         self.base_initialize(args)
-        self.read_input()
-        self.analize()
 
-        if self.path_to_output_file != None: 
-            self.write_output()
+        for self.read_input_itr in self.read_input_loop:
+            print (f'read_input loop: {self.read_input_itr}' )
+            if not self.read_input():
+                continue
+
+            for self.analyze_itr in self.analyze_loop:
+                print (f'analyze loop: {self.analyze_itr}' )
+                if not self.analyze():
+                    continue
+
+                if self.path_to_output_file != None: 
+                    self.write_output()
     
