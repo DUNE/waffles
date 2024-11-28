@@ -143,7 +143,98 @@ class WafflesAnalysis(ABC):
 
                 if self.path_to_output_file != None: 
                     self.write_output()
+
+    @staticmethod
+    def analysis_folder_meets_requirements():
+        """This static method checks that the folder structure
+        of the folder from which the analysis is being executed
+        follows the required structure. It will raise a 
+        waffles.Exceptions.IllFormedAnalysisFolder exception
+        otherwise. The list of the checked requirements is
+        the following:
+
+        1) The folder contains a file called 'steering.yml',
+        which specifies the order in which different analysis
+        (if many) should be executed and which parameters to
+        use for each analysis stage. This file must be a YAML
+        file which must follow the structure described in the
+        __steering_file_meets_requirements() method docstring.
+        2) The folder contains a file called 'utils.py'.
+        3) The folder contains a file called 'params.py'.
+        4) The folder contains a file called 'imports.py'.
+        5) The folder contains a sub-folder called 'configs'.
+        6) The folder contains a sub-folder called 'output'.
+
+        The function also checks whether sub-folders called
+        'data' and 'scripts' exist. If they don't exist
+        an exception is not raised, but a warning message
+        is printed.
+        """
+
+        analysis_folder_path = pathlib.Path.cwd()
+
+        WafflesAnalysis.__steering_file_meets_requirements(
+            pathlib.Path(
+                analysis_folder_path,
+                'steering.yml'
+            )
+        )
+
+        WafflesAnalysis.__check_file_or_folder_exists(
+            analysis_folder_path,
+            'utils.py',
+            is_file=True
+        )
+
+        WafflesAnalysis.__check_file_or_folder_exists(
+            analysis_folder_path,
+            'params.py',
+            is_file=True
+        )
+
+        WafflesAnalysis.__check_file_or_folder_exists(
+            analysis_folder_path,
+            'imports.py',
+            is_file=True
+        )
+
+        WafflesAnalysis.__check_file_or_folder_exists(
+            analysis_folder_path,
+            'configs',
+            is_file=False
+        )
+
+        WafflesAnalysis.__check_file_or_folder_exists(
+            analysis_folder_path,
+            'output',
+            is_file=False
+        )
+
+        try:
+            WafflesAnalysis.__check_file_or_folder_exists(
+                analysis_folder_path,
+                'data',
+                is_file=False
+            )
+        except FileNotFoundError:
+            print(
+                "In function WafflesAnalysis.analysis_folder_meets_requirements(): "
+                "A 'data' folder does not exist in the analysis folder."
+            )
+
+        try:
+            WafflesAnalysis.__check_file_or_folder_exists(
+                analysis_folder_path,
+                'scripts',
+                is_file=False
+            )
+        except FileNotFoundError:
+            print(
+                "In function WafflesAnalysis.analysis_folder_meets_requirements(): "
+                "An 'scripts' folder does not exist in the analysis folder."
+            )
         
+        return
 
     @staticmethod
     def __steering_file_meets_requirements(
