@@ -4,9 +4,6 @@ import argparse
 
 class WafflesAnalysis(ABC):
 
-    read_input_itr: int
-    analyze_itr: int
-
     def __init__(self):
 
 
