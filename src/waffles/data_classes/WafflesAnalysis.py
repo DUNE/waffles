@@ -3,9 +3,24 @@ import waffles.Exceptions as we
 import argparse
 
 class WafflesAnalysis(ABC):
+    """This abstract class implements a Waffles Analysis.
+    It fixes a common interface and workflow for all
+    Waffles analyses.
+
+    Attributes
+    ----------
+    ## Add the attributes here. Example: 
+    time_step_ns: float (inherited from WaveformAdcs)
+    daq_window_timestamp: int
+        The timestamp value for the DAQ window in which
+        this Waveform was acquired
+
+    Methods
+    ----------
+    ## Add the list of methods and a summary for each one here
+    """
 
     def __init__(self):
-
 
         # self.path_to_input_file 
         # self.path_to_output_file 
