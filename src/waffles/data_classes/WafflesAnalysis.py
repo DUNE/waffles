@@ -144,6 +144,150 @@ class WafflesAnalysis(ABC):
         
 
     @staticmethod
+    def __steering_file_meets_requirements(
+        steering_file_path: pathlib.Path
+    ) -> None:
+        """This helper static method should only be called
+        by the analysis_folder_meets_requirements() method.
+        It checks that the given path points to an existing
+        file, whose name ends with '.yml' and that this
+        (assumed YAML) file abides by the following structure:
+
+            - It contains at least one key
+            - Its keys are consecutive integers starting from 1
+            - The sub-keys of each key are 'name' and 'parameters'
+            - The value for each 'name' sub-keys is an string, say
+            x, such that the file 'x.py' exists alongside the
+            steering file
+            - The value for each 'parameter' sub-keys is an string
+
+        If any of these conditions is not met, a
+        waffles.Exceptions.IllFormedSteeringFile exception
+        is raised. If the given steering file meets the specified
+        requirements, then this method ends execution normally.
+
+        Parameters
+        ----------
+        steering_file_path: pathlib.Path
+            The path to the steering file to be checked. It is
+            assumed to be a YAML file.
+
+        Returns
+        ----------
+        None
+        """
+
+        if not steering_file_path.exists():
+            raise we.IllFormedSteeringFile(
+                we.GenerateExceptionMessage(
+                    1,
+                    'WafflesAnalysis.__steering_file_meets_requirements()',
+                    reason=f"The file '{steering_file_path}' does not exist."
+                )
+            )
+
+        if steering_file_path.suffix != '.yml':
+            raise we.IllFormedSteeringFile(
+                we.GenerateExceptionMessage(
+                    2,
+                    'WafflesAnalysis.__steering_file_meets_requirements()',
+                    reason=f"The file '{steering_file_path}' must have a '.yml' "
+                    "extension."
+                )
+            )
+
+        with open(
+            steering_file_path,
+            'r'
+        ) as archivo:
+            
+            content = yaml.load(
+                archivo, 
+                Loader=yaml.Loader
+            )
+
+        if not isinstance(content, dict):
+            raise we.IllFormedSteeringFile(
+                we.GenerateExceptionMessage(
+                    3,
+                    'WafflesAnalysis.__steering_file_meets_requirements()',
+                    reason="The content of the given steering file must be a "
+                    "dictionary."
+                )
+            )
+        
+        if len(content) == 0:
+            raise we.IllFormedSteeringFile(
+                we.GenerateExceptionMessage(
+                    4,
+                    'WafflesAnalysis.__steering_file_meets_requirements()',
+                    reason="The given steering file must contain at "
+                    "least one key."
+                )
+            )
+        
+        keys = list(content.keys())
+        keys.sort()
+
+        if keys != list(range(1, len(keys) + 1)):
+            raise we.IllFormedSteeringFile(
+                we.GenerateExceptionMessage(
+                    5,
+                    'WafflesAnalysis.__steering_file_meets_requirements()',
+                    reason="The keys of the given steering file must "
+                    "be consecutive integers starting from 1."
+                )
+            )
+        
+        for key in keys:
+            if not isinstance(content[key], dict):
+                raise we.IllFormedSteeringFile(
+                    we.GenerateExceptionMessage(
+                        6,
+                        'WafflesAnalysis.__steering_file_meets_requirements()',
+                        reason=f"The value of the key {key} must be a "
+                        "dictionary."
+                    )
+                )
+            
+            for aux in ('name', 'parameters'):
+
+                if aux not in content[key].keys():
+                    raise we.IllFormedSteeringFile(
+                        we.GenerateExceptionMessage(
+                            7,
+                            'WafflesAnalysis.__steering_file_meets_requirements()',
+                            reason=f"The key {key} must contain a '{aux}' key."
+                        )
+                    )
+                
+                if not isinstance(content[key][aux], str):
+                    raise we.IllFormedSteeringFile(
+                        we.GenerateExceptionMessage(
+                            8,
+                            'WafflesAnalysis.__steering_file_meets_requirements()',
+                            reason=f"The value of the '{aux}' key of the key "
+                            f"{key} must be an string."
+                        )
+                    )
+        
+            if not pathlib.Path(
+                steering_file_path.parent,
+                content[key]['name'] + '.py'
+            ).exists():
+                
+                raise we.IllFormedSteeringFile(
+                    we.GenerateExceptionMessage(
+                        9,
+                        'WafflesAnalysis.__steering_file_meets_requirements()',
+                        reason=f"The file '{content[key]['name']}.py' must "
+                        "exist alongisde the steering file."
+                    )
+                )
+
+        return
+    
+    @staticmethod
     def __check_file_or_folder_exists(
         folder_path: pathlib.Path,
         name: str,
