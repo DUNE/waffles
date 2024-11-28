@@ -56,3 +56,16 @@ class NoDataInFile(WafflesBaseException):
     or it is not empty but there is no data of the expected 
     type (self-trigger or full-stream) in it."""
     pass
+
+class IllFormedAnalysisFolder(WafflesBaseException):
+    """Exception raised when the folder from which an
+    analysis is run is ill-formed. P.e. it does not contain
+    the minimal required files or folders."""
+    pass
+
+class IllFormedSteeringFile(WafflesBaseException):
+    """Exception raised when the specified steering file
+    for an analysis-run does not follow the required
+    structure.
+    """
+    pass
