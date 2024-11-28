@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import waffles.Exceptions as we
 import argparse
+import yaml
+import pathlib
 
 class WafflesAnalysis(ABC):
     """This abstract class implements a Waffles Analysis.
