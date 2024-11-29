@@ -154,16 +154,28 @@ class WafflesAnalysis(ABC):
         the following:
 
         1) The folder contains a file called 'steering.yml',
-        which specifies the order in which different analysis
-        (if many) should be executed and which parameters to
-        use for each analysis stage. This file must be a YAML
-        file which must follow the structure described in the
+        which specifies, by default, the order in which
+        different analysis (if many) should be executed and
+        which parameters to use for each analysis stage. This
+        file must be a YAML file which must follow the
+        structure described in the
         __steering_file_meets_requirements() method docstring.
-        2) The folder contains a file called 'utils.py'.
-        3) The folder contains a file called 'params.py'.
-        4) The folder contains a file called 'imports.py'.
-        5) The folder contains a sub-folder called 'configs'.
-        6) The folder contains a sub-folder called 'output'.
+        2) The folder contains a file called 'utils.py',
+        which may contain utility functions used by the
+        analysis.
+        3) The folder contains a file called 'params.py',
+        which contains the input parameters used, by default,
+        by the analysis.
+        4) The folder contains a file called 'imports.py',
+        which contains the imports needed by the analysis.
+        5) The folder contains a sub-folder called 'configs',
+        which may contain configuration files which are not
+        as volatile as the input parameters.
+        6) The folder contains a sub-folder called 'output',
+        which is meant to store the output of the first
+        (and possibly unique) analysis stage, and possibly
+        the inputs and outputs for the rest of the analysis
+        stages.
 
         The function also checks whether sub-folders called
         'data' and 'scripts' exist. If they don't exist
