@@ -263,21 +263,28 @@ class WafflesAnalysis(ABC):
     def __steering_file_meets_requirements(
         steering_file_path: pathlib.Path
     ) -> None:
-        """This helper static method should only be called
-        by the analysis_folder_meets_requirements() method.
-        It checks that the given path points to an existing
-        file, whose name ends with '.yml' and that this
-        (assumed YAML) file abides by the following structure:
+        """This helper static method checks that the given
+        path points to an existing file, whose name ends with
+        '.yml' and that this (assumed YAML) file abides by
+        the following structure:
 
             - It contains at least one key
             - Its keys are consecutive integers starting from 1
-            - The sub-keys of each key are 'name' and 'parameters'
+            - The sub-keys of each key are 'name', 'parameters'
+            and 'parameters_is_file'
             - The value for each 'name' sub-keys is an string, say
             x, that meets the following sub-requirements:
                 - x follows the format "Analysis<i>", where i is
                 an integer >=1
                 - the file 'x.py' exists alongside the steering file
-            - The value for each 'parameter' sub-keys is an string
+            - The value for each 'parameters' sub-keys is an string
+            - The value for each 'parameters_is_file' sub-keys is a
+            boolean. If it is True, then the value of the 'parameters'
+            sub-key is interpreted as the name of a parameters file
+            which must exist alongside the steering file. If it is
+            False, then the value of the 'parameters' sub-key is
+            interpreted as the string that would be given as part
+            of a shell command.
 
         If any of these conditions is not met, a
         waffles.Exceptions.IllFormedSteeringFile exception
@@ -368,7 +375,7 @@ class WafflesAnalysis(ABC):
                     )
                 )
             
-            for aux in ('name', 'parameters'):
+            for aux in ('name', 'parameters', 'parameters_is_file'):
 
                 if aux not in content[key].keys():
                     raise we.IllFormedSteeringFile(
@@ -379,65 +386,117 @@ class WafflesAnalysis(ABC):
                         )
                     )
                 
-                if not isinstance(content[key][aux], str):
+                aux_map =  {
+                    'name': str, 
+                    'parameters': str, 
+                    'parameters_is_file': bool
+                }
+
+                if not isinstance(
+                    content[key][aux],
+                    aux_map[aux]
+                ):
                     raise we.IllFormedSteeringFile(
                         we.GenerateExceptionMessage(
                             8,
                             'WafflesAnalysis.__steering_file_meets_requirements()',
                             reason=f"The value of the '{aux}' sub-key of the key "
-                            f"{key} must be an string."
+                            f"{key} must be of type {aux_map[aux]}."
                         )
                     )
                 
-            if not content[key]['name'].startswith('Analysis'):
-                raise we.IllFormedSteeringFile(
-                    we.GenerateExceptionMessage(
-                        9,
-                        'WafflesAnalysis.__steering_file_meets_requirements()',
-                        reason=f"The value of the 'name' sub-key "
-                        f"({content[key]['name']}) of the key {key} must "
-                        "start with 'Analysis'."
-                    )
-                )
-            
-            try:
-                i = int(content[key]['name'][8:])
+            WafflesAnalysis.__check_analysis_class(
+                content[key]['name'],
+                steering_file_path.parent
+            )
 
-            except ValueError:
-                raise we.IllFormedSteeringFile(
-                    we.GenerateExceptionMessage(
-                        10,
-                        'WafflesAnalysis.__steering_file_meets_requirements()',
-                        reason=f"The value of the 'name' sub-key "
-                        f"({content[key]['name']}) of the key {key} must follow "
-                        "the 'Analysis<i>' format, with i being an integer."
-                    )
+            if content[key]['parameters_is_file']:
+                WafflesAnalysis.__check_file_or_folder_exists(
+                    steering_file_path.parent,
+                    content[key]['parameters'],
+                    is_file=True
                 )
-            else:
-                if i < 1:
-                    raise we.IllFormedSteeringFile(
-                        we.GenerateExceptionMessage(
-                            11,
-                            'WafflesAnalysis.__steering_file_meets_requirements()',
-                            reason=f"The integer ({i}) at the end of the value of "
-                            f"the 'name' sub-key of the key {key} must be >=1."
-                        )
-                    )
+
+        return
+    
+    @staticmethod
+    def __check_analysis_class(
+        analysis_name: str,
+        analysis_folder_path: pathlib.Path
+    ) -> None:
+        """This helper static method gets an analysis name
+        and the path to the folder from which the analysis
+        is being run. It checks that the analysis name
+        follows the format 'Analysis<i>', where i is an
+        integer >=1, and that the file 'Analysis<i>.py'
+        exists in the given folder. If any of these
+        conditions is not met, a
+        waffles.Exceptions.IllFormedAnalysisClass exception
+        is raised. If the given analysis class meets the
+        specified requirements, then this method ends
+        execution normally.
+
+        Parameters
+        ----------
+        analysis_name: str
+            The name of the analysis class to be checked
+        analysis_folder_path: pathlib.Path
+            The path to the folder from which the analysis
+            is being run
+
+        Returns
+        ----------
+        None
+        """
+
+        if not analysis_name.startswith('Analysis'):
+            raise we.IllFormedAnalysisClass(
+                we.GenerateExceptionMessage(
+                    1,
+                    'WafflesAnalysis.__check_analysis_class()',
+                    reason=f"The analysis class name ({analysis_name}) "
+                    "must start with 'Analysis'."
+                )
+            )
         
-            if not pathlib.Path(
-                steering_file_path.parent,
-                content[key]['name'] + '.py'
-            ).exists():
-                
-                raise we.IllFormedSteeringFile(
+        try:
+            i = int(analysis_name[8:])
+
+        except ValueError:
+            raise we.IllFormedAnalysisClass(
+                we.GenerateExceptionMessage(
+                    2,
+                    'WafflesAnalysis.__check_analysis_class()',
+                    reason=f"The analysis class name ({analysis_name}) "
+                    "must follow the 'Analysis<i>' format, with i being "
+                    "an integer."
+                )
+            )
+        else:
+            if i < 1:
+                raise we.IllFormedAnalysisClass(
                     we.GenerateExceptionMessage(
-                        12,
-                        'WafflesAnalysis.__steering_file_meets_requirements()',
-                        reason=f"The file '{content[key]['name']}.py' must "
-                        "exist alongisde the steering file."
+                        3,
+                        'WafflesAnalysis.__check_analysis_class()',
+                        reason=f"The integer ({i}) at the end of the "
+                        f"analysis class name ({analysis_name}) must be >=1."
                     )
                 )
-
+    
+        if not pathlib.Path(
+            analysis_folder_path,
+            analysis_name + '.py'
+        ).exists():
+            
+            raise we.IllFormedAnalysisClass(
+                we.GenerateExceptionMessage(
+                    4,
+                    'WafflesAnalysis.__check_analysis_class()',
+                    reason=f"The file '{analysis_name}.py' must exist "
+                    f"in the analysis folder ({analysis_folder_path})."
+                )
+            )
+        
         return
     
     @staticmethod
