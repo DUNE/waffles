@@ -168,10 +168,15 @@ class WafflesAnalysis(ABC):
         by the analysis.
         4) The folder contains a file called 'imports.py',
         which contains the imports needed by the analysis.
-        5) The folder contains a sub-folder called 'configs',
+        5) The folder contains a file called 'Analysis1.py',
+        where 'Analysis1' is the name of the analysis class
+        which implements the first (and possibly the unique)
+        analysis stage. It gives the analysis to be executed
+        by default.
+        6) The folder contains a sub-folder called 'configs',
         which may contain configuration files which are not
         as volatile as the input parameters.
-        6) The folder contains a sub-folder called 'output',
+        7) The folder contains a sub-folder called 'output',
         which is meant to store the output of the first
         (and possibly unique) analysis stage, and possibly
         the inputs and outputs for the rest of the analysis
@@ -207,6 +212,12 @@ class WafflesAnalysis(ABC):
         WafflesAnalysis.__check_file_or_folder_exists(
             analysis_folder_path,
             'imports.py',
+            is_file=True
+        )
+
+        WafflesAnalysis.__check_file_or_folder_exists(
+            analysis_folder_path,
+            'Analysis1.py',
             is_file=True
         )
 
