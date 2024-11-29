@@ -382,7 +382,7 @@ class WafflesAnalysis(ABC):
                         we.GenerateExceptionMessage(
                             8,
                             'WafflesAnalysis.__steering_file_meets_requirements()',
-                            reason=f"The value of the '{aux}' key of the key "
+                            reason=f"The value of the '{aux}' sub-key of the key "
                             f"{key} must be an string."
                         )
                     )
