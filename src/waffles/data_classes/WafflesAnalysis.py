@@ -273,8 +273,10 @@ class WafflesAnalysis(ABC):
             - Its keys are consecutive integers starting from 1
             - The sub-keys of each key are 'name' and 'parameters'
             - The value for each 'name' sub-keys is an string, say
-            x, such that the file 'x.py' exists alongside the
-            steering file
+            x, that meets the following sub-requirements:
+                - x follows the format "Analysis<i>", where i is
+                an integer >=1
+                - the file 'x.py' exists alongside the steering file
             - The value for each 'parameter' sub-keys is an string
 
         If any of these conditions is not met, a
@@ -386,6 +388,41 @@ class WafflesAnalysis(ABC):
                             f"{key} must be an string."
                         )
                     )
+                
+            if not content[key]['name'].startswith('Analysis'):
+                raise we.IllFormedSteeringFile(
+                    we.GenerateExceptionMessage(
+                        9,
+                        'WafflesAnalysis.__steering_file_meets_requirements()',
+                        reason=f"The value of the 'name' sub-key "
+                        f"({content[key]['name']}) of the key {key} must "
+                        "start with 'Analysis'."
+                    )
+                )
+            
+            try:
+                i = int(content[key]['name'][8:])
+
+            except ValueError:
+                raise we.IllFormedSteeringFile(
+                    we.GenerateExceptionMessage(
+                        10,
+                        'WafflesAnalysis.__steering_file_meets_requirements()',
+                        reason=f"The value of the 'name' sub-key "
+                        f"({content[key]['name']}) of the key {key} must follow "
+                        "the 'Analysis<i>' format, with i being an integer."
+                    )
+                )
+            else:
+                if i < 1:
+                    raise we.IllFormedSteeringFile(
+                        we.GenerateExceptionMessage(
+                            11,
+                            'WafflesAnalysis.__steering_file_meets_requirements()',
+                            reason=f"The integer ({i}) at the end of the value of "
+                            f"the 'name' sub-key of the key {key} must be >=1."
+                        )
+                    )
         
             if not pathlib.Path(
                 steering_file_path.parent,
@@ -394,7 +431,7 @@ class WafflesAnalysis(ABC):
                 
                 raise we.IllFormedSteeringFile(
                     we.GenerateExceptionMessage(
-                        9,
+                        12,
                         'WafflesAnalysis.__steering_file_meets_requirements()',
                         reason=f"The file '{content[key]['name']}.py' must "
                         "exist alongisde the steering file."
