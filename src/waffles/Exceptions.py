@@ -69,3 +69,15 @@ class IllFormedSteeringFile(WafflesBaseException):
     structure.
     """
     pass
+
+class IllFormedAnalysisClass(WafflesBaseException):
+    """Exception raised when the analysis class to be run
+    is ill-formed."""
+    pass
+
+class IncompatibleInput(WafflesBaseException):
+    """Exception raised when the given input parameters
+    are not compatible among each other. P.e. happens
+    if some of the simultaneously defined parameters
+    are mutually exclusive."""
+    pass
