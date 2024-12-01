@@ -82,43 +82,63 @@ class WafflesAnalysis(ABC):
     def write_output():
         pass
 
-    def base_arguments(
+    def __define_arguments(
             self,
-            first_arg: str
-        ):
+            parser: argparse.ArgumentParser
+        ) -> argparse.ArgumentParser:
+        """This method should not be overriden nor be called
+        by the user. It is meant to be called by the execute
+        method of this base class, WafflesAnalysis. It receives
+        an argparse.ArgumentParser object whose purpose is to
+        eventually interpret the parameters which can be given
+        to any analysis object which is an instance of a derived
+        class of this class, in the sense that they are common
+        parameters to all analyses. This method adds the
+        following common parameters to the given parser:
+        
+        -i, --input_path: str
+            The path to the input file or folder
+        -o, --output_path: str
+            The path to the output file or folder
+        
+        The method then calls the define_arguments method of
+        this instance, which must have been overriden by the
+        derived class. Such method is, in turn, responsible
+        for adding the additional parameters that are specific
+        to the analysis that the derived class implements.
 
-        parse = argparse.ArgumentParser()
+        Parameters
+        ----------
+        parser: argparse.ArgumentParser
+            The parser to which the arguments will be added
 
-        if first_arg != '-i' and first_arg != '-h':
-            parse.add_argument(
-                'analysis',
-                type=str,
-                help="name of the analysis to process"
-            )
+        Returns
+        ----------
+        argparse.ArgumentParser
+            The parser with the arguments added        
+        """
 
-        # input and output files
-        parse.add_argument(
+        parser.add_argument(
             '-i',
-            '--input_file',
+            '--input_path',
             type=str,
             required=False,
-            help="path of input file or folder"
+            help="Path to the input file or folder"
         )
-        parse.add_argument(
+
+        parser.add_argument(
             '-o',
-            '--output_file',
+            '--output_path',
             type=str,
             required=False,
-            help="path to output file",
+            help="Path to the output file or folder",
             default=None)
 
-        # call the method of the derived class to add additional arguments
-        self.arguments(parse)
+        # Call the method of the derived
+        # class to add additional arguments
+        self.define_arguments(parser)
 
-        # parse the arguments 
-        args = vars(parse.parse_args())
-
-        return args
+        return parser
 
     def base_initialize(self, args):        
 
