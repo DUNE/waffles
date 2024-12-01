@@ -40,9 +40,28 @@ class WafflesAnalysis(ABC):
     #     pass
     
     @abstractmethod
-    def arguments(
-            parse: argparse.ArgumentParser
-        ):
+    def define_arguments(
+            self,
+            parser: argparse.ArgumentParser
+        ) -> argparse.ArgumentParser:
+        """This method must be overriden by the derived
+        class. It is meant to add, to the given
+        argparse.ArgumentParser object, the arguments
+        that are specific to the analysis that the
+        derived class implements. The parser is then
+        returned with the arguments added.
+
+        Parameters
+        ----------
+        parser: argparse.ArgumentParser
+            The parser to which the derived-analysis
+            specific arguments will be added
+    
+        Returns
+        ----------
+        argparse.ArgumentParser
+            The parser with the arguments added
+        """
         pass
 
     @abstractmethod
