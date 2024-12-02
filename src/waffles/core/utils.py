@@ -1,5 +1,9 @@
 import argparse
+import pathlib
+import yaml
 from typing import Optional
+
+from waffles.data_classes.WafflesAnalysis import WafflesAnalysis
 import waffles.Exceptions as we
 
 def add_arguments_to_parser(
@@ -64,6 +68,149 @@ def add_arguments_to_parser(
     )
 
     return
+
+def get_ordered_list_of_analyses(
+        args: argparse.Namespace,
+        remaining_args: list
+) -> list:
+    """This function gets the arguments parsed by the main program
+    and the remaining arguments that were not recognized by the parser.
+    It returns a list of the analyses to be executed, whose order
+    match the execution order.
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+        The arguments parsed by the main program. It should be
+        the first output of the parse_known_args() method of
+        the used argparse.ArgumentParser instance.
+    remaining_args: list
+        The remaining arguments that were not recognized by the
+        parser. It should be the second output of the parse_known_args()
+        method of the used argparse.ArgumentParser instance.
+
+    Returns
+    ----------
+    analyses: list
+        The ordered list of analyses to be executed. Each
+        element of the list is a dictionary with the following
+        keys:
+    
+        - name: str
+            The name of the analysis class to be executed
+        - parameters: str
+            Either the name of the parameters file to be used or
+            a string which represents the parameters to be used,
+            in the format which is normally given to a python
+            shell command.
+        - parameters_is_file: bool
+            Whether the 'parameters' key is a file name or not.
+        - preferred_parameters: str
+            Parameters which may overwrite those which are
+            fetched from the 'parameters' entry. This key is
+            only present in the following case:
+                - An steering file is not used
+                - The -p, --params argument is defined
+                - Additional (a priori unrecognized) arguments
+                were given to the main program.
+            The value of this key is the string which represents
+            these unrecognized arguments, following the same
+            format in which they appeared in the python command
+            which called the main program.
+    """
+
+    fUseSteeringFile = use_steering_file(
+        args.steering,
+        args.analysis,
+        args.params
+    )
+
+    if fUseSteeringFile:
+
+        # If an steering file other than the default one is used,
+        # we still need to check that it exists in the analysis folder
+        # (in the CWD) and that it meets the requirements. I.e. 
+        # WafflesAnalysis.analysis_folder_meets_requirements()
+        # only cares about the default steering file.
+        if args.steering is not None:
+            WafflesAnalysis._WafflesAnalysis__steering_file_meets_requirements(
+                pathlib.Path(
+                    pathlib.Path.cwd(),
+                    args.steering
+                )
+            )
+            aux = args.steering
+        else:
+            aux = 'steering.yml'
+
+        with open(aux, 'r') as file:
+
+            analyses = yaml.load(
+                file,
+                Loader=yaml.Loader
+            )
+
+            # The 'preferred_parameters' key must not be present
+            # in the steering file. We are adding it here for
+            # consistency with the case where an steering file
+            # is not used but the -p, --params argument is given
+            # simultaneously with some spare arguments that are
+            # appended to the shell command.
+            for key in analyses:
+                analyses[key]['preferred_parameters'] = ''
+    else:
+        if args.analysis is not None:
+            WafflesAnalysis._WafflesAnalysis__check_analysis_class(
+                args.analysis,
+                pathlib.Path.cwd()
+            )
+            aux_name = args.analysis
+        else:
+            aux_name = 'Analysis1'
+
+        # Means that a -p, --params argument was given
+        # which gives the name of the parameters file 
+        if args.params is not None:
+
+            # In this case, check that the given parameters
+            # file exists in the analysis folder
+            WafflesAnalysis._WafflesAnalysis__check_file_or_folder_exists(
+                pathlib.Path.cwd(),
+                args.params,
+                is_file=True
+            )
+
+            aux_params = args.params
+            aux_parameters_is_file = True
+            aux_preferred_parameters = " ".join(remaining_args)
+
+        # If no parameters file was given, then
+        # assume that the unrecognized arguments
+        # are the analysis parameters
+        else:
+            aux_params = " ".join(remaining_args)
+            aux_parameters_is_file = False
+            aux_preferred_parameters = ""
+
+        # Arrange an unique-entry dictionary just to be
+        # consistent with the dictionary that is returned
+        # when an steering file is used
+        analyses = {
+            1:{
+                'name': aux_name,
+                'parameters': aux_params,
+                'parameters_is_file': aux_parameters_is_file,
+                'preferred_parameters': aux_preferred_parameters
+            }
+        }
+
+    # The steering file should have been checked to have
+    # keys which are consecutive integers starting from 1
+    ordered_list_of_analyses = [
+        analyses[i] for i in range(1, 1 + len(analyses))
+    ]
+    
+    return ordered_list_of_analyses
 
 def use_steering_file(
     steering: Optional[str],
