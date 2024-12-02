@@ -202,7 +202,7 @@ class WafflesAnalysis(ABC):
         2) The folder contains a file called 'utils.py',
         which may contain utility functions used by the
         analysis.
-        3) The folder contains a file called 'params.py',
+        3) The folder contains a file called 'params.yml',
         which contains the input parameters used, by default,
         by the analysis.
         4) The folder contains a file called 'imports.py',
@@ -244,7 +244,7 @@ class WafflesAnalysis(ABC):
 
         WafflesAnalysis.__check_file_or_folder_exists(
             analysis_folder_path,
-            'params.py',
+            'params.yml',
             is_file=True
         )
 
