@@ -70,6 +70,13 @@ class IllFormedSteeringFile(WafflesBaseException):
     """
     pass
 
+class IllFormedParametersFile(WafflesBaseException):
+    """Exception raised when the specified parameters
+    file for an analysis-run does not follow the
+    required structure.
+    """
+    pass
+
 class IllFormedAnalysisClass(WafflesBaseException):
     """Exception raised when the analysis class to be run
     is ill-formed."""
