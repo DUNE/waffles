@@ -71,7 +71,8 @@ def add_arguments_to_parser(
 
 def get_ordered_list_of_analyses(
         args: argparse.Namespace,
-        remaining_args: list
+        remaining_args: list,
+        verbose: bool = False
 ) -> list:
     """This function gets the arguments parsed by the main program
     and the remaining arguments that were not recognized by the parser.
@@ -88,6 +89,8 @@ def get_ordered_list_of_analyses(
         The remaining arguments that were not recognized by the
         parser. It should be the second output of the parse_known_args()
         method of the used argparse.ArgumentParser instance.
+    verbose: bool
+        Whether to run with verbosity.
 
     Returns
     ----------
@@ -125,6 +128,18 @@ def get_ordered_list_of_analyses(
         args.params
     )
 
+    if verbose:
+        if fUseSteeringFile:
+            print(
+                "In function get_ordered_list_of_analyses(): "
+                "Running with an steering file"
+            )
+        else:
+            print(
+                "In function get_ordered_list_of_analyses(): "
+                "Running without an steering file"
+            )
+
     if fUseSteeringFile:
 
         # If an steering file other than the default one is used,
@@ -140,8 +155,21 @@ def get_ordered_list_of_analyses(
                 )
             )
             aux = args.steering
+
+            if verbose:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    f"Using specified steering file '{aux}'"
+                )
         else:
             aux = 'steering.yml'
+
+            if verbose:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    "An steering file was not specified. The default "
+                    f"one ('{aux}') will be used."
+                )
 
         with open(aux, 'r') as file:
 
@@ -165,8 +193,21 @@ def get_ordered_list_of_analyses(
                 pathlib.Path.cwd()
             )
             aux_name = args.analysis
+
+            if verbose:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    f"Using specified analysis class '{aux_name}'"
+                )
         else:
             aux_name = 'Analysis1'
+
+            if verbose:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    "An analysis class was not specified. The default "
+                    f"one ('{aux_name}') will be used."
+                )
 
         # Means that a -p, --params argument was given
         # which gives the name of the parameters file 
@@ -184,6 +225,19 @@ def get_ordered_list_of_analyses(
             aux_parameters_is_file = True
             aux_preferred_parameters = " ".join(remaining_args)
 
+            if verbose:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    f"Using specified parameters file '{aux_params}'"
+                )
+
+                if len(aux_preferred_parameters) > 0:
+                    print(
+                        "In function get_ordered_list_of_analyses(): "
+                        f"Using the additionally given arguments "
+                        f"({aux_preferred_parameters}) as preferred parameters"
+                    ) 
+
         # If no parameters file was given, then
         # assume that the unrecognized arguments
         # are the analysis parameters
@@ -191,6 +245,19 @@ def get_ordered_list_of_analyses(
             aux_params = " ".join(remaining_args)
             aux_parameters_is_file = False
             aux_preferred_parameters = ""
+
+            if verbose:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    "No parameters file was given."
+                )
+
+                if len(aux_params) > 0:
+                    print(
+                        "In function get_ordered_list_of_analyses(): "
+                        "Using the additionally given arguments "
+                        f"({aux_params}) as default parameters."
+                    )
 
         # Arrange an unique-entry dictionary just to be
         # consistent with the dictionary that is returned
