@@ -364,6 +364,32 @@ def use_steering_file(
 
     return fUseSteeringFile
 
+def __purge_parameters_dictionary(
+        input_: dict
+) -> dict:
+    """This helper function takes an input dictionary and
+    deletes from it any key-value pair for which its key
+    or value matches an empty string.
+    
+    Parameters
+    ----------
+    input_: dict
+    
+    Returns
+    ----------
+    dict
+    """
+
+    keys_to_delete = []
+    for key in input_.keys():
+        if key == '' or input_[key] == '':
+            keys_to_delete.append(key)
+
+    for key in keys_to_delete:
+        del input_[key]
+
+    return input_
+
 def empty_string_to_None(
         input_: str
 ) -> Optional[str]:
