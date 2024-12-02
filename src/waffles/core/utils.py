@@ -334,9 +334,10 @@ def use_steering_file(
                     1,
                     'use_steering_file()',
                     reason="The given input is not valid since the "
-                    "'steering' parameter was defined along with the "
-                    "'analysis' and/or 'params' parameter. Note that "
-                    "the 'steering' parameter is mutually exclusive "
+                    "'steering' parameter (-s, --steering) was "
+                    "defined along with the 'analysis' (-a, --analysis)"
+                    " and/or 'params' (-p, --params) parameter. Note "
+                    "that the 'steering' parameter is mutually exclusive "
                     "with the 'analysis' parameter, and the 'params' "
                     "parameter."
                 )
