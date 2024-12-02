@@ -363,3 +363,21 @@ def use_steering_file(
             fUseSteeringFile = False
 
     return fUseSteeringFile
+
+def empty_string_to_None(
+        input_: str
+) -> Optional[str]:
+    """This function takes an string as input and returns
+    None if the input is an empty string. Otherwise, it
+    returns the input string.
+    
+    Parameters
+    ----------
+    input_: str
+    
+    Returns
+    ----------
+    Optional[str]
+    """
+
+    return None if input_ == '' else input_
