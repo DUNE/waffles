@@ -5,7 +5,7 @@ from waffles.np04_analysis.LED_calibration.imports import *
 from waffles.np04_analysis.LED_calibration.params import *
 
 
-class analysis(WafflesAnalysis):
+class Analysis1(WafflesAnalysis):
 
     def __init__(self):
         pass        
