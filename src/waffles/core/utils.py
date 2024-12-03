@@ -364,6 +364,80 @@ def use_steering_file(
 
     return fUseSteeringFile
 
+def build_parameters_dictionary(
+        parameters_file_name: Optional[str] = None,
+        parameters_shell_string: Optional[str] = None,
+        prioritize_string_parameters: bool = True,
+        verbose: bool = False
+) -> dict:
+    """This function gets the name of a .yml parameters file
+    and/or an string which defines some input parameters with
+    the usual shell-commands format. This function returns a
+    dictionary which contains both: the variables defined in
+    the given YAML parameters file, and the variables which
+    were parsed from the shell string. If the same variable is
+    found in both the parameters file and the shell string,
+    then the value of the variable in the shell string will
+    overwrite the value of the variable in the parameters file
+    if prioritize_string_parameters is set to True. Otherwise,
+    the value of the variable in the parameters file will
+    overwrite that of the variable in the shell string. If none
+    of the optional parameters are given, then an empty
+    dictionary is returned.
+
+    Parameters
+    ----------
+    parameters_file_name: None or str
+        The name of the parameters file. Its extension must match
+        '.yml'. It is assumed that this file is present in the
+        current working directory.
+    parameters_shell_string: None or str
+        A string which defines some input parameters with the
+        usual shell-commands format
+    prioritize_string_parameters: bool
+        Whether to prioritize the parameters which are defined
+        in the shell string over those which are defined in the
+        parameters file. 
+    verbose: bool
+        Whether to run with verbosity
+    
+    Returns
+    ----------
+    parameters_dict: dict
+        A dictionary which contains all of the variables which
+        were found in the parameters file and all of the variables
+        which were parsed from the shell string.
+    """
+
+    file_dict = __build_parameters_dictionary_from_file(
+        parameters_file_name
+    ) if parameters_file_name is not None else {}
+
+    if len(file_dict) > 0:
+        if verbose:
+            print(
+                "In function build_parameters_dictionary(): "
+                f"Collected the following parameters from the"
+                f" file '{parameters_file_name}': {file_dict}"
+            )
+
+    shell_dict = __build_parameters_dictionary_from_shell_string(
+        parameters_shell_string,
+        verbose=verbose
+    ) if parameters_shell_string is not None else {}
+
+    if len(shell_dict) > 0:
+        if verbose:
+            print(
+                "In function build_parameters_dictionary(): "
+                f"Collected the following parameters from the"
+                f" string '{parameters_shell_string}': {shell_dict}"
+            )
+
+    if prioritize_string_parameters:
+        return {**file_dict, **shell_dict}
+    else:
+        return {**shell_dict, **file_dict}
 
 def __build_parameters_dictionary_from_file(
         parameters_file_name: str
