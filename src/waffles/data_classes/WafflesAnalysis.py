@@ -11,177 +11,212 @@ class WafflesAnalysis(ABC):
 
     Attributes
     ----------
-    ## Add the attributes here. Example: 
-    time_step_ns: float (inherited from WaveformAdcs)
-    daq_window_timestamp: int
-        The timestamp value for the DAQ window in which
-        this Waveform was acquired
+    read_input_loop: list
+        # Add description of this parameter
+    analyze_loop: list
+        # Add description of this parameter
+    analyze_itr: list
+        # Add description of this parameter
+    read_input_itr: list
+        # Add description of this parameter
 
     Methods
     ----------
-    ## Add the list of methods and a summary for each one here
+    get_input_params_model():
+        Class abstract method which is responsible for
+        defining and returning a validation model for the
+        input parameters of the analysis. This method must
+        be implemented by each derived analysis class.
+    initialize(input_parameters: BaseInputParams):
+        Abstract method which is responsible for defining
+        both, the common instance attributes (namely
+        self.read_input_loop, self.analyze_loop,
+        self.analyze_itr and self.read_input_itr) and
+        whichever further attributes are required by the
+        analysis. The defined attributes are potentially
+        used by the read_input(), analyze() and write_output()
+        methods.
+    read_input():
+        Abstract method which is responsible for reading
+        the input data for the analysis, p.e. Waffles
+        objects such as WaveformSet's. For more information,
+        refer to its docstring.
+    analyze():
+        Abstract method which is responsible for performing
+        the analysis on the input data. For more information,
+        refer to its docstring.
+    write_output():
+        Abstract method which is responsible for writing
+        the output of the analysis. For more information,
+        refer to its docstring.
     """
 
     def __init__(self):
+        """Initializer of the WafflesAnalysis class. It
+        initializes each attribute of the class to a
+        dummy None.
+        """
+    
+        # Logically useless. Just to hint the
+        # user that these attributes are meant
+        # to be defined in the initialize() method.
 
-        # self.path_to_input_file 
-        # self.path_to_output_file 
-        
-        # self.read_input_loop = self.define_read_input_loop()
-        # self.analyze_loop
+        self.read_input_loop = None
+        self.analyze_loop = None
 
-        # self.analyze_itr    = None 
-        # self.read_input_itr = None
+        self.analyze_itr    = None 
+        self.read_input_itr = None
         
         pass
 
-    # @abstractmethod
-    # def define_read_input_loop():
-    #     pass
-    
+    @classmethod
     @abstractmethod
-    def define_arguments(
-            self,
-            parser: argparse.ArgumentParser
-        ) -> argparse.ArgumentParser:
-        """This method must be overriden by the derived
-        class. It is meant to add, to the given
-        argparse.ArgumentParser object, the arguments
-        that are specific to the analysis that the
-        derived class implements. The parser is then
-        returned with the arguments added.
-
-        Parameters
-        ----------
-        parser: argparse.ArgumentParser
-            The parser to which the derived-analysis
-            specific arguments will be added
-    
-        Returns
-        ----------
-        argparse.ArgumentParser
-            The parser with the arguments added
-        """
+    def get_input_params_model(
+        cls
+    ) -> type:
+        """This class method must be implemented by each
+        derived analysis class. It must define and return
+        a Pydantic model which will be used to validate
+        the input parameters given to the analysis. The
+        model must inherit from the BaseInputParams
+        class."""
         pass
 
     @abstractmethod
     def initialize(
-            args: list
-        ):
-        pass
-
-    @abstractmethod
-    def read_input() -> bool:
-        pass
-
-    @abstractmethod
-    def analyze() -> bool:
-        pass
-
-    @abstractmethod    
-    def write_output():
-        pass
-
-    def __define_arguments(
             self,
-            parser: argparse.ArgumentParser
-        ) -> argparse.ArgumentParser:
-        """This method should not be overriden nor be called
-        by the user. It is meant to be called by the execute
-        method of this base class, WafflesAnalysis. It receives
-        an argparse.ArgumentParser object whose purpose is to
-        eventually interpret the parameters which can be given
-        to any analysis object which is an instance of a derived
-        class of this class, in the sense that they are common
-        parameters to all analyses. This method adds the
-        following common parameters to the given parser:
+            input_parameters: BaseInputParams
+        ) -> None:
+        """This method must be implemented by each derived
+        analysis class. It is responsible for defining the
+        instance attributes of the analysis class out of
+        the given input parameters, which will abide by
+        the model defined in the get_input_params_model()
+        class method. Note that these instance attributes
+        include both the common attributes (namely
+        self.read_input_loop, self.analyze_loop,
+        self.analyze_itr and self.read_input_itr) and
+        whichever further attribute is required by the
+        analysis. The defined attributes are potentially
+        used by the read_input(), analyze() and
+        write_output() methods.
         
-        -i, --input_path: str
-            The path to the input file or folder
-        -o, --output_path: str
-            The path to the output file or folder
-        
-        The method then calls the define_arguments method of
-        this instance, which must have been overriden by the
-        derived class. Such method is, in turn, responsible
-        for adding the additional parameters that are specific
-        to the analysis that the derived class implements.
-
         Parameters
         ----------
-        parser: argparse.ArgumentParser
-            The parser to which the arguments will be added
+        input_parameters: BaseInputParams
+            The input parameters given to the analysis
+        
+        Returns
+        ----------
+        None
+        """
+        pass
+
+    @abstractmethod
+    def read_input(self) -> bool:
+        """This method must be implemented by each derived
+        analysis class. It is responsible for reading the
+        input data for the analysis, p.e. Waffles objects
+        such as WaveformSet's. The execute() method will
+        potentially loop this method over the
+        self.read_input_loop attribute, which should have
+        been defined in the initialize() method.
+        
+        Returns
+        ----------
+        bool
+            True if the reading process ended normally, 
+            False otherwise"""
+        pass
+
+    @abstractmethod
+    def analyze(self) -> bool:
+        """This method must be implemented by each derived
+        analysis class. It is responsible for performing
+        the analysis on the input data. The execute() method
+        will potentially loop this method over the
+        self.analyze_loop attribute, which should have been
+        defined in the initialize() method.
 
         Returns
         ----------
-        argparse.ArgumentParser
-            The parser with the arguments added        
+        bool
+            True if the analysis process ended normally,
+            False otherwise
         """
+        pass
 
-        parser.add_argument(
-            '-i',
-            '--input_path',
-            type=str,
-            required=False,
-            help="Path to the input file or folder"
-        )
-
-        parser.add_argument(
-            '-o',
-            '--output_path',
-            type=str,
-            required=False,
-            help="Path to the output file or folder",
-            default=None)
-
-        # Call the method of the derived
-        # class to add additional arguments
-        self.define_arguments(parser)
-
-        return parser
-
-    def base_initialize(self, args):        
-
-        # asign the input and output files to data members
-        self.path_to_input_file = args['input_file']
-        self.path_to_output_file = args['output_file']
-
-        print(
-            'Input file:',
-            self.path_to_input_file
-        )
-        print (
-            'Output file:',
-            self.path_to_output_file
-        )
-
-        # by default there is no iteration (only one elemet in list)
-        self.read_input_loop =[0]
-        self.analyze_loop =[0]
-
-        # call the method of the derived class
-        self.initialize(args)
+    @abstractmethod    
+    def write_output(self) -> bool:
+        """This method must be implemented by each derived
+        analysis class. It is responsible for writing the
+        output of the analysis. The execute() method may
+        call this method every time the analyze() method
+        have been called and returned True.
+        
+        Returns
+        ----------
+        bool
+            True if the writing process ended normally,
+            False otherwise
+        """
+        pass
 
     def execute(
             self,
-            first_arg: str
-        ):
+            input_parameters: BaseInputParams,
+            verbose: bool = False
+        ) -> None:
+        """This method is responsible for executing the
+        analysis. It serves as a hook for the main program.
+        It should call the initialize() method once, then 
+        iterate the read_input(), analyze() and write_output()
+        methods according to the self.read_input_loop and
+        self.analyze_loop attributes.
+        
+        Parameters
+        ----------
+        input_parameters: BaseInputParams
+            The input parameters given to the analysis.
+            This input should match the output of the
+            validation of the input-parameters model
+            returned by the get_input_params_model()
+            class method.
+        verbose: bool
+            Whether to print verbose messages or not.
 
-        args = self.base_arguments(first_arg)
-        self.base_initialize(args)
+        Returns
+        ----------
+        None
+        """
+
+        self.initialize(input_parameters)
 
         for self.read_input_itr in self.read_input_loop:
-            print(f"read_input loop: {self.read_input_itr}")
+
+            if verbose:
+                print(
+                    "In function WafflesAnalysis.execute(): "
+                    "Executing iteration of the read-input loop "
+                    f"with its iterator set to {self.read_input_itr}"
+                )
+
             if not self.read_input():
                 continue
 
             for self.analyze_itr in self.analyze_loop:
-                print(f'analyze loop: {self.analyze_itr}')
+
+                if verbose:
+                    print(
+                        "In function WafflesAnalysis.execute(): "
+                        "Executing iteration of the analysis loop "
+                        f"with its iterator set to {self.analyze_itr}"
+                    )
+
                 if not self.analyze():
                     continue
 
-                if self.path_to_output_file != None: 
-                    self.write_output()
+                self.write_output()
 
     @staticmethod
     def analysis_folder_meets_requirements():
