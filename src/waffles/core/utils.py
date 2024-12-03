@@ -365,6 +365,52 @@ def use_steering_file(
     return fUseSteeringFile
 
 
+def __build_parameters_dictionary_from_file(
+        parameters_file_name: str
+) -> dict:
+    """This helper function gets the name of a .yml 
+    parameters file and creates a dictionary which contains
+    all of the variables which were found in the parameters
+    file.
+    
+    Parameters
+    ----------
+    parameters_file_name: str
+        The name of the parameters file. This file must be
+        located in the current working directory, and its
+        extension must match '.yml'.
+        
+    Returns
+    ----------
+    loaded_dict: dict
+        A dictionary which contains all of the variables which
+        were found in the parameters file
+    """
+
+    WafflesAnalysis._WafflesAnalysis__check_file_or_folder_exists(
+        pathlib.Path.cwd(),
+        parameters_file_name,
+        is_file=True
+    )
+
+    if not parameters_file_name.endswith('.yml'):
+        raise we.IllFormedParametersFile(
+            we.GenerateExceptionMessage(
+                1,
+                '__build_parameters_dictionary_from_file()',
+                reason="The given parameters file must have a '.yml' "
+                "extension."
+            )
+        )
+
+    with open(parameters_file_name, 'r') as file:
+        loaded_dict = yaml.load(
+            file, 
+            Loader=yaml.Loader
+        )
+
+    return loaded_dict
+
 def __build_parameters_dictionary_from_shell_string(
         parameters_shell_string: str,
         verbose: bool = False
