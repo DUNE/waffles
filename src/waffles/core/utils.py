@@ -619,3 +619,65 @@ def empty_string_to_None(
     """
 
     return None if input_ == '' else input_
+
+def __check_file_or_folder_exists(
+    folder_path: pathlib.Path,
+    name: str,
+    is_file: bool = True
+) -> None:
+    """This helper static method checks that the given
+    folder contains a file or folder with the given
+    name, up to the input given to the is_file parameter.
+    If it is not found, a FileNotFoundError is raised.
+    If it is found, then the method ends execution
+    normally.
+    
+    Parameters
+    ----------
+    folder_path: pathlib.Path
+        The path to the folder to be checked
+    name: str
+        The name of the file (resp. folder) 
+        to be checked, if is_file is True 
+        (resp. False)
+    is_file: bool
+        If True (resp. False), the method
+        checks for the existence of a file
+        (resp. folder) with the given name
+        in the given folder path.
+
+    Returns
+    ----------
+    None
+    """
+
+    if is_file:
+        if not pathlib.Path(
+            folder_path,
+            name
+        ).is_file():
+        
+            raise FileNotFoundError(
+                we.GenerateExceptionMessage(
+                    1,
+                    '__check_file_or_folder_exists()',
+                    reason=f"The file '{name}' is not found in the "
+                    f"folder '{folder_path}'."
+                )
+            )
+    else:
+        if not pathlib.Path(
+            folder_path,
+            name
+        ).is_dir():
+            
+            raise FileNotFoundError(
+                we.GenerateExceptionMessage(
+                    2,
+                    '__check_file_or_folder_exists()',
+                    reason=f"The folder '{name}' is not found in the "
+                    f"folder '{folder_path}'."
+                )
+            )
+    return
+
