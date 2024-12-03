@@ -356,33 +356,39 @@ class WafflesAnalysis(ABC):
         the following structure:
 
             - It contains at least one key
-            - Its keys are consecutive integers starting from 1
-            - The sub-keys of each key are 'name', 'parameters'
-            and 'parameters_is_file'
-            - The value for each 'name' sub-keys is an string, say
-            x, that meets the following sub-requirements:
-                - x follows the format "Analysis<i>", where i is
-                an integer >=1
-                - the file 'x.py' exists alongside the steering file
-            - The value for each 'parameters' sub-keys is an string
-            - The value for each 'parameters_is_file' sub-keys is a
-            boolean. If it is True, then the value of the 'parameters'
-            sub-key is interpreted as the name of a parameters file
-            which must exist alongside the steering file. If it is
-            False, then the value of the 'parameters' sub-key is
-            interpreted as the string that would be given as part
-            of a shell command.
+            - Its keys are consecutive integers starting
+            from 1
+            - The sub-keys of each key are 'name',
+            'parameters' and 'parameters_is_file'
+            - The value for each 'name' sub-keys is an
+            string, say x, that meets the following
+            sub-requirements:
+                - x follows the format "Analysis<i>", where
+                i is an integer >=1
+                - the file 'x.py' exists alongside the
+                steering file
+            - The value for each 'parameters' sub-keys is
+            an string
+            - The value for each 'parameters_is_file'
+            sub-keys is a boolean. If it is True, then the
+            value of the 'parameters' sub-key is interpreted
+            as the name of a parameters file which must exist
+            alongside the steering file. If it is False, then
+            the value of the 'parameters' sub-key is
+            interpreted as the string that would be given as
+            part of a shell command.
 
         If any of these conditions is not met, a
         waffles.Exceptions.IllFormedSteeringFile exception
-        is raised. If the given steering file meets the specified
-        requirements, then this method ends execution normally.
+        is raised. If the given steering file meets the
+        specified requirements, then this method ends
+        execution normally.
 
         Parameters
         ----------
         steering_file_path: pathlib.Path
-            The path to the steering file to be checked. It is
-            assumed to be a YAML file.
+            The path to the steering file to be checked.
+            It is assumed to be a YAML file.
 
         Returns
         ----------
