@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import pathlib
 import yaml
 from pydantic import BaseModel, Field
+import waffles.core.utils as wcu
 import waffles.Exceptions as we
 
 class BaseInputParams(BaseModel):
@@ -284,44 +285,44 @@ class WafflesAnalysis(ABC):
             )
         )
 
-        WafflesAnalysis.__check_file_or_folder_exists(
+        wcu.__check_file_or_folder_exists(
             analysis_folder_path,
             'utils.py',
             is_file=True
         )
 
-        WafflesAnalysis.__check_file_or_folder_exists(
+        wcu.__check_file_or_folder_exists(
             analysis_folder_path,
             'params.yml',
             is_file=True
         )
 
-        WafflesAnalysis.__check_file_or_folder_exists(
+        wcu.__check_file_or_folder_exists(
             analysis_folder_path,
             'imports.py',
             is_file=True
         )
 
-        WafflesAnalysis.__check_file_or_folder_exists(
+        wcu.__check_file_or_folder_exists(
             analysis_folder_path,
             'Analysis1.py',
             is_file=True
         )
 
-        WafflesAnalysis.__check_file_or_folder_exists(
+        wcu.__check_file_or_folder_exists(
             analysis_folder_path,
             'configs',
             is_file=False
         )
 
-        WafflesAnalysis.__check_file_or_folder_exists(
+        wcu.__check_file_or_folder_exists(
             analysis_folder_path,
             'output',
             is_file=False
         )
 
         try:
-            WafflesAnalysis.__check_file_or_folder_exists(
+            wcu.__check_file_or_folder_exists(
                 analysis_folder_path,
                 'data',
                 is_file=False
@@ -333,7 +334,7 @@ class WafflesAnalysis(ABC):
             )
 
         try:
-            WafflesAnalysis.__check_file_or_folder_exists(
+            wcu.__check_file_or_folder_exists(
                 analysis_folder_path,
                 'scripts',
                 is_file=False
@@ -504,7 +505,7 @@ class WafflesAnalysis(ABC):
             )
 
             if content[key]['parameters_is_file']:
-                WafflesAnalysis.__check_file_or_folder_exists(
+                wcu.__check_file_or_folder_exists(
                     steering_file_path.parent,
                     content[key]['parameters'],
                     is_file=True

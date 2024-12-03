@@ -215,7 +215,7 @@ def get_ordered_list_of_analyses(
 
             # In this case, check that the given parameters
             # file exists in the analysis folder
-            WafflesAnalysis._WafflesAnalysis__check_file_or_folder_exists(
+            __check_file_or_folder_exists(
                 pathlib.Path.cwd(),
                 args.params,
                 is_file=True
@@ -461,7 +461,7 @@ def __build_parameters_dictionary_from_file(
         were found in the parameters file
     """
 
-    WafflesAnalysis._WafflesAnalysis__check_file_or_folder_exists(
+    __check_file_or_folder_exists(
         pathlib.Path.cwd(),
         parameters_file_name,
         is_file=True
