@@ -215,7 +215,7 @@ def get_ordered_list_of_analyses(
 
             # In this case, check that the given parameters
             # file exists in the analysis folder
-            __check_file_or_folder_exists(
+            check_file_or_folder_exists(
                 pathlib.Path.cwd(),
                 args.params,
                 is_file=True
@@ -461,7 +461,7 @@ def __build_parameters_dictionary_from_file(
         were found in the parameters file
     """
 
-    __check_file_or_folder_exists(
+    check_file_or_folder_exists(
         pathlib.Path.cwd(),
         parameters_file_name,
         is_file=True
@@ -620,7 +620,7 @@ def empty_string_to_None(
 
     return None if input_ == '' else input_
 
-def __check_file_or_folder_exists(
+def check_file_or_folder_exists(
     folder_path: pathlib.Path,
     name: str,
     is_file: bool = True
@@ -660,7 +660,7 @@ def __check_file_or_folder_exists(
             raise FileNotFoundError(
                 we.GenerateExceptionMessage(
                     1,
-                    '__check_file_or_folder_exists()',
+                    'check_file_or_folder_exists()',
                     reason=f"The file '{name}' is not found in the "
                     f"folder '{folder_path}'."
                 )
@@ -674,7 +674,7 @@ def __check_file_or_folder_exists(
             raise FileNotFoundError(
                 we.GenerateExceptionMessage(
                     2,
-                    '__check_file_or_folder_exists()',
+                    'check_file_or_folder_exists()',
                     reason=f"The folder '{name}' is not found in the "
                     f"folder '{folder_path}'."
                 )

@@ -285,44 +285,44 @@ class WafflesAnalysis(ABC):
             )
         )
 
-        wcu.__check_file_or_folder_exists(
+        wcu.check_file_or_folder_exists(
             analysis_folder_path,
             'utils.py',
             is_file=True
         )
 
-        wcu.__check_file_or_folder_exists(
+        wcu.check_file_or_folder_exists(
             analysis_folder_path,
             'params.yml',
             is_file=True
         )
 
-        wcu.__check_file_or_folder_exists(
+        wcu.check_file_or_folder_exists(
             analysis_folder_path,
             'imports.py',
             is_file=True
         )
 
-        wcu.__check_file_or_folder_exists(
+        wcu.check_file_or_folder_exists(
             analysis_folder_path,
             'Analysis1.py',
             is_file=True
         )
 
-        wcu.__check_file_or_folder_exists(
+        wcu.check_file_or_folder_exists(
             analysis_folder_path,
             'configs',
             is_file=False
         )
 
-        wcu.__check_file_or_folder_exists(
+        wcu.check_file_or_folder_exists(
             analysis_folder_path,
             'output',
             is_file=False
         )
 
         try:
-            wcu.__check_file_or_folder_exists(
+            wcu.check_file_or_folder_exists(
                 analysis_folder_path,
                 'data',
                 is_file=False
@@ -334,7 +334,7 @@ class WafflesAnalysis(ABC):
             )
 
         try:
-            wcu.__check_file_or_folder_exists(
+            wcu.check_file_or_folder_exists(
                 analysis_folder_path,
                 'scripts',
                 is_file=False
@@ -505,7 +505,7 @@ class WafflesAnalysis(ABC):
             )
 
             if content[key]['parameters_is_file']:
-                wcu.__check_file_or_folder_exists(
+                wcu.check_file_or_folder_exists(
                     steering_file_path.parent,
                     content[key]['parameters'],
                     is_file=True
