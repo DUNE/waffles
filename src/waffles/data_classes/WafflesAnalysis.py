@@ -1,10 +1,21 @@
 from abc import ABC, abstractmethod
 import pathlib
 import yaml
+from pydantic import BaseModel, Field
 import waffles.Exceptions as we
-import argparse
-import yaml
-import pathlib
+
+class BaseInputParams(BaseModel):
+
+    input_path: str = Field(
+        ..., 
+        description="Path to the input file or folder",
+        example='input/'
+    )
+
+    output_path: str = Field(
+        default='output/', 
+        description="Path to the output file or folder"
+    )
 
 class WafflesAnalysis(ABC):
     """This abstract class implements a Waffles Analysis.
