@@ -364,6 +364,98 @@ def use_steering_file(
 
     return fUseSteeringFile
 
+
+def __build_parameters_dictionary_from_shell_string(
+        parameters_shell_string: str,
+        verbose: bool = False
+) -> dict:
+    """This helper function gets an string which defines some
+    input parameters with the usual shell-commands format. It
+    returns a dictionary which contains all of the variables
+    which were parsed from the shell string. 
+
+    Parameters
+    ----------
+    parameters_shell_string: str
+        A string which defines some input parameters with the
+        usual shell-commands format. It must have at least
+        length 2, and the first word must start with a dash
+        ('-'). Otherwise, an exception is raised. If a parameter
+        is repeated, then it is overwritten with the last given
+        value. If two or more consecutive words do not start
+        with a dash, then all of them except for the first one
+        are ignored.
+    
+    Returns
+    ----------
+    parameters_dict: dict
+        A dictionary which contains all of the variables which
+        were parsed from the shell string. The keys are strings.
+        The values are either boolean or strings.
+    """
+
+    if len(parameters_shell_string) < 2:
+        raise we.WafflesBaseException(
+            we.GenerateExceptionMessage(
+                1,
+                '__build_parameters_dictionary_from_shell_string()',
+                reason="The given shell string "
+                f"('{parameters_shell_string}') must have at least "
+                "length 2, p.e. '-v'."
+            )
+        )
+
+    chunks = parameters_shell_string.split()
+
+    if not chunks[0].startswith('-'):
+        raise Exception(
+            we.WafflesBaseException(
+                2,
+                '__build_parameters_dictionary_from_shell_string()',
+                reason=f"The first word ('{chunks[0]}') of the given "
+                f"shell string ('{parameters_shell_string}') must start "
+                "with a dash ('-')."
+            )
+        )
+
+    parameters_dict = {}
+    key = chunks[0].strip('-')
+    fGotKey = True
+    i = 1
+    fReachedEnd = (len(chunks) == 1)
+
+    while not fReachedEnd:
+
+        if chunks[i].startswith('-'):
+
+            if fGotKey:
+                parameters_dict[key] = True
+                key = chunks[i].strip('-')
+                fGotKey = True
+            else:
+                key = chunks[i].strip('-')
+                fGotKey = True
+        else:
+
+            if fGotKey:
+                parameters_dict[key] = chunks[i]
+                fGotKey = False
+            else:
+                if verbose:
+                    print(
+                        "In function __build_parameters_dictionary_from_shell_string():"
+                        f" Ignoring value ('{chunks[i]}') with no key."
+                    )
+        i += 1
+        fReachedEnd = (i == len(chunks))
+
+    if fGotKey:
+        parameters_dict[key] = True
+
+    # Ill-formed inputs can yield empty strings
+    # as keys or values: Filter those out
+    return __purge_parameters_dictionary(parameters_dict)
+
 def __purge_parameters_dictionary(
         input_: dict
 ) -> dict:
