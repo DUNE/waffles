@@ -5,6 +5,7 @@ import pandas as pd
 import argparse
 import pickle
 import plotly.graph_objects as pgo
+from pydantic import Field
 
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -21,5 +22,5 @@ from waffles.np04_analysis.LED_calibration.configs.calibration_batches.run_numbe
 from waffles.np04_analysis.LED_calibration.configs.calibration_batches.excluded_channels import excluded_channels
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 from waffles.np04_analysis.LED_calibration import utils as led_utils
-from waffles.data_classes.WafflesAnalysis import WafflesAnalysis as WafflesAnalysis
+from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
 from waffles.np04_analysis.LED_calibration.configs.calibration_batches.metadata import metadata
