@@ -1,76 +1,192 @@
-# import all necessary files and classes
 from waffles.np04_analysis.LED_calibration.imports import *
-
-# import all tunable parameters
-from waffles.np04_analysis.LED_calibration.params import *
-
 
 class Analysis1(WafflesAnalysis):
 
     def __init__(self):
-        pass        
+        pass
 
-    ##################################################################
-    def arguments(self, parse: argparse.ArgumentParser):                
+    @classmethod
+    def get_input_params_model(
+        cls
+    ) -> type:
+        """Implements the WafflesAnalysis.get_input_params_model()
+        abstract method. Returns the InputParams class, which is a
+        Pydantic model class that defines the input parameters for
+        this analysis.
+        
+        Returns
+        -------
+        type
+            The InputParams class, which is a Pydantic model class"""
+        
+        class InputParams(BaseInputParams):
+            """Validation model for the input parameters of the LED
+            calibration analysis."""
 
-        parse.add_argument('-a','--apa',      type=int,   required=True,  help="APA number")
-        parse.add_argument('-p','--pde',      type=float, required=True,  help="photon detection efficiency")
-        parse.add_argument('-b','--batch',    type=int,   required=True,  help="calibration batch")
-        parse.add_argument('-ns','--noshow',  action="store_true",        help="do not show figures")
+            apa: int = Field(
+                ...,
+                description="APA number",
+                example=2
+            )
+        
+            pde: float = Field(
+                ...,
+                description="Photon detection efficiency",
+                example=0.4
+            )
 
-    ##################################################################
-    def initialize(self, args):                
+            batch: int = Field(
+                ...,
+                description="Calibration batch number",
+                example=2
+            )
 
-        # store the user arguments into data members
-        self.show_figures = args['noshow']
-        self.apa    = args['apa']
-        self.pde    = args['pde']
-        self.batch  = args['batch']
-        self.data_folderpath = self.path_to_input_file
+            show_figures: bool = Field(
+                default=False,
+                description="Whether to show the produced "
+                "figures",
+            )
 
-        # calibration configurations 
-        #self.run_to_config_      =      run_to_config[self.batch][self.apa][self.pde]  # runs for a given configuration
-        #self.config_to_channels_ = config_to_channels[self.batch][self.apa][self.pde]  # channels for each run
-        self.excluded_channels_  =  excluded_channels[self.batch]
+            max_peaks: int = Field(
+                default=2,
+                description="Maximum number of peaks to "
+                "fit in each charge histogram",
+            )
 
-        # self.read_input_loop = [[2,2,0.4],
-        #                         [2,2,0.45],
-        #                         [2,2,0.5],
-        #                         [2,3,0.4],
-        #                         [2,3,0.45],
-        #                         [2,3,0.5],
-        #                         [2,4,0.4],
-        #                         [2,4,0.45],
-        #                         [2,2,0.5],
-        #                         [3,2,0.4],
-        #                         [3,2,0.45],
-        #                         [3,2,0.5],
-        #                         [3,3,0.4],
-        #                         [3,3,0.45],
-        #                         [3,3,0.5],
-        #                         [3,4,0.4],
-        #                         [3,4,0.45],
-        #                         [3,2,0.5]                                                                                            
-        #                         ]
+            prominence: float = Field(
+                default=0.15,
+                description="Minimal prominence, as a "
+                "fraction of the y-range of the charge "
+                "histogram, for a peak to be detected",
+            )
 
-    ##################################################################
-    def read_input(self):
+            half_points_to_fit: int = Field(
+                default=2,
+                description="The number of points to "
+                "fit on either side of the peak maximum. "
+                "P.e. setting this to 2 will fit 5 points "
+                "in total: the maximum and 2 points on "
+                "either side."
+            )
 
-        # self.batch = self.read_input_itr[0]
-        # self.apa   = self.read_input_itr[1]
-        # self.pde   = self.read_input_itr[2]
+            initial_percentage: float = Field(
+                default=0.15,
+                description="It has to do with the peak "
+                "finding algorithm. It is given to the "
+                "'initial_percentage' parameter of the "
+                "'fit_peaks_of_ChannelWsGrid()' function. "
+                "Check its docstring for more information."
+            )
+
+            percentage_step: float = Field(
+                default=0.05,
+                description="It has to do with the peak "
+                "finding algorithm. It is given to the "
+                "'percentage_step' parameter of the "
+                "'fit_peaks_of_ChannelWsGrid()' function. "
+                "Check its docstring for more information."
+            )
+
+            plots_saving_folderpath: str = Field(
+                default="./",
+                description="Path to the folder where "
+                "the plots will be saved."
+            )
+
+        return InputParams
+
+    def initialize(
+        self,
+        input_parameters: BaseInputParams
+    ) -> None:
+        """Implements the WafflesAnalysis.initialize() abstract
+        method. It defines the attributes of the Analysis1 class.
+        
+        Parameters
+        ----------
+        input_parameters : BaseInputParams
+            The input parameters for this analysis
+            
+        Returns
+        -------
+        None
+        """
+
+        self.read_input_loop = [None,]
+        self.analyze_loop = [None,]
+        self.input_parameters = input_parameters
+        self.wfset = None
+        self.output_data = None
+
+        # To be implemented
+        # self.read_input_loop = [
+        #     [2,2,0.4],
+        #     [2,2,0.45],
+        #     [2,2,0.5],
+        #     [2,3,0.4],
+        #     [2,3,0.45],
+        #     [2,3,0.5],
+        #     [2,4,0.4],
+        #     [2,4,0.45],
+        #     [2,2,0.5],
+        #     [3,2,0.4],
+        #     [3,2,0.45],
+        #     [3,2,0.5],
+        #     [3,3,0.4],
+        #     [3,3,0.45],
+        #     [3,3,0.5],
+        #     [3,4,0.4],
+        #     [3,4,0.45],
+        #     [3,2,0.5]
+        # ]
+
+    def read_input(self) -> bool:
+        """Implements the WafflesAnalysis.read_input() abstract
+        method. It loads a WaveformSet object into the self.wfset
+        attribute which matches the input parameters, namely the
+        APA number, the PDE and the batch number. The final
+        WaveformSet is the result of merging different WaveformSet
+        objects, each of which comes from a different run.
+        The decision on which run contributes to which channel
+        is done based on the configuration files, namely on the
+        config_to_channels and run_to_config variables, which are
+        imported from files in the configs/calibration_batches
+        directory.
+            
+        Returns
+        -------
+        bool
+            True if the method ends execution normally
+        """
+
+
+        # To be implemented
+        # self.input_parameters.batch = self.read_input_itr[0]
+        # self.input_parameters.apa   = self.read_input_itr[1]
+        # self.input_parameters.pde   = self.read_input_itr[2]
 
         first = True
+
+        # Reset the WaveformSet
         self.wfset = None
 
-        # loop over runs
-        runs = run_to_config[self.batch][self.apa][self.pde]
+        runs = run_to_config[
+            self.input_parameters.batch][
+                self.input_parameters.apa][
+                    self.input_parameters.pde]
+        
+        # Loop over runs
         for run in runs.keys():
-            # loop over endpoints using that run for calibration
-            channels_and_endpoints = config_to_channels[self.batch][self.apa][self.pde][runs[run]]
+            channels_and_endpoints = config_to_channels[
+                self.input_parameters.batch][
+                    self.input_parameters.apa][
+                        self.input_parameters.pde][
+                            runs[run]]
+            
+            # Loop over endpoints using the current run for calibration
             for endpoint in channels_and_endpoints.keys():
                 
-                # list of channels in that endpoint using that run for calibration
+                # List of channels in that endpoint using that run for calibration
                 channels = channels_and_endpoints[endpoint]
 
                 print("\n Now loading waveforms from:")
@@ -78,15 +194,34 @@ class Analysis1(WafflesAnalysis):
                 print(f" - endpoint {endpoint}")
                 print(f" - channels {channels} \n")         
                 
-                # data folder for that run, and the batch, apa and pde specified in params.py
-                input_filepath = led_utils.get_input_filepath(self.data_folderpath, self.batch, run, self.apa, self.pde)
+                # Get the filepath to the input data for this run
+                input_filepath = led_utils.get_input_filepath(
+                    self.input_parameters.input_path,
+                    self.input_parameters.batch,
+                    self.input_parameters.apa,
+                    self.input_parameters.pde,
+                    run
+                )
 
-                # read all files for the given run
-                new_wfset = led_utils.read_data(input_filepath, self.batch, self.apa, 0.01, is_folder=False)
+                # Read all files for the given run
+                new_wfset = led_utils.read_data(
+                    input_filepath,
+                    self.input_parameters.batch,
+                    self.input_parameters.apa,
+                    is_folder=False,
+                    stop_fraction=1.,
 
-                # keep only waveforms in the necessary endpoint and channels
-                new_wfset = led_utils.get_wfset_in_channels(new_wfset, endpoint, channels)                     
-                
+                )
+
+                # Keep only the waveforms coming from 
+                # the targeted channels for this run
+                new_wfset = new_wfset.from_filtered_WaveformSet(
+                    new_wfset,
+                    led_utils.comes_from_channel,
+                    endpoint,
+                    channels
+                )
+
                 if first:
                     self.wfset = new_wfset
                     first=False
@@ -95,61 +230,148 @@ class Analysis1(WafflesAnalysis):
 
         return True
 
-    ##################################################################
-    def analyze(self):
+    def analyze(self) -> bool:
+        """
+        Implements the WafflesAnalysis.analyze() abstract method.
+        It performs the analysis of the waveforms contained in the
+        self.wfset attribute, which consists of the following steps:
 
-        """ ------------- analyse the waveform set --------------- """
+        1. Analyze the waveforms in the WaveformSet by computing
+        their baseline and integral.
+        2. Create a grid of WaveformSets, so that their are ordered
+        according to the APA ordering, and all of the waveforms in a
+        WaveformSet come from the same channel.
+        3. Compute the charge histogram for each channel in the grid
+        4. Fit peaks of each charge histogram
+        5. Plot charge histograms
+        6. Compute gain and S/N for every channel.
+        
+        Returns
+        -------
+        bool
+            True if the method ends execution normally
+        """
+
+        # ------------- Analyse the waveform set -------------
 
         # get parameters input for the analysis of the waveforms
-        input_parameters = led_utils.get_analysis_params()
+        analysis_input_parameters = led_utils.get_analysis_params(
+            self.input_parameters.apa,
+            # Will fail when APA 1 is analyzed
+            run=None
+        )
+
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = self.wfset.points_per_wf
+
+        aux = 'standard'
     
-        # analise the waveform: compute baseline, integral and amplitud
-        _ = self.wfset.analyse(analysis_label, BasicWfAna, input_parameters, *[],  # *args,
-            analysis_kwargs={}, checks_kwargs=checks_kwargs, overwrite=True,)
+        # Analyze all of the waveforms in this WaveformSet:
+        # compute baseline, integral and amplitud
+        _ = self.wfset.analyse(
+            aux,
+            BasicWfAna,
+            analysis_input_parameters,
+            *[],  # *args,
+            analysis_kwargs={},
+            checks_kwargs=checks_kwargs,
+            overwrite=True
+        )
                 
-        """ ------------- Compute charge histogram --------------- """
+        # ------------- Compute charge histogram -------------
 
-        # Create a grid of WaveformSets for each channel in one APA, and compute the charge histogram
-        # Julio suggest decoupling creating the grid and creating the calib histo
-        grid_apa = ChannelWsGrid(APA_map[self.apa], self.wfset, compute_calib_histo=True, 
-                                bins_number=nbins, domain=np.array((-10000.0, 50000.0)),
-                                variable="integral",analysis_label=None,)
+        # Create a grid of WaveformSets for each channel in one
+        # APA, and compute the charge histogram for each channel
+        grid_apa = ChannelWsGrid(
+            APA_map[self.input_parameters.apa],
+            self.wfset,
+            compute_calib_histo=True, 
+            bins_number=led_utils.get_nbins_for_charge_histo(
+                self.input_parameters.pde,
+                self.input_parameters.apa
+            ),
+            domain=np.array((-10000.0, 50000.0)),
+            variable="integral",
+            analysis_label=aux
+        )
 
-        """ ------------- Fit peaks of charge histogram -------------"""
+        # ------------- Fit peaks of charge histogram -------------
 
-        # fit peaks in that grid
-        fit_peaks_of_ChannelWsGrid(grid_apa, max_peaks, prominence, half_points_to_fit, 
-                                    initial_percentage, percentage_step,)
+        # Fit peaks of each charge histogram
+        fit_peaks_of_ChannelWsGrid(
+            grid_apa,
+            self.input_parameters.max_peaks,
+            self.input_parameters.prominence,
+            self.input_parameters.half_points_to_fit, 
+            self.input_parameters.initial_percentage,
+            self.input_parameters.percentage_step
+        )
 
-        """ ------------- Plot charge histograms ------------- """
+        # ------------- Plot charge histograms -------------
 
-        figure = plot_ChannelWsGrid(grid_apa, figure=None, share_x_scale=False,
-                            share_y_scale=False, mode="calibration", wfs_per_axes=None,
-                            analysis_label=analysis_label, plot_peaks_fits=True,
-                            detailed_label=False, verbose=True,)
+        figure = plot_ChannelWsGrid(
+            grid_apa,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="calibration",
+            wfs_per_axes=None,
+            analysis_label=aux,
+            plot_peaks_fits=True,
+            detailed_label=False,
+            verbose=True
+        )
 
-        title = f"APA {self.apa} - Runs {list(self.wfset.runs)}"
-        figure.update_layout(title={"text": title,"font": {"size": 24}}, width=1100, height=1200, showlegend=True,)
+        title = f"APA {self.input_parameters.apa} - Runs {list(self.wfset.runs)}"
 
-        if not self.show_figures:
+        figure.update_layout(
+            title={
+                "text": title,
+                "font": {"size": 24}
+            }, 
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+
+        if self.input_parameters.show_figures:
             figure.show()
 
-        # figure.write_image(f"{plots_saving_filepath}/apa_{self.apa}_calibration_histograms.png")
+        figure.write_image(
+            f"{self.input_parameters.plots_saving_folderpath}"
+            f"/apa_{self.input_parameters.apa}_calibration_histograms.png"
+        )
 
         """ ------------- Compute gain and S/N ------------- """
 
-        # compute gain and S/N for the grid
-        self.output_data = led_utils.get_gain_and_sn(grid_apa, self.excluded_channels_[self.apa][self.pde])
+        # Compute gain and S/N for every channel
+        self.output_data = led_utils.get_gain_and_snr(
+            grid_apa, 
+            excluded_channels[
+                self.input_parameters.batch][
+                    self.input_parameters.apa][
+                        self.input_parameters.pde]
+        )
 
         return True
 
-    ##################################################################
-    def write_output(self):
+    def write_output(self) -> bool:
+        """Implements the WafflesAnalysis.write_output() abstract
+        method. It saves the results of the analysis to a dataframe,
+        which is written to a pickle file.
 
-        """ ------------- Save results to a dataframe ------------- """
+        Returns
+        -------
+        bool
+            True if the method ends execution
+        """
 
-        led_utils.save_data_to_dataframe(self.output_data, 
-                                         self.path_to_output_file,
-                                         self)
+        # ------------- Save results to a dataframe -------------
+
+        led_utils.save_data_to_dataframe(
+            self,
+            self.output_data, 
+            self.input_parameters.output_path,
+        )
+
+        return True
