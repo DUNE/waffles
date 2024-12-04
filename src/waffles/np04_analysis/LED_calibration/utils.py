@@ -1,26 +1,46 @@
+import os
 import numpy as np
 import pandas as pd
-import os
 
+from waffles.core.utils import build_parameters_dictionary
 from waffles.input.raw_root_reader import WaveformSet_from_root_files
 from waffles.input.pickle_file_reader import WaveformSet_from_pickle_files
 from waffles.input.raw_root_reader import WaveformSet_from_root_file
 from waffles.input.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.data_classes.Waveform import Waveform
-from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.IPDict import IPDict
 from waffles.np04_utils.utils import get_channel_iterator
 
-from waffles.np04_analysis.LED_calibration.params import *
+input_parameters = build_parameters_dictionary('params.yml')
 
-def get_input_filepath(base_folderpath: str, batch: int, run: int, apa: int, pde: float):
-    aux = 'apa_2' if apa == 2 else 'apas_34'
-    return  f"{base_folderpath}/batch_{batch}/{aux}/{pde}/run_{run}_chunk_0.pkl"
+def get_input_filepath(
+        base_folderpath: str,
+        batch: int,
+        apa: int,
+        pde: float,
+        run: int
+    ) -> str:
 
-def get_input_folderpath(base_folderpath: str, batch: int, apa: int, pde: float):
-    aux = 'apa_2' if apa == 2 else 'apas_34'
-    return  f"{base_folderpath}/batch_{batch}/{aux}/{pde}"
+    aux = get_input_folderpath(
+        base_folderpath,
+        batch,
+        apa,
+        pde
+    )
+    return  f"{aux}/run_0{run}/run_{run}_chunk_0.pkl"
+
+def get_input_folderpath(
+        base_folderpath: str,
+        batch: int,
+        apa: int,
+        pde: float):
+    
+    aux = get_apa_foldername(
+        batch,
+        apa
+    )
+    return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/"
 
 
 def get_apa_foldername(measurements_batch, apa_no):
@@ -29,7 +49,9 @@ def get_apa_foldername(measurements_batch, apa_no):
     on the measurements batch.""" 
 
     if measurements_batch not in [1, 2, 3]:
-        raise ValueError(f"Measurements batch {measurements_batch} is not valid")
+        raise ValueError(
+            f"Measurements batch {measurements_batch} is not valid"
+        )
     
     if apa_no not in [1, 2, 3, 4]:
         raise ValueError(f"APA number {apa_no} is not valid")
@@ -51,39 +73,50 @@ def get_apa_foldername(measurements_batch, apa_no):
 def comes_from_channel(
         waveform: Waveform, 
         endpoint, 
-        channels) -> bool:
+        channels
+    ) -> bool:
 
     if waveform.endpoint == endpoint:
         if waveform.channel in channels:
             return True
     return False
 
-def get_analysis_params(run: int = None, apa_no: int = None):
-
-    int_ll = get_starting_tick(run, apa_no)
-
-    input_parameters = IPDict(baseline_limits=get_baseline_limits(apa_no))
-    input_parameters['int_ll'] = int_ll
-    input_parameters['int_ul'] = int_ll + integ_window
-    input_parameters['amp_ll'] = int_ll
-    input_parameters['amp_ul'] = int_ll + integ_window
-
-    return input_parameters
-
-def get_starting_tick(run: int = None, apa_no: int = None):
-    if apa_no == 1:
-        return starting_tick_apa1[run]
-    else:
-        return starting_tick_apa234
-
-def get_baseline_limits(apa_no: int = None):
+def get_analysis_params(
+        apa_no: int,
+        run: int = None
+    ):
 
     if apa_no == 1:
-        return baseline_limits_apa1
+        if run is None:
+            raise Exception(
+                "In get_analysis_params(): A run number "
+                "must be specified for APA 1"
+            )
+        else:
+            int_ll = input_parameters['starting_tick'][1][run]
     else:
-        return baseline_limits_apa234
+        int_ll = input_parameters['starting_tick'][apa_no]
 
-def read_data(input_folderpath:str='', batch: int = None, apa_no:int=None, stop_fraction: float = 1., is_folder: bool= True):
+    analysis_input_parameters = IPDict(
+        baseline_limits=\
+            input_parameters['baseline_limits'][apa_no]
+    )
+    analysis_input_parameters['int_ll'] = int_ll
+    analysis_input_parameters['int_ul'] = \
+        int_ll + input_parameters['integ_window']
+    analysis_input_parameters['amp_ll'] = int_ll
+    analysis_input_parameters['amp_ul'] = \
+        int_ll + input_parameters['integ_window']
+
+    return analysis_input_parameters
+
+def read_data(
+        input_path: str,
+        batch: int,
+        apa_no: int,
+        is_folder: bool = True,
+        stop_fraction: float = 1.
+    ):
 
     fProcessRootNotPickles = True if batch == 1 else False
 
@@ -91,7 +124,7 @@ def read_data(input_folderpath:str='', batch: int = None, apa_no:int=None, stop_
         if fProcessRootNotPickles:
             new_wfset = WaveformSet_from_root_files(
                 "pyroot",
-                folderpath=input_folderpath,
+                folderpath=input_path,
                 bulk_data_tree_name="raw_waveforms",
                 meta_data_tree_name="metadata",
                 set_offset_wrt_daq_window=True if apa_no == 1 else False,
@@ -103,7 +136,7 @@ def read_data(input_folderpath:str='', batch: int = None, apa_no:int=None, stop_
             )
         else:
             new_wfset = WaveformSet_from_pickle_files(                
-                folderpath=input_folderpath,
+                folderpath=input_path,
                 target_extension=".pkl",
                 verbose=True,
             )
@@ -111,7 +144,7 @@ def read_data(input_folderpath:str='', batch: int = None, apa_no:int=None, stop_
         if fProcessRootNotPickles:
             new_wfset = WaveformSet_from_root_file(
                 "pyroot",
-                filepath=input_folderpath,
+                filepath=input_path,
                 bulk_data_tree_name="raw_waveforms",
                 meta_data_tree_name="metadata",
                 set_offset_wrt_daq_window=True if apa_no == 1 else False,
@@ -122,75 +155,66 @@ def read_data(input_folderpath:str='', batch: int = None, apa_no:int=None, stop_
                 subsample=1,
             )
         else:
-            new_wfset = WaveformSet_from_pickle_file(input_folderpath)
+            new_wfset = WaveformSet_from_pickle_file(input_path)
 
     return new_wfset
 
-
-def get_wfset_in_channels(wfset: WaveformSet, endpoint: int, channels: list):
-        
-    new_wfset = WaveformSet.from_filtered_WaveformSet(
-        wfset,
-        comes_from_channel,
-        endpoint,
-        channels,
-    )
-
-    return new_wfset
-
-def get_gain_and_sn(grid_apa: ChannelWsGrid, excluded_channels: list):
+def get_gain_and_snr(
+        grid_apa: ChannelWsGrid,
+        excluded_channels: list
+    ):
 
     data = {}
 
     for i in range(grid_apa.ch_map.rows):
         for j in range(grid_apa.ch_map.columns):
 
-            ep = grid_apa.ch_map.data[i][j].endpoint
-            ch = grid_apa.ch_map.data[i][j].channel
+            endpoint = grid_apa.ch_map.data[i][j].endpoint
+            channel = grid_apa.ch_map.data[i][j].channel
 
-            if ep in excluded_channels.keys():
-                if ch in excluded_channels[ep]:
-                    print(f"Excluding channel {ch} from endpoint {ep}...")
+            if endpoint in excluded_channels.keys():
+                if channel in excluded_channels[endpoint]:
+                    print(f"Excluding channel {channel} from endpoint {endpoint}...")
                     continue
 
             try:
-                fit_params = grid_apa.ch_wf_sets[ep][ch].calib_histo.gaussian_fits_parameters
+                fit_params = grid_apa.ch_wf_sets[endpoint][channel].calib_histo.gaussian_fits_parameters
             except KeyError:
-                print(f"Endpoint {ep}, channel {ch} not found in data. Continuing...")
+                print(f"Endpoint {endpoint}, channel {channel} not found in data. Continuing...")
                 continue
  
-            # this is to avoid a problem the first time ep is used
+            # Handle a KeyError the first time we access a certain endpoint
             try:
-                aux = data[ep]
+                aux = data[endpoint]
             except KeyError:
-                data[ep] = {}
-                aux = data[ep]
+                data[endpoint] = {}
+                aux = data[endpoint]
 
             # compute the gain
             try:
                 aux_gain = fit_params['mean'][1][0] - fit_params['mean'][0][0]
             except IndexError:
-                print(f"Endpoint {ep}, channel {ch} not found in data. Continuing...")
+                print(f"Endpoint {endpoint}, channel {channel} not found in data. Continuing...")
                 continue
             
             # this is to avoid a problem the first time ch is used
             try:
-                aux_2 = aux[ch]
+                aux_2 = aux[channel]
             except KeyError:
-                aux[ch] = {}
-                aux_2 = aux[ch]
+                aux[channel] = {}
+                aux_2 = aux[channel]
 
             aux_2['gain'] = aux_gain
 
             # compute the signal to noise ratio
-            aux_2['snr'] = aux_gain/np.sqrt( fit_params['std'][0][0]**2 + fit_params['std'][1][0]**2 )
+            aux_2['snr'] = aux_gain/np.sqrt(fit_params['std'][0][0]**2 + fit_params['std'][1][0]**2)
 
     return data
 
-def get_nbins_for_charge_histo(pde: float = None, apa_no: int = None):
-
-    # Number of bins for the histogram
-    bins_number = 125 # [90 - 125]
+def get_nbins_for_charge_histo(
+        pde: float,
+        apa_no: int
+    ):
 
     if apa_no in [2, 3, 4]:
         if pde == 0.4:
@@ -199,20 +223,31 @@ def get_nbins_for_charge_histo(pde: float = None, apa_no: int = None):
             bins_number = 110 # [100-110]
         else:
             bins_number = 90
+    else:
+        # It is still required to
+        # do this tuning for APA 1
+        bins_number = 125
 
     return bins_number
 
-
-def save_data_to_dataframe(data: list, path_to_output_file: str, self):
+def save_data_to_dataframe(
+    Analysis1_object,
+    data: list,
+    path_to_output_file: str
+):
+    
+    hpk_ov = input_parameters['hpk_ov'][Analysis1_object.input_parameters.pde]
+    fbk_ov = input_parameters['fbk_ov'][Analysis1_object.input_parameters.pde]
+    ov_no = input_parameters['ov_no'][Analysis1_object.input_parameters.pde]
     
     # Warning: Settings this variable to True will save
     # changes to the output dataframe, potentially introducing
     # spurious data. Only set it to True if you are sure of what
     # you are saving.
-    actually_save = True   
+    actually_save = False   
 
     # Do you want to potentially overwrite existing rows of the dataframe?
-    overwrite = True
+    overwrite = False
 
     expected_columns = {
         "APA": [],
@@ -248,24 +283,32 @@ def save_data_to_dataframe(data: list, path_to_output_file: str, self):
     df = pd.read_pickle(path_to_output_file)
 
     if len(df.columns) != len(expected_columns):
-        raise Exception(f"The columns of the found dataframe do not match the expected ones. Something went wrong.")
+        raise Exception(
+            f"The columns of the found dataframe do not "
+            "match the expected ones. Something went wrong.")
 
     elif not bool(np.prod(df.columns == pd.Index(data = expected_columns))):
-        raise Exception(f"The columns of the found dataframe do not match the expected ones. Something went wrong.")
+        raise Exception(
+            f"The columns of the found dataframe do not "
+            "match the expected ones. Something went wrong.")
 
     else:
         for endpoint in data.keys():
             for channel in data[endpoint]:
                 # Assemble the new row
                 new_row = {
-                    "APA":      [int(self.apa)],
+                    "APA": [int(Analysis1_object.input_parameters.apa)],
                     "endpoint": [endpoint],
-                    "channel":  [channel],
-                    "channel_iterator":   [get_channel_iterator(self.apa, endpoint, channel)],
-                    "PDE":      [self.pde],
-                    "gain":     [data[endpoint][channel]["gain"]],
-                    "snr":      [data[endpoint][channel]["snr"]],
-                    "OV#":      [ov_no],
+                    "channel": [channel],
+                    "channel_iterator": [get_channel_iterator(
+                        Analysis1_object.input_parameters.apa,
+                        endpoint,
+                        channel
+                    )],
+                    "PDE": [Analysis1_object.input_parameters.pde],
+                    "gain": [data[endpoint][channel]["gain"]],
+                    "snr": [data[endpoint][channel]["snr"]],
+                    "OV#": [ov_no],
                     "HPK_OV_V": [hpk_ov],
                     "FBK_OV_V": [fbk_ov],
                 }
@@ -278,7 +321,12 @@ def save_data_to_dataframe(data: list, path_to_output_file: str, self):
                     (df['OV#'] == ov_no)].index          
 
                 if len(matching_rows_indices) > 1:
-                    raise Exception(f"There are already more than one rows for the given endpoint ({endpoint}), channel ({channel}) and OV# ({ov_no}). Something went wrong.")
+                    raise Exception(
+                        f"There are already more than one rows "
+                        f"for the given endpoint ({endpoint}), "
+                        f"channel ({channel}) and OV# ({ov_no})"
+                        ". Something went wrong."
+                    )
 
                 elif len(matching_rows_indices) == 1:
                     if overwrite:
@@ -291,10 +339,14 @@ def save_data_to_dataframe(data: list, path_to_output_file: str, self):
                             df.loc[row_index, :] = new_row
 
                     else:
-                        print(f"Skipping the entry for endpoint {endpoint}, channel {channel} and OV# {ov_no} ...")
+                        print(
+                            f"Skipping the entry for endpoint "
+                            f"{endpoint}, channel {channel} and"
+                            f" OV# {ov_no} ...")
 
                 else: # len(matching_rows_indices) == 0
                     if actually_save:
                         df = pd.concat([df, pd.DataFrame(new_row)], axis = 0, ignore_index = True)
                         df.reset_index()
+
         df.to_pickle(path_to_output_file)
