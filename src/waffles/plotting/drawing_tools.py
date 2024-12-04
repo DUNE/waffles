@@ -1,6 +1,8 @@
 import inspect
 import importlib
 from math import sqrt
+import pathlib
+from typing import List
 
 import numpy as np
 import plotly.graph_objs as go
@@ -9,7 +11,8 @@ import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
 from waffles.plotting.plot import *
-import waffles.input.raw_root_reader as reader
+import waffles.input.raw_root_reader as root_reader
+import waffles.input.pickle_file_reader as pickle_reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 
@@ -18,10 +21,14 @@ from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.Event import Event
+import waffles.utils.event_utils as evt_utils
 
 # Global plotting settings
 fig = go.Figure()
 line_color = 'black'
+html_file_path = 'temp_plot.html'
+plotting_mode='html'
 
 ###########################
 def help(cls: str = None):
@@ -55,17 +62,92 @@ def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
          set_offset_wrt_daq_window: bool = False) -> WaveformSet:
     """Read waveform data from file."""
     print(f"Reading file {filename}...")
-    wset = reader.WaveformSet_from_root_file(
-        filename,
-        library='pyroot',
-        start_fraction=start_fraction,
-        stop_fraction=stop_fraction,
-        read_full_streaming_data=read_full_streaming_data,
-        truncate_wfs_to_minimum=truncate_wfs_to_minimum,
-        set_offset_wrt_daq_window=set_offset_wrt_daq_window
-    )
+    
+    file_extension = pathlib.Path(filename).suffix
+
+    if  file_extension == ".root":
+        wset = root_reader.WaveformSet_from_root_file(
+            filename,
+            library='pyroot',
+            start_fraction=start_fraction,
+            stop_fraction=stop_fraction,
+            read_full_streaming_data=read_full_streaming_data,
+            truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+            set_offset_wrt_daq_window=set_offset_wrt_daq_window
+        )
+    elif file_extension == ".pkl":
+        wset = pickle_reader.WaveformSet_from_pickle_file(filename) 
+
     print("Done!")
     return wset
+
+###########################
+def eread(filename, nevents: int = 1000000000) -> List[Event]:
+    """Read waveform data from file."""
+    print(f"Reading file {filename}...")
+        
+    wfset = read(filename)
+    events = evt_utils.events_from_wfset(wfset, nevents=nevents) 
+
+    print("Done!")
+    return events
+
+
+###########################
+def plot_event(evt: Event, apa: int):
+    fig = plot_ChannelWsGrid(evt.channel_wfs[apa-1])
+    write_image(fig)
+
+
+###########################
+def plot_evt_nch(events: List[Event], 
+            nbins: int = 100, xmin: np.uint64 = None,
+            xmax: np.uint64 = None, op: str = ''):
+    """Plot histogram fwith number of channels firing per event"""
+    
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+    
+    # get number of channels with wfs 
+    nchs = [ev.get_nchannels() for ev in events]
+
+    # build an histogram with those times
+    histogram_trace = get_histogram(nchs, nbins, xmin, xmax)
+    
+    fig.add_trace(histogram_trace)
+    fig.update_layout(xaxis_title="# channels", yaxis_title="entries")
+    
+    
+    write_image(fig)
+
+
+###########################
+def plot_evt_time(events: List[Event], type: str = 'ref',
+            nbins: int = 100, xmin: np.uint64 = None,
+            xmax: np.uint64 = None, op: str = ''):
+    """Plot histogram fwith number of channels firing per event"""
+    
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+    
+    # get number of channels with wfs 
+    if type == 'ref':
+        times = [ev.ref_timestamp*1e-9*16 for ev in events]
+    elif type == 'first':
+        times = [ev.first_timestamp*1e-9*16 for ev in events]
+    if type == 'last':
+        times = [ev.last_timestamp*1e-9*16 for ev in events]
+
+    # build an histogram with those times
+    histogram_trace = get_histogram(times, nbins, xmin, xmax)
+    
+    fig.add_trace(histogram_trace)
+    fig.update_layout(xaxis_title=f"{type}_timestamp", yaxis_title="entries")
+    
+    
+    write_image(fig)
 
 ###########################
 def plot_to(wset: WaveformSet, ep: int = -1, ch: int = -1, nwfs: int = -1,
