@@ -211,12 +211,15 @@ class ConvFitter:
         return self.shift_waveform_continuous_fowards(waveform, shift_amount), round(shift_amount)
 
     def parse_inputs(self, file):
+        if os.path.isfile(file) is not True:
+            print("No response from", file)
+            exit(0)
         try:
             with open(file, 'rb') as f:
                 finput = pickle.load(f)
         except Exception as error:
             print(error)
-            print("No response from", file)
+            print("Could not load file", file)
             exit(0)
 
         keys = ["avgwvf", "firsttime", "nselected"]
@@ -281,7 +284,7 @@ if __name__ == "__main__":
 
         # changes template in case it is fixed at 0 for endpoint 112
         if ledruntemplate == 0 and run > 27901:# and ch//100 == 112:
-            ledruntemplate = 29177
+            ledruntemplate = 1
         
         if use_fix_template:
             runled = ledruntemplate

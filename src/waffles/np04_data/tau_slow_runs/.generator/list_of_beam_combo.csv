@@ -1,0 +1,356 @@
+Run,Shifter,Particle,Beam Energy (GeV),Collimator position (mm),Time Start,,type,TriggerStatus: General Trigger Count (at begin of run),Run Config,Link to start run in elog,Issues/Comments
+,,,,,,,,,,,
+PROCESSED,,,,,,,,,,,
+temporally limited to 16 hdf5 files,,,,,,,,,,,
+,1st beam period (19th - 25th June) [Beam scan schedule],,,,,,,,,,
+,,,,,,,,,,,
+27338,timm,,1,20,21.06.24 13:08,,,1.20E+02,Yes,https://pdsp-elog.app.cern.ch/elisa/display/24257?logbook=ProtoDUNE-SP,
+27343,timm,,1,10,21.06.24 15:40,,,6.90E+01,Yes,https://pdsp-elog.app.cern.ch/elisa/display/24270?logbook=ProtoDUNE-SP,
+27344,jhancock,,1,30,21.06.24 16:47,,,1.79E+02,No,https://pdsp-elog.app.cern.ch/elisa/display/24276?logbook=ProtoDUNE-SP,
+27347,jhancock,,-1,20,21.06.24 18:03,,,1.02E+02,Yes,https://pdsp-elog.app.cern.ch/elisa/display/24282,
+27348,jhancock,,-1,10,21.06.24 18:40,,,4.50E+01,Yes,https://pdsp-elog.app.cern.ch/elisa/display/24284,
+27349,jhancock,,-1,30,21.06.24 19:20,,,1.45E+02,Yes,https://pdsp-elog.app.cern.ch/elisa/display/24286,
+27351/27352,jhancock,,-3,20,21.06.24 20:24,,,1.87E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24290,
+27353,jhancock,,-3,10,21.06.24 21:28,,,8.80E+01,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24294,
+27354,jhancock,,-3,30,21.06.24 22:03,,,2.61E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24296,
+27355,jhancock,,2,20,21.06.24 22:47,,,2.09E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24298,
+27356,jhancock,,2,10,21.06.24 23:26,,,1.09E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24300,
+27357,pahamilt,,2,30,22.06.24 00:27,,,2.60E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24303,
+27358,pahamilt,,-2,20,22.06.24 01:03,,,1.60E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24305,
+27359,pahamilt,,-2,10,22.06.24 01:36,,,8.70E+01,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24307,
+27360,pahamilt,,-2,30,22.06.24 02:10,,,2.10E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24309,
+27361,pahamilt,,3,20,22.06.24 02:43,,,2.70E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24311,
+27362,pahamilt,,3,10,22.06.24 03:17,,,1.50E+02,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24313,
+27365,pahamilt,,3,30,22.06.24 04:24,,,3.90E+02,Yes (with x4 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24319,
+27367,pahamilt,,5,20,22.06.24 05:06,,,1.00E+03,Yes (with x8 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24323,
+27368,pahamilt,,5,10,22.06.24 05:39,,,5.30E+02,Yes (with x8 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24325,
+27370,pahamilt,,5,30,22.06.24 06:20,,,1.30E+03,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24329,
+27371,pahamilt,,-5,20,22.06.24 06:55,,,8.30E+02,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24331,
+27372,pahamilt,,-5,10,22.06.24 07:26,,,4.30E+02,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24333,
+27373,arikalo,,-5,30,22.06.24 08:31,,,3.97E+02,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24335,
+27374,arikalo,,7,20,22.06.24 09:20,,,1.20E+03,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24339,
+27375,arikalo,,7,10,22.06.24 09:58,,,6.70 E+02,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24341,
+27377,arikalo,,7,30,22.06.24 10:51,,,1.70 E+03,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24345,
+27378,arikalo,,-7,20,22.06.24 11:31,,,9.20 E+02,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24347,
+27380,arikalo,,-7,10,22.06.24 12:17,,,4.60 E+02,Yes (with x8 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24352,
+27381,arikalo,,-7,30,22.06.24 12:57,,,1.25E+03,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24354,
+27382,arikalo,Pions,-1,20,22.06.24 13:40,,,,Yes (with x16 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24356,
+27383,arikalo,Pions,-1,20,22.06.24 13:50,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24358,
+27384,arikalo,Pions,-1,20,22.06.24 14:20,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24358,
+27385,jhancock,COSMICS?,-,-,22.06.24 16:24,,,,noPrescale,https://pdsp-elog.app.cern.ch/elisa/display/24363,
+27386,jhancock,Pions,-1,20,22.06.24 19:44,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24366,
+27387,jhancock,Pions,-1,20,22.06.24 21:32,,,,noPrescale,https://pdsp-elog.app.cern.ch/elisa/display/24368,errors and warnings about trigger timing outs
+27388,jhancock,Pions,-1,20,22.06.24 21:32,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24370,
+27389,arikalo,Pions,-1,20,22.06.24 21:32,,,,noPrescale,https://pdsp-elog.app.cern.ch/elisa/display/24380,
+27390,arikalo,Pions,-1,20,22.06.24 21:32,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24382,
+27391,arikalo,COSMICS,-,-,23.06.24 13:02,,,,onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/24385,
+27392,arikalo,Pions,-1,20,23.06.24 13:39,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24387,
+27393,lperez,COSMICS,-,-,23.06.24 18:24,,COSMIC,,onlyOffSpillCosmics (2min),https://pdsp-elog.app.cern.ch/elisa/display/24392,
+27394,lperez,Pions,-1,20,23.06.24 13:39,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24394,
+27398,wdallawa,Pions,-1,20,24.06.24 1:26,,,,Yes (with x2 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24406,
+27399,wdallawa,COSMICS,-,-,24.06.24 7:36,,,,onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/24408,
+27402,maroda,COSMICS,-,-,24.06.24 10:32,,,,onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/24419,
+27404,maroda,Pions,5,20,24.06.24 12:04,,,,Yes (with x8 prescale),https://pdsp-elog.app.cern.ch/elisa/display/24427,"ground shake event with PDS run, so we should have PDS data in the corresponding trigger (Trigger 37664)"
+27406,rraut,COSMICS,-,-,24.06.24 15:41,,,,onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/24432,cherenkov guys working
+27408,rraut,Pions,7,20,24.06.24 17:06,,,,ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/24437,all Cherenkov trigger active
+27409,jhancock,COSMICS,-,-,25.06.24 1:36,,,,onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/24440,
+27410,jhancock,Pions,7,20,25.06.24 3:06,,,,ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/24443,
+27411,jhancock,COSMICS,-,-,25.06.24 5:43,,,,onlyOffSpillCosmics (4min),https://pdsp-elog.app.cern.ch/elisa/display/24445,
+27412,jhancock,Pions,7,20,25.06.24 5:53,,,,ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/24447,
+27413,jgoudeau,Pions,-5,20,25.06.24 10:04,,,,ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/24454,changed Cherenkov increase to 4.5. Then 3.5. Collimators to +/-5
+27484,titavare,Shortcuts,-,-,27.06.24 10:04,,,,,https://pdsp-elog.app.cern.ch/elisa/display/24521,No waveforms here¿? --> NO PDS IN THE RUN CONFIGURATION
+27490,dapullia,,-,-,27.06.24 14:19,,,,TPC+PDS (TGP 100mHz),https://pdsp-elog.app.cern.ch/elisa/display/24529,
+27501,dapullia,,-,-,27.06.24 14:19,,,,TPC+PDS (TGP 100mHz) + HV,https://pdsp-elog.app.cern.ch/elisa/display/24531,
+27502,dapullia,COSMICS,-,-,27.06.24 16:39,,,,TPC+PDS (100mHz),https://pdsp-elog.app.cern.ch/elisa/display/24534,
+27506,marroyav,COSMICS,-,-,28.06.24 0:43,,,,regular conf (+PDS) to test bug fix,https://pdsp-elog.app.cern.ch/elisa/display/24541,
+27507,marroyav,COSMICS,-,-,28.06.24 0:54,,,,controller 12 50 ADC counts,https://pdsp-elog.app.cern.ch/elisa/display/24543,
+27508,marroyav,COSMICS,-,-,28.06.24 1:25,,COSMIC,,"controllers 9,11,12,13 20 ADC counts",https://pdsp-elog.app.cern.ch/elisa/display/24545,
+,,,,,,,,,,,
+,2nd beam period (10th - 24th July),,,,,,,,,,
+,,,,,,,,,,,
+27801,wketchum,FakeBeam,-,-,08.07.24 9:38,,,,"TPC+PDS, 50 Hz instantaneous rate",https://pdsp-elog.app.cern.ch/elisa/display/24963,
+27835,aoranday,FakeBeam,-,-,08.07.24 14:51,,,,TPC+PDS+TPG.,https://pdsp-elog.app.cern.ch/elisa/display/25019,
+27878,wketchum,FakeBeam,-,-,08.07.24 18:05,,,,"TPC, PDS, and TPG with thresholds at 200 on collection",https://pdsp-elog.app.cern.ch/elisa/display/25098,
+27879,wketchum,FakeBeam,-,-,08.07.24 18:24,,,,"TPC+PDS+TPG, cathode HV back on now",https://pdsp-elog.app.cern.ch/elisa/display/25102,
+27881,wketchum,FakeBeam,-,-,08.07.24 18:48,,,,"TPC+PDS+TPG readout, after fixing latency buffer size issues",https://pdsp-elog.app.cern.ch/elisa/display/25105,
+27882,wketchum,FakeBeam,-,-,08.07.24 19:02,,,,TPC+PDS,https://pdsp-elog.app.cern.ch/elisa/display/25107,
+27884,wketchum,FakeBeam,-,-,08.07.24 22:50,,,,TPC+PDS 40 Hz instantaneous rate,https://pdsp-elog.app.cern.ch/elisa/display/25111,
+27885,wketchum,FakeBeam,-,-,08.07.24 23:25,,,,increase latency buffer size for self-triggered DAPHNE readout,https://pdsp-elog.app.cern.ch/elisa/display/25113,
+27886,wketchum,FakeBeam,-,-,08.07.24 23:44,,,,increase latency buffers on srv-026,https://pdsp-elog.app.cern.ch/elisa/display/25115,
+27887,wketchum,FakeBeam,-,-,08.07.24 0:08,,,,restarting after srv-021,https://pdsp-elog.app.cern.ch/elisa/display/25117,
+27888,wketchum,FakeBeam,-,-,08.07.24 0:25,,,,standard monitoring,https://pdsp-elog.app.cern.ch/elisa/display/25119,
+27922,wketchum,FakeBeam,-,-,09.07.24 12:28,,,,"PDS + TPC_TPG, 40 Hz",https://pdsp-elog.app.cern.ch/elisa/display/25185,
+27923,wketchum,FakeBeam,-,-,09.07.24 12:54,,,,"PDS + TPC_TPG, 40 Hz",https://pdsp-elog.app.cern.ch/elisa/display/25187,
+27926,wketchum,FakeBeam,-,-,09.07.24 13:53,,,,"TPC+PDS+TPG, 40 Hz instantaneous rate",https://pdsp-elog.app.cern.ch/elisa/display/25194,
+27933,aoranday,FakeBeam,-,-,09.07.24 18:25,,,,TPC+PDS+TPG Monitoring Run.,https://pdsp-elog.app.cern.ch/elisa/display/25205,
+27935,aoranday,FakeBeam,-,-,09.07.24 22:27,,,,TPC+PDS+TPG Monitoring Run.,https://pdsp-elog.app.cern.ch/elisa/display/25207,
+27937,aoranday,FakeBeam,-,-,09.07.24 23:26,,,,TPC+PDS test collections,https://pdsp-elog.app.cern.ch/elisa/display/25210,
+27938,aoranday,FakeBeam,-,-,10.07.24 7:33,,,,TPC+PDS+TPG Stability Check.,https://pdsp-elog.app.cern.ch/elisa/display/25212,
+27951,aoranday,,-,-,10.07.24 13:13,,,,TPC+PDS+TPG monitoring ground spikes.,https://pdsp-elog.app.cern.ch/elisa/display/25238,
+27952,aoranday,,-,-,10.07.24 13:33,,,,TPC+PDS+TPGLowThr monitoring run.,https://pdsp-elog.app.cern.ch/elisa/display/25240,
+27965,vcicero,FakeBeam,-,-,10.07.24 15:30,,,,PDS and with TPG,https://pdsp-elog.app.cern.ch/elisa/display/25259,
+27971,rraut,,7,3,11.07.24 0:26,,,,TPGLowThr_ctbBeam,https://pdsp-elog.app.cern.ch/elisa/display/25270,
+27973,wdallawa,,7,3,11.07.24 9:15,,,,TPGLowThr_ctbBeam,https://pdsp-elog.app.cern.ch/elisa/display/25273,
+27975,jgoudeau,,-,-,11.07.24 10:05,,,,ground-shake events. -0.5 bias under the breakdown voltag,https://pdsp-elog.app.cern.ch/elisa/display/25275,
+27980,rraut,COSMICS,-,-,11.07.24 18:05,,COSMIC,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25292,
+27993,wketchum,,-,-,12.07.24 13:29,,,,ADC simple triggering; np04_TPC_PDS_TPG_ADCSimple_100mHz,https://pdsp-elog.app.cern.ch/elisa/display/25307,running with too high of TPG threshold
+27994,wketchum,,-,-,12.07.24 13:42,,,,TPG thresholds at 110,https://pdsp-elog.app.cern.ch/elisa/display/25309,
+27997,jgoudeau,COSMICS,-,-,12.07.24 15:31,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25313,
+28005,herazafi,Cherenkov,1,,12.07.24 20:25,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov_prescale_2,https://pdsp-elog.app.cern.ch/elisa/display/25316,
+28006,herazafi,Cherenkov,1,,12.07.24 20:45,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25318,
+28007,wdallawa,Cherenkov,1,,13.07.24 3:55,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25320,PDS problems at the end (around 15:00)
+28008,dapullia,Cherenkov,1,,13.07.24 15:28,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25323,
+28009,urahaman,COSMICS,-,-,14.07.24 3:21,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25329,Beam is down due to power converter issue since 3:02. Back at 04:07.
+28010,urahaman,Cherenkov,1,,14.07.24 4:06,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25331,Very long run. Beam down since 10:20pm
+28011,wdallawa,COSMICS,,,15.07.24 1:28,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25338,
+28012,wdallawa,Cherenkov,1,,15.07.24 2:17,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25340,
+28014,anbalbon,COSMICS,-,-,15.07.24 10:55,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25344,
+28015,anbalbon,,-1,40,15.07.24 11:09,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25346,"Low pressure Cherenkov : 1.2 bar; High pressure Cherenkov : 14 bar; Previously, the LP Cherenkov had been at 0.2 bar. Now rejection of about 1/3 of beam triggers in the spill due to seeing light in the LP Cherenkov (before, it seemed more like 5%). Fraction of events with light in the high pressure but not low pressure, though I think at 1 GeV beam we should be below the cherenkov threshold for muons and pions still, so that may help be a measure of the inefficiency in the trigger."
+28016,anbalbon,COSMICS,-,-,15.07.24 14:14,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25350,Daphne timing errors since 15-07-2024 22:53
+28023,chasnip,,-1,40,16.07.24 17:07,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25373,DAPHNE board 107 dead. Reset clock APA4 at 17:17 [Manuel]
+28024,vcicero,COSMICS,-,-,17.07.24 7:45,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25377,
+28025,ktellezg,COSMICS,-,-,17.07.24 9:44,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25381,
+28035,jgoudeau,COSMICS,-,-,17.07.24 13:35,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25401,"Manuel swapped out the DAPHNE controller 7 board with controller 10 (APA1 streaming readout), and moved the firmware back to the simpler threshold algorithm. This change is valid as of run 28035.Unfortunately, as the IP address of the controller board needs to match the slot number as of now, we had to change the mapping in the DAPHNE readout, so now what was in 'slot 7' is now slot 10. This will impact that offline channel mapping (and perhaps also the DQM?)."
+28046,rraut,COSMICS,-,-,17.07.24 17:30,,COSMIC,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25406,fddaq v4.4.4
+28047,rraut,COSMICS,-,-,17.07.24 18:22,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25409,Change of run to recover 1 channel in APA1 failed
+28048,rraut,,-1,,17.07.24 19:37,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25411,
+28049,rraut,,-1,20,17.07.24 19:59,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25414,"Beams were back shortly after 16:00 but we had no beam as PPE154 was open (GIF++). We also have an unstable magnet, BEND.022.652."
+28051,jgoudeau,,1,40,18.07.24 9:30,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25421,
+28052,jgoudeau,,1,40,18.07.24 10:04,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25423,DAPHNE threshold at 80 ADC
+28053,jgoudeau,COSMICS,-,-,18.07.24 11:56,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25425,
+28054,jgoudeau,,1,40,18.07.24 12:19,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25427,DAPHNE threshold at 80 ADC
+28055,jgoudeau,COSMICS,-,-,18.07.24 14:48,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25429,beam down
+28056,jgoudeau,COSMICS,-,-,18.07.24 15:06,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25431,
+28057,jgoudeau,COSMICS,-,-,18.07.24 15:20,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25433,
+28058,jgoudeau,COSMICS,-,-,18.07.24 15:40,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25435,
+28059,aminotti,,1,20 (?),18.07.24 16:06,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25438,beam back. night run (stable)
+28065,emontagn,,1,,19.07.24 15:25,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25453,10 min run
+28066,emontagn,,1,,19.07.24 15:41,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25455,10 min run
+28070,wketchum,,1,,19.07.24 17:17,,,,TPC+PDS+TPG with the PDS superchunk factor 3,https://pdsp-elog.app.cern.ch/elisa/display/25465,fixed a bug in the readout of the PDS on APAs 2-4 (the self-triggered readout)
+28071,ggurung,,1,,19.07.24 19:21,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25468,
+28072,ggurung,,1,,19.07.24 20:38,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25470,
+28073,aoranday,COSMICS,-,-,20.07.24 8:59,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25478,
+28075,aoranday,,1,,20.07.24 10:32,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25481,
+28076,aoranday,,1,,20.07.24 10:54,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25483,Lowered PDS packet rate
+28082,aoranday,COSMICS,-,-,20.07.24 15:42,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25496,Data collected during beam run with PDS up to this point is likely affected by the self-triggered redout (FELIX droping paquets)
+28083,herazafi,,1,20,20.07.24 17:49,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25498,
+28084,herazafi,COSMICS,-,-,20.07.24 18:58,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25500,
+28085,herazafi,,1,20,20.07.24 21:28,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25502,
+28086,aoranday,,-1,40,21.07.24 8:31,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25507,
+28088,mzabloud,,-1,40,22.07.24 11:40,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25521,changes in the dev area
+28090,mzabloud,COSMICS,-,-,22.07.24 13:44,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25525,no beam for approximately 15 minutes between 13:40 - 14:55
+28091,mzabloud,,-1,40,22.07.24 13:56,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25527,
+28092,ktellezg,,-1,40,22.07.24 14:39,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25530,
+28094,ktellezg,COSMICS,-,-,22.07.24 20:47,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25533,Beam went off at about 8:30 PM
+28095,mman,,-1,40,23.07.24 1:16,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25536,
+28096,mman,COSMICS,-,-,23.07.24 6:11,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25540,
+28097,mman,,-1,40,23.07.24 6:17,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25542,
+28098,mman,,-1,40,23.07.24 7:05,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25545,
+28099,jgoudeau,,-1,40,23.07.24 9:30,,,,TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25545,New fddaq-v4.4.5
+28106,jgoudeau,COSMICS,-,-,23.07.24 15:31,,COSMIC,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25555,
+28109,mrigan,,-1,40,23.07.24 17:47,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25558,
+28111,mman,COSMICS,-,-,24.07.24 7:20,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25562,
+28112,mman,,-1,40,24.07.24 7:28,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov,https://pdsp-elog.app.cern.ch/elisa/display/25563,
+28113,mzabloud,COSMICS,-,-,24.07.24 8:37,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25566,No more beam expected from this point
+28116,mzabloud,COSMICS,-,-,24.07.24 11:12,,,,TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics,https://pdsp-elog.app.cern.ch/elisa/display/25571,Starting an off-beam run again after np04-srv-015 crashed.
+,,,,,,,,,,,
+,,,,,,,,,,,26-28 runs with OV hgh 50% PDE
+,Long beam period - Breakdown voltages stable for the PDS (acquiring data at 45% PDE OV for all channels),,,,,,,,,,
+,3rd beam period (31th July - 04th September),,,,,,,,,,
+28514,nlane,COSMICS,-,-,31.7.24 09:56,,,,np04_TPC_CRT_TPGLowThr_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26264,monitoring run with CRT
+28515,nlane,COSMICS,-,-,31.7.24 10:24,,,,np04_TPC_CRT_TPGLowThr_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26266,
+28516,nlane,COSMICS,-,-,31.7.24 10:27,,,,np04_TPC_TPGLowThr_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26268,
+28517,marroyav,COSMICS,-,-,31.7. 24 11:12,,,,global_configs/pds_daphne/np04_DAPHNE_APA1234_Cosmics.json,https://pdsp-elog.app.cern.ch/elisa/display/26269,"checking PDS configurations and update bias in some channels"""
+28518,lperez,COSMICS,-,-,31.7.24 14:24,,COSMIC,,global_configs/pds_daphne/np04_DAPHNE_APA12_SSP.json,https://pdsp-elog.app.cern.ch/elisa/display/26271,Noise run. Bias Voltages set to -0.5V in each channel. DCS bias voltage for the LED is OFF. Triggering on 0x7 command at 50Hz (change_rate 10). APAs12 180s run.
+28524,wketchum,COSMICS,-,-,31.7.24 15:25,,,,np04_TPC_CRT_TPGLowThr_ctbCosmic_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26273,
+28526,nlane,COSMICS,-,-,01.8.24 08:37,,,,np04_TPC_CRT_TPGLowThr_ctbCosmic_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26276,
+28528,nlane,COSMICS,-,-,01.8.24 11:53,,,,np04_TPC_CRT_TPGLowThr_ctbCosmic_ssh.json (probably?),https://pdsp-elog.app.cern.ch/elisa/display/26291,"missing the start elog, problematic finding of the configuration"
+28538,dvargas,,1,40,02.8.24 15:32,,,,"runing dual NICs single socket on np04-srv-031 numa node 0 with CRPs 4 and 5 with TPs
+global_configs/np02_WIB_tp_dualnic.json ",https://pdsp-elog.app.cern.ch/elisa/display/26295,"Beam is back. One magnet (652) not very stable, beam not perfectly centered. Continue with the same conditions until Monday mid-day. No beam from 15:59 to 16:28 because of problem with TAXs in TCC, running in the same config. No major issue!"
+28542,rraut,COSMICS,-,-,02.8.24 18:36,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26304,"The beam is closed for more than hour, so switching to off-beam cosmic with 10Hz rate"
+28543,rraut,COSMICS,-,-,02.8.24 21:35,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26306,"Off beam for more than 3hrs, switching to low rate off spills"
+28544,dcasazza,,1,40,03.8.24 00:26,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26308,"Cherenkov trigger (veto LP hits). Small outage at 1:40, then it came back."
+28545,dcasazza,,1,40,03.8.24 01:53,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26310,Starting a new beam run after small beam outage.
+28546,cpalomar,,,,03.8.24 21:15,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26316,"Beam went down at 21:03: we stopped the run --> ""No beam power converter fault. Not expected to be back at least in an hour"". Cosmics 10Hz no beam for at least 1h. Beam back at 21:50 so ended this run. Error when stopping it stop_triggers_sources (runp04 srv-026-flx0)"
+28547,cpalomar,,1,40,03.8.24 22:16,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26318,
+28548,cpalomar,,1,40,05.8.24 08:37,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26334,restarted run without CRT because its application died and will not recover
+28550,pahamilt,,-1,40,05.8.24 12:05,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26337,Changed beam polarity
+28556,mman,,-1,40,06.8.24 07:07,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26344,"restarting beam monitoring run after daphne9 was rebooted at 7:08am. Warning message persists on Daphne 9 ""Monitoring of general info failed"""
+28557,rraut,,-1,40,06.8.24 16:31,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26349,"Started a new run with change in daphne configuration at 16:31. Smooth beam data taking all night at -1 GeV. Continue until late afternoon, then will change to +1 GeV."
+28558,nlane,,-1,40,07.8.24 09:22,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26354,restarting after power daphne-9
+28563,nlane,,1,35,07.8.24 15:34,,,trigger rate of 140 per spill,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26358,Elevated rate of warning messages throughout shift due to high instantaneous trigger rate. Changed beam polarity at end of shift and we have seen this high rate of warnings disappear. Otherwise smooth running.
+28577,nlane,COSMICS,-,-,08.8.24 09:45,,COSMIC,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26364,switching to 10Hz cosmics due to beam down time
+28578,nlane,,1,35,08.8.24 09:59,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26366,restarting run as beam has returned
+28586,nlane,COSMICS,-,-,08.8.24 15:31,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26368,"restarting run due to beam down, expected beam to be off for atleast 30 mins ( RF problem)"
+28586,nlane,,1,35,08.8.24 16:05,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26372,restarting run as the beam is back
+28589,animesh,,1,35,08.8.24 17:03,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26373,"restarting new Beam run with CRT. We noticed no data from DAPHNE endpoint 11 (source id 12 in DAQ).
+
+Day shifters at 08:00 on M-F are kindly asked to stop any run that has the CRT in it and start a run without the CRT.
+Evening shifters at 16:00 on M-F are kindly asked to stop any run that does not have the CRT in it, and start a run with the CRT."
+28590,rraut,,1,35,08.8.24 17:14,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26376,restarting new Beam run
+28595,wdallawa,,1,35,09.8.24 08:04,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26380,"CRT removed at the start of the working day. Continue with current configuration until the change polarity in the afternoon/evening. As part of the investigation into APA3 ""3-second events"", high TP rates every around 3 minutes, Xavier grounded the temperature sensors at the flange using purpose-made terminator connectors.  This was done at around 9:30am and no change was seen in the APA TP rates."
+28600,mzabloud,COSMICS,-,-,09.8.24 14:44,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26384,"Off beam configuration - without CRT, because we have no beam."
+28601,yinrui,COSMICS,-,-,09.8.24 16:38,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26387,"continue the cosmic run, but with CRT"
+28602,yinrui,,1,35,09.8.24 16:48,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26388,start the beam run with CRT
+28605,yinrui,,-1,20,09.8.24 19:43,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26390,"Beam polarity swithed from positive to negative around 7:30pm.
+
+New run launched accordingly, seeing a slightly higher rate (~30Hz) during spills as expected."
+28607,wdallawa,COSMICS,-,-,12.8.24 04:22,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26411,Cosmics run starting since beam has been doen for ~30 minutes should be fixed soon
+28608,wdallawa,,-1,20,12.8.24 04:31,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26413,Starting new beam run now that the beam is back
+28609,wdallawa,,-1,20,12.8.24 08:05,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26416,Starting run for the day without CRT
+28610,rdeaguia,,1,35,12.8.24 09:23,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26419,change to 1 GeV and continue running until Tuesday
+28612,wdallawa,,1,35,13.8.24 00:17,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26427,Begining overnight run with the CRT
+28613,wdallawa,COSMICS,-,-,13.8.24 02:08,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26429,Cosmics run since the beam has been off for a while no estimate of when it will return
+28614,wdallawa,,1,35,13.8.24 05:55,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26431,Restarting the beam run now that the beam is back
+28615,wdallawa,,1,35,13.8.24 08:04,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26433,Taking out the CRT for the run during the day
+28617,mzabloud,COSMICS,-,-,13.8.24 08:59,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26437,"Switching to an off beam run without CRT, since we are without beam. (after PDS error  solved). Next run will be without PDS to aloow calibration stand-alone runs."
+28668,mzabloud,,1,35 (20?),13.8.24 16:04,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26522,"run without CRT,with PDS"
+28671,rraut,,1,35 (20?),13.8.24 17:41,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26524,Restarting the new run including CRT
+28673,tgiammar,COSMICS,-,-,14.8.24 02:39,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26527,starting a high-rate offspillCosmic run since the beam was down since more than 30 mins
+28674,wdallawa,,1,35 (20?),14.8.24 03:59,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26529,beam is back
+28676,wdallawa,,1,35 (20?),14.8.24 04:26,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26532,Running again with the PDS now that the problem is resolved
+28677,wdallawa,,1,35 (20?),14.8.24 08:00,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26536,Removing the CRT from the run for the workday
+28678,sbutchar,COSMICS,-,-,14.8.24 08:37,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26538,Cosmics with no CRT to allow for planned access
+28681,sbutchar,COSMICS,-,-,14.8.24 09:24,,COSMIC,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26544,Cosmics with no CRT
+28682,sbutchar,COSMICS,-,-,14.8.24 10:06,,,,np04/np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26546,"Cosmics run while 5GeV beam is being calibrated, 1Hz configuration"
+28693,delgadog,Kaons,5,,14.8.24 18:33,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26551,5GeV Beam and using CRT Triggers
+28694,delgadog,Kaons,5,,14.8.24 19:11,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26553,"We are running with +5 GeV beam and triggering on signals where we see light in the HP cherenkov and no light in the LP one. This should be a trigger for kaons, but we think the rate is a bit high, as it's ~25 Hz out of a total ~250 Hz beam trigger. Event displays don't look obviously bad though. CTB experts are cross-checking the trigger configurations and trigger words. We can run stably like this for now and do further investigations in the morning."
+28695,delgadog,Kaons,5,,14.8.24 21:52,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26556,rebooting because of dataflow errors
+28696,delgadog,Kaons,5,,14.8.24 22:21,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_prescale_2_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26558,"rebooting of errors with prescale factor 2, same configurations +5GeV Beam and using CRT Triggers"
+28697,wdallawa,Kaons,5,,15.8.24 08:03,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_prescale_2_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26562,Beam run without CRT for the day
+28698,dvargas,Kaons,5,,15.8.24 11:35,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26567,"Beam run without CRT for the day, LLT reshape lenght 63*16 ns = 1.008 us"
+28699,dvargas,Kaons,5,,15.8.24 11:58,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26569,"Beam run without CRT for the day, LLT reshape lenght 63*16 ns = 1.008 us, increase delay on LLT1"
+28700,dvargas,Kaons,5,,15.8.24 12:07,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26571,"Beam run without CRT for the day, LLT reshape lenght 50*16 ns = 800 ns, increase delay on LLT1 = 48 ns"
+28701,dvargas,Kaons,5,,15.8.24 12:19,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_prescale_2_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26573,"Beam 5 GeV run without CRT for the day prescale 2, starting pressure tests"
+28705,wketchum,Kaons,5,,15.8.24 15:35,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_prescale_2_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26579,"Restarting run with +5 GeV beam, triggering on HLx, prescale 2"
+28707,madmurph,Kaons,5,,15.8.24 16:03,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_prescale_2_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26582,
+28711,dvargas,,5,10,16.8.24 10:34,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26595,"Running beam config, without CRT and no prescale"
+28714,dvargas,,5,10,16.8.24 10:49,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26598,"5GeV beam, collimators brought in, ctb testing where we removed HLT1"
+28715,dvargas,,5,10,16.8.24 10:59,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26600,"5GeV beam, collimators brought in, ctb testing where we removed HLT1 and set LLT1 delay to 2 (prev 1)"
+28716,dvargas,,5,10,16.8.24 11:06,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26602,"5GeV beam, collimators brought in, ctb testing where we removed HLT1 and set LLT1 delay to 3 (default 1)"
+28719,dvargas,,5,10,16.8.24 11:13,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26603,"5GeV beam, collimators brought in, ctb testing where we removed HLT1 and set LLT1 delay to 3 (default 1), reshape at 5 (default 50)"
+28721,dvargas,,5,10,16.8.24 11:26,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26605,"5GeV beam, collimators brought in, ctb testing where we removed HLT1 and set LLT1 delay to 1, but LLT2 and LLT3 delays to 0 (default 1), reshape at 5 (default 50)"
+28723,dvargas,,5,10,16.8.24 11:34,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26607,"5GeV beam, collimators brought in, ctb testing where we removed HLT1 and set mask 1 delay at 1, mask 4 and 5 delays at 1 as well, reshape at 5 (default 50)"
+28726,dvargas,,5,10,16.8.24 12:01,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26609,"5GeV beam, collimators brought in, ctb testing where we removed HLT1, LLT delays at nominal, now putting cherenkov signals through dual timer to increase signal width (50 ns setting)"
+28728,dvargas,,5,10,16.8.24 12:10,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26611,"5GeV beam, collimators brought in, ctb testing where we removed HLT1, LLT1 delay at 3, now putting cherenkov signals through dual timer to increase signal width (50 ns setting). turned dials to 5.0 turns on the fine adjustment, so should be about 500 ns width ..."
+28731,dvargas,,5,10,16.8.24 12:54,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26614,"5GeV beam, collimators brought in, ctb testing where we removed HLT1, LLT1 delay at 3, now putting cherenkov signals through dual timer to increase signal width (500 ns approx), reshape length 5"
+28732,dvargas,,5,10,16.8.24 13:41,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26616,"5GeV beam, collimators brought in, ctb testing, playing with delays"
+28733,dvargas,,5,10,16.8.24 13:52,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26618,
+28733,dvargas,,5,10,16.8.24 13:56,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26619,"5GeV beam, collimators brought in, ctb testing, playing with delays, not LLT1 configured to 96ns delay, reshape 800ns"
+28735,dvargas,,5,10,16.8.24 14:02,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26621,"5GeV beam, collimators brought in, ctb testing, playing with delays, not LLT1 configured to 64ns delay, reshape 800ns"
+28736,dvargas,,5,10,16.8.24 14:45,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26623,"5GeV beam, collimators brought in, ctb testing, playing with delays, not LLT1 configured to 48ns delay, reshape 800ns"
+28741,madmurph,COSMICS,-,-,16.8.24 16:19,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26627,"Beam is down for at least an hour, starting a 1 Hz cosmic run including CRT"
+28742,madmurph,COSMICS,-,-,16.8.24 18:33,,,,np04_TPC_PDS_TPGLowThr_100mHz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26630,Low Rate cosmic run while debugging CTB
+28743,wketchum,,5,10,16.8.24 21:04,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26632,"Run with CTB at 5 GeV beam, HLx trigger, with reshaping now being set correctly. LLT1 delay of 3 ticks"
+28744,wketchum,,5,10,16.8.24 21:25,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26634,"Run with CTB at 5 GeV beam, HLx trigger, with reshaping now being set correctly. LLT1 delay of 3 ticks, LLT3 (LP cherenkov)delay of 1 tick."
+28745,wketchum,,5,10,16.8.24 21:31,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26636,"Run with CTB at 5 GeV beam, HLx trigger, with reshaping now being set correctly. LLT1 delay of 5 ticks, LLT3 (LP cherenkov) delay of 1 tick."
+28751,wketchum,,5,10,16.8.24 23:01,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26647,"Run with CTB at 5 GeV beam, HLx trigger. Reshape 10 ticks, LLT1 delay of 5 ticks, LLT3 (LP cherenkov) delay of 1 tick, with CRT now, fixing reshaping error, truly this time. no, seriously, really, it is going to be good this time.
+
+Huge thanks to James, Jon, and Ben, but we have a fix on the configuration of the CTB so the reshaping time is being applied to beam LLTs. We've updated the Cherenkov configurations such that the LP Cherenkov signal is delayed by 1 time tick (16 ns) relative to the HP, and the beam signal is delayed by 5 time ticks (80 ns) relative to the HP, which we determined empirically works.
+
+We think we have a good working configuration for the kaon triggering. I'm starting up a run with the CRT now that should then be good to run for the night, and hopefully the weekend.A few notes, and please help pass these along to the next shifters:
+
+    * the rate during the beam spill should be relatively low: ~5-10 Hz at most. Don't be surprised by that, but do keep an eye on it.
+    * There are a number of warnings that come from the ctbhsi about some missing of matching words. they will look like CTB Word Matching Issue: No match found for HLT: TS = 107740099525322175, trigger word = 0x200 Adjacent input ts: 107740099525322128 107740099525323186. These are ok. You may want to filter these warning messages from the grafana (if you scroll to the right, you can select everything but ctbmodules::CTBWordMatchWarning in the issue name, clicking on the filter button). Please try to look out for other kinds of warnings and errors.
+    * There is no prescale applied for these configurations, and both configs with and without CRT should be ok to use.
+    * If for some reason someone mentions to you that they are regenerating configurations, you may help remind them that this will override the CTB config, and they should be careful. Contact a DAQ expert if there's any confusion. (DAQ experts should know what to do)"
+28752,wketchum,,5,10,17.8.24 11:29,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26653,"5 GeV kaon run, replaced S3 signal with a delayed beam signal (to appear as LLT4, I hope, delayed 2 ticks relative to beam signal - LLT1)"
+28753,wketchum,,5,10,17.8.24 11:36,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26655,"5 GeV kaon run, replaced S3 signal with a delayed beam signal (to appear as LLT5, I hope, delayed 2 ticks relative to beam signal - LLT1)"
+28754,wketchum,,5,10,17.8.24 12:04,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26657,"5 GeV kaon run, replaced S6 signal with a delayed beam signal (to appear as LLT5, I hope, delayed 2 ticks relative to beam signal - LLT1)"
+28755,wketchum,,5,10,17.8.24 12:23,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26659,"5 GeV kaon run, replaced S9 signal with a delayed beam signal (to appear as LLT5, I hope, delayed 2 ticks relative to beam signal - LLT1)"
+28756,pplesnia,Kaon,5,20,17.8.24 13:29,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26661,Mid run change - run 28756 - switched from collimation of 20mm to 30mm
+28757,pplesnia,COSMICS,-,-,17.8.24 13:23,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26663,Beam down due to fault
+28758,pplesnia,,5,30,17.8.24 13:52,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26665,Beam is back
+28759,jgoudeau,,5,30,18.8.24 00:36,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26669,Restarting with same configuration due to crt13 issues
+28760,pplesnia,COSMICS,-,-,18.8.24 12:16,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26673,"SBDS faulty, starting cosmic run 10Hz"
+28761,pplesnia,,5,30,18.8.24 12:54,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26675,beam is back
+28762,pplesnia,,5,40,18.8.24 13:30,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26677,Increased collimators to pm40mm
+28773,wketchum,Kaon,5,40,19.8.24 15:29,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26686,"5 GeV kaon triggers, testing with beam signal copy in S9/LLT9 on trigger board"
+28774,wketchum,Kaon,5,40,19.8.24 15:46,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26688,"5 GeV kaon triggers, testing with beam signal copy in S9/LLT9 on trigger board, copy delayed by 2 ticks relative to beam signal"
+28775,wketchum,Kaon,5,40,19.8.24 16:05,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26691,"5 GeV kaon triggers, testing with beam signal copy in S9/LLT9 on trigger board, copy delayed by 2 ticks relative to beam signal, HLTs with beam require LLT1 and exclude LLT9 (delayed signal), beam signals reshaped to 15 ticks (240 ns)"
+28776,shuaixia,Kaon,5,40,19.8.24 17:14,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26694,"5 GeV kaon triggers, HLTs with beam require LLT1 and exclude LLT9 (delayed signal), beam signals reshaped to 15 ticks (240 ns), include CRT in the configuration for the night shift. Daphne-9 errors made stop the run and restart it"
+28777,tgiammar,Kaon,5,40,20.8.24 02:58,,,,,https://pdsp-elog.app.cern.ch/elisa/display/26697,restarting the run (new run number) 28777 due to daphne(-4 and -9) warnings
+28778,mzabloud,Kaon,5,40,20.8.24 09:54,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26700,"Restarting without CRTs, beam down at the moment"
+28791,herazafi,,,,20.8.24 17:29,,,,np04_TPC_PDS_TPGLowThr_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26709,Cathode ramping up monitoring run
+28794,herazafi,Kaon,-5,40,20.8.24 19:56,,,,np04_TPC_PDS_TPGLowThr_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26711,without CRT
+28796,herazafi,Kaon,-5,40,20.8.24 21:45,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26713,configuration updated to be triggering on antiprotons
+28799,madmurph,Kaon,-5,40,21.8.24 06:04,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26717,"restarting with same configuration after many daphne-9, daphne-4, crt warnings"
+28800,wketchum,Kaon,-5,40,21.8.24 08:13,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26721,"mixed cosmics trigger, running with updated CRT timing calculations"
+28801,rdeaguia,Kaon,-5,40,21.8.24 08:40,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26723,New run without CRT and beam on -5GeV
+28802,rdeaguia,Kaon,-5,40,21.8.24 09:24,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26726,"New run without CRT and beam on -5GeV, collimater position changed to +-40 mm"
+28803,rdeaguia,COSMICS,-,-,21.8.24 10:14,,COSMIC,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26728,"Switching to an off beam configuration, because we have no beam for approx 35 min, without CRT"
+28804,mzabloud,Kaon,-5,40,21.8.24 11:31,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26730,New run with beam at -5 Gev and collimator set to +-40 mm
+28806,mzabloud,Kaon,-5,40,21.8.24 12:00,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26732,New run with beam at -5 Gev and collimator set to +-40 mm after chcecking PDS modules.
+28815,delgadog,Kaon,-5,40,21.8.24 16:51,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26737,"-5 GeV, kaon triggerred run with updated CRT timing from development area"
+28817,delgadog,Kaon,-5,40,21.8.24 17:13,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26739,"-5 GeV, kaon and antiproton triggering, with CRT timing corrections, from development area"
+28835,wdallawa,Kaon,-5,40,22.8.24 01:48,,,,np04_TPC_CRT_TPGLowThr_ctbBeamCherenkov_prescale_2_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26750,After taking IVs for the PDS we come back with the whole system. Trying to start a beam run because the beam is back the rate was too high so trying with this prescale
+28836,wdallawa,Kaon,-5,40,22.8.24 02:14,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26752,Rebooting - PDS
+28863,wketchum,Kaon,-5,40,22.8.24 16:54,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26779,"-5 GeV kaon+antiproton trigger run, after beam returned from outage this afternoon"
+28867,cussans,Kaon,-5,40,22.8.24 20:53,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26786,Beam back. Restarting with Beam Cherenkov configuration
+28870,wdallawa,Kaon,-5,40,23.8.24 7:59,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26789,Starting run for the day without the CRT
+28880,pplesnia,Kaon,-5,40,23.8.24 11:24,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26794,Post timing unit replacement and laser run
+28891,ggurung,Kaon,-5,40,23.8.24 17:12,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26803,restarting run to include CRT for the evening and night shift
+28892,hwallace,COSMICS,-,-,25.8.24 08:38,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26810,"Beam off due to PS run, starting cosmics run"
+28893,hwallace,Kaon,-5,40,25.8.24 08:59,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26812,"Beam restarted, beginning new beam run"
+28894,wdallawa,COSMICS,-,-,,,,,,https://pdsp-elog.app.cern.ch/elisa/display/26816,Cosmics
+28895,wdallawa,COSMICS,-,-,26.8.24 05:31,,COSMIC,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26817,Starting a low rate cosmics run after the high rate run has been going for 3 hours
+28896,jgoudeau,Kaon,-5,40,26.8.24 06:27,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26817,Restarting a run with normal beam configuration now that beam is back
+28897,wdallawa,Kaon,-5,40,26.8.24 07:59,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26822,Removing the CRT for running during the day. The 5 GeV running (last days at -5) with a Kaon and antiproton trigger was completed today at 12:15.
+28920,hwallace,,1,40,26.8.24 16:00,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26845,Resuming beam run with PDS. +1 GeV +-40mm collimators
+28924,kirby,,1,40,26.8.24 17:20,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26849,"adding in the CRT readout for evening beam operations. With our recent commmunication issues to the DAPHNEs, we've replaced the GigE control connections on the saleve side DAPHNEs, using the now spare fibers from the WIBs (which are on the local copper switch now). All DAPHNEs ping and configure properly ... will see if this helps overall."
+28927,hwallace,,-1,40,27.8.24 09:44,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26855,
+28935,hwallace,,-1,40,27.8.24 10:35,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26858,Restarting beam run after DAPHNE stream lost.
+28950,aminotti,,-1,40,27.8.24 17:15,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26862,Adding CRT
+28957,aminotti,COSMICS,-,-,27.8.24 23:16,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26864,"Beam off (expected for 1 day), starting a new run with CRT offSpill at 1Hz"
+28958,wketchum,COSMICS,-,-,28.8.24 09:24,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26867,"using the new fddaq-v4.4.7 release, cosmics only (no beam) run. Beam expected earliest 18:00 today (repairs & consolidation work in the accelerator complex). We should be ready to run at 18:00 either with beam if available or cosmics "
+28997,mirajaoa,,-1,,28.8.24 18:38,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26943,-1 GeV Beam run with PDS (without CRT). There has been some beam issues at the start of the run. Beam was back on at around ~8:20 PM (about 1h20min into the run).
+29000,aminotti,,-1,,29.8.24 16:52,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26950,-1 GeV Beam run with PDS (with CRT)
+29002,aminotti,,-1,,29.8.24 18:34,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26952,Re-starting run as one of the CRT channels was down and start again.
+29003,anbalbon,,-1,,30.8.24 08:43,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26956,"starting run without CRT, -1 GeV beam"
+29004,anbalbon,COSMICS,-,-,30.8.24 09:25,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26959,starting run with cosmic including CRT and PDS
+29005,anbalbon,COSMICS,-,-,30.8.24 10:11,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26962,"starting run with cosmic, without CRT"
+29006,anbalbon,,-1,,30.8.24 10:36,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26964,"starting run with beam at -1 GeV, with CRT"
+29027,prroy,COSMICS,-,-,02.9.24 12:02,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26976,Starting a cosmic only run because of missing beam. We are running without CRT as the crtmoduleapp failed to configure and subsequent boot also failed becase the port was not freed
+29029,prroy,,-1,,02.9.24 12:10,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26978,Beam is back. Running without CRT
+29032,prroy,COSMICS,-,-,02.9.24 12:29,,COSMIC,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26980,Beam is down because of a electrical problem in Meyrin. Running cosmics offspil configuration without CRT
+29036,elavaut,COSMICS,-,-,02.9.24 12:58,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/26982,"no beam due to electrical issues in Meyrin, cosmics run without CRT"
+29068,prroy,,1,40,03.9.24 13:31,,,,,https://pdsp-elog.app.cern.ch/elisa/display/27006,Running with beam without CRT
+29071,dcasazza,,1,40,03.9.24 14:54,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27009,"beam run with Cherenkov trigger, no crt. Server015 went down at around 14:00, experts were notified and fixed it."
+29072,dcasazza,,1,40,03.9.24 16:37,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27011,beam run with Cherenkov trigger and crt
+29077,elavaut,COSMICS,-,-,04.9.24 09:11,,,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27015,start cosmics run without crt
+29081,jgoudeau,COSMICS,-,-,04.9.24 17:51,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27021,Beam still down but starting overnight beam run
+29089,shuaixia,COSMICS,-,-,05.9.24 13:55,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27024,"no beam for at least two hours, now running with high-rate offspill cosmics configuration"
+29091,shuaixia,,1,40,05.9.24 16:32,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27026,beam is back starting run with beam config and no CRT
+29092,shuaixia,,1,40,05.9.24 17:08,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27028,beam is back starting run with beam config and with CRT
+29093,elavaut,COSMICS,-,-,06.9.24 10:23,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27033,cosmics run will beam is off for cosmics chamber maintenance
+29094,elavaut,COSMICS,-,-,06.9.24 10:31,,,,np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27035,cosmics run will beam is off for cosmics chamber maintenance
+29097,elavaut,,1,40,06.9.24 12:09,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27037,beam is back after muon chamber maintenance and PSB issues sorted
+29107,wketchum,,1,40,06.9.24 18:27,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27040,Reconfigured run to include CRT for overnight period. Weekend stable beam run.
+29108,wketchum,,-1,40,09.9.24 08:49,,,,np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27048,"run at -1 GeV beam, collimators at +/- 40mm, Cherenkov pressures at the usual 3/14 bar values"
+29109,dcasazza,,-1,40,09.9.24 18:16,,,,np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27052,beam run at -1GeV with Cherenkov and CRT
+29110,wketchum,COSMICS,-,-,10.9.24 09:09,,COSMIC,,np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_10Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27055,"beam down for about an hour, so starting a cosmics only run. lost CRT at end of last run, so running without CRT"
+29116,dcasazza,,-1,40,10.9.24 11:22,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27057,"beam run with -1GeV, Cherenkov and no CRT"
+29125,maroda,,-1,40,10.9.24 18:56,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27060,
+29133,sbutchar,,-1,40,11.9.24 08:54,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27062,Beam run with no CRT
+29134,sbutchar,COSMICS,-,-,11.9.24 10:02,,COSMIC,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27064,"Beam down for machine development, switching to low-rate cosmics run"
+29143,herazafi,,-1,40,11.9.24 18:34,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27067,"beam run with -1GeV, Cherenkov and with CRT"
+29146,wketchum,,-5,5,12.9.24 09:51,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ColdADC1800mV_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27073,"running ColdADC tests, 1800mV, -5 GeV beam, collimators will be set to be low to accommodate trigger rate, all cherenkov combinations collected in trigger (so, all beam triggered, but labeled with cherenkov states)                                                                
+
+We moved beam to -5 GeV, collimators at +-5 mm. Configurations have been updated to include all cherenkov combinations (so triggering on all beam)
+    * We started a run with np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ColdADC1800mV_ssh.json configuration around 10:00. We will plan to let this run until 12:00.
+    * Assuming we've had reasonably stable beam, at 12:00 we will switch to np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json and run with that until 14:00.
+    * Assuming we've had reasonable stable beam in that period, at 14:00 we will switch to np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ColdADC1780mV_ssh.json , and run with that until 17:00.
+    * At around 17:00, we will bring the beam back to the -1 GeV configuration, recreate configurations to trigger on HxLx and HLx only, and setup a normal run for the evening."
+29147,urahaman,,-5,5,12.9.24 12:28,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27077,
+29148,urahaman,,-5,5,12.9.24 14:24,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ColdADC1780mV_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27079,
+29149,urahaman,,-5,5,12.9.24 17:49,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27081,
+29150,urahaman,,-1,40,12.9.24 18:14,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27083,"We've finished our ColdADC runs today, and moved back to -1 GeV beam with collimators at +/-40mm. There's no beam in machine however, and not likely for another hour, so fingers crossed we are actually setup for beam."
+29151,herazafi,,-1,40,13.9.24 08:53,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27086,"Beam run, Cherenkov and without CRT"
+29172,dcasazza,,-1,40,13.9.24 18:09,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27089,beam run with Cherenkov and CRT trigger
+29173,mrigan,,-1,40,14.9.24 11:51,,,,global_configs/np04/np04_TPC_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27092,"beam run with Cherenkov and CRT trigger, no PDS (they are doing tests)"
+29186,dcasazza,,-1,40,14.9.24 13:34,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27105,"beam run with PDS, CRT Cherenkov"
+29187,shuaixia,,-1,40,15.9.24 12:44,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27108,beam is on; running with crt
+29188,mrigan,COSMICS,-,-,15.9.24 14:27,,COSMIC,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctb_onlyOffSpillCosmics_1Hz_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27112,"beam having issues, cosmic only for now"
+29189,ggurung,,-1,40,15.9.24 15:02,,,,global_configs/np04/np04_TPC_PDS_CRT_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27113,new physics run starting after a short interuption in the beam line-- -1GeV beam and all systems included in config
+29194,sbutchar,,-1,40,16.9.24 09:21,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27116,Beam run with no CRT
+29195,sbutchar,,-1,40,16.9.24 10:11,,,,global_configs/np04/np04_TPC_PDS_TPGLowThr_ctbBeamCherenkov_ssh.json,https://pdsp-elog.app.cern.ch/elisa/display/27118,Restarting beam run with no CRT after rebooting daphnes

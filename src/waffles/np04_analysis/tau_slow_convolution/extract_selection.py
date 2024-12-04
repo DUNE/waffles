@@ -1,5 +1,5 @@
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.input.pickle_file_to_WaveformSet import pickle_file_to_WaveformSet
+from waffles.input.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.np04_analysis.tau_slow_convolution.extractor_waveforms import Extractor
 from waffles.np04_data.tau_slow_runs.load_runs_csv import ReaderCSV
 import numpy as np
@@ -13,9 +13,7 @@ if __name__ == "__main__":
     """Computes `template` or `response` for a specific list of `runs` and `channels`"""
     parse = argparse.ArgumentParser()
     parse.add_argument('-runs','--runs', type=int, nargs="+", help="Keep empty for all, or put the runs you want to be processed")
-    parse.add_argument('-r','--response', action="store_true", help="Set true if response")
-    parse.add_argument('-t','--template', action="store_true", help="Set true if template")
-    parse.add_argument('-rl','--runlist', type=str, help="What run list to be used (purity or beam)", default="purity")
+    parse.add_argument('-rl','--runlist', type=str, help="What run list to be used (purity, beam or led)", default="purity")
     parse.add_argument('-ch','--channels', type=int, nargs="+", help="Channels to analyze (format: 11225)", default=[11225])
     parse.add_argument('-p','--showp', action="store_true", help="Show progress bar")
     parse.add_argument('-f','--force', action="store_true", help='Overwrite...')
@@ -29,26 +27,22 @@ if __name__ == "__main__":
     if args['force']:
         safemode = False
 
-    if args['response'] == args['template']:
-        print("Please, choose one type -r or -t")
-        exit(0)
-
-    if args['response']:
-        selectiontype='response'
-    elif args['template']:
-        selectiontype='template'
 
     runlist = args['runlist']
+    if runlist != "led":
+        selectiontype='response'
+    else:
+        selectiontype='template'
+
     dfcsv = ReaderCSV()
     raw_data_path = "./rawdata/waffles_tau_slow_protoDUNE_HD/"
 
     # these runs should be analyzed only on the last half
-    blacklist = [ 28210, 28211, 28212, 28213, 28215, 28216, 28217, 28218, 28219 ] 
-    try: 
-        tmptype = 'Run'
-        if args['template']:
-            tmptype = 'Run LED'
-        runnumbers = np.unique(dfcsv.dataframes[runlist][tmptype].to_numpy())
+    blacklist = [ 26145, 26147, 26149, 26152, 26154, 26161, 26163, 26165, 26167 ]
+    blacklist += [ 28210, 28211, 28212, 28213, 28215, 28216, 28217, 28218, 28219 ]
+
+    try:
+        runnumbers = np.unique(dfcsv.dataframes[runlist]['Run'].to_numpy())
     except Exception as error:
         print(error)
         print('Could not open the csv file...')
@@ -67,38 +61,42 @@ if __name__ == "__main__":
         if not os.path.isfile(file):
             print("No file for run", runnumber, "endpoint", endpoint)
             continue
-        if args['dry']:
+
+
+        pickleselecname = {}
+        pickleavgname = {}
+        os.makedirs(f'{selectiontype}s', exist_ok=True)
+        missingchannels = []
+        for ch in channels:
+            pickleselecname[ch] = f'{selectiontype}s/{selectiontype}_run0{runnumber}_ch{ch}.pkl'
+            pickleavgname[ch] = f'{selectiontype}s/{selectiontype}_run0{runnumber}_ch{ch}_avg.pkl'
+            if safemode and os.path.isfile(pickleavgname[ch]):
+                continue
+            missingchannels.append(ch)
+
+        if not missingchannels:
+            print(f"Run {runnumber} there already for both channels...")
+            continue
+        elif args['dry']:
             print(runnumber, file)
             continue
-
         wfset = 0
         try:
-            wfset = pickle_file_to_WaveformSet(file)
+            wfset = WaveformSet_from_pickle_file(file)
         except Exception as error:
             print(error)
             print("Could not load the file... of run ", runnumber, file)
             continue
 
         wfset_ch:WaveformSet = 0
-        for ch in channels:
-            pickleselecname = f'{selectiontype}s/{selectiontype}_run0{runnumber}_ch{ch}.pkl'
-            pickleavgname = f'{selectiontype}s/{selectiontype}_run0{runnumber}_ch{ch}_avg.pkl'
-            os.makedirs(f'{selectiontype}s', exist_ok=True)
-            if safemode and os.path.isfile(pickleselecname):
-                val:str
-                val = input('File already there... overwrite? (y/n)\n')
-                val = val.lower()
-                if val == "y" or val == "yes":
-                    pass
-                else:
-                    continue
+        for ch in missingchannels:
             extractor = Extractor(selectiontype, runnumber) #here because I changed the baseline down..
 
             wch = ch
             if (wfset.waveforms[0].channel).astype(np.int64) - 100 < 0: # the channel stored is the short one
                 wch = int(str(ch)[3:])
                 extractor.channel_correction = True
-            try: 
+            try:
                 wfset_ch = WaveformSet.from_filtered_WaveformSet( wfset, extractor.allow_certain_endpoints_channels, [endpoint] , [wch], show_progress=args['showp'])
             except Exception as error:
                 print(error)
@@ -121,11 +119,11 @@ if __name__ == "__main__":
             wfset_ch.nselected = len(wvf_arrays)
             print(f'{runnumber} total: {len(wfset.waveforms)}\t {ch}: {len(wvf_arrays)}')
 
-            with open(pickleselecname, "wb") as f:
+            with open(pickleselecname[ch], "wb") as f:
                 pickle.dump(wfset_ch, f)
 
             output = np.array([wfset_ch.avgwvf, wfset_ch.waveforms[0].timestamp, wfset_ch.nselected], dtype=object)
 
-            with open(pickleavgname, "wb") as f:
+            with open(pickleavgname[ch], "wb") as f:
                 pickle.dump(output, f)
             print('Saved... ')
