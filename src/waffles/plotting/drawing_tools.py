@@ -11,8 +11,8 @@ import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
 from waffles.plotting.plot import *
-import waffles.input.raw_root_reader as root_reader
-import waffles.input.pickle_file_reader as pickle_reader
+import waffles.input_output.raw_root_reader as root_reader
+import waffles.input_output.pickle_file_reader as pickle_reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 

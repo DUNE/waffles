@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 
 from waffles.core.utils import build_parameters_dictionary
-from waffles.input.raw_root_reader import WaveformSet_from_root_files
-from waffles.input.pickle_file_reader import WaveformSet_from_pickle_files
-from waffles.input.raw_root_reader import WaveformSet_from_root_file
-from waffles.input.pickle_file_reader import WaveformSet_from_pickle_file
+from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
+from waffles.input_output.raw_root_reader import WaveformSet_from_root_file
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.IPDict import IPDict

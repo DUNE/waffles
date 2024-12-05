@@ -12,8 +12,8 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.BasicWfAna import BasicWfAna
-from waffles.input.raw_root_reader import WaveformSet_from_root_files
-from waffles.input.pickle_file_reader import WaveformSet_from_pickle_files
+from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_ChannelWsGrid
 from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.np04_utils.utils import get_channel_iterator

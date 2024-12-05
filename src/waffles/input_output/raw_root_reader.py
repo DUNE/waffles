@@ -19,7 +19,7 @@ except ImportError:
 from typing import List, Optional
 
 import waffles.utils.check_utils as wuc
-import waffles.input.input_utils as wii
+import waffles.input_output.input_utils as wii
 from waffles.data_classes.WaveformSet import WaveformSet
 import waffles.Exceptions as we
 
