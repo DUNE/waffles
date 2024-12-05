@@ -40,9 +40,7 @@ def get_input_folderpath(
         batch,
         apa
     )
-    #return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/"
-    return  f"{base_folderpath}/batch_{batch}/{aux}/{pde}/"
-
+    return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/"
 
 def get_apa_foldername(measurements_batch, apa_no):
     """This function encapsulates the non-homogeneous 
