@@ -1,4 +1,4 @@
-from waffles.np04_analysis.LED_calibration.imports import *
+from waffles.np04_analysis.led_calibration.imports import *
 
 class Analysis1(WafflesAnalysis):
 

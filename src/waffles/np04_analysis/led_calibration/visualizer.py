@@ -1,9 +1,5 @@
 # import all necessary files and classes
-from waffles.np04_analysis.LED_calibration.imports import *
-
-# import all tunable parameters
-from waffles.np04_analysis.LED_calibration.params import *
-
+from waffles.np04_analysis.led_calibration.imports import *
 
 class visualizer(WafflesAnalysis):
 
@@ -45,7 +41,7 @@ class visualizer(WafflesAnalysis):
 
             aux_file_path = os.path.join(
                 os.getcwd(), self.path_to_input_file)
-                #f"{self.input_base_folderpath}/batch_{batch}/output_pickles/LED_calibration_data.pkl")
+                #f"{self.input_base_folderpath}/batch_{batch}/output_pickles/led_calibration_data.pkl")
 
             with open(aux_file_path, "rb") as file:
                 self.dataframes[batch] = pickle.load(file)
