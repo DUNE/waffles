@@ -7,17 +7,6 @@ class Analysis1(WafflesAnalysis):
         pass        
 
     ##################################################################
-    # def arguments(self, parse: argparse.ArgumentParser):                
-
-    #     parse.add_argument('-runs','--runs',  type=int, nargs="+",  help="Keep empty for all, or put the runs you want to be processed")
-    #     parse.add_argument('-r','--response', action="store_true",  help="Set true if response")
-    #     parse.add_argument('-t','--template', action="store_true",  help="Set true if template")
-    #     parse.add_argument('-rl','--runlist', type=str,             help="What run list to be used (purity or beam)", default="purity")
-    #     parse.add_argument('-ch','--channels',type=int, nargs="+",  help="Channels to analyze (format: 11225)", default=[11225])
-    #     parse.add_argument('-p','--showp',    action="store_true",  help="Show progress bar")
-    #     parse.add_argument('-f','--force',    action="store_true",  help='Overwrite...')
-    #     parse.add_argument('-n','--dry',      action="store_true",  help="Dry run")
-    
     @classmethod
     def get_input_params_model(
         cls
@@ -82,9 +71,6 @@ class Analysis1(WafflesAnalysis):
         # ReaderCSV is in np04_data
         dfcsv = ReaderCSV()
 
-
-        self.raw_data_path = "data"
-
         # these runs should be analyzed only on the last half
         try: 
             tmptype = 'Run'
@@ -127,7 +113,8 @@ class Analysis1(WafflesAnalysis):
         # item for current iteration
         run = self.read_input_itr
 
-        file = f"{self.raw_data_path}/{self.endpoint}/wfset_run0{run}.pkl"
+        # this will be the input file name
+        file = f"{self.params.input_path}/{self.endpoint}/wfset_run0{run}.pkl"
 
         if not os.path.isfile(file):
             print("No file for run", run, "endpoint", self.endpoint)
@@ -136,6 +123,7 @@ class Analysis1(WafflesAnalysis):
             print(run, file)
             return False
 
+        # read all waveforms fro the pickle file
         self.wfset = 0
         try:
             self.wfset = WaveformSet_from_pickle_file(file)

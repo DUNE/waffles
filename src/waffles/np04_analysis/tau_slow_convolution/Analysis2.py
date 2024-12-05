@@ -36,18 +36,6 @@ class Analysis2(WafflesAnalysis):
 
         return InputParams
 
-        # parse.add_argument('-runs','--runs',       type=int, nargs="+", help="Keep empty for all, or put the runs you want to be processed")
-        # parse.add_argument('-ch','--channel',      type=int,     help="Which channel to analyze", default=11225)
-        # parse.add_argument('-ft','--fix-template', action="store_true", help="Fix template to run 26261 (or thetemplate)")
-        # parse.add_argument('-tt', '--thetemplate', type=int,     help="If fix-template is set, use this to tell which template to use", default=0)
-        # parse.add_argument('-ns', '--namespace',   type=str,     help="Name space in case different folder", default="")
-        # parse.add_argument('-rl','--runlist',      type=str,     help="What run list to be used (purity or beam)", default="purity")
-        # parse.add_argument('-fr','--folder-responses', type=str, help="Directory of responses (just the name, default: responses)", default="responses")
-        # parse.add_argument('-p','--print',         action="store_true", help="If you want you can print result and not save")
-        # parse.add_argument('-in','--interpolate',  action="store_true", help="If you want 16 ns to be linear interpolated to 2 ns")
-        # parse.add_argument('--no-save',            action="store_true", help="If you want the output to be saved")
-        # parse.add_argument('-scan','--scan',       type=int,     help="Set maximum offset if you want to scan different offsets and get minimum. Scan is done around the default offset applied (-2, -(scan-2)). Set 0 to not scan.", default=0)    
-    
     ##################################################################
     def initialize(
         self,
