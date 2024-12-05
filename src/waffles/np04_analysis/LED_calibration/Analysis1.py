@@ -28,7 +28,7 @@ class Analysis1(WafflesAnalysis):
                 description="APA number",
                 example=2
             )
-        
+
             pde: float = Field(
                 ...,
                 description="Photon detection efficiency",
@@ -114,7 +114,7 @@ class Analysis1(WafflesAnalysis):
 
         self.read_input_loop = [None,]
         self.analyze_loop = [None,]
-        self.input_parameters = input_parameters
+        self.params = input_parameters
         self.wfset = None
         self.output_data = None
 
@@ -161,27 +161,21 @@ class Analysis1(WafflesAnalysis):
 
 
         # To be implemented
-        # self.input_parameters.batch = self.read_input_itr[0]
-        # self.input_parameters.apa   = self.read_input_itr[1]
-        # self.input_parameters.pde   = self.read_input_itr[2]
+        # self.params.batch = self.read_input_itr[0]
+        # self.params.apa   = self.read_input_itr[1]
+        # self.params.pde   = self.read_input_itr[2]
 
         first = True
 
         # Reset the WaveformSet
         self.wfset = None
 
-        runs = run_to_config[
-            self.input_parameters.batch][
-                self.input_parameters.apa][
-                    self.input_parameters.pde]
+        # get all runs for a given calibration batch, apa and PDE value
+        runs = run_to_config[self.params.batch][self.params.apa][self.params.pde]
         
         # Loop over runs
         for run in runs.keys():
-            channels_and_endpoints = config_to_channels[
-                self.input_parameters.batch][
-                    self.input_parameters.apa][
-                        self.input_parameters.pde][
-                            runs[run]]
+            channels_and_endpoints = config_to_channels[self.params.batch][self.params.apa][self.params.pde][runs[run]]
             
             # Loop over endpoints using the current run for calibration
             for endpoint in channels_and_endpoints.keys():
@@ -196,21 +190,20 @@ class Analysis1(WafflesAnalysis):
                 
                 # Get the filepath to the input data for this run
                 input_filepath = led_utils.get_input_filepath(
-                    self.input_parameters.input_path,
-                    self.input_parameters.batch,
-                    self.input_parameters.apa,
-                    self.input_parameters.pde,
+                    self.params.input_path, 
+                    self.params.batch,
+                    self.params.apa, 
+                    self.params.pde, 
                     run
                 )
 
                 # Read all files for the given run
                 new_wfset = led_utils.read_data(
                     input_filepath,
-                    self.input_parameters.batch,
-                    self.input_parameters.apa,
+                    self.params.batch,
+                    self.params.apa,
                     is_folder=False,
                     stop_fraction=1.,
-
                 )
 
                 # Keep only the waveforms coming from 
@@ -255,8 +248,8 @@ class Analysis1(WafflesAnalysis):
         # ------------- Analyse the waveform set -------------
 
         # get parameters input for the analysis of the waveforms
-        analysis_input_parameters = led_utils.get_analysis_params(
-            self.input_parameters.apa,
+        analysis_params = led_utils.get_analysis_params(
+            self.params.apa,
             # Will fail when APA 1 is analyzed
             run=None
         )
@@ -271,7 +264,7 @@ class Analysis1(WafflesAnalysis):
         _ = self.wfset.analyse(
             aux,
             BasicWfAna,
-            analysis_input_parameters,
+            analysis_params,
             *[],  # *args,
             analysis_kwargs={},
             checks_kwargs=checks_kwargs,
@@ -283,12 +276,12 @@ class Analysis1(WafflesAnalysis):
         # Create a grid of WaveformSets for each channel in one
         # APA, and compute the charge histogram for each channel
         grid_apa = ChannelWsGrid(
-            APA_map[self.input_parameters.apa],
+            APA_map[self.params.apa],
             self.wfset,
             compute_calib_histo=True, 
             bins_number=led_utils.get_nbins_for_charge_histo(
-                self.input_parameters.pde,
-                self.input_parameters.apa
+                self.params.pde,
+                self.params.apa
             ),
             domain=np.array((-10000.0, 50000.0)),
             variable="integral",
@@ -300,11 +293,11 @@ class Analysis1(WafflesAnalysis):
         # Fit peaks of each charge histogram
         fit_peaks_of_ChannelWsGrid(
             grid_apa,
-            self.input_parameters.max_peaks,
-            self.input_parameters.prominence,
-            self.input_parameters.half_points_to_fit, 
-            self.input_parameters.initial_percentage,
-            self.input_parameters.percentage_step
+            self.params.max_peaks,
+            self.params.prominence,
+            self.params.half_points_to_fit, 
+            self.params.initial_percentage,
+            self.params.percentage_step
         )
 
         # ------------- Plot charge histograms -------------
@@ -322,7 +315,7 @@ class Analysis1(WafflesAnalysis):
             verbose=True
         )
 
-        title = f"APA {self.input_parameters.apa} - Runs {list(self.wfset.runs)}"
+        title = f"APA {self.params.apa} - Runs {list(self.wfset.runs)}"
 
         figure.update_layout(
             title={
@@ -334,12 +327,12 @@ class Analysis1(WafflesAnalysis):
             showlegend=True
         )
 
-        if self.input_parameters.show_figures:
+        if self.params.show_figures:
             figure.show()
 
         figure.write_image(
-            f"{self.input_parameters.plots_saving_folderpath}"
-            f"/apa_{self.input_parameters.apa}_calibration_histograms.png"
+            f"{self.params.plots_saving_folderpath}"
+            f"/apa_{self.params.apa}_calibration_histograms.png"
         )
 
         """ ------------- Compute gain and S/N ------------- """
@@ -347,10 +340,7 @@ class Analysis1(WafflesAnalysis):
         # Compute gain and S/N for every channel
         self.output_data = led_utils.get_gain_and_snr(
             grid_apa, 
-            excluded_channels[
-                self.input_parameters.batch][
-                    self.input_parameters.apa][
-                        self.input_parameters.pde]
+            excluded_channels[self.params.batch][self.params.apa][self.params.pde]
         )
 
         return True
@@ -371,7 +361,7 @@ class Analysis1(WafflesAnalysis):
         led_utils.save_data_to_dataframe(
             self,
             self.output_data, 
-            self.input_parameters.output_path,
+            self.params.output_path,
         )
 
         return True

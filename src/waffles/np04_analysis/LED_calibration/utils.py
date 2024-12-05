@@ -40,7 +40,8 @@ def get_input_folderpath(
         batch,
         apa
     )
-    return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/"
+    #return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/"
+    return  f"{base_folderpath}/batch_{batch}/{aux}/{pde}/"
 
 
 def get_apa_foldername(measurements_batch, apa_no):
@@ -236,9 +237,9 @@ def save_data_to_dataframe(
     path_to_output_file: str
 ):
     
-    hpk_ov = input_parameters['hpk_ov'][Analysis1_object.input_parameters.pde]
-    fbk_ov = input_parameters['fbk_ov'][Analysis1_object.input_parameters.pde]
-    ov_no = input_parameters['ov_no'][Analysis1_object.input_parameters.pde]
+    hpk_ov = input_parameters['hpk_ov'][Analysis1_object.params.pde]
+    fbk_ov = input_parameters['fbk_ov'][Analysis1_object.params.pde]
+    ov_no = input_parameters['ov_no'][Analysis1_object.params.pde]
     
     # Warning: Settings this variable to True will save
     # changes to the output dataframe, potentially introducing
@@ -297,15 +298,15 @@ def save_data_to_dataframe(
             for channel in data[endpoint]:
                 # Assemble the new row
                 new_row = {
-                    "APA": [int(Analysis1_object.input_parameters.apa)],
+                    "APA": [int(Analysis1_object.params.apa)],
                     "endpoint": [endpoint],
                     "channel": [channel],
                     "channel_iterator": [get_channel_iterator(
-                        Analysis1_object.input_parameters.apa,
+                        Analysis1_object.params.apa,
                         endpoint,
                         channel
                     )],
-                    "PDE": [Analysis1_object.input_parameters.pde],
+                    "PDE": [Analysis1_object.params.pde],
                     "gain": [data[endpoint][channel]["gain"]],
                     "snr": [data[endpoint][channel]["snr"]],
                     "OV#": [ov_no],
