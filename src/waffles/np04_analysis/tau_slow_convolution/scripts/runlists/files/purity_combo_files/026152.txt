@@ -1,0 +1,2 @@
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/d2/48/np04hd_raw_run026152_0000_dataflow0_datawriter_0_20240510T131832.hdf5
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/d3/de/np04hd_raw_run026152_0001_dataflow0_datawriter_0_20240510T132508.hdf5

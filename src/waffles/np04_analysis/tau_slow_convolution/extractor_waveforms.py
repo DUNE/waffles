@@ -4,11 +4,10 @@ import yaml
 from waffles.utils.denoising.tv1ddenoise import Denoise
 from waffles.utils.baseline.baseline import SBaseline
 # import all tunable parameters
-import waffles.np04_analysis.tau_slow_convolution.params as params
 
 
 class Extractor:
-    def __init__(self, selection_type:str, current_run:int = None):
+    def __init__(self, params, selection_type:str, current_run:int = None):
         """This class extract either responses or templates from the rawfiles
 
         Parameters
@@ -72,11 +71,11 @@ class Extractor:
             stop      = cut['stop']
 
             # Substract baseline, invert and denoise before getting the reference value for the cut
-            wvfcut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*(-1)
+            wf_cut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*(-1)
 
             # get the reference value in the time range specified [t0, tf]
-            # the type of reference value is given by cut['npop'] = 'max, 'min' ...
-            ref_val = self.numpyoperations[cut['npop']](wvfcut[t0:tf])
+            # the type of reference value is given by cut['npop'] = 'max, 'min' 
+            ref_val = self.numpyoperations[cut['npop']](wf_cut[t0:tf])
 
             # perform an upper or lower cut depending on the cut type
             if cut_type == 'higher':
@@ -89,6 +88,7 @@ class Extractor:
             # stop the loop after the cut. This is to avoid running further cuts (Henrique ??)
             if stop:
                 break
+
 
         return True
 
@@ -122,7 +122,7 @@ class Extractor:
         
     def loadcuts(self):
         try:
-            with open(f'cuts_{self.selection_type}.yaml', 'r') as f:
+            with open(f'configs/cuts_{self.selection_type}.yaml', 'r') as f:
                 self.cutsdata = yaml.safe_load(f)
         except:
             print("Could not load yaml file..., creating fake cut, all waveforms will be applied")

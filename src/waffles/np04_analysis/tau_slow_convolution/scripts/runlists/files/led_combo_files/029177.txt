@@ -1,0 +1,8 @@
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/4c/a5/np04hd_raw_run029177_0000_dataflow0_datawriter_0_20240914T103330.hdf5
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/be/68/np04hd_raw_run029177_0000_dataflow1_datawriter_0_20240914T103329.hdf5
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/cf/c4/np04hd_raw_run029177_0000_dataflow2_datawriter_0_20240914T103329.hdf5
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/79/d3/np04hd_raw_run029177_0000_dataflow3_datawriter_0_20240914T103330.hdf5
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/c8/01/np04hd_raw_run029177_0000_dataflow4_datawriter_0_20240914T103330.hdf5
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/37/58/np04hd_raw_run029177_0000_dataflow5_datawriter_0_20240914T103330.hdf5
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/a0/f7/np04hd_raw_run029177_0000_dataflow6_datawriter_0_20240914T103330.hdf5
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/hd-protodune/2c/81/np04hd_raw_run029177_0000_dataflow7_datawriter_0_20240914T103330.hdf5
