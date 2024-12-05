@@ -141,7 +141,10 @@ class Analysis1(WafflesAnalysis):
         run     = self.read_input_itr
         channel = self.analyze_itr
 
-        """ --------- perform the analysis for channel in run ----------- """
+        # --------- perform the analysis for channel in run ----------- 
+
+        #-------- This block should be moved to input when a double loop is available in read_input ------
+
 
         self.wfset_ch:WaveformSet = 0
         self.pickle_selec_name = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}.pkl'
@@ -157,18 +160,16 @@ class Analysis1(WafflesAnalysis):
             else:
                 return False
             
-        """ ---------  ----------- """
+        # --------- perform waveform selection  ----------- 
 
+        # create an instance of the class with the sequence of cuts
         extractor = Extractor(self.params,self.selection_type, run) #here because I changed the baseline down..
 
         wch = channel
         if (self.wfset.waveforms[0].channel).astype(np.int64) - 100 < 0: # the channel stored is the short one
             wch = int(str(channel)[3:])
             extractor.channel_correction = True
-        
-        
-        """ --------- perform waveform selection  ----------- """
-
+                
         print ('#Waveforms: ', len(self.wfset.waveforms))
 
         # select waveforms in the interesting channels
@@ -190,7 +191,7 @@ class Analysis1(WafflesAnalysis):
 
         print ('#Waveforms selected: ', len(self.wfset_ch.waveforms))
 
-        """ --------- compute the baseline ----------- """
+        # --------- compute the baseline -----------
 
         # Substract the baseline and invert the result
         wf_arrays = np.array([(wf.adcs.astype(np.float32) - wf.baseline)*-1 for wf in self.wfset_ch.waveforms if wf.channel == wch])
@@ -210,7 +211,7 @@ class Analysis1(WafflesAnalysis):
         # compute the baseline again with a different method
         res0, status = self.baseliner.compute_baseline(avg_wf)
 
-        """ --------- compute final average waveform ----------- """
+        # --------- compute final average waveform -----------
 
         # subtract the baseline
         avg_wf -= res0

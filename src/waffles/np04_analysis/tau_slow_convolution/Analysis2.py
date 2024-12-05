@@ -94,8 +94,6 @@ class Analysis2(WafflesAnalysis):
         # items for current iteration (run number)
         self.run = self.read_input_itr
         
-        """ ---------  ----------- """
-
         print(f"Processing run {self.run}")
         if self.run not in self.run_pairs:
             print('Run not found in runlist, check it')
@@ -150,15 +148,14 @@ class Analysis2(WafflesAnalysis):
     ##################################################################
     def write_output(self) -> bool:
 
-        """ ---------- do the convolution and fit plot ----------- """
-
+        #---------- do the convolution and fit plot ----------- 
         # do the plot
         plt = self.cfit.plot()
 
         #add legend to plot
         plt.legend(title=f'run {self.run}')
 
-        """ ---------- Save results and plot ----------- """
+        # ---------- Save results and plot -----------
         
         dirout = f'{self.params.output_path}/{self.output_subfolder}/run0{self.run}'
         os.makedirs(dirout, exist_ok=True)
@@ -167,7 +164,8 @@ class Analysis2(WafflesAnalysis):
         first_time = self.cfit.wf_response["firsttime"]
 
         with open(f"{dirout}/convolution_output_{self.run}_{self.runled}_ch{self.channel}.txt", "w") as fout:
-            fout.write(f"{first_time} {self.cfit.m.values['fp']} {self.cfit.m.values['t1']} {self.cfit.m.values['t3']} {self.cfit.m.fmin.reduced_chi2} {nselected} \n")
+            fout.write(f"{first_time} {self.cfit.m.values['fp']} {self.cfit.m.values['t1']}"
+                       "{self.cfit.m.values['t3']} {self.cfit.m.fmin.reduced_chi2} {nselected} \n")
 
         with open(f"{dirout}/run_output_{self.run}_{self.runled}_ch{self.channel}.txt", "w") as fout:
             print(self.cfit.m, file=fout)
