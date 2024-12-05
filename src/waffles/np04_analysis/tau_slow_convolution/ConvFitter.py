@@ -200,10 +200,15 @@ class ConvFitter:
                                  'figure.figsize': [14,6]
                                  })
 
+        
+
         # Create an array of times with 16 ns tick width 
-        tick_width = 16
+        tick_width = 16 if not self.dointerpolation else 16/self.interpolation_fraction
         nticks = len(self.response)
-        times = np.linspace(0, nticks*tick_width, nticks, endpoint=False)
+        times  = np.linspace(0, tick_width*nticks, nticks,endpoint=False)
+
+        # create new figure
+        plt.figure()
 
         # do the plot
         plt.plot(times, self.response,'-', lw=2 ,color='k', label='data')
