@@ -14,7 +14,7 @@ pde: 0.45 # 0.40, 0.45, 0.50
 batch: 3 # 1, ...
 
 # Path to the folder containing the data
-input_path: ''
+input_path: 'data'
 
 # Path to the file where the
 # output dataframe will be saved
