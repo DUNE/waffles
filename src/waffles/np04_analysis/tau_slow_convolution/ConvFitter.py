@@ -111,7 +111,7 @@ class ConvFitter:
 
             chi2s = []
             offsets = np.arange(0, scan)
-            print ('scanning over offsets to minimize chi2 between the response and the template x model')
+            print ('    scanning over offsets to minimize chi2 between the response and the template x model')
             for offset in offsets:
                 self.response = np.roll(resp_original, offset, axis=0)
                 self.response = self.response[offset:]

@@ -107,11 +107,15 @@ class Analysis1(WafflesAnalysis):
         # analyze will be iterated over channels
         self.analyze_loop = self.params.channels
 
+        print (f'Running in {self.selection_type} mode')
+
     ##################################################################
     def read_input(self) -> bool:
 
         # item for current iteration
         run = self.read_input_itr
+
+        print(f"  Processing run {run}")
 
         # this will be the input file name
         file = f"{self.params.input_path}/{self.endpoint}/wfset_run0{run}.pkl"
@@ -141,10 +145,10 @@ class Analysis1(WafflesAnalysis):
         run     = self.read_input_itr
         channel = self.analyze_itr
 
+        print(f"    Processing channel {channel}")
+
         # --------- perform the analysis for channel in run ----------- 
-
         #-------- This block should be moved to input when a double loop is available in read_input ------
-
 
         self.wfset_ch:WaveformSet = 0
         self.pickle_selec_name = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}.pkl'
@@ -170,7 +174,7 @@ class Analysis1(WafflesAnalysis):
             wch = int(str(channel)[3:])
             extractor.channel_correction = True
                 
-        print ('#Waveforms: ', len(self.wfset.waveforms))
+        print ('      - #Waveforms (total):      ', len(self.wfset.waveforms))
 
         # select waveforms in the interesting channels
         self.wfset_ch = WaveformSet.from_filtered_WaveformSet(self.wfset, 
@@ -178,7 +182,7 @@ class Analysis1(WafflesAnalysis):
                                                                   [self.endpoint], [wch], 
                                                                   show_progress=self.params.showp)
 
-        print ('#Waveforms in channel: ', len(self.wfset_ch.waveforms))
+        print ('      - #Waveforms (in channel): ', len(self.wfset_ch.waveforms))
        
         try: 
             self.wfset_ch = WaveformSet.from_filtered_WaveformSet(self.wfset_ch, 
@@ -189,7 +193,7 @@ class Analysis1(WafflesAnalysis):
             print(f"No waveforms for run {run}, channel {wch}")
             return False
 
-        print ('#Waveforms selected: ', len(self.wfset_ch.waveforms))
+        print ('      - #Waveforms (selected):   ', len(self.wfset_ch.waveforms))
 
         # --------- compute the baseline -----------
 
@@ -219,9 +223,7 @@ class Analysis1(WafflesAnalysis):
         # save the results into the WaveformSet
         self.wfset_ch.avg_wf = avg_wf
         self.wfset_ch.nselected = len(wf_arrays)
-        
-        print(f'{run} total: {len(self.wfset.waveforms)}\t {channel}: {len(wf_arrays)}')
-    
+            
         return True
 
     ##################################################################
@@ -236,7 +238,7 @@ class Analysis1(WafflesAnalysis):
 
         with open(self.pickle_avg_name, "wb") as f:
             pickle.dump(output, f)
-        print('Saved... ')
+        print(f'      Average waveform saved in file: {self.pickle_avg_name}')
 
         return True
 

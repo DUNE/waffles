@@ -118,6 +118,7 @@ class Analysis2(WafflesAnalysis):
         # items for current iteration (channel number)
         self.channel = self.analyze_itr
 
+        print(f"  Processing channel {self.channel}")
 
         file_response = f"{self.params.output_path}/responses/response_run0{self.run}_ch{self.channel}_avg.pkl"
         file_template = f'{self.params.output_path}/templates/template_run0{self.runled}_ch{self.channel}_avg.pkl'
@@ -128,8 +129,8 @@ class Analysis2(WafflesAnalysis):
                 self.runled = self.led_run_template
                 file_template = f'templates/template_run0{self.runled}_ch{self.channel}_avg.pkl'
         
-        print ('file response: ', file_response)
-        print ('file template: ', file_template)
+        print ('    response file: ', file_response)
+        print ('    template file: ', file_template)
 
         # read the average waveforms for the template and the response
         self.cfit.read_waveforms(file_template, file_response)
@@ -142,6 +143,8 @@ class Analysis2(WafflesAnalysis):
 
         # perform the actual convolution fit
         self.cfit.fit(self.params.scan, self.params.print)
+
+        print ('    fit results: ', self.cfit.fit_results)
 
         return True
         
