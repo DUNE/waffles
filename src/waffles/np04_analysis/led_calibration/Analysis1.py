@@ -165,6 +165,11 @@ class Analysis1(WafflesAnalysis):
         # self.params.apa   = self.read_input_itr[1]
         # self.params.pde   = self.read_input_itr[2]
 
+        print(f"Processing runs for batch",self.params.batch, 
+                ", APA", self.params.apa, 
+                "and PDE", self.params.pde
+                )
+
         first = True
 
         # Reset the WaveformSet
@@ -183,10 +188,11 @@ class Analysis1(WafflesAnalysis):
                 # List of channels in that endpoint using that run for calibration
                 channels = channels_and_endpoints[endpoint]
 
-                print("\n Now loading waveforms from:")
-                print(f" - run {run}")
-                print(f" - endpoint {endpoint}")
-                print(f" - channels {channels} \n")         
+                print("  - Loading waveforms from "
+                        f"run {run},"
+                        f"endpoint {endpoint},"
+                        f"channels {channels}"
+                    )         
                 
                 # Get the filepath to the input data for this run
                 input_filepath = led_utils.get_input_filepath(
@@ -247,6 +253,8 @@ class Analysis1(WafflesAnalysis):
 
         # ------------- Analyse the waveform set -------------
 
+        print(f"  1. Analizyng WaveformSet with {len(self.wfset.waveforms)} waveforms")
+
         # get parameters input for the analysis of the waveforms
         analysis_params = led_utils.get_analysis_params(
             self.params.apa,
@@ -273,6 +281,8 @@ class Analysis1(WafflesAnalysis):
                 
         # ------------- Compute charge histogram -------------
 
+        print(f"  2. Computing Charge histogram")
+
         # Create a grid of WaveformSets for each channel in one
         # APA, and compute the charge histogram for each channel
         grid_apa = ChannelWsGrid(
@@ -290,6 +300,8 @@ class Analysis1(WafflesAnalysis):
 
         # ------------- Fit peaks of charge histogram -------------
 
+        print(f"  3. Fit peaks")
+
         # Fit peaks of each charge histogram
         fit_peaks_of_ChannelWsGrid(
             grid_apa,
@@ -302,7 +314,9 @@ class Analysis1(WafflesAnalysis):
 
         # ------------- Plot charge histograms -------------
 
-        figure = plot_ChannelWsGrid(
+        print(f"  4. Create plot of charge histograms")
+
+        self.figure = plot_ChannelWsGrid(
             grid_apa,
             figure=None,
             share_x_scale=False,
@@ -317,7 +331,7 @@ class Analysis1(WafflesAnalysis):
 
         title = f"APA {self.params.apa} - Runs {list(self.wfset.runs)}"
 
-        figure.update_layout(
+        self.figure.update_layout(
             title={
                 "text": title,
                 "font": {"size": 24}
@@ -328,14 +342,11 @@ class Analysis1(WafflesAnalysis):
         )
 
         if self.params.show_figures:
-            figure.show()
-
-        figure.write_image(
-            f"{self.params.plots_saving_folderpath}"
-            f"/apa_{self.params.apa}_calibration_histograms.png"
-        )
+            self.figure.show()
 
         """ ------------- Compute gain and S/N ------------- """
+
+        print(f"  5. Computing S/N and gain")
 
         # Compute gain and S/N for every channel
         self.output_data = led_utils.get_gain_and_snr(
@@ -356,12 +367,25 @@ class Analysis1(WafflesAnalysis):
             True if the method ends execution
         """
 
-        # ------------- Save results to a dataframe -------------
+        file_path = f"{self.params.output_path}"\
+            f"/batch_{self.params.batch}_apa_{self.params.apa}_pde_{self.params.pde}"
+
+        fig_path = f"{file_path}_calib_histo.png"
+
+        self.figure.write_image(f"{file_path}_calib_histo.png")
+
+        print(f"  charge histogram plots saved in {fig_path}")
+
+        # ------------- Save results to a dataframe -------------               
+
+        df_path = f"{file_path}_df.pkl"
 
         led_utils.save_data_to_dataframe(
             self,
             self.output_data, 
-            self.params.output_path,
+            df_path,
         )
+
+        print(f"  dataframe with S/N and gain saved in {df_path}")
 
         return True

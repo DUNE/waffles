@@ -1,9 +1,6 @@
 
 # ------- General parameters -------
 
-# Path to the folder where the plots
-plots_saving_folderpath: 'output/'
-
 # APA number
 apa: 3 # 1, 2, 3, 4
 
@@ -16,9 +13,8 @@ batch: 3 # 1, ...
 # Path to the folder containing the data
 input_path: 'data'
 
-# Path to the file where the
-# output dataframe will be saved
-output_path: 'output/df.pkl'
+# Path to the output
+output_path: 'output'
 
 # PDE-to-OV mapping for HPK sipms
 hpk_ov:

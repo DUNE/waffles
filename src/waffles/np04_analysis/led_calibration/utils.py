@@ -173,7 +173,7 @@ def get_gain_and_snr(
 
             if endpoint in excluded_channels.keys():
                 if channel in excluded_channels[endpoint]:
-                    print(f"Excluding channel {channel} from endpoint {endpoint}...")
+                    print(f"    - Excluding channel {channel} from endpoint {endpoint}...")
                     continue
 
             try:
@@ -243,7 +243,7 @@ def save_data_to_dataframe(
     # changes to the output dataframe, potentially introducing
     # spurious data. Only set it to True if you are sure of what
     # you are saving.
-    actually_save = False   
+    actually_save = True   
 
     # Do you want to potentially overwrite existing rows of the dataframe?
     overwrite = False
