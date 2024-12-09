@@ -265,12 +265,12 @@ class Analysis1(WafflesAnalysis):
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = self.wfset.points_per_wf
 
-        aux = 'standard'
+        self.analysis_name = 'standard'
     
         # Analyze all of the waveforms in this WaveformSet:
         # compute baseline, integral and amplitud
         _ = self.wfset.analyse(
-            aux,
+            self.analysis_name,
             BasicWfAna,
             analysis_params,
             *[],  # *args,
@@ -285,7 +285,7 @@ class Analysis1(WafflesAnalysis):
 
         # Create a grid of WaveformSets for each channel in one
         # APA, and compute the charge histogram for each channel
-        grid_apa = ChannelWsGrid(
+        self.grid_apa = ChannelWsGrid(
             APA_map[self.params.apa],
             self.wfset,
             compute_calib_histo=True, 
@@ -295,7 +295,7 @@ class Analysis1(WafflesAnalysis):
             ),
             domain=np.array((-10000.0, 50000.0)),
             variable="integral",
-            analysis_label=aux
+            analysis_label=self.analysis_name
         )
 
         # ------------- Fit peaks of charge histogram -------------
@@ -304,53 +304,21 @@ class Analysis1(WafflesAnalysis):
 
         # Fit peaks of each charge histogram
         fit_peaks_of_ChannelWsGrid(
-            grid_apa,
+            self.grid_apa,
             self.params.max_peaks,
             self.params.prominence,
             self.params.half_points_to_fit, 
             self.params.initial_percentage,
             self.params.percentage_step
         )
+    
+        # ------------- Compute gain and S/N ------------- 
 
-        # ------------- Plot charge histograms -------------
-
-        print(f"  4. Create plot of charge histograms")
-
-        self.figure = plot_ChannelWsGrid(
-            grid_apa,
-            figure=None,
-            share_x_scale=False,
-            share_y_scale=False,
-            mode="calibration",
-            wfs_per_axes=None,
-            analysis_label=aux,
-            plot_peaks_fits=True,
-            detailed_label=False,
-            verbose=True
-        )
-
-        title = f"APA {self.params.apa} - Runs {list(self.wfset.runs)}"
-
-        self.figure.update_layout(
-            title={
-                "text": title,
-                "font": {"size": 24}
-            }, 
-            width=1100,
-            height=1200,
-            showlegend=True
-        )
-
-        if self.params.show_figures:
-            self.figure.show()
-
-        """ ------------- Compute gain and S/N ------------- """
-
-        print(f"  5. Computing S/N and gain")
+        print(f"  4. Computing S/N and gain")
 
         # Compute gain and S/N for every channel
         self.output_data = led_utils.get_gain_and_snr(
-            grid_apa, 
+            self.grid_apa, 
             excluded_channels[self.params.batch][self.params.apa][self.params.pde]
         )
 
@@ -367,18 +335,47 @@ class Analysis1(WafflesAnalysis):
             True if the method ends execution
         """
 
-        file_path = f"{self.params.output_path}"\
+        base_file_path = f"{self.params.output_path}"\
             f"/batch_{self.params.batch}_apa_{self.params.apa}_pde_{self.params.pde}"
 
-        fig_path = f"{file_path}_calib_histo.png"
+        # ------------- Save the charge histogram plot ------------- 
 
-        self.figure.write_image(f"{file_path}_calib_histo.png")
+        figure = plot_ChannelWsGrid(
+            self.grid_apa,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="calibration",
+            wfs_per_axes=None,
+            analysis_label=self.analysis_name,
+            plot_peaks_fits=True,
+            detailed_label=False,
+            verbose=True
+        )
+
+        title = f"APA {self.params.apa} - Runs {list(self.wfset.runs)}"
+
+        figure.update_layout(
+            title={
+                "text": title,
+                "font": {"size": 24}
+            }, 
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+
+        if self.params.show_figures:
+            figure.show()
+
+        fig_path = f"{base_file_path}_calib_histo.png"
+        figure.write_image(f"{fig_path}")
 
         print(f"  charge histogram plots saved in {fig_path}")
 
         # ------------- Save results to a dataframe -------------               
 
-        df_path = f"{file_path}_df.pkl"
+        df_path = f"{base_file_path}_df.pkl"
 
         led_utils.save_data_to_dataframe(
             self,
