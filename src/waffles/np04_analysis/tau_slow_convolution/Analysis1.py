@@ -127,7 +127,7 @@ class Analysis1(WafflesAnalysis):
             print(run, file)
             return False
 
-        # read all waveforms fro the pickle file
+        # read all waveforms from the pickle file
         self.wfset = 0
         try:
             self.wfset = WaveformSet_from_pickle_file(file)
@@ -148,13 +148,14 @@ class Analysis1(WafflesAnalysis):
         print(f"    Processing channel {channel}")
 
         # --------- perform the analysis for channel in run ----------- 
-        #-------- This block should be moved to input when a double loop is available in read_input ------
 
         self.wfset_ch:WaveformSet = 0
-        self.pickle_selec_name = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}.pkl'
-        self.pickle_avg_name   = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}_avg.pkl'
+        base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}'
+        self.pickle_selec_name = f'{base_file_path}.pkl'
+        self.pickle_avg_name   = f'{base_file_path}_avg.pkl'
         os.makedirs(f'{self.params.output_path}/{self.selection_type}s', exist_ok=True)
 
+        # if the output files already exist check if we want to process the channel again
         if self.safemode and os.path.isfile(self.pickle_selec_name):
             val:str
             val = input('File already there... overwrite? (y/n)\n')

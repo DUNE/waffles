@@ -150,31 +150,43 @@ class Analysis2(WafflesAnalysis):
         
     ##################################################################
     def write_output(self) -> bool:
+        
+        # ---------- Save fit results -----------
+        
+        # create the results output subfolder
+        dirout = f'{self.params.output_path}/{self.output_subfolder}/run0{self.run}'
+        os.makedirs(dirout, exist_ok=True)
+        
+        # save the main fit parameters and some other info
+        nselected  = self.cfit.wf_response["nselected"]
+        first_time = self.cfit.wf_response["firsttime"]
+        fit_params_path = f"{dirout}/convolution_output_{self.run}_{self.runled}_ch{self.channel}.txt"
+        with open(f'{fit_params_path}', "w") as fout:
+            fout.write(f"{first_time} {self.cfit.m.values['fp']} {self.cfit.m.values['t1']}"
+                       f"{self.cfit.m.values['t3']} {self.cfit.m.fmin.reduced_chi2} {nselected} \n")
 
-        #---------- do the convolution and fit plot ----------- 
+        print(f'    Fit parameters saved in {fit_params_path}')
+
+        # save the full fit results including cov matrix
+        fit_results_path = f"{dirout}/run_output_{self.run}_{self.runled}_ch{self.channel}.txt"
+        with open(f'{fit_results_path}', "w") as fout:
+            print(self.cfit.m, file=fout)
+
+        print(f'    Fit results saved in {fit_results_path}')
+
+        #---------- create the convolution plot and save it ----------- 
+
         # do the plot
         plt = self.cfit.plot()
 
         #add legend to plot
         plt.legend(title=f'run {self.run}')
 
-        # ---------- Save results and plot -----------
-        
-        dirout = f'{self.params.output_path}/{self.output_subfolder}/run0{self.run}'
-        os.makedirs(dirout, exist_ok=True)
-        
-        nselected  = self.cfit.wf_response["nselected"]
-        first_time = self.cfit.wf_response["firsttime"]
-
-        with open(f"{dirout}/convolution_output_{self.run}_{self.runled}_ch{self.channel}.txt", "w") as fout:
-            fout.write(f"{first_time} {self.cfit.m.values['fp']} {self.cfit.m.values['t1']}"
-                       "{self.cfit.m.values['t3']} {self.cfit.m.fmin.reduced_chi2} {nselected} \n")
-
-        with open(f"{dirout}/run_output_{self.run}_{self.runled}_ch{self.channel}.txt", "w") as fout:
-            print(self.cfit.m, file=fout)
-
         # save the plot
-        plt.savefig(f'{dirout}/convfit_data_{self.run}_template_{self.runled}_ch{self.channel}.png')
+        convfit_plot_path = f'{dirout}/convfit_data_{self.run}_template_{self.runled}_ch{self.channel}.png'
+        plt.savefig(f'{convfit_plot_path}')
+
+        print(f'    Convolution fit plot saved in {convfit_plot_path}')
 
         return True
             
