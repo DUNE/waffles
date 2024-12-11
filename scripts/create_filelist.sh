@@ -3,9 +3,9 @@
 # Remember to kinit your_fnal_username@FNAL.GOV 
 # before running this script
 # RUCIO_ACCOUNT=your_fnal_username
-export RUCIO_ACCOUNT=fgalizzi
+export RUCIO_ACCOUNT=your_fnal_username
 
-# Either vd-coldbox, hd-protodune
+# Either vd-coldbox, hd-protodune...
 export DETECTOR=vd-coldbox
 
 # List the runs you want
