@@ -86,6 +86,7 @@ def extract_fragment_info(frag, trig):
     threshold = -1
     baseline = -1
     trigger_sample_value = -1
+    trigger_ts = frag.get_trigger_timestamp()
 
     if fragType == FragmentType.kDAPHNE.value:  # For self trigger
         trigger              = 'self_trigger'
@@ -105,7 +106,7 @@ def extract_fragment_info(frag, trig):
         adcs = np_array_adc_stream(frag)
         channels = np_array_channels_stream(frag)[0]
 
-    return trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value, daq_pretrigger
+    return trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value, trigger_ts, daq_pretrigger
 
 
 def filepath_is_hdf5_file_candidate(filepath: str) -> bool:
@@ -375,7 +376,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
 
             trig = h5_file.get_trh(r)
 
-            trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, daq_pretrigger_frag = extract_fragment_info(
+            trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, trigger_ts, daq_pretrigger_frag = extract_fragment_info(
                 frag, trig)
 
             endpoint = int(find_endpoint(inv_map_id, scr_id))
@@ -404,7 +405,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                     if not wvfm_index % subsample:
                         waveforms.append(Waveform(timestamps_frag[index],
                                                   16.,    # time_step_ns
-                                                  0,
+                                                  trigger_ts,
                                                   np.array(adcs),
                                                   run_numb,
                                                   r[0],
