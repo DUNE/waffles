@@ -86,6 +86,10 @@ def extract_fragment_info(frag, trig):
     threshold = -1
     baseline = -1
     trigger_sample_value = -1
+    timestamps = []  # Default to empty list
+    adcs = []        # Default to empty list
+    channels = []    # Default to empty list
+    trigger = 'unknown'  # Default value if no condition is met
     trigger_ts = frag.get_trigger_timestamp()
 
     if fragType == FragmentType.kDAPHNE.value:  # For self trigger
