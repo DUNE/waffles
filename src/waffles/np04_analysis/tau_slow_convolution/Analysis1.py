@@ -102,7 +102,11 @@ class Analysis1(WafflesAnalysis):
 
 
         # read_input will be iterated over run numbers
-        self.read_input_loop = runs
+        self.read_input_loop_1 = runs
+
+        # single element loops
+        self.read_input_loop_2 = [None,]
+        self.read_input_loop_3 = [None,]
 
         # analyze will be iterated over channels
         self.analyze_loop = self.params.channels
@@ -113,7 +117,7 @@ class Analysis1(WafflesAnalysis):
     def read_input(self) -> bool:
 
         # item for current iteration
-        run = self.read_input_itr
+        run = self.read_input_itr_1
 
         print(f"  Processing run {run}")
 
@@ -142,7 +146,7 @@ class Analysis1(WafflesAnalysis):
     def analyze(self) -> bool:
 
         # items for current iteration
-        run     = self.read_input_itr
+        run     = self.read_input_itr_1
         channel = self.analyze_itr
 
         print(f"    Processing channel {channel}")
@@ -179,16 +183,16 @@ class Analysis1(WafflesAnalysis):
 
         # select waveforms in the interesting channels
         self.wfset_ch = WaveformSet.from_filtered_WaveformSet(self.wfset, 
-                                                                  extractor.allow_certain_endpoints_channels, 
-                                                                  [self.endpoint], [wch], 
-                                                                  show_progress=self.params.showp)
+                                    extractor.allow_certain_endpoints_channels, 
+                                    [self.endpoint], [wch], 
+                                    show_progress=self.params.showp)
 
         print ('      - #Waveforms (in channel): ', len(self.wfset_ch.waveforms))
        
         try: 
             self.wfset_ch = WaveformSet.from_filtered_WaveformSet(self.wfset_ch, 
-                                                                extractor.apply_cuts,                                                                   
-                                                                show_progress=self.params.showp)
+                                                    extractor.apply_cuts,
+                                                    show_progress=self.params.showp)
         except Exception as error:
             print(error)
             print(f"No waveforms for run {run}, channel {wch}")
