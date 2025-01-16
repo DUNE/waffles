@@ -143,7 +143,8 @@ class Analysis2(WafflesAnalysis):
         self.pde   = self.read_input_itr_3
         
         self.dataframes = {} 
-
+        
+        
         for batch in self.params.batches:
 
             aux_file_path = os.path.join(
@@ -152,23 +153,48 @@ class Analysis2(WafflesAnalysis):
                 
             with open(aux_file_path, "rb") as file:
                 self.dataframes[batch] = pickle.load(file)     
-        
+                
+        '''
+     
+        for batch in self.params.batches:
+
+            pkl_files = glob.glob(f"{os.path.join(os.getcwd(), self.params.input_pkl)}/*.pkl")
+
+            for aux_file_path in pkl_files:
+                # Determinar el batch desde el nombre del archivo
+                batch = int(os.path.basename(aux_file_path).split('_')[1])  # Ajusta si el formato del archivo cambia
+                
+                with open(aux_file_path, "rb") as file:
+                    self.dataframes[batch] = pickle.load(file)   
+      
+        print('self_dataframas from read', self.dataframes)       
         return True 
-    
+        '''
 
     def analyze(self) -> bool:
 
+        
         for batch in self.dataframes.keys():
+            
             aux = [batch] * len(self.dataframes[batch])
             self.dataframes[batch]['batch_no'] = aux
             self.dataframes[batch]['batch_no'] = self.dataframes[batch]['batch_no'].astype(int)
+        '''
         
+        for batch,pde in self.dataframes.keys():
+            aux = [batch] * len(self.dataframes[batch])
+            aux2 = [pde] * len(self.dataframes[pde])
+            self.dataframes[batch]['batch_no'] = aux
+            self.dataframes[batch]['batch_no'] = self.dataframes[batch]['batch_no'].astype(int)
+            self.dataframes[pde]['PDE'] = aux2
+            self.dataframes[pde]['PDE'] = self.dataframes[pde]['PDE'].astype(int)
+        
+        '''
         # Datos filtrados como un dataframe
         
         self.general_df = pd.concat(
             list(self.dataframes.values()), 
             ignore_index=True)
-        
         
         # ------------- Prepare data for time plots -------------
         
@@ -195,7 +221,9 @@ class Analysis2(WafflesAnalysis):
 
         # ----------- Batch-wise plots -----------
         
+        print(f"Data is: {self.general_df}")
         print(f"    1. Batch-wise plots, {self.params.variable} vs channels, are being created.")
+        
         for k in range(len(self.params.apas)):
             
             apa_no=self.params.apas[k]
@@ -208,15 +236,10 @@ class Analysis2(WafflesAnalysis):
                 current_df =self.general_df[
                     (self.general_df['APA'] == apa_no) & 
                     (self.general_df['batch_no'] == batch_no)]
-                
-                if current_df.empty:
-                    print(f"No data for APA {apa_no}, Batch {batch_no}")
-                    continue  # Skip this iteration if there's no data for this APA and batch
-
+        
                 fig = pgo.Figure()
 
                 for j in range(len(self.params.pdes)):
-    
                 
                     aux = current_df[current_df['PDE'] == self.params.pdes[j]]
 
@@ -263,20 +286,21 @@ class Analysis2(WafflesAnalysis):
                 if self.params.show_figures:
                     fig.show()
                 
-                fig.write_image(f"{self.params.output_pkl}/apa_{apa_no}_{self.params.variable}.png")
+                fig.write_image(f"{self.params.output_pkl}/batch_{batch_no}_apa_{apa_no}_{self.params.variable}.png")
         
         print(f"  Batch-wise plot saved in {self.params.output_pkl}")
                 
         # ------------ APA-wise plot  -----------
         
         print(f"    2. APA-wise plots, {self.params.variable} vs time, are being created.")
+        
         for self.apa in self.data_time.keys():
 
             fig = pgo.Figure()
 
-            for pde in self.data_time[self.apa]:
+            for self.pde in self.data_time[self.apa]:
 
-                for channel_iterator in self.data_time[self.apa][pde].keys():
+                for channel_iterator in self.data_time[self.apa][self.pde].keys():
                     unique_channel = get_endpoint_and_channel(
                         self.apa,
                         channel_iterator
@@ -285,9 +309,9 @@ class Analysis2(WafflesAnalysis):
                     fig.add_trace(
                         pgo.Scatter(
                             x=self.time,
-                            y=self.data_time[self.apa][pde][channel_iterator],
+                            y=self.data_time[self.apa][self.pde][channel_iterator],
                             mode='lines+markers',
-                            name=f"PDE = {pde}, channel {unique_channel}",
+                            name=f"PDE = {self.pde}, channel {unique_channel}",
                             line=dict(
                                 color=self.params.colors[self.pde],
                                 width=0.5),
@@ -312,7 +336,7 @@ class Analysis2(WafflesAnalysis):
                     tickangle=15,
                     tickfont=dict(size=16)
                 ),
-                #showlegend=True
+                showlegend=True
             )
 
             if self.params.show_figures:
