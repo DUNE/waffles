@@ -4,5 +4,5 @@
   parameters_is_file: True
 2:
   name: "Analysis2"
-  parameters: "params_vi.yml"
+  parameters: "params.yml"
   parameters_is_file: True

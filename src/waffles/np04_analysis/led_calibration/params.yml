@@ -8,13 +8,20 @@ apas: [2] # 1, 2, 3, 4
 pdes: [0.4] # 0.40, 0.45, 0.50
 
 # Calibration-batch number
-batches: [3] # 1, ...
+batches: [2,3] # 1, ...
 
 # Path to the folder containing the data
 input_path: 'data'
 
 # Path to the output
 output_path: 'output'
+
+# Path to the pikls files
+
+input_pkl: 'output'
+
+# Path to the outputof the Analysis 2
+output_pkl: 'output'
 
 # PDE-to-OV mapping for HPK sipms
 hpk_ov:
@@ -120,6 +127,8 @@ initial_percentage: 0.15
 percentage_step: 0.05
 
 # ------- Parameters for plots of Analysis 2 -------
+
+variable: 'snr'
 
 colors:
     0.4: 'black'

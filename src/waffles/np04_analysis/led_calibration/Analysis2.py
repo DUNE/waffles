@@ -4,9 +4,9 @@ class Analysis2(WafflesAnalysis):
 
     def __init__(self):
         pass
-    
+    print('\n')
     print('Analysis 2 starting...')
-
+    
     @classmethod
     def get_input_params_model(
         cls
@@ -48,15 +48,24 @@ class Analysis2(WafflesAnalysis):
                 description="Whether to show the produced "
                 "figures",
             )
-
-            plots_saving_folderpath: str = Field(
+            
+            input_pkl: str = Field(
                 default="./",
                 description="Path to the folder where "
-                "the plots will be saved."
+                "the pkl files will be saved."
             )
             
-            # Parameters for the plots
-
+            output_pkl: str = Field(
+                default="./",
+                description="Path to the folder where "
+                "the files from visualize.py (Analysis 2) will be saved."
+            )
+            
+            # ---------- Parameters for the plots ----------
+            
+            variable: str = Field(
+                description="Variable to represent in the plots: snr or gain."
+            )
             colors: dict = Field(
                 description="Colors for plots in Analysis 2."
             )
@@ -69,8 +78,6 @@ class Analysis2(WafflesAnalysis):
             y_label: dict = Field(
                 description="ylabel for plots in Analysis 2."
             )
-            
-
 
         return InputParams
     
@@ -99,17 +106,16 @@ class Analysis2(WafflesAnalysis):
             self.read_input_loop_1 = self.params.batches
             self.read_input_loop_2 = self.params.apas
             self.read_input_loop_3 = self.params.pdes
-    
-            self.variable = 'snr'
-            self.input_base_folderpath = '/home/andrearf28/waffles/waffles/src/waffles/np04_analysis/led_calibration/output'
+            '''
+            self.input_pkl = '/home/andrearf28/waffles/waffles/'
             self.path_to_output_folderpath = '/home/andrearf28/waffles/waffles/src/waffles/np04_analysis/led_calibration/output'
-
+            '''
             # Validación del atributo `self.variable`
             
-            if self.variable not in ['gain', 'snr']:
-                raise Exception('Either gain or snr must be selected')
+            print(f"The selected variable for these plots is {self.params.variable}")
             
-            print('Llego aquí 1')
+            if self.params.variable not in ['gain', 'snr']:
+                raise Exception('Either gain or snr must be selected')
             
             
     def read_input(self) -> bool:
@@ -136,69 +142,66 @@ class Analysis2(WafflesAnalysis):
         self.apa   = self.read_input_itr_2
         self.pde   = self.read_input_itr_3
         
-        '''
-        self.apas = [self.apa]
-        self.batches = [self.batch]
-        self.pdes = [self.pde]
-        '''
-        
-        self.dataframes = {}
+        self.dataframes = {} 
 
         for batch in self.params.batches:
 
             aux_file_path = os.path.join(
                 os.getcwd(), 
-                f"{self.input_base_folderpath}/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_df.pkl")
+                f"{self.params.input_pkl}/batch_{batch}_apa_{self.apa}_pde_{self.pde}_df.pkl")
                 
             with open(aux_file_path, "rb") as file:
-                self.dataframes[batch] = pickle.load(file)
-        
-        print('Llego aquí 2')
+                self.dataframes[batch] = pickle.load(file)     
         
         return True 
-        
+    
 
     def analyze(self) -> bool:
-        
-        # Prepare the data for the plot agains time
-        
-        self.time = [led_utils.compute_timestamp(
-                metadata[batch_no]['date_day'], 
-                metadata[batch_no]['date_month'], 
-                metadata[batch_no]['date_year']) for batch_no in self.params.batches ]
-
-        self.time_labels = [
-                f"{metadata[batch_no]['date_year']}/"
-                f"{metadata[batch_no]['date_month']}/"
-                f"{metadata[batch_no]['date_day']}" for batch_no in self.params.batches ]
 
         for batch in self.dataframes.keys():
-
             aux = [batch] * len(self.dataframes[batch])
             self.dataframes[batch]['batch_no'] = aux
             self.dataframes[batch]['batch_no'] = self.dataframes[batch]['batch_no'].astype(int)
         
-        # Aquí basicamente están los datos filtrados como un dataframe
+        # Datos filtrados como un dataframe
         
         self.general_df = pd.concat(
             list(self.dataframes.values()), 
             ignore_index=True)
         
-        print('self.general_df',self.general_df)
         
-        print('Llego aquí 3')
+        # ------------- Prepare data for time plots -------------
+        
+        self.time = [led_utils.compute_timestamp(
+                metadata[self.batch]['date_day'], 
+                metadata[self.batch]['date_month'], 
+                metadata[self.batch]['date_year']) for self.batch in self.params.batches ]
 
+        self.time_labels = [
+                f"{metadata[self.batch]['date_year']}/"
+                f"{metadata[self.batch]['date_month']}/"
+                f"{metadata[self.batch]['date_day']}" for self.batch in self.params.batches ]
+        
+        self.data_time=led_utils.prepare_data_time(
+            self.params.apas,
+            self.params.pdes,
+            self.params.batches,
+            self.params.variable,
+            self.general_df
+        )
         return True
 
     def write_output(self) -> bool:
 
-        # Batch-wise plots
+        # ----------- Batch-wise plots -----------
         
+        print(f"    1. Batch-wise plots, {self.params.variable} vs channels, are being created.")
         for k in range(len(self.params.apas)):
             
             apa_no=self.params.apas[k]
             
             for i in range(len(self.params.batches)):
+                
                 batch_no = self.params.batches[i]
                 
                 # Get the data for the given APA and batch
@@ -213,14 +216,13 @@ class Analysis2(WafflesAnalysis):
                 fig = pgo.Figure()
 
                 for j in range(len(self.params.pdes)):
-                    
-                    print('Llego aquí 3.3')
+    
                 
                     aux = current_df[current_df['PDE'] == self.params.pdes[j]]
 
                     fig.add_trace(pgo.Scatter(  
                         x=aux['channel_iterator'],
-                        y=aux[self.variable],
+                        y=aux[self.params.variable],
                         mode='markers',
                         marker=dict(
                             size=5, 
@@ -228,7 +230,7 @@ class Analysis2(WafflesAnalysis):
                             symbol=self.params.symbols[self.params.pdes[j]]),
                         name=f"PDE = {self.params.pdes[j]}",
                     ))
-                title = f"{self.params.translator[self.variable]} per channel in APA {apa_no} - "\
+                title = f"{self.params.translator[self.params.variable]} per channel in APA {apa_no} - "\
                         f"Batch {batch_no} ({metadata[batch_no]['date_year']}/"\
                         f"{metadata[batch_no]['date_month']}/{metadata[batch_no]['date_day']}"\
                         f")"
@@ -239,7 +241,7 @@ class Analysis2(WafflesAnalysis):
                             'font': {'size': 18},
                         },
                     xaxis_title='Channel',
-                    yaxis_title=self.params.y_label[self.variable],
+                    yaxis_title=self.params.y_label[self.params.variable],
                     width=1000,
                     height=400,
                     showlegend=True,
@@ -261,102 +263,64 @@ class Analysis2(WafflesAnalysis):
                 if self.params.show_figures:
                     fig.show()
                 
-                fig.write_image(f"{self.path_to_output_folderpath}/apa_{apa_no}_clustered_{self.variable}s.png")
-
-
-                
-        # Plot against time, apa-wise
-        print('Llego aquí 4')
+                fig.write_image(f"{self.params.output_pkl}/apa_{apa_no}_{self.params.variable}.png")
         
+        print(f"  Batch-wise plot saved in {self.params.output_pkl}")
+                
+        # ------------ APA-wise plot  -----------
         
-        for k in range(len(self.params.apas)):
-    
-            apa_no=self.params.apas[k]
+        print(f"    2. APA-wise plots, {self.params.variable} vs time, are being created.")
+        for self.apa in self.data_time.keys():
 
-            for i in range(len(self.params.pdes)):
-                
-                current_df = self.general_df[
-                    (self.general_df['APA'] == apa_no) &
-                    (self.general_df['PDE'] == self.params.pdes[i])]
-                
-                data[apa_no][self.params.pdes[i]] = {}
+            fig = pgo.Figure()
 
-                possible_channel_iterators = current_df['channel_iterator'].unique()
-                
-                for channel_iterator in possible_channel_iterators:
-                    
-                    aux = current_df[current_df['channel_iterator'] == channel_iterator]
-                    time_ordered_values_of_variable = []
+            for pde in self.data_time[self.apa]:
 
-                    # Here's why the data is ordered by batch number, i.e. ordered by time
-                    for batch_no in self.params.batches:
-
-                        aux2 = aux[aux['batch_no'] == batch_no]
-                        if len(aux2) == 0:
-                            print(f"Warning: Found no entry for APA {apa_no}, PDE {self.params.pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
-                        elif len(aux2) == 1:
-                            time_ordered_values_of_variable.append(
-                                aux2[self.variable].values[0])
-                        else:
-                            raise Exception(f"Found more than one entry for APA {apa_no}, PDE {pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
-                            
-                    data[apa_no][self.params.pdes[i]][channel_iterator] = time_ordered_values_of_variable
-        
-        for apa_no in data.keys():
-    
-            fig= pgo.Figure()
-
-            for pde in self.general_df[apa_no]():
-
-                for channel_iterator in self.data[apa_no][pde].keys():
-
+                for channel_iterator in self.data_time[self.apa][pde].keys():
                     unique_channel = get_endpoint_and_channel(
-                        apa_no, 
-                        channel_iterator)
+                        self.apa,
+                        channel_iterator
+                    )
 
                     fig.add_trace(
                         pgo.Scatter(
                             x=self.time,
-                            y=self.data[apa_no][pde][channel_iterator],
+                            y=self.data_time[self.apa][pde][channel_iterator],
                             mode='lines+markers',
                             name=f"PDE = {pde}, channel {unique_channel}",
                             line=dict(
-                                color=self.params.colors[pde[j]],
+                                color=self.params.colors[self.pde],
                                 width=0.5),
                             marker=dict(
                                 size=5,
-                                color=self.params.colors[pde[j]],
-                                symbol=self.params.symbols[pde[j]])
+                                color=self.params.colors[self.pde],
+                                symbol=self.params.symbols[self.pde])
                         )
                     )
-                    
-            title = f"{self.params.translator[self.variable]} per channel in APA {apa_no}"
 
+            # Configurar y guardar la figura
+            title = f"{self.params.translator[self.params.variable]} per channel in APA {self.apa}"
             fig.update_layout(
-                title = {
-                            'text': title,
-                            'font': {'size': 18},
-                        },
-                #xaxis_title='Time',
-                yaxis_title=self.params.y_label[self.variable],
+                title={'text': title, 'font': {'size': 18}},
+                yaxis_title=self.params.y_label[self.params.variable],
                 width=800,
                 height=400,
-            )
-
-            fig.update_layout(
-                xaxis=dict( 
+                xaxis=dict(
                     tickmode='array',
                     tickvals=self.time,
                     ticktext=self.time_labels,
                     tickangle=15,
                     tickfont=dict(size=16)
                 ),
-                showlegend=self.showlegend
+                #showlegend=True
             )
-                    
+
             if self.params.show_figures:
                 fig.show()
-            fig.write_image(f"{self.path_to_output_folderpath}/apa_{apa_no}_{self.variable}s_with_time.png")
-            
+
+            fig.write_image(f"{self.params.output_pkl}/apa_{self.apa}_{self.params.variable}_with_time.png")
+        
+        print(f"  APA-wise plot saved in {self.params.output_pkl}")
+        
         return True
                 

@@ -2,7 +2,7 @@ from waffles.np04_analysis.led_calibration.imports import *
 
 class Analysis1(WafflesAnalysis):
     
-    print('Starting Analysis 1')
+    print('Analysis 1 starting...')
 
     def __init__(self):
         pass

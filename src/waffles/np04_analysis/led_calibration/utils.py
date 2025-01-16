@@ -362,3 +362,50 @@ def compute_timestamp(day, month, year):
     dt = datetime.datetime(year, month, day)
     
     return dt.timestamp()
+
+
+def prepare_data_time(
+    apas: list,
+    pdes: list,
+    batches: list,
+    variable: str,
+    general_df: pd.DataFrame
+):
+    
+    data = {}
+
+    for k in range(len(apas)):
+        
+        apa_no=apas[k]
+        data[apa_no] = {}
+        
+        for i in range(len(pdes)):
+            
+            current_df = general_df[
+                (general_df['APA'] == apa_no) &
+                (general_df['PDE'] == pdes[i])]
+            
+            data[apa_no][pdes[i]] = {}
+
+            possible_channel_iterators = current_df['channel_iterator'].unique()
+            
+            for channel_iterator in possible_channel_iterators:
+                
+                aux = current_df[current_df['channel_iterator'] == channel_iterator]
+                time_ordered_values_of_variable = []
+
+                # Here's why the data is ordered by batch number, i.e. ordered by time
+                for batch_no in batches:
+
+                    aux2 = aux[aux['batch_no'] == batch_no]
+                    if len(aux2) == 0:
+                        print(f"Warning: Found no entry for APA {apa_no}, PDE {pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
+                    elif len(aux2) == 1:
+                        time_ordered_values_of_variable.append(
+                            aux2[variable].values[0])
+                    else:
+                        raise Exception(f"Found more than one entry for APA {apa_no}, PDE {pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
+                        
+                data[apa_no][pdes[i]][channel_iterator] = time_ordered_values_of_variable
+    
+    return data
