@@ -24,3 +24,5 @@ from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 from waffles.np04_analysis.led_calibration import utils as led_utils
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
 from waffles.np04_analysis.led_calibration.configs.calibration_batches.metadata import metadata
+from waffles.np04_utils.utils import get_endpoint_and_channel
+

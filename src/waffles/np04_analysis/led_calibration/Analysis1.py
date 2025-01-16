@@ -1,6 +1,8 @@
 from waffles.np04_analysis.led_calibration.imports import *
 
 class Analysis1(WafflesAnalysis):
+    
+    print('Starting Analysis 1')
 
     def __init__(self):
         pass
@@ -86,7 +88,8 @@ class Analysis1(WafflesAnalysis):
                 "'fit_peaks_of_ChannelWsGrid()' function. "
                 "Check its docstring for more information."
             )
-
+            
+            
             plots_saving_folderpath: str = Field(
                 default="./",
                 description="Path to the folder where "

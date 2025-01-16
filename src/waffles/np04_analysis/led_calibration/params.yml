@@ -2,10 +2,10 @@
 # ------- General parameters -------
 
 # APA number
-apas: [2,3,4] # 1, 2, 3, 4
+apas: [2] # 1, 2, 3, 4
 
 # Photon detection efficiency
-pdes: [0.4,0.45] # 0.40, 0.45, 0.50
+pdes: [0.4] # 0.40, 0.45, 0.50
 
 # Calibration-batch number
 batches: [3] # 1, ...
@@ -118,3 +118,23 @@ half_points_to_fit: 2 # [2 - 3]
 # utils/fit_peaks/fit_peaks_utils.py
 initial_percentage: 0.15 
 percentage_step: 0.05
+
+# ------- Parameters for plots of Analysis 2 -------
+
+colors:
+    0.4: 'black'
+    0.45: 'green'
+    0.5: 'red'
+    
+symbols: 
+    0.4: 'circle'
+    0.45: 'square'
+    0.5: 'diamond'
+
+translator: 
+    'gain': 'Gain'
+    'snr': 'SNR'
+
+y_label: 
+    'gain': 'center[1] - center[0]'
+    'snr': '(center[1]-center[0])/sqrt( std[0]**2  + std[1]**2 )'

@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+import datetime
 
 from waffles.core.utils import build_parameters_dictionary
 from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
@@ -349,3 +350,15 @@ def save_data_to_dataframe(
                         df.reset_index()
 
         df.to_pickle(path_to_output_file)
+
+def compute_timestamp(day, month, year):
+    """This function generates a timestamp from a date. 
+    The date is given as three integer values which match 
+    the day, the month and the year, respectively. The 
+    timestamp is the number of seconds since 
+    1970-01-01 00:00:00 UTC.
+    
+    """
+    dt = datetime.datetime(year, month, day)
+    
+    return dt.timestamp()
