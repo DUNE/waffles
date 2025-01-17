@@ -2,13 +2,13 @@
 # ------- General parameters -------
 
 # APA number
-apas: [2] # 1, 2, 3, 4
+apas: [2,3] # 1, 2, 3, 4
 
 # Photon detection efficiency
 pdes: [0.4,0.45] # 0.40, 0.45, 0.50
 
 # Calibration-batch number
-batches: [2] # 1, ...
+batches: [2,3] # 1, ...
 
 # Path to the folder containing the data
 input_path: 'data'
@@ -21,7 +21,7 @@ output_path: 'output'
 input_pkl: 'output'
 
 # Path to the outputof the Analysis 2
-output_pkl: 'output'
+output_pkl: 'output_vis'
 
 # PDE-to-OV mapping for HPK sipms
 hpk_ov:
@@ -128,7 +128,7 @@ percentage_step: 0.05
 
 # ------- Parameters for plots of Analysis 2 -------
 
-variable: 'snr'
+variable: 'gain'
 
 colors:
     0.4: 'black'

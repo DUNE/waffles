@@ -102,15 +102,25 @@ class Analysis2(WafflesAnalysis):
             self.params = input_parameters
             self.wfset = None
             self.output_data = None
-
+            
+            self.batches = self.params.batches
+            self.apas = self.params.apas
+            self.pdes = self.params.pdes
+            
+            self.read_input_loop_1 = [0]
+            self.read_input_loop_2 = [0]
+            self.read_input_loop_3 = [0]
+            
+            '''
+            
             self.read_input_loop_1 = self.params.batches
             self.read_input_loop_2 = self.params.apas
             self.read_input_loop_3 = self.params.pdes
-            '''
+            
             self.input_pkl = '/home/andrearf28/waffles/waffles/'
             self.path_to_output_folderpath = '/home/andrearf28/waffles/waffles/src/waffles/np04_analysis/led_calibration/output'
             '''
-            # Validación del atributo `self.variable`
+            
             
             print(f"The selected variable for these plots is {self.params.variable}")
             
@@ -138,12 +148,16 @@ class Analysis2(WafflesAnalysis):
             True if the method ends execution normally
         """
 
-        self.batch = self.read_input_itr_1
-        self.apa   = self.read_input_itr_2
-        self.pde   = self.read_input_itr_3
+        # self.batch = self.read_input_itr_1
+        # self.apa   = self.read_input_itr_2
+        # self.pde   = self.read_input_itr_3
         
-        self.dataframes = {} 
+        self.read_input_itr_1=[0]
+        self.read_input_itr_2=[0]
+        self.read_input_itr_3=[0]
         
+        '''
+        # Lo que estaba antes:
         
         for batch in self.params.batches:
 
@@ -152,24 +166,41 @@ class Analysis2(WafflesAnalysis):
                 f"{self.params.input_pkl}/batch_{batch}_apa_{self.apa}_pde_{self.pde}_df.pkl")
                 
             with open(aux_file_path, "rb") as file:
-                self.dataframes[batch] = pickle.load(file)     
-                
+                self.dataframes[batch] = pickle.load(file) 
         '''
+                
+        self.dataframes = {} 
      
-        for batch in self.params.batches:
+        for batch in self.batches:
+            
+            combined_df = pd.DataFrame()
 
-            pkl_files = glob.glob(f"{os.path.join(os.getcwd(), self.params.input_pkl)}/*.pkl")
+            for apa in self.apas:
+                for pde in self.pdes:
+                    # Construct the file path
+                    aux_file_path = os.path.join(
+                        os.getcwd(),
+                        f"{self.params.input_pkl}/batch_{batch}_apa_{apa}_pde_{pde}_df.pkl"
+                    )
 
-            for aux_file_path in pkl_files:
-                # Determinar el batch desde el nombre del archivo
-                batch = int(os.path.basename(aux_file_path).split('_')[1])  # Ajusta si el formato del archivo cambia
-                
-                with open(aux_file_path, "rb") as file:
-                    self.dataframes[batch] = pickle.load(file)   
-      
-        print('self_dataframas from read', self.dataframes)       
+                    # Try to load the file
+                    try:
+                        with open(aux_file_path, "rb") as file:
+                            df = pickle.load(file)  # Load the dataframe
+                            combined_df = pd.concat([combined_df, df], ignore_index=True)  # Concatenate to the combined dataframe
+                            print(f"Loaded file: {aux_file_path}")
+                    except FileNotFoundError:
+                        print(f"File not found: {aux_file_path}")
+                    except Exception as e:
+                        print(f"Error loading file {aux_file_path}: {e}")
+
+            # Store the combined dataframe for this batch in the dictionary
+            self.dataframes[batch] = combined_df
+                    
+        #print('self_dataframes from read', self.dataframes) 
+        
         return True 
-        '''
+        
 
     def analyze(self) -> bool:
 
@@ -179,23 +210,12 @@ class Analysis2(WafflesAnalysis):
             aux = [batch] * len(self.dataframes[batch])
             self.dataframes[batch]['batch_no'] = aux
             self.dataframes[batch]['batch_no'] = self.dataframes[batch]['batch_no'].astype(int)
-        '''
         
-        for batch,pde in self.dataframes.keys():
-            aux = [batch] * len(self.dataframes[batch])
-            aux2 = [pde] * len(self.dataframes[pde])
-            self.dataframes[batch]['batch_no'] = aux
-            self.dataframes[batch]['batch_no'] = self.dataframes[batch]['batch_no'].astype(int)
-            self.dataframes[pde]['PDE'] = aux2
-            self.dataframes[pde]['PDE'] = self.dataframes[pde]['PDE'].astype(int)
-        
-        '''
-        # Datos filtrados como un dataframe
-        
+                
         self.general_df = pd.concat(
             list(self.dataframes.values()), 
             ignore_index=True)
-        
+
         # ------------- Prepare data for time plots -------------
         
         self.time = [led_utils.compute_timestamp(
@@ -221,7 +241,7 @@ class Analysis2(WafflesAnalysis):
 
         # ----------- Batch-wise plots -----------
         
-        print(f"Data is: {self.general_df}")
+
         print(f"    1. Batch-wise plots, {self.params.variable} vs channels, are being created.")
         
         for k in range(len(self.params.apas)):
@@ -286,7 +306,7 @@ class Analysis2(WafflesAnalysis):
                 if self.params.show_figures:
                     fig.show()
                 
-                fig.write_image(f"{self.params.output_pkl}/batch_{batch_no}_apa_{apa_no}_{self.params.variable}.png")
+                fig.write_image(f"{self.params.output_pkl}/batchwise_batch_{batch_no}_apa_{apa_no}_{self.params.variable}.png")
         
         print(f"  Batch-wise plot saved in {self.params.output_pkl}")
                 
@@ -342,7 +362,7 @@ class Analysis2(WafflesAnalysis):
             if self.params.show_figures:
                 fig.show()
 
-            fig.write_image(f"{self.params.output_pkl}/apa_{self.apa}_{self.params.variable}_with_time.png")
+            fig.write_image(f"{self.params.output_pkl}/apawise_apa_{self.apa}_{self.params.variable}_with_time.png")
         
         print(f"  APA-wise plot saved in {self.params.output_pkl}")
         

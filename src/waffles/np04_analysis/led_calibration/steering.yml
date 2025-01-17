@@ -1,8 +1,9 @@
-1:
+1 :
   name: "Analysis1"
   parameters: "params.yml"
   parameters_is_file: True
-2:
+
+2 :
   name: "Analysis2"
   parameters: "params.yml"
   parameters_is_file: True
