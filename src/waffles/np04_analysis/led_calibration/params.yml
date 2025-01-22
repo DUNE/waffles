@@ -8,7 +8,7 @@ apas: [2,3] # 1, 2, 3, 4
 pdes: [0.4,0.45] # 0.40, 0.45, 0.50
 
 # Calibration-batch number
-batches: [2,3] # 1, ...
+batches: [2] # 1, ...
 
 # Path to the folder containing the data
 input_path: 'data'
