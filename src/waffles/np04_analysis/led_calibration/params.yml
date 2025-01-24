@@ -11,7 +11,7 @@ pdes: [0.4,0.45] # 0.40, 0.45, 0.50
 batches: [2] # 1, ...
 
 # Path to the folder containing the data
-input_path: 'data'
+input_path: 'data_prueba'
 
 # Path to the output
 output_path: 'output'
