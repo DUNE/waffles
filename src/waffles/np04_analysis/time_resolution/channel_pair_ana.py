@@ -27,7 +27,8 @@ ref_ch = 27
 min_amplitudes = [100, 200, 300, 400, 500, 700, 900, 1100]
 max_amplitudes = [amp+300 for amp in min_amplitudes]
 
-out_file =  "Ch_11225_11227_results.csv"
+out_path = "/eos/home-f/fegalizz/ProtoDUNE_HD/TimeResolution/raw_ana_results/"
+out_file =  out_path+"Ch_11225_11227_results.csv"
 
 ######################################################################
 

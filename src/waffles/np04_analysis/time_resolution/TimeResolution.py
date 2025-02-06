@@ -14,7 +14,7 @@ class TimeResolution:
                  postpulse_ticks: int,
                  min_amplitude: int,
                  max_amplitude: int,
-                 baseline_rms: float
+                 baseline_rms: float,
                  ref_ep = 0,  ref_ch = 0,
                  com_ep = 0,  com_ch = 0,
                  ) -> None:
