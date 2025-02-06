@@ -1,0 +1,8 @@
+# Do you want to use full statistics? (True/False)
+full_stat: False
+
+# Which runs are you interested in? (e.g. [31920, 31928])
+user_runs: [31920, 31928]
+
+# Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
+out_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
