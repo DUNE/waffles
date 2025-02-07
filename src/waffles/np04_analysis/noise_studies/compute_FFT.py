@@ -3,7 +3,7 @@ import waffles
 import yaml
 import numpy as np
 import pandas as pd
-import waffles.np04_analysis.noise_studies.noisy_function as nf
+import noisy_function as nf
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     channel_map_file = run_info.get("channel_map_file")
 
     # Setup variables according to the user_config.yaml file
-    with open("./user_config.yaml", 'r') as stream:
+    with open("user_setting.yaml", 'r') as stream:
         user_config = yaml.safe_load(stream)
 
     out_writing_mode = user_config.get("out_writing_mode")
