@@ -183,6 +183,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 subsample : int = 1,
                                 wvfm_count : int = 1e9,
                                 allowed_endpoints: Optional[list] = [],
+                                det : str = 'HD_PDS'
                                 ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
@@ -227,6 +228,9 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
     allowed_endpoints : list(str)
         List of endpoints that will be decoded. Leave empty for getting all
         endpoints. Avoid reading waveforms unnecessarily 
+    det : str
+        String that corresponds to the detector type.
+        Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
     """
     if folderpath is not None:
 
@@ -256,6 +260,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                 subsample,
                 wvfm_count,
                 allowed_endpoints,
+                det
             )
 
         except Exception as error:
@@ -278,6 +283,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                subsample : int = 1,
                                wvfm_count : int = 1e9,
                                allowed_endpoints: Optional[list] = [],
+                               det : str = 'HD_PDS'
                                ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
@@ -316,16 +322,19 @@ def WaveformSet_from_hdf5_file(filepath : str,
     allowed_endpoints : list(str)
         List of endpoints that will be decoded. Leave empty for getting all
         endpoints. Avoid reading waveforms unnecessarily 
+    det : str
+        String that corresponds to the detector type.
+        Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
     """
 
-    if "/eos" not in filepath:
+    if "/eos" not in filepath and False:
         print("Using XROOTD")
 
         subprocess.call(shlex.split(f"xrdcp {filepath} /tmp/."), shell=False)
         filepath = f"/tmp/{filepath.split('/')[-1]}"
 
     h5_file = HDF5RawDataFile(filepath)
-    det        = 'HD_PDS'
+    #det        = 'HD_PDS'
     run_date   = h5_file.get_attribute('creation_timestamp')
     run_id     = filepath.split('/')[-1].split('_')[3]
     run_flow   = filepath.split('/')[-1].split('_')[4]
