@@ -102,7 +102,7 @@ class Analysis2(WafflesAnalysis):
 
         # change template in the case it is fixed at 0 for endpoint 112
         if self.led_run_template == 0 and self.run > 27901:# and ch//100 == 112:
-            self.led_run_template = 29177
+            self.led_run_template = 1
         
         if self.params.fix_template:
             self.runled = self.led_run_template

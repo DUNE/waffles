@@ -43,12 +43,15 @@ class ConvFitter:
 
     #################################################
     def parse_input(self,file):
+        if os.path.isfile(file) is not True:
+            print("No response from", file)
+            exit(0)        
         try:
             with open(file, 'rb') as f:
                 finput = pickle.load(f)
         except Exception as error:
             print(error)
-            print("No response from", file)
+            print("Could not load file", file)
             exit(0)
 
         keys = ["avgwvf", "firsttime", "nselected"]
