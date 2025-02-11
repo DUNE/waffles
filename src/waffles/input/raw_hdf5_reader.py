@@ -20,12 +20,17 @@ from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 
-# these functions should probably have a shared location, since they are used elsewhere...
-map_id = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 9], '107': [
+def get_inv_map_id(det):
+    if det == 'HD_PDS':
+        map_id = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 9], '107': [
     10, 8], '109': [11], '111': [12], '112': [13], '113': [14]}
-
-inv_map_id = {v: k for k, vals in map_id.items() for v in vals}
-
+    elif det == 'VD_Membrane_PDS' or det == 'VD_Cathode_PDS':
+        #map_id = {'107': [0, 7, 10, 17, 20, 27, 30, 37]}
+        map_id = {'107': [51]}
+    else:
+        raise ValueError(f"det '{det}' is not recognized.")
+    inv_map_id = {v: k for k, vals in map_id.items() for v in vals}
+    return inv_map_id
 
 def find_endpoint(map_id, target_value):
     return map_id[target_value]
@@ -327,14 +332,13 @@ def WaveformSet_from_hdf5_file(filepath : str,
         Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
     """
 
-    if "/eos" not in filepath and False:
+    if "/eos" not in filepath:
         print("Using XROOTD")
 
         subprocess.call(shlex.split(f"xrdcp {filepath} /tmp/."), shell=False)
         filepath = f"/tmp/{filepath.split('/')[-1]}"
 
     h5_file = HDF5RawDataFile(filepath)
-    #det        = 'HD_PDS'
     run_date   = h5_file.get_attribute('creation_timestamp')
     run_id     = filepath.split('/')[-1].split('_')[3]
     run_flow   = filepath.split('/')[-1].split('_')[4]
@@ -363,7 +367,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
     # print(f'total number of records = {len(records)}')
 
     wvfm_index = 0
-    for i, r in tqdm(enumerate(records)):
+    for i, r in enumerate(tqdm(records)):
         pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
             r, detdataformats.DetID.string_to_subdetector(det)))
 
@@ -391,7 +395,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
 
             trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, trigger_ts, daq_pretrigger_frag = extract_fragment_info(
                 frag, trig)
-
+            inv_map_id = get_inv_map_id(det)
             endpoint = int(find_endpoint(inv_map_id, scr_id))
 
             if trigger == 'full_stream':
