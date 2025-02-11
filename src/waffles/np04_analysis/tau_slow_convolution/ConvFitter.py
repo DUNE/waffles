@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
+import os
 import waffles.utils.time_align_utils as tutils
 
 from iminuit import Minuit, cost
