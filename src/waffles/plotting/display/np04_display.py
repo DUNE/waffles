@@ -6,7 +6,7 @@ from dash.dependencies import Input, Output
 # from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.BasicWfAna import BasicWfAna 

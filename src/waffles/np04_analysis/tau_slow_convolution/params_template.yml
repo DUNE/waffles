@@ -1,0 +1,64 @@
+# Path to the folder containing the data
+input_path: 'data'
+
+# Path to the file where the
+# output dataframe will be saved
+output_path: 'output'
+
+# type of runlist to be used: beam or purity
+runlist: 'led'
+
+# runs to be analyzed
+runs: [26081]
+
+# channels to be analyzed
+channels: [11114,11116]
+
+# list of special runs
+blacklist: [26145, 26147, 26149, 26152, 26154, 26161, 26163, 26165, 26167, 28210, 28211, 28212, 28213, 28215, 28216, 28217, 28218, 28219 ] 
+
+# ------ parameters for average waveform creation --------
+
+# overwrite output files
+force: False
+
+# select one of the two options
+response: False
+template: True
+
+# Dry run (don't do anything)
+dry: False
+
+# show progress
+showp: False
+
+# parameters for baseline computation 
+baseline_threshold: 6
+baseline_wait: 25
+baseline_start: 0
+baseline_finish_template: 112
+baseline_finish_response: 60
+baseline_minimum_frac: 0.166666666  # 1/6
+
+# ------ parameters for convolution fit --------
+
+# use a fix template (if false a template associated to the run beaing analyzed is used)
+fix_template: False
+the_template: 0
+
+# name to be given to the folder under output
+namespace: 'new_analysis'
+
+# verbosity
+print: False
+
+# Do an interpolation in a single time tick, from 16 ns to 2 ns
+interpolate: True
+
+# do not save the results
+no_save: False
+
+# perform scanning in the alignment between response and template average waveforms
+# Set maximum offset if you want to scan different offsets and get minimum. 
+# Scan is done around the default offset applied (-2, -(scan-2)). Set 0 to not scan.
+scan: 6
