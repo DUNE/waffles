@@ -100,7 +100,7 @@ def extract_fragment_info(frag, trig):
         baseline             = [header.baseline for header in daphne_headers]
         trigger_sample_value = [header.trigger_sample_value for header in daphne_headers]
 
-        timestamps = np_array_timestamp(frag)
+        timestamps = np_array_timestamp(frag) # type: ignore
         adcs = np_array_adc(frag)
         channels = np_array_channels(frag)
 
