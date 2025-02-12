@@ -1,0 +1,12 @@
+# Do you want to use full statistics? (True/False)
+full_stat: False
+
+# Append or overwrite the output files? (append="a", overwrite="w")
+out_writing_mode: "w"
+
+# Which runs are you interested in? (e.g. [31920, 31928])
+# Leave it empty if you want to use all the runs []
+user_runs: [31920, 31928, 31932, 31936]
+
+# Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
+out_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
