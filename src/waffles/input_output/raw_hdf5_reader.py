@@ -318,7 +318,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
         endpoints. Avoid reading waveforms unnecessarily 
     """
 
-    if "/eos" not in filepath:
+    if "/eos" not in filepath or "/nfs" not in filepath:
         print("Using XROOTD")
 
         subprocess.call(shlex.split(f"xrdcp {filepath} /tmp/."), shell=False)
