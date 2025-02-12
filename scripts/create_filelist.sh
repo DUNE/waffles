@@ -6,20 +6,11 @@
 export RUCIO_ACCOUNT=your_fnal_username
 
 # Either vd-coldbox, hd-protodune...
-<<<<<<< HEAD
 export DETECTOR=hd-protodune
 
 # List the runs you want
 runs=(
 31920
-=======
-export DETECTOR=vd-coldbox
-
-# List the runs you want
-runs=(
-33619
-33620
->>>>>>> main
 )
 
 source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
