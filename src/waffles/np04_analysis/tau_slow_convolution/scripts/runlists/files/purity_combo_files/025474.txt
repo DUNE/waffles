@@ -1,0 +1,6 @@
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/f9/33/np04hd_raw_run025474_0000_dataflow0_datawriter_0_20240503T130059.hdf5
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/06/d5/np04hd_raw_run025474_0000_dataflow1_datawriter_0_20240503T130059.hdf5
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/9b/0a/np04hd_raw_run025474_0000_dataflow2_datawriter_0_20240503T130059.hdf5
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/96/b5/np04hd_raw_run025474_0000_dataflow3_datawriter_0_20240503T130059.hdf5
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/3f/85/np04hd_raw_run025474_0000_dataflow4_datawriter_0_20240503T130059.hdf5
+root://xrootd.pic.es:1094/pnfs/pic.es/data/dune/RSE/hd-protodune/ea/f2/np04hd_raw_run025474_0000_dataflow5_datawriter_0_20240503T130059.hdf5
