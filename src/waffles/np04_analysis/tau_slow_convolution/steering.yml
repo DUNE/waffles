@@ -1,0 +1,17 @@
+# Step 1. Create the average waveform for the response
+1:
+  name: "Analysis1"
+  parameters: "params.yml"
+  parameters_is_file: True
+
+# Step 2. Create the average waveform for the template
+2:
+  name: "Analysis1"
+  parameters: "params_template.yml"    # To be restored when functionality to overwritte params is added here
+  parameters_is_file: True
+
+# Step 3. Perform the convolution fit
+3:
+  name: "Analysis2"
+  parameters: "params.yml"
+  parameters_is_file: True
