@@ -8,7 +8,7 @@ try:
     ROOT_IMPORTED = True
 except ImportError:
     print(
-        "[raw_ROOT_reader.py]: Could not import ROOT module. "
+        "[input_utils.py]: Could not import ROOT module. "
         "'pyroot' library options will not be available."
     )
     ROOT_IMPORTED = False
