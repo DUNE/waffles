@@ -17,7 +17,7 @@ from typing import Union, List, Tuple, Optional
 
 from waffles.data_classes.Waveform import Waveform
 import waffles.utils.numerical_utils as wun
-from waffles.Exceptions import GenerateExceptionMessage
+import waffles.Exceptions as we
 
 
 def find_ttree_in_root_tfile(
@@ -58,20 +58,20 @@ def find_ttree_in_root_tfile(
     if library == 'uproot':
         if not isinstance(
                 file, uproot.ReadOnlyDirectory):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 1,
                 'find_ttree_in_root_tfile()',
                 'Since the uproot library was specified, the input file'
                 ' must be of type uproot.ReadOnlyDirectory.'))
     elif library == 'pyroot':
         if not isinstance(file, ROOT.TFile):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 2,
                 'find_ttree_in_root_tfile()',
                 'Since the pyroot library was specified, the input file '
                 'must be of type ROOT.TFile.'))
     else:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             3,
             'find_ttree_in_root_tfile()',
             f"The library '{library}' is not supported. Either 'uproot' "
@@ -91,7 +91,7 @@ def find_ttree_in_root_tfile(
                 break
 
     if TTree_name is None:
-        raise NameError(GenerateExceptionMessage(
+        raise NameError(we.GenerateExceptionMessage(
             4,
             'find_ttree_in_root_tfile()',
             f"There is no TTree with a name starting with '{TTree_pre_name}'."))
@@ -137,20 +137,20 @@ def find_tbranch_in_root_ttree(
 
     if library == 'uproot':
         if not isinstance(tree, uproot.TTree):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 1,
                 'find_tbranch_in_root_ttree()',
                 'Since the uproot library was specified, '
                 'the input tree must be of type uproot.TTree.'))
     elif library == 'pyroot':
         if not isinstance(tree, ROOT.TTree):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 2,
                 'find_tbranch_in_root_ttree()',
                 'Since the pyroot library was specified, '
                 'the input tree must be of type ROOT.TTree.'))
     else:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             3,
             'find_tbranch_in_root_ttree()',
             f"The library '{library}' is not supported. "
@@ -169,7 +169,7 @@ def find_tbranch_in_root_ttree(
                 break
 
     if TBranch_name is None:
-        raise NameError(GenerateExceptionMessage(
+        raise NameError(we.GenerateExceptionMessage(
             4,
             'find_tbranch_in_root_ttree()',
             "There is no TBranch with a name starting with"
@@ -251,7 +251,7 @@ def root_to_array_type_code(input: str) -> str:
     try:
         output = map[input]
     except KeyError:
-        raise ValueError(GenerateExceptionMessage(
+        raise ValueError(we.GenerateExceptionMessage(
             1,
             'root_to_array_type_code()',
             f"The given data type ({input}) is not recognized."))
@@ -309,7 +309,7 @@ def get_1d_array_from_pyroot_tbranch(
             branch_name,
             'pyroot')
     except NameError:
-        raise NameError(GenerateExceptionMessage(
+        raise NameError(we.GenerateExceptionMessage(
             1,
             'get_1d_array_from_pyroot_tbranch()',
             "There is no TBranch with a name starting with"
@@ -321,7 +321,7 @@ def get_1d_array_from_pyroot_tbranch(
         i_up_ = i_up
 
     if i_low < 0 or i_low >= i_up_ or i_up_ > branch.GetEntries():
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             2,
             'get_1d_array_from_pyroot_tbranch()',
             f"The given range [{i_low}, {i_up_}) "
