@@ -77,7 +77,7 @@ def __spot_first_peaks_in_CalibrationHistogram(
     math.floor(initial_percentage * len(signal)). If the 
     number of spotted peaks is less than max_peaks, then 
     points is increased by 
-    math.floor(percentage_step * len(signal)) and the 
+    math.ceil(percentage_step * len(signal)) and the 
     scipy.signal.find_peaks() function is called again. 
     This process is repeated until the number of spotted peaks
     is equal to max_peaks, or until the number of points 
@@ -169,7 +169,7 @@ def __spot_first_peaks_in_CalibrationHistogram(
         if points == len(signal):
             fReachedEnd = True
 
-        points += math.floor(percentage_step * len(signal))
+        points += math.ceil(percentage_step * len(signal))
 
     if fFoundMax:
         return (True, spsi_output)
