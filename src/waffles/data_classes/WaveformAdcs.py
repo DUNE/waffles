@@ -61,9 +61,9 @@ class WaveformAdcs:
 
         Parameters
         ----------
-        time_step_ns : float
-        adcs : unidimensional numpy array of integers
-        time_offset : int
+        time_step_ns: float
+        adcs: unidimensional numpy array of integers
+        time_offset: int
             It must be semipositive and smaller than
             len(self.__adcs)-1. It is set to 0 by
             default.
@@ -112,7 +112,6 @@ class WaveformAdcs:
 #       self.__time_step_ns = input
 #       return
 
-
     def __set_time_offset(self, input: float) -> None:
         """This method is not intended for user usage. It 
         is a setter for the time_offset attribute.
@@ -141,29 +140,34 @@ class WaveformAdcs:
 
         return
 
-    def __truncate_adcs(
-        self, 
-        number_of_points_to_keep: int
+    def __slice_adcs(
+        self,
+        start: int,
+        end: int
     ) -> None:
-        """This method is not intended for user usage. It 
-        truncates the self.__adcs attribute array to the 
-        first 'number_of_points_to_keep' points.
+        """This method is not intended for user usage.
+        No well-formedness checks are performed here.
+        This method slices the self.__adcs attribute
+        array to self.__adcs[start, end]. This method
+        applies the change in place.
 
         Parameters
         ----------
-        number_of_points_to_keep: int
+        start: int
+            Iterator value for the (inclusive) start of
+            the slice
+        end: int
+            Iterator value for the (exclusive) end of
+            the slice
 
         Returns
         ----------
         None
         """
 
-        # Numpy handles the case where number_of_points_to_keep
-        # is greater than the length of self.__adcs.
-        self.__adcs = self.__adcs[:number_of_points_to_keep]
+        self.__adcs = self.__adcs[start:end]
         return
         
-
     def confine_iterator_value(self, input: int) -> int:
         """Confines the input integer to the range [0, len(self.__adcs) - 1].
         I.e returns 0 if input is negative, returns input if input belongs
