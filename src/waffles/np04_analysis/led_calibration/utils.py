@@ -1,11 +1,20 @@
 import os
 import numpy as np
 import pandas as pd
+<<<<<<< HEAD
 import datetime
 
 from waffles.core.utils import build_parameters_dictionary
 from waffles.input.pickle_file_reader import WaveformSet_from_pickle_files
 from waffles.input.pickle_file_reader import WaveformSet_from_pickle_file
+=======
+
+from waffles.core.utils import build_parameters_dictionary
+from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
+from waffles.input_output.raw_root_reader import WaveformSet_from_root_file
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
+>>>>>>> main
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.IPDict import IPDict
@@ -15,10 +24,65 @@ input_parameters = build_parameters_dictionary('params.yml')
 
 def get_input_filepath(
         base_folderpath: str,
+<<<<<<< HEAD
         run: int
     ) -> str:
     return  f"{base_folderpath}/wvf_{run}.pkl"
 
+=======
+        batch: int,
+        apa: int,
+        pde: float,
+        run: int
+    ) -> str:
+
+    aux = get_input_folderpath(
+        base_folderpath,
+        batch,
+        apa,
+        pde
+    )
+    return  f"{aux}/run_0{run}/run_{run}_chunk_0.pkl"
+
+def get_input_folderpath(
+        base_folderpath: str,
+        batch: int,
+        apa: int,
+        pde: float):
+    
+    aux = get_apa_foldername(
+        batch,
+        apa
+    )
+    return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/"
+
+def get_apa_foldername(measurements_batch, apa_no):
+    """This function encapsulates the non-homogeneous 
+    naming convention of the APA folders depending 
+    on the measurements batch.""" 
+
+    if measurements_batch not in [1, 2, 3]:
+        raise ValueError(
+            f"Measurements batch {measurements_batch} is not valid"
+        )
+    
+    if apa_no not in [1, 2, 3, 4]:
+        raise ValueError(f"APA number {apa_no} is not valid")
+                         
+    if measurements_batch == 1:
+        if apa_no in [1, 2]:
+            return 'apas_12'
+        else:
+            return 'apas_34'
+        
+    if measurements_batch in [2, 3]:
+        if apa_no == 1:
+            return 'apa_1'
+        elif apa_no == 2:
+            return 'apa_2'
+        else:
+            return 'apas_34'
+>>>>>>> main
 
 def comes_from_channel(
         waveform: Waveform, 
@@ -32,11 +96,19 @@ def comes_from_channel(
     return False
 
 def get_analysis_params(
+<<<<<<< HEAD
         crp_no: int,
         run: int = None
     ):
 
     if crp_no == 1:
+=======
+        apa_no: int,
+        run: int = None
+    ):
+
+    if apa_no == 1:
+>>>>>>> main
         if run is None:
             raise Exception(
                 "In get_analysis_params(): A run number "
@@ -45,11 +117,19 @@ def get_analysis_params(
         else:
             int_ll = input_parameters['starting_tick'][1][run]
     else:
+<<<<<<< HEAD
         int_ll = input_parameters['starting_tick'][crp_no]
 
     analysis_input_parameters = IPDict(
         baseline_limits=\
             input_parameters['baseline_limits'][crp_no]
+=======
+        int_ll = input_parameters['starting_tick'][apa_no]
+
+    analysis_input_parameters = IPDict(
+        baseline_limits=\
+            input_parameters['baseline_limits'][apa_no]
+>>>>>>> main
     )
     analysis_input_parameters['int_ll'] = int_ll
     analysis_input_parameters['int_ul'] = \
@@ -62,20 +142,62 @@ def get_analysis_params(
 
 def read_data(
         input_path: str,
+<<<<<<< HEAD
         crp: int,
         pde: int,
         vgain: int,
+=======
+        batch: int,
+        apa_no: int,
+>>>>>>> main
         is_folder: bool = True,
         stop_fraction: float = 1.
     ):
 
+<<<<<<< HEAD
     if is_folder: 
+=======
+    fProcessRootNotPickles = True if batch == 1 else False
+
+    if is_folder: 
+        if fProcessRootNotPickles:
+            new_wfset = WaveformSet_from_root_files(
+                "pyroot",
+                folderpath=input_path,
+                bulk_data_tree_name="raw_waveforms",
+                meta_data_tree_name="metadata",
+                set_offset_wrt_daq_window=True if apa_no == 1 else False,
+                read_full_streaming_data=True if apa_no == 1 else False,
+                truncate_wfs_to_minimum=True if apa_no == 1 else False,
+                start_fraction=0.0,
+                stop_fraction=stop_fraction,
+                subsample=1,
+            )
+        else:
+>>>>>>> main
             new_wfset = WaveformSet_from_pickle_files(                
                 folderpath=input_path,
                 target_extension=".pkl",
                 verbose=True,
             )
     else:
+<<<<<<< HEAD
+=======
+        if fProcessRootNotPickles:
+            new_wfset = WaveformSet_from_root_file(
+                "pyroot",
+                filepath=input_path,
+                bulk_data_tree_name="raw_waveforms",
+                meta_data_tree_name="metadata",
+                set_offset_wrt_daq_window=True if apa_no == 1 else False,
+                read_full_streaming_data=True if apa_no == 1 else False,
+                truncate_wfs_to_minimum=True if apa_no == 1 else False,
+                start_fraction=0.0,
+                stop_fraction=stop_fraction,
+                subsample=1,
+            )
+        else:
+>>>>>>> main
             new_wfset = WaveformSet_from_pickle_file(input_path)
 
     return new_wfset
@@ -157,9 +279,15 @@ def save_data_to_dataframe(
     path_to_output_file: str
 ):
     
+<<<<<<< HEAD
     hpk_ov = input_parameters['hpk_ov'][Analysis1_object.pde]
     fbk_ov = input_parameters['fbk_ov'][Analysis1_object.pde]
     ov_no = input_parameters['ov_no'][Analysis1_object.pde]
+=======
+    hpk_ov = input_parameters['hpk_ov'][Analysis1_object.params.pde]
+    fbk_ov = input_parameters['fbk_ov'][Analysis1_object.params.pde]
+    ov_no = input_parameters['ov_no'][Analysis1_object.params.pde]
+>>>>>>> main
     
     # Warning: Settings this variable to True will save
     # changes to the output dataframe, potentially introducing
@@ -218,6 +346,7 @@ def save_data_to_dataframe(
             for channel in data[endpoint]:
                 # Assemble the new row
                 new_row = {
+<<<<<<< HEAD
                     "APA": [int(Analysis1_object.apa)],
                     "endpoint": [endpoint],
                     "channel": [channel],
@@ -227,6 +356,17 @@ def save_data_to_dataframe(
                         channel
                     )],
                     "PDE": [Analysis1_object.pde],
+=======
+                    "APA": [int(Analysis1_object.params.apa)],
+                    "endpoint": [endpoint],
+                    "channel": [channel],
+                    "channel_iterator": [get_channel_iterator(
+                        Analysis1_object.params.apa,
+                        endpoint,
+                        channel
+                    )],
+                    "PDE": [Analysis1_object.params.pde],
+>>>>>>> main
                     "gain": [data[endpoint][channel]["gain"]],
                     "snr": [data[endpoint][channel]["snr"]],
                     "OV#": [ov_no],
@@ -270,6 +410,7 @@ def save_data_to_dataframe(
                         df = pd.concat([df, pd.DataFrame(new_row)], axis = 0, ignore_index = True)
                         df.reset_index()
 
+<<<<<<< HEAD
         df.to_pickle(path_to_output_file)
 
 def compute_timestamp(day, month, year):
@@ -330,3 +471,6 @@ def prepare_data_time(
                 data[apa_no][pdes[i]][channel_iterator] = time_ordered_values_of_variable
     
     return data
+=======
+        df.to_pickle(path_to_output_file)
+>>>>>>> main

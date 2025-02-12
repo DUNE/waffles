@@ -18,3 +18,4 @@ kaleido
 tqdm
 xrootd
 iminuit
+pydantic
