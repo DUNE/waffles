@@ -3,9 +3,11 @@ import numpy as np
 import yaml
 from waffles.utils.denoising.tv1ddenoise import Denoise
 from waffles.utils.baseline.baseline import SBaseline
+# import all tunable parameters
+
 
 class Extractor:
-    def __init__(self, selectiontype:str, current_run:int = None):
+    def __init__(self, params, selection_type:str, current_run:int = None):
         """This class extract either responses or templates from the rawfiles
 
         Parameters
@@ -22,29 +24,27 @@ class Extractor:
             "min": np.min,
         }
 
-        self.__selectiontype = selectiontype
+        self.selection_type = selection_type
         self.loadcuts()
         self.skeepcuts = False
         self.current_run = current_run
-
 
         self.denoiser = Denoise()
 
 
         self.baseliner = SBaseline()
         # Setting up baseline parameters
-        self.baseliner.binsbase = np.linspace(0,2**14-1,2**14)
-        self.baseliner.threshold = 6
-        self.baseliner.wait = 25
-        self.baseliner.baselinefinish = 112
-        self.baseliner.baselinestart = 0
-        if self.__selectiontype=='response':
-            self.baseliner.baselinefinish = 60
-        self.baseliner.minimumfrac = 1/6.
-
+        self.baseliner.binsbase       = np.linspace(0,2**14-1,2**14)
+        self.baseliner.threshold      = params.baseline_threshold
+        self.baseliner.wait           = params.baseline_wait
+        self.baseliner.minimumfrac    = params.baseline_minimum_frac
+        self.baseliner.baselinestart  = params.baseline_start
+        self.baseliner.baselinefinish = params.baseline_finish_template
+        if self.selection_type=='response':
+            self.baseliner.baselinefinish = params.baseline_finish_response
+        
 
         self.channel_correction=False
-
 
     def applycuts(self, waveform: Waveform, ch:int) -> bool:
         """Uses the cuts speficied in a yaml file to select the proper waveforms
@@ -55,30 +55,41 @@ class Extractor:
             cuts = self.cutsdata[ch]['cuts']
         except Exception as error:
             return True
+        
         for cut in cuts:
             t0 = cut['t0']
             tf = cut['tf']
-            if self.current_run and self.__selectiontype == 'response':
+            if self.current_run and self.selection_type == 'response':
                 if self.current_run < 27393:
                     if t0 > 2:
                         t0 -= 2
                     if tf != 1024:
                         tf -= 2
-            thre = cut['threshold']
-            cuttype = cut['type']
-            filter = cut['filter']
-            stop = cut['stop']
-            wvfcut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*(-1)
-            refval = self.numpyoperations[cut['npop']](wvfcut[t0:tf])
-            if cuttype == 'higher':
-                if refval < thre:
+            threshold = cut['threshold']
+            cut_type  = cut['type']
+            filter    = cut['filter']
+            stop      = cut['stop']
+
+            # Substract baseline, invert and denoise before getting the reference value for the cut
+            wf_cut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*(-1)
+
+            # get the reference value in the time range specified [t0, tf]
+            # the type of reference value is given by cut['npop'] = 'max, 'min' 
+            ref_val = self.numpyoperations[cut['npop']](wf_cut[t0:tf])
+
+            # perform an upper or lower cut depending on the cut type
+            if cut_type == 'higher':
+                if ref_val < threshold:
                     return False
-            elif cuttype =='lower':
-                if refval > thre:
+            elif cut_type =='lower':
+                if ref_val > threshold:
                     return False
 
+            # stop the loop after the cut. This is to avoid running further cuts (Henrique ??)
             if stop:
                 break
+
+
         return True
 
     def allow_certain_endpoints_channels(self, waveform: Waveform, allowed_endpoints:list, allowed_channels:list) -> bool:
@@ -87,20 +98,31 @@ class Extractor:
 
         """
         if waveform.endpoint in allowed_endpoints:
-            if waveform.channel in allowed_channels:
-                base, optimal = self.baseliner.wfset_baseline(waveform)
-                waveform.baseline = base
-                waveform.optimal = optimal
-                if not optimal: return False
-                if self.skeepcuts: return True
-                outcuts = self.applycuts(waveform, waveform.channel)
-                if outcuts:
-                    return True
+            if waveform.channel in allowed_channels:                
+                return True
         return False
 
+    def apply_cuts(self, waveform: Waveform) -> bool:
+        """ This fuction needs to be called, ex:
+            wfset_ch = WaveformSet.from_filtered_WaveformSet( wfset, extractor.allow_certain_endpoints_channels, [endpoint] , [ch], show_progress=args['showp'])
+
+        """
+
+        # check if this waveform has an optimal baseline
+        base, optimal = self.baseliner.wfset_baseline(waveform)
+        waveform.baseline = base
+        waveform.optimal = optimal
+        if not optimal: 
+            return False
+        
+        if self.skeepcuts: 
+            return True
+        else:
+            return self.applycuts(waveform, waveform.channel)
+        
     def loadcuts(self):
         try:
-            with open(f'cuts_{self.__selectiontype}.yaml', 'r') as f:
+            with open(f'configs/cuts_{self.selection_type}.yaml', 'r') as f:
                 self.cutsdata = yaml.safe_load(f)
         except:
             print("Could not load yaml file..., creating fake cut, all waveforms will be applied")
