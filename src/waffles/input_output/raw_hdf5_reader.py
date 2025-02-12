@@ -332,7 +332,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
         Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
     """
 
-    if "/eos" not in filepath:
+    if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
         print("Using XROOTD")
 
         subprocess.call(shlex.split(f"xrdcp {filepath} /tmp/."), shell=False)
