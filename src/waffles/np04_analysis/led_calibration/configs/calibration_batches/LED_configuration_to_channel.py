@@ -1,9 +1,9 @@
 
-from waffles.np04_analysis.LED_calibration.calibration_batches.batch_1.LED_configuration_to_channel \
+from waffles.np04_analysis.led_calibration.configs.calibration_batches.batch_1.LED_configuration_to_channel \
     import config_to_channels as batch_1
-from waffles.np04_analysis.LED_calibration.calibration_batches.batch_2.LED_configuration_to_channel \
+from waffles.np04_analysis.led_calibration.configs.calibration_batches.batch_2.LED_configuration_to_channel \
     import config_to_channels as batch_2
-from waffles.np04_analysis.LED_calibration.calibration_batches.batch_3.LED_configuration_to_channel \
+from waffles.np04_analysis.led_calibration.configs.calibration_batches.batch_3.LED_configuration_to_channel \
     import config_to_channels as batch_3
 
 # run_to_config is a 6-levels nested dictionary where:
