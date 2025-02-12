@@ -1,15 +1,79 @@
-# --- IMPORTS -------------------------------------------------------
-import waffles
-import yaml
-import numpy as np
-import pandas as pd
-import noisy_function as nf
+from imports import *
 
+class Analysis1(WafflesAnalysis):
+
+    def __init__(self) -> None:
+        pass
+
+    #################################################################
+    @classmethod
+    def get_input_params_model(cls) -> type:
+        """
+        comment
+        """
+        class InputParams(BaseInputParams):
+            """
+            InputParams for FFT analysis
+            """
+            filepath_folder: str
+            run_vgain_dict: Dict[int, int]
+            channel_map_file: str
+            out_writing_mode: str
+            out_path: str
+            full_stat: bool
+            user_runs: List[int]
+            all_noise_runs: List[int]
+
+        return InputParams
+
+
+    #################################################################
+    def initialize(self, input_parameters: BaseInputParams) -> None:
+        """
+        comment
+        """
+        self.filepath_folder  = input_parameters.filepath_folder
+        self.run_vgain_dict   = input_parameters.run_vgain_dict
+        self.channel_map_file = input_parameters.channel_map_file
+        self.out_writing_mode = input_parameters.out_writing_mode
+        self.out_path         = input_parameters.out_path
+        self.full_stat        = input_parameters.full_stat
+        self.runs             = input_parameters.user_runs
+        if (len(self.runs) == 0):
+            self.runs = input_parameters.all_noise_runs
+            if (len(self.runs) == 0):
+                print("No runs to analyze")
+                exit()
+
+    #################################################################
+    def read_input(self) -> bool:
+        """
+        comment
+        """
+        return True
+
+
+    #################################################################
+    def analyze(self) -> bool:
+        """
+        comment
+        """
+        return True
+    
+
+    #################################################################
+    def write_output(self) -> bool:
+        """
+        comment
+        """
+        return True
+
+    #################################################################
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
 
     # Setup variables according to the noise_run_info.yaml file
-    with open("./configs/noise_run_info.yml", 'r') as stream:
+    with open("./noise_run_info.yaml", 'r') as stream:
         run_info = yaml.safe_load(stream)
 
     filepath_folder  = run_info.get("filepath_folder")
@@ -17,7 +81,7 @@ if __name__ == "__main__":
     channel_map_file = run_info.get("channel_map_file")
 
     # Setup variables according to the user_config.yaml file
-    with open("params.yml", 'r') as stream:
+    with open("user_setting.yaml", 'r') as stream:
         user_config = yaml.safe_load(stream)
 
     out_writing_mode = user_config.get("out_writing_mode")

@@ -21,7 +21,10 @@ python create_FFT_set.py
 ```
 
 ## compute_FFT.py
+The scripts automatically loop over the runs specified in `user_setting.yaml` (or over all the noise runs if not specified),
+for each run computes the average FFT of the noise for the channel with a corresponding "offline channel" (i.e. the channel
+numbering used in LarSoft). In addition, it creates a .csv file with the baseline RMS.
 
 ## create_FFT_set.py
-
-# Outputs
+This script reads the output of `compute_FFT.py` and creates a set of FFTs for each channel where the VGain to assume
+was specified by the user.
