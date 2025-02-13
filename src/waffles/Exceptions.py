@@ -88,3 +88,7 @@ class IncompatibleInput(WafflesBaseException):
     if some of the simultaneously defined parameters
     are mutually exclusive."""
     pass
+
+class NonExistentDirectory(WafflesBaseException):
+    """Exception raised when an specified directory does
+    not exist."""
