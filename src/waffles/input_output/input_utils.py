@@ -9,7 +9,7 @@ try:
     ROOT_IMPORTED = True
 except ImportError:
     print(
-        "[raw_ROOT_reader.py]: Could not import ROOT module. "
+        "[input_utils.py]: Could not import ROOT module. "
         "'pyroot' library options will not be available."
     )
     ROOT_IMPORTED = False
@@ -22,10 +22,10 @@ import waffles.Exceptions as we
 
 
 def find_ttree_in_root_tfile(
-    file: Union[uproot.ReadOnlyDirectory, ROOT.TFile],
+    file: Union[uproot.ReadOnlyDirectory, 'ROOT.TFile'],
     TTree_pre_name: str,
     library: str
-) -> Union[uproot.TTree, ROOT.TTree]:
+) -> Union[uproot.TTree, 'ROOT.TTree']:
     """This function returns the first object found in the given
     ROOT file whose name starts with the string given to the
     'TTree_pre_name' parameter and which is a TTree object,
@@ -101,10 +101,10 @@ def find_ttree_in_root_tfile(
 
 
 def find_tbranch_in_root_ttree(
-    tree: Union[uproot.TTree, ROOT.TTree],
+    tree: Union[uproot.TTree, 'ROOT.TTree'],
     TBranch_pre_name: str,
     library: str
-) -> Tuple[Union[uproot.TBranch, ROOT.TBranch], str]:
+) -> Tuple[Union[uproot.TBranch, 'ROOT.TBranch'], str]:
     """This function returns the first TBranch found in 
     the given ROOT TTree whose name starts with the string
     given to the 'TBranch_pre_name' parameter, and the
@@ -261,7 +261,7 @@ def root_to_array_type_code(input: str) -> str:
 
 
 def get_1d_array_from_pyroot_tbranch(
-    tree: ROOT.TTree,
+    tree: 'ROOT.TTree',
     branch_name: str,
     i_low: int = 0,
     i_up: Optional[int] = None,
@@ -620,8 +620,8 @@ def __build_waveforms_list_from_root_file_using_uproot(
 
 def __build_waveforms_list_from_root_file_using_pyroot(
     idcs_to_retrieve: np.ndarray,
-    bulk_data_tree: ROOT.TTree,
-    meta_data_tree: ROOT.TTree,
+    bulk_data_tree: 'ROOT.TTree',
+    meta_data_tree: 'ROOT.TTree',
     set_offset_wrt_daq_window: bool = False,
     first_wf_index: int = 0,
     subsample: int = 1,
@@ -865,7 +865,7 @@ def __read_metadata_from_root_file_using_uproot(
 
 
 def __read_metadata_from_root_file_using_pyroot(
-    meta_data_tree: ROOT.TTree
+    meta_data_tree: 'ROOT.TTree'
 ) -> Tuple[Union[int, float]]:
     """This is a helper function which must only be called by
     the __build_waveforms_list_from_root_file_using_pyroot()
@@ -947,6 +947,7 @@ def filepath_is_root_file_candidate(filepath: str) -> bool:
         return True
 
     return False
+
 
 def write_permission(directory_path: str) -> bool:
     """This function gets the path to a directory, and checks
