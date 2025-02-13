@@ -9,10 +9,9 @@ out_writing_mode: "w"
 
 # Which runs are you interested in? (e.g. [31920, 31928])
 # Leave it empty if you want to use all the runs []
-# user_runs: [31913, 31915, 31917, 31919, 31921, 31923, 31925, 31927, 31930, 31932, 31934,
-#             31936, 31938, 31940, 31942, 31944, 31946]
-user_runs: [31940]
-
+user_runs: [31918, 31920, 31922, 31924, 31926, 31928, 31929]
+# user_runs: [31940]
+#
 # Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
 out_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
 
