@@ -188,7 +188,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 subsample : int = 1,
                                 wvfm_count : int = 1e9,
                                 allowed_endpoints: Optional[list] = [],
-                                det : str = 'HD_PDS'
+                                det : str = 'HD_PDS',
                                 temporal_copy_directory: str = '/tmp',
                                 ) -> WaveformSet:
     """
@@ -273,7 +273,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                 subsample,
                 wvfm_count,
                 allowed_endpoints,
-                det
+                det,
                 temporal_copy_directory=temporal_copy_directory
             )
 
@@ -297,7 +297,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                subsample : int = 1,
                                wvfm_count : int = 1e9,
                                allowed_endpoints: Optional[list] = [],
-                               det : str = 'HD_PDS'
+                               det : str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
                                ) -> WaveformSet:
     """
