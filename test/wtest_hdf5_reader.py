@@ -1,6 +1,6 @@
 import pickle
 import re
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 
 rucio_filepath = "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1a/ec/np04hd_raw_run030003_0000_dataflow0_datawriter_0_20241014T152553.hdf5"
 
