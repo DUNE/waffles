@@ -5,7 +5,7 @@ input_path: 'data'
 wfs_input_path: '028707_10935_10files_wfset_raw.pkl'
 
 # Path to the folder containing the beam data
-beam_input_path: 'beam/beamevent_all.root'
+beam_input_path: 'beam/028707_beam.root'
 
 # Path to the file where the
 # output dataframe will be saved
