@@ -5,7 +5,7 @@ import uproot
 import tempfile
 
 try:
-    import ROOT
+    import ROOTE
     ROOT_IMPORTED = True
 except ImportError:
     print(
@@ -13,6 +13,7 @@ except ImportError:
         "'pyroot' library options will not be available."
     )
     ROOT_IMPORTED = False
+    pass
 
 from typing import Union, List, Tuple, Optional
 
@@ -1064,7 +1065,7 @@ def write_permission(directory_path: str) -> bool:
 
 def __build_beam_list_from_root_file_using_pyroot(
     nentries: int,
-    bulk_data_tree: ROOT.TTree,
+#    bulk_data_tree: ROOT.TTree,
     verbose: bool = True
 ) -> List[BeamInfo]:
     """This is a helper function which must only be called by
@@ -1155,7 +1156,7 @@ def __build_beam_list_from_root_file_using_pyroot(
 
 
 def get_branch_address(
-    bulk_data_tree: ROOT.TTree,
+#    bulk_data_tree: ROOT.TTree,
     branch_name: str,
     branch_type: str,
     library: str
