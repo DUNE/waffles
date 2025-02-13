@@ -2,6 +2,7 @@ from pathlib import Path
 import array
 import numpy as np
 import uproot
+import tempfile
 
 try:
     import ROOT
@@ -946,3 +947,40 @@ def filepath_is_root_file_candidate(filepath: str) -> bool:
         return True
 
     return False
+
+def write_permission(directory_path: str) -> bool:
+    """This function gets the path to a directory, and checks
+    whether the running process has write permissions in such
+    directory.
+
+    Parameters
+    ----------
+    directory_path: str
+        Path to an existing directory. If the directory does
+        not exist, an exception is raised.
+
+    Returns
+    ----------
+    bool
+        True if the the running process has write permissions
+        in the specified directory. False if else."""
+
+    try:
+        with tempfile.TemporaryFile(
+            dir=directory_path
+        ):
+            pass
+
+        return True
+
+    except FileNotFoundError:
+        raise we.NonExistentDirectory(
+            we.GenerateExceptionMessage(
+                1,
+                'write_permission()',
+                f"The specified directory ({directory_path}) does not exist."
+            )
+        )
+
+    except PermissionError:
+        return False
