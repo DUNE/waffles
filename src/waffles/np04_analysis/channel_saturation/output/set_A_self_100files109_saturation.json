@@ -1,0 +1,42 @@
+[
+    {
+        "ID_String": "APA2_endpoint109_channel46",
+        "APA": 2,
+        "endpoint": 109,
+        "channel": 46,
+        "Runs": {
+            "1": 27338,
+            "2": 27355,
+            "3": 27361,
+            "5": 27367,
+            "7": 27374
+        },
+        "Beam saturation": {
+            "1": null,
+            "2": {
+                "Saturated event fraction": 0,
+                "Saturated event fraction error": 0,
+                "Tot analyzed beam event": 25,
+                "Saturated beam event": 0
+            },
+            "3": {
+                "Saturated event fraction": 0,
+                "Saturated event fraction error": 0,
+                "Tot analyzed beam event": 121,
+                "Saturated beam event": 0
+            },
+            "5": {
+                "Saturated event fraction": 0,
+                "Saturated event fraction error": 0,
+                "Tot analyzed beam event": 441,
+                "Saturated beam event": 0
+            },
+            "7": {
+                "Saturated event fraction": 0,
+                "Saturated event fraction error": 0,
+                "Tot analyzed beam event": 695,
+                "Saturated beam event": 0
+            }
+        }
+    }
+]
