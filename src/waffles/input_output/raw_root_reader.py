@@ -21,6 +21,7 @@ from typing import List, Optional
 import waffles.utils.check_utils as wuc
 import waffles.input_output.input_utils as wii
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.BeamInfo import BeamInfo
 import waffles.Exceptions as we
 
 def WaveformSet_from_root_files(
@@ -489,3 +490,34 @@ def WaveformSet_from_root_file(
             )
 
     return WaveformSet(*waveforms)
+
+
+def BeamInfo_from_root_file( 
+    filepath: str,
+    bulk_data_tree_name: str = 'tree',
+    verbose: bool = True
+) -> List[BeamInfo]:
+
+
+    library='pyroot'
+
+    input_file = ROOT.TFile(filepath)
+
+
+    bulk_data_tree, _ = wii.find_ttree_in_root_tfile(
+        input_file,
+        bulk_data_tree_name,
+        library)
+
+    Time_branch, Time_branch_name = \
+    wii.find_tbranch_in_root_ttree(
+        bulk_data_tree,
+        'Time',
+        library)
+
+    # Get the number of entries in the tree
+    nentries = Time_branch.num_entries \
+    if library == 'uproot' \
+    else Time_branch.GetEntries()
+
+    return wii.__build_beam_list_from_root_file_using_pyroot(nentries,bulk_data_tree, verbose)

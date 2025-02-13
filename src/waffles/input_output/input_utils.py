@@ -17,6 +17,7 @@ except ImportError:
 from typing import Union, List, Tuple, Optional
 
 from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.BeamInfo import BeamInfo
 import waffles.utils.numerical_utils as wun
 import waffles.Exceptions as we
 
@@ -1058,3 +1059,111 @@ def write_permission(directory_path: str) -> bool:
 
     except (OSError, PermissionError):
         return False
+
+
+
+def __build_beam_list_from_root_file_using_pyroot(
+    nentries: int,
+    bulk_data_tree: ROOT.TTree,
+    verbose: bool = True
+) -> List[BeamInfo]:
+    """This is a helper function which must only be called by
+    the WaveformSet_from_ROOT_file() function. This function
+    reads a subset of waveforms from the given ROOT.TTree
+    and appends them one by one to a list of Waveform objects,
+    which is finally returned by this function. When the
+    pyroot library is specified, WaveformSet_from_ROOT_file()
+    delegates such task to this helper function.
+
+    Parameters
+    ----------
+    idcs_to_retrieve: np.ndarray
+        A numpy array of (strictly) increasingly-ordered
+        integers which contains the indices of the waveforms
+        to be read from the TTree given to the bulk_data_tree
+        parameter. These indices are referred to the
+        first_wf_index iterator value of the bulk data tree.
+    bulk_data_tree (resp. meta_data_tree): ROOT.TTree
+        The tree from which the bulk data (resp. meta data)
+        of the waveforms will be read. Branches whose name
+        start with 'adcs', 'channel', 'timestamp', 
+        'daq_timestamp' and 'record' (resp. 'run' and 
+        'ticks_to_nsec') will be required. For more information 
+        on the expected data types for these branches, check 
+        the WaveformSet_from_ROOT_file()
+        function documentation.
+    set_offset_wrt_daq_window: bool
+        If True, then the time_offset attribute of each 
+        Waveform is set to the difference between its 
+        value for the 'timestamp' branch and its value
+        for the 'daq_timestamp' branch, in such order,
+        referenced to the minimum value of such difference
+        among all the waveforms. This is useful to align
+        waveforms whose time overlap is not null, for
+        plotting and analysis purposes.
+    first_wf_index: int
+        The index of the first Waveform of the chunk in
+        the bulk data, which can be potentially read.
+        WaveformSet_from_ROOT_file() calculates this value
+        based on its 'start_fraction' input parameter.
+    subsample: int
+        It matches one plus the number of waveforms to be
+        skipped between two consecutive waveforms to be read.
+        I.e. if subsample is set to N, then the i-th Waveform
+        to be read is the one with index equal to
+        first_wf_index + idcs_to_retrieve[i*N]. P.e.
+        the 0-th Waveform to be read is the one with
+        index equal to first_wf_index + idcs_to_retrieve[0],
+        the 1-th Waveform to be read is the one with
+        index equal to first_wf_index + idcs_to_retrieve[N]
+        and so on.
+        If True, then functioning-related messages will be
+        printed.
+
+    Returns
+    ----------
+    waveforms: list of Waveform
+    """
+
+    evt_address     = get_branch_address(bulk_data_tree, 'Event', 'I','pyroot')        
+    run_address     = get_branch_address(bulk_data_tree, 'Run', 'I','pyroot')    
+    tof_address     = get_branch_address(bulk_data_tree, 'TOF', 'D','pyroot')
+    C0_address      = get_branch_address(bulk_data_tree, 'C0',  'I','pyroot')
+    C1_address      = get_branch_address(bulk_data_tree, 'C1',  'I','pyroot')
+    P_address       = get_branch_address(bulk_data_tree, 'P',   'D','pyroot')
+    acqTime_address = get_branch_address(bulk_data_tree, 'acqTime',   'D','pyroot')
+    Time_address    = get_branch_address(bulk_data_tree, 'Time',   'l','pyroot')
+    RDTS_address    = get_branch_address(bulk_data_tree, 'RDTS',   'l','pyroot')    
+
+    beam_infos = []
+
+    for idx in range(nentries):
+        bulk_data_tree.GetEntry(int(idx+1))
+        beam_infos.append(BeamInfo(run_address[0],
+                                   evt_address[0],
+                                   RDTS_address[0],
+                                   P_address[0],
+                                   tof_address[0],
+                                   C0_address[0],
+                                   C1_address[0]))
+        
+    bulk_data_tree.ResetBranchAddresses()
+
+    
+    return beam_infos
+
+
+
+def get_branch_address(
+    bulk_data_tree: ROOT.TTree,
+    branch_name: str,
+    branch_type: str,
+    library: str
+):
+
+
+    _, branch_exact_name = find_tbranch_in_root_ttree(bulk_data_tree, branch_name, library)
+    branch_address = array.array(root_to_array_type_code(branch_type), [0])
+    bulk_data_tree.SetBranchAddress(branch_exact_name, branch_address)
+
+    return branch_address
