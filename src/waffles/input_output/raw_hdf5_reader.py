@@ -190,6 +190,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 wvfm_count : int = 1e9,
                                 allowed_endpoints: Optional[list] = [],
                                 det : str = 'HD_PDS'
+                                temporal_copy_directory: str = '/tmp',
                                 ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
@@ -237,6 +238,13 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
     det : str
         String that corresponds to the detector type.
         Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
+    temporal_copy_directory: str
+        It must be the path to an existing directory where the running
+        process has write permissions. This parameter only makes a difference
+        for those HDF5 files for which XRootD is used. For those ones, a copy
+        of the input HDF5 file is temporarily created in this directory. When
+        the goal WaveformSet has been finally created out of such temporal
+        HDF5-file copy, this copy is deleted from the specified directory.
     """
     if folderpath is not None:
 
@@ -267,6 +275,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                 wvfm_count,
                 allowed_endpoints,
                 det
+                temporal_copy_directory=temporal_copy_directory
             )
 
         except Exception as error:
