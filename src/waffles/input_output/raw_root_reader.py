@@ -499,11 +499,14 @@ def BeamInfo_from_root_file(
 ) -> List[BeamInfo]:
 
 
-    library='pyroot'
+    library='uproot'
 
-    input_file = ROOT.TFile(filepath)
+    if library == 'uproot':
+        input_file = uproot.open(filepath)
+    else:
+        input_file = ROOT.TFile(filepath)
 
-
+        
     bulk_data_tree, _ = wii.find_ttree_in_root_tfile(
         input_file,
         bulk_data_tree_name,
@@ -520,4 +523,7 @@ def BeamInfo_from_root_file(
     if library == 'uproot' \
     else Time_branch.GetEntries()
 
-    return wii.__build_beam_list_from_root_file_using_pyroot(nentries,bulk_data_tree, verbose)
+    if library == 'uproot':    
+        return wii.__build_beam_list_from_root_file_using_uproot(nentries,bulk_data_tree, verbose)
+    else:
+        return wii.__build_beam_list_from_root_file_using_pyroot(nentries,bulk_data_tree, verbose)
