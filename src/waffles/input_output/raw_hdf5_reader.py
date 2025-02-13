@@ -19,6 +19,7 @@ import waffles.utils.check_utils as wuc
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
+import waffles.input_output.input_utils as wiu
 
 def get_inv_map_id(det):
     if det == 'HD_PDS':
@@ -289,6 +290,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                wvfm_count : int = 1e9,
                                allowed_endpoints: Optional[list] = [],
                                det : str = 'HD_PDS'
+                               temporal_copy_directory: str = '/tmp',
                                ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
@@ -330,13 +332,41 @@ def WaveformSet_from_hdf5_file(filepath : str,
     det : str
         String that corresponds to the detector type.
         Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
+    temporal_copy_directory: str
+        It must be the path to an existing directory where the running
+        process has write permissions. This parameter only makes a difference
+        if XRootD is used. In such case, a copy of the input HDF5 file is
+        temporarily created in this directory. When the WaveformSet to
+        return has been finally created out of such temporal HDF5-file copy,
+        this copy is deleted from the specified directory.
     """
 
     if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
         print("Using XROOTD")
 
-        subprocess.call(shlex.split(f"xrdcp {filepath} /tmp/."), shell=False)
-        filepath = f"/tmp/{filepath.split('/')[-1]}"
+        if wiu.write_permission(temporal_copy_directory):
+
+            subprocess.call(
+                shlex.split(f"xrdcp {filepath} {temporal_copy_directory}"),
+                shell=False
+            )
+
+            filepath = os.path.join(
+                temporal_copy_directory,
+                filepath.split('/')[-1]
+            )
+
+        else:
+            raise Exception(
+                GenerateExceptionMessage(
+                    1,
+                    'WaveformSet_from_hdf5_file()',
+                    f"Attempting to temporarily copy {filepath} into "
+                    f"{temporal_copy_directory}, but the current process "
+                    f"has no write permissions there. Please specify a "
+                    "valid directory."
+                )
+            ) 
 
     h5_file = HDF5RawDataFile(filepath)
     run_date   = h5_file.get_attribute('creation_timestamp')
@@ -446,6 +476,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                     minimum_length
                                 )
 
+                        os.remove(filepath)
                         return WaveformSet(*waveforms)
                     
     if truncate_wfs_to_minimum:
@@ -459,4 +490,5 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 minimum_length
             )
 
+    os.remove(filepath)
     return WaveformSet(*waveforms)
