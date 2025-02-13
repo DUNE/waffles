@@ -1,0 +1,13 @@
+# Path to the folder containing the data
+input_path: 'data'
+
+# Path to the folder containing the PDS data
+wfs_input_path: '028707_10935_10files_wfset_raw.pkl'
+
+# Path to the folder containing the beam data
+beam_input_path: 'beam/beamevent_all.root'
+
+# Path to the file where the
+# output dataframe will be saved
+events_output_path: 'output/events.pkl'
+
