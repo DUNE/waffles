@@ -5,7 +5,7 @@ import uproot
 import tempfile
 
 try:
-    import ROOT
+    import ROOTE
     ROOT_IMPORTED = True
 except ImportError:
     print(
