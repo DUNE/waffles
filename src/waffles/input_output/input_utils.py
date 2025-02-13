@@ -982,5 +982,5 @@ def write_permission(directory_path: str) -> bool:
             )
         )
 
-    except PermissionError:
+    except (OSError, PermissionError):
         return False
