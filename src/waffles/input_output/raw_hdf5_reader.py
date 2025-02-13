@@ -15,7 +15,6 @@ import fddetdataformats
 
 from multiprocessing import Pool, current_process, cpu_count
 
-import waffles.utils.check_utils as wuc
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
