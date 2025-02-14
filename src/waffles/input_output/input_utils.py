@@ -290,15 +290,20 @@ def get_1d_array_from_pyroot_tbranch(
     branch_name: str,
     i_low: int = 0,
     i_up: Optional[int] = None,
-    ROOT_type_code: str = 'S'
+    ROOT_type_code: str = 'S',
+    require_exact_match: bool = True
 ) -> np.ndarray:
     """This function returns a 1D numpy array containing the
-    values of the branch whose name starts with the string
+    values of the branch whose name matches the string
     given to the 'branch_name' parameter in the given ROOT
     TTree object. The values are taken from the entries
     of the TTree object whose iterator values are in the
     range [i_low, i_up). I.e. the lower (resp. upper) bound
-    is inclusive (resp. exclsive).
+    is inclusive (resp. exclusive). The required
+    matching between the given branch_name and the
+    branch whose data is returned, might be exact or not,
+    depending on the input given to the 'require_exact_match'
+    parameter.
 
     Parameters
     ----------
@@ -306,7 +311,7 @@ def get_1d_array_from_pyroot_tbranch(
         The ROOT TTree object where to look for the TBranch
     branch_name: str
         The string which the name of the TBranch object
-        must start with
+        must match to some extent
     i_low: int
         The inclusive lower bound of the range of entries
         to be read from the branch. It must be non-negative.
@@ -323,6 +328,13 @@ def get_1d_array_from_pyroot_tbranch(
         The data type of the branch to be read. The valid
         values can be checked in the docstring of the
         root_to_array_type_code() function.
+    require_exact_match: bool
+        If True, then the name of the TBranch whose
+        data is returned, must exactly match the string
+        given to the 'branch_name' parameter. If False,
+        then the first TBranch found whose name starts
+        with the given identifier is the one whose data
+        will be returned.
 
     Returns
     ----------
@@ -337,11 +349,16 @@ def get_1d_array_from_pyroot_tbranch(
             require_exact_match=require_exact_match
         )
     except NameError:
-        raise NameError(we.GenerateExceptionMessage(
-            1,
-            'get_1d_array_from_pyroot_tbranch()',
-            "There is no TBranch with a name starting with"
-            f" '{branch_name}' in the given tree."))
+        raise NameError(
+            we.GenerateExceptionMessage(
+                1,
+                'get_1d_array_from_pyroot_tbranch()',
+                "There is no TBranch with a name "+
+                ("matching" if require_exact_match
+                else "starting with")+
+                f" '{branch_name}' in the given tree."
+            )
+        )
     
     if i_up is None:
         i_up_ = branch.GetEntries()
