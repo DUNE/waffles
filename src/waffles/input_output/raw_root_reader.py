@@ -409,7 +409,9 @@ def WaveformSet_from_root_file(
     wii.find_tbranch_in_root_ttree(
         bulk_data_tree,
         'is_fullstream',
-        library)
+        library,
+        require_exact_match=False
+    )
 
     aux = is_fullstream_branch.num_entries \
     if library == 'uproot' \

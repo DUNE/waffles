@@ -333,7 +333,9 @@ def get_1d_array_from_pyroot_tbranch(
         branch, exact_branch_name = find_tbranch_in_root_ttree(
             tree,
             branch_name,
-            'pyroot')
+            'pyroot',
+            require_exact_match=require_exact_match
+        )
     except NameError:
         raise NameError(we.GenerateExceptionMessage(
             1,
@@ -498,27 +500,37 @@ def __build_waveforms_list_from_root_file_using_uproot(
     adcs_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'adcs',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     channel_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'channel',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     timestamp_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'timestamp',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
     
     daq_timestamp_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'daq_timestamp',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     record_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'record',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     # Using a list comprehension here is slightly slower than a for loop
     # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
@@ -715,7 +727,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, adcs_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'adcs',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
     adcs_address = ROOT.std.vector('short')()
     bulk_data_tree.SetBranchAddress(adcs_branch_exact_name,
                                     adcs_address)
@@ -723,7 +737,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, channel_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'channel',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     channel_address = array.array(
         root_to_array_type_code('S'),
@@ -736,7 +752,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, timestamp_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'timestamp',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     timestamp_address = array.array(
         root_to_array_type_code('l'),
@@ -749,7 +767,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, daq_timestamp_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'daq_timestamp',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
     
     daq_timestamp_address = array.array(
         root_to_array_type_code('l'),
@@ -762,7 +782,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, record_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'record',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     record_address = array.array(
         root_to_array_type_code('i'),
@@ -876,12 +898,17 @@ def __read_metadata_from_root_file_using_uproot(
     run_branch, _ = find_tbranch_in_root_ttree(
         meta_data_tree,
         'run',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     ticks_to_nsec_branch, _ = find_tbranch_in_root_ttree(
         meta_data_tree,
         'ticks_to_nsec',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
+        
     run = int(run_branch.array()[0])
 
     ticks_to_nsec = float(ticks_to_nsec_branch.array()[0])
@@ -917,12 +944,16 @@ def __read_metadata_from_root_file_using_pyroot(
     _, run_branch_exact_name = find_tbranch_in_root_ttree(
         meta_data_tree,
         'run',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     _, ticks_to_nsec_branch_exact_name = find_tbranch_in_root_ttree(
         meta_data_tree,
         'ticks_to_nsec',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
     
     run_address = array.array(
         root_to_array_type_code('i'),
