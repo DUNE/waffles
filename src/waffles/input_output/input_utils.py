@@ -103,13 +103,18 @@ def find_ttree_in_root_tfile(
 def find_tbranch_in_root_ttree(
     tree: Union[uproot.TTree, 'ROOT.TTree'],
     TBranch_pre_name: str,
-    library: str
+    library: str,
+    require_exact_match: bool = True
 ) -> Tuple[Union[uproot.TBranch, 'ROOT.TBranch'], str]:
     """This function returns the first TBranch found in 
-    the given ROOT TTree whose name starts with the string
+    the given ROOT TTree whose name matches the string
     given to the 'TBranch_pre_name' parameter, and the
-    full exact name of the returned TBranch. If no such
-    TBranch is found, a NameError exception is raised.
+    full exact name of the returned TBranch. The required
+    matching between the given TBranch_pre_name and the
+    returned TBranch might be exact or not, depending
+    on the input given to the 'require_exact_match'
+    parameter. If no such TBranch is found, a NameError
+    exception is raised.
 
     Parameters
     ----------
@@ -117,20 +122,28 @@ def find_tbranch_in_root_ttree(
         The TTree where to look for the TBranch object
     TBranch_pre_name: str
         The string which the name of the TBranch object
-        must start with
+        must match to some extent
     library: str
         The library used to read the TBranch from the
         given tree. It can be either 'uproot' or 'pyroot'.
         If 'uproot' (resp. 'pyroot'), then the 'tree'
         parameter must be of type uproot.TTree (resp.
         ROOT.TTree).
+    require_exact_match: bool
+        If True, then the name of the returned TBranch
+        must exactly match the string given to the
+        'TBranch_pre_name' parameter. If False, then
+        the first TBranch found whose name starts with
+        the given identifier will be returned. In
+        either case, the exact name of the returned
+        TBranch will be also returned.
 
     Returns
     ----------
     output: tuple of ( uproot.TBranch or ROOT.TBranch, str, )
         The first element of the returned tuple is the
         TBranch object found in the given TTree whose
-        name starts with the string given to the
+        name matches to some extent the string given to the
         'TBranch_pre_name' parameter. The second element
         is the full name, within the given TTree, of the
         returned TBranch.
@@ -158,22 +171,34 @@ def find_tbranch_in_root_ttree(
             "Either 'uproot' or 'pyroot' must be given."))
     TBranch_name = None
 
-    if library == 'uproot':
-        for key in tree.keys():
-            if key.startswith(TBranch_pre_name):
-                TBranch_name = key
+    get_list_of_branches = lambda tree, library: \
+        tree.keys() if library == 'uproot' \
+            else tree.GetListOfBranches()
+    
+    get_name_of_branch = lambda branch, library: \
+        branch if library == 'uproot' \
+            else branch.GetName()
+
+    if require_exact_match:
+        for branch in get_list_of_branches(tree, library):
+            branch_name = get_name_of_branch(branch, library)
+            if branch_name == TBranch_pre_name:
+                TBranch_name = branch_name
                 break
     else:
-        for branch in tree.GetListOfBranches():
-            if branch.GetName().startswith(TBranch_pre_name):
-                TBranch_name = branch.GetName()
+        for branch in get_list_of_branches(tree, library):
+            branch_name = get_name_of_branch(branch, library)
+            if branch_name.startswith(TBranch_pre_name):
+                TBranch_name = branch_name
                 break
 
     if TBranch_name is None:
         raise NameError(we.GenerateExceptionMessage(
             4,
             'find_tbranch_in_root_ttree()',
-            "There is no TBranch with a name starting with"
+            "There is no TBranch with a name "+
+            ("matching" if require_exact_match
+            else "starting with")+
             f" '{TBranch_pre_name}'."))
 
     output = (
