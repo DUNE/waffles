@@ -299,6 +299,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                allowed_endpoints: Optional[list] = [],
                                det : str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
+                               erase_filepath : bool = True
                                ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
@@ -347,6 +348,8 @@ def WaveformSet_from_hdf5_file(filepath : str,
         temporarily created in this directory. When the WaveformSet to
         return has been finally created out of such temporal HDF5-file copy,
         this copy is deleted from the specified directory.
+    erase_filepath: bool
+        it's true by default; if false, the file will be preserved.
     """
 
     if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
@@ -497,6 +500,6 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 0,
                 minimum_length
             )
-
-    os.remove(filepath)
+    if erase_filepath :
+        os.remove(filepath)
     return WaveformSet(*waveforms)
