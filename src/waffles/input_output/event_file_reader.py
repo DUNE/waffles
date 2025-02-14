@@ -19,7 +19,8 @@ import waffles.Exceptions as we
 
 def events_from_pickle_and_beam_files(
         path_to_pickle_file : str,
-        path_to_root_file : str
+        path_to_root_file : str,
+        delta_t_max: int
     ) -> List[BeamEvent]:
                                 
     """
@@ -98,7 +99,7 @@ def events_from_pickle_and_beam_files(
 
             # select the ones close in time to the beam time stamp
             delta_t =  abs(int(w.timestamp) - int(b.t))
-            if delta_t>1000:
+            if delta_t>delta_t_max:
                 continue
                 
 #            print ('  -', w.channel, w.endpoint, min(w.adcs), delta_t)        
