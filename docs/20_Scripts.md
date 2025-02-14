@@ -111,7 +111,7 @@ After that, every time you log in, you need to source ROOT, or you can edit ``en
 
 This script is used to convert the raw `.hdf5` files into `waffles` classes and save it locally in `.pkl` format. In order to run this script make sure you have a `waffles/data` folder to store the output files. In summary what this script does is:
 ```python
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 
 rucio_files = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/028602.txt"
 allfilepath = reader.get_filepaths_from_rucio(rucio_filepath)
