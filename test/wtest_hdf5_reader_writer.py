@@ -4,7 +4,7 @@ import numpy as np
 import time
 import os
 import sys
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 
 
 def save_as_hdf5_comp(obj, filename, compression):
@@ -40,14 +40,13 @@ def main(run_number):
     print("Reading the complete hdf5 file...")
     
     #From a rucio filepath. Important: First execute python get_rucio.py --runs <run_number> in <repos_dir>/waffles/scripts
-    #rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{run_number}.txt"
-    #filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
-    #wfset = reader.WaveformSet_from_hdf5_file(filepaths[0], read_full_streaming_data=False) # Only takes the first filepath 
+    rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{run_number}.txt"
+    filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
+    wfset = reader.WaveformSet_from_hdf5_file(filepaths[0], read_full_streaming_data=False) # Only takes the first filepath 
     
     #From a directly download file in a specific filepath
-    filepath = f"/afs/cern.ch/work/a/arochefe/private/repositories/waffles/test/np02vd_raw_run035416_0000_df-s04-d0_dw_0_20250214T100047.hdf5"
-    det='VD_Membrane_PDS'
-    wfset = reader.WaveformSet_from_hdf5_file(filepath, det=det,read_full_streaming_data=False)
+    #filepath = f""
+    #wfset = reader.WaveformSet_from_hdf5_file(filepath, read_full_streaming_data=False)
 
     print("\n Saving the waveform in a compressed hdf5 format")
 
