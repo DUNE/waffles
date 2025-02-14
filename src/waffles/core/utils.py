@@ -478,10 +478,21 @@ def __build_parameters_dictionary_from_file(
             )
         )
 
-    with open(parameters_file_name, 'r') as file:
-        loaded_dict = yaml.load(
-            file, 
-            Loader=yaml.Loader
+    try:
+        with open(parameters_file_name, 'r') as file:
+            loaded_dict = yaml.load(
+                file, 
+                Loader=yaml.Loader
+            )
+    except yaml.parser.ParserError as e:
+        raise we.WafflesBaseException(
+            we.GenerateExceptionMessage(
+                2,
+                '__build_parameters_dictionary_from_file()',
+                reason=f"The YAML module threw the following "
+                f"error while parsing file '{parameters_file_name}'."
+                f" \n {e}"
+            )
         )
 
     if loaded_dict is None:
