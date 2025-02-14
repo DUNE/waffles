@@ -532,8 +532,8 @@ def __build_parameters_dictionary_from_shell_string(
     chunks = parameters_shell_string.split()
 
     if not chunks[0].startswith('-'):
-        raise Exception(
-            we.WafflesBaseException(
+        raise we.WafflesBaseException(
+            we.GenerateExceptionMessage(
                 2,
                 '__build_parameters_dictionary_from_shell_string()',
                 reason=f"The first word ('{chunks[0]}') of the given "
