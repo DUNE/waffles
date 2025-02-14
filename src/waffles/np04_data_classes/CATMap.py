@@ -4,7 +4,7 @@ from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelMap import ChannelMap
 
 
-class MEMMap_geo(ChannelMap):
+class CATMap_geo(ChannelMap):
     """This class implements a channel map for an APA. I.e.
     it is a ChannelMap whose rows (resp. columns) attribute
     is fixed to 10 (resp. 4).
@@ -21,7 +21,7 @@ class MEMMap_geo(ChannelMap):
     ## Add the list of methods and a summary for each one here
     """
 
-    def __init__(self, data: List[List[UniqueChannel]], r: int = 4, c: int = 2):
+    def __init__(self, data: List[List[UniqueChannel]], r: int = 4, c: int = 4):
         """APAMap class initializer
 
         Parameters
@@ -37,7 +37,7 @@ class MEMMap_geo(ChannelMap):
 
         super().__init__(r, c, data)
 
-class MEMMap_ind(ChannelMap):
+class CATMap_ind(ChannelMap):
     """This class implements a channel map for an APA. I.e.
     it is a ChannelMap whose rows (resp. columns) attribute
     is fixed to 10 (resp. 4).
