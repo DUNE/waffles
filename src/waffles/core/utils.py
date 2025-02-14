@@ -445,7 +445,8 @@ def __build_parameters_dictionary_from_file(
     """This helper function gets the name of a .yml 
     parameters file and creates a dictionary which contains
     all of the variables which were found in the parameters
-    file.
+    file. If the given YAML file is empty, then an
+    empty dictionary is returned.
     
     Parameters
     ----------
@@ -482,6 +483,9 @@ def __build_parameters_dictionary_from_file(
             file, 
             Loader=yaml.Loader
         )
+
+    if loaded_dict is None:
+        loaded_dict = {}
 
     return loaded_dict
 
