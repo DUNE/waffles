@@ -2,13 +2,14 @@ from pathlib import Path
 import array
 import numpy as np
 import uproot
+import tempfile
 
 try:
     import ROOT
     ROOT_IMPORTED = True
 except ImportError:
     print(
-        "[raw_ROOT_reader.py]: Could not import ROOT module. "
+        "[input_utils.py]: Could not import ROOT module. "
         "'pyroot' library options will not be available."
     )
     ROOT_IMPORTED = False
@@ -17,14 +18,14 @@ from typing import Union, List, Tuple, Optional
 
 from waffles.data_classes.Waveform import Waveform
 import waffles.utils.numerical_utils as wun
-from waffles.Exceptions import GenerateExceptionMessage
+import waffles.Exceptions as we
 
 
 def find_ttree_in_root_tfile(
-    file: Union[uproot.ReadOnlyDirectory, ROOT.TFile],
+    file: Union[uproot.ReadOnlyDirectory, 'ROOT.TFile'],
     TTree_pre_name: str,
     library: str
-) -> Union[uproot.TTree, ROOT.TTree]:
+) -> Union[uproot.TTree, 'ROOT.TTree']:
     """This function returns the first object found in the given
     ROOT file whose name starts with the string given to the
     'TTree_pre_name' parameter and which is a TTree object,
@@ -58,20 +59,20 @@ def find_ttree_in_root_tfile(
     if library == 'uproot':
         if not isinstance(
                 file, uproot.ReadOnlyDirectory):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 1,
                 'find_ttree_in_root_tfile()',
                 'Since the uproot library was specified, the input file'
                 ' must be of type uproot.ReadOnlyDirectory.'))
     elif library == 'pyroot':
         if not isinstance(file, ROOT.TFile):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 2,
                 'find_ttree_in_root_tfile()',
                 'Since the pyroot library was specified, the input file '
                 'must be of type ROOT.TFile.'))
     else:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             3,
             'find_ttree_in_root_tfile()',
             f"The library '{library}' is not supported. Either 'uproot' "
@@ -91,7 +92,7 @@ def find_ttree_in_root_tfile(
                 break
 
     if TTree_name is None:
-        raise NameError(GenerateExceptionMessage(
+        raise NameError(we.GenerateExceptionMessage(
             4,
             'find_ttree_in_root_tfile()',
             f"There is no TTree with a name starting with '{TTree_pre_name}'."))
@@ -100,10 +101,10 @@ def find_ttree_in_root_tfile(
 
 
 def find_tbranch_in_root_ttree(
-    tree: Union[uproot.TTree, ROOT.TTree],
+    tree: Union[uproot.TTree, 'ROOT.TTree'],
     TBranch_pre_name: str,
     library: str
-) -> Tuple[Union[uproot.TBranch, ROOT.TBranch], str]:
+) -> Tuple[Union[uproot.TBranch, 'ROOT.TBranch'], str]:
     """This function returns the first TBranch found in 
     the given ROOT TTree whose name starts with the string
     given to the 'TBranch_pre_name' parameter, and the
@@ -137,20 +138,20 @@ def find_tbranch_in_root_ttree(
 
     if library == 'uproot':
         if not isinstance(tree, uproot.TTree):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 1,
                 'find_tbranch_in_root_ttree()',
                 'Since the uproot library was specified, '
                 'the input tree must be of type uproot.TTree.'))
     elif library == 'pyroot':
         if not isinstance(tree, ROOT.TTree):
-            raise Exception(GenerateExceptionMessage(
+            raise Exception(we.GenerateExceptionMessage(
                 2,
                 'find_tbranch_in_root_ttree()',
                 'Since the pyroot library was specified, '
                 'the input tree must be of type ROOT.TTree.'))
     else:
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             3,
             'find_tbranch_in_root_ttree()',
             f"The library '{library}' is not supported. "
@@ -169,7 +170,7 @@ def find_tbranch_in_root_ttree(
                 break
 
     if TBranch_name is None:
-        raise NameError(GenerateExceptionMessage(
+        raise NameError(we.GenerateExceptionMessage(
             4,
             'find_tbranch_in_root_ttree()',
             "There is no TBranch with a name starting with"
@@ -251,7 +252,7 @@ def root_to_array_type_code(input: str) -> str:
     try:
         output = map[input]
     except KeyError:
-        raise ValueError(GenerateExceptionMessage(
+        raise ValueError(we.GenerateExceptionMessage(
             1,
             'root_to_array_type_code()',
             f"The given data type ({input}) is not recognized."))
@@ -260,7 +261,7 @@ def root_to_array_type_code(input: str) -> str:
 
 
 def get_1d_array_from_pyroot_tbranch(
-    tree: ROOT.TTree,
+    tree: 'ROOT.TTree',
     branch_name: str,
     i_low: int = 0,
     i_up: Optional[int] = None,
@@ -309,7 +310,7 @@ def get_1d_array_from_pyroot_tbranch(
             branch_name,
             'pyroot')
     except NameError:
-        raise NameError(GenerateExceptionMessage(
+        raise NameError(we.GenerateExceptionMessage(
             1,
             'get_1d_array_from_pyroot_tbranch()',
             "There is no TBranch with a name starting with"
@@ -321,7 +322,7 @@ def get_1d_array_from_pyroot_tbranch(
         i_up_ = i_up
 
     if i_low < 0 or i_low >= i_up_ or i_up_ > branch.GetEntries():
-        raise Exception(GenerateExceptionMessage(
+        raise Exception(we.GenerateExceptionMessage(
             2,
             'get_1d_array_from_pyroot_tbranch()',
             f"The given range [{i_low}, {i_up_}) "
@@ -619,8 +620,8 @@ def __build_waveforms_list_from_root_file_using_uproot(
 
 def __build_waveforms_list_from_root_file_using_pyroot(
     idcs_to_retrieve: np.ndarray,
-    bulk_data_tree: ROOT.TTree,
-    meta_data_tree: ROOT.TTree,
+    bulk_data_tree: 'ROOT.TTree',
+    meta_data_tree: 'ROOT.TTree',
     set_offset_wrt_daq_window: bool = False,
     first_wf_index: int = 0,
     subsample: int = 1,
@@ -864,7 +865,7 @@ def __read_metadata_from_root_file_using_uproot(
 
 
 def __read_metadata_from_root_file_using_pyroot(
-    meta_data_tree: ROOT.TTree
+    meta_data_tree: 'ROOT.TTree'
 ) -> Tuple[Union[int, float]]:
     """This is a helper function which must only be called by
     the __build_waveforms_list_from_root_file_using_pyroot()
@@ -946,3 +947,41 @@ def filepath_is_root_file_candidate(filepath: str) -> bool:
         return True
 
     return False
+
+
+def write_permission(directory_path: str) -> bool:
+    """This function gets the path to a directory, and checks
+    whether the running process has write permissions in such
+    directory.
+
+    Parameters
+    ----------
+    directory_path: str
+        Path to an existing directory. If the directory does
+        not exist, an exception is raised.
+
+    Returns
+    ----------
+    bool
+        True if the the running process has write permissions
+        in the specified directory. False if else."""
+
+    try:
+        with tempfile.TemporaryFile(
+            dir=directory_path
+        ):
+            pass
+
+        return True
+
+    except FileNotFoundError:
+        raise we.NonExistentDirectory(
+            we.GenerateExceptionMessage(
+                1,
+                'write_permission()',
+                f"The specified directory ({directory_path}) does not exist."
+            )
+        )
+
+    except (OSError, PermissionError):
+        return False

@@ -1,7 +1,7 @@
 import click, pickle, inquirer
 
 from waffles.utils.utils import print_colored
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 
 @click.command(help=f"\033[34mSave the WaveformSet object in a pickle file for easier loading.\n\033[0m")
 @click.option("--run",   default = None, help="Run number to process", type=str)

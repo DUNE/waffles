@@ -2,7 +2,7 @@
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
-from waffles.input.pickle_file_reader import WaveformSet_from_pickle_file
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.np04_data.tau_slow_runs.load_runs_csv import ReaderCSV
 from extract_selection import Extractor
 import argparse
