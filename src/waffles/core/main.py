@@ -13,7 +13,7 @@ def main():
         # Checks, among other things, that the analysis folder
         # contains an 'steering.yml' file and an 'Analysis1.py'
         # file
-        WafflesAnalysis.analysis_folder_meets_requirements()
+        wcu.analysis_folder_meets_requirements()
     except Exception as caught_exception:
         print(caught_exception)
         raise we.WafflesBaseException(
@@ -23,7 +23,7 @@ def main():
                 reason="Either you are not running from the analysis "
                 "folder, or you are but your analysis folder does "
                 "not meet the minimal requirements set by "
-                "WafflesAnalysis.analysis_folder_meets_requirements()."
+                "wcu.analysis_folder_meets_requirements()."
             )
         )
 
