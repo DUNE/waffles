@@ -39,7 +39,7 @@ Nevertheless, it is very important to keep some common rules not to harm others 
 2. **Data extraction**: the raw data is stored in `.hdf5` files. The optimal way of extracting the data is by running the following lines:
 
 ```python
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 
 rucio_files = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/028602.txt"
 allfilepath = reader.get_filepaths_from_rucio(rucio_filepath)
