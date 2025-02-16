@@ -360,7 +360,7 @@ class WafflesAnalysis(ABC):
             - Its keys are consecutive integers starting
             from 1
             - The sub-keys of each key are 'name',
-            'parameters' and 'parameters_is_file'
+            'parameters_file' and 'overwriting_parameters'
             - The value for each 'name' sub-keys is an
             string, say x, that meets the following
             sub-requirements:
@@ -368,16 +368,21 @@ class WafflesAnalysis(ABC):
                 i is an integer >=1
                 - the file 'x.py' exists alongside the
                 steering file
-            - The value for each 'parameters' sub-keys is
-            an string
-            - The value for each 'parameters_is_file'
-            sub-keys is a boolean. If it is True, then the
-            value of the 'parameters' sub-key is interpreted
-            as the name of a parameters file which must exist
-            alongside the steering file. If it is False, then
-            the value of the 'parameters' sub-key is
-            interpreted as the string that would be given as
-            part of a shell command.
+            - The value for each 'parameters_file' sub-keys
+            is an string. If it is different from an emtpy
+            string, then it is interpreted as the name
+            of a parameters file which must exist alongside
+            the steering file. If it is an empty string,
+            then this parameter is ignored.
+            string, then it is ignored.
+            - The value for each 'overwriting_parameters'
+            sub-keys is an string, which is interpreted as
+            the string that would be given as part of a
+            shell command. The parameter values extracted
+            from this string should overwrite those gotten
+            from the parameters file. If this value is an
+            empty string, then no parameters are
+            overwritten.
 
         If any of these conditions is not met, a
         waffles.Exceptions.IllFormedSteeringFile exception
@@ -418,10 +423,10 @@ class WafflesAnalysis(ABC):
         with open(
             steering_file_path,
             'r'
-        ) as archivo:
+        ) as file:
             
             content = yaml.load(
-                archivo, 
+                file, 
                 Loader=yaml.Loader
             )
 
@@ -468,8 +473,8 @@ class WafflesAnalysis(ABC):
                         "dictionary."
                     )
                 )
-            
-            for aux in ('name', 'parameters', 'parameters_is_file'):
+
+            for aux in ('name', 'parameters_file', 'overwriting_parameters'):
 
                 if aux not in content[key].keys():
                     raise we.IllFormedSteeringFile(
@@ -479,23 +484,17 @@ class WafflesAnalysis(ABC):
                             reason=f"The key {key} must contain a '{aux}' key."
                         )
                     )
-                
-                aux_map =  {
-                    'name': str, 
-                    'parameters': str, 
-                    'parameters_is_file': bool
-                }
 
                 if not isinstance(
                     content[key][aux],
-                    aux_map[aux]
+                    str
                 ):
                     raise we.IllFormedSteeringFile(
                         we.GenerateExceptionMessage(
                             8,
                             'WafflesAnalysis.__steering_file_meets_requirements()',
                             reason=f"The value of the '{aux}' sub-key of the key "
-                            f"{key} must be of type {aux_map[aux]}."
+                            f"{key} must be an string."
                         )
                     )
                 
@@ -504,10 +503,10 @@ class WafflesAnalysis(ABC):
                 steering_file_path.parent
             )
 
-            if content[key]['parameters_is_file']:
+            if content[key]['parameters_file'] != '':
                 wcu.check_file_or_folder_exists(
                     steering_file_path.parent,
-                    content[key]['parameters'],
+                    content[key]['parameters_file'],
                     is_file=True
                 )
 
