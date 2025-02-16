@@ -247,7 +247,7 @@ class WafflesAnalysis(ABC):
         which parameters to use for each analysis stage. This
         file must be a YAML file which must follow the
         structure described in the
-        __steering_file_meets_requirements() method docstring.
+        wcu.steering_file_meets_requirements() function docstring.
         2) The folder contains a file called 'utils.py',
         which may contain utility functions used by the
         analysis.
@@ -278,7 +278,7 @@ class WafflesAnalysis(ABC):
 
         analysis_folder_path = pathlib.Path.cwd()
 
-        WafflesAnalysis.__steering_file_meets_requirements(
+        wcu.steering_file_meets_requirements(
             pathlib.Path(
                 analysis_folder_path,
                 'steering.yml'
@@ -345,169 +345,4 @@ class WafflesAnalysis(ABC):
                 "An 'scripts' folder does not exist in the analysis folder."
             )
         
-        return
-
-    @staticmethod
-    def __steering_file_meets_requirements(
-        steering_file_path: pathlib.Path
-    ) -> None:
-        """This helper static method checks that the given
-        path points to an existing file, whose name ends with
-        '.yml' and that this (assumed YAML) file abides by
-        the following structure:
-
-            - It contains at least one key
-            - Its keys are consecutive integers starting
-            from 1
-            - The sub-keys of each key are 'name',
-            'parameters_file' and 'overwriting_parameters'
-            - The value for each 'name' sub-keys is an
-            string, say x, that meets the following
-            sub-requirements:
-                - x follows the format "Analysis<i>", where
-                i is an integer >=1
-                - the file 'x.py' exists alongside the
-                steering file
-            - The value for each 'parameters_file' sub-keys
-            is an string. If it is different from an emtpy
-            string, then it is interpreted as the name
-            of a parameters file which must exist alongside
-            the steering file. If it is an empty string,
-            then this parameter is ignored.
-            string, then it is ignored.
-            - The value for each 'overwriting_parameters'
-            sub-keys is an string, which is interpreted as
-            the string that would be given as part of a
-            shell command. The parameter values extracted
-            from this string should overwrite those gotten
-            from the parameters file. If this value is an
-            empty string, then no parameters are
-            overwritten.
-
-        If any of these conditions is not met, a
-        waffles.Exceptions.IllFormedSteeringFile exception
-        is raised. If the given steering file meets the
-        specified requirements, then this method ends
-        execution normally.
-
-        Parameters
-        ----------
-        steering_file_path: pathlib.Path
-            The path to the steering file to be checked.
-            It is assumed to be a YAML file.
-
-        Returns
-        ----------
-        None
-        """
-
-        if not steering_file_path.exists():
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    1,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason=f"The file '{steering_file_path}' does not exist."
-                )
-            )
-
-        if steering_file_path.suffix != '.yml':
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    2,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason=f"The file '{steering_file_path}' must have a '.yml' "
-                    "extension."
-                )
-            )
-
-        with open(
-            steering_file_path,
-            'r'
-        ) as file:
-            
-            content = yaml.load(
-                file, 
-                Loader=yaml.Loader
-            )
-
-        if not isinstance(content, dict):
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    3,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason="The content of the given steering file must be a "
-                    "dictionary."
-                )
-            )
-        
-        if len(content) == 0:
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    4,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason="The given steering file must contain at "
-                    "least one key."
-                )
-            )
-        
-        keys = list(content.keys())
-        keys.sort()
-
-        if keys != list(range(1, len(keys) + 1)):
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    5,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason="The keys of the given steering file must "
-                    "be consecutive integers starting from 1."
-                )
-            )
-        
-        for key in keys:
-            if not isinstance(content[key], dict):
-                raise we.IllFormedSteeringFile(
-                    we.GenerateExceptionMessage(
-                        6,
-                        'WafflesAnalysis.__steering_file_meets_requirements()',
-                        reason=f"The value of the key {key} must be a "
-                        "dictionary."
-                    )
-                )
-
-            for aux in ('name', 'parameters_file', 'overwriting_parameters'):
-
-                if aux not in content[key].keys():
-                    raise we.IllFormedSteeringFile(
-                        we.GenerateExceptionMessage(
-                            7,
-                            'WafflesAnalysis.__steering_file_meets_requirements()',
-                            reason=f"The key {key} must contain a '{aux}' key."
-                        )
-                    )
-
-                if not isinstance(
-                    content[key][aux],
-                    str
-                ):
-                    raise we.IllFormedSteeringFile(
-                        we.GenerateExceptionMessage(
-                            8,
-                            'WafflesAnalysis.__steering_file_meets_requirements()',
-                            reason=f"The value of the '{aux}' sub-key of the key "
-                            f"{key} must be an string."
-                        )
-                    )
-                
-            wcu.check_analysis_class(
-                content[key]['name'],
-                steering_file_path.parent
-            )
-
-            if content[key]['parameters_file'] != '':
-                wcu.check_file_or_folder_exists(
-                    steering_file_path.parent,
-                    content[key]['parameters_file'],
-                    is_file=True
-                )
-
         return
