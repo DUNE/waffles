@@ -1,4 +1,4 @@
-from imports import *
+from waffles.np04_analysis.noise_studies.imports import *
 
 class Analysis1(WafflesAnalysis):
 
@@ -15,14 +15,14 @@ class Analysis1(WafflesAnalysis):
             """
             InputParams for FFT analysis
             """
-            filepath_folder: str
-            run_vgain_dict: Dict[int, int]
-            channel_map_file: str
-            out_writing_mode: str
-            out_path: str
-            full_stat: bool
-            user_runs: List[int]
-            all_noise_runs: List[int]
+            filepath_folder: str = Field(..., description="Path to the folder containing the files.txt with rucio paths")
+            run_vgain_dict: Dict[int, int] = Field(..., description="Dictionary with run number as key and vgain as value")
+            channel_map_file: str = Field(..., description="Path to the channel map file")
+            out_writing_mode: str = Field(..., description="Writing mode for the output file")
+            out_path: str = Field(..., description="Path to the output folder")
+            full_stat: bool = Field(..., description="Full statistics")
+            user_runs: list = Field([], description="List of runs to analyze") 
+            all_noise_runs: list = Field([], description="List of all noise runs")
 
         return InputParams
 
@@ -32,7 +32,8 @@ class Analysis1(WafflesAnalysis):
         """
         comment
         """
-        self.filepath_folder  = input_parameters.filepath_folder
+        self.params = input_parameters
+        self.filepath_folder  = self.params.filepath_folder
         self.run_vgain_dict   = input_parameters.run_vgain_dict
         self.channel_map_file = input_parameters.channel_map_file
         df = pd.read_csv(self.channel_map_file, sep=",")
@@ -67,7 +68,6 @@ class Analysis1(WafflesAnalysis):
         print("Reading run: ", self.run)
         self.wfset_run = nf.read_waveformset(
                 self.filepath_folder, int(self.run), full_stat=self.full_stat)
-                                                                                                                                                                                                                                                                                                                                                                                                                        s                           c 
         return True
 
 

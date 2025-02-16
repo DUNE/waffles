@@ -15,6 +15,7 @@ if __name__ == "__main__":
     filepath_folder  = run_info.get("filepath_folder")
     run_vgain_dict   = run_info.get("run_vgain_dict", {})
     channel_map_file = run_info.get("channel_map_file")
+    all_noise_runs   = run_info.get("all_noise_runs", [])
 
     # Setup variables according to the user_config.yaml file
     with open("params.yml", 'r') as stream:
@@ -25,7 +26,9 @@ if __name__ == "__main__":
     full_stat = user_config.get("full_stat")
     runs      = user_config.get("user_runs", [])
     if (len(runs) == 0):
-        runs = user_config.get("all_noise_runs", [])
+        print("Analyzing all noise runs")
+        runs = all_noise_runs
+        print("All noise runs: ", runs)
         if (len(runs) == 0):
             print("No runs to analyze")
             exit()

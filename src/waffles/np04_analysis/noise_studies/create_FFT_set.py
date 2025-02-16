@@ -48,7 +48,7 @@ if __name__ == "__main__":
     missing_channels = []
     missing_fft = []
     for offline_ch, daphne_ch in offline_to_daphne_dict.items():
-        if daphne_ch not in daphneAFE_vgain_dict:
+        if daphne_ch//10 not in daphneAFE_vgain_dict:
             missing_channels.append(daphne_ch)
             continue
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
             continue
 
         # sort the vgains and the ffts
-        vgains, ffts = zip(*sorted(zip(vgains, ffts)))
+        vgains, ffts = zip(*sorted(zip(vgains, ffts), key=lambda x: x[0]))
         vgains = np.array(vgains)
         ffts = np.array(ffts)
         vgain_fft_dict = dict(zip(vgains, ffts))
