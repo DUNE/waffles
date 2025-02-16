@@ -640,12 +640,11 @@ def check_file_or_folder_exists(
     name: str,
     is_file: bool = True
 ) -> None:
-    """This helper static method checks that the given
-    folder contains a file or folder with the given
-    name, up to the input given to the is_file parameter.
-    If it is not found, a FileNotFoundError is raised.
-    If it is found, then the method ends execution
-    normally.
+    """This function checks that the given folder contains
+    a file or folder with the given name, up to the input
+    given to the is_file parameter. If it is not found,
+    a FileNotFoundError is raised. If it is found, then
+    this function ends execution normally.
     
     Parameters
     ----------
@@ -656,7 +655,7 @@ def check_file_or_folder_exists(
         to be checked, if is_file is True 
         (resp. False)
     is_file: bool
-        If True (resp. False), the method
+        If True (resp. False), the function
         checks for the existence of a file
         (resp. folder) with the given name
         in the given folder path.
@@ -700,16 +699,16 @@ def check_analysis_class(
     analysis_name: str,
     analysis_folder_path: pathlib.Path
 ) -> None:
-    """This helper static method gets an analysis name
-    and the path to the folder from which the analysis
-    is being run. It checks that the analysis name
+    """This function gets an analysis name and the
+    path to the folder from which the analysis is
+    being run. It checks that the analysis name
     follows the format 'Analysis<i>', where i is an
     integer >=1, and that the file 'Analysis<i>.py'
     exists in the given folder. If any of these
     conditions is not met, a
     waffles.Exceptions.IllFormedAnalysisClass exception
     is raised. If the given analysis class meets the
-    specified requirements, then this method ends
+    specified requirements, then this function ends
     execution normally.
 
     Parameters
