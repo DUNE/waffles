@@ -188,7 +188,7 @@ def get_ordered_list_of_analyses(
                 analyses[key]['preferred_parameters'] = ''
     else:
         if args.analysis is not None:
-            WafflesAnalysis._WafflesAnalysis__check_analysis_class(
+            check_analysis_class(
                 args.analysis,
                 pathlib.Path.cwd()
             )
@@ -694,5 +694,84 @@ def check_file_or_folder_exists(
                     f"folder '{folder_path}'."
                 )
             )
+    return
+
+def check_analysis_class(
+    analysis_name: str,
+    analysis_folder_path: pathlib.Path
+) -> None:
+    """This helper static method gets an analysis name
+    and the path to the folder from which the analysis
+    is being run. It checks that the analysis name
+    follows the format 'Analysis<i>', where i is an
+    integer >=1, and that the file 'Analysis<i>.py'
+    exists in the given folder. If any of these
+    conditions is not met, a
+    waffles.Exceptions.IllFormedAnalysisClass exception
+    is raised. If the given analysis class meets the
+    specified requirements, then this method ends
+    execution normally.
+
+    Parameters
+    ----------
+    analysis_name: str
+        The name of the analysis class to be checked
+    analysis_folder_path: pathlib.Path
+        The path to the folder from which the analysis
+        is being run
+
+    Returns
+    ----------
+    None
+    """
+
+    if not analysis_name.startswith('Analysis'):
+        raise we.IllFormedAnalysisClass(
+            we.GenerateExceptionMessage(
+                1,
+                'check_analysis_class()',
+                reason=f"The analysis class name ({analysis_name}) "
+                "must start with 'Analysis'."
+            )
+        )
+    
+    try:
+        i = int(analysis_name[8:])
+
+    except ValueError:
+        raise we.IllFormedAnalysisClass(
+            we.GenerateExceptionMessage(
+                2,
+                'check_analysis_class()',
+                reason=f"The analysis class name ({analysis_name}) "
+                "must follow the 'Analysis<i>' format, with i being "
+                "an integer."
+            )
+        )
+    else:
+        if i < 1:
+            raise we.IllFormedAnalysisClass(
+                we.GenerateExceptionMessage(
+                    3,
+                    'check_analysis_class()',
+                    reason=f"The integer ({i}) at the end of the "
+                    f"analysis class name ({analysis_name}) must be >=1."
+                )
+            )
+
+    if not pathlib.Path(
+        analysis_folder_path,
+        analysis_name + '.py'
+    ).exists():
+        
+        raise we.IllFormedAnalysisClass(
+            we.GenerateExceptionMessage(
+                4,
+                'check_analysis_class()',
+                reason=f"The file '{analysis_name}.py' must exist "
+                f"in the analysis folder ({analysis_folder_path})."
+            )
+        )
+    
     return
 
