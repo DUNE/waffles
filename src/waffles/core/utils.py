@@ -3,7 +3,6 @@ import pathlib
 import yaml
 from typing import Optional
 
-from waffles.data_classes.WafflesAnalysis import WafflesAnalysis
 import waffles.Exceptions as we
 
 def add_arguments_to_parser(
