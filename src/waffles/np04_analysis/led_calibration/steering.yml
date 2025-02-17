@@ -1,4 +1,4 @@
 1:
   name: "Analysis1"
-  parameters: "params.yml"
-  parameters_is_file: True
+  parameters_file: "params.yml"
+  overwriting_parameters: ""
