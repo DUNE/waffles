@@ -88,14 +88,12 @@ def main():
         current_analysis = locals()[analyses[i]['name']]()
 
         parameters_to_deliver = wcu.build_parameters_dictionary(
-            parameters_file_name = analyses[i]['parameters'] \
-                if analyses[i]['parameters_is_file'] else None,
+            parameters_file_name = wcu.empty_string_to_None(
+                analyses[i]['parameters_file']
+            ),
             parameters_shell_string = wcu.empty_string_to_None(
-                analyses[i]['parameters']
-                ) if not analyses[i]['parameters_is_file'] else \
-                    wcu.empty_string_to_None(
-                        analyses[i]['preferred_parameters']
-                    ),
+                analyses[i]['overwriting_parameters']
+            ),
             prioritize_string_parameters = True,
             verbose = args.verbose
         )
