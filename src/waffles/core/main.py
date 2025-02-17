@@ -3,7 +3,6 @@ import argparse
 import waffles.core.utils as wcu
 import waffles.Exceptions as we
 
-from waffles.data_classes.WafflesAnalysis import WafflesAnalysis
 
 def main():
 
