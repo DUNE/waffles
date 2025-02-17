@@ -76,7 +76,8 @@ def get_ordered_list_of_analyses(
     """This function gets the arguments parsed by the main program
     and the remaining arguments that were not recognized by the parser.
     It returns a list of the analyses to be executed, whose order
-    match the execution order.
+    match the execution order, and which follow an unified format
+    regardless of whether an steering file is used or not.
 
     Parameters
     ----------
@@ -99,23 +100,38 @@ def get_ordered_list_of_analyses(
         keys:
     
         - name: str
-            The name of the analysis class to be executed
-        - parameters: str
-            Either the name of the parameters file to be used or
-            a string which represents the parameters to be used,
-            in the format which is normally given to a python
-            shell command.
-        - parameters_is_file: bool
-            Whether the 'parameters' key is a file name or not.
-        - preferred_parameters: str
-            Parameters which may overwrite those which are
-            fetched from the 'parameters' entry. This key is
-            only present in the following case:
-                - An steering file is not used
-                - The -p, --params argument is defined
-                - Additional (a priori unrecognized) arguments
-                were given to the main program.
-            The value of this key is the string which represents
+            The name of the analysis class to be executed. If
+            an steering file is used, then the analysis name
+            comes from the value of the 'name' sub-key, for each
+            analysis. If an steering file is not used, then the
+            analysis name comes from the value given to the -a,
+            --analysis argument, if such argument is defined.
+            It is set to 'Analysis1' by default, if an steering
+            file is not used and the -a, --analysis argument
+            is not defined.
+        - parameters_file: str
+            If it is a non-empty string, then is interpreted
+            as the name of the file from where to gather the
+            parameters to be used. If it matches "", then no
+            parameters file is used. If an steering file is
+            used, then the parameters-file name comes from
+            the value of the 'parameters_file' sub-key, for
+            each analysis. If an steering file is not used,
+            then the parameters-file name comes from the value
+            given to the -p, --params argument, if defined,
+            or set to "" otherwise.
+        - overwriting_parameters: str
+            An string, in the format which is normally given
+            to a python shell comand, containing the parameters
+            to be used. These parameters should overwrite those
+            which are gotten from the parameters file, if any.
+            If an steering file is used, these parameters
+            come from the value of the 'overwriting_parameters'
+            sub-key, for each analysis. If an steering file is
+            not used, then these parameters are only defined
+            if additional (a priori unrecognized) arguments
+            were given to the main program. In this case, the
+            value of this key is the string which represents
             these unrecognized arguments, following the same
             format in which they appeared in the python command
             which called the main program.
@@ -177,14 +193,6 @@ def get_ordered_list_of_analyses(
                 Loader=yaml.Loader
             )
 
-            # The 'preferred_parameters' key must not be present
-            # in the steering file. We are adding it here for
-            # consistency with the case where an steering file
-            # is not used but the -p, --params argument is given
-            # simultaneously with some spare arguments that are
-            # appended to the shell command.
-            for key in analyses:
-                analyses[key]['preferred_parameters'] = ''
     else:
         if args.analysis is not None:
             check_analysis_class(
@@ -220,43 +228,27 @@ def get_ordered_list_of_analyses(
                 is_file=True
             )
 
-            aux_params = args.params
-            aux_parameters_is_file = True
-            aux_preferred_parameters = " ".join(remaining_args)
-
+            aux_parameters_file = args.params
             if verbose:
                 print(
                     "In function get_ordered_list_of_analyses(): "
-                    f"Using specified parameters file '{aux_params}'"
+                    f"Using specified parameters file '{aux_parameters_file}'"
                 )
-
-                if len(aux_preferred_parameters) > 0:
-                    print(
-                        "In function get_ordered_list_of_analyses(): "
-                        f"Using the additionally given arguments "
-                        f"({aux_preferred_parameters}) as preferred parameters"
-                    ) 
-
-        # If no parameters file was given, then
-        # assume that the unrecognized arguments
-        # are the analysis parameters
         else:
-            aux_params = " ".join(remaining_args)
-            aux_parameters_is_file = False
-            aux_preferred_parameters = ""
-
+            aux_parameters_file = ""
             if verbose:
                 print(
                     "In function get_ordered_list_of_analyses(): "
                     "No parameters file was given."
                 )
 
-                if len(aux_params) > 0:
-                    print(
-                        "In function get_ordered_list_of_analyses(): "
-                        "Using the additionally given arguments "
-                        f"({aux_params}) as default parameters."
-                    )
+        aux_overwriting_parameters = " ".join(remaining_args)
+        if len(aux_overwriting_parameters) > 0:
+            print(
+                "In function get_ordered_list_of_analyses(): "
+                f"Using the additionally given arguments "
+                f"({aux_overwriting_parameters}) as preferred parameters"
+            )
 
         # Arrange an unique-entry dictionary just to be
         # consistent with the dictionary that is returned
@@ -264,9 +256,8 @@ def get_ordered_list_of_analyses(
         analyses = {
             1:{
                 'name': aux_name,
-                'parameters': aux_params,
-                'parameters_is_file': aux_parameters_is_file,
-                'preferred_parameters': aux_preferred_parameters
+                'parameters_file': aux_parameters_file,
+                'overwriting_parameters': aux_overwriting_parameters
             }
         }
 
