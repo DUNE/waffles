@@ -798,15 +798,15 @@ def steering_file_meets_requirements(
         string, then it is interpreted as the name
         of a parameters file which must exist alongside
         the steering file. If it is an empty string,
-        then this parameter is ignored.
-        string, then it is ignored.
+        then it is assumed that no parameters file was
+        given, and this parameter is ignored.
         - The value for each 'overwriting_parameters'
         sub-keys is an string, which is interpreted as
         the string that would be given as part of a
         shell command. The parameter values extracted
         from this string should overwrite those gotten
-        from the parameters file. If this value is an
-        empty string, then no parameters are
+        from the parameters file, if any. If this value
+        is an empty string, then no parameters are
         overwritten.
 
     If any of these conditions is not met, a
