@@ -409,7 +409,9 @@ def WaveformSet_from_root_file(
     wii.find_tbranch_in_root_ttree(
         bulk_data_tree,
         'is_fullstream',
-        library)
+        library,
+        require_exact_match=False
+    )
 
     aux = is_fullstream_branch.num_entries \
     if library == 'uproot' \
@@ -433,7 +435,9 @@ def WaveformSet_from_root_file(
             is_fullstream_branch_name,
             i_low=wf_start, 
             i_up=wf_stop,
-            ROOT_type_code='O')
+            ROOT_type_code='O',
+            require_exact_match=False
+        )
 
     aux = np.where(is_fullstream_array)[0] if read_full_streaming_data \
     else np.where(np.logical_not(is_fullstream_array))[0]
