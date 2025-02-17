@@ -103,13 +103,18 @@ def find_ttree_in_root_tfile(
 def find_tbranch_in_root_ttree(
     tree: Union[uproot.TTree, 'ROOT.TTree'],
     TBranch_pre_name: str,
-    library: str
+    library: str,
+    require_exact_match: bool = True
 ) -> Tuple[Union[uproot.TBranch, 'ROOT.TBranch'], str]:
     """This function returns the first TBranch found in 
-    the given ROOT TTree whose name starts with the string
+    the given ROOT TTree whose name matches the string
     given to the 'TBranch_pre_name' parameter, and the
-    full exact name of the returned TBranch. If no such
-    TBranch is found, a NameError exception is raised.
+    full exact name of the returned TBranch. The required
+    matching between the given TBranch_pre_name and the
+    returned TBranch might be exact or not, depending
+    on the input given to the 'require_exact_match'
+    parameter. If no such TBranch is found, a NameError
+    exception is raised.
 
     Parameters
     ----------
@@ -117,20 +122,28 @@ def find_tbranch_in_root_ttree(
         The TTree where to look for the TBranch object
     TBranch_pre_name: str
         The string which the name of the TBranch object
-        must start with
+        must match to some extent
     library: str
         The library used to read the TBranch from the
         given tree. It can be either 'uproot' or 'pyroot'.
         If 'uproot' (resp. 'pyroot'), then the 'tree'
         parameter must be of type uproot.TTree (resp.
         ROOT.TTree).
+    require_exact_match: bool
+        If True, then the name of the returned TBranch
+        must exactly match the string given to the
+        'TBranch_pre_name' parameter. If False, then
+        the first TBranch found whose name starts with
+        the given identifier will be returned. In
+        either case, the exact name of the returned
+        TBranch will be also returned.
 
     Returns
     ----------
     output: tuple of ( uproot.TBranch or ROOT.TBranch, str, )
         The first element of the returned tuple is the
         TBranch object found in the given TTree whose
-        name starts with the string given to the
+        name matches to some extent the string given to the
         'TBranch_pre_name' parameter. The second element
         is the full name, within the given TTree, of the
         returned TBranch.
@@ -158,22 +171,34 @@ def find_tbranch_in_root_ttree(
             "Either 'uproot' or 'pyroot' must be given."))
     TBranch_name = None
 
-    if library == 'uproot':
-        for key in tree.keys():
-            if key.startswith(TBranch_pre_name):
-                TBranch_name = key
+    get_list_of_branches = lambda tree, library: \
+        tree.keys() if library == 'uproot' \
+            else tree.GetListOfBranches()
+    
+    get_name_of_branch = lambda branch, library: \
+        branch if library == 'uproot' \
+            else branch.GetName()
+
+    if require_exact_match:
+        for branch in get_list_of_branches(tree, library):
+            branch_name = get_name_of_branch(branch, library)
+            if branch_name == TBranch_pre_name:
+                TBranch_name = branch_name
                 break
     else:
-        for branch in tree.GetListOfBranches():
-            if branch.GetName().startswith(TBranch_pre_name):
-                TBranch_name = branch.GetName()
+        for branch in get_list_of_branches(tree, library):
+            branch_name = get_name_of_branch(branch, library)
+            if branch_name.startswith(TBranch_pre_name):
+                TBranch_name = branch_name
                 break
 
     if TBranch_name is None:
         raise NameError(we.GenerateExceptionMessage(
             4,
             'find_tbranch_in_root_ttree()',
-            "There is no TBranch with a name starting with"
+            "There is no TBranch with a name "+
+            ("matching" if require_exact_match
+            else "starting with")+
             f" '{TBranch_pre_name}'."))
 
     output = (
@@ -265,15 +290,20 @@ def get_1d_array_from_pyroot_tbranch(
     branch_name: str,
     i_low: int = 0,
     i_up: Optional[int] = None,
-    ROOT_type_code: str = 'S'
+    ROOT_type_code: str = 'S',
+    require_exact_match: bool = True
 ) -> np.ndarray:
     """This function returns a 1D numpy array containing the
-    values of the branch whose name starts with the string
+    values of the branch whose name matches the string
     given to the 'branch_name' parameter in the given ROOT
     TTree object. The values are taken from the entries
     of the TTree object whose iterator values are in the
     range [i_low, i_up). I.e. the lower (resp. upper) bound
-    is inclusive (resp. exclsive).
+    is inclusive (resp. exclusive). The required
+    matching between the given branch_name and the
+    branch whose data is returned, might be exact or not,
+    depending on the input given to the 'require_exact_match'
+    parameter.
 
     Parameters
     ----------
@@ -281,7 +311,7 @@ def get_1d_array_from_pyroot_tbranch(
         The ROOT TTree object where to look for the TBranch
     branch_name: str
         The string which the name of the TBranch object
-        must start with
+        must match to some extent
     i_low: int
         The inclusive lower bound of the range of entries
         to be read from the branch. It must be non-negative.
@@ -298,6 +328,13 @@ def get_1d_array_from_pyroot_tbranch(
         The data type of the branch to be read. The valid
         values can be checked in the docstring of the
         root_to_array_type_code() function.
+    require_exact_match: bool
+        If True, then the name of the TBranch whose
+        data is returned, must exactly match the string
+        given to the 'branch_name' parameter. If False,
+        then the first TBranch found whose name starts
+        with the given identifier is the one whose data
+        will be returned.
 
     Returns
     ----------
@@ -308,13 +345,20 @@ def get_1d_array_from_pyroot_tbranch(
         branch, exact_branch_name = find_tbranch_in_root_ttree(
             tree,
             branch_name,
-            'pyroot')
+            'pyroot',
+            require_exact_match=require_exact_match
+        )
     except NameError:
-        raise NameError(we.GenerateExceptionMessage(
-            1,
-            'get_1d_array_from_pyroot_tbranch()',
-            "There is no TBranch with a name starting with"
-            f" '{branch_name}' in the given tree."))
+        raise NameError(
+            we.GenerateExceptionMessage(
+                1,
+                'get_1d_array_from_pyroot_tbranch()',
+                "There is no TBranch with a name "+
+                ("matching" if require_exact_match
+                else "starting with")+
+                f" '{branch_name}' in the given tree."
+            )
+        )
     
     if i_up is None:
         i_up_ = branch.GetEntries()
@@ -473,27 +517,37 @@ def __build_waveforms_list_from_root_file_using_uproot(
     adcs_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'adcs',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     channel_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'channel',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     timestamp_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'timestamp',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
     
     daq_timestamp_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'daq_timestamp',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     record_branch, _ = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'record',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     # Using a list comprehension here is slightly slower than a for loop
     # (97s vs 102s for 5% of wvfs of a 809 MB file running on lxplus9)
@@ -690,7 +744,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, adcs_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'adcs',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
     adcs_address = ROOT.std.vector('short')()
     bulk_data_tree.SetBranchAddress(adcs_branch_exact_name,
                                     adcs_address)
@@ -698,7 +754,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, channel_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'channel',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     channel_address = array.array(
         root_to_array_type_code('S'),
@@ -711,7 +769,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, timestamp_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'timestamp',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     timestamp_address = array.array(
         root_to_array_type_code('l'),
@@ -724,7 +784,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, daq_timestamp_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'daq_timestamp',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
     
     daq_timestamp_address = array.array(
         root_to_array_type_code('l'),
@@ -737,7 +799,9 @@ def __build_waveforms_list_from_root_file_using_pyroot(
     _, record_branch_exact_name = find_tbranch_in_root_ttree(
         bulk_data_tree,
         'record',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     record_address = array.array(
         root_to_array_type_code('i'),
@@ -851,12 +915,17 @@ def __read_metadata_from_root_file_using_uproot(
     run_branch, _ = find_tbranch_in_root_ttree(
         meta_data_tree,
         'run',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
 
     ticks_to_nsec_branch, _ = find_tbranch_in_root_ttree(
         meta_data_tree,
         'ticks_to_nsec',
-        'uproot')
+        'uproot',
+        require_exact_match=False
+    )
+        
     run = int(run_branch.array()[0])
 
     ticks_to_nsec = float(ticks_to_nsec_branch.array()[0])
@@ -892,12 +961,16 @@ def __read_metadata_from_root_file_using_pyroot(
     _, run_branch_exact_name = find_tbranch_in_root_ttree(
         meta_data_tree,
         'run',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
 
     _, ticks_to_nsec_branch_exact_name = find_tbranch_in_root_ttree(
         meta_data_tree,
         'ticks_to_nsec',
-        'pyroot')
+        'pyroot',
+        require_exact_match=False
+    )
     
     run_address = array.array(
         root_to_array_type_code('i'),
