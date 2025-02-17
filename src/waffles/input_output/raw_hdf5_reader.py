@@ -377,7 +377,11 @@ def WaveformSet_from_hdf5_file(filepath : str,
                     f"has no write permissions there. Please specify a "
                     "valid directory."
                 )
-            ) 
+            )
+
+    else:
+        if erase_filepath:
+            erase_filepath = False
 
     h5_file = HDF5RawDataFile(filepath)
     run_date   = h5_file.get_attribute('creation_timestamp')
