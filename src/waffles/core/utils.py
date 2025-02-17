@@ -149,6 +149,13 @@ def get_ordered_list_of_analyses(
                 "In function get_ordered_list_of_analyses(): "
                 "Running with an steering file"
             )
+            
+            if len(remaining_args) > 0:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    "Note that the given additional arguments "
+                    f"({remaining_args}) will be ignored"
+                )
         else:
             print(
                 "In function get_ordered_list_of_analyses(): "
@@ -239,7 +246,7 @@ def get_ordered_list_of_analyses(
             if verbose:
                 print(
                     "In function get_ordered_list_of_analyses(): "
-                    "No parameters file was given."
+                    "No parameters file was given"
                 )
 
         aux_overwriting_parameters = " ".join(remaining_args)
