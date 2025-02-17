@@ -5,13 +5,19 @@ filepath_folder: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-I
 channel_map_file: "PDHD_PDS_ChannelMap.csv"
 
 # All the noise runs acquired in NP04
-all_noise_runs: [31913, 31914, 31915, 31916, 31917, 31919, 31920, 31921,
-                 31922, 31923, 31924, 31925, 31926, 31927, 31928, 31929, 31930,
-                 31931, 31932, 31933, 31934, 31935, 31936, 31937, 31938, 31939,
-                 31940, 31941, 31942, 31943, 31944, 31945, 31946, 31947] 
-
 # Dictionary with the noise run <-> Vgain setting
 run_vgain_dict:
+  26319: 2318
+  26363: 2318
+  26378: 2318
+  26438: 2318
+  26490: 2318
+  26628: 2318
+  27875: 2318
+  27877: 2318
+  27950: 2318
+  28518: 2318
+  28519: 2318
   31913: 3192
   31914: 3192
   31915: 2926

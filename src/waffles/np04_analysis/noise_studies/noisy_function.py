@@ -1,10 +1,16 @@
 
 import waffles.input_output.raw_hdf5_reader as reader
 import numpy as np
+import os
 import waffles
 
 # --- FUNCTIONS -----------------------------------------------------
-def read_waveformset(filepath_folder: str, run: int, full_stat = True) -> waffles.WaveformSet:
+def read_waveformset(filepath_folder: str,
+                     run: int, 
+                     full_stat = True,
+                     filetxt_exists: bool,
+                     filehdf5_exists: bool
+                     ) -> waffles.WaveformSet:
     """
     Read the WaveformSet from the hdf5 file
     Parameters:
@@ -13,15 +19,29 @@ def read_waveformset(filepath_folder: str, run: int, full_stat = True) -> waffle
     - full_stat: bool, if True, merge all the waveform_set in the run
     """
     filepath_file = filepath_folder + "0" + str(run) + ".txt"
+    # check if the file exists
+    if not os.path.isfile(filepath_file):
+        print(f"File {filepath_file} does not exist")
+        filetxt_exists = False
+        return waffles.WaveformSet()
+
     filepath = reader.get_filepaths_from_rucio(filepath_file)
 
-    if full_stat:
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
+    if (full_stat == True and len(filepath) > 1):
+        if not os.path.isfile(filepath[0]):
+            print(f"File {filepath[0]} does not exist")
+            filehdf5_exists = False
+            return waffles.WaveformSet()
+        wfset = reader.WaveformSet_from_hdf5_file(filepath[0], erase_filepath = False)
         for fp in filepath[1:]:
-            ws = reader.WaveformSet_from_hdf5_file(fp)
+            ws = reader.WaveformSet_from_hdf5_file(fp, erase_filepath = False)
             wfset.merge(ws)
     else:
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
+        if not os.path.isfile(filepath[0]):
+            print(f"File {filepath[0]} does not exist")
+            filehdf5_exists = False
+            return waffles.WaveformSet()
+        wfset = reader.WaveformSet_from_hdf5_file(filepath[0], erase_filepath = False)
 
     return wfset
 
