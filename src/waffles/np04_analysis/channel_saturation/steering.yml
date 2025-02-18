@@ -1,0 +1,5 @@
+# Step 1. Read np04 pickles files, select beam events, search for saturated events for each channel --> output json files with results
+1:
+  name: "Analysis1"
+  parameters: "params.yml"
+  parameters_is_file: True

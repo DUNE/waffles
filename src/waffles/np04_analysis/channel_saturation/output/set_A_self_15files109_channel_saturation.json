@@ -1,0 +1,1491 @@
+{
+    "2": {
+        "109": {
+            "0": {
+                "ID_String": "APA2_endpoint109_channel0",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 0,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 17,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 42,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 85,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 75,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "1": {
+                "ID_String": "APA2_endpoint109_channel1",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 1,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 83,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 88,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0.012987012987012988,
+                        "Saturated event fraction error": 0.012987012987012988,
+                        "Tot analyzed beam event": 77,
+                        "Saturated beam event": 1
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 53,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "2": {
+                "ID_String": "APA2_endpoint109_channel2",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 2,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 24,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 75,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 74,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 54,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "3": {
+                "ID_String": "APA2_endpoint109_channel3",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 3,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 61,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 72,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 63,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0.030303030303030304,
+                        "Saturated event fraction error": 0.030303030303030304,
+                        "Tot analyzed beam event": 33,
+                        "Saturated beam event": 1
+                    }
+                }
+            },
+            "4": {
+                "ID_String": "APA2_endpoint109_channel4",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 4,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 26,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 50,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 67,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 56,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "5": {
+                "ID_String": "APA2_endpoint109_channel5",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 5,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 80,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 75,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 64,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 52,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "6": {
+                "ID_String": "APA2_endpoint109_channel6",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 6,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 19,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 49,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 73,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 74,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "7": {
+                "ID_String": "APA2_endpoint109_channel7",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 7,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 89,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 79,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 53,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 36,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "10": {
+                "ID_String": "APA2_endpoint109_channel10",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 10,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": {},
+                    "2": {},
+                    "3": {},
+                    "5": {},
+                    "7": null
+                }
+            },
+            "11": {
+                "ID_String": "APA2_endpoint109_channel11",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 11,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": null,
+                    "3": null,
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 1,
+                        "Saturated beam event": 0
+                    },
+                    "7": null
+                }
+            },
+            "12": {
+                "ID_String": "APA2_endpoint109_channel12",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 12,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 24,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 47,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 74,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 56,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "13": {
+                "ID_String": "APA2_endpoint109_channel13",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 13,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": {},
+                    "2": {},
+                    "3": {},
+                    "5": {},
+                    "7": null
+                }
+            },
+            "14": {
+                "ID_String": "APA2_endpoint109_channel14",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 14,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": {},
+                    "2": {},
+                    "3": {},
+                    "5": {},
+                    "7": null
+                }
+            },
+            "15": {
+                "ID_String": "APA2_endpoint109_channel15",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 15,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 60,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 94,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 86,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 65,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "16": {
+                "ID_String": "APA2_endpoint109_channel16",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 16,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": {},
+                    "2": {},
+                    "3": {},
+                    "5": {},
+                    "7": null
+                }
+            },
+            "17": {
+                "ID_String": "APA2_endpoint109_channel17",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 17,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": {},
+                    "2": {},
+                    "3": {},
+                    "5": {},
+                    "7": null
+                }
+            },
+            "20": {
+                "ID_String": "APA2_endpoint109_channel20",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 20,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 13,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 47,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 79,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 76,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "21": {
+                "ID_String": "APA2_endpoint109_channel21",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 21,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 123,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 106,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 96,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 94,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "22": {
+                "ID_String": "APA2_endpoint109_channel22",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 22,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 30,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 82,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 88,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 84,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "23": {
+                "ID_String": "APA2_endpoint109_channel23",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 23,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 105,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 91,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 50,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 50,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "24": {
+                "ID_String": "APA2_endpoint109_channel24",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 24,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 62,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 64,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 82,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 58,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "25": {
+                "ID_String": "APA2_endpoint109_channel25",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 25,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 51,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0.011764705882352941,
+                        "Saturated event fraction error": 0.011764705882352941,
+                        "Tot analyzed beam event": 85,
+                        "Saturated beam event": 1
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 69,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 64,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "26": {
+                "ID_String": "APA2_endpoint109_channel26",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 26,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 49,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 70,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 94,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 72,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "27": {
+                "ID_String": "APA2_endpoint109_channel27",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 27,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 66,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 74,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 53,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 49,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "30": {
+                "ID_String": "APA2_endpoint109_channel30",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 30,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 50,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 61,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 56,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 37,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "31": {
+                "ID_String": "APA2_endpoint109_channel31",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 31,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 86,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 90,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 50,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 43,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "32": {
+                "ID_String": "APA2_endpoint109_channel32",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 32,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 77,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 46,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 38,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 33,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "33": {
+                "ID_String": "APA2_endpoint109_channel33",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 33,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 83,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 92,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 74,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 72,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "34": {
+                "ID_String": "APA2_endpoint109_channel34",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 34,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 75,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0.015384615384615385,
+                        "Saturated event fraction error": 0.015384615384615385,
+                        "Tot analyzed beam event": 65,
+                        "Saturated beam event": 1
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 39,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 36,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "35": {
+                "ID_String": "APA2_endpoint109_channel35",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 35,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 76,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 72,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0.017543859649122806,
+                        "Saturated event fraction error": 0.017543859649122806,
+                        "Tot analyzed beam event": 57,
+                        "Saturated beam event": 1
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 46,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "36": {
+                "ID_String": "APA2_endpoint109_channel36",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 36,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 32,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 73,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 82,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 80,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "37": {
+                "ID_String": "APA2_endpoint109_channel37",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 37,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0.010309278350515464,
+                        "Saturated event fraction error": 0.010309278350515464,
+                        "Tot analyzed beam event": 97,
+                        "Saturated beam event": 1
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 58,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 53,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 40,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "40": {
+                "ID_String": "APA2_endpoint109_channel40",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 40,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 42,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 92,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 128,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 138,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "41": {
+                "ID_String": "APA2_endpoint109_channel41",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 41,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 30,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 86,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 157,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 173,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "42": {
+                "ID_String": "APA2_endpoint109_channel42",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 42,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 33,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 63,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 87,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 78,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "43": {
+                "ID_String": "APA2_endpoint109_channel43",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 43,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 13,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 41,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 114,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 114,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "44": {
+                "ID_String": "APA2_endpoint109_channel44",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 44,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 12,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 34,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0.0136986301369863,
+                        "Saturated event fraction error": 0.0136986301369863,
+                        "Tot analyzed beam event": 73,
+                        "Saturated beam event": 1
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 118,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "45": {
+                "ID_String": "APA2_endpoint109_channel45",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 45,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 68,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 98,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 97,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 95,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "46": {
+                "ID_String": "APA2_endpoint109_channel46",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 46,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 4,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 15,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 62,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 108,
+                        "Saturated beam event": 0
+                    }
+                }
+            },
+            "47": {
+                "ID_String": "APA2_endpoint109_channel47",
+                "APA": 2,
+                "endpoint": 109,
+                "channel": 47,
+                "Runs": {
+                    "1": 27338,
+                    "2": 27355,
+                    "3": 27361,
+                    "5": 27367,
+                    "7": 27374
+                },
+                "Beam saturation": {
+                    "1": null,
+                    "2": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 93,
+                        "Saturated beam event": 0
+                    },
+                    "3": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 105,
+                        "Saturated beam event": 0
+                    },
+                    "5": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 89,
+                        "Saturated beam event": 0
+                    },
+                    "7": {
+                        "Saturated event fraction": 0,
+                        "Saturated event fraction error": 0,
+                        "Tot analyzed beam event": 62,
+                        "Saturated beam event": 0
+                    }
+                }
+            }
+        }
+    }
+}
