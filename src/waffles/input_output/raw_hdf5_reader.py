@@ -491,7 +491,8 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                     minimum_length
                                 )
 
-                        os.remove(filepath)
+                        if erase_filepath:
+                            os.remove(filepath)
                         return WaveformSet(*waveforms)
                     
     if truncate_wfs_to_minimum:
