@@ -25,9 +25,10 @@ class Analysis1(WafflesAnalysis):
             """Validation model for the input parameters of the LED
             calibration analysis."""
 
-            beam_input_path:         str = Field(...,          description="work in progress")
-            wfs_input_path:          str = Field(...,          description="work in progress")
-            events_output_path:      str = Field(...,          description="work in progress")
+            beam_input_path:      str = Field(...,    description="work in progress")
+            wfs_input_path:       str = Field(...,    description="work in progress")
+            events_output_path:   str = Field(...,    description="work in progress")
+            delta_time:           float = Field(...,  description="work in progress")
 
         return InputParams
 
@@ -43,7 +44,6 @@ class Analysis1(WafflesAnalysis):
         self.read_input_loop = [None,]
 #        self.read_input_loop_2 = [None,]
 #        self.read_input_loop_3 = [None,]
-
         
     ##################################################################
     def read_input(self) -> bool:
@@ -55,12 +55,13 @@ class Analysis1(WafflesAnalysis):
         print("  np04 PDS pickle file: ", np04_file)
         print("  beam root file:       ", beam_file)
 
-        self.events = events_from_pickle_and_beam_files(np04_file, beam_file)
+        # Read the two files and create BeamEvents combining their information
+        self.events = events_from_pickle_and_beam_files(np04_file, beam_file, self.params.delta_time)
 
         # sort events by timing
         self.events.sort(key=lambda x: x.ref_timestamp, reverse=False)
 
-        print(f"{len(self.events)} events read")
+        print(f"{len(self.events)} events created fro NP04 PDS and beam info")
         
         return True
 
@@ -75,7 +76,6 @@ class Analysis1(WafflesAnalysis):
         with open(self.params.events_output_path, "wb") as f:
             pickle.dump(self.events, f)
         print(f'Events saved in file: {self.params.events_output_path}')
-
 
         return True
 
