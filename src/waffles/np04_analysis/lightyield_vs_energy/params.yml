@@ -1,0 +1,47 @@
+# Path to the folder containing the data
+input_path: 'data'
+
+# Run set to analyze ('A' or 'B')
+set_name: 'A'
+
+# APA list to analyze (1, 2, 3, 4 or all)
+apa_list: 'all'
+
+# Endpoint list to analyze (104, 105, 107, 109, 111, 112, 113 or all)
+endpoint_list: [109]
+
+# Filename of input file (no folder path)
+input_pickles_wf_filename: 'set_A_self_15files109.pkl'
+
+# Path to folder containing pickles files (input)
+pickles_folder: '/afs/cern.ch/work/a/anbalbon/public/np04_beam_pickles'
+
+# Path to folder where output files are saved (output)
+output_folder: 'output'
+
+# Additional string to add to the output filename 
+additional_output_filename: ''
+
+# Path to the json file with beam run information
+beam_run_dic_info_path: 'data/beam_run_info.json'
+
+# Are input data full-streaming data (true o false) ? 
+full_streaming: False
+
+# Are input data selected beam data (true o false) ? 
+beam_data: False
+
+# Do you want to search for beam timeoffset range? (true o false) ? 
+searching_beam_timeoffset: False
+
+# Do you want to search for integration range? (true o false) ? 
+searching_integration_range: False
+
+# Do you wanto to overwrite output file (true o false) ? 
+overwrite: True
+
+# Do you want to save the output file (true o false) ? 
+save_file: True
+
+# LED calibration pickles file 
+LED_calibration_file: 'batch_1_LED_calibration_data.pkl'
