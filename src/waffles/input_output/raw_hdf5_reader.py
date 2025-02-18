@@ -364,6 +364,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 shlex.split(f"xrdcp {filepath} {temporal_copy_directory}"),
                 shell=False
             )
+            fUsedXRootD = True
 
             filepath = os.path.join(
                 temporal_copy_directory,
@@ -383,8 +384,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
             )
 
     else:
-        if erase_temporal_copy:
-            erase_temporal_copy = False
+        fUsedXRootD = False
 
     h5_file = HDF5RawDataFile(filepath)
     run_date   = h5_file.get_attribute('creation_timestamp')
@@ -494,7 +494,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                     minimum_length
                                 )
 
-                        if erase_temporal_copy:
+                        if fUsedXRootD and erase_temporal_copy:
                             os.remove(filepath)
                         return WaveformSet(*waveforms)
                     
@@ -508,6 +508,6 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 0,
                 minimum_length
             )
-    if erase_temporal_copy:
+    if fUsedXRootD and erase_temporal_copy:
         os.remove(filepath)
     return WaveformSet(*waveforms)
