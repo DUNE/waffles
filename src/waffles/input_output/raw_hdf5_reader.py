@@ -299,7 +299,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                allowed_endpoints: Optional[list] = [],
                                det : str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
-                               erase_filepath : bool = True
+                               erase_temporal_copy: bool = True
                                ) -> WaveformSet:
     """
     Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
@@ -348,8 +348,11 @@ def WaveformSet_from_hdf5_file(filepath : str,
         temporarily created in this directory. When the WaveformSet to
         return has been finally created out of such temporal HDF5-file copy,
         this copy is deleted from the specified directory.
-    erase_filepath: bool
-        it's true by default; if false, the file will be preserved.
+    erase_temporal_copy: bool
+        This parameter only makes a difference if XRootD is used, i.e. if
+        a temporal local copy of the target HDF5 file is created. If True,
+        (resp. False), then this temporal copy will (resp. will not) be
+        deleted after the WaveformSet object has been created.
     """
 
     if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
@@ -380,8 +383,8 @@ def WaveformSet_from_hdf5_file(filepath : str,
             )
 
     else:
-        if erase_filepath:
-            erase_filepath = False
+        if erase_temporal_copy:
+            erase_temporal_copy = False
 
     h5_file = HDF5RawDataFile(filepath)
     run_date   = h5_file.get_attribute('creation_timestamp')
@@ -491,7 +494,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                     minimum_length
                                 )
 
-                        if erase_filepath:
+                        if erase_temporal_copy:
                             os.remove(filepath)
                         return WaveformSet(*waveforms)
                     
@@ -505,6 +508,6 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 0,
                 minimum_length
             )
-    if erase_filepath :
+    if erase_temporal_copy:
         os.remove(filepath)
     return WaveformSet(*waveforms)
