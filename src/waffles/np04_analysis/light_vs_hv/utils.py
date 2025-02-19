@@ -24,7 +24,7 @@ def get_ordered_timestamps(wfsets,n_channel,n_run):
 
     timestamps=[ [ sorted(timestamps[i][j]) for j in range(n_channel)] for i in range(n_run)]
 
-    return timestamps
+    return timestamps, min_timestamp
 
 def get_all_double_coincidences(timestamps,n_channel,n_run,time_diff):
 
@@ -73,3 +73,48 @@ def get_all_coincidences(coincidences,timestamps,n_channel,n_run):
                 coincidences_mult[file_index].append(chs_aux) 
 
     return coincidences_mult
+
+def get_level_coincidences(coincidences_mult,n_channel,n_run):
+    coincidences_level = [[[] for _ in range(n_channel-1)] for _ in range(n_run) ]
+
+    for file_index in range(n_run):
+        for i,value in  enumerate(coincidences_mult[file_index]):
+            coincidences_level[file_index][len(value[0])-2].append(value)
+
+    return coincidences_level
+
+def find_true_index(wfs,file_index,channel,timestamps,index,minimo):
+    goal=timestamps[file_index][channel][index]+minimo
+
+    N=len(wfs[file_index][channel].waveforms)
+    for k in range(N):
+        if goal == wfs[file_index][channel].waveforms[k].timestamp:
+            return k
+    return -1
+
+def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp,n_channel,n_run):
+
+    true_index_array= [ [set() for _ in range(n_channel)] for _ in range(n_run)]
+
+    for run_index in range(n_run):
+        for ch in range(n_channel):
+            for coincidence_index in range(len(coincidences_level[run_index][8])):    
+                index=coincidences_level[run_index][8][coincidence_index][1][ch]
+
+               
+                true_index=find_true_index(wfsets,run_index,ch,timestamps,index,min_timestamp)
+                true_index_array[run_index][ch].add(true_index)
+
+
+            true_index_array[run_index][ch]=sorted(true_index_array[run_index][ch])
+
+            for n in range(len(wfsets[run_index][ch].waveforms)-1,-1,-1):
+                if n not in true_index_array[run_index][ch]:
+                    wfsets[run_index][ch].waveforms.pop(n)
+
+    return wfsets
+
+def write_output(self) -> bool:
+
+      
+        return True
