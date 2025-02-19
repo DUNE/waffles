@@ -160,3 +160,9 @@ class Analysis1(WafflesAnalysis):
 
 
         return True
+    
+    def write_output(self) -> bool:
+
+ 
+
+        return True
