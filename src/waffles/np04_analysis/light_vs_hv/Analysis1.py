@@ -25,11 +25,13 @@ class Analysis1(WafflesAnalysis):
                             description="list of the endpoints (note: must be te same order of the channels)")
             channels:       list = Field(default=[],          
                                 description="list of the channels (note: must be te same order of the endpoints)")
-            main_channel:   int =  Field(...,          
+            main_channel:   int =  Field(default=-1,          
                                 description= "Main channel that the code will search for coincidences in the other channels")
-            file_name:      str =  Field(...,          
+            main_endpoint:   int =  Field(default=-1,          
+                                description= "Main endpoin that the code will search for coincidences in the other channels")
+            file_name:      str =  Field(default="data/runs.txt",          
                                 description= "File with the list of folder to search for the .fcl files. In each folder must be only .fcls for the same run")
-            output:         str =  Field(...,          
+            output:         str =  Field(default="output",          
                                 description= "Output folder to save the correlated channels")
 
         return InputParams
@@ -39,7 +41,6 @@ class Analysis1(WafflesAnalysis):
         input_parameters: BaseInputParams
     ) -> None:
     
-
         self.params = input_parameters
 
         endpoints_len=len(self.params.endpoints)
@@ -51,3 +52,17 @@ class Analysis1(WafflesAnalysis):
             raise ValueError("Endpoint list is empty")
         if chs_len == 0:
             raise ValueError("Channel list is empty")
+
+        self.list_endpoints=self.params.endpoints
+        self.list_channels=self.params.channels
+
+        if self.params.main_channel==-1:
+            self.main_channel=self.list_channels[0]
+        else:
+            self.main_channel=self.params.main_channel
+        if self.params.main_endpoint==-1:
+            self.main_endpoint=self.list_endpoints[0]
+        else:
+            self.main_endpoint=self.params.main_endpoint
+
+        self.file_name=self.params.file_name
