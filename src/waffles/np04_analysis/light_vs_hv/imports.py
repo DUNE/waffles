@@ -1,3 +1,10 @@
 from pydantic import Field
+import pickle
 
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
+from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
+from waffles.np04_analysis.np04_ana import comes_from_channel
+from waffles.data_classes.WaveformSet import WaveformSet
+
+from waffles.np04_analysis.light_vs_hv.scripts.useful_functions import check_endpoint_and_channel
+from waffles.np04_analysis.light_vs_hv.scripts.useful_functions import get_ordered_timestamps
