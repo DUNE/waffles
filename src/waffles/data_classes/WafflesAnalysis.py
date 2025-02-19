@@ -233,4 +233,4 @@ class WafflesAnalysis(ABC):
                         if not self.analyze():
                             continue
 
-                self.write_output()
+                        self.write_output()
