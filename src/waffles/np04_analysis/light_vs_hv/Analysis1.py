@@ -27,12 +27,14 @@ class Analysis1(WafflesAnalysis):
                                 description="list of the channels (note: must be te same order of the endpoints)")
             main_channel:   int =  Field(default=-1,          
                                 description= "Main channel that the code will search for coincidences in the other channels")
-            main_endpoint:   int =  Field(default=-1,          
+            main_endpoint:  int =  Field(default=-1,          
                                 description= "Main endpoin that the code will search for coincidences in the other channels")
             file_name:      str =  Field(default="data/runs.txt",          
                                 description= "File with the list of folder to search for the .fcl files. In each folder must be only .fcls for the same run")
             output:         str =  Field(default="output",          
                                 description= "Output folder to save the correlated channels")
+            time_window:    int =  Field(default= 15,  
+                                description="Time window in the search of coincidences")
 
         return InputParams
     
@@ -56,6 +58,10 @@ class Analysis1(WafflesAnalysis):
         self.list_endpoints=self.params.endpoints
         self.list_channels=self.params.channels
 
+        print("Channels that will read:")
+        for endpoint,ch in zip(self.list_endpoints,self.list_channels):
+            print(f"{endpoint}-{ch}")
+
         if self.params.main_channel==-1:
             self.main_channel=self.list_channels[0]
         else:
@@ -65,4 +71,14 @@ class Analysis1(WafflesAnalysis):
         else:
             self.main_endpoint=self.params.main_endpoint
 
+        print(f"Master channel to search for coincidences: {self.main_endpoint}-{self.main_endpoint}")
+
         self.file_name=self.params.file_name
+        print(f"File name: {self.file_name}")
+
+
+        self.time_window=self.params.time_window
+
+    ##################################################################
+    def read_input(self) -> bool:
+        
