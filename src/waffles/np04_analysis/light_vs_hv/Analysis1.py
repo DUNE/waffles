@@ -29,7 +29,7 @@ class Analysis1(WafflesAnalysis):
                                 description= "Main channel that the code will search for coincidences in the other channels")
             main_endpoint:  int =  Field(default=-1,          
                                 description= "Main endpoin that the code will search for coincidences in the other channels")
-            file_name:      str =  Field(default="data/runs.txt",          
+            file_name:      str =  Field(default="data/list_file.txt",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="output",          
                                 description= "Output folder to save the correlated channels")
