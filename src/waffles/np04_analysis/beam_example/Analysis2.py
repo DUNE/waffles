@@ -53,9 +53,9 @@ class Analysis2(WafflesAnalysis):
         self.analyze_loop = [None,]
         self.params = input_parameters
 
-        self.read_input_loop = [None,]
-#        self.read_input_loop_2 = [None,]
-#        self.read_input_loop_3 = [None,]
+        self.read_input_loop_1 = [None,]
+        self.read_input_loop_2 = [None,]
+        self.read_input_loop_3 = [None,]
         
     ##################################################################
     def read_input(self) -> bool:
