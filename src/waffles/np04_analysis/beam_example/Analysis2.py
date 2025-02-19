@@ -142,7 +142,8 @@ class Analysis2(WafflesAnalysis):
         c1   = np.array([0], dtype=np.int32)
         t    = np.array([0], dtype=np.int64)
         nwfs = np.array([0], dtype=np.int32)
-        q    = np.array([0], dtype=np.float64)        
+        q    = np.array([0], dtype=np.float64)
+        a    = np.array([0], dtype=np.float64)                
 
         tree.Branch("evt", evt, 'normal/I')
         tree.Branch("p",   p,   'normal/D')
@@ -151,18 +152,22 @@ class Analysis2(WafflesAnalysis):
         tree.Branch("c1",  c1,  'normal/I')
         tree.Branch("t",   t,   'normal/I')
         tree.Branch("nwfs",nwfs,'normal/I')
-        tree.Branch("q",   q,   'normal/D')                                
-
+        tree.Branch("q",   q,   'normal/D')
+        tree.Branch("a",   a,   'normal/D')        
+        
         # loop over events
         for e in self.events:
 
             q[0]=0
+            a[0]=0            
             if e.wfset:
                 for wf in e.wfset.waveforms:
-                    q[0] += wf.get_analysis('standard').result['amplitude']
+                    q[0] += wf.get_analysis('standard').result['integral']
+                    a[0] += wf.get_analysis('standard').result['amplitude']
 
             if nwfs>0:
                 q[0] = q[0]/(1.*nwfs)
+                a[0] = a[0]/(1.*nwfs)                
 
             evt[0] = e.event_number
             p[0]   = e.beam_info.p
