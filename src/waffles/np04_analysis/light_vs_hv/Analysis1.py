@@ -21,7 +21,7 @@ class Analysis1(WafflesAnalysis):
         
         class InputParams(BaseInputParams):
 
-            endpoints:      list = Field(defaut=[],          
+            endpoints:      list = Field(default=[],          
                             description="list of the endpoints (note: must be te same order of the channels)")
             channels:       list = Field(default=[],          
                                 description="list of the channels (note: must be te same order of the endpoints)")
@@ -33,7 +33,7 @@ class Analysis1(WafflesAnalysis):
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="output",          
                                 description= "Output folder to save the correlated channels")
-            time_window:    int =  Field(default= 15,  
+            time_window:    int =  Field(default= 5,  
                                 description="Time window in the search of coincidences")
             min_coincidence:   int=  Field(default = 8,  
                                 description="Mininum number of coincidences to save")
