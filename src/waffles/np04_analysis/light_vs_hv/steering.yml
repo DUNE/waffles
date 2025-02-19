@@ -1,0 +1,7 @@
+# Step 1. Filter the waveforms by the numver of coincidences
+1:
+  name: "Analysis1"
+  parameters_file: "params.yml"
+  overwriting_parameters: ""
+
+
