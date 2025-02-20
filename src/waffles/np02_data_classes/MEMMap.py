@@ -5,9 +5,9 @@ from waffles.data_classes.ChannelMap import ChannelMap
 
 
 class MEMMap_geo(ChannelMap):
-    """This class implements a channel map for an APA. I.e.
+    """This class implements a channel map for a membrane. I.e.
     it is a ChannelMap whose rows (resp. columns) attribute
-    is fixed to 10 (resp. 4).
+    is fixed to 4 (resp. 2).
 
     Attributes
     ----------
@@ -22,14 +22,14 @@ class MEMMap_geo(ChannelMap):
     """
 
     def __init__(self, data: List[List[UniqueChannel]], r: int = 4, c: int = 2):
-        """APAMap class initializer
+        """MEMMap_geo class initializer
 
         Parameters
         ----------
         data: list of lists of UniqueChannel objects
-            The length of data must be equal to 10
+            The length of data must be equal to 4
             and the length of each one of its lists
-            must be equal to 4.
+            must be equal to 2.
         """
 
         # All of the checks are performed
@@ -38,9 +38,9 @@ class MEMMap_geo(ChannelMap):
         super().__init__(r, c, data)
 
 class MEMMap_ind(ChannelMap):
-    """This class implements a channel map for an APA. I.e.
+    """This class implements a channel map for an membrane. I.e.
     it is a ChannelMap whose rows (resp. columns) attribute
-    is fixed to 10 (resp. 4).
+    is fixed to 4 (resp. 4).
 
     Attributes
     ----------
@@ -55,12 +55,12 @@ class MEMMap_ind(ChannelMap):
     """
 
     def __init__(self, data: List[List[UniqueChannel]], r: int = 4, c: int = 4):
-        """APAMap class initializer
+        """MEMMap_ind class initializer
 
         Parameters
         ----------
         data: list of lists of UniqueChannel objects
-            The length of data must be equal to 10
+            The length of data must be equal to 4
             and the length of each one of its lists
             must be equal to 4.
         """
