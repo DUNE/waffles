@@ -1,5 +1,14 @@
 
 # ------- General parameters -------
-
 endpoints: [112,112,112,112,113,112,112,112,112,112]
 channels: [0,6,10,16,0,27,21,37,31,47]
+
+
+baseline_limits: [0, 50, 800, 1000]
+zero_crossing_limits: [70 , 140]
+t0: 70
+integral_limits: [50,120]
+amplitude_limits: [50,120]
+fprompt: [70]
+
+

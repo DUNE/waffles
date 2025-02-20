@@ -31,7 +31,7 @@ class Analysis1(WafflesAnalysis):
                                 description= "Main endpoin that the code will search for coincidences in the other channels")
             input_path:      str =  Field(default="./data/list_file.txt",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
-            output:         str =  Field(default="output",          
+            output:         str =  Field(default="./output",          
                                 description= "Output folder to save the correlated channels")
             time_window:    int =  Field(default= 5,  
                                 description="Time window in the search of coincidences")
@@ -93,6 +93,8 @@ class Analysis1(WafflesAnalysis):
         self.time_window=self.params.time_window
 
         self.min_coincidence = self.params.min_coincidence
+
+        self.output = self.params.output
 
     ##################################################################
     def read_input(self) -> bool:
@@ -162,7 +164,7 @@ class Analysis1(WafflesAnalysis):
         return True
     
     def write_output(self) -> bool:
-
- 
-
+        output_file=self.output + "/data_filtered.pkl"       
+        with open(output_file, "wb") as file:
+            pickle.dump(self.wfsets, file)
         return True

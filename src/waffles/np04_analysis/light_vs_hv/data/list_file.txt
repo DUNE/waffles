@@ -1,0 +1,9 @@
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28219.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28218.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28217.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28216.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28215.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28213.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28212.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28211.txt
+/home/gabriel/Documents/protodune/waffles/src/waffles/np04_analysis/Light_Yield_vs_E_field/data_lists/file_paths_28210.txt
