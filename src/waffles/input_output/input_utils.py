@@ -1221,3 +1221,34 @@ def get_branch_address(
 
     
     return branch_address
+
+
+def __truncate_waveforms_to_minimum_length_in_WaveformSet(
+        waveform_list: List[Waveform]
+) -> None:
+    """This helper function truncates the adcs object of every
+    Waveform object in the given list, to the length of the
+    shortest adcs found in such list.
+
+    Parameters
+    ----------
+    waveform_list: List[Waveform]
+        The input waveforms list whose waveforms may be
+        truncated
+
+    Returns
+    ----------
+    None
+    """
+
+    minimum_length = np.array(
+        [len(wf.adcs) for wf in waveform_list]
+    ).min()
+
+    for wf in waveform_list:
+        wf._WaveformAdcs__slice_adcs(
+            0,
+            minimum_length
+        )
+
+    return
