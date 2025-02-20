@@ -18,7 +18,10 @@ run: [030010]
 apa: 3 # 1, 2, 3, 4
 
 # Photon detection efficiency
-pde: 0.45 # 0.40, 0.45, 0.50
+pdes: [0.45] # 0.40, 0.45, 0.50
+
+# Vgain
+vgains: [2660] # 1, ...
 
 # Calibration-batch number
 batch: 3 # 1, ...
@@ -29,6 +32,13 @@ input_path: 'data'
 
 # Path to the output
 output_path: 'output'
+
+# Path to the pikls files
+
+input_pkl: 'output'
+
+# Path to the outputof the Analysis 2
+output_pkl: 'output_vis'
 
 <<<<<<< HEAD
 # Path to the pikls files
@@ -167,4 +177,3 @@ y_label:
     snr: "(μ₁ - μ₀) / √(σ₀² + σ₁²)"
 =======
 percentage_step: 0.05
->>>>>>> main

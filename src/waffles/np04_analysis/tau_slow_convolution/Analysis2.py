@@ -83,7 +83,6 @@ class Analysis2(WafflesAnalysis):
         self.cfit.dosave = not self.params.no_save
 
         # loop over runs
-<<<<<<< HEAD
         self.read_input_loop_1 = runs
 
         # loop over channels
@@ -92,28 +91,16 @@ class Analysis2(WafflesAnalysis):
         # single element loops
         self.read_input_loop_3 = [None,]
         self.analyze_loop = [None,]
-=======
-        self.read_input_loop = runs
-
-        # loop over channels
-        self.analyze_loop = self.params.channels
->>>>>>> main
 
     ##################################################################
     def read_input(self) -> bool:
 
         # items for current iteration (run number)
-<<<<<<< HEAD
         self.run     = self.read_input_itr_1
         self.channel = self.read_input_itr_2
         
         print(f"Processing run {self.run}")
 
-=======
-        self.run = self.read_input_itr
-        
-        print(f"Processing run {self.run}")
->>>>>>> main
         if self.run not in self.run_pairs:
             print('Run not found in runlist, check it')
             exit(0)
@@ -121,13 +108,7 @@ class Analysis2(WafflesAnalysis):
 
         # change template in the case it is fixed at 0 for endpoint 112
         if self.led_run_template == 0 and self.run > 27901:# and ch//100 == 112:
-<<<<<<< HEAD
             self.led_run_template = 29177
-        
-        if self.params.fix_template:
-            self.runled = self.led_run_template
-=======
-            self.led_run_template = 1
         
         if self.params.fix_template:
             self.runled = self.led_run_template
@@ -142,7 +123,6 @@ class Analysis2(WafflesAnalysis):
 
         # items for current iteration (channel number)
         self.channel = self.analyze_itr
->>>>>>> main
 
         print(f"  Processing channel {self.channel}")
 
@@ -161,18 +141,12 @@ class Analysis2(WafflesAnalysis):
         # read the average waveforms for the template and the response
         self.cfit.read_waveforms(file_template, file_response)
 
-<<<<<<< HEAD
         return True
 
     ##################################################################
     def analyze(self) -> bool:
 
         # prepare the template and response waveforms for the current iteration (run, channel)
-=======
-        #--------------------------------------------------
-
-        # prepare the template and response waveforms for the current iteration (run number)
->>>>>>> main
         # performs interpolation and time alignment between template and response waveforms
         self.cfit.prepare_waveforms()  
 
@@ -185,11 +159,7 @@ class Analysis2(WafflesAnalysis):
         
     ##################################################################
     def write_output(self) -> bool:
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> main
         # ---------- Save fit results -----------
         
         # create the results output subfolder

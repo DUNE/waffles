@@ -3,7 +3,6 @@ import argparse
 import waffles.core.utils as wcu
 import waffles.Exceptions as we
 
-from waffles.data_classes.WafflesAnalysis import WafflesAnalysis
 
 def main():
 
@@ -13,7 +12,7 @@ def main():
         # Checks, among other things, that the analysis folder
         # contains an 'steering.yml' file and an 'Analysis1.py'
         # file
-        WafflesAnalysis.analysis_folder_meets_requirements()
+        wcu.analysis_folder_meets_requirements()
     except Exception as caught_exception:
         print(caught_exception)
         raise we.WafflesBaseException(
@@ -23,7 +22,7 @@ def main():
                 reason="Either you are not running from the analysis "
                 "folder, or you are but your analysis folder does "
                 "not meet the minimal requirements set by "
-                "WafflesAnalysis.analysis_folder_meets_requirements()."
+                "wcu.analysis_folder_meets_requirements()."
             )
         )
 
@@ -88,14 +87,12 @@ def main():
         current_analysis = locals()[analyses[i]['name']]()
 
         parameters_to_deliver = wcu.build_parameters_dictionary(
-            parameters_file_name = analyses[i]['parameters'] \
-                if analyses[i]['parameters_is_file'] else None,
+            parameters_file_name = wcu.empty_string_to_None(
+                analyses[i]['parameters_file']
+            ),
             parameters_shell_string = wcu.empty_string_to_None(
-                analyses[i]['parameters']
-                ) if not analyses[i]['parameters_is_file'] else \
-                    wcu.empty_string_to_None(
-                        analyses[i]['preferred_parameters']
-                    ),
+                analyses[i]['overwriting_parameters']
+            ),
             prioritize_string_parameters = True,
             verbose = args.verbose
         )

@@ -3,7 +3,6 @@ import pathlib
 import yaml
 from typing import Optional
 
-from waffles.data_classes.WafflesAnalysis import WafflesAnalysis
 import waffles.Exceptions as we
 
 def add_arguments_to_parser(
@@ -77,7 +76,8 @@ def get_ordered_list_of_analyses(
     """This function gets the arguments parsed by the main program
     and the remaining arguments that were not recognized by the parser.
     It returns a list of the analyses to be executed, whose order
-    match the execution order.
+    match the execution order, and which follow an unified format
+    regardless of whether an steering file is used or not.
 
     Parameters
     ----------
@@ -100,23 +100,38 @@ def get_ordered_list_of_analyses(
         keys:
     
         - name: str
-            The name of the analysis class to be executed
-        - parameters: str
-            Either the name of the parameters file to be used or
-            a string which represents the parameters to be used,
-            in the format which is normally given to a python
-            shell command.
-        - parameters_is_file: bool
-            Whether the 'parameters' key is a file name or not.
-        - preferred_parameters: str
-            Parameters which may overwrite those which are
-            fetched from the 'parameters' entry. This key is
-            only present in the following case:
-                - An steering file is not used
-                - The -p, --params argument is defined
-                - Additional (a priori unrecognized) arguments
-                were given to the main program.
-            The value of this key is the string which represents
+            The name of the analysis class to be executed. If
+            an steering file is used, then the analysis name
+            comes from the value of the 'name' sub-key, for each
+            analysis. If an steering file is not used, then the
+            analysis name comes from the value given to the -a,
+            --analysis argument, if such argument is defined.
+            It is set to 'Analysis1' by default, if an steering
+            file is not used and the -a, --analysis argument
+            is not defined.
+        - parameters_file: str
+            If it is a non-empty string, then is interpreted
+            as the name of the file from where to gather the
+            parameters to be used. If it matches "", then no
+            parameters file is used. If an steering file is
+            used, then the parameters-file name comes from
+            the value of the 'parameters_file' sub-key, for
+            each analysis. If an steering file is not used,
+            then the parameters-file name comes from the value
+            given to the -p, --params argument, if defined,
+            or set to "" otherwise.
+        - overwriting_parameters: str
+            An string, in the format which is normally given
+            to a python shell comand, containing the parameters
+            to be used. These parameters should overwrite those
+            which are gotten from the parameters file, if any.
+            If an steering file is used, these parameters
+            come from the value of the 'overwriting_parameters'
+            sub-key, for each analysis. If an steering file is
+            not used, then these parameters are only defined
+            if additional (a priori unrecognized) arguments
+            were given to the main program. In this case, the
+            value of this key is the string which represents
             these unrecognized arguments, following the same
             format in which they appeared in the python command
             which called the main program.
@@ -134,6 +149,13 @@ def get_ordered_list_of_analyses(
                 "In function get_ordered_list_of_analyses(): "
                 "Running with an steering file"
             )
+            
+            if len(remaining_args) > 0:
+                print(
+                    "In function get_ordered_list_of_analyses(): "
+                    "Note that the given additional arguments "
+                    f"({remaining_args}) will be ignored"
+                )
         else:
             print(
                 "In function get_ordered_list_of_analyses(): "
@@ -145,10 +167,10 @@ def get_ordered_list_of_analyses(
         # If an steering file other than the default one is used,
         # we still need to check that it exists in the analysis folder
         # (in the CWD) and that it meets the requirements. I.e. 
-        # WafflesAnalysis.analysis_folder_meets_requirements()
-        # only cares about the default steering file.
+        # analysis_folder_meets_requirements() only cares about
+        # the default steering file.
         if args.steering is not None:
-            WafflesAnalysis._WafflesAnalysis__steering_file_meets_requirements(
+            steering_file_meets_requirements(
                 pathlib.Path(
                     pathlib.Path.cwd(),
                     args.steering
@@ -178,17 +200,9 @@ def get_ordered_list_of_analyses(
                 Loader=yaml.Loader
             )
 
-            # The 'preferred_parameters' key must not be present
-            # in the steering file. We are adding it here for
-            # consistency with the case where an steering file
-            # is not used but the -p, --params argument is given
-            # simultaneously with some spare arguments that are
-            # appended to the shell command.
-            for key in analyses:
-                analyses[key]['preferred_parameters'] = ''
     else:
         if args.analysis is not None:
-            WafflesAnalysis._WafflesAnalysis__check_analysis_class(
+            check_analysis_class(
                 args.analysis,
                 pathlib.Path.cwd()
             )
@@ -221,43 +235,27 @@ def get_ordered_list_of_analyses(
                 is_file=True
             )
 
-            aux_params = args.params
-            aux_parameters_is_file = True
-            aux_preferred_parameters = " ".join(remaining_args)
-
+            aux_parameters_file = args.params
             if verbose:
                 print(
                     "In function get_ordered_list_of_analyses(): "
-                    f"Using specified parameters file '{aux_params}'"
+                    f"Using specified parameters file '{aux_parameters_file}'"
                 )
-
-                if len(aux_preferred_parameters) > 0:
-                    print(
-                        "In function get_ordered_list_of_analyses(): "
-                        f"Using the additionally given arguments "
-                        f"({aux_preferred_parameters}) as preferred parameters"
-                    ) 
-
-        # If no parameters file was given, then
-        # assume that the unrecognized arguments
-        # are the analysis parameters
         else:
-            aux_params = " ".join(remaining_args)
-            aux_parameters_is_file = False
-            aux_preferred_parameters = ""
-
+            aux_parameters_file = ""
             if verbose:
                 print(
                     "In function get_ordered_list_of_analyses(): "
-                    "No parameters file was given."
+                    "No parameters file was given"
                 )
 
-                if len(aux_params) > 0:
-                    print(
-                        "In function get_ordered_list_of_analyses(): "
-                        "Using the additionally given arguments "
-                        f"({aux_params}) as default parameters."
-                    )
+        aux_overwriting_parameters = " ".join(remaining_args)
+        if len(aux_overwriting_parameters) > 0:
+            print(
+                "In function get_ordered_list_of_analyses(): "
+                f"Using the additionally given arguments "
+                f"({aux_overwriting_parameters}) as preferred parameters"
+            )
 
         # Arrange an unique-entry dictionary just to be
         # consistent with the dictionary that is returned
@@ -265,9 +263,8 @@ def get_ordered_list_of_analyses(
         analyses = {
             1:{
                 'name': aux_name,
-                'parameters': aux_params,
-                'parameters_is_file': aux_parameters_is_file,
-                'preferred_parameters': aux_preferred_parameters
+                'parameters_file': aux_parameters_file,
+                'overwriting_parameters': aux_overwriting_parameters
             }
         }
 
@@ -445,7 +442,8 @@ def __build_parameters_dictionary_from_file(
     """This helper function gets the name of a .yml 
     parameters file and creates a dictionary which contains
     all of the variables which were found in the parameters
-    file.
+    file. If the given YAML file is empty, then an
+    empty dictionary is returned.
     
     Parameters
     ----------
@@ -477,11 +475,25 @@ def __build_parameters_dictionary_from_file(
             )
         )
 
-    with open(parameters_file_name, 'r') as file:
-        loaded_dict = yaml.load(
-            file, 
-            Loader=yaml.Loader
+    try:
+        with open(parameters_file_name, 'r') as file:
+            loaded_dict = yaml.load(
+                file, 
+                Loader=yaml.Loader
+            )
+    except yaml.parser.ParserError as e:
+        raise we.WafflesBaseException(
+            we.GenerateExceptionMessage(
+                2,
+                '__build_parameters_dictionary_from_file()',
+                reason=f"The YAML module threw the following "
+                f"error while parsing file '{parameters_file_name}'."
+                f" \n {e}"
+            )
         )
+
+    if loaded_dict is None:
+        loaded_dict = {}
 
     return loaded_dict
 
@@ -528,8 +540,8 @@ def __build_parameters_dictionary_from_shell_string(
     chunks = parameters_shell_string.split()
 
     if not chunks[0].startswith('-'):
-        raise Exception(
-            we.WafflesBaseException(
+        raise we.WafflesBaseException(
+            we.GenerateExceptionMessage(
                 2,
                 '__build_parameters_dictionary_from_shell_string()',
                 reason=f"The first word ('{chunks[0]}') of the given "
@@ -625,12 +637,11 @@ def check_file_or_folder_exists(
     name: str,
     is_file: bool = True
 ) -> None:
-    """This helper static method checks that the given
-    folder contains a file or folder with the given
-    name, up to the input given to the is_file parameter.
-    If it is not found, a FileNotFoundError is raised.
-    If it is found, then the method ends execution
-    normally.
+    """This function checks that the given folder contains
+    a file or folder with the given name, up to the input
+    given to the is_file parameter. If it is not found,
+    a FileNotFoundError is raised. If it is found, then
+    this function ends execution normally.
     
     Parameters
     ----------
@@ -641,7 +652,7 @@ def check_file_or_folder_exists(
         to be checked, if is_file is True 
         (resp. False)
     is_file: bool
-        If True (resp. False), the method
+        If True (resp. False), the function
         checks for the existence of a file
         (resp. folder) with the given name
         in the given folder path.
@@ -681,3 +692,359 @@ def check_file_or_folder_exists(
             )
     return
 
+def check_analysis_class(
+    analysis_name: str,
+    analysis_folder_path: pathlib.Path
+) -> None:
+    """This function gets an analysis name and the
+    path to the folder from which the analysis is
+    being run. It checks that the analysis name
+    follows the format 'Analysis<i>', where i is an
+    integer >=1, and that the file 'Analysis<i>.py'
+    exists in the given folder. If any of these
+    conditions is not met, a
+    waffles.Exceptions.IllFormedAnalysisClass exception
+    is raised. If the given analysis class meets the
+    specified requirements, then this function ends
+    execution normally.
+
+    Parameters
+    ----------
+    analysis_name: str
+        The name of the analysis class to be checked
+    analysis_folder_path: pathlib.Path
+        The path to the folder from which the analysis
+        is being run
+
+    Returns
+    ----------
+    None
+    """
+
+    if not analysis_name.startswith('Analysis'):
+        raise we.IllFormedAnalysisClass(
+            we.GenerateExceptionMessage(
+                1,
+                'check_analysis_class()',
+                reason=f"The analysis class name ({analysis_name}) "
+                "must start with 'Analysis'."
+            )
+        )
+    
+    try:
+        i = int(analysis_name[8:])
+
+    except ValueError:
+        raise we.IllFormedAnalysisClass(
+            we.GenerateExceptionMessage(
+                2,
+                'check_analysis_class()',
+                reason=f"The analysis class name ({analysis_name}) "
+                "must follow the 'Analysis<i>' format, with i being "
+                "an integer."
+            )
+        )
+    else:
+        if i < 1:
+            raise we.IllFormedAnalysisClass(
+                we.GenerateExceptionMessage(
+                    3,
+                    'check_analysis_class()',
+                    reason=f"The integer ({i}) at the end of the "
+                    f"analysis class name ({analysis_name}) must be >=1."
+                )
+            )
+
+    if not pathlib.Path(
+        analysis_folder_path,
+        analysis_name + '.py'
+    ).exists():
+        
+        raise we.IllFormedAnalysisClass(
+            we.GenerateExceptionMessage(
+                4,
+                'check_analysis_class()',
+                reason=f"The file '{analysis_name}.py' must exist "
+                f"in the analysis folder ({analysis_folder_path})."
+            )
+        )
+    
+    return
+
+def steering_file_meets_requirements(
+    steering_file_path: pathlib.Path
+) -> None:
+    """This function checks that the given path points
+    to an existing file, whose name ends with '.yml' and
+    that this (assumed YAML) file abides by the following
+    structure:
+
+        - It contains at least one key
+        - Its keys are consecutive integers starting
+        from 1
+        - The sub-keys of each key are 'name',
+        'parameters_file' and 'overwriting_parameters'
+        - The value for each 'name' sub-keys is an
+        string, say x, that meets the following
+        sub-requirements:
+            - x follows the format "Analysis<i>", where
+            i is an integer >=1
+            - the file 'x.py' exists alongside the
+            steering file
+        - The value for each 'parameters_file' sub-keys
+        is an string. If it is different from an emtpy
+        string, then it is interpreted as the name
+        of a parameters file which must exist alongside
+        the steering file. If it is an empty string,
+        then it is assumed that no parameters file was
+        given, and this parameter is ignored.
+        - The value for each 'overwriting_parameters'
+        sub-keys is an string, which is interpreted as
+        the string that would be given as part of a
+        shell command. The parameter values extracted
+        from this string should overwrite those gotten
+        from the parameters file, if any. If this value
+        is an empty string, then no parameters are
+        overwritten.
+
+    If any of these conditions is not met, a
+    waffles.Exceptions.IllFormedSteeringFile exception
+    is raised. If the given steering file meets the
+    specified requirements, then this function ends
+    execution normally.
+
+    Parameters
+    ----------
+    steering_file_path: pathlib.Path
+        The path to the steering file to be checked.
+        It is assumed to be a YAML file.
+
+    Returns
+    ----------
+    None
+    """
+
+    if not steering_file_path.exists():
+        raise we.IllFormedSteeringFile(
+            we.GenerateExceptionMessage(
+                1,
+                'steering_file_meets_requirements()',
+                reason=f"The file '{steering_file_path}' does not exist."
+            )
+        )
+
+    if steering_file_path.suffix != '.yml':
+        raise we.IllFormedSteeringFile(
+            we.GenerateExceptionMessage(
+                2,
+                'steering_file_meets_requirements()',
+                reason=f"The file '{steering_file_path}' must have a '.yml' "
+                "extension."
+            )
+        )
+
+    with open(
+        steering_file_path,
+        'r'
+    ) as file:
+        
+        content = yaml.load(
+            file, 
+            Loader=yaml.Loader
+        )
+
+    if not isinstance(content, dict):
+        raise we.IllFormedSteeringFile(
+            we.GenerateExceptionMessage(
+                3,
+                'steering_file_meets_requirements()',
+                reason="The content of the given steering file must be a "
+                "dictionary."
+            )
+        )
+    
+    if len(content) == 0:
+        raise we.IllFormedSteeringFile(
+            we.GenerateExceptionMessage(
+                4,
+                'steering_file_meets_requirements()',
+                reason="The given steering file must contain at "
+                "least one key."
+            )
+        )
+    
+    keys = list(content.keys())
+    keys.sort()
+
+    if keys != list(range(1, len(keys) + 1)):
+        raise we.IllFormedSteeringFile(
+            we.GenerateExceptionMessage(
+                5,
+                'steering_file_meets_requirements()',
+                reason="The keys of the given steering file must "
+                "be consecutive integers starting from 1."
+            )
+        )
+    
+    for key in keys:
+        if not isinstance(content[key], dict):
+            raise we.IllFormedSteeringFile(
+                we.GenerateExceptionMessage(
+                    6,
+                    'steering_file_meets_requirements()',
+                    reason=f"The value of the key {key} must be a "
+                    "dictionary."
+                )
+            )
+
+        for aux in ('name', 'parameters_file', 'overwriting_parameters'):
+
+            if aux not in content[key].keys():
+                raise we.IllFormedSteeringFile(
+                    we.GenerateExceptionMessage(
+                        7,
+                        'steering_file_meets_requirements()',
+                        reason=f"The key {key} must contain a '{aux}' key."
+                    )
+                )
+
+            if not isinstance(
+                content[key][aux],
+                str
+            ):
+                raise we.IllFormedSteeringFile(
+                    we.GenerateExceptionMessage(
+                        8,
+                        'steering_file_meets_requirements()',
+                        reason=f"The value of the '{aux}' sub-key of the key "
+                        f"{key} must be an string."
+                    )
+                )
+            
+        check_analysis_class(
+            content[key]['name'],
+            steering_file_path.parent
+        )
+
+        if content[key]['parameters_file'] != '':
+            check_file_or_folder_exists(
+                steering_file_path.parent,
+                content[key]['parameters_file'],
+                is_file=True
+            )
+
+    return
+
+def analysis_folder_meets_requirements():
+    """This function checks that the folder structure of
+    the folder from which the analysis is being executed
+    follows the required structure. It will raise a 
+    waffles.Exceptions.IllFormedAnalysisFolder exception
+    otherwise. The list of the checked requirements is
+    the following:
+
+    1) The folder contains a file called 'steering.yml',
+    which specifies, by default, the order in which
+    different analysis (if many) should be executed and
+    which parameters to use for each analysis stage. This
+    file must be a YAML file which must follow the
+    structure described in the
+    steering_file_meets_requirements() function docstring.
+    2) The folder contains a file called 'utils.py',
+    which may contain utility functions used by the
+    analysis.
+    3) The folder contains a file called 'params.yml',
+    which contains the input parameters used, by default,
+    by the analysis.
+    4) The folder contains a file called 'imports.py',
+    which contains the imports needed by the analysis.
+    5) The folder contains a file called 'Analysis1.py',
+    where 'Analysis1' is the name of the analysis class
+    which implements the first (and possibly the unique)
+    analysis stage. It gives the analysis to be executed
+    by default.
+    6) The folder contains a sub-folder called 'configs',
+    which may contain configuration files which are not
+    as volatile as the input parameters.
+    7) The folder contains a sub-folder called 'output',
+    which is meant to store the output of the first
+    (and possibly unique) analysis stage, and possibly
+    the inputs and outputs for the rest of the analysis
+    stages.
+
+    The function also checks whether sub-folders called
+    'data' and 'scripts' exist. If they don't exist
+    an exception is not raised, but a warning message
+    is printed.
+    """
+
+    analysis_folder_path = pathlib.Path.cwd()
+
+    steering_file_meets_requirements(
+        pathlib.Path(
+            analysis_folder_path,
+            'steering.yml'
+        )
+    )
+
+    check_file_or_folder_exists(
+        analysis_folder_path,
+        'utils.py',
+        is_file=True
+    )
+
+    check_file_or_folder_exists(
+        analysis_folder_path,
+        'params.yml',
+        is_file=True
+    )
+
+    check_file_or_folder_exists(
+        analysis_folder_path,
+        'imports.py',
+        is_file=True
+    )
+
+    check_file_or_folder_exists(
+        analysis_folder_path,
+        'Analysis1.py',
+        is_file=True
+    )
+
+    check_file_or_folder_exists(
+        analysis_folder_path,
+        'configs',
+        is_file=False
+    )
+
+    check_file_or_folder_exists(
+        analysis_folder_path,
+        'output',
+        is_file=False
+    )
+
+    try:
+        check_file_or_folder_exists(
+            analysis_folder_path,
+            'data',
+            is_file=False
+        )
+    except FileNotFoundError:
+        print(
+            "In function analysis_folder_meets_requirements(): "
+            "A 'data' folder does not exist in the analysis folder."
+        )
+
+    try:
+        check_file_or_folder_exists(
+            analysis_folder_path,
+            'scripts',
+            is_file=False
+        )
+    except FileNotFoundError:
+        print(
+            "In function analysis_folder_meets_requirements(): "
+            "An 'scripts' folder does not exist in the analysis folder."
+        )
+    
+    return

@@ -1,0 +1,21 @@
+# Path to the folder containing the data
+input_path: 'data'
+
+# path to the file containing the PDS data (WaveformSet)
+#wfs_input_path: '028707_10935_50files_wfset_raw.pkl'
+#wfs_input_path: '028707_109_30-37_20files_wfset_raw.pkl'
+wfs_input_path: '028676_109_30-37_20files_wfset_raw.pkl'
+
+# path to the file containing the beam info data
+beam_input_path: '028676_20files_beam.root'
+#beam_input_path: '028707_100files_beam.root'
+
+# Path to the file where the events will be saved
+events_output_path: 'output/events.pkl'
+
+# Path to the file where the event summary will be saved
+events_summary_output_path: 'output/events_summary.root'
+
+# time interval around the beam time to define the event [-delta_time, +delta_time]
+# units are in time ticks (1 tick = 16 ns)
+delta_time: 1024
