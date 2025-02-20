@@ -29,7 +29,7 @@ class Analysis1(WafflesAnalysis):
                                 description= "Main channel that the code will search for coincidences in the other channels")
             main_endpoint:  int =  Field(default=-1,          
                                 description= "Main endpoin that the code will search for coincidences in the other channels")
-            file_name:      str =  Field(default="data/list_file.txt",          
+            input_path:      str =  Field(default="./data/list_file.txt",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="output",          
                                 description= "Output folder to save the correlated channels")
@@ -48,7 +48,7 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
 
         endpoints_len=len(self.params.endpoints)
-        chs_len=len(self.params.channel)
+        chs_len=len(self.params.channels)
 
         if endpoints_len != chs_len:
             raise ValueError("The size of the endpoints list is different from the size of the channels list")
@@ -61,7 +61,7 @@ class Analysis1(WafflesAnalysis):
         self.list_channels=self.params.channels
 
         print("Channels that will read:")
-        for n,endpoint,ch in enumerate(zip(self.list_endpoints,self.list_channels)):
+        for n, (endpoint, ch) in enumerate(zip(self.list_endpoints, self.list_channels)):
             if check_endpoint_and_channel(endpoint,ch):
                 print(f"{endpoint}-{ch}")
             else:
@@ -80,14 +80,14 @@ class Analysis1(WafflesAnalysis):
 
         if check_endpoint_and_channel(self.main_endpoint,self.main_channel):
             if self.main_endpoint == self.list_endpoints[0] and  self.main_channel == self.list_channels[0]:
-                print(f"Master channel to search for coincidences: {self.main_endpoint}-{self.main_endpoint}")
+                print(f"Master channel to search for coincidences: {self.main_endpoint}-{self.main_channel}")
             else:
                 raise ValueError(f"The channel {self.main_endpoint}-{self.main_channel} is not the first channel given")
 
         else:
             raise ValueError(f"The channel {self.main_endpoint}-{self.main_channel} to check for coincidendes dont exist")
 
-        self.file_name=self.params.file_name
+        self.file_name=self.params.input_path
         print(f"File name: {self.file_name}")
 
         self.time_window=self.params.time_window
