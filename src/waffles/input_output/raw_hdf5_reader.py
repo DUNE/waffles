@@ -491,17 +491,10 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                                   starting_tick=0))
                         saved_wvfms += 1
                         if saved_wvfms >= wvfm_count:
-
                             if truncate_wfs_to_minimum:
-                                minimum_length = np.array(
-                                    [len(wf.adcs) for wf in waveforms]
-                                ).min()
-
-                                for wf in waveforms:
-                                    wf._WaveformAdcs__slice_adcs(
-                                        0,
-                                        minimum_length
-                                    )
+                                wiu.__truncate_waveforms_to_minimum_length_in_WaveformSet(
+                                    waveforms
+                                )
 
                             if fUsedXRootD and erase_temporal_copy:
                                 os.remove(filepath)
@@ -510,15 +503,10 @@ def WaveformSet_from_hdf5_file(filepath : str,
                     wvfm_index += 1
                     
     if truncate_wfs_to_minimum:
-        minimum_length = np.array(
-            [len(wf.adcs) for wf in waveforms]
-        ).min()
+        wiu.__truncate_waveforms_to_minimum_length_in_WaveformSet(
+            waveforms
+        )
 
-        for wf in waveforms:
-            wf._WaveformAdcs__slice_adcs(
-                0,
-                minimum_length
-            )
     if fUsedXRootD and erase_temporal_copy:
         os.remove(filepath)
     return WaveformSet(*waveforms)
