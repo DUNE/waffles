@@ -52,6 +52,9 @@ class Analysis2(WafflesAnalysis):
 
             min_fprompt: float = Field(..., description= "min fprompt allowed")
             max_fprompt: float = Field(..., description= "max fprompt allowed")
+
+            params_print:      list = Field(default=[],          
+                            description="list of params to plot the graphs")
             
         return InputParams
     
@@ -104,6 +107,7 @@ class Analysis2(WafflesAnalysis):
         self.min_fprompt = self.params.min_fprompt
         self.max_fprompt = self.params.max_fprompt
 
+        self.params_print = self.params.params_print
 
 
     ##################################################################
@@ -126,7 +130,7 @@ class Analysis2(WafflesAnalysis):
         input_parameters['baseline_ul'] =  self.baseline_limits[1]
         input_parameters['zero_ll'] =  self.zero_crossing_limits[0]
         input_parameters['t0_wf_ul'] =  self.t0
-        input_parameters['zero_ul'] =  self.zero_crossing_limits[0]
+        input_parameters['zero_ul'] =  self.zero_crossing_limits[1]
         input_parameters['int_ll'] =  self.integral_limits[0]
         input_parameters['int_ul'] =  self.integral_limits[1]
         input_parameters['amp_ll'] =  self.amplitude_limits[0]
@@ -148,11 +152,29 @@ class Analysis2(WafflesAnalysis):
                                     overwrite = True)
 
        
+
+        self.fig = [[[] for _ in range(len(self.params_print))] for _ in range(self.n_run)]
+
+        bins=100
+        for i in range(self.n_run):
+            for j in range(len(self.params_print)):
+                dicionario = {
+                    "bins":bins,
+                    "xlabel": self.params_print[j],
+                    "ylabel": "Entries",
+                    "title_fig": "My Figure",
+                    "name":  self.params_print[j]
+                    }
+                self.fig[i][j]=start_plot(4)
+                for k in range(self.n_channel):
+                    generic_plot_APA(self.fig[i][j],self.wfsets[i][k],4,"minha_analise", self.params_print[j],dicionario)
+
+
         #filter based on the parameters
         for i,wfset in enumerate(self.wfsets):
             for channel in range(self.n_channel):
                 try:
-                
+
                     wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_noise, analysis_label="minha_analise",parameter_label="noise")
                     wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_baseline, min=self.min_baseline, analysis_label="minha_analise",parameter_label="baseline")
                     wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_amplitude, min=self.min_amplitude, analysis_label="minha_analise",parameter_label="amplitude")
@@ -165,10 +187,34 @@ class Analysis2(WafflesAnalysis):
                 except:
                     pass
 
+        self.fig_filt = [[[] for _ in range(len(self.params_print))] for _ in range(self.n_run)]
+
+        bins=100
+        for i in range(self.n_run):
+            for j in range(len(self.params_print)):
+                dicionario = {
+                    "bins":bins,
+                    "xlabel": self.params_print[j],
+                    "ylabel": "Entries",
+                    "title_fig": "My Figure",
+                    "name":  self.params_print[j]
+                    }
+                self.fig_filt[i][j]=start_plot(4)
+                for k in range(self.n_channel):
+                    generic_plot_APA(self.fig_filt[i][j],self.wfsets[i][k],4,"minha_analise", self.params_print[j],dicionario)
+
         return True
     
     def write_output(self) -> bool:
         output_file=self.output + "/data_filtered_2.pkl"       
         with open(output_file, "wb") as file:
             pickle.dump(self.wfsets, file)
+
+        output_plot=self.output + "/plot/"
+        #save_waveforms
+        for i in range(self.n_run):
+            for j in range(len(self.params_print)):
+                self.fig[i][j].write_image(output_plot+f"plot_{i}_{self.params_print[j]}.png")
+                self.fig_filt[i][j].write_image(output_plot+f"plot_{i}_{self.params_print[j]}_filtered.png")
+
         return True

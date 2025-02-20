@@ -20,10 +20,13 @@ max_amplitude: 7400
 min_amplitude: 0
 min_t0: 50
 max_t0: 60
-min_zero_crossing: 100
-max_zero_crossing: 128
+min_zero_crossing: 0
+max_zero_crossing: 150
 min_fprompt: 0
 max_fprompt: 1
+
+params_print: ["integral" , "baseline" , "t0", "zero_crossing", "amplitude" , "noise" , "fprompt"]
+
 
 #for deconvolution and calculate avg waveform
 template_file: "./data/template/SPE_Template_run28370_APA4_CH2_PDHD_hpk_Nov2024.txt"

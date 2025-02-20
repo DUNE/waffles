@@ -4,6 +4,10 @@ import numpy as np
 import yaml
 import importlib
 from pathlib import Path
+from plotly import graph_objects as pgo
+from plotly.subplots import make_subplots
+
+
 
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
@@ -18,6 +22,7 @@ from waffles.np04_analysis.light_vs_hv.utils import get_ordered_timestamps
 from waffles.np04_analysis.light_vs_hv.utils import get_all_double_coincidences, get_all_coincidences, get_level_coincidences
 from waffles.np04_analysis.light_vs_hv.utils import filter_not_coindential_wf
 from waffles.np04_analysis.light_vs_hv.utils import from_generic
+from waffles.np04_analysis.light_vs_hv.utils import start_plot, generic_plot_APA
 
 from waffles.np04_analysis.light_vs_hv.ZeroCrossingAna import ZeroCrossingAna
 

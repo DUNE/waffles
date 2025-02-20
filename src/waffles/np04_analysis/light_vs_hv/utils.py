@@ -140,3 +140,213 @@ def from_generic(waveform : Waveform, max=None, min=None, analysis_label=None, p
             return True
         else:
             return False
+
+
+
+
+def generic_plot_ch(wfset,
+                 analysis_label,
+                 param_label,
+                 fig,
+                 config_param,
+                 ch,
+                 endpoint,
+                 param_label_y=None):
+    
+        filter_wfset=WaveformSet.from_filtered_WaveformSet( wfset, comes_from_channel, endpoint, [ch])
+        generic_plot(filter_wfset,analysis_label,param_label,fig,config_param,param_label_y)
+
+def generic_plot(wfset,
+                 analysis_label,
+                 param_label,
+                 fig,
+                 config_param,
+                 param_label_y=None):
+    
+    #preparing_data
+    data=[]
+    for n in range(len(wfset.waveforms)):
+        data.append(wfset.waveforms[n].analyses[analysis_label].result[param_label])
+
+    try:
+        start=config_param["start"]
+    except:
+        start=np.min(data)
+
+    try:
+        end=config_param["end"]
+    except:
+        end=np.max(data)
+    
+    try:
+        bins=config_param["bins"]
+    except:
+        bins=100
+    
+    try:
+        color=config_param["color"]
+    except:
+        color="rgba(0, 0, 255, 0.7)"
+
+    try:
+        name=config_param["name"]
+    except:
+        name=param_label
+    
+    try:
+        title_fig=config_param["title_fig"]
+    except:
+        title_fig=None
+
+    try: 
+        xlabel=config_param["xlabel"]
+    except:
+        xlabel=None
+    try: 
+        ylabel=config_param["ylabel"]
+    except:
+        ylabel=None
+
+    
+    try:
+        if config_param["norm"]==True:
+            histnorm='probability density'
+        else:
+            histnorm=None
+    except:
+        histnorm=None
+
+    if param_label_y == None:
+        # Adicionar histograma
+        fig.add_trace(pgo.Histogram(
+        x=data,
+        xbins=dict(
+            start=start,  # Início do intervalo de bins
+            end=end,    # Fim do intervalo de bins
+            size=(end-start) / bins  # Tamanho de cada bin
+        ),
+        marker=dict(color=color),
+        name=name,
+        histnorm=histnorm
+        ))
+
+        fig.update_layout(
+            title=title_fig,
+            xaxis_title=xlabel,  # Rótulo do eixo x
+            yaxis_title=ylabel,  # Rótulo do eixo y
+            showlegend=True
+        )
+    
+    else:
+        #preparing_data
+        data_y=[]
+        for n in range(len(wfset.waveforms)):
+            data_y.append(wfset.waveforms[n].analyses[analysis_label].result[param_label_y])
+
+        try:
+            start_y=config_param["start_y"]
+        except:
+            start_y=np.min(data_y)
+
+        try:
+            end_y=config_param["end_y"]
+        except:
+            end_y=np.max(data_y)
+        
+        try:
+            bins_y=config_param["bins_y"]
+        except:
+            bins_y=100
+
+        fig.add_trace(pgo.Histogram2d(
+            x=data,
+            y=data_y,
+            xbins=dict(
+                start=start,  # Início do intervalo de bins
+                end=end,    # Fim do intervalo de bins
+                size=(end-start) / bins  # Tamanho de cada bin
+            ),
+            ybins=dict(
+                start=start_y,  # Início do intervalo de bins
+                end=end_y,    # Fim do intervalo de bins
+                size=(end_y-start_y) / bins_y  # Tamanho de cada bin
+            ),
+            colorscale="Viridis",
+            coloraxis="coloraxis",  # Associate color scale with the plot
+            name=name,
+            ))
+
+
+        fig.update_layout(
+            title=title_fig,
+            xaxis_title=xlabel,  # Rótulo do eixo x
+            yaxis_title=ylabel,  # Rótulo do eixo y
+            coloraxis_colorbar_title='Count',
+            showlegend=True
+        )
+
+
+def start_plot(APA):
+    titles = [f"Endpoint {APA_map[APA].data[i][j].endpoint} - Channel {APA_map[APA].data[i][j].channel}" 
+              for i in range(10) for j in range(4)] 
+    fig = make_subplots(rows=10, cols=4,subplot_titles=titles)
+    return fig
+
+
+def generic_plot_APA(fig,
+                     wfset,
+                     APA,
+                     analysis_label,
+                     param_label,
+                     config_param,
+                     param_label_y=None):
+    try:
+        name_label=config_param["name"]
+    except:
+        name_label=param_label
+    
+
+    for i in range(10):
+        for j in range(4):
+            endpoint=APA_map[APA].data[i][j].endpoint
+            ch=APA_map[APA].data[i][j].channel
+            
+            try:
+                #filter_wfset=WaveformSet.from_filtered_WaveformSet( wfset, comes_from_channel, 112, [6])
+                
+                filter_wfset=WaveformSet.from_filtered_WaveformSet( wfset, comes_from_channel, endpoint, [ch])
+                fig_aux = pgo.Figure()
+                config_param["name"]=name_label+"_"+str(endpoint)+"-"+str(ch)
+
+                generic_plot(filter_wfset,analysis_label,param_label,fig_aux,config_param,param_label_y)
+                for trace in fig_aux.data:
+                    fig.add_trace(trace, row=i+1, col=j+1)
+            except:
+                None
+                #print(f"no waveforms found in {endpoint}-{ch}")
+    
+    try:
+        title_fig=config_param["title_fig"]
+    except:
+        title_fig=param_label
+
+
+    # Atualizar os eixos x e y para cada subplot
+    for i in range(10):
+        for j in range(4):
+            try:
+                fig.update_xaxes(title_text=config_param["xlabel"], row=i+1, col=j+1)
+            except:
+                pass
+            try:
+                fig.update_yaxes(title_text=config_param["ylabel"], row=i+1, col=j+1)
+            except:
+                pass
+
+
+    fig.update_layout(
+        height=2000,  # Ajustar a altura conforme necessário
+        width=1200,   # Ajustar a largura conforme necessário
+        title_text=title_fig,
+        showlegend=False
+    )
