@@ -1,10 +1,10 @@
 # --- IMPORTS -------------------------------------------------------
 import waffles
+import os
 import yaml
 import numpy as np
 import pandas as pd
-# import noisy_function as nf
-import waffles.np04_analysis.noise_studies.noisy_function as nf
+import noisy_function as nf
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
@@ -17,13 +17,13 @@ if __name__ == "__main__":
     run_vgain_dict   = run_info.get("run_vgain_dict", {})
     channel_map_file = run_info.get("channel_map_file")
     all_noise_runs   = list(run_vgain_dict.keys())
+    integratorsON_runs = run_info.get("integratorsON_runs", [])
 
     # Setup variables according to the user_config.yaml file
     with open("params.yml", 'r') as stream:
         user_config = yaml.safe_load(stream)
 
     out_writing_mode = user_config.get("out_writing_mode")
-    out_path  = user_config.get("out_path")
     full_stat = user_config.get("full_stat")
     runs      = user_config.get("user_runs", [])
     if (len(runs) == 0):
@@ -41,30 +41,22 @@ if __name__ == "__main__":
 
 
     # File where the results will be printed (run, vgain, endpoint, channel, offline_channel, rms)
-    my_csv_file = open(out_path+"Noise_Studies_Results.csv", out_writing_mode)
+    my_csv_file = open("output/Noise_Studies_Results.csv", out_writing_mode)
 
-    # Missing file lists
-    missing_txtfiles = []
-    missing_hdf5files = []
 
     # --- LOOP OVER RUNS ----------------------------------------------
     for run in runs:
-        filetxt_exists = True
-        filehdf5_exists = True
         print("Reading run: ", run)
         wfset_run = nf.read_waveformset(filepath_folder,
                                         run,
-                                        filetxt_exists=filetxt_exists,
-                                        filehdf5_exists=filehdf5_exists,
                                         full_stat=full_stat)
-        if not filetxt_exists:
-            missing_txtfiles.append(run)
-            continue
-        if not filehdf5_exists:
-            missing_hdf5files.append(run)
-            continue
 
         endpoints = wfset_run.get_set_of_endpoints()
+        
+        integrator_ON = False
+        if run in integratorsON_runs:
+            integrator_ON = True
+
 
         # --- LOOP OVER ENDPOINTS -------------------------------------
         for ep in endpoints:
@@ -106,11 +98,19 @@ if __name__ == "__main__":
                 
                 # print run, vgain, ep, ch, offline_ch, rms in a csv file
                 my_csv_file.write(f"{run},{vgain},{ep},{ch},{offline_ch},{rms}\n")
-                # print the FFT in a txt file
-                np.savetxt(out_path+"/FFT_txt/fft_run_"+str(run)+"_vgain_"
-                           +str(vgain)+"_ch_"+str(channel)+"_offlinech_"
-                           +str(offline_ch)+".txt", fft2_avg[0:513])
-                my_csv_file.close()
 
-    print("Missing txt files: ", missing_txtfiles)
-    print("Missing hdf5 files: ", missing_hdf5files)
+                # Check wheter the folder FFT_txt exists in the "output" folder
+                if not os.path.exists("output/FFT_txt"):
+                    os.makedirs("output/FFT_txt")
+
+                # print the FFT in a txt file
+                print("Writing FFT to txt file")
+                integrator = "OFF"
+                if integrator_ON:
+                    integrator = "ON"
+                np.savetxt("output/FFT_txt/fft_run_"+str(run)
+                           +"_int_"+integrator
+                           +"_vgain_"+str(vgain)
+                           +"_ch_"+str(channel)
+                           +"_offlinech_"+str(offline_ch)+".txt", fft2_avg[0:513])
+                print("done")

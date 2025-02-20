@@ -28,7 +28,8 @@ user_runs: [
 # user_runs: [31940]
 #
 # Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
-out_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
+out_path: "./"
+# out_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
 
 # ---------------------------------------------------------------------
 # --- ANALYSIS 2 PARAMETERS -------------------------------------------
