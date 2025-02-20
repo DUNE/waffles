@@ -13,10 +13,12 @@ except ImportError:
         "'pyroot' library options will not be available."
     )
     ROOT_IMPORTED = False
+    pass
 
 from typing import Union, List, Tuple, Optional
 
 from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.BeamInfo import BeamInfo
 import waffles.utils.numerical_utils as wun
 import waffles.Exceptions as we
 
@@ -1058,3 +1060,164 @@ def write_permission(directory_path: str) -> bool:
 
     except (OSError, PermissionError):
         return False
+
+
+
+def __build_beam_list_from_root_file_using_pyroot(
+    nentries: int,
+    bulk_data_tree: 'ROOT.TTree',
+    verbose: bool = True
+) -> List[BeamInfo]:
+    """This is a helper function which must only be called by
+    the BeamInfo_from_root_file() function. This function
+    reads a subset of waveforms from theCreate a list of
+    BeamInfo objects reading a root file. 
+    When the pyroot library is specified, BeamInfo_from_root_file()
+    delegates such task to this helper function.
+
+    Parameters
+    ----------
+    nentries: int
+        the number of entries of the root tree
+    bulk_data_tree: ROOT.TTree
+        The root tree containing the beam information
+    verbose: bool
+        Currently not used
+    
+    Returns
+    ----------
+    List[BeamInfo]: list of BeamInfo objects
+    """
+
+    evt_address     = get_branch_address(bulk_data_tree, 'Event', 'I')        
+    run_address     = get_branch_address(bulk_data_tree, 'Run', 'I')    
+    tof_address     = get_branch_address(bulk_data_tree, 'TOF', 'D')
+    C0_address      = get_branch_address(bulk_data_tree, 'C0',  'I')
+    C1_address      = get_branch_address(bulk_data_tree, 'C1',  'I')
+    P_address       = get_branch_address(bulk_data_tree, 'P',   'D')
+    acqTime_address = get_branch_address(bulk_data_tree, 'acqTime',   'D')
+    Time_address    = get_branch_address(bulk_data_tree, 'Time',   'l')
+    RDTS_address    = get_branch_address(bulk_data_tree, 'RDTS',   'l')    
+
+    beam_infos = []
+
+    for idx in range(nentries):
+        bulk_data_tree.GetEntry(int(idx+1))
+        beam_infos.append(BeamInfo(run_address[0],
+                                   evt_address[0],
+                                   RDTS_address[0],
+                                   P_address[0],
+                                   tof_address[0],
+                                   C0_address[0],
+                                   C1_address[0]))
+        
+    bulk_data_tree.ResetBranchAddresses()
+    
+    return beam_infos
+
+
+def __build_beam_list_from_root_file_using_uproot(
+    nentries: int,
+    bulk_data_tree: uproot.TTree,
+    verbose: bool = True
+) -> List[BeamInfo]:
+    """This is a helper function which must only be called by
+    the BeamInfo_from_root_file() function. This function
+    reads a subset of waveforms from theCreate a list of
+    BeamInfo objects reading a root file. 
+    When the uproot library is specified, BeamInfo_from_root_file()
+    delegates such task to this helper function.
+
+    Parameters
+    ----------
+    nentries: int
+        the number of entries of the root tree
+    bulk_data_tree: uproot.TTree
+        The root tree containing the beam information
+    verbose: bool
+        Currently not used
+    
+    Returns
+    ----------
+    List[BeamInfo]: list of BeamInfo objects
+    """
+
+    evt_array     = get_branch_array_uproot(bulk_data_tree, nentries, 'Event') 
+    run_array     = get_branch_array_uproot(bulk_data_tree, nentries, 'Run')
+    tof_array     = get_branch_array_uproot(bulk_data_tree, nentries, 'TOF') 
+    C0_array      = get_branch_array_uproot(bulk_data_tree, nentries, 'C0')  
+    C1_array      = get_branch_array_uproot(bulk_data_tree, nentries, 'C1')  
+    P_array       = get_branch_array_uproot(bulk_data_tree, nentries, 'P')   
+    acqTime_array = get_branch_array_uproot(bulk_data_tree, nentries, 'acqTime')
+    Time_array    = get_branch_array_uproot(bulk_data_tree, nentries, 'Time')
+    RDTS_array    = get_branch_array_uproot(bulk_data_tree, nentries, 'RDTS')
+
+    beam_infos = []
+
+    for idx in range(len(evt_array)):
+        beam_infos.append(BeamInfo(run_array[idx],
+                                   evt_array[idx],
+                                   RDTS_array[idx],
+                                   P_array[idx],
+                                   tof_array[idx],
+                                   C0_array[idx],
+                                   C1_array[idx]))
+
+    return beam_infos
+
+def get_branch_array_uproot(
+        bulk_data_tree: uproot.TTree,
+        nentries: int,
+        branch_name: str
+):
+
+    """This is a helper function gets the branch array
+    with a given name for a uproot.Tree
+
+    Parameters
+    ----------
+    bulk_data_tree: uproot.TTree
+        The root tree 
+    branch_name: str
+        The name of the root tree branch
+    
+    Returns
+    ----------
+    
+    """
+    
+    branch, branch_exact_name = find_tbranch_in_root_ttree(bulk_data_tree, branch_name, 'uproot')
+    branch_array = branch.array(entry_start=0,entry_stop=nentries)
+
+    return branch_array
+
+
+def get_branch_address(
+    bulk_data_tree: 'ROOT.TTree',
+    branch_name: str,
+    branch_type: str
+):
+    """This is a helper function gets the branch address
+    with a given name and type for a ROOT.Tree
+
+    Parameters
+    ----------
+    bulk_data_tree: ROOT.TTree
+        The root tree 
+    branch_name: str
+        The name of the root tree branch
+    branch_type: str
+        The type of the root tree branch    
+    
+    Returns
+    ----------
+    
+    """
+
+    
+    _, branch_exact_name = find_tbranch_in_root_ttree(bulk_data_tree, branch_name, 'pyroot')
+    branch_address = array.array(root_to_array_type_code(branch_type), [0])
+    bulk_data_tree.SetBranchAddress(branch_exact_name, branch_address)
+
+    
+    return branch_address
