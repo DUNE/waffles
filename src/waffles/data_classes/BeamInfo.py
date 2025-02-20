@@ -2,6 +2,38 @@ import numpy as np
 from typing import List
 
 class BeamInfo():
+    """This class implements a BeamInfo, containing information
+    about the beam particle, such as time of flight, momentum, cherenkov
+    bits, etc
+
+    Attributes
+    ----------
+    run: int
+        run number
+
+    evt: 
+        event number
+
+    t: int
+        timestamp of the event, it coincides with the daq_window_timestamp
+
+    p: float
+        beam particle momentum
+
+    tof: float
+        beam particle time of flight
+
+    c0: float
+        low pressure cerenkov bit
+
+    c0: float
+        hight pressure cerenkov bit
+    
+    
+    Methods
+    ----------
+    ## Add the list of methods and a summary for each one here
+    """
 
     def __init__(
         self,

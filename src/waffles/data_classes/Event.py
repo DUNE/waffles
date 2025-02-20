@@ -4,6 +4,38 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from typing import List
 
 class Event():
+    """This class implements a Event.
+
+    Attributes
+    ----------
+    channel_grids: List[ChannelWsGrid] NOT YET FULLY FUNCTIONAL
+        Is meant con contain an organised set of WaveformSets, for
+        each channel, all of them belonging to the event
+    
+    wset: WaveformSet
+        The WaveformSet containing all waveforms associated to this event
+
+    ref_timestamp: int
+        is the reference time for the event
+        (for beam events it coincides with the daq_window_timestamp)
+
+    first_timestamp: int
+        the timestamp of the first waveform iun the WaveformSet
+
+    last_timestamp: int
+        the timestamp of the last waveform iun the WaveformSet
+
+    run_number: int
+
+    record_number: int
+
+    event_number: int
+    
+    
+    Methods
+    ----------
+    ## Add the list of methods and a summary for each one here
+    """
 
     def __init__(
         self, 

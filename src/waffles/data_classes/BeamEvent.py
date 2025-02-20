@@ -5,6 +5,18 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from typing import List
 
 class BeamEvent(Event):
+    """This class implements a BeamEvent. It inherits from Event and
+    extends the base class with beam information (BeamInfo)
+
+    Attributes
+    ----------
+    beam_info: BeamInfo
+        Information about the particle generating this event
+
+    Methods
+    ----------
+    ## Add the list of methods and a summary for each one here
+    """
 
     def __init__(
         self,
@@ -18,7 +30,6 @@ class BeamEvent(Event):
         record_number: int = 0,
         event_number: int = 0):
         
-
 
         # Shall we add add type checks here?
 
