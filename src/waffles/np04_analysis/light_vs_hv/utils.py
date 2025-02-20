@@ -114,7 +114,29 @@ def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp
 
     return wfsets
 
-def write_output(self) -> bool:
+def from_generic(waveform : Waveform, max=None, min=None, analysis_label=None, parameter_label=None) ->bool :
 
-      
+    if parameter_label==None:
+        print("didnt sent any parameter to filter")
         return True
+    if analysis_label==None:
+        print("didnt sent any analysis label to look")
+        return True
+
+    if max==None:
+        if min==None:
+            return True
+        elif waveform.analyses[analysis_label].result[parameter_label] < min:
+            return False
+        else: 
+            return True
+    elif min == None:
+        if waveform.analyses[analysis_label].result[parameter_label] > max:
+            return False
+        else:
+            return True
+    else: 
+        if waveform.analyses[analysis_label].result[parameter_label] <= max and waveform.analyses[analysis_label].result[parameter_label] >= min:
+            return True
+        else:
+            return False

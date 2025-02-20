@@ -1,7 +1,18 @@
-# Step 1. Filter the waveforms by the numver of coincidences
+# Step 1. Filter the waveforms by the number of coincidences
 1:
   name: "Analysis1"
   parameters_file: "params.yml"
   overwriting_parameters: ""
 
+#Step 2. Calculate parameters 
+2:
+  name: "Analysis2"
+  parameters_file: "params.yml"
+  overwriting_parameters: ""
+
+#Step 3. Calculate parameters 
+3:
+  name: "Analysis3"
+  parameters_file: "params.yml"
+  overwriting_parameters: ""
 

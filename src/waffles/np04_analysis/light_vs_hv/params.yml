@@ -3,7 +3,7 @@
 endpoints: [112,112,112,112,113,112,112,112,112,112]
 channels: [0,6,10,16,0,27,21,37,31,47]
 
-
+#For calculating the parameters of the waveforms
 baseline_limits: [0, 50, 800, 1000]
 zero_crossing_limits: [70 , 140]
 t0: 70
@@ -11,4 +11,19 @@ integral_limits: [50,120]
 amplitude_limits: [50,120]
 fprompt: [70]
 
+#For filtering the waveforms
 
+max_noise: 5.2
+min_baseline: 8197
+max_baseline: 8203
+max_amplitude: 7400
+min_amplitude: 0
+min_t0: 50
+max_t0: 60
+min_zero: 100
+max_zero: 128
+fprompt_min: 0
+fprompt_max: 1
+
+#for deconvolution and calculate avg waveform
+template_file: "./data/template/SPE_Template_run28370_APA4_CH2_PDHD_hpk_Nov2024.txt"

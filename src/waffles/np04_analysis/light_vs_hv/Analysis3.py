@@ -25,33 +25,10 @@ class Analysis1(WafflesAnalysis):
                             description="list of the endpoints (note: must be te same order of the channels)")
             channels:       list = Field(default=[],          
                                 description="list of the channels (note: must be te same order of the endpoints)")
-            input_path:     str =  Field(default=".output/data_filtered.pkl",          
+            input_path:     str =  Field(default=".output/data_filtered_2.pkl",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="./output",          
                                 description= "Output folder to save the filtered data")
-            baseline_limits:    list = Field (... , description= "limits in clock ticks for calculate the baseline")
-            integral_limits:    list = Field (... , description= "limits in clock ticks for calculate the integral/charge")
-            amplitude_limits:   list = Field (... , description= "limits in clock ticks for calculate the amplitude")
-            zero_crossing_limits:   list = Field (..., description= "limits in clock ticks for calculate the zero_crossing")
-            t0:             int = Field(..., description="Max limit to calculate the start of waveform")
-            fprompt:        int = Field(..., description="Max limit to calculate the fast charge of waveform")      
-         
-            max_noise: float = Field(..., description= "max noise allowed")
-
-            min_baseline: float = Field(..., description= "min baseline allowed")
-            max_baseline: float = Field(..., description= "max baseline allowed")
-
-            min_amplitude: float = Field(..., description= "min amplitude allowed")
-            max_amplitude: float = Field(..., description= "max amplitude allowed")
-
-            min_t0: float = Field(..., description= "min t0 allowed")
-            max_t0: float = Field(..., description= "max t0 allowed")
-
-            min_zero_crossing: float = Field(..., description= "min zero crossing allowed")
-            max_zero_crossing: float = Field(..., description= "max zero crossing allowed")
-
-            min_fprompt: float = Field(..., description= "min fprompt allowed")
-            max_fprompt: float = Field(..., description= "max fprompt allowed")
             
         return InputParams
     
@@ -78,33 +55,7 @@ class Analysis1(WafflesAnalysis):
         self.file_name=self.params.input_path
         print(f"File name: {self.file_name}")
 
-        self.baseline_limits=self.params.baseline_limits
-        self.integral_limits=self.params.integral_limits
-        self.amplitude_limits=self.params.amplitude_limits
-        self.zero_crossing_limits=self.params.zero_crossing_limits
-        self.t0 = self.params.t0
-        self.fprompt = self.params.fprompt
-
-        self.output = self.params.output
-
-        self.max_noise=self.params.max_noise
-
-        self.min_baseline = self.params.min_baseline
-        self.max_baseline = self.params.max_baseline
-
-        self.min_amplitude = self.params.min_amplitude
-        self.max_amplitude = self.params.max_amplitude
-
-        self.min_t0 = self.params.min_t0
-        self.max_t0 = self.params.max_t0
-
-        self.min_zero_crossing = self.params.min_zero_crossing
-        self.max_zero_crossing = self.params.max_zero_crossing
-
-        self.min_fprompt = self.params.min_fprompt
-        self.max_fprompt = self.params.max_fprompt
-
-
+        
 
     ##################################################################
     def read_input(self) -> bool:

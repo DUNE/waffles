@@ -142,7 +142,7 @@ class Analysis1(WafflesAnalysis):
     #############################################################
 
     def analyze(self) -> bool:
-
+   
         #get a vector of ordered timestamps per run per channel [i][j]
         self.timestamps, self.min_timestamp = get_ordered_timestamps(self.wfsets,self.n_channel,self.n_run)
         
@@ -150,17 +150,19 @@ class Analysis1(WafflesAnalysis):
         #coincidences[run index][goal channel][target channel][coindences index] --> [0: timestamp index of the goal channel][1: timestamp index of the target channel],[2:deltaT]]
         self.coincidences = get_all_double_coincidences(self.timestamps, 
                                                         self.n_channel, self.n_run, self.time_window)
-
+   
         #return a list of all coincidences
         #mult_coincidences[run_index][coincidence_index] --> [0: list of channels, 1: list of the index related to the channel on the timestamp array, 2: delta t of each channel related to goal channel]
         self.mult_coincidences = get_all_coincidences(self.coincidences, self.timestamps, 
                                                       self.n_channel, self.n_run )
 
 
+        self.coincidences_level = get_level_coincidences(self.mult_coincidences,self.n_channel,self.n_run)
+        
         self.wfsets=filter_not_coindential_wf(self.wfsets,self.coincidences_level,self.timestamps,
                                               self.min_timestamp,self.n_channel,self.n_run)
 
-
+     
         return True
     
     def write_output(self) -> bool:

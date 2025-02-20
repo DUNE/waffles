@@ -9,8 +9,15 @@ from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParam
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 from waffles.np04_analysis.np04_ana import comes_from_channel
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.IPDict import IPDict
+
 
 from waffles.np04_analysis.light_vs_hv.utils import check_endpoint_and_channel
 from waffles.np04_analysis.light_vs_hv.utils import get_ordered_timestamps
 from waffles.np04_analysis.light_vs_hv.utils import get_all_double_coincidences, get_all_coincidences, get_level_coincidences
 from waffles.np04_analysis.light_vs_hv.utils import filter_not_coindential_wf
+from waffles.np04_analysis.light_vs_hv.utils import from_generic
+
+from waffles.np04_analysis.light_vs_hv.ZeroCrossingAna import ZeroCrossingAna
+
