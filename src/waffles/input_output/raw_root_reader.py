@@ -6,7 +6,7 @@ import numpy as np
 import uproot
 
 try: 
-    import ROOTE
+    import ROOT
     ROOT_IMPORTED = True
 except ImportError: 
     print(
@@ -492,21 +492,35 @@ def WaveformSet_from_root_file(
     return WaveformSet(*waveforms)
 
 
-def BeamInfo_from_root_file( 
+def BeamInfo_from_root_file(
     filepath: str,
     bulk_data_tree_name: str = 'tree',
+    library: str='uproot',
     verbose: bool = True
 ) -> List[BeamInfo]:
 
+    """Create a list of BeamInfo objects reading a root file 
+    
+    Parameters
+    ----------
+    library: str
+        For every valid filepath, this parameter is passed to
+        the WaveformSet_from_root_file() 'library' parameter.
+        For more information, check such function docstring.
+    
+    Returns
+    ----------
+    output: List[BeamInfo]
 
-    library='uproot'
+    """
+
+    
 
     if library == 'uproot':
         input_file = uproot.open(filepath)
     else:
         input_file = ROOT.TFile(filepath)
 
-        
     bulk_data_tree, _ = wii.find_ttree_in_root_tfile(
         input_file,
         bulk_data_tree_name,
@@ -523,7 +537,7 @@ def BeamInfo_from_root_file(
     if library == 'uproot' \
     else Time_branch.GetEntries()
 
-    if library == 'uproot':    
+    if library == 'uproot':
         return wii.__build_beam_list_from_root_file_using_uproot(nentries,bulk_data_tree, verbose)
     else:
         return wii.__build_beam_list_from_root_file_using_pyroot(nentries,bulk_data_tree, verbose)
