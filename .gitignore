@@ -10,6 +10,10 @@ test/*
 *krb5.conf*
 *.DS_Store
 
+# Ignore the input/output of each particular NP04 analysis
+src/waffles/np04_analysis/*/data/
+src/waffles/np04_analysis/*/output/
+
 !test/wtest_*
 !docs/examples/00_CheckData.ipynb
 !docs/examples/01_Calibration.ipynb
