@@ -17,7 +17,8 @@ import waffles.Exceptions as we
 def events_from_pickle_and_beam_files(
         path_to_pickle_file : str,
         path_to_root_file : str,
-        delta_t_max: int
+        delta_t_max: int,
+        library: str='uproot'
     ) -> List[BeamEvent]:
                                 
     """
@@ -36,9 +37,16 @@ def events_from_pickle_and_beam_files(
         Path to the beam file which will be loaded. Its extension
         must match '.root'.
 
+    delta_t_max:
+        [-delta_tmax, +delta_tmax] will be the time interval around the beam time where
+        waveforms will be considered for an event
+    library: str
+        pyroot or uproot
+
     Returns
     ----------        
-    output: list of Event objects
+    output: List[BeamEvent]
+        list of Event objects
     """
 
     if not os.path.isfile(path_to_pickle_file):
@@ -61,8 +69,8 @@ def events_from_pickle_and_beam_files(
     wfset = WaveformSet_from_pickle_file(path_to_pickle_file)
 
     # read all beam events from the root file
-    beam_infos  = BeamInfo_from_root_file(path_to_root_file) 
-
+    beam_infos  = BeamInfo_from_root_file(path_to_root_file, library=library) 
+    
     # do association between waveforms and beam and create events
     events = events_from_wfset_and_beam_info(wfset,
                                              beam_infos,
@@ -89,8 +97,9 @@ def events_from_pickle_file(
         must match '.pkl'.
 
     Returns
-    ----------        
-    output: list of Event objects
+    ----------
+    output: List[BeamEvent]
+        list of Event objects        
     """
 
     if os.path.isfile(path_to_pickle_file):

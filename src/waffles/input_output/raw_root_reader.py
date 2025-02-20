@@ -503,19 +503,25 @@ def BeamInfo_from_root_file(
     
     Parameters
     ----------
+    filepath: str
+        Path to the beam file which will be loaded. Its extension
+        must match '.root'.
+
+    bulk_data_tree_name: str
+        Name of the root tree contained in that file
+
     library: str
-        For every valid filepath, this parameter is passed to
-        the WaveformSet_from_root_file() 'library' parameter.
-        For more information, check such function docstring.
+        pyroot or uproot
+
+    verbose: bool
+        currently not usedprint information in the secreen
     
     Returns
     ----------
     output: List[BeamInfo]
 
     """
-
     
-
     if library == 'uproot':
         input_file = uproot.open(filepath)
     else:
