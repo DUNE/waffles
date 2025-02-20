@@ -1,6 +1,6 @@
 from waffles.np04_analysis.light_vs_hv.imports import *
 
-class Analysis1(WafflesAnalysis):
+class Analysis2(WafflesAnalysis):
 
     def __init__(self):
         pass
@@ -25,7 +25,7 @@ class Analysis1(WafflesAnalysis):
                             description="list of the endpoints (note: must be te same order of the channels)")
             channels:       list = Field(default=[],          
                                 description="list of the channels (note: must be te same order of the endpoints)")
-            input_path:     str =  Field(default=".output/data_filtered.pkl",          
+            input_path:     str =  Field(default="./output/data_filtered.pkl",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="./output",          
                                 description= "Output folder to save the filtered data")
@@ -109,12 +109,12 @@ class Analysis1(WafflesAnalysis):
     ##################################################################
     def read_input(self) -> bool:
 
-        self.n_run=len(self.file_path)
-        self.n_channel=len(self.list_channels)
-
         with open(self.file_name, "rb") as file:
-            self.wfset = pickle.load(file)
-        
+            self.wfsets = pickle.load(file)
+
+        self.n_run=len(self.wfsets)
+        self.n_channel=len(self.list_channels)
+           
         return True
     #############################################################
 
