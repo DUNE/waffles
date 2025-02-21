@@ -4,13 +4,13 @@
   parameters_file: "params.yml"
   overwriting_parameters: ""
 
-#Step 2. Calculate parameters 
+#Step 2. Calculate, filter and plot parameters 
 2:
   name: "Analysis2"
   parameters_file: "params.yml"
   overwriting_parameters: ""
 
-#Step 3. Calculate parameters 
+#Step 3. Calculate the avarage waveform per HV
 3:
   name: "Analysis3"
   parameters_file: "params.yml"

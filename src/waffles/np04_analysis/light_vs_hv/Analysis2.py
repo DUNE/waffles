@@ -182,7 +182,7 @@ class Analysis2(WafflesAnalysis):
                     wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_zero_crossing, min=self.min_zero_crossing, analysis_label="minha_analise",parameter_label="zero_crossing")
                     wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , min=self.min_fprompt, max=self.max_fprompt, analysis_label="minha_analise",parameter_label="fprompt")
                     #wfset = WaveformSet.from_filtered_WaveformSet( wfset, from_generic , max=second_peak_max, analysis_label="minha_analise",parameter_label="second_peak")
-                    print(f"filtering-{i}:{self.list_endpoints[i]}-{self.list_channels[i]}")
+                    print(f"filtering-{i}:{self.list_endpoints[channel]}-{self.list_channels[channel]}")
                     self.wfsets[i][channel] = wfset[channel]
                 except:
                     pass

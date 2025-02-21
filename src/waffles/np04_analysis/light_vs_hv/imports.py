@@ -6,7 +6,8 @@ import importlib
 from pathlib import Path
 from plotly import graph_objects as pgo
 from plotly.subplots import make_subplots
-
+import uproot
+import ROOT as root
 
 
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
