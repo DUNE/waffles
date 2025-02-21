@@ -350,3 +350,24 @@ def generic_plot_APA(fig,
         title_text=title_fig,
         showlegend=False
     )
+
+def my_sin(x,A,T,phi,B,phi2,C):
+    return A*np.sin(2*np.pi*x/T+phi)+B*np.sin(2*np.pi*x/(2*T)+phi2)+C
+
+def func_tau(x,tau1,tau2,A1,A2,B):
+    return B+A1*np.exp(-x/tau1)+A2*np.exp(-x/tau2)
+
+def calculate_light(params):
+    t=np.linspace(0,1023,1024)
+    n=len(params)
+    integral_conv=[np.sum(func_tau(t,*params[file_index])-params[file_index][4]) for file_index in range(n)]
+    return integral_conv/integral_conv[0]
+
+def birks_law(x,B,k):
+    y=np.zeros(len(x))
+    if x[0]==0:
+        y[0]=1
+        y[1::]=(1-B/(1+k/x[1::]))
+    else:
+        y=(1-B/(1+k/x))
+    return y

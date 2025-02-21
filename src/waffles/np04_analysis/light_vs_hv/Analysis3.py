@@ -38,6 +38,9 @@ class Analysis3(WafflesAnalysis):
                                 description= "channel to calculate average waveform")
             avg_endpoint:  int =  Field(default=-1,          
                                 description= "channel to calculate average waveform")
+            
+            filter_length:  int =  Field(default=10,          
+                                description= "window of of the avg_filter")
           
 
         return InputParams
@@ -81,6 +84,8 @@ class Analysis3(WafflesAnalysis):
                 self.channel_index = k
                 break 
 
+        self.filter_length = self.params.filter_length
+
         self.output = self.params.output
     
 
@@ -106,23 +111,43 @@ class Analysis3(WafflesAnalysis):
 
         #calculate avg_wf and deconvoluted avg_wf
         self.mean_waveform = [[] for _  in range(self.n_run)]
+        self.mean_deconvolved= [[] for _ in range(self.n_run)]
+        self.mean_deconvolved_filtered= [[] for _ in range(self.n_run)]
+
+        t0_mean=55
         n=len(self.wfsets[0][0].waveforms[0].adcs)
         ch=self.channel_index
 
         for file in range(self.n_run):      
-            try:
-                self.mean_waveform[file] = np.zeros(n)
+           
+            self.mean_waveform[file] = np.zeros(n)
 
-                wfset_aux = self.wfsets[file][ch]
-                n_wfs=0                                                                         
-                for k in range(len(wfset_aux.waveforms)):
-                    baseline=wfset_aux.waveforms[k].analyses["minha_analise"].result["baseline"]
-                    self.mean_waveform[file] = self.mean_waveform[file]+(wfset_aux.waveforms[k].adcs-baseline)
-                    n_wfs=n_wfs+1
-                self.mean_waveform[file]=self.mean_waveform[file]/n_wfs
+            wfset_aux = self.wfsets[file][ch]
+            n_wfs=0                                                                         
+            for k in range(len(wfset_aux.waveforms)):
+                aux_t=wfset_aux.waveforms[k].analyses["minha_analise"].result["t0"]
+                deltat=aux_t-t0_mean
+                baseline=wfset_aux.waveforms[k].analyses["minha_analise"].result["baseline"]
+                self.mean_waveform[file] = self.mean_waveform[file]+np.concatenate([(wfset_aux.waveforms[k].adcs-baseline)[deltat:],np.zeros(deltat)])
+                n_wfs=n_wfs+1
+            self.mean_waveform[file]=self.mean_waveform[file]/n_wfs
 
-            except:
-                None   
+            
+
+
+        K = 1  # Fator de suavização
+      
+        for file in range(self.n_run):
+            signal=np.concatenate([np.zeros(int(len(self.mean_waveform[file])/2)),self.mean_waveform[file],np.zeros(int(len(self.mean_waveform[file])/2))])
+            template_menos=-self.template
+            signal_fft = np.fft.fft(signal)
+            template_menos_fft = np.fft.fft(template_menos, n=len(signal))  # Match signal length
+            deconvolved_fft = signal_fft * np.conj(template_menos_fft)/  (template_menos_fft * np.conj(template_menos_fft) + K)     # Division in frequency domain
+            deconvolved_aux = np.fft.ifft(deconvolved_fft)      # Transform back to time domain
+            # Take the real part (to ignore small imaginary errors)
+            self.mean_deconvolved[file] = np.real(deconvolved_aux)
+            self.mean_deconvolved_filtered[file]=np.convolve(self.mean_deconvolved[file],np.ones(2))
+    
 
         return True
     
@@ -137,17 +162,27 @@ class Analysis3(WafflesAnalysis):
         # Create a TTree
         tree = root.TTree("my_tree", "Tree with waveforms")
 
-        max_length=len(self.mean_waveform[0])
-        waveform_array = np.zeros(max_length, dtype=np.float32)  # Array fixo para armazenar os dados
+        length=len(self.mean_waveform[0])
+        waveform_array = np.zeros(length, dtype=np.float32)  
         
-        # Criar um branch no TTree (com tamanho variável)
-        branch1 = tree.Branch("avg_wf", waveform_array, f"avg_wf[{max_length}]/F")
+        length_dec=len(self.mean_deconvolved[0])
+        waveform_array_dec = np.zeros(length_dec, dtype=np.float32)  
+
+        length_filt=len(self.mean_deconvolved_filtered[0])
+        waveform_array_filt = np.zeros(length_filt, dtype=np.float32)  
+        
+        branch1 = tree.Branch("avg_wf", waveform_array, f"avg_wf[{length}]/F")
+        branch2 = tree.Branch("avg_wf_dec", waveform_array_dec, f"avg_wf[{length_dec}]/F")
+        branch3 = tree.Branch("avg_wf_dec_filt", waveform_array_filt, f"avg_wf[{length_filt}]/F")
+
 
     
-        for wf in self.mean_waveform:
+        for [wf,dec,filt] in zip(self.mean_waveform,self.mean_deconvolved,self.mean_deconvolved_filtered):
             waveform_array[:len(wf)] = wf  
+            waveform_array_dec[:len(dec)] = dec  
+            waveform_array_filt[:len(filt)] = filt
           
-            tree.Fill()  # Afill the ttree
+            tree.Fill()  # Fill the ttree
 
         # Save and close
         tree.Write()

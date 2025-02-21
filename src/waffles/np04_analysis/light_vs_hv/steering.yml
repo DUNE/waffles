@@ -16,3 +16,9 @@
   parameters_file: "params.yml"
   overwriting_parameters: ""
 
+#Step 4. Calculate the light yield plot
+4:
+  name: "Analysis4"
+  parameters_file: "params.yml"
+  overwriting_parameters: ""
+

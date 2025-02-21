@@ -1,13 +1,14 @@
 from pydantic import Field
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 import yaml
 import importlib
 from pathlib import Path
 from plotly import graph_objects as pgo
 from plotly.subplots import make_subplots
-import uproot
 import ROOT as root
+from scipy.optimize import curve_fit
 
 
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
@@ -24,6 +25,7 @@ from waffles.np04_analysis.light_vs_hv.utils import get_all_double_coincidences,
 from waffles.np04_analysis.light_vs_hv.utils import filter_not_coindential_wf
 from waffles.np04_analysis.light_vs_hv.utils import from_generic
 from waffles.np04_analysis.light_vs_hv.utils import start_plot, generic_plot_APA
+from waffles.np04_analysis.light_vs_hv.utils import  my_sin, func_tau , calculate_light, birks_law
 
 from waffles.np04_analysis.light_vs_hv.ZeroCrossingAna import ZeroCrossingAna
 
