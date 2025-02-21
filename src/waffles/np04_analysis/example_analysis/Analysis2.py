@@ -133,7 +133,8 @@ class Analysis2(WafflesAnalysis):
 
             wf = self.wfs[filename]
             peaks, _ = spsi.find_peaks(
-                wf.adcs,
+                # Find peaks over the inverted waveform
+                -1.*wf.adcs,
                 prominence=self.params.prominence
             )
             self.peaks[filename] = peaks
@@ -163,7 +164,7 @@ class Analysis2(WafflesAnalysis):
                 self.peaks[filename],
                 [self.wfs[filename].adcs[idx] for idx in self.peaks[filename]],
                 color='red',
-                marker='v',
+                marker='^',
                 s=100,
                 label='Spotted peaks'
             )
