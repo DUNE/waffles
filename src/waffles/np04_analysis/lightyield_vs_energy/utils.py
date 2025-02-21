@@ -291,12 +291,17 @@ def charge_study(wfset : WaveformSet, end : int, ch : int, run : int, energy : i
 ################################################################################################################################################x    
     
 def gaussian(x, mu, sigma, amplitude):
+    if not np.isfinite(sigma) or sigma == 0:
+        return np.full_like(x, np.nan)  # Ritorna un array di NaN se sigma non è valido
     return amplitude * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
 def linear_fit(x, a, b):
     return a * x + b
 
 def round_to_significant(value, error):
+    if not isinstance(error, (int, float, np.number)) or not np.isfinite(error) or error == 0:
+        return "N/A", "N/A"  # Restituisce una stringa se l'errore non è valido
+
     error_order = int(np.log10(error))
     significant_digits = 2  
     rounded_error = round(error, -error_order + (significant_digits - 1))
@@ -304,12 +309,21 @@ def round_to_significant(value, error):
     return rounded_value, rounded_error
 
 def to_scientific_notation(value, error):
-    exponent = int(np.floor(np.log10(abs(value))))
+    # Controllo se il valore non è un numero valido
+    if not isinstance(value, (int, float, np.number)) or not np.isfinite(value):
+        return "N/A"  # Se il valore è NaN o infinito, restituisce "N/A"
+
+    if value == 0:
+        return "0"  # Caso speciale: zero non ha notazione scientifica
+
+    exponent = int(np.floor(np.log10(abs(value)))) if value != 0 else 0  # Evita log10(0)
     mantissa_value = value / 10**exponent
-    mantissa_error = error / 10**exponent
+    mantissa_error = error / 10**exponent if error and np.isfinite(error) else 0  # Evita divisioni errate
+
     mantissa_value, mantissa_error = round_to_significant(mantissa_value, mantissa_error)
-    #return mantissa_value, mantissa_error, exponent
-    return f"({mantissa_value} ± {mantissa_error}) × 10^{exponent}"
+    
+    return f"({mantissa_value} ± {mantissa_error}) × 10^{exponent}" if mantissa_value != "N/A" else "N/A"
+
 
 ################################################################################################################################################
 

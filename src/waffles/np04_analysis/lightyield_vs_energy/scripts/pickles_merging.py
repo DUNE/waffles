@@ -142,7 +142,9 @@ def main(full_streaming, pickles_folder, output_filename, overwrite, merging_mod
             print(f"The filename {output_filename.split('/')[-1].split('_')[-1].split('.')[0]} exists, please write the new filename:")
             output_filename = f'{pickles_folder}/set_{set_name}_{trigger_string(full_streaming)}_{input()}.pkl'
         print(f"\nValid output filename {output_filename.split('/')[-1]}\n")
- 
+    
+    original_n_files = n_files
+    
     print('... starting creating the merged pickles file ...')
     i_index = 0 
     originale_index_list = index_list
@@ -166,8 +168,10 @@ def main(full_streaming, pickles_folder, output_filename, overwrite, merging_mod
                 missing_elements = list(set(range(index_start, index_stop)) - set(index_list))
                 print(f'Reading from {index_start} to {index_stop} ({len(index_list)} files): {index_list}\nAttention, {len(missing_elements)} files are missing: {missing_elements}\n')    
             elif merging_mode == 'readNfiles':
-                if n_files > len(all_files_indices):
+                if original_n_files > len(all_files_indices):
                     n_files = len(all_files_indices)
+                else:
+                    n_files = original_n_files
                 index_list =  all_files_indices[0:n_files]
                 print(f'Reading {n_files} files with index: {index_list}')
             elif merging_mode == 'list_index':
