@@ -423,6 +423,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
     # print(f'total number of records = {len(records)}')
 
     wvfm_index = 0
+    saved_wvfms = 0
     for i, r in enumerate(tqdm(records)):
         pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
             r, detdataformats.DetID.string_to_subdetector(det)))
@@ -488,34 +489,24 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                                   # Open task: Implement the truncation of the Waveform
                                                   # objects at this level (reading from an HDF5 file)
                                                   starting_tick=0))
-                    wvfm_index += 1
-                    if wvfm_index >= wvfm_count:
-
-                        if truncate_wfs_to_minimum:
-                            minimum_length = np.array(
-                                [len(wf.adcs) for wf in waveforms]
-                            ).min()
-
-                            for wf in waveforms:
-                                wf._WaveformAdcs__slice_adcs(
-                                    0,
-                                    minimum_length
+                        saved_wvfms += 1
+                        if saved_wvfms >= wvfm_count:
+                            if truncate_wfs_to_minimum:
+                                wiu.__truncate_waveforms_to_minimum_length_in_WaveformSet(
+                                    waveforms
                                 )
 
-                        if fUsedXRootD and erase_temporal_copy:
-                            os.remove(filepath)
-                        return WaveformSet(*waveforms)
+                            if fUsedXRootD and erase_temporal_copy:
+                                os.remove(filepath)
+                            return WaveformSet(*waveforms)
+
+                    wvfm_index += 1
                     
     if truncate_wfs_to_minimum:
-        minimum_length = np.array(
-            [len(wf.adcs) for wf in waveforms]
-        ).min()
+        wiu.__truncate_waveforms_to_minimum_length_in_WaveformSet(
+            waveforms
+        )
 
-        for wf in waveforms:
-            wf._WaveformAdcs__slice_adcs(
-                0,
-                minimum_length
-            )
     if fUsedXRootD and erase_temporal_copy:
         os.remove(filepath)
     return WaveformSet(*waveforms)
