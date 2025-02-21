@@ -38,7 +38,6 @@ class Analysis2(WafflesAnalysis):
                 example=[2]
             )
 
-            # Correct usage of conlist without min_items/max_items
             endpoint_list: Union[conlist(Literal[104, 105, 107, 109, 111, 112, 113]), Literal["all"]] = Field(
                 ..., 
                 description="Endpoint list to analyze (104, 105, 107, 109, 111, 112, 113 or 'all')", 
@@ -63,7 +62,7 @@ class Analysis2(WafflesAnalysis):
                 example=""
             )
             
-            beam_run_dic_info_path: str = Field(
+            beam_run_dic_info_filename: str = Field(
                 ..., 
                 description="Path to the json file with beam run information",
                 example="data/beam_run_info.json"
@@ -132,7 +131,7 @@ class Analysis2(WafflesAnalysis):
     def read_input(self) -> bool:
 
         print('\nReading beam run info...')
-        with open(self.params.beam_run_dic_info_path, "r") as file:
+        with open(f"{self.params.input_path}/{self.params.beam_run_dic_info_filename}", "r") as file:
             self.run_set = json.load(file)[self.params.set_name]
             print('done\n')
             
@@ -157,8 +156,7 @@ class Analysis2(WafflesAnalysis):
                 self.analysis_results[apa][end] = {}
                 for ch, ch_dic in end_dic.items():
                     print(f"Endpoint {end} - Channel {ch}")
-                    #figs = []
-                    
+                                        
                     fig, ax = plt.subplots(3, 2, figsize=(12, 10))
                     plt.suptitle(f'Endpoint {end} - Channel {ch}')
                     ax = ax.flatten()
@@ -186,7 +184,6 @@ class Analysis2(WafflesAnalysis):
                         ax[i].set_title('Charge vs energy with linear fit')
                         ax[i].legend()
                     
-                    #figs.append(fig)
                     plt.tight_layout()
                     self.analysis_results[apa][end][ch] = fig
                     plt.close(fig)
@@ -202,7 +199,6 @@ class Analysis2(WafflesAnalysis):
             APA_pdf_file = PdfPages(f"{self.input_output_file}_APA{apa}.pdf")
             for end, end_dic in apa_dic.items():
                 for ch, fig in end_dic.items():
-                    #for fig in figs:
                     APA_pdf_file.savefig(fig)
                     plt.close(fig)
             APA_pdf_file.close()
