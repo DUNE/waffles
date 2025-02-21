@@ -145,7 +145,7 @@ class Analysis1(WafflesAnalysis):
 
         print(
             "In function Analysis1.analyze(): "
-            f"Computing the mean waveform for {len(self.wfset)} "
+            f"Computing the mean waveform for {len(self.wfset.waveforms)} "
             f"waveforms of run {self.read_input_itr_1} ..."
         )
 
