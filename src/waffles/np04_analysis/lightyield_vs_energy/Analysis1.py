@@ -31,7 +31,6 @@ class Analysis1(WafflesAnalysis):
                 example="A"
             )
             
-            # Correct usage of conlist without min_items/max_items
             apa_list: Union[conlist(Literal[1, 2, 3, 4]), Literal["all"]] = Field(
                 ..., 
                 description="APA list to analyze (1, 2, 3, 4 or 'all')", 
@@ -69,10 +68,16 @@ class Analysis1(WafflesAnalysis):
                 example=""
             )
             
-            beam_run_dic_info_path: str = Field(
+            input_path: str = Field(
                 ..., 
-                description="Path to the json file with beam run information",
-                example="data/beam_run_info.json"
+                description="Path to folder with json input file",
+                example="data"
+            )
+            
+            beam_run_dic_info_filename: str = Field(
+                ..., 
+                description="Filename of the json file with beam run informationv(in data folder)",
+                example="beam_run_info.json"
             )
             
             full_streaming: bool = Field(
@@ -170,16 +175,12 @@ class Analysis1(WafflesAnalysis):
     def read_input(self) -> bool:
         
         print('\nReading beam run info...')
-        with open(self.params.beam_run_dic_info_path, "r") as file:
+        with open(f"{self.params.input_path}/{self.params.beam_run_dic_info_filename}", "r") as file:
             self.run_set = json.load(file)[self.params.set_name]
             print('done\n')
             
         # print('\nReading led calibration info...')
-        # with open(f"{self.params.input_path}/{self.params.LED_calibration_file}", "r") as file:
-        #     LED_calibration_df = pd.read_pickle(f"{self.params.input_path}/{self.params.LED_calibration_file}")
-        #     print(LED_calibration_df)
-        #     print('done\n')
-        # ### controlla se funzia!! poi cambia anceh il filepath di beam run info please
+        # LED_calibration_info = pd.read_pickle(f"{self.params.input_path}/{self.params.LED_calibration_file}")
         
         print('Reading waveform pickles file...')
         with open(f"{self.params.pickles_folder}/set_{self.run_set['Name']}/{self.params.input_pickles_wf_filename}", 'rb') as f:
