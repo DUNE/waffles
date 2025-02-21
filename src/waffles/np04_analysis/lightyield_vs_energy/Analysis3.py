@@ -133,7 +133,7 @@ class Analysis3(WafflesAnalysis):
                 print(f"The filename {self.output_file}.pdf exists, please select a new additional output filename and try again")
                 sys.exit()
 
-        self.bins = 100
+        self.bins = 500
         
     ##################################################################
     def read_input(self) -> bool:
