@@ -68,22 +68,33 @@ class Analysis4(WafflesAnalysis):
 
         x=np.concatenate([np.arange(0,400,1),np.arange(1000,2000,1)])
         x_axis=np.arange(0,len(self.waveform[0]),1)    
-        x_fit=np.arange(0,500,1)
+        x_fit=np.arange(0,400,1)
 
         self.params_fit=[None for _ in range(self.n_entries)]
+        self.params_fit2=[None for _ in range(self.n_entries)]
         self.params_covariance=[None for _ in range(self.n_entries)]
+        self.params_covariance2=[None for _ in range(self.n_entries)]
        
         for i in range(self.n_entries):
             
             y=np.concatenate([self.waveform[i][0:400],self.waveform[0][1000:2000]])
             params,cov=curve_fit(my_sin,x,y, maxfev=20000,p0=[0.5,640,-0.5,0.5,0.5,-5])
+            self.waveform[i]=self.waveform[i]
+            y_fit=self.waveform[i][570:570+400]
+            self.params_fit[i], self.params_covariance[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,120,100,100,-1])
             self.waveform[i]=self.waveform[i]-my_sin(x_axis,*params)
-            y_fit=self.waveform[i][569:569+500]
-            self.params_fit[i], self.params_covariance[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,80,100,100,-1])
+            y_fit=self.waveform[i][570:570+400]
+            self.params_fit2[i], self.params_covariance2[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,80,100,100,-1])
 
-        self.s=calculate_light(self.params_fit)
+
+        self.s1=(calculate_light(self.params_fit))
+        self.s2=(calculate_light(self.params_fit2))
+        self.s=(self.s1+self.s2)/2
+
+
         self.hv=np.array(self.hv)/360
 
+        
         self.params_s, self.params_covariance_s = curve_fit(birks_law,self.hv,self.s,maxfev=20000)
         print(self.s)
                                                               
@@ -94,8 +105,8 @@ class Analysis4(WafflesAnalysis):
         x=np.arange(0,500,1)
         for i in range(self.n_entries):
 
-            plt.plot(self.waveform[i][569:569+500]-self.params_fit[i][4])
-            plt.plot(func_tau(x,*self.params_fit[i])-self.params_fit[i][4])
+            plt.plot(self.waveform[i][570:570+300]-self.params_fit2[i][4])
+            plt.plot(func_tau(x,*self.params_fit2[i])-self.params_fit2[i][4])
             plt.grid()
             plt.savefig(output_file_1+f"fit_{i}.png")
             plt.close()
@@ -148,9 +159,12 @@ class Analysis4(WafflesAnalysis):
 
         #int_error = calcular_incerteza_numerica(e_field, params[], params_covariance_s,int_integral)
 
+        ax.errorbar(self.hv, self.s1 , label="ProtoDUNE-HD Preliminary",fmt='o',color="blue",marker="x" )
+        ax.errorbar(self.hv, self.s2 , label="ProtoDUNE-HD Preliminary fit sin",fmt='o',color="pink",marker="x" )
         ax.errorbar(self.hv, self.s , label="ProtoDUNE-HD Preliminary",fmt='o',color="green",marker="x" )
 
         x_axis=np.linspace(0,1,40)
+
 
         ax.errorbar(x_axis,birks_law(x_axis,*self.params_s),color="gray",label=f" fitted data: ProtoDUNE HD ", linestyle="--")
 
@@ -161,7 +175,7 @@ class Analysis4(WafflesAnalysis):
         ax.set_xlabel("Drift field (kV/cm)", fontsize=14)
         ax.set_ylabel("S1_drift / S1_0", fontsize=14)
         ax.tick_params(axis='both', which='major', labelsize=12)
-        ax.legend(fontsize=12, loc='lower left')
+        ax.legend(fontsize=12, loc='upper right')
         ax.grid(True)
 
         # Save and show
