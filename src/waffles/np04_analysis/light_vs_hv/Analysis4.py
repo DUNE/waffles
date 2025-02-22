@@ -67,7 +67,7 @@ class Analysis4(WafflesAnalysis):
             self.waveform.append(np.array(self.tree.avg_wf_dec))  
 
         x=np.concatenate([np.arange(0,400,1),np.arange(1000,2000,1)])
-        x_axis=np.arange(0,2048,1)    
+        x_axis=np.arange(0,len(self.waveform[0]),1)    
         x_fit=np.arange(0,500,1)
 
         self.params_fit=[None for _ in range(self.n_entries)]
@@ -78,14 +78,14 @@ class Analysis4(WafflesAnalysis):
             y=np.concatenate([self.waveform[i][0:400],self.waveform[0][1000:2000]])
             params,cov=curve_fit(my_sin,x,y, maxfev=20000,p0=[0.5,640,-0.5,0.5,0.5,-5])
             self.waveform[i]=self.waveform[i]-my_sin(x_axis,*params)
-            y_fit=self.waveform[i][566:566+500]
+            y_fit=self.waveform[i][569:569+500]
             self.params_fit[i], self.params_covariance[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,80,100,100,-1])
 
         self.s=calculate_light(self.params_fit)
         self.hv=np.array(self.hv)/360
 
         self.params_s, self.params_covariance_s = curve_fit(birks_law,self.hv,self.s,maxfev=20000)
-
+        print(self.s)
                                                               
         return True
     
@@ -94,7 +94,7 @@ class Analysis4(WafflesAnalysis):
         x=np.arange(0,500,1)
         for i in range(self.n_entries):
 
-            plt.plot(self.waveform[i][566:566+500]-self.params_fit[i][4])
+            plt.plot(self.waveform[i][569:569+500]-self.params_fit[i][4])
             plt.plot(func_tau(x,*self.params_fit[i])-self.params_fit[i][4])
             plt.grid()
             plt.savefig(output_file_1+f"fit_{i}.png")

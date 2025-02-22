@@ -127,6 +127,7 @@ class Analysis3(WafflesAnalysis):
             for k in range(len(wfset_aux.waveforms)):
                 aux_t=wfset_aux.waveforms[k].analyses["minha_analise"].result["t0"]
                 deltat=aux_t-t0_mean
+                deltat=0
                 baseline=wfset_aux.waveforms[k].analyses["minha_analise"].result["baseline"]
                 self.mean_waveform[file] = self.mean_waveform[file]+np.concatenate([(wfset_aux.waveforms[k].adcs-baseline)[deltat:],np.zeros(deltat)])
                 n_wfs=n_wfs+1
@@ -135,14 +136,15 @@ class Analysis3(WafflesAnalysis):
             
 
 
-        K = 1  # Fator de suavização
+        K = 0  # Fator de suavização
       
         for file in range(self.n_run):
             signal=np.concatenate([np.zeros(int(len(self.mean_waveform[file])/2)),self.mean_waveform[file],np.zeros(int(len(self.mean_waveform[file])/2))])
             template_menos=-self.template
             signal_fft = np.fft.fft(signal)
             template_menos_fft = np.fft.fft(template_menos, n=len(signal))  # Match signal length
-            deconvolved_fft = signal_fft * np.conj(template_menos_fft)/  (template_menos_fft * np.conj(template_menos_fft) + K)     # Division in frequency domain
+            #deconvolved_fft = signal_fft * np.conj(template_menos_fft)/  (template_menos_fft * np.conj(template_menos_fft) + K)     # Division in frequency domain
+            deconvolved_fft = signal_fft/ (template_menos_fft )     # Division in frequency domain
             deconvolved_aux = np.fft.ifft(deconvolved_fft)      # Transform back to time domain
             # Take the real part (to ignore small imaginary errors)
             self.mean_deconvolved[file] = np.real(deconvolved_aux)
