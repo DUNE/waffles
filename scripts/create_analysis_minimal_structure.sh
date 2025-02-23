@@ -38,11 +38,37 @@ if [[ "$lower_case_answer" == "y" || "$lower_case_answer" == "yes" ]]; then
     mkdir -p "$current_dir/output"
     mkdir -p "$current_dir/data"
     mkdir -p "$current_dir/scripts"
-    touch "$current_dir/steering.yml"
+
+    if [ -e "$current_dir/steering.yml" ]; then
+        echo "Warning: $current_dir/steering.yml already exists"
+    else
+	    printf "1:\n  name: \"Analysis1\"\n  parameters_file: \"params.yml\"\n  overwriting_parameters: \"\"" > $current_dir/steering.yml
+    fi
+
+    if [ -e "$current_dir/params.yml" ]; then
+        echo "Warning: $current_dir/params.yml already exists"
+    else
+	    printf "input_path: \"\"\noutput_path: \"output/\"" > $current_dir/params.yml
+    fi
+
+    if [ -e "$current_dir/imports.py" ]; then
+        echo "Warning: $current_dir/imports.py already exists"
+    else
+	    printf "from pydantic import Field\nfrom waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams" > $current_dir/imports.py
+    fi
+
     touch "$current_dir/utils.py"
-    touch "$current_dir/params.yml"
-    touch "$current_dir/imports.py"
-    touch "$current_dir/Analysis1.py"
+
+    if [ -e "$current_dir/Analysis1.py" ]; then
+        echo "Warning: $current_dir/Analysis1.py already exists"
+    else
+        if [ -e "$current_dir/../example_analysis/Analysis1.py" ]; then
+            cp $current_dir/../example_analysis/Analysis1.py $current_dir/Analysis1.py
+        else
+            touch "$current_dir/Analysis1.py"
+            echo "Warning: The example analysis $current_dir/../example_analysis/Analysis1.py was not found. An empty $current_dir/Analysis1.py file was created."
+        fi
+    fi
 
     # Show the message only if running with verbosity
     if [[ "$verbose" == "true" ]]; then
