@@ -28,7 +28,7 @@ max_fprompt: 1
 params_print: ["integral" , "baseline" , "t0", "zero_crossing", "amplitude" , "noise" , "fprompt"]
 
 #for deconvolution and calculate avg waveform
-template_file: "./data/template/SPE_Template_run28370_APA4_CH16_PDHD_hpk_Nov2024.txt"
+template_file: "./data/template/SPE_Template_run28370_APA4_CH2_PDHD_hpk_Nov2024.txt"
 avg_endpoint: 112
 avg_channel: 16
 filter_length: 2

@@ -109,6 +109,8 @@ class Analysis2(WafflesAnalysis):
 
         self.params_print = self.params.params_print
 
+        self.read_input_loop=[None,]
+
 
     ##################################################################
     def read_input(self) -> bool:

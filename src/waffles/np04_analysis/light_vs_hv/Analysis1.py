@@ -94,6 +94,8 @@ class Analysis1(WafflesAnalysis):
 
         self.min_coincidence = self.params.min_coincidence
 
+        self.read_input_loop=[None,]
+
         self.output = self.params.output
 
     ##################################################################

@@ -44,6 +44,9 @@ class Analysis4(WafflesAnalysis):
         self.hv=self.params.hv
 
         self.output = self.params.output
+
+        self.read_input_loop=[None,]
+
     
 
     ##################################################################
@@ -80,10 +83,10 @@ class Analysis4(WafflesAnalysis):
             y=np.concatenate([self.waveform[i][0:400],self.waveform[0][1000:2000]])
             params,cov=curve_fit(my_sin,x,y, maxfev=20000,p0=[0.5,640,-0.5,0.5,0.5,-5])
             self.waveform[i]=self.waveform[i]
-            y_fit=self.waveform[i][570:570+400]
+            y_fit=self.waveform[i][571:571+400]
             self.params_fit[i], self.params_covariance[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,120,100,100,-1])
             self.waveform[i]=self.waveform[i]-my_sin(x_axis,*params)
-            y_fit=self.waveform[i][570:570+400]
+            y_fit=self.waveform[i][571:571+400]
             self.params_fit2[i], self.params_covariance2[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,80,100,100,-1])
 
 
@@ -105,7 +108,7 @@ class Analysis4(WafflesAnalysis):
         x=np.arange(0,500,1)
         for i in range(self.n_entries):
 
-            plt.plot(self.waveform[i][570:570+300]-self.params_fit2[i][4])
+            plt.plot(self.waveform[i][571:571+300]-self.params_fit2[i][4])
             plt.plot(func_tau(x,*self.params_fit2[i])-self.params_fit2[i][4])
             plt.grid()
             plt.savefig(output_file_1+f"fit_{i}.png")
