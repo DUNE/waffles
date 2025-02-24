@@ -1,7 +1,7 @@
 1:
   name: "Analysis1"
   parameters_file: "params.yml"
-  overwriting_parameters: ""
+  overwriting_parameters: "--runs 27906,27910"
 2:
   name: "Analysis2"
   parameters_file: ""
