@@ -69,7 +69,7 @@ class Analysis2(WafflesAnalysis):
         method. It reads every pickle file in the path given by
         self.params.input_path which contains a WaveformAdcs object,
         and stores them in the self.wfs attribute, which is a
-        dictionary. They keys of the dictionary are the filenames
+        dictionary. The keys of the dictionary are the filenames
         of the pickle files, and the values are the WaveformAdcs
         objects read from the files.
 
