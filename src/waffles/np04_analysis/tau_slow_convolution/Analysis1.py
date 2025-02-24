@@ -39,6 +39,13 @@ class Analysis1(WafflesAnalysis):
             baseline_finish_response: int = Field(...,          description="work in progress")
             baseline_minimum_frac:  float = Field(...,          description="work in progress")
 
+            validate_items = field_validator(
+                "channels",
+                "runlist",
+                "blacklist",
+                mode="before"
+            )(wcu.split_comma_separated_string)
+
         return InputParams
 
     ##################################################################
