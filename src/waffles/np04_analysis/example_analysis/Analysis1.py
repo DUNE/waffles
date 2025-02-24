@@ -152,7 +152,7 @@ class Analysis1(WafflesAnalysis):
         # 1. Compute the baseline for each waveform in the WaveformSet
         if self.params.correct_by_baseline:
             baselines = [
-                utils.get_baseline(
+                wnu.get_baseline(
                     wf,
                     lower_time_tick_for_median=0,
                     upper_time_tick_for_median=100

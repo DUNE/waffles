@@ -7,4 +7,4 @@ from pydantic import Field
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 import waffles.input_output.raw_hdf5_reader as reader
-import waffles.np04_analysis.example_analysis.utils as utils
+import waffles.np04_analysis.example_analysis.utils as wnu
