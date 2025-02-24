@@ -4,69 +4,121 @@ import numpy as np
 import time
 import os
 import sys
+import hickle as hkl
 import waffles.input_output.raw_hdf5_reader as reader
+import pandas as pd
+import matplotlib.pyplot as plt
+import uproot
 
+def extract_run_number(filepath):
+    """Extract the run number from the original HDF5 file metadata."""
+    with h5py.File(filepath, 'r') as f:
+        if 'run_number' in f.attrs:
+            return str(f.attrs['run_number'])
+        else:
+            print(f"Run number not found in {filepath}. Using default.")
+            return "unknown"
 
-def save_as_hdf5_comp(obj, filename, compression):
-    
+def save_as_pickle(obj, filename):
     start_time = time.time()
-    
-    # Serialize object with pickle
-    obj_bytes = pickle.dumps(obj)
-    obj_np = np.frombuffer(obj_bytes, dtype=np.uint8)  # Convert to NumPy array
-    
-    with h5py.File(filename, "w") as hdf:
-        hdf.create_dataset("wfset", data=obj_np, compression=compression)  # Save as compressed byte array
-
+    with open(filename, "wb") as f:
+        pickle.dump(obj, f)
     elapsed_time = time.time() - start_time
     file_size = os.path.getsize(filename)
-    
     return file_size, elapsed_time
 
-def read_wfset_hdf5(filename):
-
+def save_as_hickle(obj, filename):
     start_time = time.time()
-    
-    with h5py.File(filename, 'r')  as f:
-        raw_wfset=f['wfset'][:]
-    st_wfset = pickle.loads(raw_wfset.tobytes())
-    
+    hkl.dump(obj, filename)
     elapsed_time = time.time() - start_time
-    
-    return elapsed_time, st_wfset
+    file_size = os.path.getsize(filename)
+    return file_size, elapsed_time
 
-def main(run_number):
-    
-    print("Reading the complete hdf5 file...")
-    
-    #From a rucio filepath. Important: First execute python get_rucio.py --runs <run_number> in <repos_dir>/waffles/scripts
-    rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{run_number}.txt"
-    filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
-    wfset = reader.WaveformSet_from_hdf5_file(filepaths[0], read_full_streaming_data=False) # Only takes the first filepath 
-    
-    #From a directly download file in a specific filepath
-    #filepath = f""
-    #wfset = reader.WaveformSet_from_hdf5_file(filepath, read_full_streaming_data=False)
+def save_as_hdf5_pickle(obj, filename):
+    start_time = time.time()
+    obj_bytes = pickle.dumps(obj)
+    obj_np = np.frombuffer(obj_bytes, dtype=np.uint8)
+    with h5py.File(filename, "w") as hdf:
+        hdf.create_dataset("wfset", data=obj_np)
+    elapsed_time = time.time() - start_time
+    file_size = os.path.getsize(filename)
+    return file_size, elapsed_time
 
-    print("\n Saving the waveform in a compressed hdf5 format")
+def save_as_hdf5_comp(obj, filename, compression):
+    start_time = time.time()
+    obj_bytes = pickle.dumps(obj)
+    obj_np = np.frombuffer(obj_bytes, dtype=np.uint8)
+    with h5py.File(filename, "w") as hdf:
+        hdf.create_dataset("wfset", data=obj_np, compression=compression)
+    elapsed_time = time.time() - start_time
+    file_size = os.path.getsize(filename)
+    return file_size, elapsed_time
 
-    comp="gzip"
-    hdf5_comp_filename = f"wfset_{run_number}_{comp}.hdf5"
+def save_as_root(obj, filename):
+    start_time = time.time()
+    with uproot.recreate(filename) as root_file:
+        root_file["wfset"] = {"data": np.array(pickle.dumps(obj), dtype=np.uint8)}
+    elapsed_time = time.time() - start_time
+    file_size = os.path.getsize(filename)
+    return file_size, elapsed_time
+
+def process_hdf5_files(folder_path):
+    results = []
     
-    size_create, time_taken_create = save_as_hdf5_comp(wfset, hdf5_comp_filename, compression=comp)
-    print(f"[HDF5-{comp} creation] Size: {size_create} bytes, Time: {time_taken_create:.2f} sec")
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".hdf5"):
+            filepath = os.path.join(folder_path, filename)
+            run_number = extract_run_number(filepath)
+            print(f"Processing file: {filename} (Run: {run_number})")
+            
+            wfset = reader.WaveformSet_from_hdf5_file(filepath, det="VD_Membrane_PDS", read_full_streaming_data=False)
+            
+            formats = {
+                "Pickle": save_as_pickle,
+                "Hickle": save_as_hickle,
+                "HDF5-Pickle": save_as_hdf5_pickle,
+                "HDF5-Gzip": lambda obj, fname: save_as_hdf5_comp(obj, fname, compression="gzip"),
+                # "ROOT": save_as_root
+            }
+            
+            for method, save_func in formats.items():
+                save_filename = f"wfset_{run_number}_{method}.root" if method == "ROOT" else f"wfset_{run_number}_{method}.hdf5"
+                size, write_time = save_func(wfset, save_filename)
+                results.append([method, size, write_time])
     
-    print("\n Reading the waveform from a compressed hdf5 format")
+    df = pd.DataFrame(results, columns=["Method", "Size (bytes)", "Write Time (s)"])
     
-    hdf5_comp_filepath = os.path.join(os.getcwd(), f"wfset_{run_number}_{comp}.hdf5")
+    # Compute mean values
+    mean_values = df.groupby("Method").mean()
     
-    time_taken_read,wfset_ready = read_wfset_hdf5(hdf5_comp_filename)
-    print(f"[HDF5-{comp} reading] Time: {time_taken_read:.2f} sec")
-    print('\n Waveformset ready to analysis', type(wfset_ready))
+    # Use HDF5-Gzip as reference
+    reference = mean_values.loc["HDF5-Gzip"]
+    df["Size % Change"] = (df["Size (bytes)"] - reference["Size (bytes)"]) / reference["Size (bytes)"] * 100
+    df["Write Time % Change"] = (df["Write Time (s)"] - reference["Write Time (s)"]) / reference["Write Time (s)"] * 100
     
+    # Plot percentage changes
+    plt.figure(figsize=(10, 5))
+    df.groupby("Method")["Size % Change"].mean().plot(kind='bar', label="Size % Change", alpha=0.7)
+    df.groupby("Method")["Write Time % Change"].mean().plot(kind='bar', label="Write Time % Change", alpha=0.7, color='red')
+    
+    plt.xlabel("Serialization Method")
+    plt.ylabel("Percentage Change (%)")
+    plt.title("Performance Comparison Relative to HDF5-Gzip")
+    plt.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    plot_filename = os.path.join(folder_path, "serialization_performance_comparison.png")
+    plt.savefig(plot_filename)
+    print(f"Plot saved as {plot_filename}")
+    
+    return df
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 wtest_hdf5_reader_new.py <run_number>")
+        print("Usage: python3 wtest_hdf5_reader_new.py <folder_path>")
         sys.exit(1)
     
-    main(sys.argv[1])
+    folder_path = sys.argv[1]
+    df_results = process_hdf5_files(folder_path)
+    print(df_results)
