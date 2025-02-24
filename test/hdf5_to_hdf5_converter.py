@@ -4,7 +4,7 @@ import numpy as np
 import time
 import os
 import sys
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 
 
 def save_as_hdf5_comp(obj, filename, compression):
@@ -45,29 +45,53 @@ def main(run_number):
     #wfset = reader.WaveformSet_from_hdf5_file(filepaths[0], read_full_streaming_data=False) # Only takes the first filepath 
     
     #From a directly download file in a specific filepath
-    filepath = f"/afs/cern.ch/work/a/arochefe/private/repositories/waffles/test/np02vd_raw_run035416_0000_df-s04-d0_dw_0_20250214T100047.hdf5"
-    det='VD_Membrane_PDS'
-    wfset = reader.WaveformSet_from_hdf5_file(filepath, det=det,read_full_streaming_data=False)
-
-    print("\n Saving the waveform in a compressed hdf5 format")
-
+    filepaths = ["/eos/experiment/neutplatform/protodune/dune/hd-protodune/41/fc/np04hd_raw_run028676_0145_dataflow5_datawriter_0_20240814T044406.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/06/c7/np04hd_raw_run028676_0145_dataflow6_datawriter_0_20240814T044406.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/88/57/np04hd_raw_run028676_0145_dataflow7_datawriter_0_20240814T044406.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/28/2c/np04hd_raw_run028676_0146_dataflow0_datawriter_0_20240814T044505.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/4b/bc/np04hd_raw_run028676_0146_dataflow1_datawriter_0_20240814T044504.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/9e/e2/np04hd_raw_run028676_0146_dataflow2_datawriter_0_20240814T044504.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/ce/89/np04hd_raw_run028676_0146_dataflow3_datawriter_0_20240814T044504.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/b3/5e/np04hd_raw_run028676_0146_dataflow4_datawriter_0_20240814T044504.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1c/db/np04hd_raw_run028676_0146_dataflow5_datawriter_0_20240814T044505.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/24/d3/np04hd_raw_run028676_0146_dataflow6_datawriter_0_20240814T044505.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/32/5f/np04hd_raw_run028676_0146_dataflow7_datawriter_0_20240814T044505.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/6a/02/np04hd_raw_run028676_0147_dataflow0_datawriter_0_20240814T044611.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/93/0c/np04hd_raw_run028676_0147_dataflow1_datawriter_0_20240814T044606.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1e/9c/np04hd_raw_run028676_0147_dataflow2_datawriter_0_20240814T044606.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/c6/36/np04hd_raw_run028676_0147_dataflow3_datawriter_0_20240814T044606.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/4d/2b/np04hd_raw_run028676_0147_dataflow4_datawriter_0_20240814T044606.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/c4/a6/np04hd_raw_run028676_0147_dataflow5_datawriter_0_20240814T044606.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/ee/ba/np04hd_raw_run028676_0147_dataflow6_datawriter_0_20240814T044608.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/f6/0f/np04hd_raw_run028676_0147_dataflow7_datawriter_0_20240814T044608.hdf5",
+                "/eos/experiment/neutplatform/protodune/dune/hd-protodune/53/2d/np04hd_raw_run028676_0148_dataflow0_datawriter_0_20240814T044716.hdf5"]
+    
+    det='HD_PDS'
+    
     comp="gzip"
-    hdf5_comp_filename = f"wfset_{run_number}_{comp}.hdf5"
     
-    size_create, time_taken_create = save_as_hdf5_comp(wfset, hdf5_comp_filename, compression=comp)
-    print(f"[HDF5-{comp} creation] Size: {size_create} bytes, Time: {time_taken_create:.2f} sec")
-    
-    print("\n Reading the waveform from a compressed hdf5 format")
-    
-    hdf5_comp_filepath = os.path.join(os.getcwd(), f"wfset_{run_number}_{comp}.hdf5")
-    
-    time_taken_read,wfset_ready = read_wfset_hdf5(hdf5_comp_filename)
-    print(f"[HDF5-{comp} reading] Time: {time_taken_read:.2f} sec")
-    print('\n Waveformset ready to analysis', type(wfset_ready))
+    for i in filepaths:
+        wfset = reader.WaveformSet_from_hdf5_file(filepaths[i], det=det,read_full_streaming_data=False)
+
+        hdf5_comp_filename = f"wfset_{run_number}_{i}_{comp}.hdf5"
+        
+        print("\n Saving the waveform in a compressed hdf5 format: {hdf5_comp_filename}")
+        
+        size_create, time_taken_create = save_as_hdf5_comp(wfset, hdf5_comp_filename, compression=comp)
+        print(f"[HDF5-{comp} creation] Size: {size_create} bytes, Time: {time_taken_create:.2f} sec")
+        
+        print("\n Reading the waveform from a compressed hdf5 format")
+        
+        hdf5_comp_filepath = os.path.join(os.getcwd(), f"wfset_{run_number}__{i}_{comp}.hdf5")
+        
+        time_taken_read,wfset_ready = read_wfset_hdf5(hdf5_comp_filename)
+        print(f"[HDF5-{comp} reading] Time: {time_taken_read:.2f} sec")
+        print('\n Waveformset ready to analysis', type(wfset_ready))
+        print('\n')
     
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 wtest_hdf5_reader_new.py <run_number>")
+        print("Usage: python3 hdf5_to_hdf5_converter.py <run_number>")
         sys.exit(1)
     
     main(sys.argv[1])
