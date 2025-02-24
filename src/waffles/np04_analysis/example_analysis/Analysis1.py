@@ -53,6 +53,11 @@ class Analysis1(WafflesAnalysis):
                 "'0<run_number>.txt' contains one rucio path per line."
             )
 
+            validate_items = field_validator(
+                "runs",
+                mode="before"
+            )(wcu.split_comma_separated_string)
+
         return InputParams
 
     def initialize(
