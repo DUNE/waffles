@@ -188,6 +188,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 subsample : int = 1,
                                 wvfm_count : int = 1e9,
                                 allowed_endpoints: Optional[list] = [],
+                                allowed_channels: Optional[list] = [],
                                 det : str = 'HD_PDS',
                                 temporal_copy_directory: str = '/tmp',
                                 erase_temporal_copy: bool = True
@@ -305,6 +306,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                subsample : int = 1,
                                wvfm_count : int = 1e9,
                                allowed_endpoints: Optional[list] = [],
+                               allowed_channels: Optional[list] = [],
                                det : str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
                                erase_temporal_copy: bool = True
@@ -468,7 +470,10 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 threshold_list.append(threshold_frag)
 
             for index, ch in enumerate(channels_frag):
-
+                
+                if ch not in allowed_channels:
+                    continue
+                
                 adcs = []
                 adcs = adcs_frag[index]
                 # for value in adcs_frag[index]:
