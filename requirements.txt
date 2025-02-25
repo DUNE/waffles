@@ -19,3 +19,5 @@ tqdm
 xrootd
 iminuit
 pydantic
+h5py
+hickle
