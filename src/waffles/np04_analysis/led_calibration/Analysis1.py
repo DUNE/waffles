@@ -23,21 +23,23 @@ class Analysis1(WafflesAnalysis):
             """Validation model for the input parameters of the LED
             calibration analysis."""
 
-            apas: list = Field(
+            apas: list[int] = Field(
                 ...,
-                description="APA number",
+                description="Numbers of the APAs to consider",
                 example=[2]
             )
 
-            pdes: list = Field(
+            pdes: list[int] = Field(
                 ...,
-                description="Photon detection efficiency",
+                description="Photon detection efficiencies to "
+                "consider",
                 example=[0.4]
             )
 
-            batches: list = Field(
+            batches: list[int] = Field(
                 ...,
-                description="Calibration batch number",
+                description="Number of the calibration batches "
+                "to consider",
                 example=[2]
             )
 
