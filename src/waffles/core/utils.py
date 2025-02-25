@@ -11,14 +11,24 @@ def add_arguments_to_parser(
     """This function defines the arguments that the main program
     should accept. The arguments are the following:
     
-    -s, --steering: str
-        Name of the steering file.
-    -a, --analysis: str
-        The name of the analysis class to be
-        executed
-    -p, --params: str
-        Name of the parameters file.
-    -v, --verbose: bool
+    [-s, --steering]: str
+        Name of the steering file. It should be a YAML
+        file which orders the different analysis stages 
+        and sets a parameters file for each stage. Note that 
+        this parameter is mutually exclusive with the [-a, 
+        --analysis] and [-p, --params] parameters.
+    [-a, --analysis]: str
+        The name of the analysis class to be executed. 
+        The '.py' extension may not be included. This parameter 
+        is meant for situtations where only one analysis stage 
+        should be run. Note that this parameter is mutually 
+        exclusive with the [-s, --steering] parameter."
+    [-p, --params]: str
+        Name of the parameters file. It should be a YAML
+        file which contains the parameters to be used. Note 
+        that this parameter is mutually exclusive with the [-s, 
+        --steering] parameter.
+    [-v, --verbose]: bool
         Whether to run with verbosity.
         
     Parameters
@@ -39,7 +49,9 @@ def add_arguments_to_parser(
         default=None,
         help="Name of the steering file. It should be a YAML"
         " file which orders the different analysis stages "
-        "and sets a parameters file for each stage."
+        "and sets a parameters file for each stage. Note that "
+        "this parameter is mutually exclusive with the [-a, "
+        "--analysis] and [-p, --params] parameters."
     )
 
     parser.add_argument(
@@ -48,7 +60,10 @@ def add_arguments_to_parser(
         type=str,
         default=None,
         help="The name of the analysis class to be executed. "
-        "The '.py' extension may not be included."
+        "The '.py' extension may not be included. This parameter "
+        "is meant for situtations where only one analysis stage "
+        "should be run. Note that this parameter is mutually "
+        "exclusive with the [-s, --steering] parameter." 
     )
 
     parser.add_argument(
@@ -56,7 +71,10 @@ def add_arguments_to_parser(
         "--params",
         type=str,
         default=None,
-        help="Name of the parameters file."
+        help="Name of the parameters file. It should be a YAML"
+        " file which contains the parameters to be used. Note "
+        "that this parameter is mutually exclusive with the [-s, "
+        "--steering] parameter."
     )
 
     parser.add_argument(
