@@ -183,7 +183,12 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 nrecord_stop_fraction : float = 1.0,
                                 subsample : int = 1,
                                 wvfm_count : int = 1e9,
+<<<<<<< HEAD
                                 ch: Optional[dict] = {},
+=======
+                                allowed_endpoints: Optional[list] = [],
+                                allowed_channels: Optional[list] = [],
+>>>>>>> ea65937 (Adding the possibility to filter certain channels in a waveformset in raw_hdf5_reader.py)
                                 det : str = 'HD_PDS',
                                 temporal_copy_directory: str = '/tmp',
                                 erase_temporal_copy: bool = True
@@ -303,7 +308,12 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                nrecord_stop_fraction : float = 1.0,
                                subsample : int = 1,
                                wvfm_count : int = 1e9,
+<<<<<<< HEAD
                                ch: Optional[dict] = {},  # Replace allowed_endpoints and allowed_channels
+=======
+                               allowed_endpoints: Optional[list] = [],
+                               allowed_channels: Optional[list] = [],
+>>>>>>> ea65937 (Adding the possibility to filter certain channels in a waveformset in raw_hdf5_reader.py)
                                det : str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
                                erase_temporal_copy: bool = True
@@ -463,11 +473,20 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 active_endpoints.add(endpoint)
                 threshold_list.append(threshold_frag)
 
+<<<<<<< HEAD
             for index, ch_id in enumerate(channels_frag):
                 # Check if the (endpoint, channel) pair is allowed
                 if (endpoint, ch_id) not in valid_pairs:
                     continue
 
+=======
+            for index, ch in enumerate(channels_frag):
+                
+                if ch not in allowed_channels:
+                    continue
+                
+                adcs = []
+>>>>>>> ea65937 (Adding the possibility to filter certain channels in a waveformset in raw_hdf5_reader.py)
                 adcs = adcs_frag[index]
 
                 if read_full_streaming_data == is_fullstream_frag[index]:
