@@ -13,25 +13,46 @@ def WaveformSet_to_file(
         overwrite: bool = False,
         format: str = "hdf5",
         compression: str = "gzip",
+        compression_opts: int = 5,
 ) -> None:
     """
-    Saves a WaveformSet object to a file using pickle or HDF5 format.
+    Saves a WaveformSet object to a file using either the Pickle or HDF5 format.
 
     Parameters
     ----------
     waveform_set : WaveformSet
-        The WaveformSet object to persist.
+        The WaveformSet object to be saved.
     output_filepath : str
-        Path to the file where the WaveformSet object will be saved.
-    overwrite : bool
-        If True, overwrite the file if it exists. If False, raise an exception if the file exists.
+        The path to the output file.
+    overwrite : bool, optional
+        If True, overwrites the file if it already exists. If False, raises an exception
+        if the file exists. Default is False.
     format : str, optional
-        The format to save the file in. Options are "pickle" (default) or "hdf5".
+        The format in which to save the file. Supported options are:
+        - "pickle": Saves the object as a serialized Pickle file.
+        - "hdf5" (default): Stores the object in an HDF5 file.
     compression : str, optional
-        Compression type for HDF5. Default is "gzip".
-    
+        The compression method for the HDF5 format. Default is "gzip".
+        Ignored if `format="pickle"`.
+    compression_opts : int, optional
+        The compression level for HDF5 format. Default is 5.
+        Ignored if `format="pickle"`.
+
+    Raises
+    ------
+    Exception
+        If `overwrite` is False and the file already exists.
+    ValueError
+        If an unsupported format is specified.
+
+    Notes
+    -----
+    - When using HDF5 format, the function serializes the WaveformSet object using Pickle,
+      converts it to a NumPy array, and stores it as a dataset in the HDF5 file.
+    - The function prints the file size and the time taken to save when using HDF5 format.
+
     Returns
-    ----------
+    -------
     None
     """
 
@@ -50,7 +71,7 @@ def WaveformSet_to_file(
         obj_np = np.frombuffer(obj_bytes, dtype=np.uint8)
         
         with h5py.File(output_filepath, "w") as hdf:
-            hdf.create_dataset("wfset", data=obj_np, compression=compression)
+            hdf.create_dataset("wfset", data=obj_np, compression=compression, compression_opts=compression_opts)
 
         elapsed_time = time.time() - start_time
         file_size = os.path.getsize(output_filepath)
