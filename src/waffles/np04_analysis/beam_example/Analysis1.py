@@ -52,11 +52,11 @@ class Analysis1(WafflesAnalysis):
         beam_file = f'{self.params.input_path}/{self.params.beam_input_path}'
         
         print("Read np04 and beam information from: ")
-        print("  np04 PDS pickle file: ", np04_file)
+        print("  np04 PDS hdf5 file: ", np04_file)
         print("  beam root file:       ", beam_file)
 
         # Read the two files and create BeamEvents combining their information
-        self.events = events_from_pickle_and_beam_files(np04_file, beam_file, self.params.delta_time)
+        self.events = events_from_hdf5_and_beam_files(np04_file, beam_file, self.params.delta_time)
 
         # sort events by timing
         self.events.sort(key=lambda x: x.ref_timestamp, reverse=False)
