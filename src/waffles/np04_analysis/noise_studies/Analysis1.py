@@ -23,6 +23,7 @@ class Analysis1(WafflesAnalysis):
             full_stat: bool = Field(..., description="Full statistics")
             user_runs: list = Field([], description="List of runs to analyze") 
             all_noise_runs: list = Field([], description="List of all noise runs")
+            integratorsON_runs: list = Field([], description="List of runs with integrators ON")
 
         return InputParams
 
@@ -35,6 +36,8 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
         self.filepath_folder  = self.params.filepath_folder
         self.run_vgain_dict   = input_parameters.run_vgain_dict
+        self.integratorsON_runs = input_parameters.integratorsON_runs
+        self.debug_mode = input_parameters.debug_mode
         self.channel_map_file = input_parameters.channel_map_file
         df = pd.read_csv(self.channel_map_file, sep=",")
         self.daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
@@ -76,27 +79,32 @@ class Analysis1(WafflesAnalysis):
         """
         comment
         """
-        self.eps = []
-        self.chs = []
-        self.offline_chs = []
-        self.rms = []
-        self.fft2_avgs = []
-        self.vgains = []
+        endpoints = self.wfset_run.get_set_of_endpoints()
+        
+        integrator_ON = False
+        if self.run in self.integratorsON_runs:
+            integrator_ON = True
 
-        ep_ch_dict = self.wfset_run.get_run_collapsed_available_channels()
 
-        for ep in ep_ch_dict:
-            channels = list(ep_ch_dict[ep])
+        # --- LOOP OVER ENDPOINTS -------------------------------------
+        for ep in endpoints:
+            print("Endpoint: ", ep)
             wfset_ep = waffles.WaveformSet.from_filtered_WaveformSet(self.wfset_run, nf.allow_ep_wfs, ep)
 
+            ep_ch_dict = wfset_ep.get_run_collapsed_available_channels()
+            channels = list(ep_ch_dict[ep])
+
+            # --- LOOP OVER CHANNELS ----------------------------------
             for ch in channels:
+                print("Channel: ", ch)
                 wfset_ch = waffles.WaveformSet.from_filtered_WaveformSet(wfset_ep, nf.allow_channel_wfs, ch)
+                # check if the channel is in the daphne_to_offline dictionary
                 channel = np.uint16(np.uint16(ep)*100+np.uint16(ch))
                 if channel not in self.daphne_to_offline:
                     print(f"Channel {channel} not in the daphne_to_offline dictionary")
                     continue
                 offline_ch = self.daphne_to_offline[channel]
-
+        
                 wfs = wfset_ch.waveforms
                 nf.create_float_waveforms(wfs)
                 nf.sub_baseline_to_wfs(wfs, 1024)
@@ -104,7 +112,7 @@ class Analysis1(WafflesAnalysis):
                 norm = 1./len(wfs)
                 fft2_avg = np.zeros(1024)
                 rms = 0.
-                
+
                 # Compute the average FFT of the wfs.adcs_float
                 for wf in wfs:
                     rms += np.std(wf.adcs_float)
@@ -115,14 +123,30 @@ class Analysis1(WafflesAnalysis):
                 fft2_avg = fft2_avg*norm
                 rms = rms*norm
                 vgain = self.run_vgain_dict[self.run]
+                
+                # print run, vgain, ep, ch, offline_ch, rms in a csv file
+                self.out_csv_file.write(f"{self.run},{vgain},{ep},{ch},{offline_ch},{rms}\n")
 
-                self.eps.append(ep)
-                self.chs.append(ch)
-                self.offline_chs.append(offline_ch)
-                self.rms.append(rms)
-                self.fft2_avgs.append(fft2_avg[0:513])
-                self.vgains.append(vgain)
+                # Check wheter the folder FFT_txt exists in the "output" folder
+                if not os.path.exists("output/FFT_txt"):
+                    os.makedirs("output/FFT_txt")
 
+                # print the FFT in a txt file
+                print("Writing FFT to txt file")
+                integrator = "OFF"
+                if integrator_ON:
+                    integrator = "ON"
+                np.savetxt("output/FFT_txt/fft_run_"+str(self.run)
+                           +"_int_"+integrator
+                           +"_vgain_"+str(vgain)
+                           +"_ch_"+str(channel)
+                           +"_offlinech_"+str(offline_ch)+".txt", fft2_avg[0:513])
+
+               
+                if self.debug_mode:
+                    nf.plot_heatmaps(wfs, "raw", self.run, vgain, int(channel), offline_ch)
+                    nf.plot_heatmaps(wfs, "baseline_removed", self.run, vgain, int(channel), offline_ch)
+                    print("done")
 
         return True
     
@@ -132,10 +156,4 @@ class Analysis1(WafflesAnalysis):
         """
         comment
         """
-        for i in range(len(self.eps)):
-            self.out_csv_file.write(f"{self.run},{self.vgains[i]},{self.eps[i]},{self.chs[i]},{self.offline_chs[i]},{self.rms[i]}\n")
-            np.savetxt(self.out_path+"/FFT_txt/fft_run_"+str(self.run)+"_vgain_"+str(self.vgains[i])
-                       +"_ch_"+str(self.chs[i])+"_offlinech_"+str(self.offline_chs[i])
-                       +".txt", self.fft2_avgs[i])
-
         return True

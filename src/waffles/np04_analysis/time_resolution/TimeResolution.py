@@ -110,7 +110,7 @@ class TimeResolution:
         
         Returns:
         - waveforms.t0 for each of the selected wvfs
-        - wavefomrs.avg_t0
+        - waveforms.avg_t0
         """
         if tag == "ref":
             waveforms = self.ref_wfs

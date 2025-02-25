@@ -1,6 +1,5 @@
 import waffles
 import numpy as np
-import TimeResolution as tr
 
 def allow_channel_wfs(waveform: waffles.Waveform, endpoint: int, channel: int) -> bool:
     return waveform.endpoint == endpoint and waveform.channel == channel

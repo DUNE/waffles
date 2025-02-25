@@ -22,7 +22,8 @@ if __name__ == "__main__":
     # Setup variables according to the user_config.yaml file
     with open("params.yml", 'r') as stream:
         user_config = yaml.safe_load(stream)
-
+    
+    debug_mode = user_config.get("debug_mode")
     out_writing_mode = user_config.get("out_writing_mode")
     full_stat = user_config.get("full_stat")
     runs      = user_config.get("user_runs", [])
@@ -78,6 +79,7 @@ if __name__ == "__main__":
                 offline_ch = daphne_to_offline[channel]
         
                 wfs = wfset_ch.waveforms
+                del wfset_ch
                 nf.create_float_waveforms(wfs)
                 nf.sub_baseline_to_wfs(wfs, 1024)
 
@@ -113,4 +115,11 @@ if __name__ == "__main__":
                            +"_vgain_"+str(vgain)
                            +"_ch_"+str(channel)
                            +"_offlinech_"+str(offline_ch)+".txt", fft2_avg[0:513])
-                print("done")
+
+               
+                if debug_mode:
+                    nf.plot_heatmaps(wfs, "raw", run, vgain, channel, offline_ch)
+                    nf.plot_heatmaps(wfs, "baseline_removed", run, vgain, channel, offline_ch)
+                    print("done")
+
+            del wfset_ep

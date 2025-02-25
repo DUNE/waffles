@@ -8,23 +8,15 @@ output_path: "output"
 # Do you want to use full statistics? (True/False)
 full_stat: False
 
+# Debug mode? (True/False)
+debug_mode: True
+
 # Append or overwrite the output files? (append="a", overwrite="w")
 out_writing_mode: "w"
 
 # Which runs are you interested in? (e.g. [31920, 31928])
 # Leave it empty if you want to use all the runs []
-user_runs: [
-  26319,
-  26363,
-  26378,
-  26438,
-  26490,
-  26628,
-  27875,
-  27877,
-  27950,
-  28518,
-  28519]
+user_runs: []
 # user_runs: [31940]
 #
 # Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
