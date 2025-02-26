@@ -41,7 +41,7 @@ class Analysis1(WafflesAnalysis):
 
             validate_items = field_validator(
                 "channels",
-                "runlist",
+                "runs",
                 "blacklist",
                 mode="before"
             )(wcu.split_comma_separated_string)
