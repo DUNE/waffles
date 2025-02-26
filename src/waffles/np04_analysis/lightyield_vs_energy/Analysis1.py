@@ -179,8 +179,9 @@ class Analysis1(WafflesAnalysis):
             self.run_set = json.load(file)[self.params.set_name]
             print('done\n')
             
-        # print('\nReading led calibration info...')
-        # LED_calibration_info = pd.read_pickle(f"{self.params.input_path}/{self.params.LED_calibration_file}")
+        print('\nReading led calibration info...')
+        LED_calibration_info = pd.read_pickle(f"{self.params.input_path}/{self.params.LED_calibration_file}")
+        print('done\n')
         
         print('Reading waveform pickles file...')
         with open(f"{self.params.pickles_folder}/set_{self.run_set['Name']}/{self.params.input_pickles_wf_filename}", 'rb') as f:

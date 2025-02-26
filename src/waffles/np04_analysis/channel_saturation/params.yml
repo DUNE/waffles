@@ -11,7 +11,7 @@ apa_list: 'all'
 endpoint_list: [109]
 
 # Filename of input file (no folder path)
-input_pickles_wf_filename: 'set_A_self_15files109.pkl'
+input_pickles_wf_filename: 'set_A_self_200files109.pkl'
 
 # Path to folder containing pickles files (input)
 pickles_folder: '/afs/cern.ch/work/a/anbalbon/public/np04_beam_pickles'
