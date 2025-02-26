@@ -9,6 +9,8 @@ from plotly import graph_objects as pgo
 from plotly.subplots import make_subplots
 import ROOT as root
 from scipy.optimize import curve_fit
+from scipy.fft import fft, fftshift
+from scipy import signal
 
 
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams

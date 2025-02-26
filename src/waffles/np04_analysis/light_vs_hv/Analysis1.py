@@ -35,7 +35,7 @@ class Analysis1(WafflesAnalysis):
                                 description= "Output folder to save the correlated channels")
             time_window:    int =  Field(default= 5,  
                                 description="Time window in the search of coincidences")
-            min_coincidence:   int=  Field(default = 8,  
+            min_coincidence:   int=  Field(default = 10,  
                                 description="Mininum number of coincidences to save")
 
         return InputParams
@@ -92,8 +92,8 @@ class Analysis1(WafflesAnalysis):
 
         self.time_window=self.params.time_window
 
-        self.min_coincidence = self.params.min_coincidence
-
+        self.min_coincidence = self.params.min_coincidence-2
+        print(f"--------------checking for coincidences greater than {self.params.min_coincidence}--------------")
         self.read_input_loop=[None,]
 
         self.output = self.params.output
@@ -144,26 +144,28 @@ class Analysis1(WafflesAnalysis):
     #############################################################
 
     def analyze(self) -> bool:
-   
+        print(0)
         #get a vector of ordered timestamps per run per channel [i][j]
         self.timestamps, self.min_timestamp = get_ordered_timestamps(self.wfsets,self.n_channel,self.n_run)
-        
+        print(1)
         #return a list of double coincidences
         #coincidences[run index][goal channel][target channel][coindences index] --> [0: timestamp index of the goal channel][1: timestamp index of the target channel],[2:deltaT]]
         self.coincidences = get_all_double_coincidences(self.timestamps, 
                                                         self.n_channel, self.n_run, self.time_window)
    
+        print(2)
         #return a list of all coincidences
         #mult_coincidences[run_index][coincidence_index] --> [0: list of channels, 1: list of the index related to the channel on the timestamp array, 2: delta t of each channel related to goal channel]
         self.mult_coincidences = get_all_coincidences(self.coincidences, self.timestamps, 
                                                       self.n_channel, self.n_run )
 
-
+        print(3)
         self.coincidences_level = get_level_coincidences(self.mult_coincidences,self.n_channel,self.n_run)
         
+        print(4)
         self.wfsets=filter_not_coindential_wf(self.wfsets,self.coincidences_level,self.timestamps,
-                                              self.min_timestamp,self.n_channel,self.n_run)
-
+                                              self.min_timestamp,self.n_channel,self.n_run,self.min_coincidence)
+        print(5)
      
         return True
     

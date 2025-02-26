@@ -92,20 +92,26 @@ def find_true_index(wfs,file_index,channel,timestamps,index,minimo):
             return k
     return -1
 
-def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp,n_channel,n_run):
+def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp,n_channel,n_run,coincidence_min):
 
     true_index_array= [ [set() for _ in range(n_channel)] for _ in range(n_run)]
 
     for run_index in range(n_run):
         for ch in range(n_channel):
-            for coincidence_index in range(len(coincidences_level[run_index][8])):    
-                index=coincidences_level[run_index][8][coincidence_index][1][ch]
+            for coincidence_min_index in range(coincidence_min,coincidence_min+1,1):
 
-               
-                true_index=find_true_index(wfsets,run_index,ch,timestamps,index,min_timestamp)
-                true_index_array[run_index][ch].add(true_index)
+                for coincidence_index in range(len(coincidences_level[run_index][coincidence_min_index])):
+                    this_ch=  coincidences_level[run_index][coincidence_min_index][coincidence_index][0][ch]  
+                    index=coincidences_level[run_index][coincidence_min_index][coincidence_index][1][ch]
+
+                    true_index=find_true_index(wfsets,run_index,this_ch,timestamps,index,min_timestamp)
+
+                    if true_index not in  true_index_array[run_index][this_ch]:
+                        true_index_array[run_index][this_ch].add(true_index)
 
 
+    for run_index in range(n_run):
+        for ch in range(n_channel):    
             true_index_array[run_index][ch]=sorted(true_index_array[run_index][ch])
 
             for n in range(len(wfsets[run_index][ch].waveforms)-1,-1,-1):

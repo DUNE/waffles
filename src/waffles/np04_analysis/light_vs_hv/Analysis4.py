@@ -67,52 +67,33 @@ class Analysis4(WafflesAnalysis):
         # get all waveforms
         for i in range (self.n_entries):
             self.tree.GetEntry(i)
-            self.waveform.append(np.array(self.tree.avg_wf_dec))  
+            self.waveform.append(np.array(self.tree.avg_wf_dec_filt))  
 
-        x=np.concatenate([np.arange(0,400,1),np.arange(1000,2000,1)])
-        x_axis=np.arange(0,len(self.waveform[0]),1)    
-        x_fit=np.arange(0,400,1)
+        self.s3=[None for _ in range(self.n_entries)]
+        self.max=[None for _ in range(self.n_entries)]
 
-        self.params_fit=[None for _ in range(self.n_entries)]
-        self.params_fit2=[None for _ in range(self.n_entries)]
-        self.params_covariance=[None for _ in range(self.n_entries)]
-        self.params_covariance2=[None for _ in range(self.n_entries)]
-       
         for i in range(self.n_entries):
             
-            y=np.concatenate([self.waveform[i][0:400],self.waveform[0][1000:2000]])
-            params,cov=curve_fit(my_sin,x,y, maxfev=20000,p0=[0.5,640,-0.5,0.5,0.5,-5])
-            self.waveform[i]=self.waveform[i]
-            y_fit=self.waveform[i][571:571+400]
-            self.params_fit[i], self.params_covariance[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,120,100,100,-1])
-            self.waveform[i]=self.waveform[i]-my_sin(x_axis,*params)
-            y_fit=self.waveform[i][571:571+400]
-            self.params_fit2[i], self.params_covariance2[i] = curve_fit(func_tau,x_fit,y_fit,maxfev=20000,p0=[10,80,100,100,-1])
-
-
-        self.s1=(calculate_light(self.params_fit))
-        self.s2=(calculate_light(self.params_fit2))
-        self.s=(self.s1+self.s2)/2
-
-
+            aux=self.waveform[i][0:600]
+            max_aux=np.argmax(aux)
+            mean = np.mean(self.waveform[i][1024:1400])
+            self.max[i]=max_aux
+            self.s3[i]=np.sum((self.waveform[i]-mean)[max_aux:max_aux+150])
+            
+        self.s3=np.array(self.s3)/self.s3[0]
+        self.s=self.s3#(self.s1+self.s2)/2
         self.hv=np.array(self.hv)/360
-
-        
+         
         self.params_s, self.params_covariance_s = curve_fit(birks_law,self.hv,self.s,maxfev=20000)
-        print(self.s)
-                                                              
+        
+        print(self.params_s)
+        print(self.params_covariance_s)
+        print(self.max)                                         
         return True
     
     def write_output(self) -> bool:
         output_file_1=self.output + "/fit/"   
-        x=np.arange(0,500,1)
-        for i in range(self.n_entries):
-
-            plt.plot(self.waveform[i][571:571+300]-self.params_fit2[i][4])
-            plt.plot(func_tau(x,*self.params_fit2[i])-self.params_fit2[i][4])
-            plt.grid()
-            plt.savefig(output_file_1+f"fit_{i}.png")
-            plt.close()
+        
 
         # Data for ARIS coll
         x1 = [0.0, 0.05, 0.1, 0.2, 0.5]
@@ -160,18 +141,13 @@ class Analysis4(WafflesAnalysis):
         # ProtoDUNE-DP Run II
         ax.errorbar(x5, y5, xerr=ex5, yerr=ey5, fmt='o', markersize=8, label="ProtoDUNE-DP Run II", color='orange')
 
-        #int_error = calcular_incerteza_numerica(e_field, params[], params_covariance_s,int_integral)
 
-        ax.errorbar(self.hv, self.s1 , label="ProtoDUNE-HD Preliminary",fmt='o',color="blue",marker="x" )
-        ax.errorbar(self.hv, self.s2 , label="ProtoDUNE-HD Preliminary fit sin",fmt='o',color="pink",marker="x" )
-        ax.errorbar(self.hv, self.s , label="ProtoDUNE-HD Preliminary",fmt='o',color="green",marker="x" )
+        ax.errorbar(self.hv, self.s , label="ProtoDUNE-HD Preliminary average",fmt='o',color="green",marker="x" )
 
         x_axis=np.linspace(0,1,40)
 
-
         ax.errorbar(x_axis,birks_law(x_axis,*self.params_s),color="gray",label=f" fitted data: ProtoDUNE HD ", linestyle="--")
-
-
+        
         # Styling
         ax.set_xlim(-0.1, 0.6)
         ax.set_ylim(0.5, 1.1)
@@ -184,5 +160,7 @@ class Analysis4(WafflesAnalysis):
         # Save and show
         plt.tight_layout()
         plt.savefig(output_file_1+f"fit_light.png")
+        plt.close()
+
 
         return True
