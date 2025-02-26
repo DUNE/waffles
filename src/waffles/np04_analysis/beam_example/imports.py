@@ -1,6 +1,8 @@
 import numpy as np
 import pickle
 import os
+import uproot
+import ROOT
 from pydantic import Field
 
 from waffles.data_classes.WaveformSet import WaveformSet
