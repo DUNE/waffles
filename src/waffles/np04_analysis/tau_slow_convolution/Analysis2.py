@@ -34,6 +34,12 @@ class Analysis2(WafflesAnalysis):
             no_save:      bool = Field(...,          description="work in progress")
             scan:         int  = Field(...,          description="work in progress")
 
+            validate_items = field_validator(
+                "runs",
+                "channels",
+                mode="before"
+            )(wcu.split_comma_separated_string)
+
         return InputParams
 
     ##################################################################

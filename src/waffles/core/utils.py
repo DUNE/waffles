@@ -1,7 +1,7 @@
 import argparse
 import pathlib
 import yaml
-from typing import Optional
+from typing import Optional, List
 
 import waffles.Exceptions as we
 
@@ -1048,3 +1048,36 @@ def analysis_folder_meets_requirements():
         )
     
     return
+
+def split_comma_separated_string(
+        input_string: str,
+        separator: str = ','
+    ) -> List[str]:
+    """This function should work as a field_validator
+    for parameters of pydantic models which are
+    hinted as lists. To this end, this function
+    splits up the given string into a list of
+    strings using the given separator. If the
+    given input_string parameter is not an string,
+    then this function returns the input_string
+    parameter as it is defined by the user,
+    delegating the validation of the input to
+    pydantic.
+
+    Parameters
+    ----------
+    input_string: str
+        The string to be split
+    separator: str
+        The separator to be used to split the
+        input
+
+    Returns
+    ----------
+    List[str]
+    """
+    
+    if isinstance(input_string, str):
+        return input_string.split(separator)
+    else:
+        return input_string

@@ -1,0 +1,4 @@
+input_path: "input/"
+output_path: "output/"
+
+waveforms_per_run : 500
