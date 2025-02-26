@@ -1,0 +1,19 @@
+# Runs to be analyzed
+runs : [34087]
+channels  : [1]
+endpoints : [106]
+
+prepulse_ticks : 122
+postpulse_ticks : 145
+baseline_rms : 5
+
+min_amplitudes : [1000, 1500, 2000, 2500]
+amp_range : 500
+
+methods : ["half_amplitude", "denoise"]
+
+relative_thrs : [0.3, 0.5, 0.7]
+
+filt_levels : [2,3,4,10,20]
+# methods : ["zero_crossing"]
+

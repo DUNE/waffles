@@ -1,0 +1,6 @@
+# Data folder
+data_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/TimeResolution/files/cb/"
+
+# Output folder
+output_folder : "/eos/home-f/fegalizz/ProtoDUNE_HD/TimeResolution/raw_ana_results/"
+
