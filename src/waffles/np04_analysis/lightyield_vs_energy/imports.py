@@ -25,7 +25,7 @@ from waffles.data_classes.Waveform import *
 
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis as WafflesAnalysis, BaseInputParams
 
-import waffles.input_output.raw_hdf5_reader as hdf5_reader 
+#import waffles.input_output.raw_hdf5_reader as hdf5_reader 
 
  
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map

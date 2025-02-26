@@ -1,0 +1,235 @@
+aniso8601==9.0.1
+annotated-types==0.7.0
+anyconfig @ file:///tmp/root/spack-stage/spack-stage-py-anyconfig-0.9.11-egixf746564gw26tt2h4q7zbres5sqpp/spack-src
+anyio==3.6.2
+anytree==2.8.0
+argon2-cffi==23.1.0
+argon2-cffi-bindings==21.2.0
+arrow==1.3.0
+asttokens==2.4.1
+async-lru==2.0.4
+attrs @ file:///tmp/root/spack-stage/spack-stage-py-attrs-22.2.0-rl36kzr3psbnu7egegd56mq7ll2tb4cj/spack-src
+awkward==2.6.8
+awkward_cpp==38
+babel==2.16.0
+beautifulsoup4==4.12.3
+bidict==0.21.4
+bitarray==2.3.4
+bleach==6.1.0
+blessed==1.20.0
+blinker==1.9.0
+cachetools==5.1.0
+cactuscore-uhal-python310==2.8.1
+cactuscore-uhal-python310-gui==2.8.1
+calver @ file:///tmp/root/spack-stage/spack-stage-py-calver-2022.6.26-3l4s6yodqtkjftvbpnmstfwrfdzq2acm/spack-src
+certifi==2020.12.5
+cffi==1.17.1
+chardet==3.0.4
+charset-normalizer==3.3.2
+click==8.1.2
+click-configfile==0.2.3
+click-didyoumean==0.3.0
+click-shell==2.1
+colorama==0.4.4
+comm==0.2.2
+commonmark==0.9.1
+configparser==5.2.0
+connection-service @ git+https://github.com/DUNE-DAQ/connectivityserver@b01e074539277ea420b89169f7e8a58e8b951262
+contourpy==1.3.0
+cramjam==2.8.3
+cycler==0.12.1
+Cython @ file:///tmp/root/spack-stage/spack-stage-py-cython-0.29.33-thly5z7qcwsrc5ghd4kvrx4u2wk53mtq/spack-src
+daq-assettools @ git+https://github.com/DUNE-DAQ/daq-assettools@2ca5761aed1d11f5baac167e584d1e3443967320
+dash==2.18.1
+dash-bootstrap-components==1.6.0
+dash-core-components==2.0.0
+dash-html-components==2.0.0
+dash-table==5.0.0
+debugpy==1.8.5
+decorator==5.1.1
+deepdiff==6.3.1
+defusedxml==0.7.1
+docker==5.0.3
+editables @ file:///tmp/root/spack-stage/spack-stage-py-editables-0.3-4wv4gwl7y7rn7huj6zy44es5aqtae5ao/spack-src
+editor==1.6.6
+elisa-client-api @ git+https://github.com/DUNE-DAQ/elisa_client_api@741648cd01299f98ab9827dde40d3526585d05b1
+et-xmlfile @ file:///tmp/root/spack-stage/spack-stage-py-et-xmlfile-1.0.1-2ibt7xeltroko4xjllgiozwzlvfitydf/spack-src
+exceptiongroup==1.2.2
+executing==2.1.0
+fastjsonschema==2.20.0
+Flask==2.1.1
+Flask-Cors==3.0.10
+Flask-HTTPAuth==4.6.0
+Flask-RESTful==0.3.9
+flit_core @ file:///tmp/root/spack-stage/spack-stage-py-flit-core-3.7.1-wyzzvl65e32tkapkjeitzoimxppxpcgn/spack-src
+fonttools==4.53.1
+fqdn==1.5.1
+fsspec==2024.9.0
+future==0.18.2
+gevent==22.10.2
+gojsonnet @ file:///tmp/root/spack-stage/spack-stage-py-gojsonnet-0.20.0-wge7lmc5lcu4f3yag6lhcrewwcphtcls/spack-src
+google-auth==2.6.6
+graphviz==0.16
+greenlet==2.0.2
+gunicorn==20.1.0
+h11==0.14.0
+h5py==3.7.0
+hatch-fancy-pypi-readme @ file:///tmp/root/spack-stage/spack-stage-py-hatch-fancy-pypi-readme-22.7.0-ruq4iraspzl6bmvas5goxc3bwym27bbw/spack-src
+hatch-vcs @ file:///tmp/root/spack-stage/spack-stage-py-hatch-vcs-0.3.0-z5vascwwutjalmupbcfptzexcpfnpxc7/spack-src
+hatchling @ file:///tmp/root/spack-stage/spack-stage-py-hatchling-1.14.0-g55ad6t7wsjoyqbaraivygshpcknl5at/spack-src
+hickle==5.0.3
+httpcore==1.0.5
+httpx==0.27.2
+idna==2.10
+iminuit==2.30.1
+importlib_metadata==8.5.0
+importlib_resources==6.5.2
+iniconfig==1.1.1
+inquirer==3.4.0
+integrationtest @ git+https://github.com/DUNE-DAQ/integrationtest@235990c11ab45168cd6b460742ff172be4b86698
+ipykernel==6.29.5
+ipython==8.27.0
+ipywidgets==8.1.5
+isoduration==20.11.0
+itsdangerous==2.0.1
+jdcal==1.4.1
+jedi==0.19.1
+Jinja2==3.1.1
+json5==0.9.25
+jsonnet @ file:///tmp/root/spack-stage/spack-stage-py-jsonnet-0.16.0-rvayvajr7hegxijyze7vheiky64ad5g6/spack-src
+jsonpointer @ file:///tmp/root/spack-stage/spack-stage-py-jsonpointer-2.0-bxtqfizlpox5vpvaftvku5pzjdedmcou/spack-src
+jsonschema==4.23.0
+jsonschema-specifications==2023.12.1
+jupyter==1.1.1
+jupyter-console==6.6.3
+jupyter-events==0.10.0
+jupyter-lsp==2.2.5
+jupyter_client==8.6.3
+jupyter_core==5.7.2
+jupyter_server==2.14.2
+jupyter_server_terminals==0.5.3
+jupyterlab==4.2.5
+jupyterlab_pygments==0.3.0
+jupyterlab_server==2.27.3
+jupyterlab_widgets==3.0.13
+kafka-python==2.0.2
+kaleido==0.2.1
+kiwisolver==1.4.7
+kubernetes==23.6.0
+llvmlite==0.43.0
+lxml==5.1.0
+markdown-it-py==2.2.0
+MarkupSafe==2.0.1
+matplotlib==3.9.2
+matplotlib-inline==0.1.7
+mdurl==0.1.2
+meson @ file:///tmp/root/spack-stage/spack-stage-meson-1.1.0-qojv4uatwwxjx42olr3mazuxvhf452j3/spack-src
+mistune==3.0.2
+moo @ file:///tmp/root/spack-stage/spack-stage-py-moo-0.6.7-cfygqmqgwhyzrsjyf73krwtwopxr2o2d/spack-src
+nanoid==2.0.0
+nanorc @ git+https://github.com/DUNE-DAQ/nanorc@3c01a67ff9ac1ad54b9179ca8bd2b776508b2114
+narwhals==1.28.0
+nbclient==0.10.0
+nbconvert==7.16.4
+nbformat==5.10.4
+nest-asyncio==1.6.0
+networkx==2.6.3
+notebook==7.2.2
+notebook_shim==0.2.4
+numba==0.60.0
+numba-stats==1.9.0
+numpy==1.24.0
+oauthlib==3.2.0
+openpyxl @ file:///tmp/root/spack-stage/spack-stage-py-openpyxl-3.1.2-3ka4v5pcg2x3nffkocfx7ab724h4utyp/spack-src
+ordered-set==4.1.0
+overrides==7.7.0
+packaging==24.1
+pandas==2.2.2
+pandocfilters==1.5.1
+parso==0.8.4
+pathspec @ file:///tmp/root/spack-stage/spack-stage-py-pathspec-0.11.1-aalrdvbxy5ljfl4vnmi77e5qppxdhyta/spack-src
+pdstools @ file:///afs/cern.ch/user/a/anbalbon/IV_curve/PDS
+pexpect==4.8.0
+pillow==10.4.0
+platformdirs==4.3.6
+plotly==5.24.1
+pluggy==0.13.1
+prometheus_client==0.20.0
+prompt_toolkit==3.0.47
+protobuf==4.24.4
+psutil==5.9.0
+ptyprocess==0.7.0
+pure_eval==0.2.3
+py==1.10.0
+pyasn1==0.4.8
+pyasn1-modules==0.2.8
+pybind11 @ file:///tmp/root/spack-stage/spack-stage-py-pybind11-2.6.2-dwmcmqvlysdefxvdsqisotn2etcgiawj/spack-src
+pycparser==2.22
+pydantic==2.10.6
+pydantic_core==2.27.2
+pydot==1.4.2
+pyelftools @ file:///tmp/root/spack-stage/spack-stage-py-pyelftools-0.29-3glnkhk66nvprjxtzo6o5ks7zjcx2hds/spack-src
+Pygments==2.14.0
+pyparsing==2.4.7
+PyRoot==0.3.1
+pyrsistent==0.17.3
+PySocks==1.7.1
+pytest==7.3.2
+python-dateutil==2.8.2
+python-ipmi==0.5.1
+python-json-logger==2.0.7
+pytz==2022.1
+PyYAML==6.0
+pyzmq==26.2.0
+readchar==4.2.0
+referencing==0.35.1
+requests==2.32.3
+requests-oauthlib==1.3.1
+retrying==1.3.4
+rfc3339-validator==0.1.4
+rfc3986==1.5.0
+rfc3986-validator==0.1.1
+rich==13.3.2
+rpds-py==0.20.0
+rsa==4.8
+runs==1.2.2
+scipy==1.14.1
+seaborn==0.13.2
+Send2Trash==1.8.3
+setuptools-scm @ file:///tmp/root/spack-stage/spack-stage-py-setuptools-scm-7.0.5-2sif6xkpvvm7rfmsjar5hxxguiozvozi/spack-src
+sh==1.14.1
+six==1.16.0
+sniffio==1.3.0
+soupsieve==2.6
+stack-data==0.6.3
+tenacity==9.0.0
+terminado==0.18.1
+textual==0.10.1
+tinycss2==1.3.0
+toml==0.10.2
+tomli @ file:///tmp/root/spack-stage/spack-stage-py-tomli-2.0.1-c5m2yp3wbnhsjdrmbw2slmqohvmz6yq4/spack-src
+tornado==6.4.1
+tqdm==4.66.5
+traitlets==5.14.3
+transitions==0.8.10
+trove-classifiers @ file:///tmp/root/spack-stage/spack-stage-py-trove-classifiers-2023.3.9-4jsfbspc43dax6zq5devvr2xuwt4kqoa/spack-src
+types-python-dateutil==2.9.0.20240906
+typing_extensions==4.12.2
+tzdata==2024.1
+uproot==5.3.12
+uri-template==1.3.0
+urllib3==1.26.5
+-e git+https://github.com/DUNE/waffles.git@a70212899b74dae134c9fbab5f833b7097fe6fbc#egg=waffles
+wcwidth==0.2.13
+webcolors==24.8.0
+webencodings==0.5.1
+websocket-client==1.8.0
+Werkzeug==2.1.1
+widgetsnbextension==4.0.13
+xmod==1.8.1
+xrootd==5.7.1
+xxhash==3.5.0
+zipp==3.20.2
+zmq==0.0.0
+zope.event==4.6
+zope.interface==5.5.2
