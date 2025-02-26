@@ -281,6 +281,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                 subsample,
                 wvfm_count,
                 allowed_endpoints,
+                allowed_channels,
                 det,
                 temporal_copy_directory=temporal_copy_directory,
                 erase_temporal_copy=erase_temporal_copy
