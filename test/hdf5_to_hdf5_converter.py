@@ -70,24 +70,23 @@ def main(run_number):
     
     comp="gzip"
     
-    for i in filepaths:
-        wfset = reader.WaveformSet_from_hdf5_file(filepaths[i], det=det,read_full_streaming_data=False)
+    wfset = reader.WaveformSet_from_hdf5_file(filepaths, det=det,read_full_streaming_data=False)
 
-        hdf5_comp_filename = f"wfset_{run_number}_{i}_{comp}.hdf5"
+    hdf5_comp_filename = f"wfset_{run_number}_{comp}.hdf5"
         
-        print("\n Saving the waveform in a compressed hdf5 format: {hdf5_comp_filename}")
+    print("\n Saving the waveform in a compressed hdf5 format: {hdf5_comp_filename}")
         
-        size_create, time_taken_create = save_as_hdf5_comp(wfset, hdf5_comp_filename, compression=comp)
-        print(f"[HDF5-{comp} creation] Size: {size_create} bytes, Time: {time_taken_create:.2f} sec")
+    size_create, time_taken_create = save_as_hdf5_comp(wfset, hdf5_comp_filename, compression=comp)
+    print(f"[HDF5-{comp} creation] Size: {size_create} bytes, Time: {time_taken_create:.2f} sec")
         
-        print("\n Reading the waveform from a compressed hdf5 format")
+    print("\n Reading the waveform from a compressed hdf5 format")
         
-        hdf5_comp_filepath = os.path.join(os.getcwd(), f"wfset_{run_number}__{i}_{comp}.hdf5")
+    hdf5_comp_filepath = os.path.join(os.getcwd(), f"wfset_{run_number}_{comp}.hdf5")
         
-        time_taken_read,wfset_ready = read_wfset_hdf5(hdf5_comp_filename)
-        print(f"[HDF5-{comp} reading] Time: {time_taken_read:.2f} sec")
-        print('\n Waveformset ready to analysis', type(wfset_ready))
-        print('\n')
+    time_taken_read,wfset_ready = read_wfset_hdf5(hdf5_comp_filename)
+    print(f"[HDF5-{comp} reading] Time: {time_taken_read:.2f} sec")
+    print('\n Waveformset ready to analysis', type(wfset_ready))
+    print('\n')
     
 if __name__ == "__main__":
     if len(sys.argv) != 2:
