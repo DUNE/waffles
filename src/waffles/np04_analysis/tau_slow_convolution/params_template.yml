@@ -6,11 +6,7 @@ input_path: 'data'
 output_path: 'output'
 
 # type of runlist to be used: beam or purity
-<<<<<<< HEAD
-runlist: 'purity'
-=======
 runlist: 'led'
->>>>>>> main
 
 # runs to be analyzed
 runs: [26081]
@@ -19,11 +15,7 @@ runs: [26081]
 channels: [11114,11116]
 
 # list of special runs
-<<<<<<< HEAD
-blacklist: [ 28210, 28211, 28212, 28213, 28215, 28216, 28217, 28218, 28219 ] 
-=======
 blacklist: [26145, 26147, 26149, 26152, 26154, 26161, 26163, 26165, 26167, 28210, 28211, 28212, 28213, 28215, 28216, 28217, 28218, 28219 ] 
->>>>>>> main
 
 # ------ parameters for average waveform creation --------
 
