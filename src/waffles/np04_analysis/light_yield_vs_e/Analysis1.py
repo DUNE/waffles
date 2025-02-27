@@ -17,9 +17,9 @@ class Analysis1(WafflesAnalysis):
             runs: list[int] = Field(
                 ..., description="Run numbers to be read", example=[27906, 27907]
             )
-            waveforms_per_run: int = Field(
-                ..., description="Number of waveforms to read per run", example=500
-            )
+            # waveforms_per_run: int = Field(
+            #     ..., description="Number of waveforms to read per run", example=500
+            # )
             correct_by_baseline: bool = Field(
                 default=True,
                 description="Whether to subtract the baseline before computing the average waveform"
@@ -62,13 +62,13 @@ class Analysis1(WafflesAnalysis):
         )
 
         self.wfset = reader.WaveformSet_from_hdf5_files(
-            filepaths[:10],
+            filepaths[:2],
             read_full_streaming_data=False,
             truncate_wfs_to_minimum=True,
             nrecord_start_fraction=0.0,
             nrecord_stop_fraction=1.0,
             subsample=1,
-            wvfm_count=self.params.waveforms_per_run,
+            wvfm_count=1e9,
             allowed_endpoints=[],
             det='HD_PDS',
             temporal_copy_directory='/tmp',
@@ -93,7 +93,7 @@ class Analysis1(WafflesAnalysis):
 
         WaveformSet_to_file(
             waveform_set=self.wfset,
-            output_filepath=f"{self.params.output_path}tp_waveformset.hdf5",
+            output_filepath=f"{self.params.output_path}waveformset.hdf5",
             overwrite=True,
             format="hdf5",
             compression="gzip",
@@ -101,7 +101,7 @@ class Analysis1(WafflesAnalysis):
         )
         
         new_ws = WaveformSet_from_hdf5_pickle(
-            '/nfs/home/marroyav/waffles/src/waffles/np04_analysis/tp/output/tp_waveformset.hdf5'
+            'output/waveformset.hdf5'
         )
         print(new_ws)
         
