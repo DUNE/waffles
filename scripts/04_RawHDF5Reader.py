@@ -16,8 +16,8 @@ class WaveformProcessor:
         self.debug = debug
         self.wfset = None  # Placeholder for WaveformSet
 
-    def read_input(self) -> bool:
-        """Reads waveforms for the current run and creates a WaveformSet."""
+    def read_and_save(self) -> bool:
+        """Reads waveforms for the current run and saves each file separately if the list is too large."""
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
 
         try:
@@ -25,27 +25,34 @@ class WaveformProcessor:
             filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
 
             if len(filepaths) > 5:
-                print_colored(f"This run has {len(filepaths)} HDF5 files. \n {filepaths[:5]}", color="WARNING")
+                print_colored(f"This run has {len(filepaths)} HDF5 files. Processing them individually...", color="WARNING")
                 file_lim = inquirer.prompt([inquirer.Text("file_lim", message="How many of them do we process?")])["file_lim"]
+                filepaths = filepaths[:int(file_lim)]
             else:
                 file_lim = len(filepaths)
 
-            # Load waveforms
-            self.wfset = reader.WaveformSet_from_hdf5_files(
-                filepaths[:int(file_lim)],
-                read_full_streaming_data=False,
-                truncate_wfs_to_minimum=True,
-                nrecord_start_fraction=0.0,
-                nrecord_stop_fraction=1.0,
-                subsample=1,
-                wvfm_count=1e9,
-                allowed_endpoints=[],
-                det='HD_PDS',
-                temporal_copy_directory='/tmp',
-                erase_temporal_copy=True
-            )
+            for file in filepaths:
+                print_colored(f"Processing file: {file}", color="INFO")
 
-            print_colored("WaveformSet successfully created.", color="SUCCESS")
+                # Load waveforms from a single file
+                self.wfset = reader.WaveformSet_from_hdf5_files(
+                    [file],  # Process one file at a time
+                    read_full_streaming_data=False,
+                    truncate_wfs_to_minimum=True,
+                    nrecord_start_fraction=0.0,
+                    nrecord_stop_fraction=1.0,
+                    subsample=1,
+                    wvfm_count=1e9,
+                    allowed_endpoints=[],
+                    det='HD_PDS',
+                    temporal_copy_directory='/tmp',
+                    erase_temporal_copy=True
+                )
+
+                if self.wfset:
+                    self.write_output(file)
+
+            print_colored("All files processed successfully.", color="SUCCESS")
             return True
 
         except FileNotFoundError:
@@ -55,9 +62,11 @@ class WaveformProcessor:
             print_colored(f"An error occurred while reading input: {e}", color="ERROR")
             return False
 
-    def write_output(self) -> bool:
-        """Saves the waveform data to an HDF5 file."""
-        output_filepath = Path(self.output_path) / f"waveformset_run_{self.run_number}.hdf5"
+    def write_output(self, input_filepath: str) -> bool:
+        """Saves the waveform data to an HDF5 file, maintaining the input file naming structure."""
+        input_filename = Path(input_filepath).name
+        output_filepath = Path(self.output_path) / f"processed_{input_filename}"
+        
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
 
         try:
@@ -105,8 +114,7 @@ def main(run, debug, rucio_dir, output_dir):
 
         processor = WaveformProcessor(rucio_paths_directory=rucio_dir, output_path=output_dir, run_number=run_number, debug=debug)
         
-        if processor.read_input():
-            processor.write_output()
+        processor.read_and_save()
 
 
 if __name__ == "__main__":
