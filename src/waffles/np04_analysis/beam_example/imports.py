@@ -2,8 +2,8 @@ import numpy as np
 import pickle
 import os
 import uproot
-import ROOT
 from pydantic import Field
+import h5py
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
