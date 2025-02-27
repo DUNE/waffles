@@ -5,24 +5,37 @@ from waffles.utils.utils import print_colored
 import waffles.input_output.raw_hdf5_reader as reader
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
+from waffles.input_output.waveform import Waveform, WaveformSet  # Ensure correct import
 
 class WaveformProcessor:
-    """Handles waveform data processing: reading and saving waveform sets."""
+    """Handles waveform data processing: reading, filtering, and saving waveform sets."""
 
     def __init__(self, rucio_paths_directory: str, output_path: str, run_number: int, debug: bool = True, 
-                 allowed_endpoints: str = "", allowed_channels: str = ""):
+                 allowed_endpoints: str = "", allowed_channels: str = "", save_single_file: bool = False, self_trigger: int = None):
         self.rucio_paths_directory = rucio_paths_directory
         self.output_path = output_path
         self.run_number = run_number
         self.debug = debug
-        self.wfset = None  # Placeholder for WaveformSet
+        self.save_single_file = save_single_file
+        self.self_trigger = self_trigger  # Self-trigger filtering threshold
+        self.wfset_list = []  # List to store all waveform sets
 
         # Convert comma-separated strings to lists
         self.allowed_endpoints = [int(e) for e in allowed_endpoints.split(",") if e.strip().isdigit()] if allowed_endpoints else []
         self.allowed_channels = [int(c) for c in allowed_channels.split(",") if c.strip().isdigit()] if allowed_channels else []
 
+    def beam_self_trigger_filter(self, waveform: Waveform) -> bool:
+        """Filters waveforms based on DAQ PDS time offset."""
+        if self.self_trigger is None:
+            return True  # No filtering applied if self_trigger is not set
+        
+        timeoffset_min = -self.self_trigger
+        timeoffset_max = self.self_trigger
+        daq_pds_timeoffset = waveform.timestamp - waveform.daq_window_timestamp
+        return timeoffset_min < daq_pds_timeoffset < timeoffset_max
+
     def read_and_save(self) -> bool:
-        """Reads waveforms for the current run and saves each file separately if the list is too large."""
+        """Reads waveforms for the current run, applies filters, and saves them."""
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
 
         try:
@@ -33,14 +46,12 @@ class WaveformProcessor:
                 print_colored(f"This run has {len(filepaths)} HDF5 files. Processing them individually...", color="WARNING")
                 file_lim = inquirer.prompt([inquirer.Text("file_lim", message="How many of them do we process?")])["file_lim"]
                 filepaths = filepaths[:int(file_lim)]
-            else:
-                file_lim = len(filepaths)
 
             for file in filepaths:
                 print_colored(f"Processing file: {file}", color="INFO")
 
                 # Load waveforms from a single file
-                self.wfset = reader.WaveformSet_from_hdf5_files(
+                wfset = reader.WaveformSet_from_hdf5_files(
                     [file],  # Process one file at a time
                     read_full_streaming_data=False,
                     truncate_wfs_to_minimum=True,
@@ -55,8 +66,21 @@ class WaveformProcessor:
                     erase_temporal_copy=True
                 )
 
-                if self.wfset:
-                    self.write_output(file)
+                if wfset:
+                    # Apply self-trigger filtering if enabled
+                    if self.self_trigger is not None:
+                        print_colored("Applying beam self-trigger filter...", color="DEBUG")
+                        wfset = WaveformSet.from_filtered_WaveformSet(wfset, self.beam_self_trigger_filter)
+                        print_colored(f"✔ Number of waveforms after filtering: {len(wfset.waveforms)}", color="SUCCESS")
+                    
+                    if self.save_single_file:
+                        self.wfset_list.append(wfset)  # Store for later merging
+                    else:
+                        self.write_output(wfset, file)
+
+            # Save all processed waveforms into a single file if the option is enabled
+            if self.save_single_file and self.wfset_list:
+                self.write_output(self.wfset_list, f"merged_run_{self.run_number}.hdf5")
 
             print_colored("All files processed successfully.", color="SUCCESS")
             return True
@@ -68,16 +92,23 @@ class WaveformProcessor:
             print_colored(f"An error occurred while reading input: {e}", color="ERROR")
             return False
 
-    def write_output(self, input_filepath: str) -> bool:
-        """Saves the waveform data to an HDF5 file, maintaining the input file naming structure."""
-        input_filename = Path(input_filepath).name
-        output_filepath = Path(self.output_path) / f"processed_{input_filename}"
-        
+    def write_output(self, wfset, input_filepath: str) -> bool:
+        """Saves the waveform data to an HDF5 file. Supports both single-file and individual-file modes."""
+        if isinstance(wfset, list):  # Handling single-file mode
+            output_filename = f"processed_merged_run_{self.run_number}.hdf5"
+            print_colored(f"Saving merged waveform data to {output_filename}...", color="DEBUG")
+
+            combined_wfset = sum(wfset)  # Merge all waveform sets
+            output_filepath = Path(self.output_path) / output_filename
+        else:
+            input_filename = Path(input_filepath).name
+            output_filepath = Path(self.output_path) / f"processed_{input_filename}"
+
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
 
         try:
             WaveformSet_to_file(
-                waveform_set=self.wfset,
+                waveform_set=combined_wfset if isinstance(wfset, list) else wfset,
                 output_filepath=str(output_filepath),
                 overwrite=True,
                 format="hdf5",
@@ -104,32 +135,21 @@ class WaveformProcessor:
 @click.option("--output-dir", default="../data", help="Path to save the processed HDF5 files", type=str)
 @click.option("--allowed-endpoints", default="", help="Comma-separated list of allowed endpoints", type=str)
 @click.option("--allowed-channels", default="", help="Comma-separated list of allowed channels", type=str)
-def main(run, debug, rucio_dir, output_dir, allowed_endpoints, allowed_channels):
-    """
-    CLI tool to process waveform data and save as HDF5 instead of pickle.
-    """
-    if run is None:
-        run_list = inquirer.prompt([inquirer.Text("run", message="Provide the run number(s), separated by commas:")])["run"].split(",")
-    else:
-        run_list = run.split(",")
-
-    for r in run_list:
-        try:
-            run_number = int(r.strip())
-        except ValueError:
-            print_colored(f"Invalid run number: {r}. Skipping...", color="ERROR")
-            continue
-
-        processor = WaveformProcessor(
-            rucio_paths_directory=rucio_dir,
-            output_path=output_dir,
-            run_number=run_number,
-            debug=debug,
-            allowed_endpoints=allowed_endpoints,
-            allowed_channels=allowed_channels
-        )
-        
-        processor.read_and_save()
+@click.option("--save-single-file", is_flag=True, help="Save all processed waveforms in a single HDF5 file")
+@click.option("--self-trigger", default=None, help="Threshold for beam self-trigger filtering (single int)", type=int)
+def main(run, debug, rucio_dir, output_dir, allowed_endpoints, allowed_channels, save_single_file, self_trigger):
+    """CLI tool to process waveform data, apply filtering, and save as HDF5."""
+    processor = WaveformProcessor(
+        rucio_paths_directory=rucio_dir,
+        output_path=output_dir,
+        run_number=int(run),
+        debug=debug,
+        allowed_endpoints=allowed_endpoints,
+        allowed_channels=allowed_channels,
+        save_single_file=save_single_file,
+        self_trigger=self_trigger
+    )
+    processor.read_and_save()
 
 
 if __name__ == "__main__":
