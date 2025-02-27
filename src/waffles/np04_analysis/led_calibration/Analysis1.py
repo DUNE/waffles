@@ -46,16 +46,12 @@ class Analysis1(WafflesAnalysis):
                 description="Run number",
                 example=[]
             ) # type: ignore
->>>>>>> main
 
             show_figures: bool = Field(
                 default=False,
                 description="Whether to show the produced "
                 "figures",
             )
-<<<<<<< HEAD
-            
-=======
 
             max_peaks: int = Field(
                 default=2,
@@ -97,7 +93,6 @@ class Analysis1(WafflesAnalysis):
                 "Check its docstring for more information."
             )
 
->>>>>>> main
             plots_saving_folderpath: str = Field(
                 default="./",
                 description="Path to the folder where "
@@ -107,10 +102,6 @@ class Analysis1(WafflesAnalysis):
         return InputParams
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> main
     def initialize(
         self,
         input_parameters: BaseInputParams
@@ -126,7 +117,6 @@ class Analysis1(WafflesAnalysis):
             Returns
             -------
             None
-<<<<<<< HEAD
             method. It defines the attributes of the Analysis1 class.
             
             Parameters
@@ -155,12 +145,6 @@ class Analysis1(WafflesAnalysis):
         self.wfset = None
         self.output_data = None
 
-<<<<<<< HEAD
-        self.read_input_loop_1 = self.params.crps
-        self.read_input_loop_2 = self.params.pdes
-        self.read_input_loop_3 = self.params.vgains
-                 
-=======
         # To be implemented
         # self.read_input_loop = [
         #     [2,2,0.4],
@@ -182,7 +166,6 @@ class Analysis1(WafflesAnalysis):
         #     [3,4,0.45],
         #     [3,2,0.5]
         # ]
->>>>>>> main
 
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
@@ -210,7 +193,6 @@ class Analysis1(WafflesAnalysis):
         
         print(f"Processing run:", "CRP", self.crp, "PDE", self.pde,
                 "and vgain", self.vgain
-<<<<<<< HEAD
         
         self.crp  = self.read_input_itr_1
         self.pde   = self.read_input_itr_2
