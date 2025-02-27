@@ -5,7 +5,7 @@ from waffles.utils.utils import print_colored
 import waffles.input_output.raw_hdf5_reader as reader
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
-from waffles.input_output.waveform import Waveform, WaveformSet  # Ensure correct import
+from waffles.data_classes import Waveform, WaveformSet  # Ensure correct import
 
 class WaveformProcessor:
     """Handles waveform data processing: reading, filtering, and saving waveform sets."""
@@ -142,7 +142,7 @@ def main(run, debug, rucio_dir, output_dir, allowed_endpoints, allowed_channels,
     processor = WaveformProcessor(
         rucio_paths_directory=rucio_dir,
         output_path=output_dir,
-        run_number=int(run),
+        run_number=run,
         debug=debug,
         allowed_endpoints=allowed_endpoints,
         allowed_channels=allowed_channels,
