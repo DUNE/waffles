@@ -175,7 +175,7 @@ class Analysis1(WafflesAnalysis):
                 pass
             else:
                 return False
-=======
+
         self.wfset_ch:WaveformSet = 0
         base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}'
         self.pickle_selec_name = f'{base_file_path}.pkl'

@@ -40,11 +40,11 @@ def main(run_number):
     print("Reading the complete hdf5 file...")
     
     #From a rucio filepath. Important: First execute python get_rucio.py --runs <run_number> in <repos_dir>/waffles/scripts
-    #rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{run_number}.txt"
-    #filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
-    #wfset = reader.WaveformSet_from_hdf5_file(filepaths[0], read_full_streaming_data=False) # Only takes the first filepath 
+    rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{run_number}.txt"
+    filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
     
     #From a directly download file in a specific filepath
+    '''
     filepaths = ["/eos/experiment/neutplatform/protodune/dune/hd-protodune/41/fc/np04hd_raw_run028676_0145_dataflow5_datawriter_0_20240814T044406.hdf5",
                 "/eos/experiment/neutplatform/protodune/dune/hd-protodune/06/c7/np04hd_raw_run028676_0145_dataflow6_datawriter_0_20240814T044406.hdf5",
                 "/eos/experiment/neutplatform/protodune/dune/hd-protodune/88/57/np04hd_raw_run028676_0145_dataflow7_datawriter_0_20240814T044406.hdf5",
@@ -65,29 +65,34 @@ def main(run_number):
                 "/eos/experiment/neutplatform/protodune/dune/hd-protodune/ee/ba/np04hd_raw_run028676_0147_dataflow6_datawriter_0_20240814T044608.hdf5",
                 "/eos/experiment/neutplatform/protodune/dune/hd-protodune/f6/0f/np04hd_raw_run028676_0147_dataflow7_datawriter_0_20240814T044608.hdf5",
                 "/eos/experiment/neutplatform/protodune/dune/hd-protodune/53/2d/np04hd_raw_run028676_0148_dataflow0_datawriter_0_20240814T044716.hdf5"]
-    
+    '''
     det='HD_PDS'
     
     comp="gzip"
     
     allowed_channels=[30,31,32,33,34,35,36,37]
+    allowed_endpoints=[109]
     
     # Initialize an empty WaveformSet to store all the waveforms
     merged_wfset = None
 
     for i, filepath in enumerate(filepaths):
         
+        if i >= 100:  # Detener después de 100 archivos
+            break
+    
         print(f"Reading file {filepath}...")
 
-        # Read the waveform data from the current file
-        wfset = reader.WaveformSet_from_hdf5_file(filepath, det=det, allowed_channels=allowed_channels, read_full_streaming_data=False)
+        # Leer los datos del archivo HDF5
+        wfset = reader.WaveformSet_from_hdf5_file(filepath, det=det, allowed_endpoints=allowed_endpoints, 
+                                                allowed_channels=allowed_channels, read_full_streaming_data=False)
 
-        # If it's the first file, initialize merged_wfset with this one
+        # Si es el primer archivo, inicializar merged_wfset
         if merged_wfset is None:
             merged_wfset = wfset
         else:
-            # Merge the new wfset into the existing one
-            merged_wfset.merge(wfset)  # You may need to define or implement a `merge` method if it doesn't exist
+            # Fusionar con los datos anteriores
+            merged_wfset.merge(wfset)  
 
         print(f"Processed file {filepath}")
 
@@ -101,7 +106,7 @@ def main(run_number):
     # Reading the merged waveform set from the compressed hdf5 format
     print("\nReading the waveform from a compressed hdf5 format")
 
-    hdf5_comp_filepath = os.path.join(os.getcwd(), f"wfset_{run_number}_{comp}.hdf5")
+    hdf5_comp_filepath = os.path.join(os.getcwd(), f"wfset_{run_number}_apa2.hdf5")
 
     time_taken_read, wfset_ready = read_wfset_hdf5(hdf5_comp_filename)
     print(f"[HDF5-{comp} reading] Time: {time_taken_read:.2f} sec")
