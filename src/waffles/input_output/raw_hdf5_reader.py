@@ -187,8 +187,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                                 nrecord_stop_fraction : float = 1.0,
                                 subsample : int = 1,
                                 wvfm_count : int = 1e9,
-                                allowed_endpoints: Optional[list] = [],
-                                allowed_channels: Optional[list] = [],
+                                ch: Optional[dict] = {},
                                 det : str = 'HD_PDS',
                                 temporal_copy_directory: str = '/tmp',
                                 erase_temporal_copy: bool = True
@@ -280,7 +279,7 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                 nrecord_stop_fraction,
                 subsample,
                 wvfm_count,
-                allowed_endpoints,
+                ch,
                 det,
                 temporal_copy_directory=temporal_copy_directory,
                 erase_temporal_copy=erase_temporal_copy
@@ -305,8 +304,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                nrecord_stop_fraction : float = 1.0,
                                subsample : int = 1,
                                wvfm_count : int = 1e9,
-                               allowed_endpoints: Optional[list] = [],
-                               allowed_channels: Optional[list] = [],
+                               ch: Optional[dict] = {},  # Replace allowed_endpoints and allowed_channels
                                det : str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
                                erase_temporal_copy: bool = True
@@ -365,6 +363,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
         deleted after the WaveformSet object has been created.
     """
 
+ 
     if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
         print("Using XROOTD")
 
@@ -402,8 +401,6 @@ def WaveformSet_from_hdf5_file(filepath : str,
     run_flow   = filepath.split('/')[-1].split('_')[4]
     datawriter = dataflow = filepath.split('/')[-1].split('_')[6]
     run_numb   = int((filepath.split('/')[-1].split('_')[2]).strip('run'))
-    #run_numb  = (filepath.split('_')[7]).split('.')[0]
-    print('run_numb=',run_numb)
 
     waveforms = []
     active_endpoints = set()
@@ -411,18 +408,17 @@ def WaveformSet_from_hdf5_file(filepath : str,
 
     records = h5_file.get_all_record_ids()
 
-    allowed_ids = []
-    for endpoint_allowed in allowed_endpoints:
-        allowed_ids += map_id[str(endpoint_allowed)]
+    # Create a set of valid (endpoint, channel) pairs
+    valid_pairs = {(endpoint, channel) for endpoint, channels in ch.items() for channel in channels}
 
     if nrecord_stop_fraction > 1.0:
         nrecord_stop_fraction = 1.0
     if nrecord_start_fraction > 1.0 or nrecord_start_fraction < 0.0:
         raise ValueError('Invalid value for nrecord_start_fraction. Must be >=0 or <=1.')
+    
     nrecord_start_index = int(np.floor(nrecord_start_fraction*(len(records)-1)))
     nrecord_stop_index = int(np.ceil(nrecord_stop_fraction*(len(records)-1)))
     records = records[nrecord_start_index:nrecord_stop_index+1]
-    # print(f'total number of records = {len(records)}')
 
     wvfm_index = 0
     for i, r in enumerate(tqdm(records)):
@@ -432,11 +428,8 @@ def WaveformSet_from_hdf5_file(filepath : str,
         for gid in pds_geo_ids:
             try:
                 frag = h5_file.get_frag(r, gid)
-                if (not hdf5_check_allowed_ids(frag, allowed_ids)):
-                    continue
             except Exception as e:
                 print(f"Corrupted fragment:\n {frag}\n{r}\n{gid}")
-                #print(traceback.format_exc())
                 continue
                 
             if frag.get_data_size() == 0:
@@ -469,16 +462,13 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 active_endpoints.add(endpoint)
                 threshold_list.append(threshold_frag)
 
-            for index, ch in enumerate(channels_frag):
-                
-                if ch not in allowed_channels:
+            for index, ch_id in enumerate(channels_frag):
+                # Check if the (endpoint, channel) pair is allowed
+                if (endpoint, ch_id) not in valid_pairs:
                     continue
                 
-                adcs = []
                 adcs = adcs_frag[index]
-                # for value in adcs_frag[index]:
-                   # adcs.push_back(int(value))
-                   # adcs.append(int(value))
+
                 if read_full_streaming_data == is_fullstream_frag[index]:
                     if not wvfm_index % subsample:
                         waveforms.append(Waveform(timestamps_frag[index],
@@ -488,39 +478,26 @@ def WaveformSet_from_hdf5_file(filepath : str,
                                                   run_numb,
                                                   r[0],
                                                   endpoint,
-                                                  ch,
+                                                  ch_id,
                                                   time_offset=0,
-                                                  # Open task: Implement the truncation of the Waveform
-                                                  # objects at this level (reading from an HDF5 file)
                                                   starting_tick=0))
                     wvfm_index += 1
                     if wvfm_index >= wvfm_count:
-
                         if truncate_wfs_to_minimum:
-                            minimum_length = np.array(
-                                [len(wf.adcs) for wf in waveforms]
-                            ).min()
-
+                            minimum_length = min(len(wf.adcs) for wf in waveforms)
                             for wf in waveforms:
-                                wf._WaveformAdcs__slice_adcs(
-                                    0,
-                                    minimum_length
-                                )
+                                wf._WaveformAdcs__slice_adcs(0, minimum_length)
 
                         if fUsedXRootD and erase_temporal_copy:
                             os.remove(filepath)
                         return WaveformSet(*waveforms)
                     
     if truncate_wfs_to_minimum:
-        minimum_length = np.array(
-            [len(wf.adcs) for wf in waveforms]
-        ).min()
-
+        minimum_length = min(len(wf.adcs) for wf in waveforms)
         for wf in waveforms:
-            wf._WaveformAdcs__slice_adcs(
-                0,
-                minimum_length
-            )
+            wf._WaveformAdcs__slice_adcs(0, minimum_length)
+    
     if fUsedXRootD and erase_temporal_copy:
         os.remove(filepath)
+    
     return WaveformSet(*waveforms)
