@@ -41,6 +41,13 @@ class Analysis1(WafflesAnalysis):
             baseline_finish_response: int = Field(...,          description="work in progress")
             baseline_minimum_frac:  float = Field(...,          description="work in progress")
 
+            validate_items = field_validator(
+                "channels",
+                "runlist",
+                "blacklist",
+                mode="before"
+            )(wcu.split_comma_separated_string)
+
         return InputParams
 
     ##################################################################
@@ -152,6 +159,22 @@ class Analysis1(WafflesAnalysis):
         print(f"    Processing channel {channel}")
 
         # --------- perform the analysis for channel in run ----------- 
+
+        self.wfset_ch:WaveformSet = 0
+        base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}'
+        self.pickle_selec_name = f'{base_file_path}.pkl'
+        self.pickle_avg_name   = f'{base_file_path}_avg.pkl'
+        os.makedirs(f'{self.params.output_path}/{self.selection_type}s', exist_ok=True)
+
+        # if the output files already exist check if we want to process the channel again
+        if self.safemode and os.path.isfile(self.pickle_selec_name):
+            val:str
+            val = input('File already there... overwrite? (y/n)\n')
+            val = val.lower()
+            if val == "y" or val == "yes":
+                pass
+            else:
+                return False
 
         self.wfset_ch:WaveformSet = 0
         base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}'
