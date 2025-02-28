@@ -1,19 +1,25 @@
 # Runs to be analyzed
-runs : [34087]
-channels  : [1]
+runs : [34095, 34089, 34083, 34093, 34087, 34081]
+# runs : [34081]
 endpoints : [106]
+channels  : [1]
 
-prepulse_ticks : 122
+prepulse_ticks : 125
+int_low : 126
+int_up : 156
 postpulse_ticks : 145
+
+spe_charge : 109.5
+spe_ampl : 5.28
+min_pes : 10
 baseline_rms : 5
 
-min_amplitudes : [1000, 1500, 2000, 2500]
-amp_range : 500
-
-methods : ["half_amplitude", "denoise"]
+methods : ["half_amplitude"]
+# methods : ["half_amplitude", "denoise"]
 
 relative_thrs : [0.3, 0.5, 0.7]
 
-filt_levels : [2,3,4,10,20]
-# methods : ["zero_crossing"]
+filt_levels : [12]
 
+h2_nbins  : 100
+stat_lost : 0.05
