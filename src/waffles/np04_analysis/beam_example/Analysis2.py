@@ -84,18 +84,22 @@ class Analysis2(WafflesAnalysis):
             if not nwfs: continue
 
             # ------------- Analyse the waveform set -------------
-
             b_ll = 0
             b_ul = 100
-            int_ll = 135
-            int_ul = 165
+            int_0 = 135
+            int_1 = 145
+            int_2 = 165
             
             # baseline limits
             bl = [b_ll, b_ul, 900, 1000]
             
             peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75])
-            ip = IPDict(baseline_limits=bl,
-                        int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,
+            ip_portion = IPDict(baseline_limits=bl,
+                        int_ll=int_0,int_ul=int_1,amp_ll=int_0,amp_ul=int_1,
+                        points_no=10,
+                        peak_finding_kwargs=peak_finding_kwargs)
+            ip_total = IPDict(baseline_limits=bl,
+                        int_ll=int_0,int_ul=int_2,amp_ll=int_0,amp_ul=int_2,
                         points_no=10,
                         peak_finding_kwargs=peak_finding_kwargs)
             analysis_kwargs = dict(  return_peaks_properties = False)
@@ -103,8 +107,10 @@ class Analysis2(WafflesAnalysis):
             #if wset.waveforms[0].has_analysis('standard') == False:
             
             # analyse the waveforms (copute baseline, amplitude and integral)
-            a=e.wfset.analyse('standard',BasicWfAna,ip,checks_kwargs = checks_kwargs,overwrite=True)
-
+            
+            a_portion=e.wfset.analyse('Portion_integral',BasicWfAna,ip_portion,checks_kwargs = checks_kwargs,overwrite=True)
+            a_total=e.wfset.analyse('Total_integral',BasicWfAna,ip_total,checks_kwargs = checks_kwargs,overwrite=True)
+            
             '''
             # dump event information when ROOT is not available
             if not ROOT_IMPORTED:
@@ -141,22 +147,26 @@ class Analysis2(WafflesAnalysis):
                 "c1": [],
                 "t": [],
                 "nwfs": [],
-                "q": [],
-                "a": []
+                "a": [],
+                "qport": [],
+                "qtotal":[]
             }
 
             # Loop sobre eventos
             for e in self.events:
-                q = 0
+                qtotal = 0
+                qport=0
                 a = 0            
                 if e.wfset:
                     for wf in e.wfset.waveforms:
-                        q += wf.get_analysis('standard').result['integral']
-                        a += wf.get_analysis('standard').result['amplitude']
+                        qport += wf.get_analysis('Portion_integral').result['integral']
+                        qtotal += wf.get_analysis('Total_integral').result['integral']
+                        a += wf.get_analysis('Total_integral').result['amplitude']
 
                 nwfs = len(e.wfset.waveforms) if e.wfset else 0
                 if nwfs > 0:
-                    q /= nwfs
+                    qport /= nwfs
+                    qtotal /= nwfs
                     a /= nwfs            
 
                 # Agregar valores a las listas
@@ -167,7 +177,8 @@ class Analysis2(WafflesAnalysis):
                 data["c1"].append(e.beam_info.c1)
                 data["t"].append(e.beam_info.t)
                 data["nwfs"].append(nwfs)
-                data["q"].append(q)
+                data["qport"].append(qport)
+                data["qtotal"].append(qtotal)
                 data["a"].append(a)
 
             # Convertir listas a arrays de numpy
@@ -194,7 +205,8 @@ class Analysis2(WafflesAnalysis):
             c1   = np.array([0], dtype=np.int32)
             t    = np.array([0], dtype=np.int64)
             nwfs = np.array([0], dtype=np.int32)
-            q    = np.array([0], dtype=np.float64)
+            qport    = np.array([0], dtype=np.float64)
+            qtotal    = np.array([0], dtype=np.float64)
             a    = np.array([0], dtype=np.float64)                
 
             tree.Branch("evt", evt, 'normal/I')
@@ -204,21 +216,25 @@ class Analysis2(WafflesAnalysis):
             tree.Branch("c1",  c1,  'normal/I')
             tree.Branch("t",   t,   'normal/I')
             tree.Branch("nwfs",nwfs,'normal/I')
-            tree.Branch("q",   q,   'normal/D')
+            tree.Branch("qport",   qport,   'normal/D')
+            tree.Branch("qtotal",   qtotal,   'normal/D')
             tree.Branch("a",   a,   'normal/D')        
             
             # loop over events
             for e in self.events:
 
-                q[0]=0
+                qport[0]=0
+                qtotal[0]=0
                 a[0]=0            
                 if e.wfset:
                     for wf in e.wfset.waveforms:
-                        q[0] += wf.get_analysis('standard').result['integral']
-                        a[0] += wf.get_analysis('standard').result['amplitude']
+                        qport[0] += wf.get_analysis('Portion_integral').result['integral']
+                        qtotal[0] += wf.get_analysis('Total_integral').result['integral']
+                        a[0] += wf.get_analysis('Total_integral').result['amplitude']
 
                 if nwfs>0:
-                    q[0] = q[0]/(1.*nwfs)
+                    qport[0] = qport[0]/(1.*nwfs)
+                    qtotal[0] = qtotal[0]/(1.*nwfs)
                     a[0] = a[0]/(1.*nwfs)                
 
                 evt[0] = e.event_number
