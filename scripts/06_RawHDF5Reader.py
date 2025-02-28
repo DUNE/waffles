@@ -18,7 +18,6 @@ class WaveformProcessor:
         self.debug = debug
         self.save_single_file = save_single_file
         self.self_trigger = self_trigger  # Self-trigger filtering threshold
-        self.wfset_list = []  # List to store all waveform sets
 
         # Convert comma-separated strings to lists
         self.allowed_endpoints = [int(e) for e in allowed_endpoints.split(",") if e.strip().isdigit()] if allowed_endpoints else []
@@ -37,7 +36,7 @@ class WaveformProcessor:
     def read_and_save(self) -> bool:
         """Reads waveforms for the current run, applies filters, and saves them."""
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
-
+        self.combined_wfset=None
         try:
             rucio_filepath = f"{self.rucio_paths_directory}/{str(self.run_number).zfill(6)}.txt"
             filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
@@ -74,13 +73,17 @@ class WaveformProcessor:
                         print_colored(f"✔ Number of waveforms after filtering: {len(wfset.waveforms)}", color="SUCCESS")
                     
                     if self.save_single_file:
-                        self.wfset_list.append(wfset)  # Store for later merging
+                        if self.combined_wfset is None:
+                            self.combined_wfset = wfset
+                        else:
+                            # Fusionar con los datos anteriores
+                            self.combined_wfset.merge(wfset)  
                     else:
                         self.write_output(wfset, file)
 
             # Save all processed waveforms into a single file if the option is enabled
-            if self.save_single_file and self.wfset_list:
-                self.write_output(self.wfset_list, f"merged_run_{self.run_number}.hdf5")
+            if self.save_single_file:
+                self.write_output(self.combined_wfset, f"merged_run_{self.run_number}.hdf5")
 
             print_colored("All files processed successfully.", color="SUCCESS")
             return True
@@ -94,11 +97,13 @@ class WaveformProcessor:
 
     def write_output(self, wfset, input_filepath: str) -> bool:
         """Saves the waveform data to an HDF5 file. Supports both single-file and individual-file modes."""
-        if isinstance(wfset, list):  # Handling single-file mode
+
+        if self.combined_wfset is not None:  # Handling single-file mode
             output_filename = f"processed_merged_run_{self.run_number}.hdf5"
             print_colored(f"Saving merged waveform data to {output_filename}...", color="DEBUG")
-
-            combined_wfset = sum(wfset)  # Merge all waveform sets
+            
+            #combined_wfset = sum(wfset)  # Merge all waveform sets
+        
             output_filepath = Path(self.output_path) / output_filename
         else:
             input_filename = Path(input_filepath).name
@@ -108,7 +113,7 @@ class WaveformProcessor:
 
         try:
             WaveformSet_to_file(
-                waveform_set=combined_wfset if isinstance(wfset, list) else wfset,
+                waveform_set=self.combined_wfset if self.combined_wfset is not None else wfset,
                 output_filepath=str(output_filepath),
                 overwrite=True,
                 format="hdf5",
@@ -132,7 +137,7 @@ class WaveformProcessor:
 @click.option("--run", default=None, help="Run number(s) to process (comma-separated).", type=str)
 @click.option("--debug", default=True, help="Enable debug mode", type=bool)
 @click.option("--rucio-dir", default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths", help="Path to Rucio directory", type=str)
-@click.option("--output-dir", default="../data", help="Path to save the processed HDF5 files", type=str)
+@click.option("--output-dir", default=".", help="Path to save the processed HDF5 files", type=str)
 @click.option("--allowed-endpoints", default="", help="Comma-separated list of allowed endpoints", type=str)
 @click.option("--allowed-channels", default="", help="Comma-separated list of allowed channels", type=str)
 @click.option("--save-single-file", is_flag=True, help="Save all processed waveforms in a single HDF5 file")
