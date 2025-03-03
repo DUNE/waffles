@@ -2,6 +2,7 @@ import os
 import _pickle as pickle    # Making sure that cPickle is used
 from pathlib import Path
 from typing import List, Optional
+import h5py
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
@@ -189,3 +190,46 @@ def events_from_pickle_file(
     
     return output
     
+
+def events_from_hdf5_file(
+        path_to_hdf5_file : str
+    ) -> List[BeamEvent]:
+
+
+    """
+    This function gets a path to a file which should be
+    a hdf5 of a list of Event objects, and loads it using 
+    the pickle library. It returns the resulting list of Events.
+
+    Parameters
+    ----------
+    path_to_hdf5_file: str
+        Path to the file which will be loaded. Its extension
+        must match '.hdf5'.
+
+    Returns
+    ----------
+    output: List[BeamEvent]
+        list of Event objects        
+    """
+
+    if os.path.isfile(path_to_hdf5_file):
+        with h5py.File(path_to_hdf5_file, 'r')  as f:
+            raw_wfset=f['wfset'][:]
+        output = pickle.loads(raw_wfset.tobytes()) 
+    else:
+        raise Exception(
+            we.GenerateExceptionMessage(
+                1, 
+                'events_from_hdf5_file()',
+                f"The given path ({path_to_hdf5_file}) "
+                "does not point to an existing file."))
+        
+    if not isinstance(output[0], Event):
+        raise Exception(
+            we.GenerateExceptionMessage(2,
+            'events_from_hdf5_file()',
+            "The object loaded from the given "
+            "file is not a Event object."))
+    
+    return output
