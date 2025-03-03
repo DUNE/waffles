@@ -1,20 +1,20 @@
 # Path to the folder containing the data
-input_path: 'data'
+input_path: 'data_100'
 
 # path to the file containing the PDS data (WaveformSet)
 #wfs_input_path: '028707_10935_50files_wfset_raw.pkl'
 #wfs_input_path: '028707_109_30-37_20files_wfset_raw.pkl'
-wfs_input_path: 'wfset_028676_gzip.hdf5'
+wfs_input_path: 'wfset_100_028676.hdf5'
 
 # path to the file containing the beam info data
-beam_input_path: 'all.root'
+beam_input_path: 'all_100_028676.root'
 #beam_input_path: '028707_100files_beam.root'
 
 # Path to the file where the events will be saved
-events_output_path: 'output/events.pkl'
+events_output_path: 'output/events_100_028676.hdf5'
 
 # Path to the file where the event summary will be saved
-events_summary_output_path: 'output/events_summary.root'
+events_summary_output_path: 'output/events_summary_100_028676.root'
 
 wfset_light_output_path: 'output/wfset_light_100_028676.hdf5'
 
