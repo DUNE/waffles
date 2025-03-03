@@ -63,7 +63,7 @@ class Analysis1(WafflesAnalysis):
         # sort events by timing
         self.events.sort(key=lambda x: x.ref_timestamp, reverse=False)
 
-        print(f"{len(self.events)} events created from NP04 PDS and beam info")
+        print(f"\n {len(self.events)} events created from NP04 PDS and beam info")
         
         return True
 
@@ -101,9 +101,11 @@ class Analysis1(WafflesAnalysis):
 
     ##################################################################
     def write_output(self) -> bool:
-            
-        with open(self.params.events_output_path, "wb") as f:
-            pickle.dump(self.events, f)
+        
+        events_bytes=pickle.dumps(self.events)
+        events_np=np.frombuffer(events_bytes,dtype=np.uint8)
+        with h5py.File(self.params.events_output_path, "w") as hdf:
+            hdf.create_dataset("wfset", data=events_np, compression="gzip") 
         print(f'\n Total events saved in file: {self.params.events_output_path}')
         
         # --------------------- Wfset_light -------------------
