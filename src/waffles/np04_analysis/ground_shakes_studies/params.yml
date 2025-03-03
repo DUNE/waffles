@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ------- General parameters -------
 
 # Path to the folder containing the data
@@ -95,3 +96,15 @@ integ_window: 40
 
 
 
+=======
+input_path: ""
+output_path: "output/"
+
+runs:
+  - 27906
+  - 27907
+
+waveforms_per_run: 500
+correct_by_baseline: True
+rucio_paths_directory: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths"
+>>>>>>> 8b7d1ed (Creating a folder for ground_shakes_studies 2.0)

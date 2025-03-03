@@ -1,9 +1,5 @@
 import numpy as np
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
-from waffles.core.utils import build_parameters_dictionary
-from waffles.data_classes.IPDict import IPDict
-
-input_parameters = build_parameters_dictionary('params.yml')
 
 def get_baseline(
         WaveformAdcs_object: WaveformAdcs,
@@ -30,7 +26,8 @@ def get_baseline(
     ----------
     baseline: float
         The baseline of the WaveformAdcs object, which is computed
-        as the median of the ADC values in the defined time range."""
+        as the median of the ADC values in the defined time range.
+        """
     
     # For the sake of efficiency, no well-formedness checks for the
     # time limits are performed here. The caller must ensure that
@@ -39,51 +36,3 @@ def get_baseline(
     return np.median(WaveformAdcs_object.adcs[
         lower_time_tick_for_median:upper_time_tick_for_median
     ])
-    
-def get_analysis_params(
-        apa_no: int,
-        run: int = None
-    ):
-
-    if apa_no == 1:
-        if run is None:
-            raise Exception(
-                "In get_analysis_params(): A run number "
-                "must be specified for APA 1"
-            )
-        else:
-            int_ll = input_parameters['starting_tick'][1][run]
-    else:
-        int_ll = input_parameters['starting_tick'][apa_no]
-
-    analysis_input_parameters = IPDict(
-        baseline_limits=\
-            input_parameters['baseline_limits'][apa_no]
-    )
-    analysis_input_parameters['int_ll'] = int_ll
-    analysis_input_parameters['int_ul'] = \
-        int_ll + input_parameters['integ_window']
-    analysis_input_parameters['amp_ll'] = int_ll
-    analysis_input_parameters['amp_ul'] = \
-        int_ll + input_parameters['integ_window']
-
-    return analysis_input_parameters
-
-def get_nbins_for_charge_histo(
-        pde: float,
-        apa_no: int
-    ):
-
-    if apa_no in [2, 3, 4]:
-        if pde == 0.4:
-            bins_number = 125
-        elif pde == 0.45:
-            bins_number = 110 # [100-110]
-        else:
-            bins_number = 90
-    else:
-        # It is still required to
-        # do this tuning for APA 1
-        bins_number = 125
-
-    return bins_number
