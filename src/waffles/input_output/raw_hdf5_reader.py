@@ -1,3 +1,5 @@
+from multiprocessing import Pool, cpu_count
+from numba import jit
 from XRootD import client
 # from multiprocessing import Pool, current_process, cpu_count
 from tqdm import tqdm
@@ -366,14 +368,14 @@ def WaveformSet_from_hdf5_file(filepath : str,
     """
 
     if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
-        print("Using XROOTD")
 
         if wiu.write_permission(temporal_copy_directory):
+            if not os.path.exists(temporal_copy_directory + '/' + os.path.basename(filepath)):
+                subprocess.call(
+                    shlex.split(f"xrdcp {filepath} {temporal_copy_directory}"),
+                    shell=False
+                )
 
-            subprocess.call(
-                shlex.split(f"xrdcp {filepath} {temporal_copy_directory}"),
-                shell=False
-            )
             fUsedXRootD = True
 
             filepath = os.path.join(
@@ -502,3 +504,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
         os.remove(filepath)
 
     return WaveformSet(*waveforms)
+
+def process_record(r):
+    """Processes a single HDF5 record (for multiprocessing)."""
+    return extract_fragment_info(h5_file.get_frag(r, gid), h5_file.get_trh(r))
