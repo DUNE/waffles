@@ -275,3 +275,40 @@ def truncate_waveforms_in_WaveformSet(
     input_WaveformSet.reset_mean_waveform()
 
     return
+
+
+def calibration_filter(
+    waveform: Waveform,
+    analysis_label: str,
+    bsl_rms: float,
+    bsl_allowed_dev: float,
+    sig_allowed_dev: float,
+    baseline_limits: list,
+    int_ul: int
+) -> bool:
+    """This function returns True if the waveform is good for calibration
+    calibration studies. It assume that an analysis which compute the 
+    baseline (result['baseline']) was already performed.
+
+    Parameters
+    ----------
+    waveforms: Waveform
+    bwl_rms: float, rms of the baseline (better if computed from a noise run)
+    bsl_allowed_dev: float, allowed deviation in the baseline
+    sig_allowed_dev: float, allowed deviation in the signal
+    baseline_limits: list, limits where you compute the baseline
+    int_ul: int, upper limit for the integral
+
+    Returns
+    ----------
+    bool
+    """
+    bsl_allowance = bsl_allowed_dev*bsl_rms
+    if min(waveform.adcs[:baseline_limits[1]]) < (waveform.analyses[analysis_label].result['baseline']-bsl_allowance):
+        return False
+    if max(waveform.adcs[:baseline_limits[1]]) > (waveform.analyses[analysis_label].result['baseline']+bsl_allowance):
+        return False
+    if min(waveform.adcs[baseline_limits[1]:int_ul]) < (int_ul-sig_allowed_dev*bsl_rms):
+        return False
+
+    return True
