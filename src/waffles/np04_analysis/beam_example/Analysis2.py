@@ -60,9 +60,9 @@ class Analysis2(WafflesAnalysis):
     ##################################################################
     def read_input(self) -> bool:
 
-        print(f"Reading events from pickle file: ", self.params.events_output_path)
+        print(f"Reading events from hdf5 (gzip) file: ", self.params.events_output_path)
 
-        self.events = events_from_pickle_file(self.params.events_output_path)
+        self.events = events_from_hdf5_file(self.params.events_output_path)
 
         print(f"  {len(self.events)} events read")
         
@@ -87,7 +87,7 @@ class Analysis2(WafflesAnalysis):
             b_ll = 0
             b_ul = 100
             int_0 = 135
-            int_1 = 145
+            int_1 = 153
             int_2 = 165
             
             # baseline limits
