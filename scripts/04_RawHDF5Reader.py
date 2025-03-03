@@ -1,56 +1,87 @@
 import click
-import inquirer
+import json
+import multiprocessing
 from pathlib import Path
 from waffles.utils.utils import print_colored
 import waffles.input_output.raw_hdf5_reader as reader
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
+from waffles.data_classes.WaveformSet import WaveformSet
 
 class WaveformProcessor:
     """Handles waveform data processing: reading and saving waveform sets."""
 
-    def __init__(self, rucio_paths_directory: str, output_path: str, run_number: int, debug: bool = True):
-        self.rucio_paths_directory = rucio_paths_directory
-        self.output_path = output_path
-        self.run_number = run_number
-        self.debug = debug
-        self.wfset = None  # Placeholder for WaveformSet
+    def __init__(self, config: dict):
+        self.rucio_paths_directory = config.get("rucio_dir")
+        self.output_path = config.get("output_dir")
+        self.run_number = config.get("run")
+        self.debug = config.get("debug", True)
+        self.max_files = config.get("max_files", "all")
+        self.save_single_file = config.get("save_single_file", False)
+        self.ch = self.parse_ch_dict(config.get("ch", {}))
+        self.wfset_list = []  # Store waveform sets for merging
+
+    def parse_ch_dict(self, ch):
+        """Validates the endpoint-channel dictionary."""
+        if not isinstance(ch, dict):
+            raise ValueError("Invalid format: 'ch' must be a dictionary {endpoint: [channels]}.")
+
+        parsed_dict = {}
+        for endpoint, channels in ch.items():
+            if not isinstance(channels, list) or not all(isinstance(ch, int) for ch in channels):
+                raise ValueError(f"Invalid channel list for endpoint {endpoint}. Must be a list of integers.")
+            parsed_dict[int(endpoint)] = channels  # Ensure keys are integers
+        return parsed_dict
+
+    def process_file(self, file):
+        """Processes a single waveform file."""
+        try:
+            print_colored(f"Processing file: {file}", color="INFO")
+
+            wfset = reader.WaveformSet_from_hdf5_files(
+                filepath_list=[file],
+                read_full_streaming_data=False,
+                truncate_wfs_to_minimum=True,
+                nrecord_start_fraction=0.0,
+                nrecord_stop_fraction=1.0,
+                subsample=1,
+                wvfm_count=1e9,
+                ch=self.ch,
+                det='HD_PDS',
+                temporal_copy_directory='/tmp',
+                erase_temporal_copy=False
+            )
+
+            if wfset:
+                if self.save_single_file:
+                    return wfset
+                else:
+                    self.write_output(wfset, file)
+        except Exception as e:
+            print_colored(f"Error processing file {file}: {e}", color="ERROR")
+        return None
 
     def read_and_save(self) -> bool:
-        """Reads waveforms for the current run and saves each file separately if the list is too large."""
+        """Reads waveforms in parallel and saves them."""
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
 
         try:
             rucio_filepath = f"{self.rucio_paths_directory}/{str(self.run_number).zfill(6)}.txt"
             filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
 
-            if len(filepaths) > 5:
-                print_colored(f"This run has {len(filepaths)} HDF5 files. Processing them individually...", color="WARNING")
-                file_lim = inquirer.prompt([inquirer.Text("file_lim", message="How many of them do we process?")])["file_lim"]
-                filepaths = filepaths[:int(file_lim)]
-            else:
-                file_lim = len(filepaths)
+            if self.max_files != "all":
+                filepaths = filepaths[:int(self.max_files)]  # Limit files if specified
 
-            for file in filepaths:
-                print_colored(f"Processing file: {file}", color="INFO")
+            print_colored(f"Processing {len(filepaths)} files in parallel...", color="INFO")
 
-                # Load waveforms from a single file
-                self.wfset = reader.WaveformSet_from_hdf5_files(
-                    [file],  # Process one file at a time
-                    read_full_streaming_data=False,
-                    truncate_wfs_to_minimum=True,
-                    nrecord_start_fraction=0.0,
-                    nrecord_stop_fraction=1.0,
-                    subsample=1,
-                    wvfm_count=1e9,
-                    allowed_endpoints=[],
-                    det='HD_PDS',
-                    temporal_copy_directory='/tmp',
-                    erase_temporal_copy=True
-                )
+            # Process files in parallel
+            with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+                results = pool.map(self.process_file, filepaths)
 
-                if self.wfset:
-                    self.write_output(file)
+            if self.save_single_file:
+                self.wfset_list = [wf for wf in results if wf is not None]
+                if self.wfset_list:
+                    self.write_output(self.wfset_list, f"merged_run_{self.run_number}.hdf5")
 
             print_colored("All files processed successfully.", color="SUCCESS")
             return True
@@ -62,16 +93,22 @@ class WaveformProcessor:
             print_colored(f"An error occurred while reading input: {e}", color="ERROR")
             return False
 
-    def write_output(self, input_filepath: str) -> bool:
-        """Saves the waveform data to an HDF5 file, maintaining the input file naming structure."""
-        input_filename = Path(input_filepath).name
-        output_filepath = Path(self.output_path) / f"processed_{input_filename}"
-        
+    def write_output(self, wfset, input_filepath: str) -> bool:
+        """Saves the waveform data to an HDF5 file."""
+        if isinstance(wfset, list):
+            output_filename = f"processed_merged_run_{self.run_number}.hdf5"
+            output_filepath = Path(self.output_path) / output_filename
+            combined_wfset = sum(wfset)  # Merge all WaveformSets
+        else:
+            input_filename = Path(input_filepath).name
+            output_filepath = Path(self.output_path) / f"processed_{input_filename}"
+            combined_wfset = wfset
+
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
 
         try:
             WaveformSet_to_file(
-                waveform_set=self.wfset,
+                waveform_set=combined_wfset,
                 output_filepath=str(output_filepath),
                 overwrite=True,
                 format="hdf5",
@@ -79,7 +116,7 @@ class WaveformProcessor:
                 compression_opts=5
             )
 
-            # Reload and print the saved file for verification
+            # Reload for verification
             new_ws = WaveformSet_from_hdf5_pickle(str(output_filepath))
             print(new_ws)
 
@@ -91,30 +128,28 @@ class WaveformProcessor:
             return False
 
 
-@click.command(help="\033[34mProcess peak/pedestal variables and save the WaveformSet in an HDF5 file.\n\033[0m")
-@click.option("--run", default=None, help="Run number(s) to process (comma-separated).", type=str)
-@click.option("--debug", default=True, help="Enable debug mode", type=bool)
-@click.option("--rucio-dir", default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths", help="Path to Rucio directory", type=str)
-@click.option("--output-dir", default="../data", help="Path to save the processed HDF5 files", type=str)
-def main(run, debug, rucio_dir, output_dir):
-    """
-    CLI tool to process waveform data and save as HDF5 instead of pickle.
-    """
-    if run is None:
-        run_list = inquirer.prompt([inquirer.Text("run", message="Provide the run number(s), separated by commas:")])["run"].split(",")
-    else:
-        run_list = run.split(",")
+@click.command(help="\033[34mProcess waveform data using a JSON configuration file.\033[0m")
+@click.option("--config", required=True, help="Path to JSON configuration file.", type=str)
+def main(config):
+    """CLI tool to process waveform data based on JSON configuration."""
+    try:
+        with open(config, 'r') as f:
+            config_data = json.load(f)
 
-    for r in run_list:
-        try:
-            run_number = int(r.strip())
-        except ValueError:
-            print_colored(f"Invalid run number: {r}. Skipping...", color="ERROR")
-            continue
+        required_keys = ["run", "rucio_dir", "output_dir", "ch"]
+        missing_keys = [key for key in required_keys if key not in config_data]
+        if missing_keys:
+            raise ValueError(f"Missing required keys in config file: {missing_keys}")
 
-        processor = WaveformProcessor(rucio_paths_directory=rucio_dir, output_path=output_dir, run_number=run_number, debug=debug)
-        
+        processor = WaveformProcessor(config_data)
         processor.read_and_save()
+
+    except FileNotFoundError:
+        print_colored(f"Error: Config file '{config}' not found.", color="ERROR")
+    except json.JSONDecodeError:
+        print_colored(f"Error: Invalid JSON format in '{config}'.", color="ERROR")
+    except Exception as e:
+        print_colored(f"An error occurred: {e}", color="ERROR")
 
 
 if __name__ == "__main__":
