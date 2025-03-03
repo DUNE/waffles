@@ -1,4 +1,5 @@
 from pathlib import Path
+import multiprocessing
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 from waffles.input_output.persistence_utils import WaveformSet_to_file
@@ -25,29 +26,28 @@ def filter_by_endpoints(waveform: Waveform, allowed_endpoints: list[int]) -> boo
     """Returns True if the waveform's endpoint is in the allowed list."""
     return waveform.endpoint in allowed_endpoints
 
-def process_waveform_data(input_path: Path, output_path: Path, allowed_endpoints: list[int]) -> None:
-    """Loads, filters, and saves waveform data."""
+def process_waveform_file(file_path: Path, output_dir: Path, allowed_endpoints: list[int]) -> None:
+    """Loads, filters, and saves waveform data for a single file."""
     try:
+        print(f"{BLUE}Processing file: {file_path}{RESET}")
+
         # Load waveform set
-        print(f"{BLUE}Loading waveform set from:{RESET} {input_path}")
-        waveform_set = WaveformSet_from_hdf5_pickle(input_path)
-        print(f"{CYAN}✔ Loaded waveform set.{RESET}")
-        print(f"{GREEN}Number of waveforms: {len(waveform_set.waveforms)}{RESET}")
+        waveform_set = WaveformSet_from_hdf5_pickle(file_path)
+        print(f"{CYAN}✔ Loaded waveform set from {file_path}{RESET}")
+        print(f"{GREEN}Initial number of waveforms: {len(waveform_set.waveforms)}{RESET}")
 
         # Apply endpoint filtering
-        print(f"{BLUE}Filtering waveforms by endpoints: {allowed_endpoints}...{RESET}")
         filtered_waveform_set = WaveformSet.from_filtered_WaveformSet(waveform_set, filter_by_endpoints, allowed_endpoints)
-        print(f"{GREEN}Number of waveforms: {len(filtered_waveform_set.waveforms)}{RESET}")
-        print(f"{CYAN}✔ Filtering by endpoints complete.{RESET}")
+        print(f"{GREEN}✔ Number of waveforms after endpoint filtering: {len(filtered_waveform_set.waveforms)}{RESET}")
 
         # Apply beam self-trigger filtering
-        print(f"{BLUE}Applying beam self-trigger filter...{RESET}")
         final_waveform_set = WaveformSet.from_filtered_WaveformSet(filtered_waveform_set, beam_self_trigger_filter)
-        print(f"{GREEN}✔ Number of waveforms after filtering: {len(final_waveform_set.waveforms)}{RESET}")
-        print(f"{CYAN}✔ Beam self-trigger filter applied.{RESET}")
+        print(f"{GREEN}✔ Number of waveforms after self-trigger filtering: {len(final_waveform_set.waveforms)}{RESET}")
 
-        # Save the processed waveform set
-        print(f"{BLUE}Saving the filtered waveform set to:{RESET} {output_path}")
+        # Save filtered waveform set
+        output_path = output_dir / f"filtered_{file_path.name}"
+        print(f"{BLUE}Saving filtered waveform set to: {output_path}{RESET}")
+        
         WaveformSet_to_file(
             waveform_set=final_waveform_set,
             output_filepath=str(output_path),
@@ -56,23 +56,36 @@ def process_waveform_data(input_path: Path, output_path: Path, allowed_endpoints
             compression="gzip",
             compression_opts=5
         )
-        
-        print(f"{GREEN}✔ Filtered waveform set successfully saved to: {output_path}{RESET}")
+
+        print(f"{GREEN}✔ Successfully saved: {output_path}{RESET}")
 
     except FileNotFoundError:
-        print(f"{RED}❌ Error: Input file '{input_path}' not found.{RESET}")
+        print(f"{RED}❌ Error: File '{file_path}' not found.{RESET}")
     except Exception as e:
-        print(f"{RED}❌ An error occurred during processing: {e}{RESET}")
+        print(f"{RED}❌ An error occurred processing {file_path}: {e}{RESET}")
 
 def main():
-    """Main function to execute waveform processing."""
-    input_file = Path("/afs/cern.ch/work/m/marroyav/wfenv/waffles/data/waveformset_run_27343.hdf5")
-    output_file = Path("/afs/cern.ch/work/m/marroyav/wfenv/waffles/data/filtered_waveformset_run_27343.hdf5")
+    """Main function to process all HDF5 files in a directory in parallel."""
+    input_dir = Path(".")
+    output_dir = Path(".")
+    output_dir.mkdir(exist_ok=True)  # Ensure output directory exists
+
     allowed_endpoints = [109]  # Define allowed endpoints for filtering
 
-    print(f"{YELLOW}Starting waveform processing...{RESET}")
-    process_waveform_data(input_file, output_file, allowed_endpoints)
-    print(f"{GREEN}✔ Processing complete.{RESET}")
+    # Find all HDF5 files in the input directory
+    hdf5_files = list(input_dir.glob("*.hdf5"))
+
+    if not hdf5_files:
+        print(f"{RED}❌ No HDF5 files found in {input_dir}.{RESET}")
+        return
+
+    print(f"{YELLOW}Found {len(hdf5_files)} HDF5 files. Processing in parallel...{RESET}")
+
+    # Use multiprocessing to process files in parallel
+    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+        pool.starmap(process_waveform_file, [(file, output_dir, allowed_endpoints) for file in hdf5_files])
+
+    print(f"{GREEN}✔ Parallel processing complete.{RESET}")
 
 if __name__ == "__main__":
     main()
