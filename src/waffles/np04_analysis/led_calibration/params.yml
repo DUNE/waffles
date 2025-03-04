@@ -1,31 +1,14 @@
 
 # ------- General parameters -------
 
-<<<<<<< HEAD
-# CRP number
-crps: [2] # 1, 2, 3, 4
-
-# Photon detection efficiency
-pdes: [0.45] # 0.40, 0.45, 0.50
-
-# Vgain
-vgains: [2660] # 1, ...
-
-# Run_number
-run: [030010]
-=======
 # APA number
-apa: 3 # 1, 2, 3, 4
+apas: [2,3,4] # 1, 2, 3, 4
 
 # Photon detection efficiency
-pdes: [0.45] # 0.40, 0.45, 0.50
-
-# Vgain
-vgains: [2660] # 1, ...
+pdes: [0.4,0.45] # 0.40, 0.45, 0.50
 
 # Calibration-batch number
-batch: 3 # 1, ...
->>>>>>> main
+batches: [3] # 1, ...
 
 # Path to the folder containing the data
 input_path: 'data'
@@ -33,23 +16,6 @@ input_path: 'data'
 # Path to the output
 output_path: 'output'
 
-# Path to the pikls files
-
-input_pkl: 'output'
-
-# Path to the outputof the Analysis 2
-output_pkl: 'output_vis'
-
-<<<<<<< HEAD
-# Path to the pikls files
-
-input_pkl: 'output'
-
-# Path to the outputof the Analysis 2
-output_pkl: 'output_vis'
-
-=======
->>>>>>> main
 # PDE-to-OV mapping for HPK sipms
 hpk_ov:
     0.4: 2.0
@@ -151,29 +117,4 @@ half_points_to_fit: 2 # [2 - 3]
 # function defined in 
 # utils/fit_peaks/fit_peaks_utils.py
 initial_percentage: 0.15 
-<<<<<<< HEAD
-percentage_step: 0.05
-
-# ------- Parameters for plots of Analysis 2 -------
-
-variable: 'gain'
-
-colors:
-    0.4: 'black'
-    0.45: 'green'
-    0.5: 'red'
-    
-symbols: 
-    0.4: 'circle'
-    0.45: 'square'
-    0.5: 'diamond'
-
-translator: 
-    'gain': 'Gain'
-    'snr': 'SNR'
-
-y_label:
-    gain: "μ₁ - μ₀"
-    snr: "(μ₁ - μ₀) / √(σ₀² + σ₁²)"
-=======
 percentage_step: 0.05
