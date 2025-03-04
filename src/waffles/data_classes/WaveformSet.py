@@ -123,6 +123,13 @@ class WaveformSet:
         self.__mean_adcs = None
         self.__mean_adcs_idcs = None
 
+    def __add__(self, other):
+        if isinstance(other, WaveformSet): 
+            return self.merge(other)
+
+            
+
+
     # Getters
     @property
     def waveforms(self):
