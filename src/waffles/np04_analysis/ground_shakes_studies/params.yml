@@ -6,13 +6,13 @@ input_path: "data/"
 # Path to the output
 output_path: "output/"
 
-runs: [028676]
+runs: [28148]
 
 # APA number
 apas: [2] 
 
 # Photon detection efficiency
-pdes: [0.45] 
+pdes: [0.4] 
 
 # PDE-to-OV mapping for HPK sipms
 hpk_ov:
@@ -92,5 +92,6 @@ baseline_limits:
 
 # Integration window width, in time ticks
 integ_window: 40
+
 
 
