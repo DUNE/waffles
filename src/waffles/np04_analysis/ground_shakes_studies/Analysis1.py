@@ -64,7 +64,11 @@ class Analysis1(WafflesAnalysis):
                 mode="before"
             )(wcu.split_comma_separated_string)
             
-            
+            show_figures: bool = Field(
+                default=True,
+                description="Whether to show the produced "
+                "figures",
+            )
         return InputParams
 
     def initialize(
@@ -117,7 +121,7 @@ class Analysis1(WafflesAnalysis):
             f"Now reading waveforms for run {self.run} ..."
         )
         
-        wfset_path = self.params.input_path+f"/wfset_0{self.run}.txt"
+        wfset_path = self.params.input_path+f"wfset_0{self.run}.hdf5"
         self.wfset=WaveformSet_from_hdf5_file(wfset_path)        
         
         return True
@@ -148,25 +152,13 @@ class Analysis1(WafflesAnalysis):
             # Will fail when APA 1 is analyzed
             run=None
         )
+        print('The parameters for the analysis are:',analysis_params)
         
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = self.wfset.points_per_wf
         
-        '''
-        analyser_name = 'standard_analyser'
-        baseline_limits = [900, 1000]
-        
-        analysis_args = (analyser_name, baseline_limits)
-        analysis_kwargs = dict(
-            int_ul=self.wfset.points_per_wf - 1,
-            overwrite=True,
-            prominence=50,
-            rel_height=0.5,
-            width=[0, 75],
-            return_peaks_properties=True)
-        '''
         self.analysis_name = 'standard'
-    
+        
         # Analyze all of the waveforms in this WaveformSet:
         # compute baseline, integral and amplitud
         _ = self.wfset.analyse(
@@ -185,6 +177,7 @@ class Analysis1(WafflesAnalysis):
 
         # Create a grid of WaveformSets for each channel in one
         # APA, and compute the charge histogram for each channel
+        
         self.grid_apa = ChannelWsGrid(
             APA_map[self.apa],
             self.wfset,
@@ -222,7 +215,7 @@ class Analysis1(WafflesAnalysis):
             share_x_scale=False,
             share_y_scale=False,
             mode="heatmap",
-            wfs_per_axes=50,
+            wfs_per_axes=len(self.wfset.waveforms),
             analysis_label=self.analysis_name,
             detailed_label=False,
             verbose=True
@@ -231,7 +224,7 @@ class Analysis1(WafflesAnalysis):
         title1 = f"Persistence for APA {self.apa} - Runs {list(self.wfset.runs)}"
 
         figure1.update_layout(
-            title1={
+            title={
                 "text": title1,
                 "font": {"size": 24}
             }, 
@@ -263,10 +256,10 @@ class Analysis1(WafflesAnalysis):
             verbose=True
         )
 
-        title2 = f"APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title2 = f"Charge histograms for APA {self.apa} - Runs {list(self.wfset.runs)}"
 
         figure2.update_layout(
-            title2={
+            title={
                 "text": title2,
                 "font": {"size": 24}
             }, 
