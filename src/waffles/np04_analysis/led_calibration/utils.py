@@ -1,11 +1,12 @@
 import os
 import numpy as np
 import pandas as pd
-import datetime
 
 from waffles.core.utils import build_parameters_dictionary
-from waffles.input.pickle_file_reader import WaveformSet_from_pickle_files
-from waffles.input.pickle_file_reader import WaveformSet_from_pickle_file
+from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
+from waffles.input_output.raw_root_reader import WaveformSet_from_root_file
+from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.IPDict import IPDict
@@ -15,10 +16,58 @@ input_parameters = build_parameters_dictionary('params.yml')
 
 def get_input_filepath(
         base_folderpath: str,
+        batch: int,
+        apa: int,
+        pde: float,
         run: int
     ) -> str:
-    return  f"{base_folderpath}/wvf_{run}.pkl"
 
+    aux = get_input_folderpath(
+        base_folderpath,
+        batch,
+        apa,
+        pde
+    )
+    return  f"{aux}/run_0{run}/run_{run}_chunk_0.pkl"
+
+def get_input_folderpath(
+        base_folderpath: str,
+        batch: int,
+        apa: int,
+        pde: float):
+    
+    aux = get_apa_foldername(
+        batch,
+        apa
+    )
+    return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/"
+
+def get_apa_foldername(measurements_batch, apa_no):
+    """This function encapsulates the non-homogeneous 
+    naming convention of the APA folders depending 
+    on the measurements batch.""" 
+
+    if measurements_batch not in [1, 2, 3]:
+        raise ValueError(
+            f"Measurements batch {measurements_batch} is not valid"
+        )
+    
+    if apa_no not in [1, 2, 3, 4]:
+        raise ValueError(f"APA number {apa_no} is not valid")
+                         
+    if measurements_batch == 1:
+        if apa_no in [1, 2]:
+            return 'apas_12'
+        else:
+            return 'apas_34'
+        
+    if measurements_batch in [2, 3]:
+        if apa_no == 1:
+            return 'apa_1'
+        elif apa_no == 2:
+            return 'apa_2'
+        else:
+            return 'apas_34'
 
 def comes_from_channel(
         waveform: Waveform, 
@@ -50,7 +99,6 @@ def get_analysis_params(
     analysis_input_parameters = IPDict(
         baseline_limits=\
             input_parameters['baseline_limits'][apa_no]
->>>>>>> main
     )
     analysis_input_parameters['int_ll'] = int_ll
     analysis_input_parameters['int_ul'] = \
@@ -92,6 +140,20 @@ def read_data(
                 verbose=True,
             )
     else:
+        if fProcessRootNotPickles:
+            new_wfset = WaveformSet_from_root_file(
+                "pyroot",
+                filepath=input_path,
+                bulk_data_tree_name="raw_waveforms",
+                meta_data_tree_name="metadata",
+                set_offset_wrt_daq_window=True if apa_no == 1 else False,
+                read_full_streaming_data=True if apa_no == 1 else False,
+                truncate_wfs_to_minimum=True if apa_no == 1 else False,
+                start_fraction=0.0,
+                stop_fraction=stop_fraction,
+                subsample=1,
+            )
+        else:
             new_wfset = WaveformSet_from_pickle_file(input_path)
 
     return new_wfset
@@ -235,8 +297,6 @@ def save_data_to_dataframe(
                 # Assemble the new row
                 new_row = {
                     "APA": [int(Analysis1_object.apa)],
-<<<<<<< HEAD
-                    "APA": [int(Analysis1_object.apa)],
                     "endpoint": [endpoint],
                     "channel": [channel],
                     "channel_iterator": [get_channel_iterator(
@@ -245,17 +305,6 @@ def save_data_to_dataframe(
                         channel
                     )],
                     "PDE": [Analysis1_object.pde],
-=======
-                    "APA": [int(Analysis1_object.params.apa)],
-                    "endpoint": [endpoint],
-                    "channel": [channel],
-                    "channel_iterator": [get_channel_iterator(
-                        Analysis1_object.apa,
-                        endpoint,
-                        channel
-                    )],
-                    "PDE": [Analysis1_object.params.pde],
->>>>>>> main
                     "gain": [data[endpoint][channel]["gain"]],
                     "snr": [data[endpoint][channel]["snr"]],
                     "OV#": [ov_no],
@@ -299,125 +348,4 @@ def save_data_to_dataframe(
                         df = pd.concat([df, pd.DataFrame(new_row)], axis = 0, ignore_index = True)
                         df.reset_index()
 
-<<<<<<< HEAD
         df.to_pickle(path_to_output_file)
-
-def compute_timestamp(day, month, year):
-    """This function generates a timestamp from a date. 
-    The date is given as three integer values which match 
-    the day, the month and the year, respectively. The 
-    timestamp is the number of seconds since 
-    1970-01-01 00:00:00 UTC.
-    
-    """
-    dt = datetime.datetime(year, month, day)
-    
-    return dt.timestamp()
-
-
-def prepare_data_time(
-    apas: list,
-    pdes: list,
-    batches: list,
-    variable: str,
-    general_df: pd.DataFrame
-):
-    
-    data = {}
-
-    for k in range(len(apas)):
-        
-        apa_no=apas[k]
-        data[apa_no] = {}
-        
-        for i in range(len(pdes)):
-            
-            current_df = general_df[
-                (general_df['APA'] == apa_no) &
-                (general_df['PDE'] == pdes[i])]
-            
-            data[apa_no][pdes[i]] = {}
-
-            possible_channel_iterators = current_df['channel_iterator'].unique()
-            
-            for channel_iterator in possible_channel_iterators:
-                
-                aux = current_df[current_df['channel_iterator'] == channel_iterator]
-                time_ordered_values_of_variable = []
-
-                # Here's why the data is ordered by batch number, i.e. ordered by time
-                for batch_no in batches:
-
-                    aux2 = aux[aux['batch_no'] == batch_no]
-                    if len(aux2) == 0:
-                        print(f"Warning: Found no entry for APA {apa_no}, PDE {pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
-                    elif len(aux2) == 1:
-                        time_ordered_values_of_variable.append(
-                            aux2[variable].values[0])
-                    else:
-                        raise Exception(f"Found more than one entry for APA {apa_no}, PDE {pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
-                        
-                data[apa_no][pdes[i]][channel_iterator] = time_ordered_values_of_variable
-    
-    return data
-=======
-        df.to_pickle(path_to_output_file)
-
-def compute_timestamp(day, month, year):
-    """This function generates a timestamp from a date. 
-    The date is given as three integer values which match 
-    the day, the month and the year, respectively. The 
-    timestamp is the number of seconds since 
-    1970-01-01 00:00:00 UTC.
-    
-    """
-    dt = datetime.datetime(year, month, day)
-    
-    return dt.timestamp()
-
-
-def prepare_data_time(
-    apas: list,
-    pdes: list,
-    batches: list,
-    variable: str,
-    general_df: pd.DataFrame
-):
-    
-    data = {}
-
-    for k in range(len(apas)):
-        
-        apa_no=apas[k]
-        data[apa_no] = {}
-        
-        for i in range(len(pdes)):
-            
-            current_df = general_df[
-                (general_df['APA'] == apa_no) &
-                (general_df['PDE'] == pdes[i])]
-            
-            data[apa_no][pdes[i]] = {}
-
-            possible_channel_iterators = current_df['channel_iterator'].unique()
-            
-            for channel_iterator in possible_channel_iterators:
-                
-                aux = current_df[current_df['channel_iterator'] == channel_iterator]
-                time_ordered_values_of_variable = []
-
-                # Here's why the data is ordered by batch number, i.e. ordered by time
-                for batch_no in batches:
-
-                    aux2 = aux[aux['batch_no'] == batch_no]
-                    if len(aux2) == 0:
-                        print(f"Warning: Found no entry for APA {apa_no}, PDE {pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
-                    elif len(aux2) == 1:
-                        time_ordered_values_of_variable.append(
-                            aux2[variable].values[0])
-                    else:
-                        raise Exception(f"Found more than one entry for APA {apa_no}, PDE {pdes[i]}, batch {batch_no} and channel iterator {channel_iterator}.")
-                        
-                data[apa_no][pdes[i]][channel_iterator] = time_ordered_values_of_variable
-    
-    return data
