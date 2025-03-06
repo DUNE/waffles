@@ -24,6 +24,8 @@ from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.Event import Event
+from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
+from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 import waffles.utils.event_utils as evt_utils
 from scipy import signal
 from scipy.fft import fft, fftshift
@@ -133,113 +135,19 @@ def plot_grid(wfs: list,
     eps= get_endpoints(apa)
         
     wfs2= get_wfs(wfs,eps,ch,nwfs,tmin,tmax,rec)
-    grid = get_grid(wfs,apa)
+    grid = get_grid(wfs2,apa)
     
-    fig = plot_ChannelWsGrid(grid)
+    fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000)
     write_image(fig)
 
 ###########################
-"""
 def get_grid(wfs: list,                
-             apa: int = -1, 
-             nwfs: int = -1,
-             xmin: int = -1,
-             xmax: int = -1,
-             tmin: int = -1,
-             tmax: int = -1,
-             offset: bool = False,
-             rec: list = [-1]):
+             apa: int = -1):
 
+    grid_apa = ChannelWsGrid(APA_map[apa], WaveformSet(*wfs))
 
-    
-    ngrids=4
-    dw_wfs = [[]]*ngrids
-    detector_grids = [None]*ngrids
-    
-
-
-    detector_grids = [None]*ngrids            
-    for i in range(ngrids):
-        if len(dw_wfs[i]) > 0:
-            dw_wfset = WaveformSet(*dw_wfs[i])
-            detector_grids[i] = ChannelWsGrid(channel_map[i+1], dw_wfset)
-        else:
-            detector_grids[i] = None
+    return grid_apa
             
-            dw_wfs[i] = []        
-
-
-    grid_apa = ChannelWsGrid(
-        APA_map[self.apa],
-        self.wfset,
-        compute_calib_histo=True, 
-        bins_number=led_utils.get_nbins_for_charge_histo(
-            self.pde,
-            self.apa
-        ),
-        domain=np.array((-10000.0, 50000.0)),
-        variable="integral",
-        analysis_label=self.analysis_name
-    )
-
-            
-        
-    for wf in wfs: 
-
-        # get the grid index for this waveform
-        gi = get_grid_index(wf)
-
-
-
-
-
-
-
-
-
-
-
-
-        if previous_wf==None:
-            ini_ts = wf.daq_window_timestamp
-            first_ts = wf.timestamp
-        #elif wf.daq_window_timestamp != previous_wf.daq_window_timestamp: 
-        elif wf.timestamp - previous_wf.timestamp > delta_t:            
-            # create a new list of grids
-            detector_grids = [None]*ngrids            
-            for i in range(ngrids):
-                if len(dw_wfs[i]) > 0:
-                    dw_wfset = WaveformSet(*dw_wfs[i])
-                    detector_grids[i] = ChannelWsGrid(channel_map[i+1], dw_wfset)
-                else:
-                    detector_grids[i] = None
-                    
-                dw_wfs[i] = []        
-
-            # create Event with 4 channel grids, one for each APA
-            event = Event(detector_grids, 
-                          previous_wf.daq_window_timestamp - ini_ts, 
-                          first_ts - ini_ts, 
-                          previous_wf.timestamp - ini_ts, 
-                          previous_wf.run_number, 
-                          previous_wf.record_number,
-                          event_number)                                
-            events.append(event)
-            event_number +=1
-
-            first_ts = wf.timestamp
- 
-            #figure = plot_ChannelWsGrid(event.channel_wfs[apa-1])
-            #figure.write_image("plots.pdf")
-
-        dw_wfs[gi-1].append(wf)
-        previous_wf = wf
-        
-        if len(events) >= nevents:
-            return events
-
-    return events
-"""
 ###########################
 def get_grid_index(wf: Waveform):
 
