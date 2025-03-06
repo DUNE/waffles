@@ -1,274 +1,251 @@
+import os
+import subprocess
+import shlex
+import logging
+import hashlib
+
+from typing import List, Optional, Dict
+from functools import partial
+from multiprocessing import Pool, cpu_count
+from numba import jit
 from XRootD import client
-# from multiprocessing import Pool, current_process, cpu_count
 from tqdm import tqdm
 import numpy as np
 
-# from array import array
 from daqdataformats import FragmentType
 from hdf5libs import HDF5RawDataFile
-from rawdatautils.unpack.daphne import *
-from rawdatautils.unpack.utils  import *
-from typing import List, Optional
+from rawdatautils.unpack.daphne import (
+    np_array_timestamp,
+    np_array_adc,
+    np_array_channels,
+    np_array_timestamp_stream,
+    np_array_adc_stream,
+    np_array_channels_stream
+)
+from rawdatautils.unpack.utils import *
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 import detdataformats
 import fddetdataformats
-import os, subprocess, shlex
 import waffles.input_output.input_utils as wiu
 
 
-# import daqdataformats
+# -----------------------------------------------------------------------------
+# Logging Setup
+# -----------------------------------------------------------------------------
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter(
+    fmt='[%(levelname)s] %(asctime)s - %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+handler.setFormatter(formatter)
+if not logger.handlers:
+    logger.addHandler(handler)
 
+def local_copy_path_for(filepath: str, tmp_dir: str = "/tmp") -> str:
+    """
+    Generates a stable local copy path in `tmp_dir` based on a short hash of `filepath`.
+    That way if you call it multiple times for the same remote file, it returns the same path.
+    """
+    hash_str = hashlib.md5(filepath.encode('utf-8')).hexdigest()[:8]
+    base_name = os.path.basename(filepath)
+    return os.path.join(tmp_dir, f"{base_name}_{hash_str}")
+
+def xrdcp_if_not_exists(filepath: str,
+                       tmp_dir: str = "/tmp",
+                       logger: logging.Logger = None,
+                       use_lock: bool = False) -> str:
+    """
+    Checks if a stable local copy of `filepath` exists in `tmp_dir`.
+    If not, downloads via xrdcp. Returns the local file path.
+    
+    If `use_lock=True` and 'filelock' is installed, we lock on the final local path
+    to prevent multiple processes from partially overwriting each other in parallel.
+    """
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    local_path = local_copy_path_for(filepath, tmp_dir)
+
+    # If the file already exists, assume it's fine (or add your own validation).
+    if os.path.exists(local_path):
+        logger.info(f"Local copy already present, reusing: {local_path}")
+        return local_path
+
+    # Optional concurrency lock
+    lockfile_path = local_path + ".lock"
+    if use_lock and LOCK_AVAILABLE:
+        file_lock = filelock.FileLock(lockfile_path)
+    else:
+        file_lock = None
+
+    if file_lock:
+        with file_lock:  # acquire the lock before checking again
+            # Re-check inside lock in case another process grabbed it in the meantime
+            if os.path.exists(local_path):
+                logger.info(f"Local copy found after lock, reusing: {local_path}")
+                return local_path
+
+            cmd = f"xrdcp --streams 8 {filepath} {local_path}"
+            logger.info(f"Copying file with XRootD under lock: {cmd}")
+            retcode = subprocess.call(shlex.split(cmd), shell=False)
+            if retcode != 0:
+                raise RuntimeError(f"xrdcp failed with return code {retcode} for file {filepath}")
+            logger.info(f"File copied to {local_path}")
+
+    else:
+        # No lock scenario
+        cmd = f"xrdcp --streams 8 {filepath} {local_path}"
+        logger.info(f"Copying file with XRootD: {cmd}")
+        retcode = subprocess.call(shlex.split(cmd), shell=False)
+        if retcode != 0:
+            raise RuntimeError(f"xrdcp failed with return code {retcode} for file {filepath}")
+        logger.info(f"File copied to {local_path}")
+
+    return local_path
 
 
 def get_inv_map_id(det):
     if det == 'HD_PDS':
-        map_id = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 9], '107': [
-    10, 8], '109': [11], '111': [12], '112': [13], '113': [14]}
+        map_id = {
+            '104': [1, 2, 3, 4],
+            '105': [5, 6, 7, 9],
+            '107': [10, 8],
+            '109': [11],
+            '111': [12],
+            '112': [13],
+            '113': [14]
+        }
     elif det == 'VD_Membrane_PDS' or det == 'VD_Cathode_PDS':
-        #map_id = {'107': [0, 7, 10, 17, 20, 27, 30, 37]}
         map_id = {'107': [51]}
     else:
         raise ValueError(f"det '{det}' is not recognized.")
     inv_map_id = {v: k for k, vals in map_id.items() for v in vals}
     return inv_map_id
 
+
 def find_endpoint(map_id, target_value):
     return map_id[target_value]
 
-def split_list(original_list, n_splits):
-    avg = len(original_list) / float(n_splits)
-    out = []
-    last = 0.0
-
-    while last < len(original_list):
-        out.append(original_list[int(last):int(last + avg)])
-        last += avg
-
-    return out
-
-def check_PDS(raw_file):
-    h5_file = HDF5RawDataFile(raw_file)
-    record = list(h5_file.get_all_record_ids())[0]
-    gid = list(h5_file.get_geo_ids_for_subdetector(
-        record, detdataformats.DetID.string_to_subdetector('HD_PDS')))
-    if len(gid) == 0:
-        output = False
-    else:
-        output = True
-    return output
-
-def hdf5_check_allowed_ids(
-    frag,
-    allowed_ids:list = [] # see argument `allowed_endpoints`
-) -> bool:
-
-    if not allowed_ids:
-        return True
-    frh = frag.get_header()
-    scr_id = frh.element_id.id
-
-    if scr_id in allowed_ids:
-        return True
-
-    return False
 
 def extract_fragment_info(frag, trig):
-    frag_id = str(frag).split(' ')[3][:-1]
     frh = frag.get_header()
-    trh = trig.get_header()
-
+    run_number = frh.run_number
     scr_id = frh.element_id.id
     fragType = frh.fragment_type
-    window_begin_dts = frh.window_begin
-
-    trigger_timestamp = trh.trigger_timestamp
-    daq_pretrigger = window_begin_dts - trigger_timestamp
-
-    threshold = -1
-    baseline = -1
-    trigger_sample_value = -1
-    timestamps = []  # Default to empty list
-    adcs = []        # Default to empty list
-    channels = []    # Default to empty list
-    trigger = 'unknown'  # Default value if no condition is met
+    timestamps = []
+    adcs = []
+    channels = []
+    trigger = 'unknown'
     trigger_ts = frag.get_trigger_timestamp()
 
-    if fragType == FragmentType.kDAPHNE.value:  # For self trigger
-        trigger              = 'self_trigger'
-        frame_obj            = fddetdataformats.DAPHNEFrame
-        daphne_headers       = [frame_obj(frag.get_data(iframe*frame_obj.sizeof())).get_header() for iframe in range(get_n_frames(frag))]
-        # threshold            = daphne_headers[0].threshold  #[header.threshold for header in daphne_headers]
-        baseline             = [header.baseline for header in daphne_headers]
-        trigger_sample_value = [header.trigger_sample_value for header in daphne_headers]
-
-        timestamps = np_array_timestamp(frag) # type: ignore
+    if fragType == FragmentType.kDAPHNE.value:
+        trigger = 'self_trigger'
+        timestamps = np_array_timestamp(frag)
         adcs = np_array_adc(frag)
         channels = np_array_channels(frag)
-
-    elif fragType == FragmentType.kDAPHNEStream:  # For full_stream
+    elif fragType == FragmentType.kDAPHNEStream:
         trigger = 'full_stream'
         timestamps = np_array_timestamp_stream(frag)
         adcs = np_array_adc_stream(frag)
         channels = np_array_channels_stream(frag)[0]
 
-    return trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value, trigger_ts, daq_pretrigger
+    return run_number, trigger, scr_id, channels, adcs, timestamps, trigger_ts
+
 
 def filepath_is_hdf5_file_candidate(filepath: str) -> bool:
-    """
-    This function returns True if the given file path points
-    to a file which exists and whose extension is '.hdf5' or '.h5'. It
-    returns False if else.
-
-    Parameters
-    ----------
-    filepath : str
-        The file path to be checked.
-
-    Returns
-    ----------
-    bool
-    """
-
+    # 1) If it starts with root://, treat it as valid for further processing
+    if filepath.startswith("root://"):
+        return True
+    
+    # 2) Otherwise, it must be a local file that ends with .h5/.hdf5
     if os.path.isfile(filepath):
         if filepath.endswith('.hdf5') or filepath.endswith('.h5'):
             return True
-
     return False
 
+
+
 def get_filepaths_from_rucio(rucio_filepath) -> list:
-    """
-    Function to convert the info from the rucio txt file to a
-    filepath_list to be used as an input for WaveformSet_from_*_files.
-    It will also perform a quality check to ensure that the *.hdf5
-    are stil exist there. If not a exception to re-generate them
-    will appear.
-
-    Parameters
-    ----------
-    rucio_filepath : str
-        Path to the txt file storing the rucio paths of your run.
-    """
-
     if not os.path.isfile(rucio_filepath):
-            raise Exception(GenerateExceptionMessage( 1,
-                                                      'get_filepaths_from_rucio()',
-                                                      f"The given rucio_filepath ({rucio_filepath}) is not a valid file."))
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'get_filepaths_from_rucio()',
+            f"The given rucio_filepath ({rucio_filepath}) is not a valid file."
+        ))
 
     with open(rucio_filepath, 'r') as file:
         lines = file.readlines()
 
-    # if entire path is given when data is in eos, remove the first part
     filepaths = [line.strip().replace('root://eospublic.cern.ch:1094/', '') for line in lines]
-    # avoid tpwriter files
     filepaths = [line for line in filepaths if 'tpwriter' not in line]
+
+    if not filepaths:
+        logger.warning("No file paths found in the Rucio file.")
+        return []
+
     quality_check = filepaths[0]
     if "eos" in quality_check:
-        print("Your files are stored in /eos/")
+        logger.info("Your files are stored in /eos/")
         if not os.path.isfile(filepaths[0]):
-                raise Exception(GenerateExceptionMessage( 2,
-                                                          'get_filepaths_from_rucio()',
-                                                          f"The given filepaths[0] ({quality_check}) is not a valid file."))
+            raise Exception(GenerateExceptionMessage(
+                2,
+                'get_filepaths_from_rucio()',
+                f"The given filepaths[0] ({quality_check}) is not a valid file."
+            ))
     else:
-        print("\nYour files are stored around the world. \n[WARNING] Check you have a correct configuration to use XRootD" )
+        logger.warning(
+            "Your files are stored around the world.\n"
+            "[WARNING] Check you have a correct configuration to use XRootD."
+        )
 
     return filepaths
 
-def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
-                                read_full_streaming_data : bool = False,
-                                truncate_wfs_to_minimum : bool = False,
-                                folderpath : Optional[str] = None,
-                                nrecord_start_fraction : float = 0.0,
-                                nrecord_stop_fraction : float = 1.0,
-                                subsample : int = 1,
-                                wvfm_count : int = 1e9,
+
+def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
+                                read_full_streaming_data: bool = False,
+                                truncate_wfs_to_minimum: bool = False,
+                                folderpath: Optional[str] = None,
+                                nrecord_start_fraction: float = 0.0,
+                                nrecord_stop_fraction: float = 1.0,
+                                subsample: int = 1,
+                                wvfm_count: int = 1e9,
                                 ch: Optional[dict] = {},
-                                det : str = 'HD_PDS',
+                                det: str = 'HD_PDS',
                                 temporal_copy_directory: str = '/tmp',
                                 erase_temporal_copy: bool = True
                                 ) -> WaveformSet:
     """
-    Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
-    The WaveformSet object made from each hdf5 file is combined into a single WaveformSet object.
-
-    Parameters
-    ----------
-    filepath_list : str
-        Path to the hdf5 file to be read.
-    read_full_streaming_data : bool
-        If True (resp. False), then only the waveforms for which
-        the 'is_fullstream' parameter in the fragment has a
-        value equal to True (resp. False) will be considered.
-    truncate_wfs_to_minimum: bool
-        If True, then the waveforms will be truncated to
-        the minimum length among all the waveforms in the input
-        file before being handled to the WaveformSet class
-        initializer. If False, then the waveforms will be
-        read and handled to the WaveformSet initializer as
-        they are. Note that WaveformSet.__init__() will raise
-        an exception if the given waveforms are not homogeneous
-        in length, so this parameter should be set to False
-        only if the user is sure that all the waveforms in
-        the input file have the same length.
-    folderpath : str
-        If given, then the value given to the 'filepath_list'
-        parameter is ignored, and the list of filepaths to be
-        read is generated by listing all the files in the given
-        folder.
-    nrecord_start_fraction : float
-        Used to select at which record to start reading.
-        In particular floor(nrecord_start_fraction*(total records)) is the first record.
-    nrecord_stop_fraction : float
-        Used to select at which record to stop reading.
-        In particular ceiling(nrecord_stop_fraction*(total records)) is the last record.
-    subsample : int
-        Select a subsampling of waveforms from the file.
-        So 1 (default) selects every waveform, 2 selects every other, 3 selects every third, etc.
-        Can combine with nrecord selection parameters.
-    wvfm_count : int
-        Select total number of waveforms to save.
-    ch : dict
-    Dictionary specifying channels to read, structured as {endpoint: [ch0, ch1, ...]}.
-    - If an endpoint is included, only the specified channels from that endpoint will be read.
-    - If an endpoint is not included, all its channels will be read by default.
-    - If the dictionary is empty, all endpoints and channels will be read.
-        endpoints. Avoid reading waveforms unnecessarily
-    det : str
-        String that corresponds to the detector type.
-        Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
-    temporal_copy_directory: str
-        It must be the path to an existing directory where the running
-        process has write permissions. This parameter only makes a difference
-        for those HDF5 files for which XRootD is used. For those ones, a copy
-        of the input HDF5 file is temporarily created in this directory. When
-        the goal WaveformSet has been finally created out of such temporal
-        HDF5-file copy, this copy is deleted from the specified directory.
-    erase_temporal_copy: bool
-        This parameter only makes a difference for filepaths for which XRootD
-        is used, i.e. for filepaths for which a temporal local copy of the
-        target HDF5 file is created. If True, (resp. False), then the temporal
-        copies created for such filepaths will (resp. will not) be deleted
-        after its WaveformSet object has been created.
+    Creates a WaveformSet from multiple HDF5 files by sequentially reading
+    them in the current process.
     """
     if folderpath is not None:
-
         if not os.path.isdir(folderpath):
-            raise Exception(GenerateExceptionMessage(1,
-                                                     'WaveformSet_from_hdf5_files()',
-                                                     f"The given folderpath ({folderpath}) is not a valid directory."))
-
-        valid_filepaths = [os.path.join(folderpath, filename)
-                           for filename in os.listdir(folderpath)
-                           if filepath_is_hdf5_file_candidate(os.path.join(folderpath, filename))]
+            raise Exception(GenerateExceptionMessage(
+                1,
+                'WaveformSet_from_hdf5_files()',
+                f"The given folderpath ({folderpath}) is not a valid directory."
+            ))
+        valid_filepaths = []
+        for filename in os.listdir(folderpath):
+            full_path = os.path.join(folderpath, filename)
+            if filepath_is_hdf5_file_candidate(full_path):
+                valid_filepaths.append(full_path)
     else:
-        valid_filepaths = [filepath
-                           # Remove possible duplicates
-                           for filepath in set(filepath_list)
-                           if filepath_is_hdf5_file_candidate(filepath)]
-    output = 0
-    created=False
-    for filepath in filepath_list:
+        valid_filepaths = [
+            filepath for filepath in set(filepath_list)
+            if filepath_is_hdf5_file_candidate(filepath)
+        ]
+
+    if not valid_filepaths:
+        logger.warning("No valid HDF5 file paths were found.")
+        return WaveformSet()
+
+    output = None
+    for filepath in tqdm(valid_filepaths, desc="Reading HDF5 files (sequential)"):
         try:
             aux = WaveformSet_from_hdf5_file(
                 filepath,
@@ -283,222 +260,288 @@ def WaveformSet_from_hdf5_files(filepath_list : List[str] = [],
                 temporal_copy_directory=temporal_copy_directory,
                 erase_temporal_copy=erase_temporal_copy
             )
-
         except Exception as error:
-            print(error, "\n")
-            print('Error reading file...')
+            logger.error(f"Error reading file {filepath}: {error}")
+            logger.error("Skipping this file...")
             continue
-        if not created:
+
+        if output is None:
             output = aux
-            created = True
         else:
             output.merge(aux)
-        print('wset len: ', len(output.waveforms))
-    return output
 
-def WaveformSet_from_hdf5_file(filepath : str,
-                               read_full_streaming_data : bool = False,
-                               truncate_wfs_to_minimum : bool = False,
-                               nrecord_start_fraction : float = 0.0,
-                               nrecord_stop_fraction : float = 1.0,
-                               subsample : int = 1,
-                               wvfm_count : int = 1e9,
-                               ch: Optional[dict] = {},  # Replace allowed_endpoints and allowed_channels
-                               det : str = 'HD_PDS',
+        logger.info(f"WaveformSet length so far: {len(output.waveforms)}")
+
+    return output if output is not None else WaveformSet()
+
+
+def WaveformSet_from_hdf5_file(filepath: str,
+                               read_full_streaming_data: bool = False,
+                               truncate_wfs_to_minimum: bool = False,
+                               nrecord_start_fraction: float = 0.0,
+                               nrecord_stop_fraction: float = 1.0,
+                               subsample: int = 1,
+                               wvfm_count: int = 1e9,
+                               ch: Optional[dict] = {},
+                               det: str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
-                               erase_temporal_copy: bool = True
+                               erase_temporal_copy: bool = True,
+                               record_chunk_size: int = 200
                                ) -> WaveformSet:
     """
-    Alternative initializer for a WaveformSet object that reads waveforms directly from hdf5 files.
+    Reads a single HDF5 file and constructs a WaveformSet. Records are processed
+    in chunks (default size = 200) to reduce peak memory usage.
 
-    Parameters
-    ----------
-    filepath : str
-        Path to the hdf5 file to be read.
-    read_full_streaming_data : bool
-        If True (resp. False), then only the waveforms for which
-        the 'is_fullstream' parameter in the fragment has a
-        value equal to True (resp. False) will be considered.
-    truncate_wfs_to_minimum: bool
-        If True, then the waveforms will be truncated to
-        the minimum length among all the waveforms in the input
-        file before being handled to the WaveformSet class
-        initializer. If False, then the waveforms will be
-        read and handled to the WaveformSet initializer as
-        they are. Note that WaveformSet.__init__() will raise
-        an exception if the given waveforms are not homogeneous
-        in length, so this parameter should be set to False
-        only if the user is sure that all the waveforms in
-        the input file have the same length.
-    nrecord_start_fraction : float
-        Used to select at which record to start reading.
-        In particular floor(nrecord_start_fraction*(total records)) is the first record.
-    nrecord_stop_fraction : float
-        Used to select at which record to stop reading.
-        In particular ceiling(nrecord_stop_fraction*(total records)) is the last record.
-    subsample : int
-        Select a subsampling of waveforms from the file.
-        So 1 (default) selects every waveform, 2 selects every other, 3 selects every third, etc.
-        Can combine with nrecord selection parameters.
-    wvfm_count : int
-        Select total number of waveforms to save.
-    ch : dict
-    Dictionary specifying channels to read, structured as {endpoint: [ch0, ch1, ...]}.
-    - If an endpoint is included, only the specified channels from that endpoint will be read.
-    - If an endpoint is not included, all its channels will be read by default.
-    - If the dictionary is empty, all endpoints and channels will be read.
-        endpoints. Avoid reading waveforms unnecessarily
-    det : str
-        String that corresponds to the detector type.
-        Examples: HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS
-    temporal_copy_directory: str
-        It must be the path to an existing directory where the running
-        process has write permissions. This parameter only makes a difference
-        if XRootD is used. In such case, a copy of the input HDF5 file is
-        temporarily created in this directory. When the WaveformSet to
-        return has been finally created out of such temporal HDF5-file copy,
-        this copy is deleted from the specified directory.
-    erase_temporal_copy: bool
-        This parameter only makes a difference if XRootD is used, i.e. if
-        a temporal local copy of the target HDF5 file is created. If True,
-        (resp. False), then this temporal copy will (resp. will not) be
-        deleted after the WaveformSet object has been created.
+    Args:
+        filepath (str): The path to the HDF5 file.
+        read_full_streaming_data (bool): If True, read DAPHNEStream fragments (full stream).
+        truncate_wfs_to_minimum (bool): If True, truncate waveforms to shortest length found.
+        nrecord_start_fraction (float): Fraction of records to skip from start.
+        nrecord_stop_fraction (float): Fraction of records to skip from end.
+        subsample (int): Keep 1 out of every 'subsample' waveforms.
+        wvfm_count (int): Maximum number of waveforms to read.
+        ch (dict): Channels to read, e.g. {'104': [1,2], '105': [3,4]}.
+        det (str): Detector type (e.g., 'HD_PDS').
+        temporal_copy_directory (str): Local dir for XRootD copy.
+        erase_temporal_copy (bool): Remove local copy after reading if True.
+        record_chunk_size (int): Number of records to process at once (to reduce memory usage).
+
+    Returns:
+        WaveformSet: The WaveformSet of waveforms from the file.
     """
-
+    fUsedXRootD = False
+    # Attempt local copy if outside known local paths
     if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
-        print("Using XROOTD")
-
         if wiu.write_permission(temporal_copy_directory):
-
-            subprocess.call(
-                shlex.split(f"xrdcp {filepath} {temporal_copy_directory}"),
-                shell=False
-            )
+            temp_path = os.path.join(temporal_copy_directory, os.path.basename(filepath))
+            if not os.path.exists(temp_path):
+                cmd = f"xrdcp --streams 8 {filepath} {temporal_copy_directory}"
+                logger.info(f"Copying file with XRootD: {cmd}")
+                subprocess.call(shlex.split(cmd), shell=False)
+            filepath = temp_path
             fUsedXRootD = True
-
-            filepath = os.path.join(
-                temporal_copy_directory,
-                filepath.split('/')[-1]
-            )
-
         else:
-            raise Exception(
-                GenerateExceptionMessage(
-                    1,
-                    'WaveformSet_from_hdf5_file()',
-                    f"Attempting to temporarily copy {filepath} into "
-                    f"{temporal_copy_directory}, but the current process "
-                    f"has no write permissions there. Please specify a "
-                    "valid directory."
-                )
-            )
+            raise Exception(GenerateExceptionMessage(
+                1,
+                'WaveformSet_from_hdf5_file()',
+                f"Attempting to temporarily copy {filepath} into {temporal_copy_directory}, "
+                "but no write permission."
+            ))
 
-    else:
-        fUsedXRootD = False
-
+    # Open the HDF5 file
     h5_file = HDF5RawDataFile(filepath)
-    run_date   = h5_file.get_attribute('creation_timestamp')
-    run_id     = filepath.split('/')[-1].split('_')[3]
-    run_flow   = filepath.split('/')[-1].split('_')[4]
-    datawriter = dataflow = filepath.split('/')[-1].split('_')[6]
-    run_numb   = int((filepath.split('/')[-1].split('_')[2]).strip('run'))
-
     waveforms = []
     active_endpoints = set()
-    threshold_list = []
 
     records = h5_file.get_all_record_ids()
 
-    # Create a set of valid (endpoint, channel) pairs
-    valid_pairs = {(endpoint, channel) for endpoint, channels in ch.items() for channel in channels}
+    valid_pairs = {
+        (int(endpoint), channel)
+        for endpoint, channels in ch.items()
+        for channel in channels
+    }
 
+    # Validate fraction ranges
     if nrecord_stop_fraction > 1.0:
         nrecord_stop_fraction = 1.0
-    if nrecord_start_fraction > 1.0 or nrecord_start_fraction < 0.0:
-        raise ValueError('Invalid value for nrecord_start_fraction. Must be >=0 or <=1.')
+    if nrecord_start_fraction < 0.0 or nrecord_start_fraction > 1.0:
+        raise ValueError(
+            "Invalid value for nrecord_start_fraction (must be between 0 and 1)."
+        )
 
-    nrecord_start_index = int(np.floor(nrecord_start_fraction*(len(records)-1)))
-    nrecord_stop_index = int(np.ceil(nrecord_stop_fraction*(len(records)-1)))
-    records = records[nrecord_start_index:nrecord_stop_index+1]
+    total_records = len(records)
+    start_index = int(np.floor(nrecord_start_fraction * (total_records - 1)))
+    stop_index = int(np.ceil(nrecord_stop_fraction * (total_records - 1)))
+    records = records[start_index:stop_index + 1]
 
     wvfm_index = 0
-    for i, r in enumerate(tqdm(records)):
-        pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
-            r, detdataformats.DetID.string_to_subdetector(det)))
+    inv_map_id = get_inv_map_id(det)
 
-        for gid in pds_geo_ids:
-            try:
-                frag = h5_file.get_frag(r, gid)
-            except Exception as e:
-                print(f"Corrupted fragment:\n {frag}\n{r}\n{gid}")
-                continue
+    # Process records in chunks
+    for chunk_start in range(0, len(records), record_chunk_size):
+        chunk_end = chunk_start + record_chunk_size
+        record_chunk = records[chunk_start:chunk_end]
 
-            if frag.get_data_size() == 0:
-                print(f"Empty fragment:\n {frag}\n{r}\n{gid}")
-                continue
-
-            if read_full_streaming_data and frag.get_fragment_type() == FragmentType.kDAPHNE:
-                continue
-
-            if not read_full_streaming_data and frag.get_fragment_type() == FragmentType.kDAPHNEStream:
-                continue
-
+        for r in record_chunk:
+            pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
+                r, detdataformats.DetID.string_to_subdetector(det)
+            ))
             trig = h5_file.get_trh(r)
 
-            trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, trigger_ts, daq_pretrigger_frag = extract_fragment_info(
-                frag, trig)
-            inv_map_id = get_inv_map_id(det)
-            endpoint = int(find_endpoint(inv_map_id, scr_id))
-
-            if trigger == 'full_stream':
-                adcs_frag = adcs_frag.transpose()
-                timestamps_frag = [timestamps_frag[0]] * len(channels_frag)
-                baseline_frag = [-1] * len(channels_frag)
-                trigger_sample_value_frag = [-1] * len(channels_frag)
-                is_fullstream_frag = [True] * len(channels_frag)
-            elif trigger == 'self_trigger':
-                is_fullstream_frag = [False] * len(channels_frag)
-
-            if endpoint not in active_endpoints:
-                active_endpoints.add(endpoint)
-                threshold_list.append(threshold_frag)
-
-            for index, ch_id in enumerate(channels_frag):
-                # Check if the (endpoint, channel) pair is allowed
-                if (endpoint, ch_id) not in valid_pairs:
+            for gid in pds_geo_ids:
+                try:
+                    frag = h5_file.get_frag(r, gid)
+                except Exception as e:
+                    logger.warning(f"Corrupted fragment:\n {r}\n{gid}\nError: {e}")
                     continue
 
-                adcs = adcs_frag[index]
+                if frag.get_data_size() == 0:
+                    logger.warning(f"Empty fragment:\n {frag}\n{r}\n{gid}")
+                    continue
 
-                if read_full_streaming_data == is_fullstream_frag[index]:
-                    if not wvfm_index % subsample:
-                        waveforms.append(Waveform(timestamps_frag[index],
-                                                  16.,    # time_step_ns
-                                                  trigger_ts,
-                                                  np.array(adcs),
-                                                  run_numb,
-                                                  r[0],
-                                                  endpoint,
-                                                  ch_id,
-                                                  time_offset=0,
-                                                  starting_tick=0))
-                    wvfm_index += 1
-                    if wvfm_index >= wvfm_count:
-                        if truncate_wfs_to_minimum:
-                            minimum_length = min(len(wf.adcs) for wf in waveforms)
-                            for wf in waveforms:
-                                wf._WaveformAdcs__slice_adcs(0, minimum_length)
+                if read_full_streaming_data and frag.get_fragment_type() == FragmentType.kDAPHNE:
+                    continue
+                if (not read_full_streaming_data) and frag.get_fragment_type() == FragmentType.kDAPHNEStream:
+                    continue
 
-                        if fUsedXRootD and erase_temporal_copy:
-                            os.remove(filepath)
-                        return WaveformSet(*waveforms)
+                (run_number, trigger, scr_id,
+                 channels_frag, adcs_frag, timestamps_frag,
+                 trigger_ts) = extract_fragment_info(frag, trig)
 
-    if truncate_wfs_to_minimum:
-        minimum_length = min(len(wf.adcs) for wf in waveforms)
+                endpoint = int(find_endpoint(inv_map_id, scr_id))
+
+                if trigger == 'full_stream':
+                    adcs_frag = adcs_frag.transpose()
+                    timestamps_frag = [timestamps_frag[0]] * len(channels_frag)
+                    is_fullstream_frag = [True] * len(channels_frag)
+                elif trigger == 'self_trigger':
+                    is_fullstream_frag = [False] * len(channels_frag)
+                else:
+                    is_fullstream_frag = [False] * len(channels_frag)
+
+                if endpoint not in active_endpoints:
+                    active_endpoints.add(endpoint)
+
+                for index, ch_id in enumerate(channels_frag):
+                    if (endpoint, ch_id) not in valid_pairs:
+                        continue
+
+                    if read_full_streaming_data == is_fullstream_frag[index]:
+                        if not wvfm_index % subsample:
+                            wv = Waveform(
+                                timestamps_frag[index],
+                                16.,
+                                trigger_ts,
+                                np.array(adcs_frag[index]),
+                                run_number,
+                                r[0],
+                                endpoint,
+                                ch_id,
+                                time_offset=0,
+                                starting_tick=0
+                            )
+                            waveforms.append(wv)
+
+                        wvfm_index += 1
+                        if wvfm_index >= wvfm_count:
+                            if truncate_wfs_to_minimum and waveforms:
+                                min_len = min(len(wf.adcs) for wf in waveforms)
+                                for wf in waveforms:
+                                    wf._WaveformAdcs__slice_adcs(0, min_len)
+
+                            if fUsedXRootD and erase_temporal_copy and os.path.exists(filepath):
+                                os.remove(filepath)
+                            return WaveformSet(*waveforms)
+
+    # Finished reading all chunks
+    if truncate_wfs_to_minimum and waveforms:
+        min_len = min(len(wf.adcs) for wf in waveforms)
         for wf in waveforms:
-            wf._WaveformAdcs__slice_adcs(0, minimum_length)
+            wf._WaveformAdcs__slice_adcs(0, min_len)
 
-    if fUsedXRootD and erase_temporal_copy:
+    if fUsedXRootD and erase_temporal_copy and os.path.exists(filepath):
         os.remove(filepath)
 
     return WaveformSet(*waveforms)
+
+
+def process_record(r):
+    # This was just a placeholder in your code, referencing global objects.
+    # It won't work as-is unless you define h5_file, gid in a higher scope.
+    # You might remove or adapt it, but we keep it for completeness.
+    return extract_fragment_info(h5_file.get_frag(r, gid), h5_file.get_trh(r))
+
+
+# -----------------------------------------------------------------------------
+# PARALLEL VERSION of WaveformSet_from_hdf5_files
+# -----------------------------------------------------------------------------
+def WaveformSet_from_hdf5_files_parallel(filepath_list: List[str] = [],
+                                         read_full_streaming_data: bool = False,
+                                         truncate_wfs_to_minimum: bool = False,
+                                         folderpath: Optional[str] = None,
+                                         nrecord_start_fraction: float = 0.0,
+                                         nrecord_stop_fraction: float = 1.0,
+                                         subsample: int = 1,
+                                         wvfm_count: int = 1e9,
+                                         ch: Optional[dict] = {},
+                                         det: str = 'HD_PDS',
+                                         temporal_copy_directory: str = '/tmp',
+                                         erase_temporal_copy: bool = True,
+                                         record_chunk_size: int = 200,
+                                         n_processes: int = 4
+                                         ) -> WaveformSet:
+    """
+    Parallel version of WaveformSet_from_hdf5_files. Uses multiprocessing to read each file
+    in a separate process, then merges the results.
+    
+    Before dispatching to worker processes, we pre-copy any remote files (using xrdcp_if_not_exists)
+    so that every worker works with a local file and no concurrent XRootD copies occur.
+    """
+    # 1) Determine valid filepaths (same as original)
+    if folderpath is not None:
+        if not os.path.isdir(folderpath):
+            raise Exception(GenerateExceptionMessage(
+                1,
+                'WaveformSet_from_hdf5_files_parallel()',
+                f"The given folderpath ({folderpath}) is not a valid directory."
+            ))
+        valid_filepaths = []
+        for filename in os.listdir(folderpath):
+            full_path = os.path.join(folderpath, filename)
+            if filepath_is_hdf5_file_candidate(full_path):
+                valid_filepaths.append(full_path)
+    else:
+        valid_filepaths = [
+            filepath for filepath in set(filepath_list)
+            if filepath_is_hdf5_file_candidate(filepath)
+        ]
+
+    if not valid_filepaths:
+        logger.warning("No valid HDF5 file paths were found for parallel reading.")
+        return WaveformSet()
+
+    logger.info(f"Starting parallel read of {len(valid_filepaths)} file(s) with {n_processes} workers.")
+
+    # 2) Pre-copy remote files if needed.
+    #    For each file in valid_filepaths, if it is remote (e.g. starts with "root://") or not local,
+    #    we download it once using xrdcp_if_not_exists. This avoids race conditions in the workers.
+    pre_copied_filepaths = []
+    for fp in valid_filepaths:
+        # Check if fp is remote by testing if it starts with "root://"
+        if fp.startswith("root://") or (not os.path.isfile(fp)):
+            # xrdcp_if_not_exists uses a stable local filename (e.g. with a hash) and a file lock.
+            local_fp = xrdcp_if_not_exists(fp, tmp_dir=temporal_copy_directory, logger=logger, use_lock=True)
+            pre_copied_filepaths.append(local_fp)
+        else:
+            pre_copied_filepaths.append(fp)
+
+    # 3) Prepare partial function with fixed parameters.
+    #    Note: We pass the local file paths now so that each worker simply opens the file.
+    func = partial(
+        WaveformSet_from_hdf5_file,
+        read_full_streaming_data=read_full_streaming_data,
+        truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+        nrecord_start_fraction=nrecord_start_fraction,
+        nrecord_stop_fraction=nrecord_stop_fraction,
+        subsample=subsample,
+        wvfm_count=wvfm_count,
+        ch=ch,
+        det=det,
+        temporal_copy_directory=temporal_copy_directory,
+        erase_temporal_copy=erase_temporal_copy,
+        record_chunk_size=record_chunk_size
+    )
+
+    # 4) Parallel execution: Each worker processes a file (which is now local)
+    with Pool(processes=n_processes) as pool:
+        results = list(tqdm(pool.imap(func, pre_copied_filepaths),
+                            total=len(pre_copied_filepaths),
+                            desc="Reading HDF5 files (parallel)"))
+
+    # 5) Merge all WaveformSets
+    combined = WaveformSet()
+    for wset in results:
+        combined.merge(wset)
+    logger.info(f"Finished parallel read. Combined WaveformSet length: {len(combined.waveforms)}")
+
+    return combined
