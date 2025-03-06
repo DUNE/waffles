@@ -10,9 +10,11 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
+import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
+import waffles.input_output.hdf5_file_reader as hdf5_reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 
@@ -23,12 +25,17 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.Event import Event
 import waffles.utils.event_utils as evt_utils
+from scipy import signal
+from scipy.fft import fft, fftshift
+import pickle
 
 # Global plotting settings
 fig = go.Figure()
 line_color = 'black'
 html_file_path = 'temp_plot.html'
 plotting_mode='html'
+
+templates = []
 
 ###########################
 def help(cls: str = None):
@@ -77,7 +84,11 @@ def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
         )
     elif file_extension == ".pkl":
         wset = pickle_reader.WaveformSet_from_pickle_file(filename) 
+    elif file_extension == ".hdf5":
+        wset = hdf5_reader.WaveformSet_from_hdf5_file(filename)
 
+   
+        
     print("Done!")
     return wset
 
@@ -91,6 +102,15 @@ def eread(filename, nevents: int = 1000000000) -> List[Event]:
 
     print("Done!")
     return events
+
+
+###########################
+def tsort_wfset(wfset0: WaveformSet) -> WaveformSet:
+
+    waveforms = sorted(wfset0.waveforms, key=lambda Waveform: Waveform.timestamp)
+    wfset = WaveformSet(*waveforms)
+
+    return wfset
 
 
 ###########################
@@ -207,6 +227,114 @@ def write_image(fig: go.Figure) -> None:
     else:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
 
+###########################        
+def read_avg(filename):
+
+    with open(filename, 'rb') as file:
+        output = pickle.load(file)
+
+    return output
+
+###########################
+def plot_wf(w: np.array , xmin: int = -1, xmax: int =-1, op: str=''):
+
+
+    global fig
+    if not has_option(op,'same'):
+        fig=go.Figure()
+
+
+    if xmin!=-1 and xmax!=-1:
+        x0 = np.arange(  xmin, xmax,
+                        dtype = np.float32)*16
+        y0 = w[xmin:xmax]    
+    else:
+        x0 = np.arange(  len(w),
+                        dtype = np.float32)*16
+        y0 = w
+
+
+    wf_trace = pgo.Scatter( x = x0,
+                            y = y0,
+                            mode = 'lines',
+                            line=dict(color=line_color, width=0.5))
+                            #name = names)
+
+                            
+    fig.add_trace(   wf_trace,
+                     row = None,
+                     col = None)
+
+
+        # add axes titles
+    fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
+
+    write_image(fig)     
+    
+
+    
+###########################        
+def plot_fft(w: Waveform, xmin: int = -1, xmax: int =-1, op: str=''):
+
+
+    global fig
+    if not has_option(op,'same'):
+        fig=go.Figure()
+
+    
+    w_fft = np.abs((np.fft.fft(w.adcs)).real)
+
+
+    if xmin!=-1 and xmax!=-1:
+        x0 = np.arange(  xmin, xmax,
+                        dtype = np.float32)*16
+        y0 = w_fft[xmin:xmax]    
+    else:
+        x0 = np.arange(  len(w_fft),
+                        dtype = np.float32)*16
+        y0 = w_fft
+
+
+    freq = np.fft.fftfreq(x0.shape[-1])
+    
+    wf_trace = pgo.Scatter( x = freq,
+                            y = y0,
+                            mode = 'lines',
+                            line=dict(color=line_color, width=0.5))
+                            #name = names)
+
+                            
+    fig.add_trace(   wf_trace,
+                     row = None,
+                     col = None)
+
+
+        # add axes titles
+    fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
+
+    write_image(fig)     
+
+
+###########################        
+def deconv_wf(w: Waveform, template: Waveform) -> Waveform:
+    
+    signal_fft = np.fft.fft(w.adcs)
+    template_menos_fft = np.fft.fft(template.adcs, n=len(w.adcs))  # Match signal length
+    deconvolved_fft = signal_fft/ (template_menos_fft )     # Division in frequency domain
+    deconvolved_wf_adcs = np.real(np.fft.ifft(deconvolved_fft))      # Transform back to time domain
+
+    
+    deconvolved_wf = Waveform(w.timestamp,
+                              w.time_step_ns,
+                              w.daq_window_timestamp,
+                              deconvolved_wf_adcs,
+                              w.run_number,
+                              w.record_number,
+                              w.endpoint,
+                              w.channel)
+    
+    return deconvolved_wf
+        
 ###########################
 def plot(object,                   
          ep: int = -1, 
@@ -215,7 +343,7 @@ def plot(object,
          xmin: int = -1,
          xmax: int = -1,
          offset: bool = False,
-         rec: int = -1,
+         rec: list = [-1],
          op: str = '',
          show: bool = True):
 
@@ -223,12 +351,16 @@ def plot(object,
     if type(object)==Waveform:    
         plot_wfs(list([object]),ep,ch,nwfs,xmin,xmax,offset,rec,op)
     
+    # Case when the input object is a Waveform
+    elif type(object)==WaveformAdcs:    
+        plot_wfs(list([object]),-100,-100,nwfs,xmin,xmax,offset,rec,op)
+    
     # Case when the input object is a list of Waveforms
-    if type(object)==list and type(object[0])==Waveform:
+    elif type(object)==list and type(object[0])==Waveform:
         plot_wfs(object,ep,ch,nwfs,xmin,xmax,offset,rec,op)
 
     # Case when the input object is a WaveformSet                    
-    if type(object)==WaveformSet:
+    elif type(object)==WaveformSet:
         plot_wfs(object.waveforms,ep,ch,nwfs,xmin,xmax,offset,rec,op)
     
 ###########################
@@ -239,19 +371,23 @@ def plot_wfs(wfs: list,
                 xmin: int = -1,
                 xmax: int = -1,
                 offset: bool = False,
-                rec: int = -1,
+                rec: list = [-1],
                 op: str = ''):
-        
+
     global fig
     if not has_option(op,'same'):
         fig=go.Figure()
 
     # plot all waveforms in a given endpoint and channel
     n=0
+        
     for wf in wfs:
-        if (wf.endpoint==ep or ep==-1) and (wf.channel==ch or ch==-1) and (wf.record_number==rec or rec==-1):
-            n=n+1
-            plot_WaveformAdcs2(wf,fig, offset,xmin,xmax)
+        if ep==-100:
+            plot_WaveformAdcs2(wfs[0],fig, offset,xmin,xmax)
+        else:    
+            if (wf.endpoint==ep or ep==-1) and (wf.channel==ch or ch==-1) and (wf.record_number in rec or rec[0]==-1):
+                n=n+1
+                plot_WaveformAdcs2(wf,fig, offset,xmin,xmax)
         if n>=nwfs and nwfs!=-1:
             break
 
@@ -566,7 +702,7 @@ def __subplot_heatmap_ans(  waveform_set : WaveformSet,
 
 ###########################
 # variant of plot_WaveformAdcs with option to consider offsets or not
-def plot_WaveformAdcs2( waveform_adcs : Waveform,  
+def plot_WaveformAdcs2( waveform_adcs : WaveformAdcs,  
                         figure : pgo.Figure,
                         offset: bool = False,
                         xmin: int = -1,
@@ -593,11 +729,11 @@ def plot_WaveformAdcs2( waveform_adcs : Waveform,
                         dtype = np.float32)
         y0 = waveform_adcs.adcs
 
-    names=waveform_adcs.channel
+    names=""#waveform_adcs.channel
 
 #    wf_trace = pgo.Scatter( x = x + waveform_adcs.time_offsetn,   ## If at some point we think x might match for
     if offset:
-        wf_trace = pgo.Scatter( x = x0 + np.float32(waveform_adcs.timestamp-waveform_adcs.daq_window_timestamp),   
+        wf_trace = pgo.Scatter( x = x0 + np.float32(np.int64(waveform_adcs.timestamp)-np.int64(waveform_adcs.daq_window_timestamp)),   
                                                                 ## If at some point we think x might match for
                                                                 ## every waveform, in a certain WaveformSet 
                                                                 ## object, it might be more efficient to let
@@ -606,8 +742,9 @@ def plot_WaveformAdcs2( waveform_adcs : Waveform,
                             y = y0,
                             mode = 'lines',
                             line=dict(  color=line_color, 
-                                        width=0.5),
-                            name = names)
+                                        width=0.5)
+                                )
+                               # name = names)
     else:
         wf_trace = pgo.Scatter( x = x0,   ## If at some point we think x might match for
                                                                 ## every waveform, in a certain WaveformSet 
@@ -617,8 +754,9 @@ def plot_WaveformAdcs2( waveform_adcs : Waveform,
                             y = y0,
                             mode = 'lines',
                             line=dict(  color=line_color, 
-                                        width=0.5),
-                            name = names)
+                                        width=0.5)
+                                )
+                            #name = names)
 
 
 
