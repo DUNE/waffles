@@ -1566,7 +1566,8 @@ def plot_ChannelWsGrid(
                     # since it may differ from one plot
                     # to another.
                     show_color_bar=False)
-
+                
+                
                 ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
                 ## every plot in the grid, though, but comes at the
                 ## cost of finding the max and min values of the 
@@ -1585,6 +1586,7 @@ def plot_ChannelWsGrid(
                     text=aux_name,
                     row=i + 1,
                     col=j + 1)
+                
 
     elif mode == 'calibration':
 
