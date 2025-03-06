@@ -214,14 +214,15 @@ class Analysis1(WafflesAnalysis):
             figure=None,
             share_x_scale=False,
             share_y_scale=False,
-            mode="heatmap",
-            wfs_per_axes=len(self.wfset.waveforms),
+            mode="overlay",
+            #wfs_per_axes=len(self.wfset.waveforms),
+            wfs_per_axes=20,
             analysis_label=self.analysis_name,
             detailed_label=False,
             verbose=True
         )
 
-        title1 = f"Persistence for APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title1 = f"Waveforms for APA {self.apa} - Runs {list(self.wfset.runs)}"
 
         figure1.update_layout(
             title={
