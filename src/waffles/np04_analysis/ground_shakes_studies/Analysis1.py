@@ -121,8 +121,11 @@ class Analysis1(WafflesAnalysis):
             f"Now reading waveforms for run {self.run} ..."
         )
         
-        wfset_path = self.params.input_path+f"wfset_0{self.run}.hdf5"
-        self.wfset=WaveformSet_from_hdf5_file(wfset_path)        
+        try:
+            wfset_path = self.params.input_path+f"wfset_0{self.run}.hdf5"
+            self.wfset=WaveformSet_from_hdf5_file(wfset_path)   
+        except FileNotFoundError:
+            raise FileNotFoundError(f"File {wfset_path} was not found. Make sure that the wfset file is named as 'wfset_0<run_number>.hdf5'")
         
         return True
 
@@ -205,9 +208,9 @@ class Analysis1(WafflesAnalysis):
         """
         
         base_file_path = f"{self.params.output_path}"\
-            f"/run_{self.run}_apa_{self.apa}_pde_{self.pde}"
+            f"run_{self.run}_apa_{self.apa}_pde_{self.pde}"
             
-        # ------------- Save the persistance plot ------------- 
+        # ------------- Save the waveforms plot ------------- 
 
         figure1 = plot_ChannelWsGrid(
             self.grid_apa,
@@ -216,7 +219,7 @@ class Analysis1(WafflesAnalysis):
             share_y_scale=False,
             mode="overlay",
             #wfs_per_axes=len(self.wfset.waveforms),
-            wfs_per_axes=20,
+            wfs_per_axes=50,
             analysis_label=self.analysis_name,
             detailed_label=False,
             verbose=True
@@ -237,27 +240,28 @@ class Analysis1(WafflesAnalysis):
         if self.params.show_figures:
             figure1.show()
 
-        fig1_path = f"{base_file_path}_persistence.png"
+        fig1_path = f"{base_file_path}_wfsets.png"
         figure1.write_image(f"{fig1_path}")
 
-        print(f" \n Persistence plots saved in {fig1_path}")
-
-        # ------------- Save the charge histogram plot ------------- 
+        print(f" \n Waveforms plots saved in {fig1_path}")
+        
+        
+        # ------------- Save the persistance plot ------------- 
 
         figure2 = plot_ChannelWsGrid(
             self.grid_apa,
             figure=None,
             share_x_scale=False,
             share_y_scale=False,
-            mode="calibration",
-            wfs_per_axes=None,
+            mode="heatmap",
+            wfs_per_axes=len(self.wfset.waveforms),
             analysis_label=self.analysis_name,
-            plot_peaks_fits=True,
             detailed_label=False,
-            verbose=True
-        )
+            verbose=True,
+            adc_range_above_baseline=12000,
+            adc_range_below_baseline=12000)
 
-        title2 = f"Charge histograms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title2 = f"Persistence for APA {self.apa} - Runs {list(self.wfset.runs)}"
 
         figure2.update_layout(
             title={
@@ -272,9 +276,44 @@ class Analysis1(WafflesAnalysis):
         if self.params.show_figures:
             figure2.show()
 
-        fig2_path = f"{base_file_path}_calib_histo.png"
+        fig2_path = f"{base_file_path}_persistence.png"
         figure2.write_image(f"{fig2_path}")
 
-        print(f" \n Charge histogram plots saved in {fig2_path}")
+        print(f" \n Persistence plots saved in {fig2_path}")
+
+        # ------------- Save the charge histogram plot ------------- 
+
+        figure3 = plot_ChannelWsGrid(
+            self.grid_apa,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="calibration",
+            wfs_per_axes=None,
+            analysis_label=self.analysis_name,
+            plot_peaks_fits=True,
+            detailed_label=False,
+            verbose=True
+        )
+
+        title3 = f"Charge histograms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure3.update_layout(
+            title={
+                "text": title3,
+                "font": {"size": 24}
+            }, 
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+
+        if self.params.show_figures:
+            figure3.show()
+
+        fig3_path = f"{base_file_path}_calib_histo.png"
+        figure3.write_image(f"{fig3_path}")
+
+        print(f" \n Charge histogram plots saved in {fig3_path}")
 
         return True

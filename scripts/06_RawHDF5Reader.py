@@ -40,9 +40,47 @@ class WaveformProcessor:
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
         self.combined_wfset=None
         try:
-            rucio_filepath = f"{self.rucio_paths_directory}/{str(self.run_number).zfill(6)}.txt"
-            filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
-
+            #rucio_filepath = f"{self.rucio_paths_directory}/{str(self.run_number).zfill(6)}.txt"
+            #filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
+            
+            filepaths=["/eos/experiment/neutplatform/protodune/dune/hd-protodune/3f/0b/np04hd_raw_run030201_0000_dataflow0_datawriter_0_20241016T095316.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1e/89/np04hd_raw_run030201_0001_dataflow0_datawriter_0_20241016T095558.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/0a/1c/np04hd_raw_run030201_0002_dataflow0_datawriter_0_20241016T095731.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/cb/bf/np04hd_raw_run030201_0003_dataflow0_datawriter_0_20241016T100014.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/a7/61/np04hd_raw_run030201_0004_dataflow0_datawriter_0_20241016T100200.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/8d/a9/np04hd_raw_run030201_0005_dataflow0_datawriter_0_20241016T100523.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/20/ce/np04hd_raw_run030201_0006_dataflow0_datawriter_0_20241016T100848.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/49/5c/np04hd_raw_run030201_0007_dataflow0_datawriter_0_20241016T101148.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/0d/66/np04hd_raw_run030201_0008_dataflow0_datawriter_0_20241016T101720.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/d9/51/np04hd_raw_run030201_0009_dataflow0_datawriter_0_20241016T102013.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/ad/5d/np04hd_raw_run030201_0010_dataflow0_datawriter_0_20241016T102336.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/06/3d/np04hd_raw_run030201_0011_dataflow0_datawriter_0_20241016T102736.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/ac/d4/np04hd_raw_run030201_0012_dataflow0_datawriter_0_20241016T104859.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/65/21/np04hd_raw_run030201_0013_dataflow0_datawriter_0_20241016T105337.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/f6/8a/np04hd_raw_run030201_0014_dataflow0_datawriter_0_20241016T105754.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1c/2b/np04hd_raw_run030201_0015_dataflow0_datawriter_0_20241016T110201.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1f/eb/np04hd_raw_run030201_0016_dataflow0_datawriter_0_20241016T110742.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/02/59/np04hd_raw_run030201_0017_dataflow0_datawriter_0_20241016T110954.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/42/a2/np04hd_raw_run030201_0018_dataflow0_datawriter_0_20241016T111106.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/d3/b4/np04hd_raw_run030201_0019_dataflow0_datawriter_0_20241016T111318.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/9d/39/np04hd_raw_run030201_0020_dataflow0_datawriter_0_20241016T111441.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/f7/0e/np04hd_raw_run030201_0021_dataflow0_datawriter_0_20241016T112122.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/de/b3/np04hd_raw_run030201_0022_dataflow0_datawriter_0_20241016T113157.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/f1/24/np04hd_raw_run030201_0023_dataflow0_datawriter_0_20241016T113443.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/fc/46/np04hd_raw_run030201_0024_dataflow0_datawriter_0_20241016T113915.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/5a/1b/np04hd_raw_run030201_0025_dataflow0_datawriter_0_20241016T114916.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/dd/6d/np04hd_raw_run030201_0026_dataflow0_datawriter_0_20241016T115353.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/af/ab/np04hd_raw_run030201_0027_dataflow0_datawriter_0_20241016T115654.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/d6/13/np04hd_raw_run030201_0028_dataflow0_datawriter_0_20241016T115908.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/80/d1/np04hd_raw_run030201_0029_dataflow0_datawriter_0_20241016T120059.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/f1/ee/np04hd_raw_run030201_0030_dataflow0_datawriter_0_20241016T120406.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/6d/19/np04hd_raw_run030201_0031_dataflow0_datawriter_0_20241016T120548.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/0d/77/np04hd_raw_run030201_0032_dataflow0_datawriter_0_20241016T121005.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/7b/b5/np04hd_raw_run030201_0033_dataflow0_datawriter_0_20241016T121300.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/2e/21/np04hd_raw_run030201_0034_dataflow0_datawriter_0_20241016T121704.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/9c/27/np04hd_raw_run030201_0035_dataflow0_datawriter_0_20241016T122159.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/a1/2e/np04hd_raw_run030201_0036_dataflow0_datawriter_0_20241016T122404.hdf5"]   
+            
             if self.max_files != "all":
                 filepaths = filepaths[:int(self.max_files)]  # Limit file processing
 

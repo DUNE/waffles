@@ -1,17 +1,15 @@
 # import the drawing tools
-import sys
-waffles_dir = '/Users/acervera/HEP/DUNE/ProtoDUNE-HD/PDS/data_taking/waffles'
-sys.path.append(waffles_dir+'/src') 
-sys.path.append(waffles_dir) 
 import waffles.plotting.drawing_tools as draw
+from waffles.data_classes.WaveformSet import WaveformSet
 
 #open a png plot 
-draw.plotting_mode = 'png'
-draw.png_file_path = waffles_dir+'/temp_plot.png'
+draw.plotting_mode = 'html'
+draw.png_file_path = 'temp_plot.html'
 
-# read the root file 
-wset=draw.read(waffles_dir+"/../DATA/run26687.root",0,1)
+# read the root file
 
+#wset=draw.read("../../../DATA/run26687.root",0,1)
+wset = draw.read("wfset_10_30201.hdf5",0,1)
 # plot 10 wfs for endpoint 111 and channel 45
 draw.plot(wset,111,45,10)
 
@@ -20,7 +18,10 @@ input()
 draw.plot(wset,111,45,10,offset=True)
 
 input()
+# Same plot but now for records 2 and 3 
+draw.plot(wset,111,45,10,rec=[2,3],offset=True)
 
+input()
 # plot the heat map for that channel. Numbers beyond 45 correspond to bining (nbinsx,xmin,xmax,nbinsy,ymin,ymax)
 draw.plot_hm(wset,111,45,40,130,170,100,8000,8200)
 
