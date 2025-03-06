@@ -4,7 +4,7 @@ input_path: 'data_300'
 # path to the file containing the PDS data (WaveformSet)
 #wfs_input_path: '028707_10935_50files_wfset_raw.pkl'
 #wfs_input_path: '028707_109_30-37_20files_wfset_raw.pkl'
-wfs_input_path: 'processed_merged_run_028676.hdf5'
+wfs_input_path: 'wfset_300_028676.hdf5'
 
 # path to the file containing the beam info data
 beam_input_path: 'all_300_028676.root'

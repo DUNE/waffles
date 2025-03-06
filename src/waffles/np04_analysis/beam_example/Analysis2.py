@@ -85,10 +85,10 @@ class Analysis2(WafflesAnalysis):
 
             # ------------- Analyse the waveform set -------------
             b_ll = 0
-            b_ul = 100
-            int_0 = 135
-            int_1 = 153
-            int_2 = 165
+            b_ul = 55
+            int_0 = 60
+            int_1 = 99
+            int_2 = 125
             
             # baseline limits
             bl = [b_ll, b_ul, 900, 1000]
