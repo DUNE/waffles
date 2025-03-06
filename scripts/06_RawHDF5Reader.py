@@ -4,6 +4,8 @@ import inquirer
 from pathlib import Path
 from waffles.utils.utils import print_colored
 import waffles.input_output.raw_hdf5_reader as reader
+# from waffles.input_output.hdf5_reader import HDF5Reader
+
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 # from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
 # from typing import Optional, List
@@ -20,7 +22,7 @@ class WaveformProcessor:
         self.self_trigger = config.get("self_trigger")  # Self-trigger filtering threshold
         self.max_files = config.get("max_files", "all")  # Limit file processing
         self.ch = self.parse_ch_dict(config.get("ch", {}))
-
+        
         print_colored(f"Loaded configuration: {config}", color="INFO")
     
     def parse_ch_dict(self, ch):
@@ -40,6 +42,7 @@ class WaveformProcessor:
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
 
         try:
+            # reader = HDF5Reader()
             rucio_filepath = f"{self.rucio_paths_directory}/{str(self.run_number).zfill(6)}.txt"
             filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
 
@@ -66,6 +69,7 @@ class WaveformProcessor:
                 )
 
                 if self.wfset:
+                    # print(len(wfset.waveforms))
                     self.write_merged_output()
             
             else:
@@ -73,7 +77,7 @@ class WaveformProcessor:
                 for file in filepaths:
                     print_colored(f"Processing file: {file}", color="INFO")
 
-                    wfset = reader.WaveformSet_from_hdf5_file(
+                    self.wfset = reader.WaveformSet_from_hdf5_file(
                         filepath=file,
                         read_full_streaming_data=False,
                         truncate_wfs_to_minimum=False,
@@ -87,8 +91,10 @@ class WaveformProcessor:
                         erase_temporal_copy=False
                     )
 
-                    if wfset:
-                        self.write_output(wfset, file)
+                    if self.wfset:
+                        # print(len(wfset.waveforms))
+                        # print(f'run number from one waveform: {wfset.waveforms[0].run_number}')
+                        self.write_output(self.wfset, file)
 
             print_colored("All files processed successfully.", color="SUCCESS")
             return True
@@ -156,6 +162,8 @@ def main(config):
     CLI tool to process waveform data based on JSON configuration.
     """
     try:
+        import multiprocessing as mp
+        mp.set_start_method('spawn')
         with open(config, 'r') as f:
             config_data = json.load(f)
 
