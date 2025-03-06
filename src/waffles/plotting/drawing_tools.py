@@ -112,13 +112,157 @@ def tsort_wfset(wfset0: WaveformSet) -> WaveformSet:
 
     return wfset
 
-
 ###########################
 def plot_event(evt: Event, apa: int):
     fig = plot_ChannelWsGrid(evt.channel_wfs[apa-1])
     write_image(fig)
 
+###########################
+def plot_grid(wfs: list,                
+              apa: int = -1, 
+              ch: list = [-1],
+              nwfs: int = -1,
+              xmin: int = -1,
+              xmax: int = -1,
+              tmin: int = -1,
+              tmax: int = -1,
+              offset: bool = False,
+              rec: list = [-1],
+              op: str = ''):
 
+    eps= get_endpoints(apa)
+        
+    wfs2= get_wfs(wfs,eps,ch,nwfs,tmin,tmax,rec)
+    grid = get_grid(wfs,apa)
+    
+    fig = plot_ChannelWsGrid(grid)
+    write_image(fig)
+
+###########################
+"""
+def get_grid(wfs: list,                
+             apa: int = -1, 
+             nwfs: int = -1,
+             xmin: int = -1,
+             xmax: int = -1,
+             tmin: int = -1,
+             tmax: int = -1,
+             offset: bool = False,
+             rec: list = [-1]):
+
+
+    
+    ngrids=4
+    dw_wfs = [[]]*ngrids
+    detector_grids = [None]*ngrids
+    
+
+
+    detector_grids = [None]*ngrids            
+    for i in range(ngrids):
+        if len(dw_wfs[i]) > 0:
+            dw_wfset = WaveformSet(*dw_wfs[i])
+            detector_grids[i] = ChannelWsGrid(channel_map[i+1], dw_wfset)
+        else:
+            detector_grids[i] = None
+            
+            dw_wfs[i] = []        
+
+
+    grid_apa = ChannelWsGrid(
+        APA_map[self.apa],
+        self.wfset,
+        compute_calib_histo=True, 
+        bins_number=led_utils.get_nbins_for_charge_histo(
+            self.pde,
+            self.apa
+        ),
+        domain=np.array((-10000.0, 50000.0)),
+        variable="integral",
+        analysis_label=self.analysis_name
+    )
+
+            
+        
+    for wf in wfs: 
+
+        # get the grid index for this waveform
+        gi = get_grid_index(wf)
+
+
+
+
+
+
+
+
+
+
+
+
+        if previous_wf==None:
+            ini_ts = wf.daq_window_timestamp
+            first_ts = wf.timestamp
+        #elif wf.daq_window_timestamp != previous_wf.daq_window_timestamp: 
+        elif wf.timestamp - previous_wf.timestamp > delta_t:            
+            # create a new list of grids
+            detector_grids = [None]*ngrids            
+            for i in range(ngrids):
+                if len(dw_wfs[i]) > 0:
+                    dw_wfset = WaveformSet(*dw_wfs[i])
+                    detector_grids[i] = ChannelWsGrid(channel_map[i+1], dw_wfset)
+                else:
+                    detector_grids[i] = None
+                    
+                dw_wfs[i] = []        
+
+            # create Event with 4 channel grids, one for each APA
+            event = Event(detector_grids, 
+                          previous_wf.daq_window_timestamp - ini_ts, 
+                          first_ts - ini_ts, 
+                          previous_wf.timestamp - ini_ts, 
+                          previous_wf.run_number, 
+                          previous_wf.record_number,
+                          event_number)                                
+            events.append(event)
+            event_number +=1
+
+            first_ts = wf.timestamp
+ 
+            #figure = plot_ChannelWsGrid(event.channel_wfs[apa-1])
+            #figure.write_image("plots.pdf")
+
+        dw_wfs[gi-1].append(wf)
+        previous_wf = wf
+        
+        if len(events) >= nevents:
+            return events
+
+    return events
+"""
+###########################
+def get_grid_index(wf: Waveform):
+
+    # get the apa for that waveform      
+    if    wf.endpoint <  109: gi = 1
+    elif  wf.endpoint == 109: gi = 2 
+    elif  wf.endpoint == 111: gi = 3
+    elif  wf.endpoint >  111: gi = 4  
+
+    return gi 
+
+###########################
+def get_endpoints(apa: int):
+
+    eps=[]
+
+    if    apa == 1: eps =[104,105,107]
+    elif  apa == 2: eps =[109]
+    elif  apa == 3: eps =[111]
+    elif  apa == 4: eps =[112,113]
+
+    return eps
+        
 ###########################
 def plot_evt_nch(events: List[Event], 
             nbins: int = 100, xmin: np.uint64 = None,
@@ -383,20 +527,19 @@ def plot_wfs(wfs: list,
         fig=go.Figure()
 
     # plot all waveforms in a given endpoint and channel
-    n=0
-        
-    for wf in wfs:
-        if ep==-100:
-            plot_WaveformAdcs2(wfs[0],fig, offset,xmin,xmax)
-        else:
 
-            t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
-            if (wf.endpoint==ep or ep==-1) and \
-               (wf.channel in ch or ch[0]==-1) and \
-               (wf.record_number in rec or rec[0]==-1) and \
-               ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
-                n=n+1
-                plot_WaveformAdcs2(wf,fig, offset,xmin,xmax)
+
+    wfs2 = []
+    if ep==100:
+        wfs2=wfs
+    else:
+        wfs2= get_wfs(wfs,[ep],ch,nwfs,tmin,tmax,rec)
+
+        
+    n=0        
+    for wf in wfs2:
+        n=n+1
+        plot_WaveformAdcs2(wf,fig, offset,xmin,xmax)
         if n>=nwfs and nwfs!=-1:
             break
 
@@ -404,7 +547,35 @@ def plot_wfs(wfs: list,
     fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
 
     write_image(fig)     
-        
+
+
+
+###########################
+def get_wfs(wfs: list,                
+            ep: list = [-1], 
+            ch: list = [-1],
+            nwfs: int = -1,
+            tmin: int = -1,
+            tmax: int = -1,
+            rec: list = [-1]):
+
+    # plot all waveforms in a given endpoint and channel
+    n=0
+
+    waveforms = []
+    for wf in wfs:
+        t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
+        if (wf.endpoint in ep or ep[0]==-1) and \
+           (wf.channel in ch or ch[0]==-1) and \
+           (wf.record_number in rec or rec[0]==-1) and \
+           ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
+            n=n+1
+            waveforms.append(wf)
+        if n>=nwfs and nwfs!=-1:
+            break
+
+    return waveforms
+    
 ###########################
 def plot_charge(wset: WaveformSet,
             ep: int = -1, 
