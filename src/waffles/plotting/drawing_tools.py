@@ -338,10 +338,12 @@ def deconv_wf(w: Waveform, template: Waveform) -> Waveform:
 ###########################
 def plot(object,                   
          ep: int = -1, 
-         ch: int = -1,
+         ch: list = [-1],
          nwfs: int = -1,
          xmin: int = -1,
          xmax: int = -1,
+         tmin: int = -1,
+         tmax: int = -1,
          offset: bool = False,
          rec: list = [-1],
          op: str = '',
@@ -349,27 +351,29 @@ def plot(object,
 
     # Case when the input object is a Waveform
     if type(object)==Waveform:    
-        plot_wfs(list([object]),ep,ch,nwfs,xmin,xmax,offset,rec,op)
+        plot_wfs(list([object]),ep,ch,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
     
     # Case when the input object is a Waveform
     elif type(object)==WaveformAdcs:    
-        plot_wfs(list([object]),-100,-100,nwfs,xmin,xmax,offset,rec,op)
+        plot_wfs(list([object]),-100,-100,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
     
     # Case when the input object is a list of Waveforms
     elif type(object)==list and type(object[0])==Waveform:
-        plot_wfs(object,ep,ch,nwfs,xmin,xmax,offset,rec,op)
+        plot_wfs(object,ep,ch,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
 
     # Case when the input object is a WaveformSet                    
     elif type(object)==WaveformSet:
-        plot_wfs(object.waveforms,ep,ch,nwfs,xmin,xmax,offset,rec,op)
+        plot_wfs(object.waveforms,ep,ch,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
     
 ###########################
 def plot_wfs(wfs: list,                
                 ep: int = -1, 
-                ch: int = -1,
+                ch: list = [-1],
                 nwfs: int = -1,
                 xmin: int = -1,
                 xmax: int = -1,
+                tmin: int = -1,
+                tmax: int = -1,
                 offset: bool = False,
                 rec: list = [-1],
                 op: str = ''):
@@ -384,8 +388,13 @@ def plot_wfs(wfs: list,
     for wf in wfs:
         if ep==-100:
             plot_WaveformAdcs2(wfs[0],fig, offset,xmin,xmax)
-        else:    
-            if (wf.endpoint==ep or ep==-1) and (wf.channel==ch or ch==-1) and (wf.record_number in rec or rec[0]==-1):
+        else:
+
+            t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
+            if (wf.endpoint==ep or ep==-1) and \
+               (wf.channel in ch or ch[0]==-1) and \
+               (wf.record_number in rec or rec[0]==-1) and \
+               ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
                 n=n+1
                 plot_WaveformAdcs2(wf,fig, offset,xmin,xmax)
         if n>=nwfs and nwfs!=-1:
