@@ -1,13 +1,10 @@
 # import the drawing tools
-import sys
-waffles_dir = '/Users/acervera/HEP/DUNE/ProtoDUNE-HD/PDS/data_taking/waffles'
-sys.path.append(waffles_dir+'/src') 
 import waffles.plotting.drawing_tools as draw
 import waffles.data_classes.WaveformSet as WaveformSet
 
 # open a png plot 
-draw.plotting_mode = 'png'
-draw.png_file_path = waffles_dir+'/temp_plot.png'
+draw.plotting_mode = 'html'
+draw.html_file_path = 'temp_plot.html'
 
 wset1 = WaveformSet
 wset7 = WaveformSet
@@ -18,8 +15,8 @@ def plot_selftrigger():
     global wset1,wset7
 
     # read files for 1 and 7 GeV
-    wset1=draw.read(waffles_dir+"/../DATA/run027338_0000_dataflow0-3_datawriter_0_20240621T111239.root",0,1)
-    wset7=draw.read(waffles_dir+"/../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1)
+    wset1=draw.read("../../../DATA/run027338_0000_dataflow0-3_datawriter_0_20240621T111239.root",0,1)
+    wset7=draw.read("../../../DATA/run027374_0000_dataflow0-3_datawriter_0_20240622T072100.root",0,1)
 
     # get all waveforms in endpoint 109
     wset1_109 = draw.get_wfs_in_channel(wset1,109)

@@ -9,15 +9,15 @@ draw.png_file_path = 'temp_plot.html'
 wset=draw.read("../../../DATA/run26687.root",0,1)
 
 # plot 10 wfs for endpoint 111 and channel 45
-draw.plot(wset,111,45,10)
+draw.plot(wset,111,[45],10)
 
 input()
 # Same plot but now with time with respect to daq window 
-draw.plot(wset,111,45,10,offset=True)
+draw.plot(wset,111,[45],10,offset=True)
 
 input()
 # Same plot but now for records 2 and 3 
-draw.plot(wset,111,45,10,rec=[2,3],offset=True)
+draw.plot(wset,111,[45],10,rec=[2,3],offset=True)
 
 input()
 # plot the heat map for that channel. Numbers beyond 45 correspond to bining (nbinsx,xmin,xmax,nbinsy,ymin,ymax)
@@ -88,9 +88,9 @@ a=[print( i, wset_40_45.waveforms[i].channel) for i in range(10)]
 
 input()
 # load calibration files for different overvoltages
-wset_ov20=draw.read(waffles_dir+"/../DATA/calib_vs_ov_apa34_1800/run027919_0000_dataflow0_datawriter_0_20240709T095613.root",0,1)
-wset_ov25=draw.read(waffles_dir+"/../DATA/calib_vs_ov_apa34_1800/run027915_0000_dataflow0_datawriter_0_20240709T094426.root",0,1)
-wset_ov30=draw.read(waffles_dir+"/../DATA/calib_vs_ov_apa34_1800/run027911_0000_dataflow0_datawriter_0_20240709T092607.root",0,1)
+wset_ov20=draw.read("../../../DATA/calib_vs_ov_apa34_1800/run027919_0000_dataflow0_datawriter_0_20240709T095613.root",0,1)
+wset_ov25=draw.read("../../../DATA/calib_vs_ov_apa34_1800/run027915_0000_dataflow0_datawriter_0_20240709T094426.root",0,1)
+wset_ov30=draw.read("../../../DATA/calib_vs_ov_apa34_1800/run027911_0000_dataflow0_datawriter_0_20240709T092607.root",0,1)
 
 # plot the gain versus overvoltage for channel 112-42
 draw.plot_gain_vs_var([[wset_ov20,2],[wset_ov25,2.5],[wset_ov30,3]],112,42,'overvoltage')
