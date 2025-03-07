@@ -25,6 +25,7 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.Event import Event
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
+from waffles.np04_data.ProtoDUNE_HD_APA_maps_APA1_104 import APA_map as APA_map_2
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 import waffles.utils.event_utils as evt_utils
 from scipy import signal
@@ -115,10 +116,14 @@ def tsort_wfset(wfset0: WaveformSet) -> WaveformSet:
 
 ###########################
 def get_grid(wfs: list,                
-             apa: int = -1):
+             apa: int = -1,
+             run: int = -1):
 
-    grid_apa = ChannelWsGrid(APA_map[apa], WaveformSet(*wfs))
-
+    if run <30000:
+        grid_apa = ChannelWsGrid(APA_map[apa], WaveformSet(*wfs))
+    else:
+        grid_apa = ChannelWsGrid(APA_map_2[apa], WaveformSet(*wfs))        
+        
     return grid_apa
             
 ###########################

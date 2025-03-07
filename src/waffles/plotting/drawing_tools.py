@@ -147,8 +147,10 @@ def plot_grid(wfset: WaveformSet,
     # get all waveforms in the specified endpoint, channels,  time offset range and record
     selected_wfs= get_wfs(wfset.waveforms,eps,ch,nwfs,tmin,tmax,rec)
 
+    run = wfset.waveforms[0].run_number
+    
     # get the ChannelWsGrid for that subset of wafeforms and that APA
-    grid = get_grid(selected_wfs,apa)
+    grid = get_grid(selected_wfs,apa,run)
 
     # plot the grid
     fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000,mode=mode)
