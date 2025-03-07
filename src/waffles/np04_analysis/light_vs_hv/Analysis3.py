@@ -103,12 +103,15 @@ class Analysis3(WafflesAnalysis):
         self.n_channel=len(self.list_channels)
 
         self.template=[]
-        #load_template    
+        #load_template  
+        index=0 
         with open(self.template_file, "r") as file:
             for line in file:  # Itera sobre as linhas do arquivo
                 line = line.strip()  # Remove espaços em branco e quebras de linha
+                print(f"ch {index}: " + line )
                 with open(line, "r") as template_data:
                     self.template.append( [float(line.strip()) for line in template_data] )
+                index=index+1
 
        
         return True
