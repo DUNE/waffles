@@ -134,7 +134,7 @@ def plot_grid(wfset: WaveformSet,
               tmax: int = -1,
               offset: bool = False,
               rec: list = [-1],
-              mode: str = ''):
+              mode: str = 'overlay'):
 
     """
     Plot a WaveformSet in grid mode
