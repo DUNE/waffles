@@ -42,10 +42,11 @@ def get_all_double_coincidences(timestamps,n_channel,n_run,time_diff):
                         taux2 = timestamps[file_index][line_index_j][j].astype(np.float64)
                         diff = taux2 - taux1
                         if diff >= 0:
+                            #print(diff)
                             record_j=j
                             if diff <= time_diff:
                                 coincidences[file_index][line_index_i][line_index_j].append([i,j,diff])
-                                break
+                                #OLAAAA
                             else:
                                 break
     return coincidences
@@ -97,18 +98,26 @@ def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp
     true_index_array= [ [set() for _ in range(n_channel)] for _ in range(n_run)]
 
     for run_index in range(n_run):
-        for ch in range(n_channel):
-            for coincidence_min_index in range(coincidence_min,coincidence_min+1,1):
-
-                for coincidence_index in range(len(coincidences_level[run_index][coincidence_min_index])):
-                    this_ch=  coincidences_level[run_index][coincidence_min_index][coincidence_index][0][ch]  
+        print(f"looking run {run_index}:")
+      
+        for coincidence_min_index in range(coincidence_min,n_channel-1,1):
+            print(f"looking n coincidences {coincidence_min_index}: Total of {len(coincidences_level[run_index][coincidence_min_index])}")
+        
+            for coincidence_index in range(len(coincidences_level[run_index][coincidence_min_index])):
+                for ch in range(coincidence_min_index+2):
+                    #print(f"looking channel {ch}:")
+                    #print("oi")
+                    #if ch==10 and coincidence_min_index==8:
+                    #    print(coincidences_level[run_index][coincidence_min_index][coincidence_index])
+                    this_ch =  coincidences_level[run_index][coincidence_min_index][coincidence_index][0][ch]  
+                    
                     index=coincidences_level[run_index][coincidence_min_index][coincidence_index][1][ch]
-
+                            
                     true_index=find_true_index(wfsets,run_index,this_ch,timestamps,index,min_timestamp)
-
+                    
                     if true_index not in  true_index_array[run_index][this_ch]:
                         true_index_array[run_index][this_ch].add(true_index)
-
+                    
 
     for run_index in range(n_run):
         for ch in range(n_channel):    
@@ -377,3 +386,6 @@ def birks_law(x,B,k):
     else:
         y=(1-B/(1+k/x))
     return y
+
+def gaus(x, sigma=40): #sigma = sqrt(sqrt(2)) * cutoff
+    return np.exp(-(x)**2/2/sigma**2)

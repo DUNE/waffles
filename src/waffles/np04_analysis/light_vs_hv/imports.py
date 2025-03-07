@@ -27,7 +27,7 @@ from waffles.np04_analysis.light_vs_hv.utils import get_all_double_coincidences,
 from waffles.np04_analysis.light_vs_hv.utils import filter_not_coindential_wf
 from waffles.np04_analysis.light_vs_hv.utils import from_generic
 from waffles.np04_analysis.light_vs_hv.utils import start_plot, generic_plot_APA
-from waffles.np04_analysis.light_vs_hv.utils import  my_sin, func_tau , calculate_light, birks_law
+from waffles.np04_analysis.light_vs_hv.utils import  my_sin, func_tau , calculate_light, birks_law, gaus
 
 from waffles.np04_analysis.light_vs_hv.ZeroCrossingAna import ZeroCrossingAna
 

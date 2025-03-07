@@ -91,6 +91,7 @@ class Analysis1(WafflesAnalysis):
         print(f"File name: {self.file_name}")
 
         self.time_window=self.params.time_window
+        print(f"------------ Coincidences on a time window of {self.time_window} ticks ---------------")
 
         self.min_coincidence = self.params.min_coincidence-2
         print(f"--------------checking for coincidences greater than {self.params.min_coincidence}--------------")
@@ -114,7 +115,7 @@ class Analysis1(WafflesAnalysis):
         #open the wfsets inside each folder: wfsets[i][j] --> i is the run index, j is the channel index
 
         self.wfsets=[[[] for _ in range (self.n_channel)] for _ in range(self.n_run)]
-
+        
         i=0
         for file_name in self.file_path:
             with open(file_name, "r") as file:
@@ -147,6 +148,14 @@ class Analysis1(WafflesAnalysis):
         print(0)
         #get a vector of ordered timestamps per run per channel [i][j]
         self.timestamps, self.min_timestamp = get_ordered_timestamps(self.wfsets,self.n_channel,self.n_run)
+
+        for run_index in range(self.n_run):
+            for j in range(self.n_channel):
+                min_t = min(self.timestamps[run_index][j]).astype(np.float64)
+                max_t = max(self.timestamps[run_index][j]).astype(np.float64)
+                timestamp_diff=max_t-min_t
+                print(f"Run{run_index} -- Ch: {j}: Have {len(self.wfsets[run_index][j].waveforms)} waveforms -- Time: {timestamp_diff*10e-9} s")
+
         print(1)
         #return a list of double coincidences
         #coincidences[run index][goal channel][target channel][coindences index] --> [0: timestamp index of the goal channel][1: timestamp index of the target channel],[2:deltaT]]
@@ -173,4 +182,14 @@ class Analysis1(WafflesAnalysis):
         output_file=self.output + "/data_filtered.pkl"       
         with open(output_file, "wb") as file:
             pickle.dump(self.wfsets, file)
+
+        """ with open(self.output + "/coincidences_mult.pkl","wb") as file:
+            pickle.dump(self.coincidences_level,file)
+
+        with open(self.output + "/coincidences_mult.pkl","wb") as file:
+            pickle.dump(self.mult_coincidences,file) """
+
+        with open(self.output + "/coincidences_level.pkl","wb") as file:
+            pickle.dump(self.coincidences_level,file)
+        
         return True

@@ -25,7 +25,7 @@ class Analysis2(WafflesAnalysis):
                             description="list of the endpoints (note: must be te same order of the channels)")
             channels:       list = Field(default=[],          
                                 description="list of the channels (note: must be te same order of the endpoints)")
-            input_path:     str =  Field(default="./output/data_filtered.pkl",          
+            input_path:     str =  Field(default="./testes/data_filtered.pkl",  #"./output/data_filtered.pkl",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="./output",          
                                 description= "Output folder to save the filtered data")
@@ -108,7 +108,7 @@ class Analysis2(WafflesAnalysis):
         self.max_fprompt = self.params.max_fprompt
 
         self.params_print = self.params.params_print
-
+       
         self.read_input_loop=[None,]
 
 
@@ -117,7 +117,7 @@ class Analysis2(WafflesAnalysis):
 
         with open(self.file_name, "rb") as file:
             self.wfsets = pickle.load(file)
-
+        print("oi")
         self.n_run=len(self.wfsets)
         self.n_channel=len(self.list_channels)
            

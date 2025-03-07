@@ -1,7 +1,8 @@
 
 # ------- General parameters -------
-endpoints: [112,112,112,112,112,112,112,112,112]
-channels: [0,6,10,16,27,21,37,31,47]
+endpoints: [112,112,112,112,113,112,112,112,112,112,112,112,112,112,113,112,112,112,112,112]
+channels:  [0,6,10,16,0,27,21,37,31,47,2,4,12,14,2,25,23,35,33,45]
+
 
 #For calculating the parameters of the waveforms
 baseline_limits: [0, 50, 800, 1000]
@@ -10,28 +11,29 @@ t0: 70
 integral_limits: [50,120]
 amplitude_limits: [50,120]
 fprompt: 70
-min_coincidence: 9
+min_coincidence: 20
+time_window: 5
 
 #For filtering the waveforms
 
-max_noise: 5
-min_baseline: 8180
-max_baseline: 8210
-max_amplitude: 7600
+max_noise: 10
+min_baseline: 0
+max_baseline: 10000
+max_amplitude: 10000
 min_amplitude: 0
-min_t0: 50
-max_t0: 60
-min_zero_crossing: 100
-max_zero_crossing: 5120
-min_fprompt: 0
+min_t0: -2
+max_t0: 5000
+min_zero_crossing: -2
+max_zero_crossing: 500
+min_fprompt: -2
 max_fprompt: 1
 
 params_print: ["integral" , "baseline" , "t0", "zero_crossing", "amplitude" , "noise" , "fprompt"]
 
 #for deconvolution and calculate avg waveform
-template_file: "./data/template/hpk_PD1.txt"
+template_file: "./data/template_list"
 avg_endpoint: 112
-avg_channel: 14
+avg_channel: 23
 filter_length: 2
 
 #for light yield plot

@@ -378,7 +378,7 @@ def WaveformSet_from_hdf5_file(filepath : str,
                 temporal_copy_directory,
                 filepath.split('/')[-1]
             )
-
+            
         else:
             raise Exception(
                 GenerateExceptionMessage(
@@ -451,6 +451,8 @@ def WaveformSet_from_hdf5_file(filepath : str,
 
             trigger, frag_id, scr_id, channels_frag, adcs_frag, timestamps_frag, threshold_frag, baseline_frag, trigger_sample_value_frag, trigger_ts, daq_pretrigger_frag = extract_fragment_info(
                 frag, trig)
+           # trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value, trigger_ts, daq_pretrigger
+
             inv_map_id = get_inv_map_id(det)
             endpoint = int(find_endpoint(inv_map_id, scr_id))
 
