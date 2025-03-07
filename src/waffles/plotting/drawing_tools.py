@@ -4,6 +4,7 @@ from typing import Union
 # Global plotting settings
 fig = go.Figure()
 html_file_path = 'temp_plot.html'
+png_file_path = 'temp_plot.png'
 plotting_mode='html'
 line_color = 'black'
 
@@ -152,7 +153,7 @@ def plot_grid(wfset: WaveformSet,
     # plot the grid
     fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000,mode=mode)
 
-    write_image(fig)
+    write_image(fig,800,1200)
 
     
 ###########################
@@ -584,11 +585,11 @@ def zoom(xmin: float = -999,
     write_image(fig)
 
 ###########################
-def write_image(fig: go.Figure) -> None:
+def write_image(fig: go.Figure, width=None, height=None) -> None:
     """Save or display the figure based on plotting mode."""
     if plotting_mode == 'html':
         pio.write_html(fig, file=html_file_path, auto_open=True)
     elif plotting_mode == 'png':
-        pio.write_image(fig, file=png_file_path, format='png')
+        pio.write_image(fig, file=png_file_path, format='png', width=width, height=height)
     else:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
