@@ -214,7 +214,7 @@ class BasicWfAna(WfAna):
         ----------
         input_parameters: IPDict
             The input parameters to be checked. It is the IPDict
-            that can be potentially given to BasciWfAna.__init__
+            that can be potentially given to BasicWfAna.__init__
             to instantiate a BasicWfAna object.
         points_no: int
             The number of points in any waveform that could be
