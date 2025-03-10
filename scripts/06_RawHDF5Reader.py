@@ -42,7 +42,7 @@ class WaveformProcessor:
         try:
             #rucio_filepath = f"{self.rucio_paths_directory}/{str(self.run_number).zfill(6)}.txt"
             #filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
-            
+            '''
             filepaths=["/eos/experiment/neutplatform/protodune/dune/hd-protodune/3f/0b/np04hd_raw_run030201_0000_dataflow0_datawriter_0_20241016T095316.hdf5",
                         "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1e/89/np04hd_raw_run030201_0001_dataflow0_datawriter_0_20241016T095558.hdf5",
                         "/eos/experiment/neutplatform/protodune/dune/hd-protodune/0a/1c/np04hd_raw_run030201_0002_dataflow0_datawriter_0_20241016T095731.hdf5",
@@ -80,6 +80,26 @@ class WaveformProcessor:
                         "/eos/experiment/neutplatform/protodune/dune/hd-protodune/2e/21/np04hd_raw_run030201_0034_dataflow0_datawriter_0_20241016T121704.hdf5",
                         "/eos/experiment/neutplatform/protodune/dune/hd-protodune/9c/27/np04hd_raw_run030201_0035_dataflow0_datawriter_0_20241016T122159.hdf5",
                         "/eos/experiment/neutplatform/protodune/dune/hd-protodune/a1/2e/np04hd_raw_run030201_0036_dataflow0_datawriter_0_20241016T122404.hdf5"]   
+            '''
+            
+            filepaths=["/eos/experiment/neutplatform/protodune/dune/hd-protodune/b7/6b/np04hd_raw_run030202_0000_dataflow0_datawriter_0_20241016T124143.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/27/fe/np04hd_raw_run030202_0001_dataflow0_datawriter_0_20241016T124604.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/e6/c5/np04hd_tp_run030202_0000_tpwriter_tpswriter_20241016T124115.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/b1/f1/np04hd_tp_run030202_0001_tpwriter_tpswriter_20241016T124157.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/dd/c4/np04hd_tp_run030202_0002_tpwriter_tpswriter_20241016T124236.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/1d/ec/np04hd_tp_run030202_0003_tpwriter_tpswriter_20241016T124317.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/ba/b9/np04hd_tp_run030202_0004_tpwriter_tpswriter_20241016T124356.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/c9/61/np04hd_tp_run030202_0005_tpwriter_tpswriter_20241016T124436.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/e3/2a/np04hd_tp_run030202_0006_tpwriter_tpswriter_20241016T124517.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/74/61/np04hd_tp_run030202_0007_tpwriter_tpswriter_20241016T124556.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/99/64/np04hd_tp_run030202_0008_tpwriter_tpswriter_20241016T124636.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/08/da/np04hd_tp_run030202_0009_tpwriter_tpswriter_20241016T124717.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/3a/d4/np04hd_tp_run030202_0010_tpwriter_tpswriter_20241016T124757.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/ea/4d/np04hd_tp_run030202_0011_tpwriter_tpswriter_20241016T124838.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/f5/f2/np04hd_tp_run030202_0012_tpwriter_tpswriter_20241016T124918.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/83/e3/np04hd_tp_run030202_0013_tpwriter_tpswriter_20241016T124959.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/b7/6b/np04hd_raw_run030202_0000_dataflow0_datawriter_0_20241016T124143.hdf5",
+                        "/eos/experiment/neutplatform/protodune/dune/hd-protodune/27/fe/np04hd_raw_run030202_0001_dataflow0_datawriter_0_20241016T124604.hdf5"]
             
             if self.max_files != "all":
                 filepaths = filepaths[:int(self.max_files)]  # Limit file processing
@@ -140,7 +160,7 @@ class WaveformProcessor:
 
     def write_merged_output(self) -> bool:
         """Saves the merged waveform data into a single HDF5 file."""
-        output_filename = f"processed_merged_run_{self.run_number}.hdf5"
+        output_filename = f"wfset_{self.max_files}_{self.run_number}.hdf5"
         output_filepath = Path(self.output_path) / output_filename
 
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")
@@ -197,7 +217,7 @@ def main(config):
         with open(config, 'r') as f:
             config_data = json.load(f)
 
-        required_keys = ["run", "rucio_dir", "output_dir", "ch"]
+        required_keys = ["run", "rucio_dir", "output_dir","ch"]
         missing_keys = [key for key in required_keys if key not in config_data]
         if missing_keys:
             raise ValueError(f"Missing required keys in config file: {missing_keys}")
