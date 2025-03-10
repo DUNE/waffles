@@ -34,12 +34,6 @@ class Analysis2(WafflesAnalysis):
             no_save:      bool = Field(...,          description="work in progress")
             scan:         int  = Field(...,          description="work in progress")
 
-            validate_items = field_validator(
-                "runs",
-                "channels",
-                mode="before"
-            )(wcu.split_comma_separated_string)
-
         return InputParams
 
     ##################################################################
@@ -151,7 +145,7 @@ class Analysis2(WafflesAnalysis):
         print ('    fit results: ', self.cfit.fit_results)
 
         return True
-
+        
     ##################################################################
     def write_output(self) -> bool:
 

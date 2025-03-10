@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-import os
 import waffles.utils.time_align_utils as tutils
 
 from iminuit import Minuit, cost
@@ -44,15 +43,12 @@ class ConvFitter:
 
     #################################################
     def parse_input(self,file):
-        if os.path.isfile(file) is not True:
-            print("No response from", file)
-            exit(0)        
         try:
             with open(file, 'rb') as f:
                 finput = pickle.load(f)
         except Exception as error:
             print(error)
-            print("Could not load file", file)
+            print("No response from", file)
             exit(0)
 
         keys = ["avgwvf", "firsttime", "nselected"]
