@@ -119,7 +119,7 @@ def get_grid(wfs: list,
              apa: int = -1,
              run: int = -1):
 
-    if run <30000:
+    if run < 29927:
         grid_apa = ChannelWsGrid(APA_map[apa], WaveformSet(*wfs))
     else:
         grid_apa = ChannelWsGrid(APA_map_2[apa], WaveformSet(*wfs))        
