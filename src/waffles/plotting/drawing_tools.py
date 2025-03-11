@@ -14,7 +14,7 @@ templates = []
 ###########################
 def plot(object,                   
          ep: int = -1, 
-         ch: Union[int, list] = -1,
+         ch: Union[int, list]=-1,
          nwfs: int = -1,
          xmin: int = -1,
          xmax: int = -1,
@@ -48,7 +48,7 @@ def plot(object,
 ###########################
 def plot_wfs(wfs: list,                
              ep: int = -1, 
-             ch: Union[int, list] = -1,
+             ch: Union[int, list]=-1,
              nwfs: int = -1,
              xmin: int = -1,
              xmax: int = -1,
@@ -127,7 +127,7 @@ def plot_wf( waveform_adcs : WaveformAdcs,
 ###########################
 def plot_grid(wfset: WaveformSet,                
               apa: int = -1, 
-              ch: Union[int, list] = -1,
+              ch: Union[int, list]=-1,
               nwfs: int = -1,
               xmin: int = -1,
               xmax: int = -1,
@@ -247,7 +247,7 @@ def plot_to(wset: WaveformSet,
 ###########################
 def plot_hm(object,
             ep: int = -1,
-            ch: Union[int, list] = -1,
+            ch: Union[int, list]=-1,
             nx: int = 100,
             xmin: int = 0,
             xmax: int = 1024,
@@ -597,50 +597,6 @@ def write_image(fig: go.Figure, width=None, height=None) -> None:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
         
 ############################
-'''
-def plot_to_interval(wset: WaveformSet,
-            apa: int = -1,
-            ch: int = -1,            
-            nwfs: int = -1,
-            op: str = '',
-            nbins: int = 100,
-            tmin: int = None,
-            tmax: int = None, 
-            xmin: np.uint64 = None,
-            xmax: np.uint64 = None,
-            rec: list = [-1]):
-     
-    """Plot time offset histogram for a WaveformSet."""
-    
-    global fig
-    if not has_option(op, 'same'):
-        fig = go.Figure()
-
-    # Obtener los endpoints para el APA
-    eps = get_endpoints(apa)
-    
-    # Obtener solo las waveforms que cumplen las condiciones
-    selected_wfs = get_wfs(wset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
-    
-    print(f"Number of selected waveforms: {len(selected_wfs)}")
-
-
-    # plot nwfs waveforms
-
-    times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp
-             for wf in selected_wfs
-             if (wf.endpoint == eps or eps == -1) and (wf.channel==ch or ch == -1)]
-
-    
-    # build an histogram with those times
-    histogram_trace = get_histogram(times, nbins, xmin, xmax)
-    
-    fig.add_trace(histogram_trace)
-    fig.update_layout(xaxis_title="time offset", yaxis_title="entries")
-    
-    
-    write_image(fig)
-'''
 def plot_to_interval(wset, 
                      apa: Union[int, list] = -1, 
                      ch: Union[int, list] = -1, 
