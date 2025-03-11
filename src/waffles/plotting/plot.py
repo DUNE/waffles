@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Optional
+from typing import Optional, Callable
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 

@@ -733,6 +733,93 @@ def plot_grid_to_interval(wfset: WaveformSet,
         share_y_scale=True
 )
     write_image(fig, 800, 1200)
+    
+
+############################
+
+def plot_sigma_vs_ts_function(channel_ws, idx, figure, row, col, total_rows, total_cols):
+    """
+    Function to generate a histogram for a specific channel.
+    """
+    timestamps = []
+    sigmas = []
+
+    # Iterate over each waveform in the channel
+    for wf in channel_ws.waveforms:
+        # Calculate the timestamp for the waveform
+        timestamp = wf._Waveform__timestamp
+        timestamps.append(timestamp)
+
+        # Calculate the standard deviation (sigma) of the ADC values
+        sigma = np.std(wf.adcs)
+        sigmas.append(sigma)
+
+
+    # Update layout with axis titles
+    figure.update_xaxes(title_text='Timestamp', row=row, col=col)
+    figure.update_yaxes(title_text='Sigma (Standard Deviation of ADC)', row=row, col=col)
+
+    # Añadir el histograma al subplot correspondiente
+    figure.add_trace(go.Scatter(
+        x=timestamps,
+        y=sigmas,
+        mode='markers',
+    ), row=row, col=col)
+
+
+
+def plot_grid_sigma_vs_ts(wfset: WaveformSet,                
+                          apa: int = -1, 
+                          ch: Union[int, list] = -1,
+                          nbins: int = 100,
+                          nwfs: int = -1,
+                          op: str = '',
+                          xmin: np.uint64 = None,
+                          xmax: np.uint64 = None,
+                          tmin: int = -1,
+                          tmax: int = -1,
+                          rec: list = [-1]):
+    """
+    Plot a WaveformSet in grid mode, generating a histogram per channel.
+    """
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtener los endpoints para el APA
+    eps = get_endpoints(apa)
+    
+    # Obtener solo las waveforms que cumplen las condiciones
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    # Si no hay waveforms, detener la ejecución
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtener la cuadrícula de canales
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    # Obtener el tamaño de la cuadrícula
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Pasar la función correcta para graficar histogramas, con filtrado por canal
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col, *args, **kwargs: plot_sigma_vs_ts_function(
+            channel_ws, idx, figure_, row, col, total_rows, total_cols
+        ),
+        x_axis_title='Time offset',  # Se configura después en función de la posición
+        y_axis_title='Entries',  # Se configura después en función de la posición
+        figure_title=f'Time offset histogram for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True
+)
+    write_image(fig, 800, 1200)
 
 
 
