@@ -597,9 +597,9 @@ def write_image(fig: go.Figure, width=None, height=None) -> None:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
         
 ############################
-    
+'''
 def plot_to_interval(wset: WaveformSet,
-            ep: int = -1,
+            apa: int = -1,
             ch: int = -1,            
             nwfs: int = -1,
             op: str = '',
@@ -607,7 +607,8 @@ def plot_to_interval(wset: WaveformSet,
             tmin: int = None,
             tmax: int = None, 
             xmin: np.uint64 = None,
-            xmax: np.uint64 = None):
+            xmax: np.uint64 = None,
+            rec: list = [-1]):
      
     """Plot time offset histogram for a WaveformSet."""
     
@@ -615,18 +616,20 @@ def plot_to_interval(wset: WaveformSet,
     if not has_option(op, 'same'):
         fig = go.Figure()
 
-    #if nwfs != -1:
-    #    nwfs=len(wset.waveforms)
+    # Obtener los endpoints para el APA
+    eps = get_endpoints(apa)
     
-    # get the time offset for all wfs in the specific ep and channel
+    # Obtener solo las waveforms que cumplen las condiciones
+    selected_wfs = get_wfs(wset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
 
-    selected_wfs= get_wfs(wset.waveforms,[ep],ch,nwfs,tmin,tmax)
 
     # plot nwfs waveforms
 
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp
              for wf in selected_wfs
-             if (wf.endpoint == ep or ep == -1) and (wf.channel==ch or ch == -1)]
+             if (wf.endpoint == eps or eps == -1) and (wf.channel==ch or ch == -1)]
 
     
     # build an histogram with those times
@@ -637,7 +640,69 @@ def plot_to_interval(wset: WaveformSet,
     
     
     write_image(fig)
+'''
+def plot_to_interval(wset, 
+                     apa: Union[int, list] = -1, 
+                     ch: Union[int, list] = -1, 
+                     nwfs: int = -1, 
+                     op: str = '', 
+                     nbins: int = 125, 
+                     tmin: int = None, 
+                     tmax: int = None, 
+                     xmin: np.uint64 = None, 
+                     xmax: np.uint64 = None, 
+                     rec: list = [-1]):
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+
+    if isinstance(apa, list):
+        eps_list = [get_endpoints(apa_value) for apa_value in apa]
+    else:
+        eps_list = [get_endpoints(apa)]
+
+    colors = ['blue', 'green', 'red', 'purple', 'orange']
+
+    for idx, eps in enumerate(eps_list):
+        selected_wfs = get_wfs(wset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+        
+        times = [
+            wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp
+            for wf in selected_wfs
+            if (
+                (eps == -1 or wf.endpoint in (eps if isinstance(eps, list) else [eps])) and
+                (ch == -1 or wf.channel in (ch if isinstance(ch, list) else [ch]))
+            )
+        ]
+
+        color = colors[idx % len(colors)]
+        histogram_trace = get_histogram(times, nbins, xmin, xmax, color)
+        histogram_trace.name = f"APA {apa[idx] if isinstance(apa, list) else apa}"
+        
+        print(f"\nAPA {apa[idx] if isinstance(apa, list) else apa}: {len(selected_wfs)} waveforms ")
+        
+        fig.add_trace(histogram_trace)
+
+    fig.update_layout(
+        xaxis_title=dict(
+            text="Time offset",
+            font=dict(size=20)
+        ),
+        yaxis_title=dict(
+            text="Entries",
+            font=dict(size=20)
+        ),
+        legend=dict(
+            font=dict(size=15)
+        ),
+        title=dict(
+            text=f"Time offset histogram for all chanels in each APA",
+            font=dict(size=25)
+        )
+    )
     
+    write_image(fig)
+
     
 ###########################
 
@@ -654,7 +719,7 @@ def plot_histogram_function(channel_ws, idx, figure, row, col, nbins, xmin, xmax
         return
 
     # Generar el histograma
-    histogram = get_histogram(times, nbins, xmin, xmax)
+    histogram = get_histogram(times, nbins, xmin, xmax, line_width=0.5)
 
     # Añadir el histograma al subplot correspondiente
     figure.add_trace(histogram, row=row, col=col)
