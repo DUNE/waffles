@@ -161,7 +161,7 @@ def read_avg(filename):
 
 ###########################
 def get_wfs(wfs: list,                
-            ep: list = [-1], 
+            ep: Union[int, list] = -1,
             ch: Union[int, list] = -1,
             nwfs: int = -1,
             tmin: int = -1,
@@ -398,46 +398,46 @@ def subplot_heatmap_ans(waveform_set : WaveformSet,
     return figure_
 
 ###########################
-def get_histogram(values: list,
-                    nbins: int = 100,
-                    xmin: np.uint64 = None,
-                    xmax: np.uint64 = None):
+import plotly.graph_objects as go
+import numpy as np
 
-    if not values:  # Check if the list is empty
-        raise ValueError("The 'values' sequence is empty, cannot compute histogram.")
+def get_histogram(values: list,
+                   nbins: int = 100,
+                   xmin: np.uint64 = None,
+                   xmax: np.uint64 = None,
+                   line_color: str = 'black',
+                   line_width: float = 2):
+    if not values:  # Verificar si la lista está vacía
+        raise ValueError("La secuencia 'values' está vacía, no se puede calcular el histograma.")
     
-    # compute the histogram edges
-    
+    # Calcular los límites del histograma
     tmin = min(values)
     tmax = max(values)
 
-    if xmin == None:
-        xmin = tmin-(tmax-tmin)*0.1
-    if xmax == None:
-        xmax = tmax+(tmax-tmin)*0.1
+    if xmin is None:
+        xmin = tmin - (tmax - tmin) * 0.1
+    if xmax is None:
+        xmax = tmax + (tmax - tmin) * 0.1
     
-    domain=[xmin,xmax]
+    domain = [xmin, xmax]
     
-    # create the histogram
-    counts, indices = wun.histogram1d(  np.array(values),
-                                        nbins,
-                                        domain,
-                                        keep_track_of_idcs = True)
+    # Crear el histograma
+    counts, edges = np.histogram(values, bins=nbins, range=domain)
     
-    # plot the histogram
-    edges = np.linspace(domain[0],
-                        domain[1], 
-                        num = nbins + 1,
-                        endpoint = True)
-
-    histogram_trace = pgo.Scatter(  x = edges,
-                                    y = counts,
-                                    mode = 'lines',
-                                    line=dict(  color = line_color, 
-                                                width = 0.5,
-                                                shape = 'hv'))
+    # Crear la traza del histograma
+    histogram_trace = go.Scatter(
+        x=edges[:-1],  # Los bordes izquierdo de los bins
+        y=counts,
+        mode='lines',
+        line=dict(
+            color=line_color,
+            width=line_width,
+            shape='hv'
+        )
+    )
     
     return histogram_trace
+
 
 ##########################
 def compute_charge_histogram_params(calibh: CalibrationHistogram):
