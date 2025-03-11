@@ -10,7 +10,7 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
-#import waffles.utils.template_utils as tu
+import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
@@ -119,7 +119,7 @@ def get_grid(wfs: list,
              apa: int = -1,
              run: int = -1):
 
-    if run <30000:
+    if run < 29927:
         grid_apa = ChannelWsGrid(APA_map[apa], WaveformSet(*wfs))
     else:
         grid_apa = ChannelWsGrid(APA_map_2[apa], WaveformSet(*wfs))        
@@ -158,11 +158,10 @@ def read_avg(filename):
     return output
 
 
-
 ###########################
 def get_wfs(wfs: list,                
-            ep: Union[int, list] = -1,
-            ch: Union[int, list] = -1,
+            ep: list = [-1], 
+            ch: Union[int, list]=-1,            
             nwfs: int = -1,
             tmin: int = -1,
             tmax: int = -1,
@@ -173,8 +172,6 @@ def get_wfs(wfs: list,
 
     if type(ch) == int:
         ch = [ch]
-
-    print (ch)
     
     waveforms = []
     for wf in wfs:
@@ -397,10 +394,26 @@ def subplot_heatmap_ans(waveform_set : WaveformSet,
                         
     return figure_
 
-###########################
-import plotly.graph_objects as go
-import numpy as np
+##########################
+def compute_charge_histogram_params(calibh: CalibrationHistogram):
+    if len(calibh.gaussian_fits_parameters['mean']) > 1:
+        gain = (calibh.gaussian_fits_parameters['mean'][1][0]-calibh.gaussian_fits_parameters['mean'][0][0])
+        sn = gain/sqrt(calibh.gaussian_fits_parameters['std'][1][0]**2+calibh.gaussian_fits_parameters['std'][0][0]**2)
+        spe_mean = calibh.gaussian_fits_parameters['mean'][1][0]
+    else:
+        gain=sn=spe_mean=0
 
+    return gain,sn,spe_mean
+
+##########################
+def has_option(ops: str, op: str):
+ 
+    if ops.find(op) == -1:
+        return False
+    else:
+        return True  
+    
+###########################
 def get_histogram(values: list,
                    nbins: int = 100,
                    xmin: np.uint64 = None,
@@ -437,23 +450,3 @@ def get_histogram(values: list,
     )
     
     return histogram_trace
-
-
-##########################
-def compute_charge_histogram_params(calibh: CalibrationHistogram):
-    if len(calibh.gaussian_fits_parameters['mean']) > 1:
-        gain = (calibh.gaussian_fits_parameters['mean'][1][0]-calibh.gaussian_fits_parameters['mean'][0][0])
-        sn = gain/sqrt(calibh.gaussian_fits_parameters['std'][1][0]**2+calibh.gaussian_fits_parameters['std'][0][0]**2)
-        spe_mean = calibh.gaussian_fits_parameters['mean'][1][0]
-    else:
-        gain=sn=spe_mean=0
-
-    return gain,sn,spe_mean
-
-##########################
-def has_option(ops: str, op: str):
- 
-    if ops.find(op) == -1:
-        return False
-    else:
-        return True
