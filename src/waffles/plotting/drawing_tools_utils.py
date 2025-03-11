@@ -158,11 +158,10 @@ def read_avg(filename):
     return output
 
 
-
 ###########################
 def get_wfs(wfs: list,                
             ep: list = [-1], 
-            ch: Union[int, list]=Union[-1,[-1]],
+            ch: Union[int, list]=-1,            
             nwfs: int = -1,
             tmin: int = -1,
             tmax: int = -1,
@@ -173,8 +172,6 @@ def get_wfs(wfs: list,
 
     if type(ch) == int:
         ch = [ch]
-
-    print (ch)
     
     waveforms = []
     for wf in wfs:
