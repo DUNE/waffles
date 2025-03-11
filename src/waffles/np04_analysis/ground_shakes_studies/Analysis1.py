@@ -58,11 +58,6 @@ class Analysis1(WafflesAnalysis):
                 default="/output",
                 description="Output path"
             )
-
-            validate_items = field_validator(
-                "runs",
-                mode="before"
-            )(wcu.split_comma_separated_string)
             
             show_figures: bool = Field(
                 default=True,
@@ -121,7 +116,7 @@ class Analysis1(WafflesAnalysis):
             f"Now reading waveforms for run {self.run} ..."
         )
         
-        wfset_path = self.params.input_path+f"wfset_0{self.run}.hdf5"
+        wfset_path = self.params.input_path+f"wfset_5_apa12_{self.run}.hdf5"
         self.wfset=WaveformSet_from_hdf5_file(wfset_path)        
         
         return True
