@@ -10,7 +10,7 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
-import waffles.utils.template_utils as tu
+#import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
@@ -421,7 +421,7 @@ def get_histogram(values: list,
                    line_color: str = 'black',
                    line_width: float = 2):
     if not values:  # Verificar si la lista está vacía
-        raise ValueError("La secuencia 'values' está vacía, no se puede calcular el histograma.")
+        raise ValueError("'values' is empty, the histogram can't be computed.")
     
     # Calcular los límites del histograma
     tmin = min(values)
