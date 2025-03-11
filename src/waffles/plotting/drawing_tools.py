@@ -14,7 +14,7 @@ templates = []
 ###########################
 def plot(object,                   
          ep: int = -1, 
-         ch: Union[int, list]=[-1],
+         ch: Union[int, list]=-1,
          nwfs: int = -1,
          xmin: int = -1,
          xmax: int = -1,
@@ -48,7 +48,7 @@ def plot(object,
 ###########################
 def plot_wfs(wfs: list,                
              ep: int = -1, 
-             ch: Union[int, list]=[-1],
+             ch: Union[int, list]=-1,
              nwfs: int = -1,
              xmin: int = -1,
              xmax: int = -1,
@@ -127,7 +127,7 @@ def plot_wf( waveform_adcs : WaveformAdcs,
 ###########################
 def plot_grid(wfset: WaveformSet,                
               apa: int = -1, 
-              ch: Union[int, list]=[-1],
+              ch: Union[int, list]=-1,
               nwfs: int = -1,
               xmin: int = -1,
               xmax: int = -1,
@@ -247,7 +247,7 @@ def plot_to(wset: WaveformSet,
 ###########################
 def plot_hm(object,
             ep: int = -1,
-            ch: Union[int, list]=[-1],
+            ch: Union[int, list]=-1,
             nx: int = 100,
             xmin: int = 0,
             xmax: int = 1024,
@@ -595,3 +595,141 @@ def write_image(fig: go.Figure, width=None, height=None) -> None:
         pio.write_image(fig, file=png_file_path, format='png', width=width, height=height)
     else:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
+        
+############################
+def plot_to_interval(wset, 
+                     apa: Union[int, list] = -1, 
+                     ch: Union[int, list] = -1, 
+                     nwfs: int = -1, 
+                     op: str = '', 
+                     nbins: int = 125, 
+                     tmin: int = None, 
+                     tmax: int = None, 
+                     xmin: np.uint64 = None, 
+                     xmax: np.uint64 = None, 
+                     rec: list = [-1]):
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+
+    if isinstance(apa, list):
+        eps_list = [get_endpoints(apa_value) for apa_value in apa]
+    else:
+        eps_list = [get_endpoints(apa)]
+
+    colors = ['blue', 'green', 'red', 'purple', 'orange']
+
+    for idx, eps in enumerate(eps_list):
+        selected_wfs = get_wfs(wset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+        
+        times = [
+            wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp
+            for wf in selected_wfs
+            if (
+                (eps == -1 or wf.endpoint in (eps if isinstance(eps, list) else [eps])) and
+                (ch == -1 or wf.channel in (ch if isinstance(ch, list) else [ch]))
+            )
+        ]
+
+        color = colors[idx % len(colors)]
+        histogram_trace = get_histogram(times, nbins, xmin, xmax, color)
+        histogram_trace.name = f"APA {apa[idx] if isinstance(apa, list) else apa}"
+        
+        print(f"\nAPA {apa[idx] if isinstance(apa, list) else apa}: {len(selected_wfs)} waveforms ")
+        
+        fig.add_trace(histogram_trace)
+
+    fig.update_layout(
+        xaxis_title=dict(
+            text="Time offset",
+            font=dict(size=20)
+        ),
+        yaxis_title=dict(
+            text="Entries",
+            font=dict(size=20)
+        ),
+        legend=dict(
+            font=dict(size=15)
+        ),
+        title=dict(
+            text=f"Time offset histogram for all chanels in each APA",
+            font=dict(size=25)
+        )
+    )
+    
+    write_image(fig)
+
+    
+###########################
+
+def plot_histogram_function(channel_ws, idx, figure, row, col, nbins, xmin, xmax, total_rows, total_cols):
+    """
+    Función para generar el histograma de un canal específico.
+    """
+    # Extraer los tiempos de las waveforms del canal específico
+    times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
+
+    # Si no hay datos, no graficar nada
+    if not times:
+        print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
+        return
+
+    # Generar el histograma
+    histogram = get_histogram(times, nbins, xmin, xmax, line_width=0.5)
+
+    # Añadir el histograma al subplot correspondiente
+    figure.add_trace(histogram, row=row, col=col)
+
+
+def plot_grid_to_interval(wfset: WaveformSet,                
+                          apa: int = -1, 
+                          ch: Union[int, list] = -1,
+                          nbins: int = 100,
+                          nwfs: int = -1,
+                          op: str = '',
+                          xmin: np.uint64 = None,
+                          xmax: np.uint64 = None,
+                          tmin: int = -1,
+                          tmax: int = -1,
+                          rec: list = [-1]):
+    """
+    Plot a WaveformSet in grid mode, generating a histogram per channel.
+    """
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtener los endpoints para el APA
+    eps = get_endpoints(apa)
+    
+    # Obtener solo las waveforms que cumplen las condiciones
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    # Si no hay waveforms, detener la ejecución
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtener la cuadrícula de canales
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    # Obtener el tamaño de la cuadrícula
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Pasar la función correcta para graficar histogramas, con filtrado por canal
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col, *args, **kwargs: plot_histogram_function(
+            channel_ws, idx, figure_, row, col, nbins, xmin, xmax, total_rows, total_cols
+        ),
+        x_axis_title='Time offset',  # Se configura después en función de la posición
+        y_axis_title='Entries',  # Se configura después en función de la posición
+        figure_title=f'Time offset histogram for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True
+)
+    write_image(fig, 800, 1200)

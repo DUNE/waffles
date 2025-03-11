@@ -10,7 +10,6 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
-#import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
@@ -158,11 +157,10 @@ def read_avg(filename):
     return output
 
 
-
 ###########################
 def get_wfs(wfs: list,                
             ep: list = [-1], 
-            ch: Union[int, list]=[-1],
+            ch: Union[int, list]=-1,            
             nwfs: int = -1,
             tmin: int = -1,
             tmax: int = -1,
@@ -173,8 +171,6 @@ def get_wfs(wfs: list,
 
     if type(ch) == int:
         ch = [ch]
-
-    print (ch)
     
     waveforms = []
     for wf in wfs:
@@ -397,46 +393,6 @@ def subplot_heatmap_ans(waveform_set : WaveformSet,
                         
     return figure_
 
-###########################
-def get_histogram(values: [],
-                    nbins: int = 100,
-                    xmin: np.uint64 = None,
-                    xmax: np.uint64 = None):
-
-
-    # compute the histogram edges
-    tmin = min(values)
-    tmax = max(values)
-
-    if xmin == None:
-        xmin = tmin-(tmax-tmin)*0.1
-    if xmax == None:
-        xmax = tmax+(tmax-tmin)*0.1
-    
-    domain=[xmin,xmax]
-
-    # create the histogram
-    counts, indices = wun.histogram1d(  np.array(values),
-                                        nbins,
-                                        domain,
-                                        keep_track_of_idcs = True)
-    
-    # plot the histogram
-    edges = np.linspace(domain[0],
-                        domain[1], 
-                        num = nbins + 1,
-                        endpoint = True)
-
-    histogram_trace = pgo.Scatter(  x = edges,
-                                    y = counts,
-                                    mode = 'lines',
-                                    line=dict(  color = line_color, 
-                                                width = 0.5,
-                                                shape = 'hv'),
-                                    name = "Hola")
-    
-    return histogram_trace
-
 ##########################
 def compute_charge_histogram_params(calibh: CalibrationHistogram):
     if len(calibh.gaussian_fits_parameters['mean']) > 1:
@@ -454,4 +410,42 @@ def has_option(ops: str, op: str):
     if ops.find(op) == -1:
         return False
     else:
-        return True
+        return True  
+    
+###########################
+def get_histogram(values: list,
+                   nbins: int = 100,
+                   xmin: np.uint64 = None,
+                   xmax: np.uint64 = None,
+                   line_color: str = 'black',
+                   line_width: float = 2):
+    if not values:  # Verificar si la lista está vacía
+        raise ValueError("La secuencia 'values' está vacía, no se puede calcular el histograma.")
+    
+    # Calcular los límites del histograma
+    tmin = min(values)
+    tmax = max(values)
+
+    if xmin is None:
+        xmin = tmin - (tmax - tmin) * 0.1
+    if xmax is None:
+        xmax = tmax + (tmax - tmin) * 0.1
+    
+    domain = [xmin, xmax]
+    
+    # Crear el histograma
+    counts, edges = np.histogram(values, bins=nbins, range=domain)
+    
+    # Crear la traza del histograma
+    histogram_trace = go.Scatter(
+        x=edges[:-1],  # Los bordes izquierdo de los bins
+        y=counts,
+        mode='lines',
+        line=dict(
+            color=line_color,
+            width=line_width,
+            shape='hv'
+        )
+    )
+    
+    return histogram_trace
