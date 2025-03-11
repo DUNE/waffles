@@ -1,4 +1,4 @@
-from waffles.np04_analysis.example_analysis.imports import *
+from waffles.np04_analysis.ground_shakes_studies.imports import *
 
 class Analysis1(WafflesAnalysis):
 
@@ -30,12 +30,17 @@ class Analysis1(WafflesAnalysis):
                 description="Run numbers of the runs to be read",
                 example=[27906, 27907]
             )
-
-            waveforms_per_run: int = Field(
+            
+            apas: list = Field(
                 ...,
-                description="The number of waveforms to read from "
-                "the first rucio filepath for each run",
-                example=500
+                description="APA number",
+                example=[2]
+            )
+
+            pdes: list = Field(
+                ...,
+                description="Photon detection efficiency",
+                example=[0.4]
             )
 
             correct_by_baseline: bool = Field(
@@ -44,19 +49,26 @@ class Analysis1(WafflesAnalysis):
                 "is subtracted before computing the average waveform"
             )
 
-            rucio_paths_directory: str = Field(
-                default="/eos/experiment/neutplatform/protodune/"
-                "experiments/ProtoDUNE-II/PDS_Commissioning/"
-                "waffles/1_rucio_paths",
-                description="The directory where the rucio paths are "
-                "stored, following this format: the file "
-                "'0<run_number>.txt' contains one rucio path per line."
+            input_path: str = Field(
+                default="/data",
+                description="Imput path"
+            )
+            
+            output_path: str = Field(
+                default="/output",
+                description="Output path"
             )
 
             validate_items = field_validator(
                 "runs",
                 mode="before"
             )(wcu.split_comma_separated_string)
+            
+            show_figures: bool = Field(
+                default=True,
+                description="Whether to show the produced "
+                "figures",
+            )
         return InputParams
 
     def initialize(
@@ -81,12 +93,11 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
 
         self.read_input_loop_1 = self.params.runs
-        self.read_input_loop_2 = [None,]
-        self.read_input_loop_3 = [None,]
+        self.read_input_loop_2 = self.params.apas
+        self.read_input_loop_3 = self.params.pdes
         self.analyze_loop = [None,]
 
         self.wfset = None
-        self.output_data = None
 
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
@@ -101,34 +112,20 @@ class Analysis1(WafflesAnalysis):
         bool
             True if the method ends execution normally
         """
-
+        self.run = self.read_input_itr_1
+        self.apa = self.read_input_itr_2
+        self.pde = self.read_input_itr_3
+        
         print(
             "In function Analysis1.read_input(): "
-            f"Now reading waveforms for run {self.read_input_itr_1} ..."
+            f"Now reading waveforms for run {self.run} ..."
         )
-
-        # Get the rucio filepaths for the current run
-        filepaths = reader.get_filepaths_from_rucio(
-            self.params.rucio_paths_directory+f"/0{self.read_input_itr_1}.txt"
-        )
-
-        # Try to read the first self.params.waveforms_per_run waveforms
-        # from the first rucio filepath found for the current run
-        self.wfset = reader.WaveformSet_from_hdf5_file(
-            filepaths[0],
-            read_full_streaming_data=False,
-            truncate_wfs_to_minimum=True,
-            nrecord_start_fraction=0.0,
-            nrecord_stop_fraction=1.0,
-            subsample=1,
-            wvfm_count=self.params.waveforms_per_run,
-            allowed_endpoints=[],
-            det='HD_PDS',
-            temporal_copy_directory='/tmp',
-            erase_temporal_copy=True
-        )
-
+        
+        wfset_path = self.params.input_path+f"wfset_0{self.run}.hdf5"
+        self.wfset=WaveformSet_from_hdf5_file(wfset_path)        
+        
         return True
+
 
     def analyze(self) -> bool:
         """Implements the WafflesAnalysis.analyze() abstract method.
@@ -146,42 +143,54 @@ class Analysis1(WafflesAnalysis):
         bool
             True if the method ends execution normally
         """
-
-        print(
-            "In function Analysis1.analyze(): "
-            f"Computing the mean waveform for {len(self.wfset.waveforms)} "
-            f"waveforms of run {self.read_input_itr_1} ..."
+        # ------------- Analyse the waveform set -------------
+        
+        print(f"  1. Analizyng WaveformSet with {len(self.wfset.waveforms)} waveforms")
+        
+        analysis_params = gs_utils.get_analysis_params(
+            self.apa,
+            # Will fail when APA 1 is analyzed
+            run=None
         )
-
-        # 1. Compute the baseline for each waveform in the WaveformSet
-        if self.params.correct_by_baseline:
-            baselines = [
-                wnu.get_baseline(
-                    wf,
-                    lower_time_tick_for_median=0,
-                    upper_time_tick_for_median=100
-                ) for wf in self.wfset.waveforms
-            ]
-        else:
-            baselines = [
-                0. for _ in self.wfset.waveforms
-            ]
-
-        # 2. Compute the mean waveform
-        mean_adcs = np.mean(
-            np.array([
-                wf.adcs - baseline for wf, baseline in zip(
-                    self.wfset.waveforms, baselines
-                )
-            ]),
-            axis=0
+        print('The parameters for the analysis are:',analysis_params)
+        
+        checks_kwargs = IPDict()
+        checks_kwargs['points_no'] = self.wfset.points_per_wf
+        
+        self.analysis_name = 'standard'
+        
+        # Analyze all of the waveforms in this WaveformSet:
+        # compute baseline, integral and amplitud
+        _ = self.wfset.analyse(
+            self.analysis_name,
+            BasicWfAna,
+            analysis_params,
+            *[],  # *args,
+            analysis_kwargs={},
+            checks_kwargs=checks_kwargs,
+            overwrite=True
         )
+        
+        # ----- Creating the grid and computing charge histogram -----------
 
-        self.output_data = WaveformAdcs(
-            16.,
-            mean_adcs,
+        print(f"  2. Creating the grid and computing charge histogram")
+
+        # Create a grid of WaveformSets for each channel in one
+        # APA, and compute the charge histogram for each channel
+        
+        self.grid_apa = ChannelWsGrid(
+            APA_map[self.apa],
+            self.wfset,
+            compute_calib_histo=True, 
+            bins_number=gs_utils.get_nbins_for_charge_histo(
+                self.pde,
+                self.apa
+            ),
+            domain=np.array((-10000.0, 50000.0)),
+            variable="integral",
+            analysis_label=self.analysis_name
         )
-
+         
         return True
 
     def write_output(self) -> bool:
@@ -194,19 +203,77 @@ class Analysis1(WafflesAnalysis):
         bool
             True if the method ends execution normally
         """
+        
+        base_file_path = f"{self.params.output_path}"\
+            f"/run_{self.run}_apa_{self.apa}_pde_{self.pde}"
+            
+        # ------------- Save the persistance plot ------------- 
 
-        output_filepath = f"{self.params.output_path}"\
-            f"/mean_waveform_run_{self.read_input_itr_1}.pkl"
-
-        print(
-            "In function Analysis1.write_output(): "
-            f"Saving the mean waveform to {output_filepath} ..."
+        figure1 = plot_ChannelWsGrid(
+            self.grid_apa,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="heatmap",
+            wfs_per_axes=len(self.wfset.waveforms),
+            analysis_label=self.analysis_name,
+            detailed_label=False,
+            verbose=True
         )
 
-        with open(output_filepath, "wb") as file:
-            pickle.dump(
-                self.output_data,
-                file
-            )
+        title1 = f"Persistence for APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure1.update_layout(
+            title={
+                "text": title1,
+                "font": {"size": 24}
+            }, 
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+
+        if self.params.show_figures:
+            figure1.show()
+
+        fig1_path = f"{base_file_path}_persistence.png"
+        figure1.write_image(f"{fig1_path}")
+
+        print(f" \n Persistence plots saved in {fig1_path}")
+
+        # ------------- Save the charge histogram plot ------------- 
+
+        figure2 = plot_ChannelWsGrid(
+            self.grid_apa,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="calibration",
+            wfs_per_axes=None,
+            analysis_label=self.analysis_name,
+            plot_peaks_fits=True,
+            detailed_label=False,
+            verbose=True
+        )
+
+        title2 = f"Charge histograms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure2.update_layout(
+            title={
+                "text": title2,
+                "font": {"size": 24}
+            }, 
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+
+        if self.params.show_figures:
+            figure2.show()
+
+        fig2_path = f"{base_file_path}_calib_histo.png"
+        figure2.write_image(f"{fig2_path}")
+
+        print(f" \n Charge histogram plots saved in {fig2_path}")
 
         return True
