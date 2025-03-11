@@ -1642,3 +1642,120 @@ def plot_ChannelWsGrid(
             " or 'calibration'."))
     
     return figure_
+
+
+def plot_CustomChannelGrid(
+    channel_ws_grid: ChannelWsGrid,
+    plot_function: callable,
+    figure: Optional[pgo.Figure] = None,
+    share_x_scale: bool = False,
+    share_y_scale: bool = False,
+    wfs_per_axes: Optional[int] = 1,
+    x_axis_title: Optional[str] = None,
+    y_axis_title: Optional[str] = None,
+    figure_title: Optional[str] = None,
+) -> pgo.Figure:
+    
+    """This function returns a plotly.graph_objects.Figure 
+    with a grid of subplots which are arranged according
+    to the channel_ws_grid.ch_map attribute. The subplot at 
+    position i,j may be empty if there is no ChannelWs object 
+    in channel_ws_grid.ch_wf_sets which matches the UniqueChannel 
+    object at position i,j in the channel_ws_grid.ch_map 
+    attribute. If it is not empty, a subplot may contain a representation
+    defined by the user in plot_function: Callable
+
+    Parameters
+    ----------
+    channel_ws_grid: ChannelWsGrid
+        The ChannelWsGrid object which contains the 
+        ChannelWs objects to be plotted.
+    plot_function: Callable
+        A callable function that makes the
+        defined plot for each channel of the grid.
+    figure: plotly.graph_objects.Figure
+        If it is not None, then it must have been
+        generated using plotly.subplots.make_subplots()
+        with a 'rows' and 'cols' parameters matching
+        the rows and columns attribute of 
+        channel_ws_grid.ch_map. If that's the case, then 
+        this function adds the plots to this figure and 
+        eventually returns it. If it is None, then this 
+        function generates a new figure and returns it.
+    share_x_scale (resp. share_y_scale): bool
+        If True, the x-axis (resp. y-axis) scale will be 
+        shared among all the subplots.
+    wfs_per_axes: int
+        If it is None, then every waveform in each
+        ChannelWs object will be considered. Otherwise,
+        only the first wfs_per_axes waveforms of each
+        ChannelWs object will be considered. If 
+        wfs_per_axes is greater than the number of 
+        waveforms in a certain ChannelWs object, then 
+        all of its waveforms will be considered.
+    x_axis_title: Optional[str] 
+        X-axis title for the bottom row.
+    y_axis_title: Optional[str] 
+        Y-axis title for the left column.
+    figure_title: Optional[str] 
+        Tile of the figure
+
+    Returns
+    ----------
+    figure: plotly.graph_objects.Figure
+        This function returns a plotly.graph_objects.Figure 
+        with a grid of subplots which are arranged 
+        according to the channel_ws_grid.ch_map attribute.
+    """
+    # Crear figura si no se ha proporcionado una
+    if figure is not None:
+        wpu.check_dimensions_of_suplots_figure(figure, channel_ws_grid.ch_map.rows, channel_ws_grid.ch_map.columns)
+        figure_ = figure
+    else:
+        figure_ = psu.make_subplots(rows=channel_ws_grid.ch_map.rows, cols=channel_ws_grid.ch_map.columns)
+
+    # Configurar ejes compartidos
+    wpu.update_shared_axes_status(figure_, share_x=share_x_scale, share_y=share_y_scale)
+    
+    wpu.__add_unique_channels_top_annotations(  
+        channel_ws_grid,
+        figure_,
+        also_add_run_info=True)
+
+    # Establecer título de la figura si se proporciona
+    if figure_title is not None:
+        figure_.update_layout(title=figure_title)
+
+    # Iterar sobre el grid de subplots
+    for i in range(channel_ws_grid.ch_map.rows):
+        for j in range(channel_ws_grid.ch_map.columns):
+            try:
+                # Obtener el canal y el endpoint para el subplot actual
+                channel_ws = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i][j].endpoint][
+                    channel_ws_grid.ch_map.data[i][j].channel]
+            except KeyError:
+                # Si no hay datos, añadir la anotación de "No data"
+                wpu.__add_no_data_annotation(figure_, i + 1, j + 1)
+                continue
+
+            # Obtener los índices de las waveforms a procesar
+            if wfs_per_axes is not None:
+                aux_idcs = range(min(wfs_per_axes, len(channel_ws.waveforms)))
+            else:
+                aux_idcs = range(len(channel_ws.waveforms))
+
+            # Aplicar la función definida por el usuario a cada canal
+            for idx in aux_idcs:
+                # Pasar el canal y el endpoint como argumentos adicionales
+                plot_function(channel_ws, idx, figure_, i + 1, j + 1)
+
+                # Añadir anotaciones con la información del canal y endpoint
+                
+            if x_axis_title is not None:
+                if i == channel_ws_grid.ch_map.rows - 1:  # Solo etiquetas de x en la última fila
+                    figure_.update_xaxes(title_text=x_axis_title, row=i + 1, col=j + 1)
+            if y_axis_title is not None:        
+                if j == 0:  # Solo etiquetas de y en la primera columna
+                    figure_.update_yaxes(title_text=y_axis_title, row=i + 1, col=j + 1)
+
+    return figure_
