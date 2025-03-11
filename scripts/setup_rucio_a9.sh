@@ -1,30 +1,38 @@
 #!/bin/bash
-# Source the setup script for the environment
+# set -e  # Exit if any command fails
+
+# Load the required environment
 source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
 
-# Load the necessary packages
+# Load necessary packages
 spack load r-m-dd-config experiment=dune
 spack load kx509
 
-# Prompt the user for their username and password
+# Prompt for FNAL credentials
 read -p "Enter your @FNAL.GOV username: " username
-echo "Please enter your password: "
-read -s password
+read -s -p "Please enter your password: " password
+echo ""
 
-# Authenticate with kinit and obtain a Kerberos ticket
-echo "${password}" | kinit ${username}@FNAL.GOV
+# Authenticate with Kerberos
+echo "${password}" | kinit "${username}@FNAL.GOV"
+unset password  # Remove password from memory for security
 
-# Obtain a certificate from the Kerberos ticket
+# Obtain Kerberos-based certificate
 kx509
 
-# Set the Rucio account environment variable
-export RUCIO_ACCOUNT=${username}
+# Set Rucio account
+export RUCIO_ACCOUNT="${username}"
 
-# Check the Rucio identity
+# Verify Rucio authentication
 rucio whoami
 
-# Enable use of xrootd to open files outside eos
+# Initialize VOMS proxy
 voms-proxy-init -rfc -noregen -voms=dune:/dune/Role=Analysis -valid 120:00
 
-# Ensure the script exits cleanly
-# exit 0
+# Set UPS override
+export UPS_OVERRIDE="-H Linux64bit+3.10-2.17"
+
+# Load IFDH for file handling
+setup ifdhc
+
+echo -e "\033[92mEnvironment setup complete. You are now authenticated for Rucio.\033[0m"
