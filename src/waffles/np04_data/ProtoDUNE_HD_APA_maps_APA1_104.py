@@ -4,16 +4,16 @@ from waffles.np04_data_classes.APAMap import APAMap
 
 import waffles.utils.wf_maps_utils as wuw
 
-apa_1_data = [  [UniqueChannel(104, 27  ),  UniqueChannel(104, 25), UniqueChannel(104, 22), UniqueChannel(104, 20   )],
-                [UniqueChannel(104, 21  ),  UniqueChannel(104, 23), UniqueChannel(104, 24), UniqueChannel(104, 26   )],
-                [UniqueChannel(104, 37  ),  UniqueChannel(104, 35), UniqueChannel(104, 32), UniqueChannel(104, 30   )],
-                [UniqueChannel(104, 31  ),  UniqueChannel(104, 33), UniqueChannel(104, 34), UniqueChannel(104, 36   )],
-                [UniqueChannel(104, 7   ),  UniqueChannel(104, 5 ), UniqueChannel(104, 2 ), UniqueChannel(104, 0    )],
-                [UniqueChannel(104, 1   ),  UniqueChannel(104, 3 ), UniqueChannel(104, 4 ), UniqueChannel(104, 6    )],
-                [UniqueChannel(104, 17  ),  UniqueChannel(104, 15), UniqueChannel(104, 12), UniqueChannel(104, 10   )],
-                [UniqueChannel(104, 11  ),  UniqueChannel(104, 13), UniqueChannel(104, 14), UniqueChannel(104, 16   )],
-                [UniqueChannel(104, 47  ),  UniqueChannel(104, 45), UniqueChannel(104, 42), UniqueChannel(104, 40   )],
-                [UniqueChannel(104, 41  ),  UniqueChannel(104, 43), UniqueChannel(104, 44), UniqueChannel(104, 46   )]]
+apa_1_data = [  [UniqueChannel(104, 0   ),  UniqueChannel(104,  2 ), UniqueChannel(104,  5 ), UniqueChannel(104,  7  )],
+                [UniqueChannel(104, 6   ),  UniqueChannel(104,  4 ), UniqueChannel(104,  3 ), UniqueChannel(104,  1  )],
+                [UniqueChannel(104, 30  ),  UniqueChannel(104, 32 ), UniqueChannel(104, 35 ), UniqueChannel(104, 37  )],
+                [UniqueChannel(104, 36  ),  UniqueChannel(104, 34 ), UniqueChannel(104, 33 ), UniqueChannel(104, 31  )],
+                [UniqueChannel(104, 10  ),  UniqueChannel(104, 12 ), UniqueChannel(104, 15 ), UniqueChannel(104, 17  )],
+                [UniqueChannel(104, 16  ),  UniqueChannel(104, 14 ), UniqueChannel(104, 13 ), UniqueChannel(104, 11  )],
+                [UniqueChannel(104, 40  ),  UniqueChannel(104, 42 ), UniqueChannel(104, 45 ), UniqueChannel(104, 47  )],
+                [UniqueChannel(104, 29  ),  UniqueChannel(104, 25 ), UniqueChannel(104, 22 ), UniqueChannel(104, 20  )],
+                [UniqueChannel(104, 41  ),  UniqueChannel(104, 43 ), UniqueChannel(104, 44 ), UniqueChannel(104, 46  )],
+                [UniqueChannel(104, 26  ),  UniqueChannel(104, 24 ), UniqueChannel(104, 23 ), UniqueChannel(104, 21  )]]
 
 apa_1 = APAMap(apa_1_data)
 
