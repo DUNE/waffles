@@ -1654,6 +1654,7 @@ def plot_CustomChannelGrid(
     x_axis_title: Optional[str] = None,
     y_axis_title: Optional[str] = None,
     figure_title: Optional[str] = None,
+    show_ticks_only_on_edges: bool = False  # Nuevo parámetro
 ) -> pgo.Figure:
     
     """This function returns a plotly.graph_objects.Figure 
@@ -1727,8 +1728,11 @@ def plot_CustomChannelGrid(
         figure_.update_layout(title=figure_title)
 
     # Iterar sobre el grid de subplots
-    for i in range(channel_ws_grid.ch_map.rows):
-        for j in range(channel_ws_grid.ch_map.columns):
+    total_rows = channel_ws_grid.ch_map.rows
+    total_cols = channel_ws_grid.ch_map.columns
+
+    for i in range(total_rows):
+        for j in range(total_cols):
             try:
                 # Obtener el canal y el endpoint para el subplot actual
                 channel_ws = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i][j].endpoint][
@@ -1746,16 +1750,24 @@ def plot_CustomChannelGrid(
 
             # Aplicar la función definida por el usuario a cada canal
             for idx in aux_idcs:
-                # Pasar el canal y el endpoint como argumentos adicionales
                 plot_function(channel_ws, idx, figure_, i + 1, j + 1)
 
-                # Añadir anotaciones con la información del canal y endpoint
-                
-            if x_axis_title is not None:
-                if i == channel_ws_grid.ch_map.rows - 1:  # Solo etiquetas de x en la última fila
+            # Configurar los ejes según la opción de mostrar ticks solo en los bordes
+            if show_ticks_only_on_edges:
+                figure_.update_xaxes(
+                    title_text=x_axis_title if i == total_rows - 1 else '',
+                    showticklabels=(i == total_rows - 1),
+                    row=i + 1, col=j + 1
+                )
+                figure_.update_yaxes(
+                    title_text=y_axis_title if j == 0 else '',
+                    showticklabels=(j == 0),
+                    row=i + 1, col=j + 1
+                )
+            else:
+                if x_axis_title is not None and i == total_rows - 1:
                     figure_.update_xaxes(title_text=x_axis_title, row=i + 1, col=j + 1)
-            if y_axis_title is not None:        
-                if j == 0:  # Solo etiquetas de y en la primera columna
+                if y_axis_title is not None and j == 0:
                     figure_.update_yaxes(title_text=y_axis_title, row=i + 1, col=j + 1)
 
     return figure_

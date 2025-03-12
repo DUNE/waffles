@@ -416,8 +416,8 @@ def has_option(ops: str, op: str):
 ###########################
 def get_histogram(values: list,
                    nbins: int = 100,
-                   xmin: np.uint64 = None,
-                   xmax: np.uint64 = None,
+                   xmin: float = None,
+                   xmax: float = None,
                    line_color: str = 'black',
                    line_width: float = 2):
     if not values:  # Verificar si la lista está vacía
