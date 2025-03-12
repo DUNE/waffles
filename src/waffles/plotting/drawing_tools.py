@@ -1,5 +1,6 @@
 from waffles.plotting.drawing_tools_utils import *
 from typing import Union
+import warnings
 
 # Global plotting settings
 fig = go.Figure()
@@ -596,26 +597,26 @@ def write_image(fig: go.Figure, width=None, height=None) -> None:
     else:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
         
-############################
+        
+#---------- Time offset histogram for [1,2,3,4] APAs ---------
+
 def plot_to_interval(wset, 
-                     apa: Union[int, list] = -1, 
+                     apas: Union[int, list] = -1, 
                      ch: Union[int, list] = -1, 
                      nwfs: int = -1, 
                      op: str = '', 
                      nbins: int = 125, 
                      tmin: int = None, 
                      tmax: int = None, 
-                     xmin: np.uint64 = None, 
-                     xmax: np.uint64 = None, 
                      rec: list = [-1]):
     global fig
     if not has_option(op, 'same'):
         fig = go.Figure()
 
-    if isinstance(apa, list):
-        eps_list = [get_endpoints(apa_value) for apa_value in apa]
+    if isinstance(apas, list):
+        eps_list = [get_endpoints(apa) for apa in apas]
     else:
-        eps_list = [get_endpoints(apa)]
+        eps_list = [get_endpoints(apas)]
 
     colors = ['blue', 'green', 'red', 'purple', 'orange']
 
@@ -632,10 +633,10 @@ def plot_to_interval(wset,
         ]
 
         color = colors[idx % len(colors)]
-        histogram_trace = get_histogram(times, nbins, xmin, xmax, color)
-        histogram_trace.name = f"APA {apa[idx] if isinstance(apa, list) else apa}"
+        histogram_trace = get_histogram(times, nbins, color)
+        histogram_trace.name = f"APA {apas[idx] if isinstance(apas, list) else apas}"
         
-        print(f"\nAPA {apa[idx] if isinstance(apa, list) else apa}: {len(selected_wfs)} waveforms ")
+        print(f"\nAPA {apas[idx] if isinstance(apas, list) else apas}: {len(selected_wfs)} waveforms ")
         
         fig.add_trace(histogram_trace)
 
@@ -660,24 +661,21 @@ def plot_to_interval(wset,
     write_image(fig)
 
     
-###########################
+#-------------- Time offset histograms in an APA grid -----------
 
-def plot_histogram_function(channel_ws, idx, figure, row, col, nbins, xmin, xmax, total_rows, total_cols):
-    """
-    Función para generar el histograma de un canal específico.
-    """
-    # Extraer los tiempos de las waveforms del canal específico
+def plot_to_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+
+    # Compute the time offset
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
 
-    # Si no hay datos, no graficar nada
     if not times:
         print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
         return
 
-    # Generar el histograma
-    histogram = get_histogram(times, nbins, xmin, xmax, line_width=0.5)
+    # Generaate the histogram
+    histogram = get_histogram(times, nbins, line_width=0.5)
 
-    # Añadir el histograma al subplot correspondiente
+    # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
 
 
@@ -687,49 +685,182 @@ def plot_grid_to_interval(wfset: WaveformSet,
                           nbins: int = 100,
                           nwfs: int = -1,
                           op: str = '',
-                          xmin: np.uint64 = None,
-                          xmax: np.uint64 = None,
                           tmin: int = -1,
                           tmax: int = -1,
                           rec: list = [-1]):
-    """
-    Plot a WaveformSet in grid mode, generating a histogram per channel.
-    """
     global fig
     if not has_option(op, 'same'):
         fig = go.Figure()
         
-    # Obtener los endpoints para el APA
+    # Obtain the endpoints from the APA
     eps = get_endpoints(apa)
     
-    # Obtener solo las waveforms que cumplen las condiciones
+    # Select the waveforms in a specific time interval of the DAQ window
     selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
     
     print(f"Number of selected waveforms: {len(selected_wfs)}")
 
-    # Si no hay waveforms, detener la ejecución
     if not selected_wfs:
         print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
         return  
 
-    # Obtener la cuadrícula de canales
+    # Obtain the channels grid
     run = wfset.waveforms[0].run_number
     grid = get_grid(selected_wfs, apa, run)
 
-    # Obtener el tamaño de la cuadrícula
     total_rows = grid.ch_map.rows  
     total_cols = grid.ch_map.columns  
 
-    # Pasar la función correcta para graficar histogramas, con filtrado por canal
+    # Plot a specific function in the APA grid
     fig = plot_CustomChannelGrid(
         grid, 
-        plot_function=lambda channel_ws, idx, figure_, row, col, *args, **kwargs: plot_histogram_function(
-            channel_ws, idx, figure_, row, col, nbins, xmin, xmax, total_rows, total_cols
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_to_function(
+            channel_ws, idx, figure_, row, col, nbins, total_rows, total_cols
         ),
-        x_axis_title='Time offset',  # Se configura después en función de la posición
-        y_axis_title='Entries',  # Se configura después en función de la posición
-        figure_title=f'Time offset histogram for APA {apa}',
+        x_axis_title='Time offset',  
+        y_axis_title='Entries',  
+        figure_title=f'Time offset histograms for APA {apa}',
         share_x_scale=True,
-        share_y_scale=True
+        share_y_scale=True,
+        show_ticks_only_on_edges=True
+)
+    write_image(fig, 800, 1200)
+    
+
+# --------------- Sigma vs timestamp in an APA grid --------------
+
+def plot_sigma_vs_ts_function(channel_ws, idx, figure, row, col, total_rows, total_cols):
+
+    timestamps = []
+    sigmas = []
+
+    # Iterate over each waveform in the channel
+    for wf in channel_ws.waveforms:
+        # Calculate the timestamp for the waveform
+        timestamp = wf._Waveform__timestamp
+        timestamps.append(timestamp)
+
+        # Calculate the standard deviation (sigma) of the ADC values
+        sigma = np.std(wf.adcs)
+        sigmas.append(sigma)
+
+    # Add the histogram to the corresponding channel
+    figure.add_trace(go.Scatter(
+        x=timestamps,
+        y=sigmas,
+        mode='markers',
+        marker=dict(color='black', size=2.5)  
+    ), row=row, col=col)
+
+def plot_grid_sigma_vs_ts(wfset: WaveformSet,                
+                          apa: int = -1, 
+                          ch: Union[int, list] = -1,
+                          nwfs: int = -1,
+                          op: str = '',
+                          tmin: int = -1,
+                          tmax: int = -1,
+                          rec: list = [-1]):
+
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtain the endpoints from the APA
+    eps = get_endpoints(apa)
+    
+    # Select the waveforms in a specific time interval of the DAQ window
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtain the channels grid
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Plot a specific function in the APA grid: plot_sigma_vs_ts_function
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_sigma_vs_ts_function(
+            channel_ws, idx, figure_, row, col, total_rows, total_cols
+        ),
+        x_axis_title='Timestamp',  
+        y_axis_title='Sigma',  
+        figure_title=f'Sigma vs timestamp for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True,
+        show_ticks_only_on_edges=True
+)
+    write_image(fig, 800, 1200)
+    
+    
+# --------------- Sigma histograms in an APA grid --------------
+
+def plot_sigma_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+
+    # Compute the sigmas
+    sigmas = [np.std(wf.adcs) for wf in channel_ws.waveforms]
+
+    if not sigmas:
+        print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
+        return
+
+    # Generate the histogram
+    histogram = get_histogram(sigmas, nbins,line_width=0.5)
+
+    # Add the histogram to the corresponding channel
+    figure.add_trace(histogram, row=row, col=col)
+    
+def plot_grid_sigma(wfset: WaveformSet,                
+                    apa: int = -1, 
+                    ch: Union[int, list] = -1,
+                    nbins: int = 100,
+                    nwfs: int = -1,
+                    op: str = '',
+                    tmin: int = -1,
+                    tmax: int = -1,
+                    rec: list = [-1]):
+
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtain the endpoints from the APA
+    eps = get_endpoints(apa)
+    
+    # Select the waveforms in a specific time interval of the DAQ window
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtain the channels grid
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Plot a specific function in the APA grid: plot_sigma_function
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_sigma_function(
+            channel_ws, idx, figure_, row, col, nbins, total_rows, total_cols
+        ),
+        x_axis_title='Sigma',  
+        y_axis_title='Entries',  
+        figure_title=f'Sigma histograms for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True,
+        show_ticks_only_on_edges=True
 )
     write_image(fig, 800, 1200)
