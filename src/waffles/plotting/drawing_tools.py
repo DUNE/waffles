@@ -864,6 +864,161 @@ def plot_grid_sigma(wfset: WaveformSet,
         show_ticks_only_on_edges=True
 )
     write_image(fig, 800, 1200)
+    
+# ------------------ fft from manuel ---------------
+    
+def fft(
+    channel_ws,idx,dt, figure, row, col, total_rows, total_cols):
+    """
+    Computes the FFT of a waveform and optionally plots it.
+
+    Parameters
+    ----------
+    wf : np.ndarray
+        The waveform signal to transform.
+    dt : float, optional
+        Time step between samples (default is 16e-9 s).
+    plot : bool, optional
+        If True, plots the FFT using Plotly.
+    figure : go.Figure, optional
+        If provided, the FFT plot will be added to this figure.
+    row : int, optional
+        Row index for subplot placement (used with figure).
+    col : int, optional
+        Column index for subplot placement (used with figure).
+    """
+    dt=16e-9
+    np.seterr(divide='ignore')  # Ignore division warnings
+    freqAxisPos_list=[]
+    sigFFTPos_list=[]
+    
+    for wf in channel_ws:
+        if wf.shape[0] % 2 != 0:
+            warnings.warn("Signal preferred to be even in size, auto-fixing it...")
+            wf = wf[:-1]
+
+        t = np.arange(0, wf.shape[0]) * dt
+        sigFFT = np.fft.fft(wf.adcs) / wf.shape[0]
+        freq = np.fft.fftfreq(wf.shape[0], d=dt)
+
+        firstNegInd = np.argmax(freq < 0)
+        freqAxisPos = freq[:firstNegInd]
+        sigFFTPos = 20 * np.log10(2 * np.abs(sigFFT[:firstNegInd]) / 2**14)  # Convert to dB scale
+        freqAxisPos_list.append(sigFFTPos)
+        sigFFTPos_list.append(sigFFTPos)
+        
+        # Add FFT plot to the figure
+    figure.add_trace(go.Scatter(
+        x=freqAxisPos / 1e5,  # Convert to MHz
+        y=sigFFTPos,
+        mode='lines',
+        line=dict(color='black', width=1.5),
+        name="FFT"
+        ), row=row, col=col)
+
+
+def mean_fft(data, label, figure, row, col, total_rows, total_cols):
+    """
+    Calcula la media de las FFTs de una lista de señales y la grafica en un objeto Plotly Figure.
+
+    Parámetros
+    ----------
+    data : list o np.ndarray
+        Lista de waveforms a procesar.
+    label : str
+        Etiqueta para la gráfica.
+    figure : plotly.graph_objects.Figure
+        Figura en la que se añadirá el gráfico.
+    row : int
+        Fila del subplot donde se añadirá la gráfica.
+    col : int
+        Columna del subplot donde se añadirá la gráfica.
+    total_rows : int
+        Número total de filas en la figura.
+    total_cols : int
+        Número total de columnas en la figura.
+
+    Retorna
+    -------
+    x : np.ndarray
+        Eje de frecuencia promedio.
+    y : np.ndarray
+        Magnitud promedio de la FFT.
+    stdx : float
+        Desviación estándar media de las señales.
+    """
+
+    np.seterr(divide='ignore')
+
+    fft_list_x = []
+    fft_list_y = []
+    std_list = []
+
+    for k in range(len(data)):
+        fft_x = fft(data[k]).x  # Usa la función fft()
+        fft_y = fft(data[k]).y  
+        fft_list_x.append(fft_x)
+        fft_list_y.append(fft_y)
+        std_list.append(np.std(data[k], axis=0))
+
+    x = np.mean(fft_list_x, axis=0)
+    y = np.mean(fft_list_y, axis=0)
+    stdx = np.round(np.mean(std_list, axis=0), 3)
+
+    # Añadir la gráfica a la figura en la posición correspondiente
+    figure.add_trace(go.Scatter(
+        x=x,
+        y=y,
+        mode='lines',
+        name=f'{label} (rms={np.round(stdx, 2)})'
+    ), row=row, col=col)
+
+def plot_grid_fft(wfset: WaveformSet,                
+                    apa: int = -1, 
+                    ch: Union[int, list] = -1,
+                    nwfs: int = -1,
+                    op: str = '',
+                    tmin: int = -1,
+                    tmax: int = -1,
+                    rec: list = [-1]):
+
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtain the endpoints from the APA
+    eps = get_endpoints(apa)
+    
+    # Select the waveforms in a specific time interval of the DAQ window
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtain the channels grid
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Plot a specific function in the APA grid: plot_sigma_function
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col: fft(
+            channel_ws, idx, figure_, row, col, total_rows, total_cols
+        ),
+        x_axis_title='Frequency',  
+        y_axis_title='fft',  
+        figure_title=f'Fft plots for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True,
+        show_ticks_only_on_edges=True
+)
+    write_image(fig, 800, 1200)
 
 
 
