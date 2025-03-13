@@ -32,6 +32,7 @@ from scipy import signal
 from scipy.fft import fft, fftshift
 import pickle
 from typing import Union
+from typing import Callable
 
 # Global plotting settings
 line_color = 'black'
