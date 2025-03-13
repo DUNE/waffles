@@ -20,7 +20,7 @@ draw.plot_grid_histogram(wset,func,apa=2,tmin=-1000,tmax=1000)
 draw.plot_function_grid(wset, apa=2,tmin=-1000,tmax=1000,  plot_function=draw.plot_sigma_vs_ts_function)
 input()
 
-# ----------- Sigma histograms -----------
+# ----------- Sigma  -----------
 draw.plot_function_grid(wset, apa=2,tmin=-1000,tmax=1000,  plot_function=draw.plot_sigma_function)
 
 input()
@@ -28,14 +28,14 @@ def func(wf: Waveform): return np.std(wf.adcs);
 draw.plot_grid_histogram(wset,func,apa=2,tmin=-1000,tmax=1000)
 
 
-# ----------- Amplitude histograms -----------
+# ----------- Amplitude  -----------
 
 input()
 def func(wf: Waveform): return min(wf.adcs);
 draw.plot_grid_histogram(wset,func,apa=2,tmin=-1000,tmax=1000,xmin=1,xmax=10000)
 
 
-# ----------- number of bins with 0 histograms -----------
+# ----------- number of bins with 0 adcs  -----------
 
 input()
 def func(wf: Waveform):
