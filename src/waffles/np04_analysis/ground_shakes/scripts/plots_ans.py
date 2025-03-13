@@ -1,9 +1,10 @@
 import waffles.plotting.drawing_tools as draw
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.Waveform import Waveform
 from waffles.np04_data.ProtoDUNE_HD_APA_maps_APA1_104 import APA_map as APA_map_2
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
-
+import numpy as np
 
 wset1 = draw.read("../data/wfset_5_apas_30201.hdf5",0,1)
 #wset2 = draw.read("wfset_5_apas_30202.hdf5",0,1)
@@ -23,7 +24,7 @@ wset1 = draw.read("../data/wfset_5_apas_30201.hdf5",0,1)
     
 
 # plot many events superimposed for APA2
-#draw.plot_grid(wset1,2,-1,rec=range(1,60),tmin=-1000,tmax=500,offset=True)
+#draw.plot_grid(wset1,2,-1,rec=range(1,60),tmin=t-1000,tmax=500,offset=True)
 
 #draw.plot_grid(wset1,1,-1,rec=range(1,20),tmin=-1000,tmax=500,offset=True)
 #input()
@@ -38,95 +39,134 @@ wset1 = draw.read("../data/wfset_5_apas_30201.hdf5",0,1)
 #input()
 
 
+# Example of using custom grid histogram provided a Waveform quantity 
+def func(wf: Waveform): return np.std(wf.adcs);
+draw.plot_grid_histogram(wset1,func,1)
 
+
+input()
+
+
+draw.nrows=10
+draw.ncols=4
+
+for row in range(0,10):
+    for col in range (0,4):
+        draw.current_row=row+1; draw.current_col=col+1
+        channel = APA_map_2[2].data[row][col].channel
+        if row==0 and col==0:
+            draw.plot(wset1,109,channel,rec=range(1,40),tmin=-200000,tmax=-1500,offset=True)
+        else:
+            draw.plot(wset1,109,channel,rec=range(1,40),tmin=-200000,tmax=-1500,offset=True,op="same")            
+
+input()
+
+nwfs=20
+
+draw.nrows=4
+draw.ncols=2
+
+draw.current_row=1
+draw.current_col=1
 
 draw.line_color='black'
-draw.plot(wset1,104,24,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True)
+draw.plot(wset1,104,24,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True)
 draw.line_color='red'
-draw.plot(wset1,104,2,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
+draw.plot(wset1,104,2,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 draw.line_color='green'
-draw.plot(wset1,104,14,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
-input()
+draw.plot(wset1,104,14,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 
+
+draw.current_row=1
+draw.current_col=2
 
 draw.line_color='black'
-draw.plot(wset1,104,24,rec=range(1,40),tmin=-1500,tmax=3000,offset=True)
-input()
+draw.plot(wset1,104,24,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
 draw.line_color='red'
-draw.plot(wset1,104,2,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
-input()
+draw.plot(wset1,104,2,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
 draw.line_color='green'
-draw.plot(wset1,104,14,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
-input()
+draw.plot(wset1,104,14,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
+
 
 ############
+draw.current_row=2
+draw.current_col=1
+
 
 draw.line_color='black'
-draw.plot(wset1,104,23,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True)
+draw.plot(wset1,104,23,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 draw.line_color='red'
-draw.plot(wset1,104,5,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
+draw.plot(wset1,104,5,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 draw.line_color='green'
-draw.plot(wset1,104,13,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
+draw.plot(wset1,104,13,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 
-input()
+
+
+draw.current_row=2
+draw.current_col=2
+
 
 draw.line_color='black'
-draw.plot(wset1,104,23,rec=range(1,40),tmin=-1500,tmax=3000,offset=True)
-input()
+draw.plot(wset1,104,23,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
 draw.line_color='red'
-draw.plot(wset1,104,5,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
-input()
+draw.plot(wset1,104,5,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
 draw.line_color='green'
-draw.plot(wset1,104,13,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
-input()
+draw.plot(wset1,104,13,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
+
 
 ####################
 
-draw.line_color='black'
-draw.plot(wset1,104,26,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True)
-draw.line_color='red'
-draw.plot(wset1,104,0,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
-draw.line_color='green'
-draw.plot(wset1,104,16,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
-
-input()
+draw.current_row=3
+draw.current_col=1
 
 draw.line_color='black'
-draw.plot(wset1,104,26,rec=range(1,40),tmin=-1500,tmax=3000,offset=True)
-input()
+draw.plot(wset1,104,26,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 draw.line_color='red'
-draw.plot(wset1,104,0,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
-input()
+draw.plot(wset1,104,0,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 draw.line_color='green'
-draw.plot(wset1,104,16,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
-input()
+draw.plot(wset1,104,16,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
+
+
+
+draw.current_row=3
+draw.current_col=2
+
+draw.line_color='black'
+draw.plot(wset1,104,26,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
+draw.line_color='red'
+draw.plot(wset1,104,0,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
+draw.line_color='green'
+draw.plot(wset1,104,16,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
+
 
 
 ##################################
 
-input
-draw.line_color='black'
-draw.plot(wset1,104,21,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True)
-draw.line_color='red'
-draw.plot(wset1,104,7,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
-draw.line_color='green'
-draw.plot(wset1,104,47,rec=range(1,40),tmin=-20000,tmax=-1500,offset=True,op='same')
+draw.current_row=4
+draw.current_col=1
 
-
-input()
 
 draw.line_color='black'
-draw.plot(wset1,104,21,rec=range(1,40),tmin=-1500,tmax=3000,offset=True)
-input()
+draw.plot(wset1,104,21,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 draw.line_color='red'
-draw.plot(wset1,104,7,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
-input()
+draw.plot(wset1,104,7,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
 draw.line_color='green'
-draw.plot(wset1,104,47,rec=range(1,40),tmin=-1500,tmax=3000,offset=True,op='same')
+draw.plot(wset1,104,47,rec=range(1,nwfs),tmin=-20000,tmax=-1500,offset=True,op='same')
+
+
+draw.current_row=4
+draw.current_col=2
+
+draw.line_color='black'
+draw.plot(wset1,104,21,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
+draw.line_color='red'
+draw.plot(wset1,104,7,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
+draw.line_color='green'
+draw.plot(wset1,104,47,rec=range(1,nwfs),tmin=-1500,tmax=3000,offset=True,op='same')
 
 ###############################
 
-draw.line_color='green'
+draw.line_color='black'
 
 input()
 

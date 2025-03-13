@@ -437,7 +437,6 @@ def get_histogram(values: list,
     # Create the histogram
     counts, edges = np.histogram(values, bins=nbins, range=domain)
     
-
     histogram_trace = go.Scatter(
         x=edges[:-1],  
         y=counts,
@@ -450,3 +449,15 @@ def get_histogram(values: list,
     )
     
     return histogram_trace
+
+
+##########################
+def create_figure(rows: int=1,
+                  cols: int=1):
+
+    if rows==1 and cols==1:
+        fig = go.Figure()
+    else:
+        fig = psu.make_subplots(rows=rows, cols=cols)
+
+    return fig
