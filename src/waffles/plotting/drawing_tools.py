@@ -1,5 +1,6 @@
 from waffles.plotting.drawing_tools_utils import *
 from typing import Union
+from plotly import subplots as psu
 
 # Global plotting settings
 fig = go.Figure()
@@ -7,6 +8,10 @@ html_file_path = 'temp_plot.html'
 png_file_path = 'temp_plot.png'
 plotting_mode='html'
 line_color = 'black'
+ncols=1
+nrows=1
+current_col=None
+current_row=None
 
 templates = []
 
@@ -65,8 +70,8 @@ def plot_wfs(wfs: list,
     
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()
-
+        fig=create_figure(nrows,ncols)
+        
     # get all waveforms in the specified endpoint, channels,  time offset range and record
     selected_wfs= get_wfs(wfs,[ep],ch,nwfs,tmin,tmax,rec)
 
@@ -121,7 +126,8 @@ def plot_wf( waveform_adcs : WaveformAdcs,
                            )
     # name = names)
 
-    figure.add_trace(wf_trace)
+    figure.add_trace(wf_trace,current_row,current_col)
+
 
     
 ###########################
@@ -129,10 +135,12 @@ def plot_grid(wfset: WaveformSet,
               apa: int = -1, 
               ch: Union[int, list]=-1,
               nwfs: int = -1,
-              xmin: int = -1,
-              xmax: int = -1,
               tmin: int = -1,
               tmax: int = -1,
+              xmin: int = -1,
+              xmax: int = -1,
+              ymin: int = -1,
+              ymax: int = -1,
               offset: bool = False,
               rec: list = [-1],
               mode: str = 'overlay'):
@@ -153,8 +161,16 @@ def plot_grid(wfset: WaveformSet,
     grid = get_grid(selected_wfs,apa,run)
 
     # plot the grid
-    fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000,mode=mode)
+    global fig
+    fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000,mode=mode,offset=offset)
 
+    if xmin != -1 and xmax != -1:
+        fig.update_xaxes(range = [xmin,xmax])
+
+    
+    if ymin != -1 and ymax != -1:
+        fig.update_yaxes(range = [ymin,ymax])
+    
     write_image(fig,800,1200)
 
     
@@ -172,7 +188,7 @@ def plot_evt_nch(events: List[Event],
     
     global fig
     if not has_option(op, 'same'):
-        fig = go.Figure()
+        fig = create_figure()
     
     # get number of channels with wfs 
     nchs = [ev.get_nchannels() for ev in events]
@@ -195,7 +211,7 @@ def plot_evt_time(events: List[Event], type: str = 'ref',
     
     global fig
     if not has_option(op, 'same'):
-        fig = go.Figure()
+        fig = create_figure()
     
     # get number of channels with wfs 
     if type == 'ref':
@@ -227,7 +243,7 @@ def plot_to(wset: WaveformSet,
     
     global fig
     if not has_option(op, 'same'):
-        fig = go.Figure()
+        fig = create_figure()
 
         
     # get the time offset for all wfs in the specific ep and channel
@@ -264,7 +280,7 @@ def plot_hm(object,
     
     global fig
     if not has_option(op, 'same'):
-        fig = go.Figure()
+        fig = create_figure()
 
     # get all wfs in a specific ep and channel
     wset = get_wfs_in_channel(object, ep, ch)
@@ -296,7 +312,7 @@ def plot_charge(wset: WaveformSet,
 
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()
+        fig=create_figure()
 
     chist = compute_charge_histogram(wset,ep,ch,int_ll,int_ul,nb,hl,hu,b_ll,b_ul,nwfs,variable,op+' print')
 
@@ -318,7 +334,7 @@ def plot_charge_peaks(calibh: CalibrationHistogram,
 
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()
+        fig=create_figure()
 
     # find and fit
     compute_peaks(calibh,npeaks,prominence,half_points_to_fit,op)
@@ -339,7 +355,7 @@ def plot_avg(wset: WaveformSet,
 
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()
+        fig=create_figure()
 
     # get wfs in specific channel
     wset2 = get_wfs_in_channel(wset,ep,ch)
@@ -396,7 +412,7 @@ def plot_chist_param_vs_var(wset_map,
        
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()    
+        fig=create_figure()    
 
     par_values = []
     var_values = []
@@ -437,7 +453,7 @@ def plot_param_vs_channel(wset: WaveformSet,
        
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()    
+        fig=create_figure()    
 
     ch_values = []
     par_values = []
@@ -482,7 +498,7 @@ def plot_integral_vs_amplitude(wset: WaveformSet,
        
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()    
+        fig=create_figure()    
 
     # get the waveforms in the specific ep and ch
     wset2 = get_wfs_in_channel(wset,ep,ch)
@@ -517,7 +533,7 @@ def plot_fft(w: Waveform, xmin: int = -1, xmax: int =-1, op: str=''):
 
     global fig
     if not has_option(op,'same'):
-        fig=go.Figure()
+        fig=create_figure()
 
     
     w_fft = np.abs((np.fft.fft(w.adcs)).real)
@@ -596,6 +612,79 @@ def write_image(fig: go.Figure, width=None, height=None) -> None:
     else:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
         
+
+###########################
+def plot_grid_histogram(wfset: WaveformSet,          
+                        wf_func: Callable, 
+                        apa: int = -1,                          
+                        ch: Union[int, list] = -1,
+                        nbins: int = 100,
+                        nwfs: int = -1,
+                        op: str = '',
+                        xmin: np.int64 = None,
+                        xmax: np.int64 = None,
+                        tmin: int = -1,
+                        tmax: int = -1,
+                        rec: list = [-1]):
+    """
+    Plot a WaveformSet in grid mode, generating a histogram per channel.
+    """
+    global fig
+    if not has_option(op, 'same'):
+        fig = create_figure()
+        
+    # Obtener los endpoints para el APA
+    eps = get_endpoints(apa)
+    
+    # Obtener solo las waveforms que cumplen las condiciones
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    # Si no hay waveforms, detener la ejecución
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtener la cuadrícula de canales
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    # Pasar la función correcta para graficar histogramas, con filtrado por canal
+    fig = plot_CustomChannelGrid(
+        grid,
+        plot_function=lambda channel_wfs, idx, figure_, row, col, func, *args, **kwargs: plot_histogram_function_user(
+            wf_func,channel_wfs, idx, figure_, row, col, nbins, xmin, xmax),
+        x_axis_title='Time offset',  # Se configura después en función de la posición
+        y_axis_title='Entries',  # Se configura después en función de la posición
+        figure_title=f'Time offset histogram for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True,
+        wf_func=wf_func
+
+    )
+    write_image(fig, 800, 1200)
+
+###########################    
+def plot_histogram_function_user(wf_func: Callable, channel_ws, idx, figure, row, col, nbins, xmin, xmax):
+    """
+    Función para generar el histograma de un canal específico.
+    """
+    # Extraer los tiempos de las waveforms del canal específico
+    values = [wf_func(wf) for wf in channel_ws.waveforms]
+    
+    # Si no hay datos, no graficar nada
+    if not values:
+        print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
+        return
+
+    # Generar el histograma
+    histogram = get_histogram(values, nbins, xmin, xmax, line_width=0.5)
+
+    # Añadir el histograma al subplot correspondiente
+    figure.add_trace(histogram, row=row, col=col)
+
+
 ############################
 def plot_to_interval(wset, 
                      apa: Union[int, list] = -1, 
@@ -661,7 +750,6 @@ def plot_to_interval(wset,
 
     
 ###########################
-
 
 #-------------- Time offset histograms -----------
 
@@ -774,7 +862,8 @@ def plot_function_grid(wfset: WaveformSet,
                     figure_title: str = None,
                     share_x_scale=True,
                     share_y_scale=True,
-                    show_ticks_only_on_edges=True):  
+                       show_ticks_only_on_edges=True,
+                    func: Callable=None):  
 
     global fig
     if not has_option(op, 'same'):
@@ -808,7 +897,7 @@ def plot_function_grid(wfset: WaveformSet,
     # Plot using the provided function
     fig= plot_CustomChannelGrid(
         grid, 
-        plot_function=lambda channel_ws, idx, figure_, row, col: plot_function(
+        plot_function=lambda channel_ws, idx, figure_, row, col, func: plot_function(
             channel_ws, apa, idx, figure_, row, col, nbins),
         x_axis_title=x_axis_title,  
         y_axis_title=y_axis_title,  
@@ -820,3 +909,7 @@ def plot_function_grid(wfset: WaveformSet,
 
     # Return the final figure and axis titles
     write_image(fig, 800, 1200)
+
+
+    
+

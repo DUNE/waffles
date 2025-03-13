@@ -31,7 +31,8 @@ def plot_WaveformAdcs(
     show_spotted_peaks: bool = True,
     show_peaks_integration_limits: bool = False,
     analysis_label: Optional[str] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    offset: bool = False
 ) -> None:
     """This function plots the given WaveformAdcs object
     in the given figure.
@@ -142,8 +143,14 @@ def plot_WaveformAdcs(
     ## the caller define it, so as not to recompute
     ## this array for each waveform.
 
+    if offset:
+        delta_t = np.float32(np.int64(waveform_adcs.timestamp)-np.int64(waveform_adcs.daq_window_timestamp)),
+    else:
+        delta_t = 0
+    
     wf_trace = pgo.Scatter( 
-        x=x + waveform_adcs.time_offset,
+        #x=x + waveform_adcs.time_offset,
+        x=x + delta_t,
         y=waveform_adcs.adcs,
         mode='lines',
         line=dict(
@@ -395,6 +402,7 @@ def plot_WaveformSet(
     adc_range_below_baseline: int = 200,
     detailed_label: bool = True,
     verbose: bool = False,
+    offset: bool=False,
     **kwargs
 ) -> pgo.Figure: 
     """This function returns a plotly.graph_objects.Figure 
@@ -752,7 +760,8 @@ def plot_WaveformSet(
                             show_peaks_integration_limits,
                             analysis_label=
                             analysis_label,
-                            verbose=verbose)
+                            verbose=verbose,
+                            offset = offset)
                 else:
                     wpu.__add_no_data_annotation(
                         figure_,
@@ -825,7 +834,8 @@ def plot_WaveformSet(
                     show_peaks_integration_limits,
                     analysis_label=
                     analysis_label if (plot_analysis_markers and fAnalyzed) else None,
-                    verbose=verbose)
+                    verbose=verbose,
+                    offset = offset)
                 
     elif mode == 'heatmap':
 
@@ -1051,6 +1061,7 @@ def plot_ChannelWsGrid(
     plot_event: bool = False,
     event_id: Optional[int] = 0,
     verbose: bool = True,
+    offset: bool=False,    
     **kwargs
 ) -> pgo.Figure:
     """This function returns a plotly.graph_objects.Figure 
@@ -1428,7 +1439,9 @@ def plot_ChannelWsGrid(
                         analysis_label=
                         analysis_label,
                         verbose=
-                        verbose)
+                        verbose,
+                        offset = offset
+                    )
                     
     elif mode == 'average':
         for i in range(channel_ws_grid.ch_map.rows):
@@ -1501,7 +1514,8 @@ def plot_ChannelWsGrid(
                     show_peaks_integration_limits,
                     analysis_label=
                     analysis_label if (plot_analysis_markers and fAnalyzed) else None,
-                    verbose=verbose)
+                    verbose=verbose,
+                    offset = offset)
                 
     elif mode == 'heatmap':
 
@@ -1645,7 +1659,6 @@ def plot_ChannelWsGrid(
     
     return figure_
 
-
 def plot_CustomChannelGrid(
     channel_ws_grid: ChannelWsGrid,
     plot_function: Callable,
@@ -1656,7 +1669,8 @@ def plot_CustomChannelGrid(
     x_axis_title: Optional[str] = None,
     y_axis_title: Optional[str] = None,
     figure_title: Optional[str] = None,
-    show_ticks_only_on_edges: bool = False  # Nuevo parámetro
+    show_ticks_only_on_edges: bool = False,  # Nuevo parámetro
+    wf_func: Callable=None,
 ) -> pgo.Figure:
     
     """This function returns a plotly.graph_objects.Figure 
@@ -1752,7 +1766,7 @@ def plot_CustomChannelGrid(
 
             # Aplicar la función definida por el usuario a cada canal
             for idx in aux_idcs:
-                plot_function(channel_ws, idx, figure_, i + 1, j + 1)
+                plot_function(channel_ws, idx, figure_, i + 1, j + 1, wf_func)
 
             # Configurar los ejes según la opción de mostrar ticks solo en los bordes
             if show_ticks_only_on_edges:
@@ -1773,4 +1787,3 @@ def plot_CustomChannelGrid(
                     figure_.update_yaxes(title_text=y_axis_title, row=i + 1, col=j + 1)
 
     return figure_
-
