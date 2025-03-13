@@ -1,4 +1,5 @@
 from waffles.np04_analysis.ground_shakes_studies.imports import *
+import matplotlib.pyplot as plt
 
 class Analysis1(WafflesAnalysis):
 

@@ -1,5 +1,6 @@
 from waffles.plotting.drawing_tools_utils import *
 from typing import Union
+import warnings
 
 # Global plotting settings
 fig = go.Figure()
@@ -512,46 +513,40 @@ def plot_integral_vs_amplitude(wset: WaveformSet,
 
 
     ###########################        
-def plot_fft(w: Waveform, xmin: int = -1, xmax: int =-1, op: str=''):
-
-
+def plot_fft(wf: Waveform, dt: int=16e-9,  op: str=''):
+    sig=wf.adcs
     global fig
     if not has_option(op,'same'):
         fig=go.Figure()
 
-    
-    w_fft = np.abs((np.fft.fft(w.adcs)).real)
-
-
-    if xmin!=-1 and xmax!=-1:
-        x0 = np.arange(  xmin, xmax,
-                        dtype = np.float32)*16
-        y0 = w_fft[xmin:xmax]    
+    np.seterr(divide = 'ignore')
+    if dt is None:
+        dt = 1
+        t = np.arange(0, sig.shape[-1])
     else:
-        x0 = np.arange(  len(w_fft),
-                        dtype = np.float32)*16
-        y0 = w_fft
-
-
-    freq = np.fft.fftfreq(x0.shape[-1])
+        t = np.arange(0, sig.shape[-1]) * dt
+    if sig.shape[0] % 2 != 0:
+        warnings.warn("signal preferred to be even in size, autoFixing it...")
+        t = t[:-1]
+        sig = sig[:-1]
+    sigFFT = np.fft.fft(sig) / t.shape[0]
+    freq = np.fft.fftfreq(t.shape[0], d=dt)
+    firstNegInd = np.argmax(freq < 0)
+    freqAxisPos = freq[:firstNegInd]
+    sigFFTPos = 2 * sigFFT[:firstNegInd]
     
-    wf_trace = pgo.Scatter( x = freq,
-                            y = y0,
+    wf_trace = pgo.Scatter( x =  freqAxisPos /1e6,
+                            y = 20*np.log10(np.abs(sigFFTPos)/2**14),
                             mode = 'lines',
                             line=dict(color=line_color, width=0.5))
-                            #name = names)
-
                             
     fig.add_trace(   wf_trace,
                      row = None,
                      col = None)
 
+    fig.update_layout(xaxis_title="freq [Hz]", yaxis_title="samples",xaxis_type='log')
 
-        # add axes titles
-    fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
-
-    write_image(fig)     
-
+    write_image(fig)   
 
 ###########################        
 def deconv_wf(w: Waveform, template: Waveform) -> Waveform:
@@ -596,26 +591,26 @@ def write_image(fig: go.Figure, width=None, height=None) -> None:
     else:
         print(f"Unknown plotting mode '{plotting_mode}', should be 'png' or 'html'!")
         
-############################
+        
+#---------- Time offset histogram for [1,2,3,4] APAs ---------
+
 def plot_to_interval(wset, 
-                     apa: Union[int, list] = -1, 
+                     apas: Union[int, list] = -1, 
                      ch: Union[int, list] = -1, 
                      nwfs: int = -1, 
                      op: str = '', 
                      nbins: int = 125, 
                      tmin: int = None, 
                      tmax: int = None, 
-                     xmin: np.uint64 = None, 
-                     xmax: np.uint64 = None, 
                      rec: list = [-1]):
     global fig
     if not has_option(op, 'same'):
         fig = go.Figure()
 
-    if isinstance(apa, list):
-        eps_list = [get_endpoints(apa_value) for apa_value in apa]
+    if isinstance(apas, list):
+        eps_list = [get_endpoints(apa) for apa in apas]
     else:
-        eps_list = [get_endpoints(apa)]
+        eps_list = [get_endpoints(apas)]
 
     colors = ['blue', 'green', 'red', 'purple', 'orange']
 
@@ -632,10 +627,10 @@ def plot_to_interval(wset,
         ]
 
         color = colors[idx % len(colors)]
-        histogram_trace = get_histogram(times, nbins, xmin, xmax, color)
-        histogram_trace.name = f"APA {apa[idx] if isinstance(apa, list) else apa}"
+        histogram_trace = get_histogram(times, nbins, color)
+        histogram_trace.name = f"APA {apas[idx] if isinstance(apas, list) else apas}"
         
-        print(f"\nAPA {apa[idx] if isinstance(apa, list) else apa}: {len(selected_wfs)} waveforms ")
+        print(f"\nAPA {apas[idx] if isinstance(apas, list) else apas}: {len(selected_wfs)} waveforms ")
         
         fig.add_trace(histogram_trace)
 
@@ -660,24 +655,21 @@ def plot_to_interval(wset,
     write_image(fig)
 
     
-###########################
+#-------------- Time offset histograms in an APA grid -----------
 
-def plot_histogram_function(channel_ws, idx, figure, row, col, nbins, xmin, xmax, total_rows, total_cols):
-    """
-    Función para generar el histograma de un canal específico.
-    """
-    # Extraer los tiempos de las waveforms del canal específico
+def plot_to_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+
+    # Compute the time offset
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
 
-    # Si no hay datos, no graficar nada
     if not times:
         print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
         return
 
-    # Generar el histograma
-    histogram = get_histogram(times, nbins, xmin, xmax, line_width=0.5)
+    # Generaate the histogram
+    histogram = get_histogram(times, nbins, line_width=0.5)
 
-    # Añadir el histograma al subplot correspondiente
+    # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
 
 
@@ -687,49 +679,293 @@ def plot_grid_to_interval(wfset: WaveformSet,
                           nbins: int = 100,
                           nwfs: int = -1,
                           op: str = '',
-                          xmin: np.uint64 = None,
-                          xmax: np.uint64 = None,
                           tmin: int = -1,
                           tmax: int = -1,
                           rec: list = [-1]):
-    """
-    Plot a WaveformSet in grid mode, generating a histogram per channel.
-    """
     global fig
     if not has_option(op, 'same'):
         fig = go.Figure()
         
-    # Obtener los endpoints para el APA
+    # Obtain the endpoints from the APA
     eps = get_endpoints(apa)
     
-    # Obtener solo las waveforms que cumplen las condiciones
+    # Select the waveforms in a specific time interval of the DAQ window
     selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
     
     print(f"Number of selected waveforms: {len(selected_wfs)}")
 
-    # Si no hay waveforms, detener la ejecución
     if not selected_wfs:
         print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
         return  
 
-    # Obtener la cuadrícula de canales
+    # Obtain the channels grid
     run = wfset.waveforms[0].run_number
     grid = get_grid(selected_wfs, apa, run)
 
-    # Obtener el tamaño de la cuadrícula
     total_rows = grid.ch_map.rows  
     total_cols = grid.ch_map.columns  
 
-    # Pasar la función correcta para graficar histogramas, con filtrado por canal
+    # Plot a specific function in the APA grid
     fig = plot_CustomChannelGrid(
         grid, 
-        plot_function=lambda channel_ws, idx, figure_, row, col, *args, **kwargs: plot_histogram_function(
-            channel_ws, idx, figure_, row, col, nbins, xmin, xmax, total_rows, total_cols
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_to_function(
+            channel_ws, idx, figure_, row, col, nbins, total_rows, total_cols
         ),
-        x_axis_title='Time offset',  # Se configura después en función de la posición
-        y_axis_title='Entries',  # Se configura después en función de la posición
-        figure_title=f'Time offset histogram for APA {apa}',
+        x_axis_title='Time offset',  
+        y_axis_title='Entries',  
+        figure_title=f'Time offset histograms for APA {apa}',
         share_x_scale=True,
-        share_y_scale=True
+        share_y_scale=True,
+        show_ticks_only_on_edges=True
 )
+    write_image(fig, 800, 1200)
+    
+
+# --------------- Sigma vs timestamp in an APA grid --------------
+
+def plot_sigma_vs_ts_function(channel_ws, idx, figure, row, col, total_rows, total_cols):
+
+    timestamps = []
+    sigmas = []
+
+    # Iterate over each waveform in the channel
+    for wf in channel_ws.waveforms:
+        # Calculate the timestamp for the waveform
+        timestamp = wf._Waveform__timestamp
+        timestamps.append(timestamp)
+
+        # Calculate the standard deviation (sigma) of the ADC values
+        sigma = np.std(wf.adcs)
+        sigmas.append(sigma)
+
+    # Add the histogram to the corresponding channel
+    figure.add_trace(go.Scatter(
+        x=timestamps,
+        y=sigmas,
+        mode='markers',
+        marker=dict(color='black', size=2.5)  
+    ), row=row, col=col)
+
+def plot_grid_sigma_vs_ts(wfset: WaveformSet,                
+                          apa: int = -1, 
+                          ch: Union[int, list] = -1,
+                          nwfs: int = -1,
+                          op: str = '',
+                          tmin: int = -1,
+                          tmax: int = -1,
+                          rec: list = [-1]):
+
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtain the endpoints from the APA
+    eps = get_endpoints(apa)
+    
+    # Select the waveforms in a specific time interval of the DAQ window
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtain the channels grid
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Plot a specific function in the APA grid: plot_sigma_vs_ts_function
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_sigma_vs_ts_function(
+            channel_ws, idx, figure_, row, col, total_rows, total_cols
+        ),
+        x_axis_title='Timestamp',  
+        y_axis_title='Sigma',  
+        figure_title=f'Sigma vs timestamp for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True,
+        #show_ticks_only_on_edges=True
+)
+    write_image(fig, 800, 1200)
+    
+    
+# --------------- Sigma histograms in an APA grid --------------
+
+def plot_sigma_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+
+    # Compute the sigmas
+    sigmas = [np.std(wf.adcs) for wf in channel_ws.waveforms]
+
+    if not sigmas:
+        print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
+        return
+
+    # Generate the histogram
+    histogram = get_histogram(sigmas, nbins,line_width=0.5)
+
+    # Add the histogram to the corresponding channel
+    figure.add_trace(histogram, row=row, col=col)
+    
+def plot_grid_sigma(wfset: WaveformSet,                
+                    apa: int = -1, 
+                    ch: Union[int, list] = -1,
+                    nbins: int = 100,
+                    nwfs: int = -1,
+                    op: str = '',
+                    tmin: int = -1,
+                    tmax: int = -1,
+                    rec: list = [-1]):
+
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtain the endpoints from the APA
+    eps = get_endpoints(apa)
+    
+    # Select the waveforms in a specific time interval of the DAQ window
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtain the channels grid
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Plot a specific function in the APA grid: plot_sigma_function
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_sigma_function(
+            channel_ws, idx, figure_, row, col, nbins, total_rows, total_cols
+        ),
+        x_axis_title='Sigma',  
+        y_axis_title='Entries',  
+        figure_title=f'Sigma histograms for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True,
+        show_ticks_only_on_edges=True
+)
+    write_image(fig, 800, 1200)
+
+
+
+# --------------- FFT of the waveforms --------------
+def plot_fft_signals(channel_ws, idx, figure, row, col, total_rows, total_cols):
+
+    ffts = []
+    
+    # Iterate over each waveform in the channel
+    for wf in channel_ws.waveforms:
+        # Calculate the FFT for the waveform
+        fft = [np.fft.fft(wf.adcs) for wf in channel_ws.waveforms]
+        ffts.append(fft)
+
+   
+    print(plot_fft_signals) 
+    
+             
+    
+def plot_grid_fft_values(wfset: WaveformSet,                
+                          apa: int = -1, 
+                          ch: Union[int, list] = -1,
+                          nwfs: int = -1,
+                          op: str = '',
+                          tmin: int = -1,
+                          tmax: int = -1,
+                          rec: list = [-1]):
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+        
+    # Obtain the endpoints from the APA
+    eps = get_endpoints(apa)
+    
+    # Select the waveforms in a specific time interval of the DAQ window
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    
+    
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    if not selected_wfs:
+        print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Obtain the channels grid
+    run = wfset.waveforms[0].run_number
+    grid = get_grid(selected_wfs, apa, run)
+
+    total_rows = grid.ch_map.rows  
+    total_cols = grid.ch_map.columns  
+
+    # Plot a specific function in the APA grid: FFT values
+    fig = plot_CustomChannelGrid(
+        grid, 
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_fft_signals(
+            channel_ws, idx, figure_, row, col, total_rows, total_cols
+        ),
+        x_axis_title='Frequency',  
+        y_axis_title='Power',  
+        figure_title=f'FFT of the signals for APA {apa}',
+        share_x_scale=True,
+        share_y_scale=True,
+)
+    write_image(fig, 800, 1200)
+
+def plot_grid_fft(wfset: WaveformSet,                
+                  apa: int = -1, 
+                  ch: Union[int, list] = -1,
+                  nwfs: int = -1,
+                  xmin: int = -1,
+                  xmax: int = -1,
+                  tmin: int = -1,
+                  tmax: int = -1,
+                  rec: list = [-1],
+                  dt: float = 16e-9):  # Sampling interval in seconds
+    """
+    Plot the FFT of a WaveformSet in a grid mode.
+    """
+
+    # Get the endpoints corresponding to the given APA
+    eps = get_endpoints(apa)
+
+    # Get all waveforms in the specified endpoint, channels, time offset range, and record
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+
+    run = wfset.waveforms[0].run_number
+
+    # Compute FFT for each waveform
+    fft_wfs = []
+    for wf in selected_wfs:
+        sig = wf.adcs  # ADC values of the waveform
+        if len(sig) % 2 != 0:
+            sig = sig[:-1]  # Ensure even length for FFT
+
+        sigFFT = np.fft.fft(sig) / len(sig)  # Compute FFT and normalize
+        freq = np.fft.fftfreq(len(sig), d=dt)  # Frequency axis
+        firstNegInd = np.argmax(freq < 0)  # Find first negative frequency
+
+        freqAxisPos = freq[:firstNegInd]  # Only positive frequencies
+        sigFFTPos = 2 * np.abs(sigFFT[:firstNegInd])  # Scale FFT magnitude
+        
+        # Store FFT results in the same structure as the original waveforms
+        fft_wfs.append(Waveform(channel=wf.channel, adcs=sigFFTPos, run_number=wf.run_number))
+
+    # Create the grid layout with FFT data
+    grid = get_grid(fft_wfs, apa, run)
+
+    # Plot the grid with FFT data
+    fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000, mode='overlay')
+
     write_image(fig, 800, 1200)

@@ -164,7 +164,8 @@ class ChannelWsGrid:
         bins_number: Optional[int] = None,
         domain: Optional[np.ndarray] = None,
         variable: Optional[str] = None,
-        analysis_label: Optional[str] = None
+        analysis_label: Optional[str] = None,
+        mode: Optional[str] = None
     ) -> Dict[int, Dict[int, ChannelWs]]:
         """This function returns a dictionary, say output,
         whose keys are endpoint values. The values of
@@ -314,6 +315,7 @@ class ChannelWsGrid:
                     domain=domain,
                     variable=variable,
                     analysis_label=analysis_label)
+
         return output
 
     @staticmethod
