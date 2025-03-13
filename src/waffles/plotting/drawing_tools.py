@@ -660,7 +660,7 @@ def plot_to_interval(wset,
     
     write_image(fig)
 
-    
+'''
 #-------------- Time offset histograms in an APA grid -----------
 
 def plot_to_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
@@ -801,7 +801,7 @@ def plot_grid_sigma_vs_ts(wfset: WaveformSet,
     
     
 # --------------- Sigma histograms in an APA grid --------------
-'''
+
 
 def plot_sigma_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
 
@@ -817,7 +817,8 @@ def plot_sigma_function(channel_ws, idx, figure, row, col, nbins, total_rows, to
 
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
-'''
+
+
 def plot_grid_sigma(wfset: WaveformSet,                
                     apa: int = -1, 
                     ch: Union[int, list] = -1,
@@ -866,27 +867,99 @@ def plot_grid_sigma(wfset: WaveformSet,
 )
     write_image(fig, 800, 1200)
     
-
+'''
 ##################################################################################################
 
-def plot_sigma_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+#-------------- Time offset histograms in an APA grid -----------
+
+def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
+
+    # Compute the time offset
+    times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
+
+    if not times:
+        print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
+        return
+
+    # Generaate the histogram
+    histogram = get_histogram(times, nbins, line_width=0.5)
+
+    # Return the axis titles and figure title along with the figure
+    x_axis_title = "Time offset"
+    y_axis_title = "Entries"
+    figure_title = f"Time offset histograms for APA {apa}"
+    
+    if figure is None:
+        return x_axis_title, y_axis_title, figure_title
+    
+    # Add the histogram to the corresponding channel
+    figure.add_trace(histogram, row=row, col=col)
+    
+    return figure, x_axis_title, y_axis_title, figure_title
+
+
+# --------------- Sigma vs timestamp in an APA grid --------------
+
+def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
+
+    timestamps = []
+    sigmas = []
+
+    # Iterate over each waveform in the channel
+    for wf in channel_ws.waveforms:
+        # Calculate the timestamp for the waveform
+        timestamp = wf._Waveform__timestamp
+        timestamps.append(timestamp)
+
+        # Calculate the standard deviation (sigma) of the ADC values
+        sigma = np.std(wf.adcs)
+        sigmas.append(sigma)
+    
+    # Return the axis titles and figure title along with the figure
+    x_axis_title = "Timestamp"
+    y_axis_title = "Sigma"
+    figure_title = f"Sigma vs timestamp for APA {apa}"
+    
+    if figure is None:
+        return x_axis_title, y_axis_title, figure_title
+    
+    # Add the histogram to the corresponding channel
+    figure.add_trace(go.Scatter(
+        x=timestamps,
+        y=sigmas,
+        mode='markers',
+        marker=dict(color='black', size=2.5)  
+    ), row=row, col=col)
+    
+    return figure, x_axis_title, y_axis_title, figure_title
+
+
+#-------------- Sigma histograms in an APA grid -----------
+ 
+def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
+    
     # Compute the sigmas
+    
     sigmas = [np.std(wf.adcs) for wf in channel_ws.waveforms]
 
     if not sigmas:
         print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
         return None, None, None, None  # Return None if no data
-
+    
+        
     # Generate the histogram
     histogram = get_histogram(sigmas, nbins, line_width=0.5)
-
-    # Add the histogram to the corresponding channel
-    figure.add_trace(histogram, row=row, col=col)
 
     # Return the axis titles and figure title along with the figure
     x_axis_title = "Sigma"
     y_axis_title = "Entries"
-    figure_title = "Sigma histograms for APA"
+    figure_title = f"Sigma histograms for APA {apa}"
+    
+    if figure is None:
+        return x_axis_title, y_axis_title, figure_title
+    
+    # Add the histogram to the corresponding channel
+    figure.add_trace(histogram, row=row, col=col)
     
     return figure, x_axis_title, y_axis_title, figure_title
 
@@ -925,21 +998,22 @@ def plot_function_grid(wfset: WaveformSet,
 
     # Obtain the channels grid
     run = wfset.waveforms[0].run_number
+    
+    # Get the x_axis_title, y_axis_title and figure_title
+    x_axis_title, y_axis_title, figure_title = plot_function(wfset, apa, 0, None, 1, 1, nbins)
+    
     grid = get_grid(selected_wfs, apa, run)
-
-    total_rows = grid.ch_map.rows  
-    total_cols = grid.ch_map.columns  
 
     # Ensure plot_function is provided
     if plot_function is None:
         raise ValueError("plot_function must be provided")
     
+    
     # Plot using the provided function
     fig= plot_CustomChannelGrid(
         grid, 
         plot_function=lambda channel_ws, idx, figure_, row, col: plot_function(
-            channel_ws, idx, figure_, row, col, nbins, total_rows, total_cols
-        ),
+            channel_ws, apa, idx, figure_, row, col, nbins),
         x_axis_title=x_axis_title,  
         y_axis_title=y_axis_title,  
         figure_title=figure_title,

@@ -8,6 +8,7 @@ import numpy as np
 import plotly.graph_objs as go
 from plotly import graph_objects as pgo
 import plotly.io as pio
+from plotly.subplots import make_subplots
 
 import waffles.utils.wf_maps_utils as wmu
 #import waffles.utils.template_utils as tu
