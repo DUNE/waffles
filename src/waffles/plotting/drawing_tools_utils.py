@@ -416,19 +416,17 @@ def has_option(ops: str, op: str):
 ###########################
 def get_histogram(values: list,
                    nbins: int = 100,
-                   xmin: np.uint64 = None,
-                   xmax: np.uint64 = None,
+                   xmin: float = None,
+                   xmax: float = None,
                    line_color: str = 'black',
                    line_width: float = 2):
-    if not values:  # Verificar si la lista está vacía
-        raise ValueError("La secuencia 'values' está vacía, no se puede calcular el histograma.")
+    if not values:  
+        raise ValueError("'values' is empty, the histogram can't be computed.")
     
-    # Calcular los límites del histograma
+    # Histogram limits
     tmin = min(values)
     tmax = max(values)
 
-    print (xmin,xmax,tmin,tmax)
-    
     if xmin is None:
         xmin = tmin - (tmax - tmin) * 0.1
     if xmax is None:
@@ -436,12 +434,12 @@ def get_histogram(values: list,
     
     domain = [xmin, xmax]
     
-    # Crear el histograma
+    # Create the histogram
     counts, edges = np.histogram(values, bins=nbins, range=domain)
     
-    # Crear la traza del histograma
+
     histogram_trace = go.Scatter(
-        x=edges[:-1],  # Los bordes izquierdo de los bins
+        x=edges[:-1],  
         y=counts,
         mode='lines',
         line=dict(

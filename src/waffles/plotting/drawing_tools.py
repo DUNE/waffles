@@ -662,78 +662,133 @@ def plot_to_interval(wset,
     
 ###########################
 
-def plot_histogram_function(channel_ws, idx, figure, row, col, nbins, xmin, xmax, total_rows, total_cols):
-    """
-    Función para generar el histograma de un canal específico.
-    """
-    # Extraer los tiempos de las waveforms del canal específico
+
+#-------------- Time offset histograms -----------
+
+def plot_to_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+
+    # Compute the time offset
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
 
-    # Si no hay datos, no graficar nada
     if not times:
         print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
         return
 
-    # Generar el histograma
-    histogram = get_histogram(times, nbins, xmin, xmax, line_width=0.5)
+    # Generate the histogram
+    histogram = get_histogram(times, nbins, line_width=0.5)
 
-    # Añadir el histograma al subplot correspondiente
+    # Add the histogram to the corresponding channel
+    figure.add_trace(histogram, row=row, col=col)
+    
+
+# --------------- Sigma vs timestamp  --------------
+
+def plot_sigma_vs_ts_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+
+    timestamps = []
+    sigmas = []
+
+    # Iterate over each waveform in the channel
+    for wf in channel_ws.waveforms:
+        # Calculate the timestamp for the waveform
+        timestamp = wf._Waveform__timestamp
+        timestamps.append(timestamp)
+
+        # Calculate the standard deviation (sigma) of the ADC values
+        sigma = np.std(wf.adcs)
+        sigmas.append(sigma)
+
+    # Add the histogram to the corresponding channel
+    figure.add_trace(go.Scatter(
+        x=timestamps,
+        y=sigmas,
+        mode='markers',
+        marker=dict(color='black', size=2.5)  
+    ), row=row, col=col)
+
+    
+# --------------- Sigma histograms  --------------
+
+def plot_sigma_function(channel_ws, idx, figure, row, col, nbins, total_rows, total_cols):
+    # Compute the sigmas
+    sigmas = [np.std(wf.adcs) for wf in channel_ws.waveforms]
+
+    if not sigmas:
+        print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
+        return None, None, None, None  # Return None if no data
+
+    # Generate the histogram
+    histogram = get_histogram(sigmas, nbins, line_width=0.5)
+
+    # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
 
+    # Return the axis titles and figure title along with the figure
+    x_axis_title = "Sigma"
+    y_axis_title = "Entries"
+    figure_title = "Sigma histograms for APA"
+    
+    return figure, x_axis_title, y_axis_title, figure_title
 
-def plot_grid_to_interval(wfset: WaveformSet,                
-                          apa: int = -1, 
-                          ch: Union[int, list] = -1,
-                          nbins: int = 100,
-                          nwfs: int = -1,
-                          op: str = '',
-                          xmin: np.int64 = None,
-                          xmax: np.int64 = None,
-                          tmin: int = -1,
-                          tmax: int = -1,
-                          rec: list = [-1]):
-    """
-    Plot a WaveformSet in grid mode, generating a histogram per channel.
-    """
+# ----------- Plot a specific function in an APA grid ---------
+
+def plot_function_grid(wfset: WaveformSet,                
+                    apa: int = -1, 
+                    ch: Union[int, list] = -1,
+                    nbins: int = 120,
+                    nwfs: int = -1,
+                    op: str = '',
+                    tmin: int = -1,
+                    tmax: int = -1,
+                    rec: list = [-1],
+                    plot_function: Callable = None,
+                    x_axis_title: str = None,
+                    y_axis_title: str = None,
+                    figure_title: str = None,
+                    share_x_scale=True,
+                    share_y_scale=True,
+                    show_ticks_only_on_edges=True):  
+
     global fig
     if not has_option(op, 'same'):
         fig = go.Figure()
         
-    # Obtener los endpoints para el APA
+    # Obtain the endpoints from the APA
     eps = get_endpoints(apa)
     
-    # Obtener solo las waveforms que cumplen las condiciones
+    # Select the waveforms in a specific time interval of the DAQ window
     selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
     
     print(f"Number of selected waveforms: {len(selected_wfs)}")
 
-    # Si no hay waveforms, detener la ejecución
     if not selected_wfs:
         print(f"No waveforms found for APA={apa}, Channel={ch}, Time range=({tmin}, {tmax})")
         return  
 
-    # Obtener la cuadrícula de canales
+    # Obtain the channels grid
     run = wfset.waveforms[0].run_number
     grid = get_grid(selected_wfs, apa, run)
 
-    # Obtener el tamaño de la cuadrícula
     total_rows = grid.ch_map.rows  
     total_cols = grid.ch_map.columns  
 
-    # Pasar la función correcta para graficar histogramas, con filtrado por canal
-    fig = plot_CustomChannelGrid(
+    # Ensure plot_function is provided
+    if plot_function is None:
+        raise ValueError("plot_function must be provided")
+    
+    # Plot using the provided function
+    fig= plot_CustomChannelGrid(
         grid, 
-        plot_function=lambda channel_ws, idx, figure_, row, col, *args, **kwargs: plot_histogram_function(
-            channel_ws, idx, figure_, row, col, nbins, xmin, xmax, total_rows, total_cols
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_function(
+            channel_ws, idx, figure_, row, col, nbins, total_rows, total_cols
         ),
-        x_axis_title='Time offset',  # Se configura después en función de la posición
-        y_axis_title='Entries',  # Se configura después en función de la posición
-        figure_title=f'Time offset histogram for APA {apa}',
-        share_x_scale=True,
-        share_y_scale=True
-)
+        x_axis_title=x_axis_title,  
+        y_axis_title=y_axis_title,  
+        figure_title=figure_title,
+        share_x_scale=share_x_scale,
+        share_y_scale=share_y_scale,
+        show_ticks_only_on_edges=show_ticks_only_on_edges
+    )
+
+    # Return the final figure and axis titles
     write_image(fig, 800, 1200)
-
-
-
-
