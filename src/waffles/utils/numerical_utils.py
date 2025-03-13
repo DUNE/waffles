@@ -368,3 +368,45 @@ def cluster_integers_by_contiguity(
             'The given numpy array must contain at least two elements.'))
 
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
+
+def applyDiscreteFilter(
+    signal: np.ndarray,
+    filterType: str = 'Boxcar',
+    numerator: np.ndarray = np.ones(1),
+    denominator: np.ndarray = np.ones(1),
+    boxcarFilterLength: int = 25,
+) -> np.ndarray:
+
+    if(filterType == 'IIR'):
+        if(len(numerator) > len(denominator)):
+            raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'Length of numerator cannot be larger than the length of the denominator.'))
+        else:
+            filtered_signal = lfilter(numerator, denominator, signal)
+            return filtered_signal
+    elif(filterType == 'FIR'):
+        if(len(numerator) == 0):
+            raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'The numerator must constain at least one value.'))
+        else:
+            filtered_signal = lfilter(numerator, np.ones(1), signal)
+            return filtered_signal
+    elif(filterType == 'Boxcar'):
+         if(boxcarFilterLength <= 0):
+            raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'Boxcar filter size connot be zero or negative.'))
+         else:
+            numerator = np.ones(boxcarFilterLength)/boxcarFilterLength
+            filtered_signal = lfilter(numerator, np.ones(1), signal)
+            return filtered_signal
+    else:
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'Filter type not found'))

@@ -1,0 +1,9 @@
+input_path: ""
+output_path: "output/"
+
+top_level_vgain_configuration_file : "configs/vgain_top_level.csv"
+vgain_channels_file : "configs/vgain_channels.csv"
+rucio_paths_directory: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths"
+
+
+
