@@ -4,7 +4,8 @@ import traceback
 #os.chdir(path)
 #print(os.getcwd())
 #sys.path.append(path)  # Add this line
-from waffles.np04_analysis.led_calibration.configs.calibration_batches.LED_configuration_to_channel import config_to_channels as ch_conf
+#from waffles.np04_analysis.led_calibration.configs.calibration_batches.LED_configuration_to_channel import config_to_channels as ch_conf
+from waffles.np04_analysis.vgain_analysis.configs.LED_map import config_to_channels as ch_conf
 import pandas as pd
 
 def getOvValues(PDE):
@@ -164,26 +165,29 @@ for i in range(len(df_result["run_number"])):
     s = df_result['endpoints'][i]
     lst = [int(x.strip()) for x in s.split(",")]
     channels_list = []
-    for batch_number in range(1,3):
-        for endpoint in lst:
-            print(df_result['endpoints'][i])
-            apa = ep2apa[endpoint]
-            pde = getPDEValues(df_result['PDE'][i])
-            try:
-                LED_conf = (int(df_result['channel_mask'][i]), int(df_result['pulse1_width_ticks'][i]), int(df_result['Pulse_bias_percent_270nm'][i]))
-                vgain_dict = processCableMapSwap(ch_conf[batch_number][apa][pde][LED_conf])
-                for key in vgain_dict.keys():
-                    for ch in vgain_dict[key]:
-                        channels_list.append(ch + key*100)
-                #print(vgain_dict)
-            except Exception as e:
-                # Print the line number where the exception occurred
-                tb = traceback.extract_tb(e.__traceback__)
-                print(f"Exception caught at line {tb[-1].lineno}: {type(e).__name__}: {e}")
-                print(f"Run number: {df_result['run_number'][i]}.")
-                with open("error.log", "a") as f:
-                    f.write(f"Exception caught at line {tb[-1].lineno}: {type(e).__name__}: {e}\n")
-                    f.write(f"Run number: {df_result['run_number'][i]}.\n")
+    #for batch_number in range(1,3):
+    for endpoint in lst:
+        print(df_result['endpoints'][i])
+        apa = ep2apa[endpoint]
+        pde = getPDEValues(df_result['PDE'][i])
+        try:
+            #LED_conf = (int(df_result['channel_mask'][i]), int(df_result['pulse1_width_ticks'][i]), int(df_result['Pulse_bias_percent_270nm'][i]))
+            #vgain_dict = processCableMapSwap(ch_conf[batch_number][apa][pde][LED_conf])
+            #for key in vgain_dict.keys():
+            LED_intensity = int(df_result['Pulse_bias_percent_270nm'][i])
+            ep_ch_list = ch_conf[endpoint][LED_intensity]
+            for ch in ep_ch_list:
+                channels_list.append(ch + endpoint*100)
+            #print(vgain_dict)
+
+        except Exception as e:
+            # Print the line number where the exception occurred
+            tb = traceback.extract_tb(e.__traceback__)
+            print(f"Exception caught at line {tb[-1].lineno}: {type(e).__name__}: {e}")
+            print(f"Run number: {df_result['run_number'][i]}.")
+            with open("error.log", "a") as f:
+                f.write(f"Exception caught at line {tb[-1].lineno}: {type(e).__name__}: {e}\n")
+                f.write(f"Run number: {df_result['run_number'][i]}.\n")
     run_channels.append([df_result['run_number'][i],channels_list])
 df_ = pd.DataFrame(data, columns=columns_top_csv)
 df_ch = pd.DataFrame(run_channels, columns=columns_run_csv)

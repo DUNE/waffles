@@ -1,5 +1,6 @@
 import inspect
-from typing import Optional
+import numpy as np
+from typing import List, Tuple, Optional
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.Waveform import Waveform
@@ -276,30 +277,30 @@ def truncate_waveforms_in_WaveformSet(
 
     return
 
-    def percentileFilter(
-    waves: List[Waveform],
-    percentiles: List[float],
-    filterType: str,
-    binsbase = None, threshold: float = 6, wait: int = 25, baselinestart: int = 0, baselinefinish: int = 112, minimumfrac: float = 1/6. 
+def percentileFilter(
+        waves: List[Waveform],
+        percentiles: List[float],
+        filterType: str,
+        binsbase=None, threshold: float = 6, wait: int = 25, baselinestart: int = 0, baselinefinish: int = 112,
+        minimumfrac: float = 1 / 6.
 ) -> Tuple[List[Waveform], List[bool]]:
-    
-    #First, according to the type of filter, retrieve the vector of parameters:
-    print(type(waves))
+    # First, according to the type of filter, retrieve the vector of parameters:
     wavesSize = len(waves)
     parameterValues = np.zeros(wavesSize);
-    if(filterType == 'RMS'):
+    if (filterType == 'RMS'):
         for i, waveform in enumerate(waves):
             parameterValues[i] = np.sqrt(np.mean(np.square(waveform.adcs)))
-    elif(filterType == 'SBaseline'):
+    elif (filterType == 'SBaseline'):
         from waffles.utils.baseline.baseline import SBaseline
-        baseline_ = SBaseline(binsbase = binsbase, threshold = threshold, wait  = wait, baselinestart = baselinestart, baselinefinish = baselinefinish, minimumfrac = minimumfrac)
+        baseline_ = SBaseline(binsbase=binsbase, threshold=threshold, wait=wait, baselinestart=baselinestart,
+                              baselinefinish=baselinefinish, minimumfrac=minimumfrac)
         for i, waveform in enumerate(waves):
             parameterValues[i] = baseline_.wfset_baseline(waveform)[0]
     else:
         raise Exception(GenerateExceptionMessage(
-        2,
-        'percentileFilter()',
-        f'{filterType} is not a valid filter type. The valid filter types are RMS and Baseline.'))
+            2,
+            'percentileFilter()',
+            f'{filterType} is not a valid filter type. The valid filter types are RMS and Baseline.'))
     percentileValues = np.quantile(parameterValues, percentiles)
     percentileWaveforms = np.array(waves)
 

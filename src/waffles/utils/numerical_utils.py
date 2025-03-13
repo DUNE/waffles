@@ -1,5 +1,6 @@
 import numba
 import numpy as np
+from scipy.signal import lfilter
 from typing import List, Tuple
 
 from waffles.Exceptions import GenerateExceptionMessage
