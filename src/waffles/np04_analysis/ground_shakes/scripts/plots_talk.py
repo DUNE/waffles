@@ -4,8 +4,12 @@ from waffles.data_classes.Waveform import Waveform
 
 
 wset = draw.read("../data/wfset_5_apas_30201.hdf5",0,1)
+#wset2 = draw.read("../data/wfset_5_apas_30202.hdf5",0,1)
+wset2b = draw.read("../data/Run_30202_GS_APA2.hdf5",0,1)
 
-#--------- PrecursorsTime signature -----------
+
+
+#--------- Time signature -----------
 
 # 100 events in APA1
 draw.plot_grid(wset,1,-1,rec=range(1,100),tmin=-1500,tmax=500,xmin=-500,xmax=800,offset=True)
@@ -29,6 +33,11 @@ input()
 # in APA2
 draw.plot_grid(wset,2,rec=range(1,40),xmin=-10000,xmax=-1500,ymin=7500,ymax=9000,offset=True)
 
+#--------- Precursors in second run (with no APA1) -----------
+
+input()
+# in APA2
+draw.plot_grid(wset2b,2,rec=range(1,40),xmin=-10000,xmax=-1500,ymin=7500,ymax=9000,offset=True)
 
 #--------- Correlation of reflections -----------
 
@@ -47,6 +56,12 @@ draw.plot_grid(wset,3,rec=range(1,100),tmin=-1500,tmax=5000,xmin=-1000,xmax=5000
 input()
 # in APA4
 draw.plot_grid(wset,4,rec=range(1,100),tmin=-1500,tmax=5000,xmin=-1000,xmax=5000,offset=True)
+
+#--------- Reflections in second run (with no APA1) -----------
+
+input()
+# in APA2
+draw.plot_grid(wset2,2,rec=range(1,100),tmin=-1500,tmax=5000,xmin=-1000,xmax=5000,offset=True)
 
 
 #--------- single event in APAs 1 and 2 -----------
