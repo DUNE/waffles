@@ -18,11 +18,13 @@ templates = []
 
 ###########################
 def plot(object,                   
-         ep: int = -1, 
+         ep: Union[int, list]=-1, 
          ch: Union[int, list]=-1,
          nwfs: int = -1,
          xmin: int = -1,
          xmax: int = -1,
+         ymin: int = -1,
+         ymax: int = -1,
          tmin: int = -1,
          tmax: int = -1,
          offset: bool = False,
@@ -36,27 +38,29 @@ def plot(object,
     
     # Case when the input object is a Waveform
     if type(object)==Waveform:    
-        plot_wfs(list([object]),ep,ch,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
+        plot_wfs(list([object]),ep,ch,nwfs,xmin,xmax,ymin,ymax,tmin,tmax,offset,rec,op)
     
     # Case when the input object is a WaveformAdcs
     elif type(object)==WaveformAdcs:    
-        plot_wfs(list([object]),-100,-100,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
+        plot_wfs(list([object]),-100,-100,nwfs,xmin,xmax,ymin,ymax,tmin,tmax,offset,rec,op)
     
     # Case when the input object is a list of Waveforms
     elif type(object)==list and type(object[0])==Waveform:
-        plot_wfs(object,ep,ch,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
+        plot_wfs(object,ep,ch,nwfs,xmin,xmax,ymin,ymax,tmin,tmax,offset,rec,op)
 
     # Case when the input object is a WaveformSet                    
     elif type(object)==WaveformSet:
-        plot_wfs(object.waveforms,ep,ch,nwfs,xmin,xmax,tmin,tmax,offset,rec,op)
+        plot_wfs(object.waveforms,ep,ch,nwfs,xmin,xmax,ymin,ymax,tmin,tmax,offset,rec,op)
 
 ###########################
 def plot_wfs(wfs: list,                
-             ep: int = -1, 
+             ep: Union[int, list]=-1,
              ch: Union[int, list]=-1,
              nwfs: int = -1,
              xmin: int = -1,
              xmax: int = -1,
+             ymin: int = -1,
+             ymax: int = -1,
              tmin: int = -1,
              tmax: int = -1,
              offset: bool = False,
@@ -66,27 +70,38 @@ def plot_wfs(wfs: list,
     """
     Plot a list of waveforms
     """
-
     
     global fig
     if not has_option(op,'same'):
         fig=create_figure(nrows,ncols)
+
+    # don't consider time intervals that will not appear in the plot
+    if tmin == -1 and tmax == -1:
+        tmin=xmin
+        tman=xmax        
         
     # get all waveforms in the specified endpoint, channels,  time offset range and record
-    selected_wfs= get_wfs(wfs,[ep],ch,nwfs,tmin,tmax,rec)
+    selected_wfs= get_wfs(wfs,ep,ch,nwfs,tmin,tmax,rec)
 
     # plot nwfs waveforms
     n=0        
     for wf in selected_wfs:
         n=n+1
         # plot the single waveform
-        plot_wf(wf,fig, offset,xmin,xmax)
+        plot_wf(wf,fig, offset)
         if n>=nwfs and nwfs!=-1:
             break
 
     # add axes titles
     fig.update_layout(xaxis_title="time tick", yaxis_title="adcs")
 
+    if xmin != -1 and xmax != -1:
+        fig.update_xaxes(range = [xmin,xmax])
+    
+    if ymin != -1 and ymax != -1:
+        fig.update_yaxes(range = [ymin,ymax])
+
+    
     write_image(fig)     
 
 
@@ -94,8 +109,6 @@ def plot_wfs(wfs: list,
 def plot_wf( waveform_adcs : WaveformAdcs,  
              figure : pgo.Figure,
              offset: bool = False,
-             xmin: int = -1,
-             xmax: int = -1,
              name : Optional[str] = None
              ) -> None:
 
@@ -103,14 +116,9 @@ def plot_wf( waveform_adcs : WaveformAdcs,
     Plot a single waveform
     """
     
-    if xmin!=-1 and xmax!=-1:
-        x0 = np.arange(  xmin, xmax,
-                        dtype = np.float32)
-        y0 = waveform_adcs.adcs[xmin:xmax]    
-    else:
-        x0 = np.arange(  len(waveform_adcs.adcs),
-                        dtype = np.float32)
-        y0 = waveform_adcs.adcs
+    x0 = np.arange(  len(waveform_adcs.adcs),
+                     dtype = np.float32)
+    y0 = waveform_adcs.adcs
 
     names=""#waveform_adcs.channel
 
@@ -148,6 +156,11 @@ def plot_grid(wfset: WaveformSet,
     """
     Plot a WaveformSet in grid mode
     """
+
+    # don't consider time intervals that will not appear in the plot
+    if tmin == -1 and tmax == -1:
+        tmin=xmin
+        tman=xmax        
     
     # get the endpoints corresponding to a given APA
     eps= get_endpoints(apa)
@@ -166,7 +179,6 @@ def plot_grid(wfset: WaveformSet,
 
     if xmin != -1 and xmax != -1:
         fig.update_xaxes(range = [xmin,xmax])
-
     
     if ymin != -1 and ymax != -1:
         fig.update_yaxes(range = [ymin,ymax])
@@ -632,6 +644,11 @@ def plot_grid_histogram(wfset: WaveformSet,
     global fig
     if not has_option(op, 'same'):
         fig = create_figure()
+
+    # don't consider time intervals that will not appear in the plot
+    if tmin == -1 and tmax == -1:
+        tmin=xmin
+        tman=xmax        
         
     # Obtener los endpoints para el APA
     eps = get_endpoints(apa)
