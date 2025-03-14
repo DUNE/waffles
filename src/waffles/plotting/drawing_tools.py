@@ -77,8 +77,8 @@ def plot_wfs(wfs: list,
 
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
-        tmin=xmin
-        tman=xmax        
+        tmin=xmin-1024    # harcoded number
+        tmax=xmax        
         
     # get all waveforms in the specified endpoint, channels,  time offset range and record
     selected_wfs= get_wfs(wfs,ep,ch,nwfs,tmin,tmax,rec)
@@ -159,8 +159,8 @@ def plot_grid(wfset: WaveformSet,
 
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
-        tmin=xmin
-        tman=xmax        
+        tmin=xmin-1024    # harcoded number
+        tmax=xmax        
     
     # get the endpoints corresponding to a given APA
     eps= get_endpoints(apa)
@@ -648,7 +648,7 @@ def plot_grid_histogram(wfset: WaveformSet,
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
         tmin=xmin
-        tman=xmax        
+        tmax=xmax        
         
     # Obtener los endpoints para el APA
     eps = get_endpoints(apa)
