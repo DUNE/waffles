@@ -5,10 +5,24 @@ from waffles.data_classes.Waveform import Waveform
 
 wset = draw.read("../data/wfset_5_apas_30201.hdf5",0,1)
 
+#--------- PrecursorsTime signature -----------
+
+# 100 events in APA1
+draw.plot_grid(wset,1,-1,rec=range(1,100),tmin=-1500,tmax=500,xmin=-500,xmax=800,offset=True)
+
+# 100 events in APA2
+draw.plot_grid(wset,2,-1,rec=range(1,100),tmin=-1500,tmax=500,xmin=-500,xmax=800,offset=True)
+
+# example of single saturation
+draw.plot(wset,109,3,rec=[3],tmin=-500,tmax=500,xmin=-500,xmax=800,offset=True)
+
+# example of double saturation
+draw.plot(wset,104,41,rec=[14],tmin=-500,tmax=500,xmin=-500,xmax=800,offset=True)
 
 #--------- Precursors -----------
 
 # in APA1
+input()
 draw.plot_grid(wset,1,rec=range(1,40),xmin=-10000,xmax=-1500,ymin=7500,ymax=9000,offset=True)
 
 input()
@@ -87,8 +101,8 @@ draw.plot_grid_histogram(wset,min_adc,apa=2,tmin=-1500,tmax=2000)
 #--------- Width of saturated waveforms -----------
 
 input()
-# single waveform in channel 3 and record 2, as example to ilustrate saturated waveform width
-draw.plot(wset,109,[3],rec=[2],tmin=-1500,tmax=500,xmin=00,xmax=500)
+# single waveform in channel 3 and record 3, as example to ilustrate saturated waveform width
+draw.plot(wset,109,3,rec=[3],tmin=-1500,tmax=500,xmin=-500,xmax=800,offset=True)
 
 input()
 # distance in ticks between min(adc) and max(adc) in APA1
