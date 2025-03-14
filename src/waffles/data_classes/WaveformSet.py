@@ -152,6 +152,11 @@ class WaveformSet:
     def mean_adcs_idcs(self):
         return self.__mean_adcs_idcs
 
+    @waveforms.setter
+    def waveforms(self, value):
+        self.__waveforms = value 
+
+
     def get_set_of_endpoints(self) -> set:
         """This method returns a set which contains every endpoint
         for which there is at least one Waveform in this

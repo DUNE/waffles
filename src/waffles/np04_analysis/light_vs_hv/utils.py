@@ -26,12 +26,27 @@ def get_ordered_timestamps(wfsets,n_channel,n_run):
 
     return timestamps, min_timestamp
 
+def get_timestamps(wfsets,n_channel,n_run):
+
+    timestamps=[ [ [wfsets[i][j].waveforms[k].timestamp for k in range(len(wfsets[i][j].waveforms))] 
+              for j in range(n_channel)] for i in range(n_run)]
+
+    min_timestamp = min(min(min(row) for row in layer) for layer in timestamps).astype(np.float64)
+    #max_timestamp = max(max(max(row) for row in layer) for layer in timestamps).astype(np.float64)
+
+    timestamps=[ [ [timestamps[i][j][k]-min_timestamp for k in range(len(wfsets[i][j].waveforms))] 
+                for j in range(n_channel)] for i in range(n_run)]
+
+    #timestamps=[ [ sorted(timestamps[i][j]) for j in range(n_channel)] for i in range(n_run)]
+
+    return timestamps, min_timestamp
+
 def get_all_double_coincidences(timestamps,n_channel,n_run,time_diff):
 
     coincidences=[[[[] for _ in range(n_channel)] for _ in range(n_channel)] for _ in range(n_run)]
 
     record_j=0
-
+    
     for file_index in range(n_run):
         for line_index_i in range(1):#range(n_channel):
             for line_index_j in range(line_index_i+1,n_channel,1):
@@ -46,7 +61,7 @@ def get_all_double_coincidences(timestamps,n_channel,n_run,time_diff):
                             record_j=j
                             if diff <= time_diff:
                                 coincidences[file_index][line_index_i][line_index_j].append([i,j,diff])
-                                #OLAAAA
+                                break
                             else:
                                 break
     return coincidences
@@ -76,11 +91,14 @@ def get_all_coincidences(coincidences,timestamps,n_channel,n_run):
     return coincidences_mult
 
 def get_level_coincidences(coincidences_mult,n_channel,n_run):
-    coincidences_level = [[[] for _ in range(n_channel-1)] for _ in range(n_run) ]
+    coincidences_level = [[[] for _ in range(int((n_channel-1)))] for _ in range(n_run) ]
 
     for file_index in range(n_run):
         for i,value in  enumerate(coincidences_mult[file_index]):
-            coincidences_level[file_index][len(value[0])-2].append(value)
+            try:
+                coincidences_level[file_index][len(value[0])-2].append(value)
+            except:
+                None
 
     return coincidences_level
 
@@ -93,31 +111,22 @@ def find_true_index(wfs,file_index,channel,timestamps,index,minimo):
             return k
     return -1
 
-def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp,n_channel,n_run,coincidence_min):
+def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp,n_channel,n_run,coincidence_min,true_index):
 
     true_index_array= [ [set() for _ in range(n_channel)] for _ in range(n_run)]
 
     for run_index in range(n_run):
         print(f"looking run {run_index}:")
-      
-        for coincidence_min_index in range(coincidence_min,n_channel-1,1):
-            print(f"looking n coincidences {coincidence_min_index}: Total of {len(coincidences_level[run_index][coincidence_min_index])}")
-        
-            for coincidence_index in range(len(coincidences_level[run_index][coincidence_min_index])):
-                for ch in range(coincidence_min_index+2):
-                    #print(f"looking channel {ch}:")
-                    #print("oi")
-                    #if ch==10 and coincidence_min_index==8:
-                    #    print(coincidences_level[run_index][coincidence_min_index][coincidence_index])
-                    this_ch =  coincidences_level[run_index][coincidence_min_index][coincidence_index][0][ch]  
-                    
-                    index=coincidences_level[run_index][coincidence_min_index][coincidence_index][1][ch]
-                            
-                    true_index=find_true_index(wfsets,run_index,this_ch,timestamps,index,min_timestamp)
-                    
-                    if true_index not in  true_index_array[run_index][this_ch]:
-                        true_index_array[run_index][this_ch].add(true_index)
-                    
+        for ch in range(coincidence_min+2):    
+            for coincidence_index in true_index[run_index]:
+                #print(coincidence_index)
+                index=coincidences_level[run_index][coincidence_min][coincidence_index][1][ch]
+                        
+                #checar se index esta na lista para salvar:
+                true_index=index#find_true_index(wfsets,run_index,ch,timestamps,index,min_timestamp)
+                if true_index not in  true_index_array[run_index][ch]:
+                    true_index_array[run_index][ch].add(true_index)
+                        
 
     for run_index in range(n_run):
         for ch in range(n_channel):    
@@ -389,3 +398,79 @@ def birks_law(x,B,k):
 
 def gaus(x, sigma=40): #sigma = sqrt(sqrt(2)) * cutoff
     return np.exp(-(x)**2/2/sigma**2)
+
+def plot_scint(s,h,par,name,s_error=-1):
+# Data for ARIS coll
+
+    x1 = [0.0, 0.05, 0.1, 0.2, 0.5]
+    y1 = [1.0, 0.87542, 0.877808, 0.758476, 0.587763]
+    ey1 = [0.0, 0.0287963, 0.022386, 0.016722, 0.0135073]
+
+    # Data for Kubota et al
+    x2 = [0, 0.132479, 0.184815, 0.576578, 1.13743]
+    y2 = [1, 0.801131, 0.760566, 0.597039, 0.488523]
+
+    # Data for 3x1
+    x3 = [0.485]
+    ex3 = [0.017]
+    y3 = [0.577]
+    ey3 = [0.022]
+
+    # Data for ProtoDUNE-DP Run I
+    x4 = [0.09]
+    exm = [0.02]
+    exp = [0.10]
+    y4 = [0.833]
+    ey4 = [0.007]
+
+    # Data for ProtoDUNE-DP Run II
+    x5 = [0, 0.497]
+    y5 = [0, 0.62]
+    ex5 = [0, 0.01]
+    ey5 = [0, 0.014]
+
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # ARIS coll
+    ax.errorbar(x1, y1, yerr=ey1, fmt='o', markersize=6, label="ARIS", color='black')
+
+    # Kubota et al
+    ax.plot(x2, y2, 's', markersize=8, label="Kubota et al.", color='red')
+
+    # 3x1
+    ax.errorbar(x3, y3, xerr=ex3, yerr=ey3, fmt='^', markersize=8, label="WA105 demonstrator", color='blue')
+
+    # ProtoDUNE-DP Run I
+    ax.errorbar(x4, y4, xerr=[exm, exp], yerr=[ey4, ey4], fmt='o', markersize=8, label="ProtoDUNE-DP Run I", color='purple')
+
+    # ProtoDUNE-DP Run II
+    ax.errorbar(x5, y5, xerr=ex5, yerr=ey5, fmt='o', markersize=8, label="ProtoDUNE-DP Run II", color='orange')
+
+    try:
+        if s_error==-1:
+            s_error=np.zeros(len(h))
+    except:
+        None
+        
+    ax.errorbar(h, s , yerr = s_error ,label="ProtoDUNE-HD Preliminary", fmt='x', color="green", linestyle='None' )
+    
+    x_axis=np.linspace(0,1,40)
+
+    ax.errorbar(x_axis, birks_law(x_axis, *par), color="gray", 
+            label=rf" Fitted data: $1 - \frac{{{par[0]:.2f}}}{{1 + \frac{{{par[1]:.2f}}}{{E}}}}$ ", 
+            linestyle="--")
+    
+    # Styling
+    ax.set_xlim(-0.1, 0.6)
+    ax.set_ylim(0.5, 1.1)
+    ax.set_xlabel("Drift field (kV/cm)", fontsize=14)
+    ax.set_ylabel("S1_drift / S1_0", fontsize=14)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.legend(fontsize=12, loc='upper right')
+    ax.grid(True)
+
+    # Save and show
+    plt.tight_layout()
+    plt.savefig(name)
+    plt.close()

@@ -68,6 +68,8 @@ class Analysis4(WafflesAnalysis):
         self.n_entries = self.tree.GetEntries()
         
         self.waveform=[[None for _ in range(self.n_ch)] for _  in range(self.n_run)]
+        
+
         # get all waveforms
         for i in range (self.n_entries):
             self.tree.GetEntry(i)
@@ -77,18 +79,58 @@ class Analysis4(WafflesAnalysis):
             self.waveform[hv][ch] = (np.array(self.tree.avg_wf_dec_filt))  
 
         self.s3 = [np.zeros(len(self.hv)) for _ in range(self.n_ch)]
+        self.s3_error = [np.zeros(len(self.hv)) for _ in range(self.n_ch)]
+        s3_error_max = [np.zeros(len(self.hv)) for _ in range(self.n_ch)]
+        s3_error_min = [np.zeros(len(self.hv)) for _ in range(self.n_ch)]
+
+         
+        #fit slow and fast component:
+        self.tau_slow = [np.zeros(len(self.hv)) for _ in range(self.n_ch)]
+        self.tau_fast = [np.zeros(len(self.hv)) for _ in range(self.n_ch)]
+        self.par_slow = [[None for _ in range(len(self.hv)) ] for _ in range(self.n_ch)]
+        self.cov_slow = [[None for _ in range(len(self.hv)) ] for _ in range(self.n_ch)]
+        self.y_fit= [[None for _ in range(len(self.hv)) ] for _ in range(self.n_ch)]
+
         #self.max = [np.zeros(len(self.hv)) for _ in range(self.n_ch)]
-       
+              
+        self.waveform_total=[ np.zeros(len(self.waveform[0][0])) for _  in range(self.n_run)]
+
+        for j in range(len(self.hv)):
+            for i in range(self.n_ch):
+                self.waveform_total[j]=self.waveform_total[j]+self.waveform[j][i]
+        
+        
         for i in range(self.n_ch):
             for j in range(len(self.hv)):
                 aux=self.waveform[j][i][0:600]
                 max_aux=np.argmax(aux)
                 mean = 0# np.mean(self.waveform[i][0:30])
                 #self.max[i]=max_aux
-                self.s3[i][j]=np.sum((self.waveform[j][i]-mean)[max_aux-10:max_aux+150])
+                until=np.argmin(np.abs(self.waveform[j][i]-mean)[max_aux:])
+                #print(max_aux,until)
+                until=400
+                y_sum=(self.waveform[j][i]-mean)[max_aux-10:until]
+                y_sum_mais=(self.waveform[j][i]-mean)[max_aux-10:until+400]
+                y_sum_menos=(self.waveform[j][i]-mean)[max_aux-10:until-100]
+               
+                until=500
+                self.y_fit[i][j]=(self.waveform[j][i]-mean)[max_aux+5:max_aux+5+until]
+                
+                x_fit=np.arange(0,len(self.y_fit[i][j]),1)
+                
+                self.par_slow[i][j], self.cov_slow[i][j] = curve_fit(func_tau,x_fit,self.y_fit[i][j],maxfev=20000,p0=[1,100,1,10,0])      
+                self.tau_slow[i][j]=np.max([self.par_slow[i][j][0],self.par_slow[i][j][1]])*16
+                self.tau_fast[i][j]=np.min([self.par_slow[i][j][0],self.par_slow[i][j][1]])*16
+
+                self.s3[i][j]=np.sum(y_sum)
+                s3_error_max[i][j] = np.sum(y_sum_mais)
+                s3_error_min[i][j] = np.sum(y_sum_menos) 
+ 
             self.s3[i] = np.array(self.s3[i])/self.s3[i][0]
-        
-        print(3)
+            s3_error_max[i] = np.array(s3_error_max[i])/s3_error_max[i][0]
+            s3_error_min[i] = np.array(s3_error_min[i])/s3_error_min[i][0]
+            #print(len(self.s3_error[i]))
+            self.s3_error[i]=np.abs((s3_error_max[i]-s3_error_min[i])/2)
 
         self.s=self.s3
         self.hv=np.array(self.hv)/360
@@ -96,20 +138,31 @@ class Analysis4(WafflesAnalysis):
         self.params_covariance_s=[] 
 
         self.s_mean=np.zeros(self.n_run)
+        self.s_var=np.zeros(self.n_run)
+        self.s_total=[]
 
         for i in range(self.n_ch):
             param,cov=curve_fit(birks_law,self.hv,self.s[i],maxfev=20000)
             self.params_s.append(param)
             self.params_covariance_s.append(cov)
             self.s_mean=self.s_mean+self.s[i]
+            self.s_var=self.s_var+self.s[i]*self.s[i]
 
-        self.s_mean=self.s_mean/self.n_ch
+        self.s_mean = self.s_mean/self.n_ch
+        self.s_var = np.sqrt(self.s_var/self.n_ch - self.s_mean*self.s_mean)
+
         self.param_mean,self.cov_mean=curve_fit(birks_law,self.hv,self.s_mean,maxfev=20000)
-        
 
-        #print(self.params_s)
-        #print(self.params_covariance_s)
-        #print(self.max)                                         
+
+        print(4)
+        for i in range(self.n_run):
+            aux=self.waveform_total[i][0:600]
+            max_aux=np.argmax(aux)
+            self.s_total.append(np.sum((self.waveform_total[i])[max_aux-10:max_aux+300]))
+        self.s_total = np.array(self.s_total)/self.s_total[0]
+        print(5)
+        self.param_total,self.cov_total=curve_fit(birks_law,self.hv,self.s_total,maxfev=20000)
+
         return True
     
     def write_output(self) -> bool:
@@ -117,139 +170,66 @@ class Analysis4(WafflesAnalysis):
         
         for i in range(self.n_ch):
 
-            # Data for ARIS coll
-            x1 = [0.0, 0.05, 0.1, 0.2, 0.5]
-            y1 = [1.0, 0.87542, 0.877808, 0.758476, 0.587763]
-            ey1 = [0.0, 0.0287963, 0.022386, 0.016722, 0.0135073]
-
-            # Data for Kubota et al
-            x2 = [0, 0.132479, 0.184815, 0.576578, 1.13743]
-            y2 = [1, 0.801131, 0.760566, 0.597039, 0.488523]
-
-            # Data for 3x1
-            x3 = [0.485]
-            ex3 = [0.017]
-            y3 = [0.577]
-            ey3 = [0.022]
-
-            # Data for ProtoDUNE-DP Run I
-            x4 = [0.09]
-            exm = [0.02]
-            exp = [0.10]
-            y4 = [0.833]
-            ey4 = [0.007]
-
-            # Data for ProtoDUNE-DP Run II
-            x5 = [0, 0.497]
-            y5 = [0, 0.62]
-            ex5 = [0, 0.01]
-            ey5 = [0, 0.014]
-
-            # Create figure and axis
-            fig, ax = plt.subplots(figsize=(8, 6))
-
-            # ARIS coll
-            ax.errorbar(x1, y1, yerr=ey1, fmt='o', markersize=6, label="ARIS", color='black')
-
-            # Kubota et al
-            ax.plot(x2, y2, 's', markersize=8, label="Kubota et al.", color='red')
-
-            # 3x1
-            ax.errorbar(x3, y3, xerr=ex3, yerr=ey3, fmt='^', markersize=8, label="WA105 demonstrator", color='blue')
-
-            # ProtoDUNE-DP Run I
-            ax.errorbar(x4, y4, xerr=[exm, exp], yerr=[ey4, ey4], fmt='o', markersize=8, label="ProtoDUNE-DP Run I", color='purple')
-
-            # ProtoDUNE-DP Run II
-            ax.errorbar(x5, y5, xerr=ex5, yerr=ey5, fmt='o', markersize=8, label="ProtoDUNE-DP Run II", color='orange')
-
-
-            ax.errorbar(self.hv, self.s[i] , label="ProtoDUNE-HD Preliminary average",fmt='o',color="green",marker="x" )
-
-            x_axis=np.linspace(0,1,40)
-
-            ax.errorbar(x_axis,birks_law(x_axis,*self.params_s[i]),color="gray",label=f" fitted data: ProtoDUNE HD ", linestyle="--")
+            plot_scint(self.s[i],self.hv,self.params_s[i],output_file_1+f"fit_light_{i}.png",self.s3_error[i])
             
-            # Styling
-            ax.set_xlim(-0.1, 0.6)
-            ax.set_ylim(0.5, 1.1)
-            ax.set_xlabel("Drift field (kV/cm)", fontsize=14)
-            ax.set_ylabel("S1_drift / S1_0", fontsize=14)
-            ax.tick_params(axis='both', which='major', labelsize=12)
-            ax.legend(fontsize=12, loc='upper right')
-            ax.grid(True)
+        print(self.s_var,len(self.s_var))
+        plot_scint(self.s_mean,self.hv,self.param_mean,output_file_1+f"fit_light_mean.png",self.s_var)
+        plot_scint(self.s_total,self.hv,self.param_total,output_file_1+f"fit_light_total.png")
+            
+        output_file = self.output + "/data_total_wf.root"   
 
-            # Save and show
-            plt.tight_layout()
-            plt.savefig(output_file_1+f"fit_light_{i}.png")
-            plt.close()
-
-    # Data for ARIS coll
-        x1 = [0.0, 0.05, 0.1, 0.2, 0.5]
-        y1 = [1.0, 0.87542, 0.877808, 0.758476, 0.587763]
-        ey1 = [0.0, 0.0287963, 0.022386, 0.016722, 0.0135073]
-
-        # Data for Kubota et al
-        x2 = [0, 0.132479, 0.184815, 0.576578, 1.13743]
-        y2 = [1, 0.801131, 0.760566, 0.597039, 0.488523]
-
-        # Data for 3x1
-        x3 = [0.485]
-        ex3 = [0.017]
-        y3 = [0.577]
-        ey3 = [0.022]
-
-        # Data for ProtoDUNE-DP Run I
-        x4 = [0.09]
-        exm = [0.02]
-        exp = [0.10]
-        y4 = [0.833]
-        ey4 = [0.007]
-
-        # Data for ProtoDUNE-DP Run II
-        x5 = [0, 0.497]
-        y5 = [0, 0.62]
-        ex5 = [0, 0.01]
-        ey5 = [0, 0.014]
-
-        # Create figure and axis
-        fig, ax = plt.subplots(figsize=(8, 6))
-
-        # ARIS coll
-        ax.errorbar(x1, y1, yerr=ey1, fmt='o', markersize=6, label="ARIS", color='black')
-
-        # Kubota et al
-        ax.plot(x2, y2, 's', markersize=8, label="Kubota et al.", color='red')
-
-        # 3x1
-        ax.errorbar(x3, y3, xerr=ex3, yerr=ey3, fmt='^', markersize=8, label="WA105 demonstrator", color='blue')
-
-        # ProtoDUNE-DP Run I
-        ax.errorbar(x4, y4, xerr=[exm, exp], yerr=[ey4, ey4], fmt='o', markersize=8, label="ProtoDUNE-DP Run I", color='purple')
-
-        # ProtoDUNE-DP Run II
-        ax.errorbar(x5, y5, xerr=ex5, yerr=ey5, fmt='o', markersize=8, label="ProtoDUNE-DP Run II", color='orange')
-
-
-        ax.errorbar(self.hv, self.s_mean , label="ProtoDUNE-HD Preliminary average",fmt='o',color="green",marker="x" )
-
-        x_axis=np.linspace(0,1,40)
-
-        ax.errorbar(x_axis,birks_law(x_axis,*self.param_mean),color="gray",label=f" fitted data: ProtoDUNE HD ", linestyle="--")
+        # Create a root file
+        file = root.TFile(output_file, "RECREATE")
         
-         # Styling
-        ax.set_xlim(-0.1, 0.6)
-        ax.set_ylim(0.5, 1.1)
-        ax.set_xlabel("Drift field (kV/cm)", fontsize=14)
-        ax.set_ylabel("S1_drift / S1_0", fontsize=14)
-        ax.tick_params(axis='both', which='major', labelsize=12)
-        ax.legend(fontsize=12, loc='upper right')
-        ax.grid(True)
+        # Create a TTree
+        tree = root.TTree("my_tree", "Tree with waveforms")
 
-        # Save and show
-        plt.tight_layout()
-        plt.savefig(output_file_1+f"fit_light_mean.png")
-        plt.close()
+        length=len(self.waveform_total[0])
+        waveform_array = np.zeros(length, dtype=np.float32)  
+    
+        branch1 = tree.Branch("avg_wf", waveform_array, f"avg_wf[{length}]/F")
+      
+        for run_index in range(self.n_run):
+            
+            waveform_array[:length] = self.waveform_total[run_index]
+               
+            tree.Fill()  # Fill the ttree
 
+        # Save and close
+        tree.Write()
+        file.Close()
+        output_file_2=self.output + "/slow_comp/" 
+        for i in range(self.n_ch):
+            fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+            
+            axs[0].scatter(self.hv, self.tau_slow[i], marker="o", color="red", label="Slow Component")
+            axs[1].scatter(self.hv, self.tau_fast[i], marker="o", color="blue", label="Fast Component")
 
+            axs[0].set_xlabel("E Field [kV/cm]")
+            axs[1].set_xlabel("E Field [kV/cm]")
+
+            axs[0].set_ylabel("Slow Comp [ns]")
+            axs[1].set_ylabel("Fast Comp [ns]")  
+
+            # Grid
+            axs[0].grid()
+            axs[1].grid()
+
+            axs[0].legend()
+            axs[1].legend()
+
+            fig.tight_layout()
+
+            fig.savefig(output_file_2 + f"fit_slow_fast_{i}.png")
+
+            plt.close(fig)
+            
+            for j in range(self.n_run):
+                plt.plot((self.y_fit[i][j]-self.par_slow[i][j][4]))
+                x_fit=np.arange(0,len(self.y_fit[i][j]),1)
+
+                plt.plot(func_tau(x_fit,*self.par_slow[i][j]))
+                plt.grid()
+                plt.savefig(output_file_2+f"waveform_hv_{j}_ch_{i}")
+                plt.close()
         return True

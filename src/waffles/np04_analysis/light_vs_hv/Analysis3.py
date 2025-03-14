@@ -110,6 +110,7 @@ class Analysis3(WafflesAnalysis):
                 line = line.strip()  # Remove espaços em branco e quebras de linha
                 print(f"ch {index}: " + line )
                 with open(line, "r") as template_data:
+                    #print(len([float(line.strip()) for line in template_data]))
                     self.template.append( [float(line.strip()) for line in template_data] )
                 index=index+1
 
@@ -150,24 +151,28 @@ class Analysis3(WafflesAnalysis):
                 else:
                     self.mean_waveform[file][ch]=np.ones(1024)
                 #print(self.mean_waveform[file])
-        
+        roll=+110
         N=1024
         _x =  np.fft.fftfreq(N) * N #np.linspace(0, 1024, 1024, endpoint=False)
-        filter_gaus = [ gaus(x,35) for x in _x]
-        
+        filter_gaus = [ gaus(x,40) for x in _x]
+        print(2)
         for file in range(self.n_run):
             for ch in range(self.n_channel):
 
                 signall=np.concatenate([np.zeros(0),self.mean_waveform[file][ch],np.zeros(0)])
-                template_menos=-self.template[ch]
+                #print(3)
+                template_menos=-np.array(self.template[ch])
+                #print(3)
                 signal_fft = np.fft.fft(signall)
+                
                 template_menos_fft = np.fft.fft(template_menos, n=len(signall))  # Match signal length
                 #deconvolved_fft = signal_fft * np.conj(template_menos_fft)/  (template_menos_fft * np.conj(template_menos_fft) + K)     # Division in frequency domain
                 deconvolved_fft = signal_fft/ (template_menos_fft)     # Division in frequency domain
                 deconvolved_aux = np.fft.ifft(deconvolved_fft)      # Transform back to time domain
                 # Take the real part (to ignore small imaginary errors)
-                self.mean_deconvolved[file][ch] = np.real(deconvolved_aux)  
-                #self.mean_deconvolved[file] = np.roll(self.mean_deconvolved[file],0)
+                self.mean_deconvolved[file][ch] = np.real(deconvolved_aux)
+                if ch>=0:  
+                    self.mean_deconvolved[file][ch] = np.roll(np.array(self.mean_deconvolved[file][ch]),roll)
                 
                 for j, _ in enumerate(deconvolved_fft):
                     deconvolved_fft[j] *= filter_gaus[j]
@@ -175,9 +180,9 @@ class Analysis3(WafflesAnalysis):
                 other_deconvolved_aux = np.fft.ifft(deconvolved_fft)
                 
                 self.mean_deconvolved_filtered[file][ch]=other_deconvolved_aux.real
+                if ch>=0:  
+                    self.mean_deconvolved_filtered[file][ch] = np.roll(np.array(self.mean_deconvolved_filtered[file][ch]),roll)
                 self.mean_deconvolved_filtered[file][ch]=self.mean_deconvolved_filtered[file][ch]-np.mean(self.mean_deconvolved_filtered[file][ch][0:30])
-
-
            
             #self.mean_deconvolved_filtered[file] = signal.filtfilt(b,a,self.mean_deconvolved[file])
     
@@ -212,7 +217,7 @@ class Analysis3(WafflesAnalysis):
 
         branch1 = tree.Branch("avg_wf", waveform_array, f"avg_wf[{length}]/F")
         branch2 = tree.Branch("avg_wf_dec", waveform_array_dec, f"avg_wf[{length_dec}]/F")
-        branch3 = tree.Branch("template", temp_wf, f"template[{length}]/F")
+        #branch3 = tree.Branch("template", temp_wf, f"template[{length}]/F")
         branch4 = tree.Branch("avg_wf_dec_filt", waveform_array_filt, f"avg_wf[{length_filt}]/F")
         branch5 = tree.Branch("ch", index_ch, f"ch/I")
         branch6 = tree.Branch("hv", index_run, f"hv/I")
@@ -224,7 +229,7 @@ class Analysis3(WafflesAnalysis):
                 waveform_array[:len(wf)] = wf  
                 waveform_array_dec[:len(dec)] = dec  
                 waveform_array_filt[:len(filt)] = filt
-                temp_wf[:len(filt)] = self.template[j]
+                #temp_wf[:len(filt)] = self.template[j]
                 index_ch[0] = j
                 index_run[0] = run_index
                 tree.Fill()  # Fill the ttree
