@@ -160,24 +160,27 @@ def read_avg(filename):
 
 ###########################
 def get_wfs(wfs: list,                
-            ep: list = [-1], 
-            ch: Union[int, list]=-1,            
+            ep: Union[int, list]=-1,
+            ch: Union[int, list]=-1,
             nwfs: int = -1,
             tmin: int = -1,
             tmax: int = -1,
             rec: list = [-1]):
 
     # plot all waveforms in a given endpoint and channel
-    n=0
 
     if type(ch) == int:
         ch = [ch]
-    
+
+    if type(ep) == int:
+        ep = [ep]
+        
     waveforms = []
+    n=0
     for wf in wfs:
         t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
-        if (wf.endpoint in ep or ep[0]==-1) and \
-           (wf.channel in ch or ch[0]==-1) and \
+        if (wf.endpoint      in ep  or  ep[0]==-1) and \
+           (wf.channel       in ch  or  ch[0]==-1) and \
            (wf.record_number in rec or rec[0]==-1) and \
            ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
             n=n+1
