@@ -366,8 +366,13 @@ def WaveformSet_from_hdf5_file(filepath: str,
             pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
                 r, detdataformats.DetID.string_to_subdetector(det)
             ))
-            trig = h5_file.get_trh(r)
-
+            
+            try:
+                trig = h5_file.get_trh(r)
+            except Exception as e:
+                logger.warning(f"Corrupted fragment:\n {r}\n{gid}\nError: {e}")
+                continue
+            
             for gid in pds_geo_ids:
                 try:
                     frag = h5_file.get_frag(r, gid)
