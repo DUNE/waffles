@@ -1,5 +1,5 @@
 {
-    "run": 30201,
+    "run": 30202,
     "rucio_dir": ".",
     "output_dir": ".",
     "ch": {
@@ -12,5 +12,5 @@
         "113": [0,  2, 5, 7]
     },
     "save_single_file": true,
-    "max_files":4
+    "max_files":10
 }
