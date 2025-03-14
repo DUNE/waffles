@@ -68,6 +68,10 @@ def min_adc(wf: Waveform): return min(wf.adcs);
 def max_adc(wf: Waveform): return max(wf.adcs);
 def std_adc(wf: Waveform): return np.std(wf.adcs);
 
+def min_tick(wf: Waveform): return np.argmin(wf.adcs);
+def max_tick(wf: Waveform): return np.argmax(wf.adcs);
+
+def max_min_tick(wf: Waveform): return np.argmax(wf.adcs)-np.argmin(wf.adcs);
 
 
 #--------- Statistics of saturated waveforms -----------
@@ -80,3 +84,16 @@ input()
 # plot the histogram of the minimum adc value in APA2
 draw.plot_grid_histogram(wset,min_adc,apa=2,tmin=-1500,tmax=2000)
 
+#--------- Width of saturated waveforms -----------
+
+input()
+# single waveform in channel 3 and record 2, as example to ilustrate saturated waveform width
+draw.plot(wset,109,[3],rec=[2],tmin=-1500,tmax=500,xmin=00,xmax=500)
+
+input()
+# distance in ticks between min(adc) and max(adc) in APA1
+draw.plot_grid_histogram(wset,max_min_tick,apa=1,tmin=-1500,tmax=500,xmin=00,xmax=500)
+
+input()
+# distance in ticks between min(adc) and max(adc) in APA2
+draw.plot_grid_histogram(wset,max_min_tick,apa=1,tmin=-1500,tmax=500,xmin=00,xmax=500)
