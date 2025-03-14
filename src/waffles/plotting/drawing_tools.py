@@ -793,7 +793,7 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
     
-    return figure, x_axis_title, y_axis_title, figure_title
+    return figure
 
 
 # --------------- Sigma vs timestamp  --------------
@@ -829,7 +829,7 @@ def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
         marker=dict(color='black', size=2.5)  
     ), row=row, col=col)
     
-    return figure, x_axis_title, y_axis_title, figure_title
+    return figure
 
 
 # --------------- Sigma histograms  --------------
@@ -859,8 +859,61 @@ def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
     
-    return figure, x_axis_title, y_axis_title, figure_title
+    return figure
 
+# -------------------- Mean FFT --------------------
+
+def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
+
+    waveform_sets = {
+        "[-1000, -500]": get_wfs_interval(channel_ws.waveforms, -1000, -500),
+        "[-450, -300]": get_wfs_interval(channel_ws.waveforms, -450, -300),
+        "[0, 300]": get_wfs_interval(channel_ws.waveforms,0, 300),
+        "[600, 1000]": get_wfs_interval(channel_ws.waveforms, 600, 1000),
+        "[2000, 5000]": get_wfs_interval(channel_ws.waveforms, 2000, 5000)
+    }
+    
+    np.seterr(divide='ignore')  
+    
+    # Different colors for each range
+    colors = ['blue', 'red', 'green', 'purple', 'orange']  
+    
+    # Return the axis titles and figure title along with the figure
+    x_axis_title = "Frequency [MHz]"
+    y_axis_title = "Power [dB]"
+    figure_title = f"Superimposed FFT of Selected Waveforms for APA {apa}"
+    
+    if figure is None:
+        return x_axis_title, y_axis_title, figure_title
+
+
+    for i, (label, selected_wfs) in enumerate(waveform_sets.items()):
+        if not selected_wfs:
+            print(f"No waveforms found for range {label}")
+            continue
+
+        fft_list_x = []
+        fft_list_y = []
+
+        # Compute the FFT
+        for wf in selected_wfs:
+            tmpx, tmpy = fft(wf.adcs) 
+            fft_list_x.append(tmpx)
+            fft_list_y.append(tmpy)
+
+        # Compute the mean FFT
+        freq = np.mean(fft_list_x, axis=0)
+        power = np.mean(fft_list_y, axis=0)
+
+        figure.add_trace(go.Scatter(
+            x=freq,
+            y=power,
+            mode='lines',
+            name=f"FFT {label}",
+            line=dict(color=colors[i % len(colors)], width=1)
+        ), row=row, col=col)  
+    
+    return figure  
 
 # ----------- Plot a specific function in an APA grid ---------
 
@@ -879,8 +932,7 @@ def plot_function_grid(wfset: WaveformSet,
                     figure_title: str = None,
                     share_x_scale=True,
                     share_y_scale=True,
-                       show_ticks_only_on_edges=True,
-                    func: Callable=None):  
+                    show_ticks_only_on_edges=True):  
 
     global fig
     if not has_option(op, 'same'):
@@ -910,11 +962,10 @@ def plot_function_grid(wfset: WaveformSet,
     if plot_function is None:
         raise ValueError("plot_function must be provided")
     
-    
     # Plot using the provided function
     fig= plot_CustomChannelGrid(
         grid, 
-        plot_function=lambda channel_ws, idx, figure_, row, col, func: plot_function(
+        plot_function=lambda channel_ws, idx, figure_, row, col: plot_function(
             channel_ws, apa, idx, figure_, row, col, nbins),
         x_axis_title=x_axis_title,  
         y_axis_title=y_axis_title,  
@@ -926,7 +977,125 @@ def plot_function_grid(wfset: WaveformSet,
 
     # Return the final figure and axis titles
     write_image(fig, 800, 1200)
-
-
     
+    
+# -------------------- FFT plots ----------------------
+
+def fft(sig, dt=16e-9):
+    np.seterr(divide = 'ignore')
+    if dt is None:
+        dt = 1
+        t = np.arange(0, sig.shape[-1])
+    else:
+        t = np.arange(0, sig.shape[-1]) * dt
+    if sig.shape[0] % 2 != 0:
+        warnings.warn("signal preferred to be even in size, autoFixing it...")
+        t = t[:-1]
+        sig = sig[:-1]
+    sigFFT = np.fft.fft(sig) / t.shape[0]
+    freq = np.fft.fftfreq(t.shape[0], d=dt)
+    firstNegInd = np.argmax(freq < 0)
+    freqAxisPos = freq[:firstNegInd]
+    sigFFTPos = 2 * sigFFT[:firstNegInd]
+    x = freqAxisPos /1e6
+    y = 20*np.log10(np.abs(sigFFTPos)/2**14)
+    return x,y
+
+
+def plot_fft(wf: Waveform, dt: int=16e-9,  op: str=''):
+    sig=wf.adcs
+    global fig
+    if not has_option(op,'same'):
+        fig=go.Figure()
+
+    np.seterr(divide = 'ignore')
+    if dt is None:
+        dt = 1
+        t = np.arange(0, sig.shape[-1])
+    else:
+        t = np.arange(0, sig.shape[-1]) * dt
+    if sig.shape[0] % 2 != 0:
+        warnings.warn("signal preferred to be even in size, autoFixing it...")
+        t = t[:-1]
+        sig = sig[:-1]
+    sigFFT = np.fft.fft(sig) / t.shape[0]
+    freq = np.fft.fftfreq(t.shape[0], d=dt)
+    firstNegInd = np.argmax(freq < 0)
+    freqAxisPos = freq[:firstNegInd]
+    sigFFTPos = 2 * sigFFT[:firstNegInd]
+    
+    wf_trace = pgo.Scatter( x =  freqAxisPos /1e6,
+                            y = 20*np.log10(np.abs(sigFFTPos)/2**14),
+                            mode = 'lines',
+                            line=dict(color=line_color, width=0.5))
+                            
+    fig.add_trace(   wf_trace,
+                     row = None,
+                     col = None)
+
+    fig.update_layout(xaxis_title="samples", yaxis_title="freq [Hz]",xaxis_type='log')
+
+    write_image(fig)    
+    
+def plot_meanfft(wfs: list,                
+                 ep: int = -1, 
+                 ch: Union[int, list] = -1,
+                 nwfs: int = -1,
+                 rec: list = [-1],
+                 op: str = ''):
+    
+    # Define waveform sets with different time ranges
+    waveform_sets = {
+        "[-1000, -500]": get_wfs(wfs.waveforms, [ep], ch, nwfs, -1000, -500, rec),
+        "[-450, -300]": get_wfs(wfs.waveforms, [ep], ch, nwfs, -450, -300, rec),
+        "[0, 300]": get_wfs(wfs.waveforms, [ep], ch, nwfs, 0, 300, rec),
+        "[600, 1000]": get_wfs(wfs.waveforms, [ep], ch, nwfs, 600, 1000, rec),
+        "[2000, 5000]": get_wfs(wfs.waveforms, [ep], ch, nwfs, 2000, 5000, rec)
+    }
+
+    global fig
+    if not has_option(op, 'same'):
+        fig = go.Figure()
+
+    np.seterr(divide='ignore')  # Ignore division warnings
+
+    colors = ['blue', 'red', 'green', 'purple', 'orange']  # Different colors for plots
+
+    for i, (label, selected_wfs) in enumerate(waveform_sets.items()):
+        if not selected_wfs:
+            print(f"No waveforms found for range {label}")
+            continue
+
+        fft_list_x = []
+        fft_list_y = []
+
+        # Compute FFT for each waveform in the selected set
+        for wf in selected_wfs:
+            tmpx, tmpy = fft(wf.adcs)  # Compute FFT
+            fft_list_x.append(tmpx)
+            fft_list_y.append(tmpy)
+
+        # Compute mean FFT for the waveform set
+        freq = np.mean(fft_list_x, axis=0)
+        power = np.mean(fft_list_y, axis=0)
+
+        # Plot FFT for this set
+        fig.add_trace(go.Scatter(
+            x=freq,
+            y=power,
+            mode='lines',
+            name=f"FFT {label}",  # Label each line
+            line=dict(color=colors[i % len(colors)], width=1)
+        ))
+
+    # Configure the layout
+    fig.update_layout(
+        title="Superimposed FFT of Selected Waveforms",
+        xaxis_title="Frequency [MHz]",
+        yaxis_title="Power [dB]",
+        xaxis_type='log'
+    )
+
+    # Display the figure
+    fig.show()
 

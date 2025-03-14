@@ -6,7 +6,9 @@ from waffles.data_classes.Waveform import Waveform
 
 
 #wset = draw.read("../data/wfset_10_30201.hdf5",0,1)
-wset = draw.read("../data/wfset_5_apas_30201.hdf5",0,1)
+wset = draw.read("../data/wfset_chs_5_30201.hdf5",0,1)
+
+'''
 
 # -------- Time offset histograms --------
 draw.plot_function_grid(wset, apa=2,tmin=-1000,tmax=1000,  plot_function=draw.plot_to_function)
@@ -22,6 +24,12 @@ input()
 
 # ----------- Sigma  -----------
 draw.plot_function_grid(wset, apa=2,tmin=-1000,tmax=1000,  plot_function=draw.plot_sigma_function)
+input()
+
+# ------------ Mean FFT  ------------
+draw.plot_function_grid(wset, apa=2, plot_function=draw.plot_meanfft_function)
+
+
 
 input()
 def func(wf: Waveform): return np.std(wf.adcs);
@@ -59,3 +67,5 @@ def func(wf: Waveform):
     return nbins0
 
 draw.plot_grid_histogram(wset,func,apa=1,tmin=-1000,tmax=1000,xmin=0,xmax=30)
+
+'''

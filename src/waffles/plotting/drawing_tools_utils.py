@@ -32,6 +32,7 @@ from scipy import signal
 from scipy.fft import fft, fftshift
 import pickle
 from typing import Union
+import warnings 
 
 # Global plotting settings
 line_color = 'black'
@@ -189,8 +190,25 @@ def get_wfs(wfs: list,
             break
 
     return waveforms
-    
 
+###########################
+def get_wfs_interval(wfs: list,                
+            tmin: int = -1,
+            tmax: int = -1,
+            nwfs: int = -1):
+        
+    waveforms = []
+    n=0
+    for wf in wfs:
+        t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
+        if ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
+            n=n+1
+            waveforms.append(wf)
+        if n>=nwfs and nwfs!=-1:
+            break
+
+    return waveforms
+    
 ###########################
 def compute_charge_histogram(wset: WaveformSet,
             ep: int = -1, 
