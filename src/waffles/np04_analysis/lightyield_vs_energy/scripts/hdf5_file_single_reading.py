@@ -122,11 +122,11 @@ def main(full_streaming, rucio_folder, pickles_folder, reading_mode, index_list,
                     pickle_name = f"{run_folder_name}/{trigger_string(full_streaming)}_beam_{i}.pkl"
                 else: 
                     pickle_name = f"{run_folder_name}/{trigger_string(full_streaming)}_{i}.pkl"
-                    
+                
+                print(f'Reading: run_{run}_{i}')    
                 try:
                     if not os.path.isfile(pickle_name):
-                        print(f'Reading: run_{run}_{i}')
-                        wfset = hdf5_reader.WaveformSet_from_hdf5_file(run_hdf5_filepaths[i], read_full_streaming_data = full_streaming, erase_filepath = True) ## modified
+                        wfset = hdf5_reader.WaveformSet_from_hdf5_file(run_hdf5_filepaths[i], read_full_streaming_data = full_streaming) ## modified
                         if beam_selection:
                             wfset = WaveformSet.from_filtered_WaveformSet(wfset, beam_self_trigger_filter, timeoffset_min = timeoffset_min, timeoffset_max = timeoffset_max)
                         with open(pickle_name, "wb") as f:
@@ -139,6 +139,8 @@ def main(full_streaming, rucio_folder, pickles_folder, reading_mode, index_list,
                     if any(keyword in str(e).lower() for keyword in keywords):
                         print("\n\nCritical error detected: No space, file exists, or file corruption.\n\nSTOPPING EXECUTION.\n\n")
                         sys.exit(1)  
+                    else:
+                        print(f'Error: {e}')
             
 ######################################################################################
 

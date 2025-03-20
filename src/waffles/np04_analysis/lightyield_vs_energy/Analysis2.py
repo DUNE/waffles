@@ -89,7 +89,9 @@ class Analysis2(WafflesAnalysis):
     ) -> None:
     
         self.params = input_parameters
-        self.read_input_loop = [None,] # ??
+        self.read_input_loop_1 = [None,] # ??
+        self.read_input_loop_2 = [None,] # ??
+        self.read_input_loop_3 = [None,] # ??
         self.analyze_loop = [None,] # ??
         
         if self.params.apa_list == 'all':

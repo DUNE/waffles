@@ -6,7 +6,7 @@ import numpy as np
 import uproot
 
 try: 
-    import ROOTE
+    import ROOT
     ROOT_IMPORTED = True
 except ImportError: 
     print(

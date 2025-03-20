@@ -9,10 +9,10 @@ output_path: 'output'
 runlist: 'led'
 
 # runs to be analyzed
-runs: [26081]
+runs: [28489]
 
 # channels to be analyzed
-channels: [11114,11116]
+channels: [10907]
 
 # list of special runs
 blacklist: [26145, 26147, 26149, 26152, 26154, 26161, 26163, 26165, 26167, 28210, 28211, 28212, 28213, 28215, 28216, 28217, 28218, 28219 ] 
@@ -20,7 +20,7 @@ blacklist: [26145, 26147, 26149, 26152, 26154, 26161, 26163, 26165, 26167, 28210
 # ------ parameters for average waveform creation --------
 
 # overwrite output files
-force: False
+force: True
 
 # select one of the two options
 response: False
