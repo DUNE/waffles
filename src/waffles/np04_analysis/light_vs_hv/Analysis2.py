@@ -25,7 +25,7 @@ class Analysis2(WafflesAnalysis):
                             description="list of the endpoints (note: must be te same order of the channels)")
             channels:       list = Field(default=[],          
                                 description="list of the channels (note: must be te same order of the endpoints)")
-            input_path:     str =  Field(default="./testes/try1/data_filtered.pkl",  #"./output/data_filtered.pkl",          
+            input_path:     str =  Field(default="./testes/data_filtered.pkl",  #"./output/data_filtered.pkl",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="./output",          
                                 description= "Output folder to save the filtered data")
@@ -186,7 +186,7 @@ class Analysis2(WafflesAnalysis):
         for i,wfset in enumerate(self.wfsets):
             for channel in range(self.n_channel):
                 #try:
-
+                #print(i,channel)
                 wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_noise, analysis_label="minha_analise",parameter_label="noise")
                 wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_baseline, min=self.min_baseline, analysis_label="minha_analise",parameter_label="baseline")
                 wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_amplitude, min=self.min_amplitude, analysis_label="minha_analise",parameter_label="amplitude")

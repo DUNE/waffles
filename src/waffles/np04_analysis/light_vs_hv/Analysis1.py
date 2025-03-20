@@ -31,7 +31,7 @@ class Analysis1(WafflesAnalysis):
                                 description= "Main endpoin that the code will search for coincidences in the other channels")
             input_path:      str =  Field(default="./data/list_file_aux.txt",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
-            output:         str =  Field(default="./output",          
+            output:         str =  Field(default="./output/data_filtered.pkl",          
                                 description= "Output folder to save the correlated channels")
             time_window:    int =  Field(default= 5,  
                                 description="Time window in the search of coincidences")
@@ -98,6 +98,7 @@ class Analysis1(WafflesAnalysis):
         self.read_input_loop=[None,]
 
         self.output = self.params.output
+        print(self.output)
 
     ##################################################################
     def read_input(self) -> bool:
@@ -154,10 +155,10 @@ class Analysis1(WafflesAnalysis):
 
         for run_index in range(self.n_run):
             for j in range(self.n_channel):
-                min_t = min(self.timestamps[run_index][j]).astype(np.float64)
-                max_t = max(self.timestamps[run_index][j]).astype(np.float64)
+                min_t = np.min(self.timestamps[run_index][j]).astype(np.float64)
+                max_t = np.max(self.timestamps[run_index][j]).astype(np.float64)
                 timestamp_diff=max_t-min_t
-                print(f"Run{run_index} -- Ch: {j}: Have {len(self.wfsets[run_index][j].waveforms)} waveforms -- Time: {timestamp_diff*10e-9} s")
+                print(f"Run{run_index} -- Ch: {j}: Have {len(self.wfsets[run_index][j].waveforms)} waveforms -- Time: {timestamp_diff*16e-9} s")
 
         print(1)
         #return a list of double coincidences
@@ -185,42 +186,54 @@ class Analysis1(WafflesAnalysis):
                 sorted_pairs = sorted(zip(timestamps_aux[run_index][j], self.wfsets[run_index][j].waveforms), key=lambda pair: pair[0])
                 self.wfsets[run_index][j].waveforms = [x for _, x in sorted_pairs]
 
-
+        print(4.1)
         #calculate the amplitude of all channels for a single event
+        times_array=[[] for _ in range(self.n_run)]
         max_array=[[] for _ in range(self.n_run)]
         max=[]
         for file_index in range(self.n_run):
             for k in range(len(self.coincidences_level[file_index][18])):
                 max=[]
+                times=[]
                 for channel in range(self.n_channel):
                     index=self.coincidences_level[file_index][18][k][1][channel]
+                    time_diff=self.coincidences_level[file_index][18][k][2][channel]
                     true_index=index#find_true_index(wfsets,file_index,channel,timestamps,index,min_timestamp)
                     wf=self.wfsets[file_index][channel].waveforms[true_index].adcs
                     baseline=np.mean(wf[0:50])
                     wf=wf-baseline
                     max.append(-np.min(wf[0:200]))
+                    times.append(time_diff)
                 max_array[file_index].append(max)
+                times_array[file_index].append(times)
 
-
+        print(4.2)
         #separate the values in two arrays, each for each colunm in the APA
         max1_array=[[] for _ in range(self.n_run)]
         max2_array=[[] for _ in range(self.n_run)]
+        times1_array=[[] for _ in range(self.n_run)]
+        times2_array=[[] for _ in range(self.n_run)]
         sigma=0.8
 
         for file_index in range(self.n_run):
-            
+            i=0
             for my_coin in max_array[file_index]:
                 #max_value=np.max(my_coin)
                 aux1 = np.array(my_coin[0:10])
                 aux2 = np.array(my_coin[10:20])
                 
                 max_value=np.max([np.max(aux1),np.max(aux2)])
-                
+                aux1 = gaussian_filter1d(aux1, sigma=sigma)
+                aux2 = gaussian_filter1d(aux2, sigma=sigma)
 
                 max1_array[file_index].append(aux1/max_value)
                 max2_array[file_index].append(aux2/max_value)
 
+                times1_array[file_index].append(times_array[file_index][i][0:10])
+                times2_array[file_index].append(times_array[file_index][i][10:20])
+                i=i+1
 
+        print(4.3)
         #calculate position of max and the min values on each half
         pos_max_1=[[] for _ in range(self.n_run)]
         pos_max_2=[[] for _ in range(self.n_run)]
@@ -257,8 +270,9 @@ class Analysis1(WafflesAnalysis):
                 val_min_rigth_1[file_index].append(aux1[4])
                 val_min_rigth_2[file_index].append(aux2[4])  
 
+        print(4.4)
         filter_index=[]
-
+        
         for file_index in range(self.n_run):
             
             index2 = np.isin(pos_max_1[file_index], [4, 5])
@@ -267,8 +281,24 @@ class Analysis1(WafflesAnalysis):
             index5 = np.isin(pos_min_rigth_2[file_index], [9])
             index6 = np.isin(pos_min_left_1[file_index], [0])
             index7 = np.isin(pos_min_left_2[file_index], [0])
+            
+            filter_index.append(np.logical_and.reduce([ index2, index3, index4, index5, index6, index7]))
 
-        filter_index.append(np.logical_and.reduce([ index2, index3, index4, index5, index6, index7]))
+
+        #print(filter_index[0])
+        for file_index in range(self.n_run):
+            for i in range(len(times1_array[file_index])):
+                
+                #print(times1_array[file_index][i])
+                #print(times2_array[file_index][i])
+                #print(is_sorted(times1_array[file_index][i],10) , is_sorted(times2_array[file_index][i],10) , are_elements_off_by_one(times1_array[file_index][i], times2_array[file_index][i], 10))
+                index8 = is_sorted(times1_array[file_index][i],2) and is_sorted(times2_array[file_index][i],2) and are_elements_off_by_one(times1_array[file_index][i], times2_array[file_index][i], 2)
+                #print(index8,filter_index[file_index][i])
+                filter_index[file_index][i] = filter_index[file_index][i] and index8
+                #input("Pressione Enter para continuar...")
+
+        #print(filter_index[0])
+        print(5)
 
         true_index_2=[[] for _ in range(self.n_run)]
         for file_index in range(self.n_run):
@@ -280,17 +310,17 @@ class Analysis1(WafflesAnalysis):
                                               self.min_timestamp,self.n_channel,self.n_run,self.min_coincidence,true_index_2)
         
 
-        print(5)
+        print(6)
      
         return True
     
     def write_output(self) -> bool:
-        output_file=self.output + "/data_filtered.pkl"       
+        output_file=self.output     
         
         with open(output_file, "wb") as file:
             pickle.dump(self.wfsets, file)
 
-        with open(self.output + "/coincidences_level.pkl","wb") as file:
-            pickle.dump(self.coincidences_level,file)
+        """ with open(self.output + "/coincidences_level.pkl","wb") as file:
+            pickle.dump(self.coincidences_level,file) """
         
         return True

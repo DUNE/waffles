@@ -11,33 +11,37 @@ def check_endpoint_and_channel(endpoint,channel):
                     return True
     return False
     
-def get_ordered_timestamps(wfsets,n_channel,n_run):
+def get_ordered_timestamps(wfsets, n_channel, n_run):
 
-    timestamps=[ [ [wfsets[i][j].waveforms[k].timestamp for k in range(len(wfsets[i][j].waveforms))] 
-              for j in range(n_channel)] for i in range(n_run)]
+    timestamps = [
+        [[wfsets[i][j].waveforms[k].timestamp for k in range(len(wfsets[i][j].waveforms))]
+         for j in range(n_channel)] for i in range(n_run)]
 
-    min_timestamp = min(min(min(row) for row in layer) for layer in timestamps).astype(np.float64)
-    #max_timestamp = max(max(max(row) for row in layer) for layer in timestamps).astype(np.float64)
+    min_timestamp = min(min(min(row) for row in layer) for layer in timestamps)
 
-    timestamps=[ [ [timestamps[i][j][k]-min_timestamp for k in range(len(wfsets[i][j].waveforms))] 
-                for j in range(n_channel)] for i in range(n_run)]
+    # Subtrai o mínimo, mas agora converte pra np.int64 **depois**
+    timestamps = [
+        [[(timestamps[i][j][k] - min_timestamp).astype(np.int64) for k in range(len(wfsets[i][j].waveforms))]
+         for j in range(n_channel)] for i in range(n_run)]
 
-    timestamps=[ [ sorted(timestamps[i][j]) for j in range(n_channel)] for i in range(n_run)]
+    timestamps = [[sorted(timestamps[i][j]) for j in range(n_channel)] for i in range(n_run)]
 
     return timestamps, min_timestamp
 
 def get_timestamps(wfsets,n_channel,n_run):
 
-    timestamps=[ [ [wfsets[i][j].waveforms[k].timestamp for k in range(len(wfsets[i][j].waveforms))] 
-              for j in range(n_channel)] for i in range(n_run)]
+    timestamps = [
+        [[wfsets[i][j].waveforms[k].timestamp for k in range(len(wfsets[i][j].waveforms))]
+         for j in range(n_channel)] for i in range(n_run)]
 
-    min_timestamp = min(min(min(row) for row in layer) for layer in timestamps).astype(np.float64)
-    #max_timestamp = max(max(max(row) for row in layer) for layer in timestamps).astype(np.float64)
+    min_timestamp = min(min(min(row) for row in layer) for layer in timestamps)
 
-    timestamps=[ [ [timestamps[i][j][k]-min_timestamp for k in range(len(wfsets[i][j].waveforms))] 
-                for j in range(n_channel)] for i in range(n_run)]
+    # Subtrai o mínimo, mas agora converte pra np.int64 **depois**
+    timestamps = [
+        [[(timestamps[i][j][k] - min_timestamp).astype(np.int64) for k in range(len(wfsets[i][j].waveforms))]
+         for j in range(n_channel)] for i in range(n_run)]
 
-    #timestamps=[ [ sorted(timestamps[i][j]) for j in range(n_channel)] for i in range(n_run)]
+    #timestamps = [[sorted(timestamps[i][j]) for j in range(n_channel)] for i in range(n_run)]
 
     return timestamps, min_timestamp
 
@@ -52,16 +56,17 @@ def get_all_double_coincidences(timestamps,n_channel,n_run,time_diff):
             for line_index_j in range(line_index_i+1,n_channel,1):
                 record_j=0
                 for i in range(len(timestamps[file_index][line_index_i])):
-                    taux1 = timestamps[file_index][line_index_i][i].astype(np.float64)
+                    taux1 = timestamps[file_index][line_index_i][i].astype(np.int64)
                     for j in range(record_j,len(timestamps[file_index][line_index_j]),1):
-                        taux2 = timestamps[file_index][line_index_j][j].astype(np.float64)
+                        taux2 = timestamps[file_index][line_index_j][j].astype(np.int64)
                         diff = taux2 - taux1
-                        if diff >= 0:
+                        if diff >= -1:
                             #print(diff)
                             record_j=j
                             if diff <= time_diff:
+                                #print(diff)
                                 coincidences[file_index][line_index_i][line_index_j].append([i,j,diff])
-                                break
+                                break # se quiser todas as coincidencia no mesmo timestamp
                             else:
                                 break
     return coincidences
@@ -111,6 +116,18 @@ def find_true_index(wfs,file_index,channel,timestamps,index,minimo):
             return k
     return -1
 
+def is_sorted(lst, diff):
+    return (
+        lst[0] <= min(lst) + 1 and  # Primeiro elemento é o menor ou no máximo 1 acima
+        lst[-1] >= max(lst) - 1 and  # Último elemento é o maior ou no máximo 1 abaixo
+        all(lst[i + 1] - lst[i] >= -diff for i in range(len(lst) - 1))  # Ordenação relaxada
+    )
+
+def are_elements_off_by_one(lst1, lst2, diff):
+    if len(lst1) != len(lst2):
+        return False  
+    return all(abs(a - b) <= diff for a, b in zip(lst1, lst2))
+
 def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp,n_channel,n_run,coincidence_min,true_index):
 
     true_index_array= [ [set() for _ in range(n_channel)] for _ in range(n_run)]
@@ -119,15 +136,15 @@ def filter_not_coindential_wf(wfsets,coincidences_level,timestamps,min_timestamp
         print(f"looking run {run_index}:")
         for ch in range(coincidence_min+2):    
             for coincidence_index in true_index[run_index]:
-                #print(coincidence_index)
+                
                 index=coincidences_level[run_index][coincidence_min][coincidence_index][1][ch]
                         
                 #checar se index esta na lista para salvar:
-                true_index=index#find_true_index(wfsets,run_index,ch,timestamps,index,min_timestamp)
-                if true_index not in  true_index_array[run_index][ch]:
-                    true_index_array[run_index][ch].add(true_index)
+                #true_index=index#find_true_index(wfsets,run_index,ch,timestamps,index,min_timestamp)
+                if index not in  true_index_array[run_index][ch]:
+                    true_index_array[run_index][ch].add(index)
                         
-
+    
     for run_index in range(n_run):
         for ch in range(n_channel):    
             true_index_array[run_index][ch]=sorted(true_index_array[run_index][ch])

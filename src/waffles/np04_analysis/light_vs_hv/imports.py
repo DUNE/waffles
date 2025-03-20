@@ -11,6 +11,7 @@ import ROOT as root
 from scipy.optimize import curve_fit
 from scipy.fft import fft, fftshift
 from scipy import signal
+from scipy.ndimage import gaussian_filter1d
 
 
 from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParams
@@ -24,7 +25,7 @@ from waffles.data_classes.IPDict import IPDict
 from waffles.np04_analysis.light_vs_hv.utils import check_endpoint_and_channel
 from waffles.np04_analysis.light_vs_hv.utils import get_ordered_timestamps, get_timestamps
 from waffles.np04_analysis.light_vs_hv.utils import get_all_double_coincidences, get_all_coincidences, get_level_coincidences
-from waffles.np04_analysis.light_vs_hv.utils import filter_not_coindential_wf
+from waffles.np04_analysis.light_vs_hv.utils import filter_not_coindential_wf, is_sorted, are_elements_off_by_one
 from waffles.np04_analysis.light_vs_hv.utils import from_generic
 from waffles.np04_analysis.light_vs_hv.utils import start_plot, generic_plot_APA
 from waffles.np04_analysis.light_vs_hv.utils import  my_sin, func_tau , calculate_light, birks_law, gaus, plot_scint
