@@ -59,7 +59,7 @@ def which_channels_in_the_ENDPOINT(endpoint : int):
 def searching_for_beam_events(wfset : WaveformSet, show : bool = False, save : bool = True, bin : int = 100000, x_min = None, x_max = None, beam_min = None, beam_max = None, output_folder : str = 'output'):
     timeoffset_list_DAQ = []
     for wf in wfset.waveforms: 
-        timeoffset_list_DAQ.append(wf.timestamp - wf.daq_window_timestamp)
+        timeoffset_list_DAQ.append(np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp)))
     
     if x_min is None:
         x_min = min(timeoffset_list_DAQ)
