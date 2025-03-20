@@ -3,7 +3,7 @@ from waffles.np04_analysis.lightyield_vs_energy.imports import *
 
 # To select beam events for self-trigger channels looking at the time_offset DAQ-PDS (check value!!)    
 def beam_self_trigger_filter(waveform : Waveform, timeoffset_min : int = -120, timeoffset_max : int = -90) -> bool:
-    daq_pds_timeoffset = waveform.timestamp - waveform.daq_window_timestamp
+    daq_pds_timeoffset = np.float32(np.int64(waveform.timestamp)-np.int64(waveform.daq_window_timestamp))
     if (daq_pds_timeoffset < timeoffset_max) and (daq_pds_timeoffset > timeoffset_min) :
         return True
     else:

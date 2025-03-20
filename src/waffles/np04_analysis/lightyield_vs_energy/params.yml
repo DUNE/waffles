@@ -32,7 +32,7 @@ full_streaming: False
 beam_data: False
 
 # Do you want to search for beam timeoffset range? (true o false) ? 
-searching_beam_timeoffset: True
+searching_beam_timeoffset: False
 
 # Do you want to search for integration range? (true o false) ? 
 searching_integration_range: False
