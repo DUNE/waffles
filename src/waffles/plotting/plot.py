@@ -1670,7 +1670,8 @@ def plot_CustomChannelGrid(
     y_axis_title: Optional[str] = None,  
     figure_title: Optional[str] = None,  
     show_ticks_only_on_edges: bool = False,  
-    wf_func: Optional[Callable] = None  
+    wf_func: Optional[Callable] = None,
+    log_x_axis: bool = False 
 ) -> pgo.Figure:
     """
     This function returns a plotly.graph_objects.Figure with a grid of subplots arranged according to the 
@@ -1763,5 +1764,10 @@ def plot_CustomChannelGrid(
                     type='log',  # Sets the X-axis to a logarithmic scale
                     row=i + 1, col=j + 1
                 )
-
+            if log_x_axis:
+                figure_.update_xaxes(
+                    type='log',  # Aplica escala logarítmica al eje X
+                    row=i + 1, col=j + 1
+                )
+                
     return figure_
