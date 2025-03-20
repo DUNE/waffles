@@ -940,7 +940,7 @@ def plot_function_grid(wfset: WaveformSet,
         
     # Obtain the endpoints from the APA
     eps = get_endpoints(apa)
-    
+
     # Select the waveforms in a specific time interval of the DAQ window
     selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
     
