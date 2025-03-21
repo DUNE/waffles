@@ -167,6 +167,52 @@ def get_grid(wfs: list,
         
     return grid_apa
 
+import numpy as np
+from typing import List, Union, Dict
+
+def get_meansigma_per_channel(wfs: list,                
+                               ep: Union[int, list] = -1,
+                               ch: Union[int, list] = -1,
+                               nwfs: int = -1,
+                               tmin: int = -1,
+                               tmax: int = -1,
+                               rec: list = [-1]) -> Dict[int, float]:
+    """
+    Computes the standard deviation (sigma) of each waveform's ADCs relative to its mean within a specific interval,
+    and returns the mean sigma per channel.
+    """
+    
+    print("Fetching selected waveforms...")
+    selected_wfs, _ = get_wfs(wfs, ep, ch, nwfs, tmin, tmax, rec)
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    # Dictionary to store sigmas per channel
+    channel_sigma = {}  # {channel_id: [sigma1, sigma2, ...]}
+
+    for wf in selected_wfs:
+        if not hasattr(wf, "channel"):  
+            print("Error: waveform missing 'channel' attribute!")
+            continue
+        
+        mean = np.mean(wf.adcs)  # Compute mean of ADC values
+        sigma = np.sqrt(np.sum((wf.adcs - mean) ** 2) / len(wf.adcs))  # Standard deviation formula
+        
+
+        if wf.channel not in channel_sigma:
+            channel_sigma[wf.channel] = []  # Create list if channel not seen before
+        
+        channel_sigma[wf.channel].append(sigma)  # Store sigma for this waveform
+
+    # Compute the mean sigma per channel
+    mean_sigma = {}
+    for ch_idx, sigmas in channel_sigma.items():
+        mean_sigma[ch_idx] = np.mean(sigmas) if sigmas else float("nan")  
+
+    print("Final mean sigmas per channel:", mean_sigma)
+    return mean_sigma
+
+
+
 #-------------- Time offset histograms -----------
 
 def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):

@@ -57,7 +57,19 @@ class Analysis1(WafflesAnalysis):
             
             tmax: int = Field(
                 ...,
+                description="Up time limit considered for the analyzed waveforms",
+                example=[1000] # Alls
+            )
+            
+            tmin_prec: int = Field(
+                ...,
                 description="Lower time limit considered for the analyzed waveforms",
+                example=[-1000] # Alls
+            )
+            
+            tmax_prec: int = Field(
+                ...,
+                description="Up time limit considered for the analyzed waveforms",
                 example=[1000] # Alls
             )
             
@@ -220,6 +232,10 @@ class Analysis1(WafflesAnalysis):
                 self.pde,
                 self.apa
             )
+        print(f" 4. Computing the mean sigma in the precursor per channel")
+        # Compute the sigma of the precursor
+        
+        self.sigma_per_channel = gs_utils.get_meansigma_per_channel(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
         
         return True
 
@@ -234,6 +250,12 @@ class Analysis1(WafflesAnalysis):
             True if the method ends execution normally
         """
         
+       # Write the sigma values to CSV
+        with open('sigma_data.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            for ch, sigma_val in self.sigma_per_channel.items():  # Assuming self.sigma_per_channel is a dict
+                writer.writerow([ch, sigma_val])  # Write channel and its sigma value  
+    
         base_file_path = f"{self.params.output_path}"\
             f"run_{self.run}_apa_{self.apa}_pde_{self.pde}"
            
@@ -284,6 +306,22 @@ class Analysis1(WafflesAnalysis):
             font=dict(size=16),
             textangle=-90
         )
+        
+        for subplot_idx, (ch_idx, sigma) in enumerate(self.sigma_per_channel.items()):
+            if ch_idx not in self.grid:  # Ensure channel exists in the grid
+                continue
+
+            x_ref, y_ref = grid[ch_idx]  # Get the correct subplot position
+
+            figure1.add_annotation(
+                x=0.5,  # Centered horizontally
+                y=1.05,  # Slightly above the subplot
+                xref=f"x{x_ref}",  
+                yref=f"y{y_ref}",  
+                text=f"Channel {ch_idx} Mean Sigma: {sigma:.4f}",
+                showarrow=False,
+                font=dict(size=14, color="blue"),
+            )
 
         if self.params.show_figures:
             figure1.show()

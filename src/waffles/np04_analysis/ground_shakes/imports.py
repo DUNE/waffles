@@ -8,6 +8,7 @@ from waffles.data_classes.WafflesAnalysis import WafflesAnalysis, BaseInputParam
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 import waffles.np04_analysis.example_analysis.utils as wnu
 import waffles.core.utils as wcu
+import csv
 
 from waffles.input_output.hdf5_file_reader import WaveformSet_from_hdf5_file
 
