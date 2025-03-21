@@ -41,6 +41,11 @@ analysis_label: 'standard'
 tmin: -1000
 tmax: 1000
 
+# Time interval of the precursor to be considered 
+
+tmin_prec: -10000
+tmax_prec: -1000
+
 # Channels
 
 ch: -1
