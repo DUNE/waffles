@@ -1,0 +1,8 @@
+1:
+  name: "Analysis1"
+  parameters_file: "params.yml"
+  overwriting_parameters: "--runs 27906,27910"
+2:
+  name: "Analysis2"
+  parameters_file: ""
+  overwriting_parameters: "--input_path output/ --output_path output/ --prominence 10"

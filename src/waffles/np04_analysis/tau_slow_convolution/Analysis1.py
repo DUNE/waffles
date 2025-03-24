@@ -39,6 +39,13 @@ class Analysis1(WafflesAnalysis):
             baseline_finish_response: int = Field(...,          description="work in progress")
             baseline_minimum_frac:  float = Field(...,          description="work in progress")
 
+            validate_items = field_validator(
+                "channels",
+                "runs",
+                "blacklist",
+                mode="before"
+            )(wcu.split_comma_separated_string)
+
         return InputParams
 
     ##################################################################
@@ -92,7 +99,11 @@ class Analysis1(WafflesAnalysis):
 
 
         # read_input will be iterated over run numbers
-        self.read_input_loop = runs
+        self.read_input_loop_1 = runs
+
+        # single element loops
+        self.read_input_loop_2 = [None,]
+        self.read_input_loop_3 = [None,]
 
         # analyze will be iterated over channels
         self.analyze_loop = self.params.channels
@@ -103,7 +114,7 @@ class Analysis1(WafflesAnalysis):
     def read_input(self) -> bool:
 
         # item for current iteration
-        run = self.read_input_itr
+        run = self.read_input_itr_1
 
         print(f"  Processing run {run}")
 
@@ -121,7 +132,7 @@ class Analysis1(WafflesAnalysis):
         self.missingchannels = []
         for ch in self.params.channels:
             base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{ch}'
-            
+
             self.pickle_selec_name[ch] = f'{base_file_path}.pkl'
             self.pickle_avg_name[ch]   = f'{base_file_path}_avg.pkl'
             if self.safemode and os.path.isfile(self.pickle_avg_name[ch]):
@@ -153,7 +164,7 @@ class Analysis1(WafflesAnalysis):
     def analyze(self) -> bool:
 
         # items for current iteration
-        run     = self.read_input_itr
+        run     = self.read_input_itr_1
         channel = self.analyze_itr
 
         print(f"    Processing channel {channel}")
@@ -182,8 +193,8 @@ class Analysis1(WafflesAnalysis):
        
         try: 
             self.wfset_ch = WaveformSet.from_filtered_WaveformSet(self.wfset_ch, 
-                                                                extractor.apply_cuts,                                                                   
-                                                                show_progress=self.params.showp)
+                                                                  extractor.apply_cuts,
+                                                                  show_progress=self.params.showp)
         except Exception as error:
             print(error)
             print(f"No waveforms for run {run}, channel {wch}")
@@ -227,7 +238,7 @@ class Analysis1(WafflesAnalysis):
 
         # get the channel number from the analyze iterator
         channel = self.analyze_itr
-        
+
         # save all the waveforms contributing to the average waveform
         with open(self.pickle_selec_name[channel], "wb") as f:
             pickle.dump(self.wfset_ch, f)

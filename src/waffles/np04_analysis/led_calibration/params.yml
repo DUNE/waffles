@@ -2,13 +2,13 @@
 # ------- General parameters -------
 
 # APA number
-apa: 3 # 1, 2, 3, 4
+apas: [2,3,4] # 1, 2, 3, 4
 
 # Photon detection efficiency
-pde: 0.45 # 0.40, 0.45, 0.50
+pdes: [0.4,0.45] # 0.40, 0.45, 0.50
 
 # Calibration-batch number
-batch: 3 # 1, ...
+batches: [3] # 1, ...
 
 # Path to the folder containing the data
 input_path: 'data'

@@ -235,9 +235,9 @@ def save_data_to_dataframe(
     path_to_output_file: str
 ):
     
-    hpk_ov = input_parameters['hpk_ov'][Analysis1_object.params.pde]
-    fbk_ov = input_parameters['fbk_ov'][Analysis1_object.params.pde]
-    ov_no = input_parameters['ov_no'][Analysis1_object.params.pde]
+    hpk_ov = input_parameters['hpk_ov'][Analysis1_object.pde]
+    fbk_ov = input_parameters['fbk_ov'][Analysis1_object.pde]
+    ov_no = input_parameters['ov_no'][Analysis1_object.pde]
     
     # Warning: Settings this variable to True will save
     # changes to the output dataframe, potentially introducing
@@ -296,15 +296,15 @@ def save_data_to_dataframe(
             for channel in data[endpoint]:
                 # Assemble the new row
                 new_row = {
-                    "APA": [int(Analysis1_object.params.apa)],
+                    "APA": [int(Analysis1_object.apa)],
                     "endpoint": [endpoint],
                     "channel": [channel],
                     "channel_iterator": [get_channel_iterator(
-                        Analysis1_object.params.apa,
+                        Analysis1_object.apa,
                         endpoint,
                         channel
                     )],
-                    "PDE": [Analysis1_object.params.pde],
+                    "PDE": [Analysis1_object.pde],
                     "gain": [data[endpoint][channel]["gain"]],
                     "snr": [data[endpoint][channel]["snr"]],
                     "OV#": [ov_no],

@@ -1,0 +1,12 @@
+# Step 1. Read np04 and beam files, create events and save them in pickle file
+1:
+  name: "Analysis1"
+  parameters_file: "params.yml"
+  overwriting_parameters: ""
+
+# Step 2. Read the events file
+2:
+  name: "Analysis2"
+  parameters_file: "params.yml"
+  overwriting_parameters: ""
+

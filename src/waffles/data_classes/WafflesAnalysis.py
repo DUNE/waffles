@@ -1,9 +1,5 @@
 from abc import ABC, abstractmethod
-import pathlib
-import yaml
 from pydantic import BaseModel, Field
-import waffles.core.utils as wcu
-import waffles.Exceptions as we
 
 class BaseInputParams(BaseModel):
 
@@ -44,7 +40,7 @@ class WafflesAnalysis(ABC):
     initialize(input_parameters: BaseInputParams):
         Abstract method which is responsible for defining
         both, the common instance attributes (namely
-        self.read_input_loop, self.analyze_loop,
+        self.read_input_loop_n, self.analyze_loop,
         self.analyze_itr and self.read_input_itr) and
         whichever further attributes are required by the
         analysis. The defined attributes are potentially
@@ -75,11 +71,15 @@ class WafflesAnalysis(ABC):
         # user that these attributes are meant
         # to be defined in the initialize() method.
 
-        self.read_input_loop = None
+        self.read_input_loop_1 = None
+        self.read_input_loop_2 = None
+        self.read_input_loop_3 = None
         self.analyze_loop = None
 
         self.analyze_itr    = None 
-        self.read_input_itr = None
+        self.read_input_itr_1 = None
+        self.read_input_itr_2 = None
+        self.read_input_itr_3 = None
         
         pass
 
@@ -206,389 +206,31 @@ class WafflesAnalysis(ABC):
 
         self.initialize(input_parameters)
 
-        for self.read_input_itr in self.read_input_loop:
+        for self.read_input_itr_1 in self.read_input_loop_1:
+            for self.read_input_itr_2 in self.read_input_loop_2:
+                for self.read_input_itr_3 in self.read_input_loop_3:
 
-            if verbose:
-                print(
-                    "In function WafflesAnalysis.execute(): "
-                    "Executing iteration of the read-input loop "
-                    f"with its iterator set to {self.read_input_itr}"
-                )
-
-            if not self.read_input():
-                continue
-
-            for self.analyze_itr in self.analyze_loop:
-
-                if verbose:
-                    print(
-                        "In function WafflesAnalysis.execute(): "
-                        "Executing iteration of the analysis loop "
-                        f"with its iterator set to {self.analyze_itr}"
-                    )
-
-                if not self.analyze():
-                    continue
-
-                self.write_output()
-
-    @staticmethod
-    def analysis_folder_meets_requirements():
-        """This static method checks that the folder structure
-        of the folder from which the analysis is being executed
-        follows the required structure. It will raise a 
-        waffles.Exceptions.IllFormedAnalysisFolder exception
-        otherwise. The list of the checked requirements is
-        the following:
-
-        1) The folder contains a file called 'steering.yml',
-        which specifies, by default, the order in which
-        different analysis (if many) should be executed and
-        which parameters to use for each analysis stage. This
-        file must be a YAML file which must follow the
-        structure described in the
-        __steering_file_meets_requirements() method docstring.
-        2) The folder contains a file called 'utils.py',
-        which may contain utility functions used by the
-        analysis.
-        3) The folder contains a file called 'params.yml',
-        which contains the input parameters used, by default,
-        by the analysis.
-        4) The folder contains a file called 'imports.py',
-        which contains the imports needed by the analysis.
-        5) The folder contains a file called 'Analysis1.py',
-        where 'Analysis1' is the name of the analysis class
-        which implements the first (and possibly the unique)
-        analysis stage. It gives the analysis to be executed
-        by default.
-        6) The folder contains a sub-folder called 'configs',
-        which may contain configuration files which are not
-        as volatile as the input parameters.
-        7) The folder contains a sub-folder called 'output',
-        which is meant to store the output of the first
-        (and possibly unique) analysis stage, and possibly
-        the inputs and outputs for the rest of the analysis
-        stages.
-
-        The function also checks whether sub-folders called
-        'data' and 'scripts' exist. If they don't exist
-        an exception is not raised, but a warning message
-        is printed.
-        """
-
-        analysis_folder_path = pathlib.Path.cwd()
-
-        WafflesAnalysis.__steering_file_meets_requirements(
-            pathlib.Path(
-                analysis_folder_path,
-                'steering.yml'
-            )
-        )
-
-        wcu.check_file_or_folder_exists(
-            analysis_folder_path,
-            'utils.py',
-            is_file=True
-        )
-
-        wcu.check_file_or_folder_exists(
-            analysis_folder_path,
-            'params.yml',
-            is_file=True
-        )
-
-        wcu.check_file_or_folder_exists(
-            analysis_folder_path,
-            'imports.py',
-            is_file=True
-        )
-
-        wcu.check_file_or_folder_exists(
-            analysis_folder_path,
-            'Analysis1.py',
-            is_file=True
-        )
-
-        wcu.check_file_or_folder_exists(
-            analysis_folder_path,
-            'configs',
-            is_file=False
-        )
-
-        wcu.check_file_or_folder_exists(
-            analysis_folder_path,
-            'output',
-            is_file=False
-        )
-
-        try:
-            wcu.check_file_or_folder_exists(
-                analysis_folder_path,
-                'data',
-                is_file=False
-            )
-        except FileNotFoundError:
-            print(
-                "In function WafflesAnalysis.analysis_folder_meets_requirements(): "
-                "A 'data' folder does not exist in the analysis folder."
-            )
-
-        try:
-            wcu.check_file_or_folder_exists(
-                analysis_folder_path,
-                'scripts',
-                is_file=False
-            )
-        except FileNotFoundError:
-            print(
-                "In function WafflesAnalysis.analysis_folder_meets_requirements(): "
-                "An 'scripts' folder does not exist in the analysis folder."
-            )
-        
-        return
-
-    @staticmethod
-    def __steering_file_meets_requirements(
-        steering_file_path: pathlib.Path
-    ) -> None:
-        """This helper static method checks that the given
-        path points to an existing file, whose name ends with
-        '.yml' and that this (assumed YAML) file abides by
-        the following structure:
-
-            - It contains at least one key
-            - Its keys are consecutive integers starting
-            from 1
-            - The sub-keys of each key are 'name',
-            'parameters' and 'parameters_is_file'
-            - The value for each 'name' sub-keys is an
-            string, say x, that meets the following
-            sub-requirements:
-                - x follows the format "Analysis<i>", where
-                i is an integer >=1
-                - the file 'x.py' exists alongside the
-                steering file
-            - The value for each 'parameters' sub-keys is
-            an string
-            - The value for each 'parameters_is_file'
-            sub-keys is a boolean. If it is True, then the
-            value of the 'parameters' sub-key is interpreted
-            as the name of a parameters file which must exist
-            alongside the steering file. If it is False, then
-            the value of the 'parameters' sub-key is
-            interpreted as the string that would be given as
-            part of a shell command.
-
-        If any of these conditions is not met, a
-        waffles.Exceptions.IllFormedSteeringFile exception
-        is raised. If the given steering file meets the
-        specified requirements, then this method ends
-        execution normally.
-
-        Parameters
-        ----------
-        steering_file_path: pathlib.Path
-            The path to the steering file to be checked.
-            It is assumed to be a YAML file.
-
-        Returns
-        ----------
-        None
-        """
-
-        if not steering_file_path.exists():
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    1,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason=f"The file '{steering_file_path}' does not exist."
-                )
-            )
-
-        if steering_file_path.suffix != '.yml':
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    2,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason=f"The file '{steering_file_path}' must have a '.yml' "
-                    "extension."
-                )
-            )
-
-        with open(
-            steering_file_path,
-            'r'
-        ) as archivo:
-            
-            content = yaml.load(
-                archivo, 
-                Loader=yaml.Loader
-            )
-
-        if not isinstance(content, dict):
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    3,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason="The content of the given steering file must be a "
-                    "dictionary."
-                )
-            )
-        
-        if len(content) == 0:
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    4,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason="The given steering file must contain at "
-                    "least one key."
-                )
-            )
-        
-        keys = list(content.keys())
-        keys.sort()
-
-        if keys != list(range(1, len(keys) + 1)):
-            raise we.IllFormedSteeringFile(
-                we.GenerateExceptionMessage(
-                    5,
-                    'WafflesAnalysis.__steering_file_meets_requirements()',
-                    reason="The keys of the given steering file must "
-                    "be consecutive integers starting from 1."
-                )
-            )
-        
-        for key in keys:
-            if not isinstance(content[key], dict):
-                raise we.IllFormedSteeringFile(
-                    we.GenerateExceptionMessage(
-                        6,
-                        'WafflesAnalysis.__steering_file_meets_requirements()',
-                        reason=f"The value of the key {key} must be a "
-                        "dictionary."
-                    )
-                )
-            
-            for aux in ('name', 'parameters', 'parameters_is_file'):
-
-                if aux not in content[key].keys():
-                    raise we.IllFormedSteeringFile(
-                        we.GenerateExceptionMessage(
-                            7,
-                            'WafflesAnalysis.__steering_file_meets_requirements()',
-                            reason=f"The key {key} must contain a '{aux}' key."
+                    if verbose:
+                        print(
+                            "In function WafflesAnalysis.execute(): "
+                            "Executing iteration of the read-input loop "
+                            "with its iterators set to  "
+                            f"{self.read_input_itr_1}, {self.read_input_itr_2}, {self.read_input_itr_3}"
                         )
-                    )
-                
-                aux_map =  {
-                    'name': str, 
-                    'parameters': str, 
-                    'parameters_is_file': bool
-                }
 
-                if not isinstance(
-                    content[key][aux],
-                    aux_map[aux]
-                ):
-                    raise we.IllFormedSteeringFile(
-                        we.GenerateExceptionMessage(
-                            8,
-                            'WafflesAnalysis.__steering_file_meets_requirements()',
-                            reason=f"The value of the '{aux}' sub-key of the key "
-                            f"{key} must be of type {aux_map[aux]}."
-                        )
-                    )
-                
-            WafflesAnalysis.__check_analysis_class(
-                content[key]['name'],
-                steering_file_path.parent
-            )
+                    if not self.read_input():
+                        continue
 
-            if content[key]['parameters_is_file']:
-                wcu.check_file_or_folder_exists(
-                    steering_file_path.parent,
-                    content[key]['parameters'],
-                    is_file=True
-                )
+                    for self.analyze_itr in self.analyze_loop:
 
-        return
-    
-    @staticmethod
-    def __check_analysis_class(
-        analysis_name: str,
-        analysis_folder_path: pathlib.Path
-    ) -> None:
-        """This helper static method gets an analysis name
-        and the path to the folder from which the analysis
-        is being run. It checks that the analysis name
-        follows the format 'Analysis<i>', where i is an
-        integer >=1, and that the file 'Analysis<i>.py'
-        exists in the given folder. If any of these
-        conditions is not met, a
-        waffles.Exceptions.IllFormedAnalysisClass exception
-        is raised. If the given analysis class meets the
-        specified requirements, then this method ends
-        execution normally.
+                        if verbose:
+                            print(
+                                "In function WafflesAnalysis.execute(): "
+                                "Executing iteration of the analysis loop "
+                                f"with its iterator set to {self.analyze_itr}"
+                            )
 
-        Parameters
-        ----------
-        analysis_name: str
-            The name of the analysis class to be checked
-        analysis_folder_path: pathlib.Path
-            The path to the folder from which the analysis
-            is being run
+                        if not self.analyze():
+                            continue
 
-        Returns
-        ----------
-        None
-        """
-
-        if not analysis_name.startswith('Analysis'):
-            raise we.IllFormedAnalysisClass(
-                we.GenerateExceptionMessage(
-                    1,
-                    'WafflesAnalysis.__check_analysis_class()',
-                    reason=f"The analysis class name ({analysis_name}) "
-                    "must start with 'Analysis'."
-                )
-            )
-        
-        try:
-            i = int(analysis_name[8:])
-
-        except ValueError:
-            raise we.IllFormedAnalysisClass(
-                we.GenerateExceptionMessage(
-                    2,
-                    'WafflesAnalysis.__check_analysis_class()',
-                    reason=f"The analysis class name ({analysis_name}) "
-                    "must follow the 'Analysis<i>' format, with i being "
-                    "an integer."
-                )
-            )
-        else:
-            if i < 1:
-                raise we.IllFormedAnalysisClass(
-                    we.GenerateExceptionMessage(
-                        3,
-                        'WafflesAnalysis.__check_analysis_class()',
-                        reason=f"The integer ({i}) at the end of the "
-                        f"analysis class name ({analysis_name}) must be >=1."
-                    )
-                )
-    
-        if not pathlib.Path(
-            analysis_folder_path,
-            analysis_name + '.py'
-        ).exists():
-            
-            raise we.IllFormedAnalysisClass(
-                we.GenerateExceptionMessage(
-                    4,
-                    'WafflesAnalysis.__check_analysis_class()',
-                    reason=f"The file '{analysis_name}.py' must exist "
-                    f"in the analysis folder ({analysis_folder_path})."
-                )
-            )
-        
-        return
+                        self.write_output()
