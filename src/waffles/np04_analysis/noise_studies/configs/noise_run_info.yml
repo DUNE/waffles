@@ -2,7 +2,10 @@
 filepath_folder: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/"
 
 # File with the daphne-channel <-> Offline channel mapping
+# The new channel map is the one after 24 September 2024
+# Note: run number > 30000 == new channel map == integrator OFF
 channel_map_file: "PDHD_PDS_ChannelMap.csv"
+new_channel_map_file: "PDHD_PDS_NewChannelMap.csv"
 
 # All the noise runs acquired in NP04
 # Dictionary with the noise run <-> Vgain setting

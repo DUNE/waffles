@@ -16,6 +16,7 @@ if __name__ == "__main__":
     filepath_folder  = run_info.get("filepath_folder")
     run_vgain_dict   = run_info.get("run_vgain_dict", {})
     channel_map_file = run_info.get("channel_map_file")
+    new_channel_map_file = run_info.get("new_channel_map_file")
     all_noise_runs   = list(run_vgain_dict.keys())
     integratorsON_runs = run_info.get("integratorsON_runs", [])
 
@@ -39,6 +40,9 @@ if __name__ == "__main__":
     df = pd.read_csv(channel_map_file, sep=",")
     daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
     daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
+    df = pd.read_csv(new_channel_map_file, sep=",")
+    new_daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
+    new_daphne_to_offline = dict(zip(new_daphne_channels, df['offline_ch']))
 
 
     # File where the results will be printed (run, vgain, endpoint, channel, offline_channel, rms)
@@ -57,6 +61,9 @@ if __name__ == "__main__":
         integrator_ON = False
         if run in integratorsON_runs:
             integrator_ON = True
+            daphne_to_offline_dict = daphne_to_offline
+        else:
+            daphne_to_offline_dict = new_daphne_to_offline
 
 
         # --- LOOP OVER ENDPOINTS -------------------------------------
@@ -73,10 +80,10 @@ if __name__ == "__main__":
                 wfset_ch = waffles.WaveformSet.from_filtered_WaveformSet(wfset_ep, nf.allow_channel_wfs, ch)
                 # check if the channel is in the daphne_to_offline dictionary
                 channel = np.uint16(np.uint16(ep)*100+np.uint16(ch))
-                if channel not in daphne_to_offline:
+                if channel not in daphne_to_offline_dict:
                     print(f"Channel {channel} not in the daphne_to_offline dictionary")
                     continue
-                offline_ch = daphne_to_offline[channel]
+                offline_ch = daphne_to_offline_dict[channel]
         
                 wfs = wfset_ch.waveforms
                 del wfset_ch
