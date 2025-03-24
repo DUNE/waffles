@@ -262,6 +262,8 @@ class Analysis1(WafflesAnalysis):
             
         # ------------- Save the waveforms plot ------------- 
 
+        '''
+        
         figure1 = plot_ChannelWsGrid(
             self.grid,
             figure=None,
@@ -330,6 +332,102 @@ class Analysis1(WafflesAnalysis):
         figure1.write_image(f"{fig1_path}")
 
         print(f" \n Waveforms plots saved in {fig1_path}")
+        
+        '''
+        
+        figure1 = plot_CustomChannelGrid(
+            self.grid, 
+            plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_wfs(
+                channel_ws, self.apa, idx, figure_, row, col, self.bins_number, offset=True),
+            share_x_scale=True,
+            share_y_scale=True,
+            show_ticks_only_on_edges=True 
+        )
+
+        # Add the x-axis, y-axis and figure titles
+        
+        title1 = f"Waveforms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure1.update_layout(
+            title={
+                "text": title1,
+                "font": {"size": 24}
+            },
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+        
+        figure1.add_annotation(
+            x=0.5,
+            y=-0.05, 
+            xref="paper",
+            yref="paper",
+            text="Timeticks",
+            showarrow=False,
+            font=dict(size=16)
+        )
+        figure1.add_annotation(
+            x=-0.07,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            text="Entries",
+            showarrow=False,
+            font=dict(size=16),
+            textangle=-90
+        )
+
+        '''   
+        # Primero, almacenamos todas las anotaciones en una lista
+        annotations = []
+
+        for ch_idx, sigma in self.sigma_per_channel.items():
+            pos = None  # Initialize position variable
+
+            # Search for the position of the channel in the grid
+            for row_idx, row in enumerate(self.grid.ch_map.data):
+                for col_idx, value in enumerate(row):
+                    try:
+                        # Here we directly check if value matches the channel (in the format "endpoint-channel")
+                        # For example, if value is "109-27", we compare it directly with ch_idx
+                        if value == ch_idx:
+                            print('value', value)
+                            pos = (row_idx + 1, col_idx + 1)  # Store the position (row, column)
+                            break  # Exit the loop when the position is found
+                    except AttributeError:
+                        continue  # If the value doesn't have the attribute or is not in the expected format, skip
+
+                if pos:  # If position is found, exit the loop
+                    break
+
+            if pos is None:
+                continue  # If the channel wasn't found, skip to the next one
+
+            x_ref, y_ref = pos  # Extract the coordinates
+
+            # Add the annotation
+            annotations.append(
+                {
+                    "x": 0.5,  
+                    "y": 1.05,  
+                    "xref": f"x{x_ref}",  
+                    "yref": f"y{y_ref}",  
+                    "text": f"Sigma: {sigma:.4f}",
+                    "showarrow": False,
+                    "font": dict(size=14, color="blue"),
+                }
+            )
+            '''         
+        # Ahora, añadimos todas las anotaciones al gráfico de una vez
+        figure1.update_layout(annotations=annotations)
+        
+        if self.params.show_figures:
+            figure1.show()
+            
+        fig1_path = f"{base_file_path}_wfs.png"
+        figure1.write_image(f"{fig1_path}")
+        print(f"\n Waveforms saved in {fig1_path}")
         
         
         # ------------- Save the sigma histograms  ------------- 
