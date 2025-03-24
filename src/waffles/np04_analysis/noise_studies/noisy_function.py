@@ -57,17 +57,43 @@ def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
     return waveform.channel == channel
 
 
-def create_float_waveforms(waveforms: waffles.Waveform) -> None:
+def create_float_waveforms(wf_set: waffles.WaveformSet) -> None:
     """
-    Convert the waveform.adcs from int to np.float64, creating a new attribute adcs_float
+    Convert the waveform.adcs from int to np.float64
     Parameters:
-    - waveforms: waffles.Waveform
+    - wf_set: waffles.WaveformSet
     """
-    for wf in waveforms:
-        wf.adcs_float = wf.adcs.astype(np.float64)
+    for wf in wf_set.waveforms:
+        wf.adcs = wf.adcs.astype(np.float64)
 
 
-def sub_baseline_to_wfs(waveforms: waffles.Waveform, prepulse_ticks: int):
+def get_average_rms(wf_set: waffles.WaveformSet) -> np.float64:
+    """
+    Calculate the average standard deviation of the waveforms
+    Parameters:
+    - wf_set: waffles.WaveformSet
+    """
+    rms = 0.
+    norm = 1./len(wf_set.waveforms)
+    for wf in wf_set.waveforms:
+        rms += np.std(wf.adcs)
+    return np.float64(rms*norm)
+
+
+def noise_wf_selection(wf: waffles.Waveform, rms: np.float64) -> bool:
+    """
+    Select the waveforms with the noise
+    Parameters:
+    - wf: waffles.Waveform
+    - rms: np.float64, average standard deviation of the waveforms
+    """
+    if (np.max(wf.adcs) - np.min(wf.adcs)) > 14*rms:
+        return False
+    else:
+        return True
+
+
+def sub_baseline_to_wfs(wf_set: waffles.WaveformSet, prepulse_ticks: int):
     """
     Subtract the baseline from the waveforms and invert the signal
     Parameters:
@@ -75,17 +101,14 @@ def sub_baseline_to_wfs(waveforms: waffles.Waveform, prepulse_ticks: int):
     - prepulse_ticks: int, number of ticks to calculate the baseline
     """
     norm = 1./prepulse_ticks
-    for wf in waveforms:
-        baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
-        wf.adcs_float -= baseline
-        wf.adcs_float *= -1
+    for wf in wf_set.waveforms:
+        baseline = np.sum(wf.adcs[:prepulse_ticks])*norm
+        wf.adcs -= baseline
+        wf.adcs *= -1
 
-def plot_heatmaps(wfs: waffles.Waveform, flag: str, run: int, vgain: int, ch: int, offline_ch: int) -> None:
+def plot_heatmaps(wf_set: waffles.WaveformSet, flag: str, run: int, vgain: int, ch: int, offline_ch: int) -> None:
     # Convert waveform data to numpy array
-    if (flag == "baseline_removed"):
-        raw_wf_arrays = np.array([wf.adcs_float for wf in wfs[:5000]]).astype(np.float64)
-    else:
-        raw_wf_arrays = np.array([wf.adcs for wf in wfs[:5000]])
+    raw_wf_arrays = np.array([wf.adcs for wf in wf_set.waveforms[:5000]])
 
     # Create time arrays for plotting
     time_arrays = np.array([np.arange(1024) for _ in range(len(raw_wf_arrays))])

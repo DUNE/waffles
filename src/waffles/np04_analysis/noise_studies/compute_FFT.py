@@ -8,6 +8,7 @@ import noisy_function as nf
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
+    print("Imports done")
 
     # Setup variables according to the noise_run_info.yaml file
     with open("./configs/noise_run_info.yml", 'r') as stream:
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     new_channel_map_file = run_info.get("new_channel_map_file")
     all_noise_runs   = list(run_vgain_dict.keys())
     integratorsON_runs = run_info.get("integratorsON_runs", [])
+    ignore_ch_dict = run_info.get("ignore_ch_dict", {})
 
     # Setup variables according to the user_config.yaml file
     with open("params.yml", 'r') as stream:
@@ -80,22 +82,33 @@ if __name__ == "__main__":
                 wfset_ch = waffles.WaveformSet.from_filtered_WaveformSet(wfset_ep, nf.allow_channel_wfs, ch)
                 # check if the channel is in the daphne_to_offline dictionary
                 channel = np.uint16(np.uint16(ep)*100+np.uint16(ch))
+                vgain = run_vgain_dict[run]
+
+                if run in ignore_ch_dict:
+                    if channel in ignore_ch_dict[run]:
+                        print(f"Ignoring channel {channel}")
+                        continue
+
                 if channel not in daphne_to_offline_dict:
                     print(f"Channel {channel} not in the daphne_to_offline dictionary")
                     continue
                 offline_ch = daphne_to_offline_dict[channel]
-        
-                wfs = wfset_ch.waveforms
-                del wfset_ch
-                nf.create_float_waveforms(wfs)
-                nf.sub_baseline_to_wfs(wfs, 1024)
+                
+                if debug_mode:
+                    nf.plot_heatmaps(wfset_ch, "raw", run, vgain, channel, offline_ch)
+                    print("done")
 
-                norm = 1./len(wfs)
+                nf.create_float_waveforms(wfset_ch)
+                rms = nf.get_average_rms(wfset_ch)
+                wfset_ch = waffles.WaveformSet.from_filtered_WaveformSet(wfset_ch, nf.noise_wf_selection, rms)
+                nf.sub_baseline_to_wfs(wfset_ch, 1024)
+
+                norm = 1./len(wfset_ch.waveforms)
                 fft2_avg = np.zeros(1024)
                 rms = 0.
 
                 # Compute the average FFT of the wfs.adcs_float
-                for wf in wfs:
+                for wf in wfset_ch.waveforms:
                     rms += np.std(wf.adcs_float)
                     fft  = np.fft.fft(wf.adcs_float)
                     fft2 = np.abs(fft)
@@ -103,7 +116,6 @@ if __name__ == "__main__":
 
                 fft2_avg = fft2_avg*norm
                 rms = rms*norm
-                vgain = run_vgain_dict[run]
                 
                 # print run, vgain, ep, ch, offline_ch, rms in a csv file
                 my_csv_file.write(f"{run},{vgain},{ep},{ch},{offline_ch},{rms}\n")
@@ -125,8 +137,7 @@ if __name__ == "__main__":
 
                
                 if debug_mode:
-                    nf.plot_heatmaps(wfs, "raw", run, vgain, channel, offline_ch)
-                    nf.plot_heatmaps(wfs, "baseline_removed", run, vgain, channel, offline_ch)
+                    nf.plot_heatmaps(wfset_ch, "baseline_removed", run, vgain, channel, offline_ch)
                     print("done")
 
             del wfset_ep

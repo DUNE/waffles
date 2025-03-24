@@ -9,7 +9,7 @@ output_path: "output"
 full_stat: False
 
 # Debug mode? (True/False)
-debug_mode: True
+debug_mode: False
 
 # Append or overwrite the output files? (append="a", overwrite="w")
 out_writing_mode: "w"
