@@ -8,10 +8,9 @@ import numpy as np
 import plotly.graph_objs as go
 from plotly import graph_objects as pgo
 import plotly.io as pio
-from plotly.subplots import make_subplots
 
 import waffles.utils.wf_maps_utils as wmu
-#import waffles.utils.template_utils as tu
+import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
@@ -33,7 +32,7 @@ from scipy import signal
 from scipy.fft import fft, fftshift
 import pickle
 from typing import Union
-from typing import Callable
+import warnings 
 
 # Global plotting settings
 line_color = 'black'
@@ -162,24 +161,27 @@ def read_avg(filename):
 
 ###########################
 def get_wfs(wfs: list,                
-            ep: list = [-1], 
-            ch: Union[int, list]=-1,            
+            ep: Union[int, list]=-1,
+            ch: Union[int, list]=-1,
             nwfs: int = -1,
             tmin: int = -1,
             tmax: int = -1,
             rec: list = [-1]):
 
     # plot all waveforms in a given endpoint and channel
-    n=0
 
     if type(ch) == int:
         ch = [ch]
-    
+
+    if type(ep) == int:
+        ep = [ep]
+        
     waveforms = []
+    n=0
     for wf in wfs:
         t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
-        if (wf.endpoint in ep or ep[0]==-1) and \
-           (wf.channel in ch or ch[0]==-1) and \
+        if (wf.endpoint      in ep  or  ep[0]==-1) and \
+           (wf.channel       in ch  or  ch[0]==-1) and \
            (wf.record_number in rec or rec[0]==-1) and \
            ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
             n=n+1
@@ -188,8 +190,25 @@ def get_wfs(wfs: list,
             break
 
     return waveforms
-    
 
+###########################
+def get_wfs_interval(wfs: list,                
+            tmin: int = -1,
+            tmax: int = -1,
+            nwfs: int = -1):
+        
+    waveforms = []
+    n=0
+    for wf in wfs:
+        t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
+        if ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
+            n=n+1
+            waveforms.append(wf)
+        if n>=nwfs and nwfs!=-1:
+            break
+
+    return waveforms
+    
 ###########################
 def compute_charge_histogram(wset: WaveformSet,
             ep: int = -1, 
@@ -422,10 +441,10 @@ def get_histogram(values: list,
                    xmax: float = None,
                    line_color: str = 'black',
                    line_width: float = 2):
-    if not values:  # Verificar si la lista está vacía
+    if not values:  
         raise ValueError("'values' is empty, the histogram can't be computed.")
     
-    # Calcular los límites del histograma
+    # Histogram limits
     tmin = min(values)
     tmax = max(values)
 
@@ -436,12 +455,11 @@ def get_histogram(values: list,
     
     domain = [xmin, xmax]
     
-    # Crear el histograma
+    # Create the histogram
     counts, edges = np.histogram(values, bins=nbins, range=domain)
     
-    # Crear la traza del histograma
     histogram_trace = go.Scatter(
-        x=edges[:-1],  # Los bordes izquierdo de los bins
+        x=edges[:-1],  
         y=counts,
         mode='lines',
         line=dict(
@@ -452,3 +470,15 @@ def get_histogram(values: list,
     )
     
     return histogram_trace
+
+
+##########################
+def create_figure(rows: int=1,
+                  cols: int=1):
+
+    if rows==1 and cols==1:
+        fig = go.Figure()
+    else:
+        fig = psu.make_subplots(rows=rows, cols=cols)
+
+    return fig
