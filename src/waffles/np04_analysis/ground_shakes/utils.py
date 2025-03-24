@@ -2,6 +2,7 @@ import numpy as np
 from typing import Union
 import warnings 
 import plotly.graph_objs as go
+import matplotlib.pyplot as plt
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 from waffles.np04_data.ProtoDUNE_HD_APA_maps_APA1_104 import APA_map as APA_map_2
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -176,10 +177,10 @@ def get_meansigma_per_channel(wfs: list,
                                nwfs: int = -1,
                                tmin: int = -1,
                                tmax: int = -1,
-                               rec: list = [-1]) -> Dict[int, float]:
+                               rec: list = [-1]) -> Dict[str, float]:
     """
     Computes the standard deviation (sigma) of each waveform's ADCs relative to its mean within a specific interval,
-    and returns the mean sigma per channel.
+    and returns the mean sigma per channel in the format 'endpoint-channel'.
     """
     
     print("Fetching selected waveforms...")
@@ -187,30 +188,106 @@ def get_meansigma_per_channel(wfs: list,
     print(f"Number of selected waveforms: {len(selected_wfs)}")
 
     # Dictionary to store sigmas per channel
-    channel_sigma = {}  # {channel_id: [sigma1, sigma2, ...]}
+    channel_sigma = {}  # {endpoint-channel: [sigma1, sigma2, ...]}
 
     for wf in selected_wfs:
-        if not hasattr(wf, "channel"):  
-            print("Error: waveform missing 'channel' attribute!")
+        if not hasattr(wf, "channel") or not hasattr(wf, "endpoint"):  
+            print("Error: waveform missing 'channel' or 'endpoint' attribute!")
             continue
         
         mean = np.mean(wf.adcs)  # Compute mean of ADC values
         sigma = np.sqrt(np.sum((wf.adcs - mean) ** 2) / len(wf.adcs))  # Standard deviation formula
-        
 
-        if wf.channel not in channel_sigma:
-            channel_sigma[wf.channel] = []  # Create list if channel not seen before
-        
-        channel_sigma[wf.channel].append(sigma)  # Store sigma for this waveform
+        # Construct endpoint-channel format
+        endpoint_channel = f"{wf.endpoint}-{wf.channel}"
 
-    # Compute the mean sigma per channel
+        if endpoint_channel not in channel_sigma:
+            channel_sigma[endpoint_channel] = []  # Create list if endpoint-channel not seen before
+        
+        channel_sigma[endpoint_channel].append(sigma)  # Store sigma for this waveform
+
+    # Compute the mean sigma per endpoint-channel
     mean_sigma = {}
-    for ch_idx, sigmas in channel_sigma.items():
-        mean_sigma[ch_idx] = np.mean(sigmas) if sigmas else float("nan")  
+    for ep_ch, sigmas in channel_sigma.items():
+        mean_sigma[ep_ch] = np.mean(sigmas) if sigmas else float("nan")  
 
     print("Final mean sigmas per channel:", mean_sigma)
     return mean_sigma
 
+
+
+# ------------ Plot a waveform ---------------
+
+
+
+def plot_wf( waveform_adcs : WaveformAdcs,  
+             figure,
+             row,
+             col,
+             offset: bool = False,
+             ) -> None:
+
+    """
+    Plot a single waveform
+    """
+    
+    x0 = np.arange(  len(waveform_adcs.adcs),
+                     dtype = np.float32)
+    y0 = waveform_adcs.adcs
+
+    names=""#waveform_adcs.channel
+
+    if offset:        
+        dt = np.float32(np.int64(waveform_adcs.timestamp)-np.int64(waveform_adcs.daq_window_timestamp))
+    else:
+        dt = 0
+
+    wf_trace = go.Scatter(x = x0 + dt,   
+                           y = y0,
+                           mode = 'lines',
+                           line=dict(width=0.5)
+                           )
+ 
+
+    figure.add_trace(wf_trace,row,col)
+
+# ------------- Plot a set of waveforms ----------
+
+def plot_wfs(channel_ws, 
+             apa,
+             idx, 
+             figure, 
+             row, 
+             col, 
+             nbins,            
+             nwfs: int = -1,
+             xmin: int = -1,
+             xmax: int = -1,
+             tmin: int = -1,
+             tmax: int = -1,
+             offset: bool = False,
+             ):
+
+    """
+    Plot a list of waveforms
+    """
+    
+
+    # don't consider time intervals that will not appear in the plot
+    if tmin == -1 and tmax == -1:
+        tmin=xmin-1024    # harcoded number
+        tmax=xmax        
+
+    # plot nwfs waveforms
+    n=0        
+    for wf in channel_ws.waveforms:
+        n=n+1
+        # plot the single waveform
+        plot_wf(wf,figure, row, col, offset)
+        if n>=nwfs and nwfs!=-1:
+            break
+
+    return figure
 
 
 #-------------- Time offset histograms -----------
