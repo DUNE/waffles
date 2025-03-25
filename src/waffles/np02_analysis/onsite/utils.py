@@ -1,10 +1,10 @@
 import numpy as np
-from typing import Union
+from typing import Union, Dict
 import warnings 
 import plotly.graph_objs as go
 import matplotlib.pyplot as plt
-from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
-from waffles.np04_data.ProtoDUNE_HD_APA_maps_APA1_104 import APA_map as APA_map_2
+
+from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, cat_geometry_map
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.WaveformSet import WaveformSet
 
@@ -15,24 +15,13 @@ from waffles.data_classes.IPDict import IPDict
 input_parameters = build_parameters_dictionary('params.yml')
     
 def get_analysis_params(
-        apa_no: int,
-        run: int = None
     ):
 
-    if apa_no == 1:
-        if run is None:
-            raise Exception(
-                "In get_analysis_params(): A run number "
-                "must be specified for APA 1"
-            )
-        else:
-            int_ll = input_parameters['starting_tick'][1][run]
-    else:
-        int_ll = input_parameters['starting_tick'][apa_no]
+    int_ll = input_parameters['starting_tick']
 
     analysis_input_parameters = IPDict(
         baseline_limits=\
-            input_parameters['baseline_limits'][apa_no]
+            input_parameters['baseline_limits']
     )
     analysis_input_parameters['int_ll'] = int_ll
     analysis_input_parameters['int_ul'] = \
@@ -43,34 +32,29 @@ def get_analysis_params(
 
     return analysis_input_parameters
 
-def get_nbins_for_charge_histo(
+def get_nbins(
         pde: float,
-        apa_no: int
     ):
 
-    if apa_no in [2, 3, 4]:
-        if pde == 0.4:
-            bins_number = 125
-        elif pde == 0.45:
-            bins_number = 110 # [100-110]
-        else:
-            bins_number = 90
-    else:
-        # It is still required to
-        # do this tuning for APA 1
+    if pde == 0.4:
         bins_number = 125
+    elif pde == 0.45:
+        bins_number = 110 
+    else:
+        bins_number = 90
 
     return bins_number
 
-def get_endpoints(apa: int):
+def get_endpoints(det:str, det_id: int):
 
     eps=[]
-
-    if    apa == 1: eps =[104,105,107]
-    elif  apa == 2: eps =[109]
-    elif  apa == 3: eps =[111]
-    elif  apa == 4: eps =[112,113]
-
+    
+    if   det == 'Membrane': eps = [107]
+    elif det == 'Cathode':  eps = [106] 
+    elif det == 'PMTs':     eps = []
+            
+    # Change according to the NP02 mapping
+    
     return eps
 
 def get_wfs(wfs: list,                
@@ -158,18 +142,25 @@ def get_histogram(values: list,
     return histogram_trace
 
 def get_grid(wfs: list,                
-             apa: int = -1,
-             run: int = -1):
+             det: str,
+             det_id: list):
 
-    if run < 29927:
-        grid_apa = ChannelWsGrid(APA_map[apa], WaveformSet(*wfs))
-    else:
-        grid_apa = ChannelWsGrid(APA_map_2[apa], WaveformSet(*wfs))        
+    if det == 'Membrane':
+        grid = ChannelWsGrid(mem_geometry_map[det_id], WaveformSet(*wfs))
+    elif det == 'Cathode':
+        grid = ChannelWsGrid(cat_geometry_map[det_id], WaveformSet(*wfs))  
+    elif det == 'PMTs':
+        grid = None      
         
-    return grid_apa
+    return grid
 
-import numpy as np
-from typing import List, Union, Dict
+def get_det_id_name(det_id: int):
+
+    if   det_id == 1: det_id_name='non-TCO' 
+    elif det_id ==2 : det_id_name= 'TCO'      
+        
+    return det_id_name
+
 
 def get_meansigma_per_channel(wfs: list,                
                                ep: Union[int, list] = -1,
@@ -214,8 +205,6 @@ def get_meansigma_per_channel(wfs: list,
     print("Final mean sigmas per channel:", mean_sigma)
     return mean_sigma
 
-
-
 # ------------ Plot a waveform ---------------
 
 def plot_wf( waveform_adcs : WaveformAdcs,  
@@ -249,13 +238,10 @@ def plot_wf( waveform_adcs : WaveformAdcs,
 
 # ------------- Plot a set of waveforms ----------
 
-def plot_wfs(channel_ws, 
-             apa,
-             idx, 
+def plot_wfs(channel_ws,  
              figure, 
              row, 
-             col, 
-             nbins,            
+             col,           
              nwfs: int = -1,
              xmin: int = -1,
              xmax: int = -1,
@@ -268,7 +254,6 @@ def plot_wfs(channel_ws,
     Plot a list of waveforms
     """
     
-
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
         tmin=xmin-1024    # harcoded number
@@ -288,7 +273,7 @@ def plot_wfs(channel_ws,
 
 #-------------- Time offset histograms -----------
 
-def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
+def plot_to_function(channel_ws, figure, row, col, nbins):
 
     # Compute the time offset
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
@@ -299,14 +284,6 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
 
     # Generaate the histogram
     histogram = get_histogram(times, nbins, line_width=0.5)
-
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Time offset"
-    y_axis_title = "Entries"
-    figure_title = f"Time offset histograms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
@@ -316,7 +293,7 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
 
 # --------------- Sigma vs timestamp  --------------
 
-def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
+def plot_sigma_vs_ts_function(channel_ws, figure, row, col):
 
     timestamps = []
     sigmas = []
@@ -331,14 +308,6 @@ def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
         sigma = np.std(wf.adcs)
         sigmas.append(sigma)
     
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Timestamp"
-    y_axis_title = "Sigma"
-    figure_title = f"Sigma vs timestamp for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
-    
     # Add the histogram to the corresponding channel
     figure.add_trace(go.Scatter(
         x=timestamps,
@@ -352,7 +321,7 @@ def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
 
 # --------------- Sigma histograms  --------------
  
-def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
+def plot_sigma_function(channel_ws, figure, row, col, nbins):
     
     # Compute the sigmas
     
@@ -365,14 +334,6 @@ def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
         
     # Generate the histogram
     histogram = get_histogram(sigmas, nbins, line_width=0.5)
-
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Sigma"
-    y_axis_title = "Entries"
-    figure_title = f"Sigma histograms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
@@ -401,8 +362,10 @@ def fft(sig, dt=16e-9):
     y = 20*np.log10(np.abs(sigFFTPos)/2**14)
     return x,y
 
-def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
-
+def plot_meanfft_function(channel_ws, figure, row, col):
+    
+    
+    '''
     waveform_sets = {
         "[-1000, -500]": get_wfs_interval(channel_ws.waveforms, -1000, -500),
         "[-450, -300]": get_wfs_interval(channel_ws.waveforms, -450, -300),
@@ -415,16 +378,9 @@ def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
     
     # Different colors for each range
     colors = ['blue', 'red', 'green', 'purple', 'orange']  
+    '''
+    waveform_sets= {"All":get_wfs_interval(channel_ws.waveforms,-1, -1)}
     
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Frequency [MHz]"
-    y_axis_title = "Power [dB]"
-    figure_title = f"Superimposed FFT of Selected Waveforms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
-
-
     for i, (label, selected_wfs) in enumerate(waveform_sets.items()):
         if not selected_wfs:
             print(f"No waveforms found for range {label}")
@@ -448,7 +404,7 @@ def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
             y=power,
             mode='lines',
             name=f"FFT {label}",
-            line=dict(color=colors[i % len(colors)], width=1)
+            #line=dict(color=colors[i % len(colors)], width=1)
         ), row=row, col=col)  
     
     return figure  
