@@ -1,4 +1,4 @@
-from waffles.np04_analysis.ground_shakes.imports import *
+from waffles.np02_analysis.onsite.imports import *
 
 class Analysis1(WafflesAnalysis):
 
@@ -31,9 +31,15 @@ class Analysis1(WafflesAnalysis):
                 example=[27906, 27907]
             )
             
-            apas: list = Field(
+            det: str = Field(
                 ...,
-                description="APA number",
+                description= "Membrane, Cathode or PMT",
+                example = "Membrane"
+            )
+            
+            det_id: list = Field(
+                ...,
+                description="TCO [1] and no-tco [2] membrane, TCO [1] and no-tco [2] cathode, and PMTs",
                 example=[2]
             )
 
@@ -135,7 +141,7 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
 
         self.read_input_loop_1 = self.params.runs
-        self.read_input_loop_2 = self.params.apas
+        self.read_input_loop_2 = self.params.det_id
         self.read_input_loop_3 = self.params.pdes
         self.analyze_loop = [None,]
 
@@ -154,9 +160,9 @@ class Analysis1(WafflesAnalysis):
         bool
             True if the method ends execution normally
         """
-        self.run = self.read_input_itr_1
-        self.apa = self.read_input_itr_2
-        self.pde = self.read_input_itr_3
+        self.run    = self.read_input_itr_1
+        self.det_id = self.read_input_itr_2
+        self.pde    = self.read_input_itr_3
         
         print(
             "In function Analysis1.read_input(): "
@@ -192,30 +198,29 @@ class Analysis1(WafflesAnalysis):
         
         print(" 1. Starting the analysis")
         
-        # Obtain the endpoints from the APA
-        eps = gs_utils.get_endpoints(self.apa)
+        # Obtain the endpoints from the detector
+        eps = os_utils.get_endpoints(self.params.det, self.det_id)
         
         # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
-        selected_wfs, selected_wfset= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec)
+        selected_wfs, selected_wfset= os_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec)
         
         print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
         
         print(f" 3. Creating the grid")
         
-        # Create a grid of WaveformSets for each channel in one APA, and compute the corresponding function for each channel
-        self.grid = gs_utils.get_grid(selected_wfs, self.apa, self.run)
+        # Create a grid of WaveformSets for each channel in one detector, and compute the corresponding function for each channel
+        self.grid = os_utils.get_grid(selected_wfs, self.params.det, self.det_id)
         
-        analysis_params = gs_utils.get_analysis_params(
-            self.apa,
-            # Will fail when APA 1 is analyzed
-            run=None
-        )
+        '''
+        
+        # Análisis como Julio 
+        
+        analysis_params = gs_utils.get_analysis_params()
         
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = selected_wfset.points_per_wf
         
         self.analysis_name = 'standard'
-        
         
         # Analyze all of the waveforms in this WaveformSet:
         # compute baseline, integral and amplitud
@@ -229,17 +234,14 @@ class Analysis1(WafflesAnalysis):
             overwrite=True
         )
 
-        '''
+        
         print(f" 4. Computing the mean sigma in the precursor per channel")
         # Compute the sigma of the precursor
         
         self.sigma_per_channel = gs_utils.get_meansigma_per_channel(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
         '''
         
-        self.bins_number=gs_utils.get_nbins_for_charge_histo(
-                self.pde,
-                self.apa
-            )
+        self.bins_number=os_utils.get_nbins(self.pde)
         
         return True
 
@@ -262,8 +264,10 @@ class Analysis1(WafflesAnalysis):
 
         '''
         
+        det_id_name=os_utils.get_det_id_name(self.det_id)
+        
         base_file_path = f"{self.params.output_path}"\
-            f"run_{self.run}_apa_{self.apa}_pde_{self.pde}"
+            f"run_{self.run}_det_{det_id_name}_{self.params.det}_pde_{self.pde}"
            
             
         # ------------- Save the waveforms plot ------------- 
@@ -282,7 +286,7 @@ class Analysis1(WafflesAnalysis):
             verbose=True
         )
 
-        title1 = f"Waveforms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title1 = f"Waveforms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
         figure1.update_layout(
             title={
@@ -314,23 +318,6 @@ class Analysis1(WafflesAnalysis):
             textangle=-90
         )
         
-
-        for subplot_idx, (ch_idx, sigma) in enumerate(self.sigma_per_channel.items()):
-            if ch_idx not in self.grid:  # Ensure channel exists in the grid
-                continue
-
-            x_ref, y_ref = grid[ch_idx]  # Get the correct subplot position
-
-            figure1.add_annotation(
-                x=0.5,  # Centered horizontally
-                y=1.05,  # Slightly above the subplot
-                xref=f"x{x_ref}",  
-                yref=f"y{y_ref}",  
-                text=f"Channel {ch_idx} Mean Sigma: {sigma:.4f}",
-                showarrow=False,
-                font=dict(size=14, color="blue"),
-            )
-        
         
         if self.params.show_figures:
             figure1.show()
@@ -344,8 +331,8 @@ class Analysis1(WafflesAnalysis):
         
         figure1 = plot_CustomChannelGrid(
             self.grid, 
-            plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_wfs(
-                channel_ws, self.apa, idx, figure_, row, col, self.bins_number, offset=True),
+            plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_wfs(
+                channel_ws, figure_, row, col, offset=True),
             share_x_scale=True,
             share_y_scale=True,
             show_ticks_only_on_edges=True 
@@ -353,7 +340,7 @@ class Analysis1(WafflesAnalysis):
 
         # Add the x-axis, y-axis and figure titles
         
-        title1 = f"Waveforms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title1 = f"Waveforms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
         figure1.update_layout(
             title={
@@ -385,51 +372,6 @@ class Analysis1(WafflesAnalysis):
             textangle=-90
         )
 
-        '''
-        
-        # Primero, almacenamos todas las anotaciones en una lista
-        annotations = []
-
-        for ch_idx, sigma in self.sigma_per_channel.items():
-            pos = None  # Initialize position variable
-
-            # Search for the position of the channel in the grid
-            for row_idx, row in enumerate(self.grid.ch_map.data):
-                for col_idx, value in enumerate(row):
-                    try:
-                        # Here we directly check if value matches the channel (in the format "endpoint-channel")
-                        # For example, if value is "109-27", we compare it directly with ch_idx
-                        if value == ch_idx:
-                            print('value', value)
-                            pos = (row_idx + 1, col_idx + 1)  # Store the position (row, column)
-                            break  # Exit the loop when the position is found
-                    except AttributeError:
-                        continue  # If the value doesn't have the attribute or is not in the expected format, skip
-
-                if pos:  # If position is found, exit the loop
-                    break
-
-            if pos is None:
-                continue  # If the channel wasn't found, skip to the next one
-
-            x_ref, y_ref = pos  # Extract the coordinates
-
-            # Add the annotation
-            annotations.append(
-                {
-                    "x": 0.5,  
-                    "y": 1.05,  
-                    "xref": f"x{x_ref}",  
-                    "yref": f"y{y_ref}",  
-                    "text": f"Sigma: {sigma:.4f}",
-                    "showarrow": False,
-                    "font": dict(size=14, color="blue"),
-                }
-            )
-        
-        # Ahora, añadimos todas las anotaciones al gráfico de una vez
-        figure1.update_layout(annotations=annotations)
-        '''   
         if self.params.show_figures:
             figure1.show()
             
@@ -437,14 +379,12 @@ class Analysis1(WafflesAnalysis):
         figure1.write_image(f"{fig1_path}")
         print(f"\n Waveforms saved in {fig1_path}")
         
- 
-        
         # ------------- Save the sigma histograms  ------------- 
         
         figure2 = plot_CustomChannelGrid(
             self.grid, 
-            plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_sigma_function(
-                channel_ws, self.apa, idx, figure_, row, col, self.bins_number),
+            plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_sigma_function(
+                channel_ws, figure_, row, col, self.bins_number),
             share_x_scale=True,
             share_y_scale=True,
             show_ticks_only_on_edges=True 
@@ -452,7 +392,7 @@ class Analysis1(WafflesAnalysis):
 
         # Add the x-axis, y-axis and figure titles
         
-        title2 = f"Sigma histograms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title2 = f"Sigma histograms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
         figure2.update_layout(
             title={
@@ -498,8 +438,8 @@ class Analysis1(WafflesAnalysis):
         # Plot the sigma histograms of each channel
         figure3= plot_CustomChannelGrid(
                 self.grid, 
-                plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_meanfft_function(
-                    channel_ws, self.apa, idx, figure_, row, col, self.bins_number),
+                plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_meanfft_function(
+                    channel_ws, figure_, row, col),
                 share_x_scale=True,
                 share_y_scale=True,
                 show_ticks_only_on_edges=True,
@@ -508,7 +448,7 @@ class Analysis1(WafflesAnalysis):
         
         # Add the x-axis, y-axis and figure titles
         
-        title3 = f"Superimposed FFT for APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title3 = f"Superimposed FFT for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
         figure3.update_layout(
             title={
