@@ -1,15 +1,18 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/wfset_chs_5_30201.hdf5"
+input_path: "data/processed_merged_run_35662.hdf5"
 
 # Path to the output
 output_path: "output/"
 
+# Runs
 runs: [35662]
 
+det: "Membrane"
+
 # APA number
-apas: [2] 
+det_id: [1] 
 
 # Photon detection efficiency
 pdes: [0.45] 
@@ -38,8 +41,8 @@ analysis_label: 'standard'
 
 # Time interval in timeticks of the DAQ window to be considered 
 
-tmin: -1000
-tmax: 1000
+tmin: -1
+tmax: -1
 
 # Time interval of the precursor to be considered 
 
@@ -61,36 +64,14 @@ rec: [-1]
 # Lower integration limits. For APA 1 the limits are
 # run-wise, while for APA 2, 3, 4 they are the same
 # for all runs 
-starting_tick:
-    1:
-        60
-    2:
-        60
-    3:
-        60
-    4:
-        60
+starting_tick: 60
 
 # Baseline limits
 baseline_limits:
-    1:
-        - 100
-        - 400
-    2: 
-        - 0
-        - 50
-        - 900
-        - 1000
-    3: 
-        - 0
-        - 100
-        - 900
-        - 1000
-    4: 
-        - 0
-        - 100
-        - 900
-        - 1000
+    - 0
+    - 100
+    - 900
+    - 1000
 
 # Integration window width, in time ticks
 integ_window: 60

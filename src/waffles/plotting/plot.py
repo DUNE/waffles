@@ -1735,10 +1735,10 @@ def plot_CustomChannelGrid(
             # Apply the user-defined plot function to each waveform/channel
             if wf_func is None:    
                 for idx in aux_idcs:
-                    plot_function(channel_ws, idx, figure_, i + 1, j + 1)
+                    plot_function(channel_ws, figure_, i + 1, j + 1)
             else:
                 for idx in aux_idcs:
-                    plot_function(channel_ws, idx, figure_, i + 1, j + 1, wf_func)
+                    plot_function(channel_ws, figure_, i + 1, j + 1, wf_func)
                     
             # Configure axes based on the option to show ticks only on edges
             if show_ticks_only_on_edges:
