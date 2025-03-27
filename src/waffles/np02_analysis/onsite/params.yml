@@ -1,13 +1,13 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/processed_merged_run_35662.hdf5"
+input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
 
 # Path to the output
 output_path: "output/"
 
 # Runs
-runs: [35662]
+runs: [30201]
 
 det: "Membrane"
 

@@ -56,19 +56,19 @@ def main():
         # Assuming that we are running from the analysis folder
         analysis_folder_name = pathlib.Path.cwd().name
 
-        '''
+        
         import_command = \
             f"from waffles.np04_analysis." +\
             f"{analysis_folder_name}.{analyses[i]['name']} " +\
             f"import {analyses[i]['name']}"
-        '''
         
+        '''
         import_command = \
             f"from waffles.{'np04' if 'np04' in analysis_folder_name else 'np02'}_analysis." +\
             f"{analysis_folder_name}.{analyses[i]['name']} " +\
             f"import {analyses[i]['name']}"
-
-
+        '''
+        
         try:
             exec(import_command)
 

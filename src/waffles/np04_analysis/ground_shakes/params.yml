@@ -1,12 +1,12 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/wfset_chs_5_30201.hdf5"
+input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
 
 # Path to the output
 output_path: "output/"
 
-runs: [35662]
+runs: [30201]
 
 # APA number
 apas: [2] 
@@ -52,7 +52,7 @@ ch: -1
 
 # Number of waveforms
 
-nwfs: 20000
+nwfs: -1
 
 # Records
 
