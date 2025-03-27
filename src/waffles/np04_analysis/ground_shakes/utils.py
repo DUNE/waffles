@@ -249,13 +249,10 @@ def plot_wf( waveform_adcs : WaveformAdcs,
 
 # ------------- Plot a set of waveforms ----------
 
-def plot_wfs(channel_ws, 
-             apa,
-             idx, 
+def plot_wfs(channel_ws,  
              figure, 
              row, 
-             col, 
-             nbins,            
+             col,           
              nwfs: int = -1,
              xmin: int = -1,
              xmax: int = -1,
@@ -268,7 +265,6 @@ def plot_wfs(channel_ws,
     Plot a list of waveforms
     """
     
-
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
         tmin=xmin-1024    # harcoded number
@@ -288,7 +284,7 @@ def plot_wfs(channel_ws,
 
 #-------------- Time offset histograms -----------
 
-def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
+def plot_to_function(channel_ws, figure, row, col, nbins):
 
     # Compute the time offset
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
@@ -299,14 +295,6 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
 
     # Generaate the histogram
     histogram = get_histogram(times, nbins, line_width=0.5)
-
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Time offset"
-    y_axis_title = "Entries"
-    figure_title = f"Time offset histograms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
@@ -316,7 +304,7 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
 
 # --------------- Sigma vs timestamp  --------------
 
-def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
+def plot_sigma_vs_ts_function(channel_ws, figure, row, col):
 
     timestamps = []
     sigmas = []
@@ -331,14 +319,6 @@ def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
         sigma = np.std(wf.adcs)
         sigmas.append(sigma)
     
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Timestamp"
-    y_axis_title = "Sigma"
-    figure_title = f"Sigma vs timestamp for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
-    
     # Add the histogram to the corresponding channel
     figure.add_trace(go.Scatter(
         x=timestamps,
@@ -352,7 +332,7 @@ def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
 
 # --------------- Sigma histograms  --------------
  
-def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
+def plot_sigma_function(channel_ws, figure, row, col, nbins):
     
     # Compute the sigmas
     
@@ -365,14 +345,6 @@ def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
         
     # Generate the histogram
     histogram = get_histogram(sigmas, nbins, line_width=0.5)
-
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Sigma"
-    y_axis_title = "Entries"
-    figure_title = f"Sigma histograms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
@@ -401,8 +373,10 @@ def fft(sig, dt=16e-9):
     y = 20*np.log10(np.abs(sigFFTPos)/2**14)
     return x,y
 
-def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
-
+def plot_meanfft_function(channel_ws, figure, row, col):
+    
+    
+    '''
     waveform_sets = {
         "[-1000, -500]": get_wfs_interval(channel_ws.waveforms, -1000, -500),
         "[-450, -300]": get_wfs_interval(channel_ws.waveforms, -450, -300),
@@ -415,16 +389,9 @@ def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
     
     # Different colors for each range
     colors = ['blue', 'red', 'green', 'purple', 'orange']  
+    '''
+    waveform_sets= {"All":get_wfs_interval(channel_ws.waveforms,-1, -1)}
     
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Frequency [MHz]"
-    y_axis_title = "Power [dB]"
-    figure_title = f"Superimposed FFT of Selected Waveforms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
-
-
     for i, (label, selected_wfs) in enumerate(waveform_sets.items()):
         if not selected_wfs:
             print(f"No waveforms found for range {label}")
@@ -448,7 +415,7 @@ def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
             y=power,
             mode='lines',
             name=f"FFT {label}",
-            line=dict(color=colors[i % len(colors)], width=1)
+            line=dict(color='black', width=1),
         ), row=row, col=col)  
     
     return figure  
