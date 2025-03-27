@@ -200,34 +200,25 @@ class Analysis1(WafflesAnalysis):
         
         print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
         
+        record_number=len(selected_wfset.record_numbers[self.run])
+        
+        print('Number of records:', record_number)
+        
+        trigger_window=selected_wfs[0].daq_window_timestamp
+        trigger_window1=selected_wfs[len(selected_wfs)-1].daq_window_timestamp
+        time_difference=(trigger_window1-trigger_window)*16*1e9
+        records_per_second=record_number/time_difference
+        
+        print('Trigger window', trigger_window)
+        print('Trigger window1', trigger_window1)
+        print('Time difference in scs',time_difference)
+        print('Records per second',records_per_second)
+        
         print(f" 3. Creating the grid")
         
         # Create a grid of WaveformSets for each channel in one APA, and compute the corresponding function for each channel
         self.grid = gs_utils.get_grid(selected_wfs, self.apa, self.run)
         
-        analysis_params = gs_utils.get_analysis_params(
-            self.apa,
-            # Will fail when APA 1 is analyzed
-            run=None
-        )
-        
-        checks_kwargs = IPDict()
-        checks_kwargs['points_no'] = selected_wfset.points_per_wf
-        
-        self.analysis_name = 'standard'
-        
-        
-        # Analyze all of the waveforms in this WaveformSet:
-        # compute baseline, integral and amplitud
-        _ = selected_wfset.analyse(
-            self.analysis_name,
-            BasicWfAna,
-            analysis_params,
-            *[],  # *args,
-            analysis_kwargs={},
-            checks_kwargs=checks_kwargs,
-            overwrite=True
-        )
 
         '''
         print(f" 4. Computing the mean sigma in the precursor per channel")
@@ -263,89 +254,17 @@ class Analysis1(WafflesAnalysis):
         '''
         
         base_file_path = f"{self.params.output_path}"\
-            f"run_{self.run}_apa_{self.apa}_pde_{self.pde}"
+            f"run_{self.run}_apa_{self.apa}"
            
             
         # ------------- Save the waveforms plot ------------- 
 
-        '''
-        figure1 = plot_ChannelWsGrid(
-            self.grid,
-            figure=None,
-            share_x_scale=False,
-            share_y_scale=False,
-            mode="overlay",
-            #wfs_per_axes=len(self.wfset.waveforms),
-            wfs_per_axes=200,
-            analysis_label=self.analysis_name,
-            detailed_label=False,
-            verbose=True
-        )
-
-        title1 = f"Waveforms for APA {self.apa} - Runs {list(self.wfset.runs)}"
-
-        figure1.update_layout(
-            title={
-                "text": title1,
-                "font": {"size": 24}
-            }, 
-            width=1100,
-            height=1200,
-            showlegend=True
-        )
-        
-        figure1.add_annotation(
-            x=0.5,
-            y=-0.05, 
-            xref="paper",
-            yref="paper",
-            text="Timeticks",
-            showarrow=False,
-            font=dict(size=16)
-        )
-        figure1.add_annotation(
-            x=-0.07,
-            y=0.5,
-            xref="paper",
-            yref="paper",
-            text="Entries",
-            showarrow=False,
-            font=dict(size=16),
-            textangle=-90
-        )
-        
-
-        for subplot_idx, (ch_idx, sigma) in enumerate(self.sigma_per_channel.items()):
-            if ch_idx not in self.grid:  # Ensure channel exists in the grid
-                continue
-
-            x_ref, y_ref = grid[ch_idx]  # Get the correct subplot position
-
-            figure1.add_annotation(
-                x=0.5,  # Centered horizontally
-                y=1.05,  # Slightly above the subplot
-                xref=f"x{x_ref}",  
-                yref=f"y{y_ref}",  
-                text=f"Channel {ch_idx} Mean Sigma: {sigma:.4f}",
-                showarrow=False,
-                font=dict(size=14, color="blue"),
-            )
-        
-        
-        if self.params.show_figures:
-            figure1.show()
-
-        fig1_path = f"{base_file_path}_wfsets.png"
-        figure1.write_image(f"{fig1_path}")
-
-        print(f" \n Waveforms plots saved in {fig1_path}")
-        
-        '''
         
         figure1 = plot_CustomChannelGrid(
             self.grid, 
-            plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_wfs(
-                channel_ws, self.apa, idx, figure_, row, col, self.bins_number, offset=True),
+            plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_wfs(
+                channel_ws, figure_, row, col,  offset=True),
+            wfs_per_axes=10,
             share_x_scale=True,
             share_y_scale=True,
             show_ticks_only_on_edges=True 
@@ -384,52 +303,7 @@ class Analysis1(WafflesAnalysis):
             font=dict(size=16),
             textangle=-90
         )
-
-        '''
-        
-        # Primero, almacenamos todas las anotaciones en una lista
-        annotations = []
-
-        for ch_idx, sigma in self.sigma_per_channel.items():
-            pos = None  # Initialize position variable
-
-            # Search for the position of the channel in the grid
-            for row_idx, row in enumerate(self.grid.ch_map.data):
-                for col_idx, value in enumerate(row):
-                    try:
-                        # Here we directly check if value matches the channel (in the format "endpoint-channel")
-                        # For example, if value is "109-27", we compare it directly with ch_idx
-                        if value == ch_idx:
-                            print('value', value)
-                            pos = (row_idx + 1, col_idx + 1)  # Store the position (row, column)
-                            break  # Exit the loop when the position is found
-                    except AttributeError:
-                        continue  # If the value doesn't have the attribute or is not in the expected format, skip
-
-                if pos:  # If position is found, exit the loop
-                    break
-
-            if pos is None:
-                continue  # If the channel wasn't found, skip to the next one
-
-            x_ref, y_ref = pos  # Extract the coordinates
-
-            # Add the annotation
-            annotations.append(
-                {
-                    "x": 0.5,  
-                    "y": 1.05,  
-                    "xref": f"x{x_ref}",  
-                    "yref": f"y{y_ref}",  
-                    "text": f"Sigma: {sigma:.4f}",
-                    "showarrow": False,
-                    "font": dict(size=14, color="blue"),
-                }
-            )
-        
-        # Ahora, añadimos todas las anotaciones al gráfico de una vez
-        figure1.update_layout(annotations=annotations)
-        '''   
+  
         if self.params.show_figures:
             figure1.show()
             
@@ -443,8 +317,8 @@ class Analysis1(WafflesAnalysis):
         
         figure2 = plot_CustomChannelGrid(
             self.grid, 
-            plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_sigma_function(
-                channel_ws, self.apa, idx, figure_, row, col, self.bins_number),
+            plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_sigma_function(
+                channel_ws, figure_, row, col, self.bins_number),
             share_x_scale=True,
             share_y_scale=True,
             show_ticks_only_on_edges=True 
@@ -498,8 +372,8 @@ class Analysis1(WafflesAnalysis):
         # Plot the sigma histograms of each channel
         figure3= plot_CustomChannelGrid(
                 self.grid, 
-                plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_meanfft_function(
-                    channel_ws, self.apa, idx, figure_, row, col, self.bins_number),
+                plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_meanfft_function(
+                    channel_ws, figure_, row, col),
                 share_x_scale=True,
                 share_y_scale=True,
                 show_ticks_only_on_edges=True,

@@ -1671,7 +1671,7 @@ def plot_CustomChannelGrid(
     figure_title: Optional[str] = None,  
     show_ticks_only_on_edges: bool = False,  
     wf_func: Optional[Callable] = None,
-    log_x_axis: bool = False 
+    log_x_axis: bool = False
 ) -> pgo.Figure:
     """
     This function returns a plotly.graph_objects.Figure with a grid of subplots arranged according to the 
@@ -1732,13 +1732,12 @@ def plot_CustomChannelGrid(
             else:
                 aux_idcs = range(len(channel_ws.waveforms))
 
-            # Apply the user-defined plot function to each waveform/channel
-            if wf_func is None:    
-                for idx in aux_idcs:
-                    plot_function(channel_ws, figure_, i + 1, j + 1)
-            else:
-                for idx in aux_idcs:
-                    plot_function(channel_ws, figure_, i + 1, j + 1, wf_func)
+            # Apply the user-defined plot function to each selected waveform
+            for idx in aux_idcs:
+                if wf_func is None:
+                    plot_function(channel_ws.waveforms[idx], figure_, i + 1, j + 1)
+                else:
+                    plot_function(channel_ws.waveforms[idx], figure_, i + 1, j + 1, wf_func)
                     
             # Configure axes based on the option to show ticks only on edges
             if show_ticks_only_on_edges:
