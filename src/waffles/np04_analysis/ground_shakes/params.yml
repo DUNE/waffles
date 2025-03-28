@@ -4,7 +4,7 @@
 input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
 
 # Path to the output
-output_path: "output/"
+output_path: "output_pres/"
 
 runs: [30201]
 
@@ -57,6 +57,8 @@ nwfs: -1
 # Records
 
 rec: [-1]
+
+
 
 # Lower integration limits. For APA 1 the limits are
 # run-wise, while for APA 2, 3, 4 they are the same

@@ -168,53 +168,59 @@ def get_grid(wfs: list,
         
     return grid_apa
 
-import numpy as np
-from typing import List, Union, Dict
 
-def get_meansigma_per_channel(wfs: list,                
-                               ep: Union[int, list] = -1,
-                               ch: Union[int, list] = -1,
-                               nwfs: int = -1,
-                               tmin: int = -1,
-                               tmax: int = -1,
-                               rec: list = [-1]) -> Dict[str, float]:
+def get_min_ticks(wfs, record_numbers):
     """
-    Computes the standard deviation (sigma) of each waveform's ADCs relative to its mean within a specific interval,
-    and returns the mean sigma per channel in the format 'endpoint-channel'.
-    """
+    Extrae los min_tick de cada waveform para cada record.
     
-    print("Fetching selected waveforms...")
-    selected_wfs, _ = get_wfs(wfs, ep, ch, nwfs, tmin, tmax, rec)
-    print(f"Number of selected waveforms: {len(selected_wfs)}")
-
-    # Dictionary to store sigmas per channel
-    channel_sigma = {}  # {endpoint-channel: [sigma1, sigma2, ...]}
-
-    for wf in selected_wfs:
-        if not hasattr(wf, "channel") or not hasattr(wf, "endpoint"):  
-            print("Error: waveform missing 'channel' or 'endpoint' attribute!")
-            continue
+    Parámetros:
+    - wfs: Lista de objetos Waveform.
+    - record_numbers: Lista de record_numbers a procesar (opcional, si es None, se extraen de wfs).
+    
+    Retorna:
+    - Un diccionario donde la clave es el record_number y el valor es un numpy array con los min_tick de cada waveform.
+    """
+    if record_numbers is None:
+        record_numbers = set(wf.record for wf in wfs)  # Extraer records únicos automáticamente
+    
+    min_ticks_by_record = {}
+    
+    for rec in record_numbers:
+        min_ticks = []
+        for wf in wfs:
+            if wf.record_number == rec:
+                offset = np.float32(np.int64(wf.timestamp) - np.int64(wf.daq_window_timestamp))
+                mt = np.argmin(wf.adcs)  # Índice del mínimo valor ADC
+                
+                if wf.adcs[mt] < 10:  # Comprobar saturación
+                    min_ticks.append(mt + offset)
+                else:
+                    min_ticks.append(None)  # Valor cuando hay saturación
         
-        mean = np.mean(wf.adcs)  # Compute mean of ADC values
-        sigma = np.sqrt(np.sum((wf.adcs - mean) ** 2) / len(wf.adcs))  # Standard deviation formula
+        if min_ticks:  # Solo guardar si hay datos para el record_number
+            min_ticks_by_record[rec] = min_ticks  # Cambié a lista en lugar de np.array
+    
+    return min_ticks_by_record
 
-        # Construct endpoint-channel format
-        endpoint_channel = f"{wf.endpoint}-{wf.channel}"
-
-        if endpoint_channel not in channel_sigma:
-            channel_sigma[endpoint_channel] = []  # Create list if endpoint-channel not seen before
+def get_std_min_ticks(min_ticks_by_record):
+    """
+    Calcula la desviación estándar de los min_ticks para cada record.
+    
+    Retorna:
+    - Un diccionario donde la clave es el record_number y el valor es la std de los min_tick.
+    """
+    std_by_record = {}
+    
+    for rec, min_ticks in min_ticks_by_record.items():
+        # Filtrar los valores None
+        valid_min_ticks = [tick for tick in min_ticks if tick is not None]
         
-        channel_sigma[endpoint_channel].append(sigma)  # Store sigma for this waveform
-
-    # Compute the mean sigma per endpoint-channel
-    mean_sigma = {}
-    for ep_ch, sigmas in channel_sigma.items():
-        mean_sigma[ep_ch] = np.mean(sigmas) if sigmas else float("nan")  
-
-    print("Final mean sigmas per channel:", mean_sigma)
-    return mean_sigma
-
-
+        if len(valid_min_ticks) > 1:  # Evitar cálculos inválidos
+            std_by_record[rec] = np.std(valid_min_ticks)
+        else:
+            std_by_record[rec] = np.nan  # Si solo hay un dato, no se puede calcular std
+    
+    return std_by_record
 
 # ------------ Plot a waveform ---------------
 
@@ -253,22 +259,12 @@ def plot_wfs(channel_ws,
              figure, 
              row, 
              col,           
-             nwfs: int = -1,
-             xmin: int = -1,
-             xmax: int = -1,
-             tmin: int = -1,
-             tmax: int = -1,
              offset: bool = False,
              ):
 
     """
     Plot a list of waveforms
-    """
-    
-    # don't consider time intervals that will not appear in the plot
-    if tmin == -1 and tmax == -1:
-        tmin=xmin-1024    # harcoded number
-        tmax=xmax        
+    """    
 
     # plot nwfs waveforms
     n=0        
@@ -276,8 +272,6 @@ def plot_wfs(channel_ws,
         n=n+1
         # plot the single waveform
         plot_wf(wf,figure, row, col, offset)
-        if n>=nwfs and nwfs!=-1:
-            break
 
     return figure
 
@@ -351,6 +345,7 @@ def plot_sigma_function(channel_ws, figure, row, col, nbins):
     
     return figure
 
+
 # -------------------- Mean FFT --------------------
 
 def fft(sig, dt=16e-9):
@@ -419,3 +414,6 @@ def plot_meanfft_function(channel_ws, figure, row, col):
         ), row=row, col=col)  
     
     return figure  
+
+
+
