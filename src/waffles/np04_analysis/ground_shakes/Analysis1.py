@@ -198,44 +198,52 @@ class Analysis1(WafflesAnalysis):
         # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
         selected_wfs, selected_wfset= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec)
         
+        selected_wfs_plot, selected_wfset_plot= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, 2000,self.params.tmin, self.params.tmax, self.params.rec)
+        
+        selected_wfs_prec, selected_wfset_prec= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
+        
+        selected_wfs_prec_plot, selected_wfset_prec_plot= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, 2000, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
+        
         print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
         
-        print(f" 3. Creating the grid")
+        print(f" 3. Computing the number of ground shakes events per nanosecond")
+        
+        
+        record_numbers=selected_wfset.record_numbers[self.run]
+        
+        self.record_number=len(record_numbers)
+        
+        print('Number of records:', self.record_number)
+        
+        trigger_window=selected_wfs[0].daq_window_timestamp
+        trigger_window1=selected_wfs[len(selected_wfs)-1].daq_window_timestamp
+        time_difference=(trigger_window1-trigger_window)*16
+        records_per_second=self.record_number/time_difference
+        
+        print('Trigger window', trigger_window)
+        print('Trigger window1', trigger_window1)
+        print('Time difference in ns',time_difference)
+        print('Records per ns',records_per_second)
+        
+        print(f" 4. Computing the std histogram for the min_tick values of every record")
+        
+        min_ticks_by_record=gs_utils.get_min_ticks(selected_wfs,record_numbers)
+        self.std_by_record=gs_utils.get_std_min_ticks(min_ticks_by_record)
+        
+        print('min_ticks_by_record',min_ticks_by_record)
+        
+        print(f" 5. Creating the grids")
         
         # Create a grid of WaveformSets for each channel in one APA, and compute the corresponding function for each channel
         self.grid = gs_utils.get_grid(selected_wfs, self.apa, self.run)
+        self.grid_plot = gs_utils.get_grid(selected_wfs_plot, self.apa, self.run)
+        self.grid_prec = gs_utils.get_grid(selected_wfs_prec, self.apa, self.run)
+        self.grid_prec_plot = gs_utils.get_grid(selected_wfs_prec_plot, self.apa, self.run)
         
-        analysis_params = gs_utils.get_analysis_params(
-            self.apa,
-            # Will fail when APA 1 is analyzed
-            run=None
-        )
-        
-        checks_kwargs = IPDict()
-        checks_kwargs['points_no'] = selected_wfset.points_per_wf
-        
-        self.analysis_name = 'standard'
-        
-        # Analyze all of the waveforms in this WaveformSet:
-        # compute baseline, integral and amplitud
-        _ = selected_wfset.analyse(
-            self.analysis_name,
-            BasicWfAna,
-            analysis_params,
-            *[],  # *args,
-            analysis_kwargs={},
-            checks_kwargs=checks_kwargs,
-            overwrite=True
-        )
-
         self.bins_number=gs_utils.get_nbins_for_charge_histo(
                 self.pde,
                 self.apa
             )
-        print(f" 4. Computing the mean sigma in the precursor per channel")
-        # Compute the sigma of the precursor
-        
-        self.sigma_per_channel = gs_utils.get_meansigma_per_channel(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
         
         return True
 
@@ -250,95 +258,54 @@ class Analysis1(WafflesAnalysis):
             True if the method ends execution normally
         """
         
-       # Write the sigma values to CSV
-        with open('sigma_data.csv', 'w', newline='') as f:
-            writer = csv.writer(f)
-            for ch, sigma_val in self.sigma_per_channel.items():  # Assuming self.sigma_per_channel is a dict
-                writer.writerow([ch, sigma_val])  # Write channel and its sigma value  
-    
         base_file_path = f"{self.params.output_path}"\
-            f"run_{self.run}_apa_{self.apa}_pde_{self.pde}"
-           
+            f"run_{self.run}_apa_{self.apa}"
+            
+        print(f" 6. Creating all the plots")    
+        
+        print('std_by_record',self.std_by_record)
+        
+        figure0 = plot_Histogram(self.std_by_record.values(),nbins=150, x_range=(-2,4))
+
+        # Add the x-axis, y-axis and figure titles
+        
+        title0 = f"Std of the min ticks for every ground shake event in APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure0.update_layout(
+            title={
+                "text": title0,
+                "font": {"size": 24}
+            },
+            width=1100,
+            height=1200,
+            xaxis_title={
+                "text": "Std",
+                "font": {"size": 24}
+            },
+            yaxis_title={"text": "Entries",
+                "font": {"size": 24}
+            },
+            
+            showlegend=True
+        )
+  
+        if self.params.show_figures:
+            figure0.show()
+            
+        fig0_path = f"{base_file_path}_std_per_record.png"
+        figure0.write_image(f"{fig0_path}")
+        
+        print(f"\n Stds per record saved in {fig0_path}") 
+          
             
         # ------------- Save the waveforms plot ------------- 
 
-        '''
         
-        figure1 = plot_ChannelWsGrid(
-            self.grid,
-            figure=None,
-            share_x_scale=False,
-            share_y_scale=False,
-            mode="overlay",
-            #wfs_per_axes=len(self.wfset.waveforms),
-            wfs_per_axes=50,
-            analysis_label=self.analysis_name,
-            detailed_label=False,
-            verbose=True
-        )
-
-        title1 = f"Waveforms for APA {self.apa} - Runs {list(self.wfset.runs)}"
-
-        figure1.update_layout(
-            title={
-                "text": title1,
-                "font": {"size": 24}
-            }, 
-            width=1100,
-            height=1200,
-            showlegend=True
-        )
-        
-        figure1.add_annotation(
-            x=0.5,
-            y=-0.05, 
-            xref="paper",
-            yref="paper",
-            text="Timeticks",
-            showarrow=False,
-            font=dict(size=16)
-        )
-        figure1.add_annotation(
-            x=-0.07,
-            y=0.5,
-            xref="paper",
-            yref="paper",
-            text="Entries",
-            showarrow=False,
-            font=dict(size=16),
-            textangle=-90
-        )
-        
-        for subplot_idx, (ch_idx, sigma) in enumerate(self.sigma_per_channel.items()):
-            if ch_idx not in self.grid:  # Ensure channel exists in the grid
-                continue
-
-            x_ref, y_ref = grid[ch_idx]  # Get the correct subplot position
-
-            figure1.add_annotation(
-                x=0.5,  # Centered horizontally
-                y=1.05,  # Slightly above the subplot
-                xref=f"x{x_ref}",  
-                yref=f"y{y_ref}",  
-                text=f"Channel {ch_idx} Mean Sigma: {sigma:.4f}",
-                showarrow=False,
-                font=dict(size=14, color="blue"),
-            )
-
-        if self.params.show_figures:
-            figure1.show()
-
-        fig1_path = f"{base_file_path}_wfsets.png"
-        figure1.write_image(f"{fig1_path}")
-
-        print(f" \n Waveforms plots saved in {fig1_path}")
-        
-        '''
         
         figure1 = plot_CustomChannelGrid(
-            self.grid, 
-            plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_wfs(
-                channel_ws, self.apa, idx, figure_, row, col, self.bins_number, offset=True),
+            self.grid_plot, 
+            plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_wfs(
+                channel_ws, figure_, row, col,  offset=True),
             share_x_scale=True,
             share_y_scale=True,
             show_ticks_only_on_edges=True 
@@ -377,65 +344,22 @@ class Analysis1(WafflesAnalysis):
             font=dict(size=16),
             textangle=-90
         )
-
-        '''   
-        # Primero, almacenamos todas las anotaciones en una lista
-        annotations = []
-
-        for ch_idx, sigma in self.sigma_per_channel.items():
-            pos = None  # Initialize position variable
-
-            # Search for the position of the channel in the grid
-            for row_idx, row in enumerate(self.grid.ch_map.data):
-                for col_idx, value in enumerate(row):
-                    try:
-                        # Here we directly check if value matches the channel (in the format "endpoint-channel")
-                        # For example, if value is "109-27", we compare it directly with ch_idx
-                        if value == ch_idx:
-                            print('value', value)
-                            pos = (row_idx + 1, col_idx + 1)  # Store the position (row, column)
-                            break  # Exit the loop when the position is found
-                    except AttributeError:
-                        continue  # If the value doesn't have the attribute or is not in the expected format, skip
-
-                if pos:  # If position is found, exit the loop
-                    break
-
-            if pos is None:
-                continue  # If the channel wasn't found, skip to the next one
-
-            x_ref, y_ref = pos  # Extract the coordinates
-
-            # Add the annotation
-            annotations.append(
-                {
-                    "x": 0.5,  
-                    "y": 1.05,  
-                    "xref": f"x{x_ref}",  
-                    "yref": f"y{y_ref}",  
-                    "text": f"Sigma: {sigma:.4f}",
-                    "showarrow": False,
-                    "font": dict(size=14, color="blue"),
-                }
-            )
-            '''         
-        # Ahora, añadimos todas las anotaciones al gráfico de una vez
-        figure1.update_layout(annotations=annotations)
-        
+  
         if self.params.show_figures:
             figure1.show()
             
         fig1_path = f"{base_file_path}_wfs.png"
         figure1.write_image(f"{fig1_path}")
+        
         print(f"\n Waveforms saved in {fig1_path}")
         
-        
-        # ------------- Save the sigma histograms  ------------- 
+
+        # ------------- Save the sigma histograms for the precursor ------------- 
         
         figure2 = plot_CustomChannelGrid(
-            self.grid, 
-            plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_sigma_function(
-                channel_ws, self.apa, idx, figure_, row, col, self.bins_number),
+            self.grid_prec, 
+            plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_sigma_function(
+                channel_ws, figure_, row, col, nbins=150),
             share_x_scale=True,
             share_y_scale=True,
             show_ticks_only_on_edges=True 
@@ -443,7 +367,7 @@ class Analysis1(WafflesAnalysis):
 
         # Add the x-axis, y-axis and figure titles
         
-        title2 = f"Sigma histograms for APA {self.apa} - Runs {list(self.wfset.runs)}"
+        title2 = f"Sigma histograms of the precursor for APA {self.apa} - Runs {list(self.wfset.runs)}"
 
         figure2.update_layout(
             title={
@@ -478,10 +402,10 @@ class Analysis1(WafflesAnalysis):
         if self.params.show_figures:
             figure2.show()
                         
-        fig2_path = f"{base_file_path}_sigma_hist.png"
+        fig2_path = f"{base_file_path}_sigma_hist_prec.png"
         figure2.write_image(f"{fig2_path}")
 
-        print(f"\n Sigma histograms saved in {fig2_path}")
+        print(f"\n Sigma histograms for the precursor saved in {fig2_path}")
         
         
         # ------------- Save the FFT plots  ------------- 
@@ -489,8 +413,8 @@ class Analysis1(WafflesAnalysis):
         # Plot the sigma histograms of each channel
         figure3= plot_CustomChannelGrid(
                 self.grid, 
-                plot_function=lambda channel_ws, idx, figure_, row, col: gs_utils.plot_meanfft_function(
-                    channel_ws, self.apa, idx, figure_, row, col, self.bins_number),
+                plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_meanfft_function(
+                    channel_ws, figure_, row, col),
                 share_x_scale=True,
                 share_y_scale=True,
                 show_ticks_only_on_edges=True,
@@ -538,5 +462,114 @@ class Analysis1(WafflesAnalysis):
         figure3.write_image(f"{fig3_path}")
 
         print(f" \n Mean FFT plots saved in {fig3_path}")
+        
+        # ------------- Save the sigma histograms   ------------- 
+        
+        # Plot the sigma histograms of each channel
+        figure4= plot_CustomChannelGrid(
+                self.grid, 
+                plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_sigma_function(
+                    channel_ws, figure_, row, col, nbins=125),
+                share_x_scale=True,
+                share_y_scale=True,
+                show_ticks_only_on_edges=True
+            )
+        
+        # Add the x-axis, y-axis and figure titles
+        
+        title4 = f"Sigma histograms for APA {self.apa} - Runs {list(self.wfset.runs)}"
 
+        figure4.update_layout(
+            title={
+                "text": title4,
+                "font": {"size": 24}
+            },
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+        
+        figure4.add_annotation(
+            x=0.5,
+            y=-0.05, 
+            xref="paper",
+            yref="paper",
+            text="Sigma",
+            showarrow=False,
+            font=dict(size=16)
+        )
+        figure4.add_annotation(
+            x=-0.07,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            text="Entries",
+            showarrow=False,
+            font=dict(size=16),
+            textangle=-90
+        )
+
+        if self.params.show_figures:
+            figure4.show()
+                    
+        fig3_path = f"{base_file_path}_sigma_hist.png"
+        figure4.write_image(f"{fig3_path}")
+
+        print(f" \n Sigma histograms saved in {fig3_path}")
+        
+        # -------- Precursors plots ----------
+        
+        
+        figure5 = plot_CustomChannelGrid(
+            self.grid_prec_plot, 
+            plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_wfs(
+                channel_ws, figure_, row, col,  offset=True),
+            share_x_scale=True,
+            share_y_scale=True,
+            show_ticks_only_on_edges=True 
+        )
+
+        # Add the x-axis, y-axis and figure titles
+        
+        title5 = f"Precursors for APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure5.update_layout(
+            title={
+                "text": title5,
+                "font": {"size": 24}
+            },
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+        
+        figure5.add_annotation(
+            x=0.5,
+            y=-0.05, 
+            xref="paper",
+            yref="paper",
+            text="Timeticks",
+            showarrow=False,
+            font=dict(size=16)
+        )
+        figure5.add_annotation(
+            x=-0.07,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            text="Entries",
+            showarrow=False,
+            font=dict(size=16),
+            textangle=-90
+        )
+  
+        if self.params.show_figures:
+            figure5.show()
+            
+        fig5_path = f"{base_file_path}_wfs_prec.png"
+        figure5.write_image(f"{fig5_path}")
+        
+        print(f"\n Precursors saved in {fig5_path}")
+        
+        
         return True

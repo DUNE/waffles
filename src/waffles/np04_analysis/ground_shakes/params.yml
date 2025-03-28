@@ -1,10 +1,10 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/wfset_chs_5_30201.hdf5"
+input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
 
 # Path to the output
-output_path: "output/"
+output_path: "output_pres/"
 
 runs: [30201]
 
@@ -58,6 +58,8 @@ nwfs: -1
 
 rec: [-1]
 
+
+
 # Lower integration limits. For APA 1 the limits are
 # run-wise, while for APA 2, 3, 4 they are the same
 # for all runs 
@@ -94,6 +96,11 @@ baseline_limits:
 
 # Integration window width, in time ticks
 integ_window: 60
+
+
+
+
+
 
 
 

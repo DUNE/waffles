@@ -168,57 +168,61 @@ def get_grid(wfs: list,
         
     return grid_apa
 
-import numpy as np
-from typing import List, Union, Dict
 
-def get_meansigma_per_channel(wfs: list,                
-                               ep: Union[int, list] = -1,
-                               ch: Union[int, list] = -1,
-                               nwfs: int = -1,
-                               tmin: int = -1,
-                               tmax: int = -1,
-                               rec: list = [-1]) -> Dict[str, float]:
+def get_min_ticks(wfs, record_numbers):
     """
-    Computes the standard deviation (sigma) of each waveform's ADCs relative to its mean within a specific interval,
-    and returns the mean sigma per channel in the format 'endpoint-channel'.
-    """
+    Extrae los min_tick de cada waveform para cada record.
     
-    print("Fetching selected waveforms...")
-    selected_wfs, _ = get_wfs(wfs, ep, ch, nwfs, tmin, tmax, rec)
-    print(f"Number of selected waveforms: {len(selected_wfs)}")
-
-    # Dictionary to store sigmas per channel
-    channel_sigma = {}  # {endpoint-channel: [sigma1, sigma2, ...]}
-
-    for wf in selected_wfs:
-        if not hasattr(wf, "channel") or not hasattr(wf, "endpoint"):  
-            print("Error: waveform missing 'channel' or 'endpoint' attribute!")
-            continue
+    Parámetros:
+    - wfs: Lista de objetos Waveform.
+    - record_numbers: Lista de record_numbers a procesar (opcional, si es None, se extraen de wfs).
+    
+    Retorna:
+    - Un diccionario donde la clave es el record_number y el valor es un numpy array con los min_tick de cada waveform.
+    """
+    if record_numbers is None:
+        record_numbers = set(wf.record for wf in wfs)  # Extraer records únicos automáticamente
+    
+    min_ticks_by_record = {}
+    
+    for rec in record_numbers:
+        min_ticks = []
+        for wf in wfs:
+            if wf.record_number == rec:
+                offset = np.float32(np.int64(wf.timestamp) - np.int64(wf.daq_window_timestamp))
+                mt = np.argmin(wf.adcs)  # Índice del mínimo valor ADC
+                
+                if wf.adcs[mt] < 10:  # Comprobar saturación
+                    min_ticks.append(mt + offset)
+                else:
+                    min_ticks.append(None)  # Valor cuando hay saturación
         
-        mean = np.mean(wf.adcs)  # Compute mean of ADC values
-        sigma = np.sqrt(np.sum((wf.adcs - mean) ** 2) / len(wf.adcs))  # Standard deviation formula
+        if min_ticks:  # Solo guardar si hay datos para el record_number
+            min_ticks_by_record[rec] = min_ticks  # Cambié a lista en lugar de np.array
+    
+    return min_ticks_by_record
 
-        # Construct endpoint-channel format
-        endpoint_channel = f"{wf.endpoint}-{wf.channel}"
-
-        if endpoint_channel not in channel_sigma:
-            channel_sigma[endpoint_channel] = []  # Create list if endpoint-channel not seen before
+def get_std_min_ticks(min_ticks_by_record):
+    """
+    Calcula la desviación estándar de los min_ticks para cada record.
+    
+    Retorna:
+    - Un diccionario donde la clave es el record_number y el valor es la std de los min_tick.
+    """
+    std_by_record = {}
+    
+    for rec, min_ticks in min_ticks_by_record.items():
+        # Filtrar los valores None
+        valid_min_ticks = [tick for tick in min_ticks if tick is not None]
         
-        channel_sigma[endpoint_channel].append(sigma)  # Store sigma for this waveform
-
-    # Compute the mean sigma per endpoint-channel
-    mean_sigma = {}
-    for ep_ch, sigmas in channel_sigma.items():
-        mean_sigma[ep_ch] = np.mean(sigmas) if sigmas else float("nan")  
-
-    print("Final mean sigmas per channel:", mean_sigma)
-    return mean_sigma
-
-
+        if len(valid_min_ticks) > 1:  # Evitar cálculos inválidos
+            std_by_record[rec] = np.std(valid_min_ticks)
+        else:
+            std_by_record[rec] = np.nan  # Si solo hay un dato, no se puede calcular std
+    
+    return std_by_record
 
 # ------------ Plot a waveform ---------------
-
-
 
 def plot_wf( waveform_adcs : WaveformAdcs,  
              figure,
@@ -234,8 +238,6 @@ def plot_wf( waveform_adcs : WaveformAdcs,
     x0 = np.arange(  len(waveform_adcs.adcs),
                      dtype = np.float32)
     y0 = waveform_adcs.adcs
-
-    names=""#waveform_adcs.channel
 
     if offset:        
         dt = np.float32(np.int64(waveform_adcs.timestamp)-np.int64(waveform_adcs.daq_window_timestamp))
@@ -253,30 +255,16 @@ def plot_wf( waveform_adcs : WaveformAdcs,
 
 # ------------- Plot a set of waveforms ----------
 
-def plot_wfs(channel_ws, 
-             apa,
-             idx, 
+def plot_wfs(channel_ws,  
              figure, 
              row, 
-             col, 
-             nbins,            
-             nwfs: int = -1,
-             xmin: int = -1,
-             xmax: int = -1,
-             tmin: int = -1,
-             tmax: int = -1,
+             col,           
              offset: bool = False,
              ):
 
     """
     Plot a list of waveforms
-    """
-    
-
-    # don't consider time intervals that will not appear in the plot
-    if tmin == -1 and tmax == -1:
-        tmin=xmin-1024    # harcoded number
-        tmax=xmax        
+    """    
 
     # plot nwfs waveforms
     n=0        
@@ -284,15 +272,13 @@ def plot_wfs(channel_ws,
         n=n+1
         # plot the single waveform
         plot_wf(wf,figure, row, col, offset)
-        if n>=nwfs and nwfs!=-1:
-            break
 
     return figure
 
 
 #-------------- Time offset histograms -----------
 
-def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
+def plot_to_function(channel_ws, figure, row, col, nbins):
 
     # Compute the time offset
     times = [wf._Waveform__timestamp - wf._Waveform__daq_window_timestamp for wf in channel_ws.waveforms]
@@ -303,14 +289,6 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
 
     # Generaate the histogram
     histogram = get_histogram(times, nbins, line_width=0.5)
-
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Time offset"
-    y_axis_title = "Entries"
-    figure_title = f"Time offset histograms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
@@ -320,7 +298,7 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
 
 # --------------- Sigma vs timestamp  --------------
 
-def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
+def plot_sigma_vs_ts_function(channel_ws, figure, row, col):
 
     timestamps = []
     sigmas = []
@@ -335,14 +313,6 @@ def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
         sigma = np.std(wf.adcs)
         sigmas.append(sigma)
     
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Timestamp"
-    y_axis_title = "Sigma"
-    figure_title = f"Sigma vs timestamp for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
-    
     # Add the histogram to the corresponding channel
     figure.add_trace(go.Scatter(
         x=timestamps,
@@ -356,7 +326,7 @@ def plot_sigma_vs_ts_function(channel_ws, apa,idx, figure, row, col,nbins):
 
 # --------------- Sigma histograms  --------------
  
-def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
+def plot_sigma_function(channel_ws, figure, row, col, nbins):
     
     # Compute the sigmas
     
@@ -369,19 +339,12 @@ def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
         
     # Generate the histogram
     histogram = get_histogram(sigmas, nbins, line_width=0.5)
-
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Sigma"
-    y_axis_title = "Entries"
-    figure_title = f"Sigma histograms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
     figure.add_trace(histogram, row=row, col=col)
     
     return figure
+
 
 # -------------------- Mean FFT --------------------
 
@@ -405,8 +368,10 @@ def fft(sig, dt=16e-9):
     y = 20*np.log10(np.abs(sigFFTPos)/2**14)
     return x,y
 
-def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
-
+def plot_meanfft_function(channel_ws, figure, row, col):
+    
+    
+    '''
     waveform_sets = {
         "[-1000, -500]": get_wfs_interval(channel_ws.waveforms, -1000, -500),
         "[-450, -300]": get_wfs_interval(channel_ws.waveforms, -450, -300),
@@ -419,16 +384,9 @@ def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
     
     # Different colors for each range
     colors = ['blue', 'red', 'green', 'purple', 'orange']  
+    '''
+    waveform_sets= {"All":get_wfs_interval(channel_ws.waveforms,-1, -1)}
     
-    # Return the axis titles and figure title along with the figure
-    x_axis_title = "Frequency [MHz]"
-    y_axis_title = "Power [dB]"
-    figure_title = f"Superimposed FFT of Selected Waveforms for APA {apa}"
-    
-    if figure is None:
-        return x_axis_title, y_axis_title, figure_title
-
-
     for i, (label, selected_wfs) in enumerate(waveform_sets.items()):
         if not selected_wfs:
             print(f"No waveforms found for range {label}")
@@ -452,7 +410,9 @@ def plot_meanfft_function(channel_ws, apa, idx, figure, row, col, nbins):
             y=power,
             mode='lines',
             name=f"FFT {label}",
-            line=dict(color=colors[i % len(colors)], width=1)
+            line=dict(color='black', width=1),
         ), row=row, col=col)  
     
     return figure  
+
+
