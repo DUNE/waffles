@@ -1729,15 +1729,16 @@ def plot_CustomChannelGrid(
             # Get the indices of the waveforms to process
             if wfs_per_axes is not None:
                 aux_idcs = range(min(wfs_per_axes, len(channel_ws.waveforms)))
+                
             else:
                 aux_idcs = range(len(channel_ws.waveforms))
 
             # Apply the user-defined plot function to each selected waveform
             for idx in aux_idcs:
                 if wf_func is None:
-                    plot_function(channel_ws.waveforms[idx], figure_, i + 1, j + 1)
+                    plot_function(channel_ws, figure_, i + 1, j + 1)
                 else:
-                    plot_function(channel_ws.waveforms[idx], figure_, i + 1, j + 1, wf_func)
+                    plot_function(channel_ws, figure_, i + 1, j + 1, wf_func)
                     
             # Configure axes based on the option to show ticks only on edges
             if show_ticks_only_on_edges:
@@ -1770,3 +1771,42 @@ def plot_CustomChannelGrid(
                 )
                 
     return figure_
+
+def plot_Histogram(values, nbins, x_range=None):
+    """
+    Generates a histogram with Plotly, normalizing the binning to fit the defined x_range.
+    
+    Parameters:
+    - values: List of numerical values to plot.
+    - nbins: Number of bins for the histogram.
+    - x_range: Optional range for the X-axis as a tuple (min, max), 
+               if not specified, the range will be based on the data.
+    
+    Returns:
+    - pgo.Figure: Plotly figure containing the histogram.
+    """
+    values = [v for v in values if v is not None]  # Filter out None values
+    
+    figure = pgo.Figure()
+
+    # If an x_range is provided, normalize the bins to fit that range
+    if x_range:
+        min_val, max_val = x_range
+        bin_width = (max_val - min_val) / nbins  # Calculate the width of each bin
+        
+        # Create histogram trace with the specified x_range and normalized bin width
+        figure.add_trace(pgo.Histogram(
+            x=values, 
+            nbinsx=nbins, 
+            xaxis="x", 
+            xbins=dict(start=min_val, end=max_val, size=bin_width)
+        ))
+    else:
+        # If no range is provided, use the default range
+        figure.add_trace(pgo.Histogram(x=values, nbinsx=nbins))
+    
+    # Optionally, set the X-axis range (if you want full control over the interval)
+    if x_range:
+        figure.update_layout(xaxis_range=x_range)
+
+    return figure

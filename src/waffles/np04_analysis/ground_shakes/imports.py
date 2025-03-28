@@ -15,8 +15,9 @@ from waffles.input_output.hdf5_file_reader import WaveformSet_from_hdf5_file
 import plotly.graph_objects as pgo
 from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.plotting.plot import plot_CustomChannelGrid
+from waffles.plotting.plot import plot_Histogram
 import plotly.subplots as psu
-import gc
+import gc   
 import h5py
 
 from waffles.data_classes.BasicWfAna import BasicWfAna
