@@ -55,7 +55,6 @@ def main():
         
         # Assuming that we are running from the analysis folder
         analysis_folder_name = pathlib.Path.cwd().name
-
         
         import_command = \
             f"from waffles.np04_analysis." +\
