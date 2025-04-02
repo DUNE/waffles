@@ -1,12 +1,12 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
+input_path: "data/processed_merged_run_32739_self_trigger.hdf5"
 
 # Path to the output
 output_path: "output_pres/"
 
-runs: [30201]
+runs: [32739]
 
 # APA number
 apas: [2] 

@@ -198,6 +198,7 @@ class Analysis1(WafflesAnalysis):
         # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
         selected_wfs, selected_wfset= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec)
         
+        '''
         selected_wfs_plot, selected_wfset_plot= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, 2000,self.params.tmin, self.params.tmax, self.params.rec)
         
         selected_wfs_prec, selected_wfset_prec= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
@@ -205,17 +206,18 @@ class Analysis1(WafflesAnalysis):
         selected_wfs_prec_plot, selected_wfset_prec_plot= gs_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, 2000, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
         
         print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
-        
+        '''
         print(f" 3. Computing the number of ground shakes events per nanosecond")
         
-        
+        '''
         record_numbers=selected_wfset.record_numbers[self.run]
         
         self.record_number=len(record_numbers)
         
         print('Number of records:', self.record_number)
         
-        trigger_window=selected_wfs[0].daq_window_timestamp
+        trigger_window=selected_wfs[1].daq_window_timestamp
+        #trigger_window1=selected_wfs[80].daq_window_timestamp
         trigger_window1=selected_wfs[len(selected_wfs)-1].daq_window_timestamp
         time_difference=(trigger_window1-trigger_window)*16
         records_per_second=self.record_number/time_difference
@@ -224,7 +226,77 @@ class Analysis1(WafflesAnalysis):
         print('Trigger window1', trigger_window1)
         print('Time difference in ns',time_difference)
         print('Records per ns',records_per_second)
+        '''
         
+        # Obtener record_numbers ordenados
+        record_numbers = sorted(selected_wfset.record_numbers[self.run])
+
+        # Crear lista de timestamps en el mismo orden que record_numbers
+        time_stamps = []
+
+        '''
+        for rec_num in record_numbers:
+            if rec_num == 1:  # You can change this condition to filter specific records
+                matching_wfs = [wf for wf in selected_wfs if wf.record_number == rec_num] 
+                
+                # Print all DAQ timestamps for the matching waveforms
+                print(f"\nRecord Number {rec_num}:")
+                for wf in matching_wfs:
+                    print(f"  - DAQ Window Timestamp: {wf.daq_window_timestamp}")
+        '''
+                
+        # Iterar sobre los números de registro en orden y buscar el timestamp correspondiente
+        for rec_num in record_numbers:
+            # Encontrar la waveform cuyo número de registro coincide
+            wf = next((wf for wf in selected_wfs if wf.record_number == rec_num), None)
+            
+            time_stamps.append(wf.daq_window_timestamp if wf else None)
+
+        # Verificar que las listas tengan la misma longitud
+        if len(record_numbers) != len(time_stamps):
+            print("Warning: record_numbers y time_stamps tienen longitudes diferentes!")
+        
+        
+        ti=time_stamps[0]
+        tf=time_stamps[len(record_numbers)-1]
+        time_difference=(tf-ti)*16
+        records_per_second=len(record_numbers)/time_difference
+        
+        print('Number of records', len(record_numbers))
+        print('ti', ti)
+        print('tf', tf)
+        print('Time difference in ns',time_difference)
+        print('Records per ns',records_per_second)
+        
+        import plotly.graph_objs as go
+        # Crear figura con Plotly
+        figure0 = go.Figure()
+
+        # Agregar línea al gráfico
+        figure0.add_trace(go.Scatter(
+            x=record_numbers, 
+            y=time_stamps, 
+            mode='lines+markers', 
+            name="DAQ Timestamp"
+        ))
+
+        # Configurar títulos y formato del gráfico
+        title0 = f"DAQ Window Timestamps for APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure0.update_layout(
+            title={"text": title0, "font": {"size": 24}},
+            width=1100,
+            height=800,
+            xaxis_title={"text": "Record Numbers", "font": {"size": 24}},
+            yaxis_title={"text": "DAQ Window Timestamp", "font": {"size": 24}},
+            showlegend=True
+        )
+
+        # Mostrar figura si está activado
+        if self.params.show_figures:
+            figure0.show()
+        
+        '''
         print(f" 4. Computing the std histogram for the min_tick values of every record")
         
         min_ticks_by_record=gs_utils.get_min_ticks(selected_wfs,record_numbers)
@@ -233,13 +305,15 @@ class Analysis1(WafflesAnalysis):
         print('min_ticks_by_record',min_ticks_by_record)
         
         print(f" 5. Creating the grids")
-        
+        '''
         # Create a grid of WaveformSets for each channel in one APA, and compute the corresponding function for each channel
         self.grid = gs_utils.get_grid(selected_wfs, self.apa, self.run)
+        
+        '''
         self.grid_plot = gs_utils.get_grid(selected_wfs_plot, self.apa, self.run)
         self.grid_prec = gs_utils.get_grid(selected_wfs_prec, self.apa, self.run)
         self.grid_prec_plot = gs_utils.get_grid(selected_wfs_prec_plot, self.apa, self.run)
-        
+        '''
         self.bins_number=gs_utils.get_nbins_for_charge_histo(
                 self.pde,
                 self.apa
@@ -262,6 +336,8 @@ class Analysis1(WafflesAnalysis):
             f"run_{self.run}_apa_{self.apa}"
             
         print(f" 6. Creating all the plots")    
+        
+        '''
         
         print('std_by_record',self.std_by_record)
         
@@ -300,7 +376,7 @@ class Analysis1(WafflesAnalysis):
             
         # ------------- Save the waveforms plot ------------- 
 
-        
+ 
         
         figure1 = plot_CustomChannelGrid(
             self.grid_plot, 
@@ -571,5 +647,5 @@ class Analysis1(WafflesAnalysis):
         
         print(f"\n Precursors saved in {fig5_path}")
         
-        
+        '''
         return True
