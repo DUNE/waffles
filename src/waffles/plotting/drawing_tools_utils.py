@@ -458,6 +458,19 @@ def get_histogram(values: list,
     # Create the histogram
     counts, edges = np.histogram(values, bins=nbins, range=domain)
     
+    return counts, edges
+
+###########################
+def get_histogram_trace(values: list,
+                        nbins: int = 100,
+                        xmin: float = None,
+                        xmax: float = None,
+                        line_color: str = 'black',
+                        line_width: float = 2):
+
+
+    counts, edges = get_histogram(values,nbins,xmin,xmax)
+    
     histogram_trace = go.Scatter(
         x=edges[:-1],  
         y=counts,
@@ -470,6 +483,8 @@ def get_histogram(values: list,
     )
     
     return histogram_trace
+
+
 
 
 ##########################
