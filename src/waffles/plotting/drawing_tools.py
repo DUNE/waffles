@@ -136,8 +136,6 @@ def plot_wf( waveform_adcs : WaveformAdcs,
 
     figure.add_trace(wf_trace,current_row,current_col)
 
-
-    
 ###########################
 def plot_grid(wfset: WaveformSet,                
               apa: int = -1, 
@@ -200,13 +198,13 @@ def plot_evt_nch(events: List[Event],
     
     global fig
     if not has_option(op, 'same'):
-        fig = create_figure()
+        fig = create_figure(nrows,ncols)
     
     # get number of channels with wfs 
     nchs = [ev.get_nchannels() for ev in events]
 
     # build an histogram with those times
-    histogram_trace = get_histogram(nchs, nbins, xmin, xmax)
+    histogram_trace = get_histogram_trace(nchs, nbins, xmin, xmax)
     
     fig.add_trace(histogram_trace)
     fig.update_layout(xaxis_title="# channels", yaxis_title="entries")
@@ -223,7 +221,7 @@ def plot_evt_time(events: List[Event], type: str = 'ref',
     
     global fig
     if not has_option(op, 'same'):
-        fig = create_figure()
+        fig = create_figure(nrows,ncols)
     
     # get number of channels with wfs 
     if type == 'ref':
@@ -234,7 +232,7 @@ def plot_evt_time(events: List[Event], type: str = 'ref',
         times = [ev.last_timestamp*1e-9*16 for ev in events]
 
     # build an histogram with those times
-    histogram_trace = get_histogram(times, nbins, xmin, xmax)
+    histogram_trace = get_histogram_trace(times, nbins, xmin, xmax)
     
     fig.add_trace(histogram_trace)
     fig.update_layout(xaxis_title=f"{type}_timestamp", yaxis_title="entries")
@@ -255,7 +253,7 @@ def plot_to(wset: WaveformSet,
     
     global fig
     if not has_option(op, 'same'):
-        fig = create_figure()
+        fig = create_figure(nrows,ncols)
 
         
     # get the time offset for all wfs in the specific ep and channel
@@ -264,7 +262,7 @@ def plot_to(wset: WaveformSet,
              if (wf.endpoint == ep or ep == -1) and (wf.channel==ch or ch == -1)]
     
     # build an histogram with those times
-    histogram_trace = get_histogram(times, nbins, xmin, xmax)
+    histogram_trace = get_histogram_trace(times, nbins, xmin, xmax)
     
     fig.add_trace(histogram_trace)
     fig.update_layout(xaxis_title="time offset", yaxis_title="entries")
@@ -272,6 +270,42 @@ def plot_to(wset: WaveformSet,
     
     write_image(fig)
 
+
+###########################
+def plot_abs_to(wset: WaveformSet,
+                ep: int = -1,
+                ch: int = -1,            
+                nwfs: int = -1,
+                op: str = '',
+                nbins: int = 100,
+                xmin: np.uint64 = None,
+                xmax: np.uint64 = None):
+    """Plot time offset histogram for a WaveformSet."""
+    
+    global fig
+    if not has_option(op, 'same'):
+        fig = create_figure(nrows,ncols)
+
+    # sort waveforms by time stamp
+    tsort_wfset(wset)
+
+    t0 = wset.waveforms[0].timestamp
+    
+    # get the timestamp for all wfs in the specific ep and channel
+    times = [(wf.timestamp-t0)*16e-9
+             for wf in wset.waveforms
+             if (wf.endpoint == ep or ep == -1) and (wf.channel==ch or ch == -1)]
+
+    # build an histogram with those times
+    histogram_trace = get_histogram_trace(times, nbins, xmin, xmax)
+
+    fig.add_trace(histogram_trace,current_row,current_col)
+    fig.update_layout(xaxis_title="time offset", yaxis_title="entries")
+    
+    
+    write_image(fig)
+
+    
 ###########################
 def plot_hm(object,
             ep: int = -1,
@@ -292,7 +326,7 @@ def plot_hm(object,
     
     global fig
     if not has_option(op, 'same'):
-        fig = create_figure()
+        fig = create_figure(nrows,ncols)
 
     # get all wfs in a specific ep and channel
     wset = get_wfs_in_channel(object, ep, ch)
@@ -324,7 +358,7 @@ def plot_charge(wset: WaveformSet,
 
     global fig
     if not has_option(op,'same'):
-        fig=create_figure()
+        fig=create_figure(nrows,ncols)
 
     chist = compute_charge_histogram(wset,ep,ch,int_ll,int_ul,nb,hl,hu,b_ll,b_ul,nwfs,variable,op+' print')
 
@@ -346,7 +380,7 @@ def plot_charge_peaks(calibh: CalibrationHistogram,
 
     global fig
     if not has_option(op,'same'):
-        fig=create_figure()
+        fig=create_figure(nrows,ncols)
 
     # find and fit
     compute_peaks(calibh,npeaks,prominence,half_points_to_fit,op)
@@ -367,7 +401,7 @@ def plot_avg(wset: WaveformSet,
 
     global fig
     if not has_option(op,'same'):
-        fig=create_figure()
+        fig=create_figure(nrows,ncols)
 
     # get wfs in specific channel
     wset2 = get_wfs_in_channel(wset,ep,ch)
@@ -424,7 +458,7 @@ def plot_chist_param_vs_var(wset_map,
        
     global fig
     if not has_option(op,'same'):
-        fig=create_figure()    
+        fig=create_figure(nrows,ncols)    
 
     par_values = []
     var_values = []
@@ -465,7 +499,7 @@ def plot_param_vs_channel(wset: WaveformSet,
        
     global fig
     if not has_option(op,'same'):
-        fig=create_figure()    
+        fig=create_figure(nrows,ncols)    
 
     ch_values = []
     par_values = []
@@ -510,7 +544,7 @@ def plot_integral_vs_amplitude(wset: WaveformSet,
        
     global fig
     if not has_option(op,'same'):
-        fig=create_figure()    
+        fig=create_figure(nrows,ncols)    
 
     # get the waveforms in the specific ep and ch
     wset2 = get_wfs_in_channel(wset,ep,ch)
@@ -545,7 +579,7 @@ def plot_fft(w: Waveform, xmin: int = -1, xmax: int =-1, op: str=''):
 
     global fig
     if not has_option(op,'same'):
-        fig=create_figure()
+        fig=create_figure(nrows,ncols)
 
     
     w_fft = np.abs((np.fft.fft(w.adcs)).real)
@@ -643,7 +677,7 @@ def plot_grid_histogram(wfset: WaveformSet,
     """
     global fig
     if not has_option(op, 'same'):
-        fig = create_figure()
+        fig = create_figure(nrows,ncols)
 
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
@@ -666,7 +700,7 @@ def plot_grid_histogram(wfset: WaveformSet,
     # Obtener la cuadrícula de canales
     run = wfset.waveforms[0].run_number
     grid = get_grid(selected_wfs, apa, run)
-
+    
     # Pasar la función correcta para graficar histogramas, con filtrado por canal
     fig = plot_CustomChannelGrid(
         grid,
@@ -696,11 +730,117 @@ def plot_histogram_function_user(wf_func: Callable, channel_ws, idx, figure, row
         return
 
     # Generar el histograma
-    histogram = get_histogram(values, nbins, xmin, xmax, line_width=0.5)
+    histogram_trace = get_histogram_trace(values, nbins, xmin, xmax, line_width=0.5)
 
     # Añadir el histograma al subplot correspondiente
-    figure.add_trace(histogram, row=row, col=col)
+    if row ==0 and col==0:
+        figure.add_trace(histogram_trace)
+    else:
+        figure.add_trace(histogram_trace, row=row, col=col)
 
+
+###########################
+def plot_histogram(wfset: WaveformSet,          
+                   wf_func: Callable, 
+                   eps: Union[int, list] = -1,                          
+                   ch: Union[int, list] = -1,
+                   nbins: int = 100,
+                   nwfs: int = -1,
+                   op: str = '',
+                   xmin: np.int64 = None,
+                   xmax: np.int64 = None,
+                   tmin: int = -1,
+                   tmax: int = -1,
+                   rec: list = [-1]):
+    """
+    Plot a WaveformSet histogram
+    """
+    global fig
+    if not has_option(op, 'same'):
+        fig = create_figure(nrows,ncols)
+
+    # don't consider time intervals that will not appear in the plot
+    #if tmin == -1 and tmax == -1:
+    #    tmin=xmin
+    #    tmax=xmax        
+        
+    # Obtener solo las waveforms que cumplen las condiciones
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
+    channel_ws = ChannelWs(*selected_wfs)
+
+    print(f"Number of selected waveforms: {len(selected_wfs)}")
+
+    # Si no hay waveforms, detener la ejecución
+    if not selected_wfs:
+        print(f"No waveforms found for ep={eps}, Channel={ch}, Time range=({tmin}, {tmax})")
+        return  
+
+    # Pasar la función correcta para graficar histogramas, con filtrado por canal
+    plot_histogram_function_user(wf_func,channel_ws, 1, fig, 0, 0, nbins, xmin, xmax)
+
+
+    write_image(fig, 800, 1200)
+
+
+###########################
+def plot_event_histogram(wfset: WaveformSet,          
+                         wf_func: Callable,
+                         ev_func: Callable, 
+                         eps: Union[int, list] = -1,                          
+                         ch: Union[int, list] = -1,
+                         nbins: int = 100,
+                         nwfs: int = -1,
+                         op: str = '',
+                         xmin: np.int64 = None,
+                         xmax: np.int64 = None,
+                         tmin: int = -1,
+                         tmax: int = -1,
+                         rec: list = [-1]):
+    """
+    Plot a WaveformSet histogram
+    """
+    global fig
+    if not has_option(op, 'same'):
+        fig = create_figure(nrows,ncols)
+
+    # don't consider time intervals that will not appear in the plot
+    #if tmin == -1 and tmax == -1:
+    #    tmin=xmin
+    #    tmax=xmax        
+
+    values = []
+
+    selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax)
+    
+    for r in rec:
+    
+        # Get the selected waveforms
+        selected_wfs_rec = get_wfs(selected_wfs, rec=[r])
+
+        wf_values = []
+        for wf in selected_wfs_rec:
+            f = wf_func(wf)
+            if f != -10000000:
+                wf_values.append(f)
+        
+        value = ev_func(wf_values)
+
+        values.append(value)
+        
+    # if there is no data return
+    if not values:
+        print(f"No waveforms for channel {channel_ws.channel} at (row {row}, col {col})")
+        return
+
+    # generate the histogram
+    histogram_trace = get_histogram_trace(values, nbins, xmin, xmax, line_width=0.5)
+
+    # Aadd the histogram
+    fig.add_trace(histogram_trace)
+
+    write_image(fig, 800, 1200)
+    
+    
 
 ############################
 def plot_to_interval(wset, 
@@ -738,7 +878,7 @@ def plot_to_interval(wset,
         ]
 
         color = colors[idx % len(colors)]
-        histogram_trace = get_histogram(times, nbins, tmin, tmax, color)
+        histogram_trace = get_histogram_trace(times, nbins, tmin, tmax, color)
         histogram_trace.name = f"APA {apa[idx] if isinstance(apa, list) else apa}"
         
         print(f"\nAPA {apa[idx] if isinstance(apa, list) else apa}: {len(selected_wfs)} waveforms ")
@@ -780,7 +920,7 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
         return
 
     # Generaate the histogram
-    histogram = get_histogram(times, nbins, line_width=0.5)
+    histogram_trace = get_histogram_trace(times, nbins, line_width=0.5)
 
     # Return the axis titles and figure title along with the figure
     x_axis_title = "Time offset"
@@ -791,7 +931,7 @@ def plot_to_function(channel_ws, apa,idx, figure, row, col, nbins):
         return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
-    figure.add_trace(histogram, row=row, col=col)
+    figure.add_trace(histogram_trace, row=row, col=col)
     
     return figure
 
@@ -846,7 +986,7 @@ def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
     
         
     # Generate the histogram
-    histogram = get_histogram(sigmas, nbins, line_width=0.5)
+    histogram_trace = get_histogram_trace(sigmas, nbins, line_width=0.5)
 
     # Return the axis titles and figure title along with the figure
     x_axis_title = "Sigma"
@@ -857,7 +997,7 @@ def plot_sigma_function(channel_ws, apa, idx, figure, row, col, nbins):
         return x_axis_title, y_axis_title, figure_title
     
     # Add the histogram to the corresponding channel
-    figure.add_trace(histogram, row=row, col=col)
+    figure.add_trace(histogram_trace, row=row, col=col)
     
     return figure
 
@@ -932,7 +1072,8 @@ def plot_function_grid(wfset: WaveformSet,
                     figure_title: str = None,
                     share_x_scale=True,
                     share_y_scale=True,
-                    show_ticks_only_on_edges=True):  
+                    show_ticks_only_on_edges=True,
+                    func: Callable=None):  
 
     global fig
     if not has_option(op, 'same'):
@@ -965,7 +1106,7 @@ def plot_function_grid(wfset: WaveformSet,
     # Plot using the provided function
     fig= plot_CustomChannelGrid(
         grid, 
-        plot_function=lambda channel_ws, idx, figure_, row, col: plot_function(
+        plot_function=lambda channel_ws, idx, figure_, row, col, func: plot_function(
             channel_ws, apa, idx, figure_, row, col, nbins),
         x_axis_title=x_axis_title,  
         y_axis_title=y_axis_title,  
