@@ -1,9 +1,10 @@
 {
-    "run": 28676,
-    "rucio_dir": "/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts/",
+    "run": 30201,
+    "rucio_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths",
     "output_dir": ".",
     "ch": {
         "109": [33]},
     "save_single_file": true,
-    "max_files":300
+    "max_files":1,
+    "det": "HD_PDS"
 }
