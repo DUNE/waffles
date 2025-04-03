@@ -14,7 +14,7 @@ def main():
         analysis_name = analysis["name"]
         params_file = analysis["parameters_file"]
   
-        if key>=2:
+        if key>=1:
             print(f"Running: {analysis_name}")
 
             basis_folder="waffles.np04_analysis.light_vs_hv"

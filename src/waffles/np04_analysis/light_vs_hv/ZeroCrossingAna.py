@@ -127,7 +127,7 @@ class ZeroCrossingAna(WfAna):
         ----------
         None
         """
-        #print("analyseee")
+
         aux_baseline=waveform.adcs[self.__baseline_ll:self.__baseline_ul]
         baseline=np.mean(aux_baseline)
         noise=np.std(aux_baseline)

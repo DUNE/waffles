@@ -1,0 +1,8 @@
+input_path: ""
+output_path: "output/"
+
+runs:
+  - 27343
+
+correct_by_baseline: True
+rucio_paths_directory: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths"

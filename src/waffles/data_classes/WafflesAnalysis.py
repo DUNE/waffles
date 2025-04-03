@@ -40,7 +40,7 @@ class WafflesAnalysis(ABC):
     initialize(input_parameters: BaseInputParams):
         Abstract method which is responsible for defining
         both, the common instance attributes (namely
-        self.read_input_loop, self.analyze_loop,
+        self.read_input_loop_n, self.analyze_loop,
         self.analyze_itr and self.read_input_itr) and
         whichever further attributes are required by the
         analysis. The defined attributes are potentially
@@ -71,11 +71,15 @@ class WafflesAnalysis(ABC):
         # user that these attributes are meant
         # to be defined in the initialize() method.
 
-        self.read_input_loop = None
+        self.read_input_loop_1 = None
+        self.read_input_loop_2 = None
+        self.read_input_loop_3 = None
         self.analyze_loop = None
 
         self.analyze_itr    = None 
-        self.read_input_itr = None
+        self.read_input_itr_1 = None
+        self.read_input_itr_2 = None
+        self.read_input_itr_3 = None
         
         pass
 
@@ -202,28 +206,31 @@ class WafflesAnalysis(ABC):
 
         self.initialize(input_parameters)
 
-        for self.read_input_itr in self.read_input_loop:
+        for self.read_input_itr_1 in self.read_input_loop_1:
+            for self.read_input_itr_2 in self.read_input_loop_2:
+                for self.read_input_itr_3 in self.read_input_loop_3:
 
-            if verbose:
-                print(
-                    "In function WafflesAnalysis.execute(): "
-                    "Executing iteration of the read-input loop "
-                    f"with its iterator set to {self.read_input_itr}"
-                )
+                    if verbose:
+                        print(
+                            "In function WafflesAnalysis.execute(): "
+                            "Executing iteration of the read-input loop "
+                            "with its iterators set to  "
+                            f"{self.read_input_itr_1}, {self.read_input_itr_2}, {self.read_input_itr_3}"
+                        )
 
-            if not self.read_input():
-                continue
+                    if not self.read_input():
+                        continue
 
-            for self.analyze_itr in self.analyze_loop:
+                    for self.analyze_itr in self.analyze_loop:
 
-                if verbose:
-                    print(
-                        "In function WafflesAnalysis.execute(): "
-                        "Executing iteration of the analysis loop "
-                        f"with its iterator set to {self.analyze_itr}"
-                    )
+                        if verbose:
+                            print(
+                                "In function WafflesAnalysis.execute(): "
+                                "Executing iteration of the analysis loop "
+                                f"with its iterator set to {self.analyze_itr}"
+                            )
 
-                if not self.analyze():
-                    continue
+                        if not self.analyze():
+                            continue
 
-                self.write_output()
+                        self.write_output()

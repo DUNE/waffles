@@ -25,7 +25,7 @@ class Analysis2(WafflesAnalysis):
                             description="list of the endpoints (note: must be te same order of the channels)")
             channels:       list = Field(default=[],          
                                 description="list of the channels (note: must be te same order of the endpoints)")
-            input_path:     str =  Field(default="./testes/data_filtered.pkl",  #"./output/data_filtered.pkl",          
+            input_path:     str =  Field(default="./output/data_filtered.pkl",          
                                 description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="./output",          
                                 description= "Output folder to save the filtered data")
@@ -108,7 +108,7 @@ class Analysis2(WafflesAnalysis):
         self.max_fprompt = self.params.max_fprompt
 
         self.params_print = self.params.params_print
-       
+
         self.read_input_loop=[None,]
 
 
@@ -117,7 +117,7 @@ class Analysis2(WafflesAnalysis):
 
         with open(self.file_name, "rb") as file:
             self.wfsets = pickle.load(file)
-        
+
         self.n_run=len(self.wfsets)
         self.n_channel=len(self.list_channels)
            
@@ -125,7 +125,7 @@ class Analysis2(WafflesAnalysis):
     #############################################################
 
     def analyze(self) -> bool:
-        print("1 - initializing parameters calculation")
+
         input_parameters = IPDict()
 
         input_parameters['baseline_ll'] =  self.baseline_limits[0]
@@ -141,11 +141,10 @@ class Analysis2(WafflesAnalysis):
        
         
         checks_kwargs = IPDict()
-        print("2 - calculating parameters")
+
         #calculate the desired parameters
         for wfset in self.wfsets:
             for wfset_ch in wfset:
-                #print(wfset_ch[9])
                 _ = wfset_ch.analyse("minha_analise",
                                     ZeroCrossingAna,
                                     input_parameters,
@@ -154,15 +153,13 @@ class Analysis2(WafflesAnalysis):
                                     checks_kwargs = checks_kwargs,
                                     overwrite = True)
 
+       
 
-        print("3 - Making the plot parameters")
         self.fig = [[[] for _ in range(len(self.params_print))] for _ in range(self.n_run)]
 
         bins=100
         for i in range(self.n_run):
-            #print("i: ",i)
             for j in range(len(self.params_print)):
-               #print("j: ", j)
                 dicionario = {
                     "bins":bins,
                     "xlabel": self.params_print[j],
@@ -172,36 +169,28 @@ class Analysis2(WafflesAnalysis):
                     }
                 self.fig[i][j]=start_plot(4)
                 for k in range(self.n_channel):
-                    """   print("k: ",k)
-                    a=self.fig[i][j]
-                    print(1)
-                    a=self.wfsets[i][k]
-                    print(2)
-                    a=self.params_print[j]
-                    print(3) """
                     generic_plot_APA(self.fig[i][j],self.wfsets[i][k],4,"minha_analise", self.params_print[j],dicionario)
 
-        print("4 - Initializing cut")
+
         #filter based on the parameters
         for i,wfset in enumerate(self.wfsets):
             for channel in range(self.n_channel):
-                #try:
-                #print(i,channel)
-                wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_noise, analysis_label="minha_analise",parameter_label="noise")
-                wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_baseline, min=self.min_baseline, analysis_label="minha_analise",parameter_label="baseline")
-                wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_amplitude, min=self.min_amplitude, analysis_label="minha_analise",parameter_label="amplitude")
-                wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , min=self.min_t0,max=self.max_t0, analysis_label="minha_analise",parameter_label="t0")
-                wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_zero_crossing, min=self.min_zero_crossing, analysis_label="minha_analise",parameter_label="zero_crossing")
-                wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , min=self.min_fprompt, max=self.max_fprompt, analysis_label="minha_analise",parameter_label="fprompt")
-                #wfset = WaveformSet.from_filtered_WaveformSet( wfset, from_generic , max=second_peak_max, analysis_label="minha_analise",parameter_label="second_peak")
-                print(f"filtering-{i}:{self.list_endpoints[channel]}-{self.list_channels[channel]}")
-                self.wfsets[i][channel] = wfset[channel]
-                #except:
-                   # pass
+                try:
+
+                    wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_noise, analysis_label="minha_analise",parameter_label="noise")
+                    wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_baseline, min=self.min_baseline, analysis_label="minha_analise",parameter_label="baseline")
+                    wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_amplitude, min=self.min_amplitude, analysis_label="minha_analise",parameter_label="amplitude")
+                    wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , min=self.min_t0,max=self.max_t0, analysis_label="minha_analise",parameter_label="t0")
+                    wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , max=self.max_zero_crossing, min=self.min_zero_crossing, analysis_label="minha_analise",parameter_label="zero_crossing")
+                    wfset[channel] = WaveformSet.from_filtered_WaveformSet( wfset[channel], from_generic , min=self.min_fprompt, max=self.max_fprompt, analysis_label="minha_analise",parameter_label="fprompt")
+                    #wfset = WaveformSet.from_filtered_WaveformSet( wfset, from_generic , max=second_peak_max, analysis_label="minha_analise",parameter_label="second_peak")
+                    print(f"filtering-{i}:{self.list_endpoints[channel]}-{self.list_channels[channel]}")
+                    self.wfsets[i][channel] = wfset[channel]
+                except:
+                    pass
 
         self.fig_filt = [[[] for _ in range(len(self.params_print))] for _ in range(self.n_run)]
 
-        print("5 - Making the plot parameters after the cut")
         bins=100
         for i in range(self.n_run):
             for j in range(len(self.params_print)):
