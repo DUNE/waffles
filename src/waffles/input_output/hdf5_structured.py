@@ -3,7 +3,6 @@ import h5py
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 
-
 def save_structured_waveformset(wfset: WaveformSet, filepath: str, compression="gzip", compression_opts=5):
     waveforms = wfset.waveforms
     n_waveforms = len(waveforms)
@@ -41,7 +40,7 @@ def save_structured_waveformset(wfset: WaveformSet, filepath: str, compression="
         f.attrs["time_offset"] = waveforms[0]._WaveformAdcs__time_offset
 
 
-def load_structured_waveformset(filepath: str) -> WaveformSet:
+def load_structured_waveformset(filepath: str, run_filter=None, endpoint_filter=None, max_waveforms=None) -> WaveformSet:
     with h5py.File(filepath, "r") as f:
         adcs_array = f["adcs"][:]
         timestamps = f["timestamps"][:]
@@ -53,8 +52,21 @@ def load_structured_waveformset(filepath: str) -> WaveformSet:
         time_step_ns = f.attrs["time_step_ns"]
         time_offset = f.attrs["time_offset"]
 
+    indices = np.arange(len(adcs_array))
+
+    if run_filter is not None:
+        run_filter = np.atleast_1d(run_filter)
+        indices = indices[np.isin(run_numbers[indices], run_filter)]
+
+    if endpoint_filter is not None:
+        endpoint_filter = np.atleast_1d(endpoint_filter)
+        indices = indices[np.isin(endpoints[indices], endpoint_filter)]
+
+    if max_waveforms is not None:
+        indices = indices[:max_waveforms]
+
     waveforms = []
-    for i in range(len(adcs_array)):
+    for i in indices:
         wf = Waveform(
             run_number=int(run_numbers[i]),
             record_number=int(record_numbers[i]),

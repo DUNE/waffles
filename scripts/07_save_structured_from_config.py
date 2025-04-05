@@ -6,6 +6,7 @@ from pathlib import Path
 from waffles.utils.utils import print_colored
 import waffles.input_output.raw_hdf5_reader as reader
 from waffles.input_output.persistence_utils import WaveformSet_to_file
+from waffles.input_output.hdf5_structured import load_structured_waveformset
 
 class WaveformProcessor:
     """Handles waveform data processing and structured HDF5 saving."""
@@ -105,6 +106,11 @@ class WaveformProcessor:
                 structured=True
             )
             print_colored(f"Merged WaveformSet saved to {output_filepath}", color="SUCCESS")
+
+            # Load it back and compare
+            wfset_loaded = load_structured_waveformset(str(output_filepath))
+            self.compare_waveformsets(self.wfset, wfset_loaded)
+
             return True
         except Exception as e:
             print_colored(f"Error saving merged output: {e}", color="ERROR")
@@ -126,10 +132,27 @@ class WaveformProcessor:
                 structured=True
             )
             print_colored(f"WaveformSet saved to {output_filepath}", color="SUCCESS")
+
+            # Load it back and compare
+            wfset_loaded = load_structured_waveformset(str(output_filepath))
+            self.compare_waveformsets(wfset, wfset_loaded)
+
             return True
         except Exception as e:
             print_colored(f"Error saving output: {e}", color="ERROR")
             return False
+
+    def compare_waveformsets(self, original, loaded):
+        print_colored("Comparing original and loaded WaveformSets...", color="DEBUG")
+        if len(original.waveforms) != len(loaded.waveforms):
+            print_colored("Mismatch in number of waveforms!", color="ERROR")
+            return
+        for i, (w1, w2) in enumerate(zip(original.waveforms, loaded.waveforms)):
+            if not np.array_equal(w1._WaveformAdcs__adcs, w2._WaveformAdcs__adcs):
+                print_colored(f"Waveform {i} ADC mismatch", color="ERROR")
+            elif w1._Waveform__timestamp != w2._Waveform__timestamp:
+                print_colored(f"Waveform {i} timestamp mismatch", color="ERROR")
+        print_colored("Comparison finished.", color="DEBUG")
 
 @click.command(help="\033[34mProcess and save structured waveform data from JSON config.\033[0m")
 @click.option("--config", required=True, help="Path to JSON configuration file.", type=str)
