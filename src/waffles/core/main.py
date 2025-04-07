@@ -55,11 +55,20 @@ def main():
         
         # Assuming that we are running from the analysis folder
         analysis_folder_name = pathlib.Path.cwd().name
-    
-        import_command = \
-            f"from waffles.np04_analysis." +\
-            f"{analysis_folder_name}.{analyses[i]['name']} " +\
+        parent_folder_name = pathlib.Path.cwd().parent.name
+
+        if "np04" in parent_folder_name:
+            experiment = "np04"
+        elif "np02" in parent_folder_name:
+            experiment = "np02"
+        else:
+            raise RuntimeError("Error: You are not running in a subfolder of np02 or np04 analysis!")
+
+        import_command = (
+            f"from waffles.{experiment}_analysis."
+            f"{analysis_folder_name}.{analyses[i]['name']} "
             f"import {analyses[i]['name']}"
+        )
         
         try:
             exec(import_command)
