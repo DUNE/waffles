@@ -32,18 +32,6 @@ def get_analysis_params(
 
     return analysis_input_parameters
 
-def get_nbins(
-        pde: float,
-    ):
-
-    if pde == 0.4:
-        bins_number = 125
-    elif pde == 0.45:
-        bins_number = 110 
-    else:
-        bins_number = 90
-
-    return bins_number
 
 def get_endpoints(det:str, det_id: int):
 
@@ -87,23 +75,6 @@ def get_wfs(wfs: list,
             break
 
     return waveforms, WaveformSet(*waveforms)
-
-def get_wfs_interval(wfs: list,                
-            tmin: int = -1,
-            tmax: int = -1,
-            nwfs: int = -1):
-        
-    waveforms = []
-    n=0
-    for wf in wfs:
-        t = np.float32(np.int64(wf.timestamp)-np.int64(wf.daq_window_timestamp))
-        if ((t > tmin and t< tmax) or (tmin==-1 and tmax==-1)):
-            n=n+1
-            waveforms.append(wf)
-        if n>=nwfs and nwfs!=-1:
-            break
-
-    return waveforms
 
 def get_histogram(values: list,
                    nbins: int = 100,
@@ -156,54 +127,10 @@ def get_grid(wfs: list,
 
 def get_det_id_name(det_id: int):
 
-    if   det_id == 1: det_id_name='non-TCO' 
+    if   det_id == 1: det_id_name='nonTCO' 
     elif det_id ==2 : det_id_name= 'TCO'      
         
     return det_id_name
-
-
-def get_meansigma_per_channel(wfs: list,                
-                               ep: Union[int, list] = -1,
-                               ch: Union[int, list] = -1,
-                               nwfs: int = -1,
-                               tmin: int = -1,
-                               tmax: int = -1,
-                               rec: list = [-1]) -> Dict[str, float]:
-    """
-    Computes the standard deviation (sigma) of each waveform's ADCs relative to its mean within a specific interval,
-    and returns the mean sigma per channel in the format 'endpoint-channel'.
-    """
-    
-    print("Fetching selected waveforms...")
-    selected_wfs, _ = get_wfs(wfs, ep, ch, nwfs, tmin, tmax, rec)
-    print(f"Number of selected waveforms: {len(selected_wfs)}")
-
-    # Dictionary to store sigmas per channel
-    channel_sigma = {}  # {endpoint-channel: [sigma1, sigma2, ...]}
-
-    for wf in selected_wfs:
-        if not hasattr(wf, "channel") or not hasattr(wf, "endpoint"):  
-            print("Error: waveform missing 'channel' or 'endpoint' attribute!")
-            continue
-        
-        mean = np.mean(wf.adcs)  # Compute mean of ADC values
-        sigma = np.sqrt(np.sum((wf.adcs - mean) ** 2) / len(wf.adcs))  # Standard deviation formula
-
-        # Construct endpoint-channel format
-        endpoint_channel = f"{wf.endpoint}-{wf.channel}"
-
-        if endpoint_channel not in channel_sigma:
-            channel_sigma[endpoint_channel] = []  # Create list if endpoint-channel not seen before
-        
-        channel_sigma[endpoint_channel].append(sigma)  # Store sigma for this waveform
-
-    # Compute the mean sigma per endpoint-channel
-    mean_sigma = {}
-    for ep_ch, sigmas in channel_sigma.items():
-        mean_sigma[ep_ch] = np.mean(sigmas) if sigmas else float("nan")  
-
-    print("Final mean sigmas per channel:", mean_sigma)
-    return mean_sigma
 
 # ------------ Plot a waveform ---------------
 
@@ -363,48 +290,26 @@ def fft(sig, dt=16e-9):
     return x,y
 
 def plot_meanfft_function(channel_ws, figure, row, col):
-    
-    
-    '''
-    waveform_sets = {
-        "[-1000, -500]": get_wfs_interval(channel_ws.waveforms, -1000, -500),
-        "[-450, -300]": get_wfs_interval(channel_ws.waveforms, -450, -300),
-        "[0, 300]": get_wfs_interval(channel_ws.waveforms,0, 300),
-        "[600, 1000]": get_wfs_interval(channel_ws.waveforms, 600, 1000),
-        "[2000, 5000]": get_wfs_interval(channel_ws.waveforms, 2000, 5000)
-    }
-    
-    np.seterr(divide='ignore')  
-    
-    # Different colors for each range
-    colors = ['blue', 'red', 'green', 'purple', 'orange']  
-    '''
-    waveform_sets= {"All":get_wfs_interval(channel_ws.waveforms,-1, -1)}
-    
-    for i, (label, selected_wfs) in enumerate(waveform_sets.items()):
-        if not selected_wfs:
-            print(f"No waveforms found for range {label}")
-            continue
 
-        fft_list_x = []
-        fft_list_y = []
+    selected_wfs,_=get_wfs(channel_ws.waveforms,-1, -1,-1,-1,-1,[-1])
+    
+    fft_list_x = []
+    fft_list_y = []
 
-        # Compute the FFT
-        for wf in selected_wfs:
-            tmpx, tmpy = fft(wf.adcs) 
-            fft_list_x.append(tmpx)
-            fft_list_y.append(tmpy)
+    # Compute the FFT
+    for wf in selected_wfs:
+        tmpx, tmpy = fft(wf.adcs) 
+        fft_list_x.append(tmpx)
+        fft_list_y.append(tmpy)
 
-        # Compute the mean FFT
-        freq = np.mean(fft_list_x, axis=0)
-        power = np.mean(fft_list_y, axis=0)
+    # Compute the mean FFT
+    freq = np.mean(fft_list_x, axis=0)
+    power = np.mean(fft_list_y, axis=0)
 
-        figure.add_trace(go.Scatter(
-            x=freq,
-            y=power,
-            mode='lines',
-            name=f"FFT {label}",
-            #line=dict(color=colors[i % len(colors)], width=1)
+    figure.add_trace(go.Scatter(
+        x=freq,
+        y=power,
+        mode='lines',
         ), row=row, col=col)  
     
     return figure  

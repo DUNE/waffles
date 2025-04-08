@@ -1,0 +1,1 @@
+root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune/tape_backed/dunepro//hd-protodune/raw/2024/detector/cosmics/None/00/02/61/67/np04hd_raw_run026167_0000_dataflow0_datawriter_0_20240510T150308.hdf5

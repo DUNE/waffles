@@ -1,69 +1,42 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
+input_path: "data/wfset_1_35718.hdf5"
 
 # Path to the output
 output_path: "output/"
 
 # Runs
-runs: [30201]
+runs: [35718]
 
+# Detector to analyze: Membrane, Cathode, PMTs
 det: "Membrane"
 
-# APA number
+# 1 is non-TCO and 2 is TCO
 det_id: [1] 
-
-# Photon detection efficiency
-pdes: [0.45] 
-
-# PDE-to-OV mapping for HPK sipms
-hpk_ov:
-    0.4: 2.0
-    0.45: 3.5
-    0.50: 4.0
-
-# PDE-to-OV mapping for FBK sipms
-fbk_ov:
-    0.4: 3.5
-    0.45: 4.5
-    0.50 : 7.0
-
-# Enumeration of PDE values
-ov_no:
-    0.4: 1
-    0.45: 2
-    0.50: 3
 
 # ------- Parameters for the analysis -------
 
+# Analysis label
 analysis_label: 'standard'
 
 # Time interval in timeticks of the DAQ window to be considered 
+tmin: -1000
+tmax: 1000
 
-tmin: -1
-tmax: -1
-
-# Time interval of the precursor to be considered 
-
-tmin_prec: -10000
-tmax_prec: -1000
-
-# Channels
-
+# Channels 
 ch: -1
 
-# Number of waveforms
+# Number of waveforms to analyze
+nwfs: -1
 
-nwfs: 20000
+# Number of waveforms to plot
+nwfs_plot: 2000
 
 # Records
-
 rec: [-1]
 
-# Lower integration limits. For APA 1 the limits are
-# run-wise, while for APA 2, 3, 4 they are the same
-# for all runs 
+# Integration limits
 starting_tick: 60
 
 # Baseline limits
@@ -76,6 +49,8 @@ baseline_limits:
 # Integration window width, in time ticks
 integ_window: 60
 
+# Number of bins for the histograms 
+nbins: 110
 
 
 
