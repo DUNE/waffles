@@ -55,7 +55,7 @@ def main():
         
         # Assuming that we are running from the analysis folder
         analysis_folder_name = pathlib.Path.cwd().name
-        
+        '''
         import_command = \
             f"from waffles.np04_analysis." +\
             f"{analysis_folder_name}.{analyses[i]['name']} " +\
@@ -66,7 +66,7 @@ def main():
             f"from waffles.{'np04' if 'np04' in analysis_folder_name else 'np02'}_analysis." +\
             f"{analysis_folder_name}.{analyses[i]['name']} " +\
             f"import {analyses[i]['name']}"
-        '''
+        
         
         try:
             exec(import_command)
@@ -103,7 +103,7 @@ def main():
             prioritize_string_parameters = True,
             verbose = args.verbose
         )
-
+        
         validated_parameters = \
             locals()[analyses[i]['name']].get_input_params_model()(
                 **parameters_to_deliver

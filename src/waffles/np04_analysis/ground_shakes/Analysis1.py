@@ -296,6 +296,57 @@ class Analysis1(WafflesAnalysis):
         if self.params.show_figures:
             figure0.show()
         
+         # Iterar sobre los números de registro en orden y buscar el timestamp correspondiente
+        for rec_num in record_numbers:
+            # Encontrar la waveform cuyo número de registro coincide
+            wf = next((wf for wf in selected_wfs if wf.record_number == rec_num), None)
+            
+            time_stamps.append(wf.daq_window_timestamp if wf else None)
+
+        # Verificar que las listas tengan la misma longitud
+        if len(record_numbers) != len(time_stamps):
+            print("Warning: record_numbers y time_stamps tienen longitudes diferentes!")
+        
+        
+        ti=time_stamps[0]
+        tf=time_stamps[len(record_numbers)-1]
+        time_difference=((tf-ti)*16*1e-9)/60
+        records_per_min=len(record_numbers)/time_difference
+        
+        print('Number of records', len(record_numbers))
+        print('ti', ti)
+        print('tf', tf)
+        print('Time difference in min',time_difference)
+        print('Records per min',records_per_min)
+        
+  
+        # Crear figura con Plotly
+        figure01 = go.Figure()
+
+        # Agregar línea al gráfico
+        figure01.add_trace(go.Scatter(
+            x=record_numbers, 
+            y=time_stamps, 
+            mode='lines+markers', 
+            name="DAQ Timestamp"
+        ))
+
+        # Configurar títulos y formato del gráfico
+        title0 = f"DAQ Window Timestamps for APA {self.apa} - Runs {list(self.wfset.runs)}"
+
+        figure0.update_layout(
+            title={"text": title0, "font": {"size": 24}},
+            width=1100,
+            height=800,
+            xaxis_title={"text": "Record Numbers", "font": {"size": 24}},
+            yaxis_title={"text": "DAQ Window Timestamp", "font": {"size": 24}},
+            showlegend=True
+        )
+
+        # Mostrar figura si está activado
+        if self.params.show_figures:
+            figure0.show()
+        
         '''
         print(f" 4. Computing the std histogram for the min_tick values of every record")
         
@@ -377,9 +428,10 @@ class Analysis1(WafflesAnalysis):
         # ------------- Save the waveforms plot ------------- 
 
  
-        
+        '''
+
         figure1 = plot_CustomChannelGrid(
-            self.grid_plot, 
+            self.grid, 
             plot_function=lambda channel_ws, figure_, row, col: gs_utils.plot_wfs(
                 channel_ws, figure_, row, col,  offset=True),
             share_x_scale=True,
@@ -429,6 +481,7 @@ class Analysis1(WafflesAnalysis):
         
         print(f"\n Waveforms saved in {fig1_path}")
         
+        '''
 
         # ------------- Save the sigma histograms for the precursor ------------- 
         
