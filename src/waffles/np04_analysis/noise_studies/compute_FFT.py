@@ -1,4 +1,5 @@
 # --- IMPORTS -------------------------------------------------------
+from pandas._libs.hashtable import mode
 import waffles
 import os
 import yaml
@@ -9,12 +10,13 @@ import noisy_function as nf
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
     print("Imports done")
-
+    # --- SETUP -----------------------------------------------------
     # Setup variables according to the noise_run_info.yaml file
     with open("./configs/noise_run_info.yml", 'r') as stream:
         run_info = yaml.safe_load(stream)
 
     filepath_folder  = run_info.get("filepath_folder")
+    fft_folder = run_info.get("fft_folder")
     run_vgain_dict   = run_info.get("run_vgain_dict", {})
     channel_map_file = run_info.get("channel_map_file")
     new_channel_map_file = run_info.get("new_channel_map_file")
@@ -26,7 +28,11 @@ if __name__ == "__main__":
     with open("params.yml", 'r') as stream:
         user_config = yaml.safe_load(stream)
     
+    custom_filepath_folder = user_config.get("custom_filepath_folder")
+    if (custom_filepath_folder != ""):
+        filepath_folder = custom_filepath_folder
     debug_mode = user_config.get("debug_mode")
+    out_path = user_config.get("out_path")
     out_writing_mode = user_config.get("out_writing_mode")
     full_stat = user_config.get("full_stat")
     runs      = user_config.get("user_runs", [])
@@ -39,26 +45,33 @@ if __name__ == "__main__":
             exit()
 
     # Read the channel map file (daphne ch <-> offline ch)
-    df = pd.read_csv(channel_map_file, sep=",")
+    df = pd.read_csv("configs/"+channel_map_file, sep=",")
     daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
     daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
-    df = pd.read_csv(new_channel_map_file, sep=",")
+    offline_to_sipm_dict = dict(zip(df['offline_ch'], df['sipm']))
+    df = pd.read_csv("configs/"+new_channel_map_file, sep=",")
     new_daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
     new_daphne_to_offline = dict(zip(new_daphne_channels, df['offline_ch']))
 
 
-    # File where the results will be printed (run, vgain, endpoint, channel, offline_channel, rms)
-    my_csv_file = open("output/Noise_Studies_Results.csv", out_writing_mode)
+    # Prepare the output directory and the output dataframe
+    out_df_rows = []
+    os.makedirs(out_path+fft_folder, exist_ok=True)
 
 
     # --- LOOP OVER RUNS ----------------------------------------------
     for run in runs:
         print("Reading run: ", run)
-        wfset_run = nf.read_waveformset(filepath_folder,
-                                        run,
-                                        full_stat=full_stat)
+        try:
+            wfset_run = nf.read_waveformset(filepath_folder,
+                                            run,
+                                            full_stat=full_stat)
+        except FileNotFoundError:
+            print(f"File for run {run} not found")
+            continue
 
         endpoints = wfset_run.get_set_of_endpoints()
+        # endpoints = [104, 109]
         
         integrator_ON = False
         if run in integratorsON_runs:
@@ -66,6 +79,9 @@ if __name__ == "__main__":
             daphne_to_offline_dict = daphne_to_offline
         else:
             daphne_to_offline_dict = new_daphne_to_offline
+
+        print(endpoints)
+        # exit()
 
 
         # --- LOOP OVER ENDPOINTS -------------------------------------
@@ -83,7 +99,7 @@ if __name__ == "__main__":
                 # check if the channel is in the daphne_to_offline dictionary
                 channel = np.uint16(np.uint16(ep)*100+np.uint16(ch))
                 vgain = run_vgain_dict[run]
-
+    
                 if run in ignore_ch_dict:
                     if channel in ignore_ch_dict[run]:
                         print(f"Ignoring channel {channel}")
@@ -93,6 +109,7 @@ if __name__ == "__main__":
                     print(f"Channel {channel} not in the daphne_to_offline dictionary")
                     continue
                 offline_ch = daphne_to_offline_dict[channel]
+                sipm = str(offline_to_sipm_dict[offline_ch])
                 
                 if debug_mode:
                     nf.plot_heatmaps(wfset_ch, "raw", run, vgain, channel, offline_ch)
@@ -118,26 +135,38 @@ if __name__ == "__main__":
                 rms = rms*norm
                 
                 # print run, vgain, ep, ch, offline_ch, rms in a csv file
-                my_csv_file.write(f"{run},{vgain},{ep},{ch},{offline_ch},{rms}\n")
+                integrators = "OFF"
+                if integrator_ON:
+                    integrators = "ON"
+                out_df_rows.append({"Run": run, "SiPM": sipm, "Integrators": integrators,
+                                    "VGain": vgain, "DaphneCh": channel, "OfflineCh": offline_ch,
+                                    "RMS": rms})
 
-                # Check wheter the folder FFT_txt exists in the "output" folder
-                if not os.path.exists("output/FFT_txt"):
-                    os.makedirs("output/FFT_txt")
 
                 # print the FFT in a txt file
                 print("Writing FFT to txt file")
-                integrator = "OFF"
+                integrators = "OFF"
                 if integrator_ON:
-                    integrator = "ON"
-                np.savetxt("output/FFT_txt/fft_run_"+str(run)
-                           +"_int_"+integrator
-                           +"_vgain_"+str(vgain)
-                           +"_ch_"+str(channel)
-                           +"_offlinech_"+str(offline_ch)+".txt", fft2_avg[0:513])
+                    integrators = "ON"
+                np.savetxt(out_path+fft_folder+"/FFT_PDHD_Noise"
+                           +"_Run_"+str(run)
+                           +"_SiPM_"+str(sipm)
+                           +"_Integrators_"+integrators
+                           +"_VGain_"+str(vgain)
+                           +"_DaphneCh_"+str(channel)
+                           +"_OfflineCh_"+str(offline_ch)+".txt", fft2_avg[0:513])
 
                
                 if debug_mode:
                     nf.plot_heatmaps(wfset_ch, "baseline_removed", run, vgain, channel, offline_ch)
                     print("done")
 
+                del wfset_ch
+
             del wfset_ep
+
+        del wfset_run
+    
+    # Save the results in a csv file
+    out_df = pd.DataFrame(out_df_rows)
+    out_df.to_csv(out_path+"Noise_Studies_Results.csv", index=False, mode=out_writing_mode)
