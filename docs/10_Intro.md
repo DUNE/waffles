@@ -14,75 +14,48 @@ This is a python library to process and analyze raw data from the ProtoDUNEs. Th
 2. Physics studies
     * Signal deconvolution
     * Physics fits
+    * ...
 3. Electronics studies --> DAPHNE response ?
+4. Fast analysis
+    * Look at the data during the protoDUNE data taking
+    * Plot various quantities such as full waveforms, average waveform, FFT 
+5. Share your codes with the PDS group
 
 
 ## Contributing
 
 The idea of `waffles` framework is to unify efforts and to develop a robust analysis tool. 
+Users should become developers! if you need something that is not available, or you have an idea on how to improve and optimize a part of the framework, try to do it and commit your changes.
+Join the waffles Slack channel - send a Slack message to Francesca Alemanno or Andrea Roche.
+You can always ask in the Slack channel if you have any doubt. 
+Your analysis can become part of the framework, and you can promote the tools you developed, if they can be useful to other people.
+
 Nevertheless, it is very important to keep some common rules not to harm others work.
 
 ```{tip} 
 **Good coding practises here**
 
-*   Create your own branch for developing code and make puntual commits with your changes. Once you want to share with the world, open a pull request and wait for two reviewers to approve the merging.
+*   Create your own branch for developing code and make puntual commits with your changes. Once you want to share with the world, open a pull request and wait for two reviewers to approve the merging
 
-* To include functions/methods... [COMPLETE]
+* To include functions/methods follow the analysis structure and coding conventions
+
+* Update this documentation with your latest additions and modifications to the main branch. This will help everyone, also yourself!
 
 ```
 
 ## Current Workflow
 
 <!-- IMAGE SUMMARISING THE WORKFLOW? -->
-1. **Files location**: the `rucio` paths for the runs we want to analyse are stored in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`. You can generate these files by running the `scripts/get_rucio.py` script.
+1. **Files location**: the `rucio` paths for the NP04 runs we want to analyse are stored in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`. If they are not available, you can generate these files. First, you have to move to the waffles scripts directory, then `source setup_rucio_a9.sh` and finally run the `scripts/fetch_rucio_replicas.py` script, with options `--runs run_number` `--max-files number_of_files`. 
 
-2. **Data extraction**: the raw data is stored in `.hdf5` files. The optimal way of extracting the data is by running the following lines:
+2. **Data extraction**: the raw data is stored in `.hdf5` files. The optimal way of extracting the data is as follows:
+    * Move to the waffles scripts directory
+    * Modify the `config.json` file, according to your needs
+    * Run `python3 06_RawHDF5Reader.py --config config.json `
 
-```python
-import waffles.input_output.raw_hdf5_reader as reader
-
-rucio_files = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/028602.txt"
-allfilepath = reader.get_filepaths_from_rucio(rucio_filepath)
-waveformset = reader.WaveformSet_from_hdf5_files( filepaths[:int(file_lim)], read_full_streaming_data = False)
-with open(f"data/028602_full_wfset_raw.pkl", "wb") as f:
-            pickle.dump(wfset, f)
-```
-In this way, you can store the `WaveformSet` object in a `.pkl` file and load it whenever you want to work with it. 
+In this way, you can store the `WaveformSet` in a lighter `.hdf5` file and load it whenever you want to work with it. 
 
 3. **Analysis and Visualization**: the `WaveformSet` object can be visualized using the `waffles.plotting.plot` module.
-
-
-[Deprecated] -- try to avoid conversion to ROOT files
-
-After running our extractors (see `scripts/00_HDF5toROOT`) a folder will be generated in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root` with your selected run. The structure inside this `.root` files is:
-
-```bash
-├── 'metadata'/
-    ├── [integer]   'endpoint'
-    ├── [integer]   'threshold'
-    ├── integer     'run'
-    ├── integer     'nrecords'
-    ├── string      'detector'
-    ├── string      'date'
-    ├── integer     'ticks_to_nsec'
-    └── integer     'adcs_to_volts'
-    ├── integer     'daq_window_size'
-    └── integer     'daq_pre_trigger'
-└── 'raw_waveforms'/
-    ├── [integer]   'record'
-    ├── [integer]   'daq_timestamp'
-    ├── [[integer]] 'adcs'
-    ├── [integer]   'timestamp'
-    ├── [integer]   'channel'
-    ├── [integer]   'baseline'
-    ├── [integer]   'trigger_sample_value'
-    └── [bool]      'is_fullstream'
-```
-
-This file is used to debug and check the quality of the data but in future releases of `waffles` we will load directly the `.hdf5` daq files.
-
-The next steps are loading the `root` files (you can select the fraction of statistics you want to analyse) and start visualizing your data.
-
 
 ## **Getting Started - SETUP**  ⚙️
 
@@ -246,6 +219,8 @@ pip install .
 If at some point you needed to re-run waffles with the changes you have introduced to the source code, you would just need to run the second command.
 
 ### 2. Make sure you have access to data to analyze
+
+HERE WE SHOULD ADD SOME USEFUL LINKS (NP02 and NP04 run list, channels map, ... )
 
 * Make sure you know how to connect and work from `@lxplus.cern.ch` machines.
 
