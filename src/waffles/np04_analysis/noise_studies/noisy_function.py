@@ -21,18 +21,17 @@ def read_waveformset(filepath_folder: str,
     # check if the file exists
     if not os.path.isfile(filepath_file):
         print(f"File {filepath_file} does not exist")
-        filetxt_exists = False
-        return waffles.WaveformSet()
+        raise FileNotFoundError
 
     filepath = reader.get_filepaths_from_rucio(filepath_file)
 
     if (full_stat == True and len(filepath) > 1):
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0], erase_filepath = False)
+        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
         for fp in filepath[1:]:
-            ws = reader.WaveformSet_from_hdf5_file(fp, erase_filepath = False)
+            ws = reader.WaveformSet_from_hdf5_file(fp)
             wfset.merge(ws)
     else:
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0], erase_filepath = False)
+        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
 
     return wfset
 
@@ -64,7 +63,7 @@ def create_float_waveforms(wf_set: waffles.WaveformSet) -> None:
     - wf_set: waffles.WaveformSet
     """
     for wf in wf_set.waveforms:
-        wf.adcs = wf.adcs.astype(np.float64)
+        wf.adcs_float = wf.adcs.astype(np.float64)
 
 
 def get_average_rms(wf_set: waffles.WaveformSet) -> np.float64:
@@ -76,18 +75,18 @@ def get_average_rms(wf_set: waffles.WaveformSet) -> np.float64:
     rms = 0.
     norm = 1./len(wf_set.waveforms)
     for wf in wf_set.waveforms:
-        rms += np.std(wf.adcs)
+        rms += np.std(wf.adcs_float)
     return np.float64(rms*norm)
 
 
-def noise_wf_selection(wf: waffles.Waveform, rms: np.float64) -> bool:
+def noise_wf_selection(waveform: waffles.Waveform, rms: np.float64) -> bool:
     """
     Select the waveforms with the noise
     Parameters:
     - wf: waffles.Waveform
     - rms: np.float64, average standard deviation of the waveforms
     """
-    if (np.max(wf.adcs) - np.min(wf.adcs)) > 14*rms:
+    if (np.max(waveform.adcs_float) - np.min(waveform.adcs_float)) > 14*rms:
         return False
     else:
         return True
@@ -102,13 +101,16 @@ def sub_baseline_to_wfs(wf_set: waffles.WaveformSet, prepulse_ticks: int):
     """
     norm = 1./prepulse_ticks
     for wf in wf_set.waveforms:
-        baseline = np.sum(wf.adcs[:prepulse_ticks])*norm
-        wf.adcs -= baseline
-        wf.adcs *= -1
+        baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
+        wf.adcs_float -= baseline
+        wf.adcs_float *= -1
 
 def plot_heatmaps(wf_set: waffles.WaveformSet, flag: str, run: int, vgain: int, ch: int, offline_ch: int) -> None:
     # Convert waveform data to numpy array
-    raw_wf_arrays = np.array([wf.adcs for wf in wf_set.waveforms[:5000]])
+    if (flag == "baseline_removed"):
+        raw_wf_arrays = np.array([wf.adcs_float for wf in wf_set.waveforms[:5000]]).astype(np.float64)
+    else:
+        raw_wf_arrays = np.array([wf.adcs for wf in wf_set.waveforms[:5000]])
 
     # Create time arrays for plotting
     time_arrays = np.array([np.arange(1024) for _ in range(len(raw_wf_arrays))])
@@ -150,3 +152,40 @@ def plot_heatmaps(wf_set: waffles.WaveformSet, flag: str, run: int, vgain: int, 
     plt.close(fig)  # Close figure to save memory
 
     print(f"Saved heatmap: {filename}")
+
+def create_golden_fft(golden_offline_ch: int,
+                      desired_vgain: int,
+                      files: list) -> np.array:
+    """
+    Create golden FFT
+    """
+    vgains = []
+    ffts = []
+    search_string = f"_OfflineCh_{golden_offline_ch}" 
+    for file in files:
+        if search_string in file:
+            vgain = int(file.split("VGain_")[-1].split("_")[0])
+            
+            if vgain == desired_vgain:
+                fft = np.loadtxt(file)
+                print("Found the desired vgain: ", vgain, "in file: ", file)
+                return fft
+
+            else:
+                vgains.append(vgain)
+                fft = np.loadtxt(file)
+                ffts.append(fft)
+
+    # sort the vgains and the ffts
+    vgains, ffts = zip(*sorted(zip(vgains, ffts), key=lambda x: x[0]))
+    vgains = np.array(vgains)
+    ffts = np.array(ffts)
+
+    # estimate the FFT at desired_vgain
+    estimated_fft = np.zeros(ffts.shape[1])
+
+    for i in range(ffts.shape[1]):
+        estimated_fft[i] = np.interp(desired_vgain, vgains, ffts[:,i])
+
+    return estimated_fft
+
