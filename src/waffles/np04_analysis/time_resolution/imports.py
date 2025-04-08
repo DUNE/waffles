@@ -4,7 +4,8 @@ import csv
 import yaml
 
 import ROOT # The best!! :D
-from ROOT import TFile, TH2F, TGraph 
+from ROOT import TFile, TH2F, TGraph, TTree
+import uproot
 
 import sys
 

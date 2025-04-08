@@ -1,16 +1,16 @@
 # Runs to be analyzed
-runs : [34095, 34089, 34083, 34093, 34087, 34081]
+runs : [34081]
 # runs : [34081]
-endpoints : [106]
-channels  : [1]
+endpoints : [104]
+channels  : [3]
 
 prepulse_ticks : 125
 int_low : 126
 int_up : 156
 postpulse_ticks : 145
 
-spe_charge : 109.5
-spe_ampl : 5.28
+spe_charge : 110.7
+spe_ampl : 5.23
 min_pes : 10
 baseline_rms : 5
 
@@ -22,4 +22,4 @@ relative_thrs : [0.3, 0.5, 0.7]
 filt_levels : [12]
 
 h2_nbins  : 100
-stat_lost : 0.05
+stat_lost : 0.02
