@@ -1,7 +1,6 @@
 # THis script creates pickles or binaries from the VGAIN SCAN or Selftrigger
 # run list. The idea is to take the 12 runs that a VGAIN point comprises and
 # generate 4 pickle files or 4 sets of binary files for the corresponding VGAIN point
-from waffles.np04_analysis.vgain_analysis.scripts.hdf5_2_pickle_binary import endpoint_waveforms
 
 print('importing waffles: waffles.input.raw_hdf5_reader')
 import time
@@ -13,10 +12,13 @@ import sys
 import traceback
 import pickle
 import pandas as pd
+import ast
 from itertools import chain
+from collections import defaultdict
+import pdb
+import json
 
 print('finished importing waffles: waffles.input.raw_hdf5_reader')
-
 
 def getRunsFromCSV(file_path):
     with open(file_path, 'r', encoding='utf-8-sig') as file:
@@ -30,15 +32,18 @@ def getRunsFromCSV(file_path):
 ### HARD CODE HERE ##############################################
 
 save_pickle = True
-save_binary = False
+save_binary = True
 
 folder_with_file_locations = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/"
 destination_folder = "/afs/cern.ch/work/e/ecristal/"
-csv_database = "configs/vgain_top_level.csv"
-csv_channels_per_run = "configs/vgain_channels.csv"
-run_numbers_error_list = "output/vgain_scans_mapping_runs_error_list.txt"
+csv_database = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/vgain_top_level.csv"
+csv_channels_per_run = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/vgain_channels.csv"
+run_numbers_error_list = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/output/vgain_scans_mapping_runs_error_list.txt"
 #runs_to_convert = getRunsFromCSV(csv_database)
 # runs_to_convert must be changed to the column runs of the table vgain_top_level.csv.
+
+vgain_skip_list = []
+run_number_skip_list = []
 
 run_database = pd.read_csv(csv_database)
 ch_per_run_database = pd.read_csv(csv_channels_per_run)
@@ -60,13 +65,17 @@ channels_list_per_run = ch_per_run_database["channels"]
 rucio_filepaths = [folder_with_file_locations + "0" + str(run) + ".txt" for run in
                    runs_to_convert]
 
-filepaths_dict = {}
+filepaths_dict = defaultdict(dict)
 for path_index, path in enumerate(rucio_filepaths):
     filepaths_dict[runs_to_convert[path_index]] = path
 
-channels_by_run_dict = {}
-for run_index, run_value in enumerate():
-    channels_by_run_dict[run_value] = channels_list_per_run[run_index]
+channels_by_run_dict = defaultdict(dict)
+for run_index, run_value in enumerate(runs_ch_list):
+    run_value = int(run_value)
+    raw_list = channels_list_per_run[run_index]
+    if isinstance(raw_list,str):
+        raw_list = ast.literal_eval(raw_list)
+    channels_by_run_dict[run_value] = [int(ch) for ch in raw_list]
 
 ov_string_dict = {
     "[2.0, 3.5]": "40p",
@@ -82,11 +91,11 @@ ov_string_dict = {
 
 unique_vgain = np.unique(vgain)
 unique_ov = np.unique(ov)
-iteration_dict = {}
+iteration_dict = defaultdict(dict)
 for vgain_value in unique_vgain:
     for ov_value in unique_ov:
-        runs_ = runs_to_convert[vgain_value == vgain & ov_value == ov]
-        iteration_dict[vgain_value][ov_value] = {runs_}
+        runs_ = runs_to_convert[(vgain_value == vgain) & (ov_value == ov)]
+        iteration_dict[vgain_value][ov_value] = runs_.tolist()
 
 channels_dict = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7,
                  8: 10, 9: 11, 10: 12, 11: 13, 12: 14, 13: 15, 14: 16, 15: 17,
@@ -100,6 +109,19 @@ channels_dict_inv = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7,
                      30: 24, 31: 25, 32: 26, 33: 27, 34: 28, 35: 29, 36: 30, 37: 31,
                      40: 32, 41: 33, 42: 34, 43: 35, 44: 36, 45: 37, 46: 38, 47: 39,
                      }
+def sanitize_data(obj):
+    if isinstance(obj, dict):
+        return {key: sanitize_data(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_data(element) for element in obj]
+    elif isinstance(obj, (np.integer,)):
+        return int(obj)
+    elif isinstance(obj, (np.floating,)):
+        return float(obj)
+    elif isinstance(obj, (np.ndarray,)):
+        return obj.tolist()
+    else:
+        return obj
 
 
 def getAlignedData(wfset, user_selected_endpoint, channel_list):
@@ -108,13 +130,10 @@ def getAlignedData(wfset, user_selected_endpoint, channel_list):
         endpoint_waveforms = [waveform for waveform in wfset.waveforms if
                               waveform.endpoint == user_selected_endpoint]
 
-        print(endpoint_waveforms[0].endpoint)
         timestamps = []
         for waveform in endpoint_waveforms:
             timestamps.append(waveform.timestamp)
 
-        print(len(endpoint_waveforms))
-        print(len(timestamps))
         zipped_lists = list(zip(timestamps, endpoint_waveforms))
         zipped_lists.sort(key=lambda x: x[0])
         sorted_timestamps, sorted_waveforms = zip(*zipped_lists)
@@ -171,11 +190,16 @@ def getAlignedData(wfset, user_selected_endpoint, channel_list):
             40 * len(complete_data)))
 
         selected_complete_data = []
-        for ch in channel_list:
-            filtered_data = [waveform for waveform in complete_data if
-                              waveform.channel == ch]
-            selected_complete_data.append(filtered_data)
-        return selected_complete_data
+        if not channel_list:
+            return None
+        else:
+            for complete_data_sublist in complete_data:
+                sub_ch_list = []
+                for ch in channel_list:
+                    wf_ch = [waveform for waveform in complete_data_sublist if waveform.channel == ch]
+                    sub_ch_list.append(wf_ch[0])
+                selected_complete_data.append(sub_ch_list)
+            return selected_complete_data
 
     except Exception as e:
         print(f"Error en procesamiento de los datos:\n {e}")
@@ -185,8 +209,8 @@ def sortWaveformsByTimestamp(wflist):
     for waveform in wflist:
         timestamps.append(waveform.timestamp)
 
-    print(len(wflist))
-    print(len(timestamps))
+    #print(len(wflist))
+    #print(len(timestamps))
     zipped_lists = list(zip(timestamps, wflist))
     zipped_lists.sort(key=lambda x: x[0])
     sorted_timestamps, sorted_waveforms = zip(*zipped_lists)
@@ -203,7 +227,7 @@ def reorderWaveformDict(wf_dict, channels_dict):
     return wf_dict
 def saveWaveDict(wf_dict,save_pickle, save_binary, folder_location, channels_to_save_dict , channels_dict_inv, channels_dict):
     for wf_list_key in wf_dict.keys():
-        if (save_pickle == True):
+        if (save_pickle == True and channels_to_save_dict[wf_list_key]):
             try:
                 pickle_file_name = 'data_endpoint_' + str(wf_list_key) + '.pickle'
                 print('Saving saving data to a pickle file named: ' + folder_location + '/' + pickle_file_name)
@@ -215,9 +239,9 @@ def saveWaveDict(wf_dict,save_pickle, save_binary, folder_location, channels_to_
                 print(f"Error en procesamiento de los datos:\n {e}")
                 print(traceback.format_exc())
 
-        if (save_binary == True):
-            channels_to_save = channels_to_save_dict[wf_list_key]
-            selected_channels_inv = [channels_dict_inv[channels_to_save[i]] for i in range(len(channels_to_save))]
+        if (save_binary == True and channels_to_save_dict[wf_list_key]):
+            channels_to_save = channels_to_save_dict[wf_list_key][0]
+            selected_channels_inv = [channels_dict_inv[ch] for ch in channels_to_save]
             selected_channels_dict = {}
             dic_increment = 0
             try:
@@ -246,44 +270,88 @@ def saveWaveDict(wf_dict,save_pickle, save_binary, folder_location, channels_to_
                 print(traceback.format_exc())
 def unflatten_list(flat_list, n):
     return [flat_list[i:i+n] for i in range(0, len(flat_list), n)]
+
+def load_waveform(file):
+    print(f'Reading file: ' + file)
+    return WaveformSet_from_hdf5_file(file)
+
+def populateEnpointsWfDict(wfset, run_endpoints, channels_to_save, endpoint_dict, channels_to_save_dict, endpoint_wf_dict, appendChannelsToSave):
+    for user_selected_endpoint in run_endpoints:
+        channel_list = [ch for ch in channels_to_save if ch // 100 == user_selected_endpoint]
+        channel_list = [ch % 100 for ch in channel_list]
+        print(f'Endpoint: {user_selected_endpoint}')
+        print(f'Retrieving channels: ')
+        for ch in channel_list:
+            print(f'Channel: {ch}')
+        if appendChannelsToSave:
+            endpoint_dict[user_selected_endpoint]['CH_LIST'] = channel_list
+            channels_to_save_dict[user_selected_endpoint].append(channel_list)
+        waveforms_to_append = getAlignedData(wfset, user_selected_endpoint, channel_list)
+        if waveforms_to_append is not None:
+            for channel_set in waveforms_to_append:
+                endpoint_wf_dict[user_selected_endpoint].append(channel_set)
+
+def getWfsetFromFile(file):
+        try:
+            wfset = WaveformSet_from_hdf5_file(file)
+            return wfset
+        except Exception as e:
+            print(f"Error loading HDF5 file: {file}")
+            with open(run_numbers_error_list,'a') as error_file:
+                error_file.write(f"Error loading HDF5 file: {file}" + '\n')
+                error_file.close()
+            print(f"Exception: {e}")
+
+
 for vgain_index, vgain_value in enumerate(iteration_dict.keys()):
-    vgain_folder_name = destination_folder + 'vgain_' + str(list(vgain_value))
+    if vgain_value in vgain_skip_list:
+        print(f"Skipping vgain: {vgain_value}")
+        continue
+    vgain_folder_name = destination_folder + 'vgain_' + str(vgain_value)
     os.makedirs(vgain_folder_name, exist_ok=True)
+    print(f'Getting runs with VGIAN: {vgain_value}')
+    export_dict = defaultdict(dict)
+    export_dict['VGAIN'] = vgain_value
+    ov_dict = defaultdict(dict)
     for ov_index, ov_value in enumerate(unique_ov):
+        print(f'Getting runs with overvoltage: {ov_value}')
         ov_folder = vgain_folder_name + '/' + str(ov_string_dict[ov_value])
         os.makedirs(ov_folder, exist_ok=True)
         run_list = iteration_dict[vgain_value][ov_value]
+        ov_dict[ov_string_dict[ov_value]]['RUNLIST'] = run_list
         # Folder are create in a structure:
         # vgain_{vgain_value}
         #     |
         #     40p
         #     45p
         #     50p
-        endpoint_wf_dict = {
-            104: [],
-            109: [],
-            111: [],
-            112: [],
-            113: []
-        }
-        channels_to_save_dict = {
-            104: [],
-            109: [],
-            111: [],
-            112: [],
-            113: []
-        }
+        
         for run_index, run_value in enumerate(run_list):
+            endpoint_wf_dict = {
+            104: [],
+            109: [],
+            111: [],
+            112: [],
+            113: []
+            }
+            channels_to_save_dict = {
+                104: [],
+                109: [],
+                111: [],
+                112: [],
+                113: []
+            }
+            if run_value in run_number_skip_list:
+                print(f"Skipping run: {run_value}")
+                continue
+            print(f'Retrieving files for RUN: {run_value} - VGIAN: {vgain_value}')
             try:
+                run_folder = ov_folder + '/run_' + str(run_value)
+                os.makedirs(run_folder, exist_ok=True)
                 rucio_path = filepaths_dict[run_value]
                 print(rucio_path)
                 file_to_read = reader.get_filepaths_from_rucio(rucio_path)
-                print('Starting reading file: ' + file_to_read[0])
-
-                wfset = WaveformSet_from_hdf5_file(file_to_read[0])
-                wfsets = [WaveformSet_from_hdf5_file(file) for file in file_to_read[1:-1]]
-                for wf_set in wfsets:
-                    wfset.merge(wf_set)
+                wfset = getWfsetFromFile(file_to_read[0])
                 run_endpoints = wfset.get_set_of_endpoints()
                 channels_to_save = channels_by_run_dict[run_value]
                 # Here channels_to_save already has the endpoint information.
@@ -296,14 +364,17 @@ for vgain_index, vgain_value in enumerate(iteration_dict.keys()):
                     error_file.write(rucio_path + '\n')
                 error_file.close()
                 continue
-            for user_selected_endpoint in run_endpoints:
-                channel_list = [ch for ch in channels_to_save if ch // 100 == user_selected_endpoint]
-                channel_list = [ch % 100 for ch in channel_list]
-                channels_to_save_dict[user_selected_endpoint].append(channel_list)
-                endpoint_wf_dict[user_selected_endpoint].append(getAlignedData(wfset, user_selected_endpoint, channel_list))
-        endpoint_wf_dict = reorderWaveformDict(endpoint_wf_dict)
-        saveWaveDict(endpoint_wf_dict, save_pickle, save_binary, ov_folder, channels_to_save_dict, channels_dict_inv,
+            endpoint_dict = defaultdict(dict)
+            populateEnpointsWfDict(wfset, run_endpoints, channels_to_save, endpoint_dict, channels_to_save_dict, endpoint_wf_dict, True)
+            for file in file_to_read[1:-1]:
+                wfset = getWfsetFromFile(file)
+                populateEnpointsWfDict(wfset, run_endpoints, channels_to_save, endpoint_dict, channels_to_save_dict, endpoint_wf_dict, False)
+        #endpoint_wf_dict = reorderWaveformDict(endpoint_wf_dict)
+            ov_dict[ov_string_dict[ov_value]][run_value] = endpoint_dict
+            saveWaveDict(endpoint_wf_dict, save_pickle, save_binary, run_folder, channels_to_save_dict, channels_dict_inv,
                          channels_dict)
-    with open(vgain_folder_name + '/export.txt', 'w') as export_file:
-        export_file.write(f'file read: {file_to_read[0]}')
-    export_file.close;
+    export_dict['METADATA'] = ov_dict
+    with open(vgain_folder_name + '/export.json', 'w') as export_file:
+        json.dump(sanitize_data(export_dict), export_file, indent=4)
+    export_file.close
+

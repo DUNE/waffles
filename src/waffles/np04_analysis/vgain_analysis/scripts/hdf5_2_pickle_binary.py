@@ -32,6 +32,7 @@ destination_folder = "/afs/cern.ch/work/e/ecristal/"
 csv_run_numbers = "/eos/home-e/ecristal/NP04/data/np04_csv_run_list/vgain_scans_mapping_runs.csv"
 run_numbers_error_list = "/eos/home-e/ecristal/NP04/data/np04_csv_run_list/vgain_scans_mapping_runs_error_list.txt"
 runs_to_convert = getRunsFromCSV(csv_run_numbers)
+runs_to_convert = [30758]
 channels_to_save = [0,  1, 2, 3, 4, 5, 6, 7,
                     10,11,12,13,14,15,16,17,
                     20,21,22,23,24,25,26,27,
@@ -62,13 +63,25 @@ for run_index, rucio_path in enumerate(rucio_filepaths):
         file_to_read = reader.get_filepaths_from_rucio(rucio_path)
         #file_to_read = ["/eos/home-e/ecristal/NP04/np02vdcoldbox_raw_run033026_0000_dataflow0_datawriter_0_20241209T085511.hdf5"]
         print('Starting reading file: ' + file_to_read[0])
-
-    
-        wfset = WaveformSet_from_hdf5_file(file_to_read[0])
-        wfsets = [WaveformSet_from_hdf5_file(file) for file in file_to_read[1:-1]]
-        for wf_set in wfsets:
-            wfset.merge(wf_set)
-        run_endpoints = wfset.get_set_of_endpoints()
+        wfset_list = []
+        for file in file_to_read:
+            try:
+                wfset_list.append(WaveformSet_from_hdf5_files(file))
+            except Exception as e:
+                print(f"Error loading HDF5 file: {file}")
+                with open(run_numbers_error_list,'a') as error_file:
+                    error_file.write(f"Error loading HDF5 file: {file}" + '\n')
+                    error_file.close()
+                print(f"Exception: {e}")
+        if len(wfset_list) > 1:
+            wfset = wfset_list[0]
+            for wfset_iterator in wfset_list[1:-1]:
+                wfset.merge(wfset_iterator)
+            run_endpoints = wfset.get_set_of_endpoints()
+        elif len(wfset_list) == 1:
+            wfset = wfset_list[0]
+        else:
+            raise Exception("WaveformSet list is empty.")
     except Exception as e:
         print(f"Error en procesamiento de los datos:\n {e}")
         print(traceback.format_exc())

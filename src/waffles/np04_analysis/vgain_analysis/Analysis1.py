@@ -184,33 +184,33 @@ class Analysis1(WafflesAnalysis):
         #vgain_config_table = pd.read_csv(self.params.top_level_vgain_configuration_file)
         #vgain_channels_table = pd.read_csv(self.params.vgain_channels_file)
         #print('Here: ', self.analyze_itr, self.params.channels[self.analyze_itr])
-        skip = 0
-        print(self.read_input_itr_1)
-        print(self.params.channels_dict[self.read_input_itr_1])
-        if(self.params.channels_dict[self.read_input_itr_1] == '[]'):
-            skip = 1
-        if(skip == 0):
-            baseline_ = SBaseline(binsbase = None, threshold = 12, baselinestart = 0, baselinefinish = 1024, wait = 150, minimumfrac=0)
-            filtering = 4
-            endpoint_list = getEndpointList(self.params.channels_dict[self.read_input_itr_1])
-            print(endpoint_list)
-            run_map = createChannelMaps(endpoint_list)
-            run = Run(self.read_input_itr_1, run_map, self.wfset, [])
-            sync_run = {}
-            for endpoint in endpoint_list:
-                sync_run.update(run.synchronize_endpoint_waveform_set(endpoint))
-            uniqueChannels = getUniqueChannelList(self.params.channels_dict[self.read_input_itr_1])
-            print(uniqueChannels)
+        # skip = 0
+        # print(self.read_input_itr_1)
+        # print(self.params.channels_dict[self.read_input_itr_1])
+        # if(self.params.channels_dict[self.read_input_itr_1] == '[]'):
+        #     skip = 1
+        # if(skip == 0):
+        #     baseline_ = SBaseline(binsbase = None, threshold = 12, baselinestart = 0, baselinefinish = 1024, wait = 150, minimumfrac=0)
+        #     filtering = 4
+        #     endpoint_list = getEndpointList(self.params.channels_dict[self.read_input_itr_1])
+        #     print(endpoint_list)
+        #     run_map = createChannelMaps(endpoint_list)
+        #     run = Run(self.read_input_itr_1, run_map, self.wfset, [])
+        #     sync_run = {}
+        #     for endpoint in endpoint_list:
+        #         sync_run.update(run.synchronize_endpoint_waveform_set(endpoint))
+        #     uniqueChannels = getUniqueChannelList(self.params.channels_dict[self.read_input_itr_1])
+        #     print(uniqueChannels)
 
-            for u_ch in uniqueChannels:
-                ep = u_ch.endpoint
-                ch_signal = u_ch.channel
-                print(f'procesing run: {self.read_input_itr_1} - endpoint: {ep} - channel: {ch_signal}')
-                signalWaveformList = sync_run[ep][ch_signal]
-                signalWaveformSet = WaveformSet(*signalWaveformList)
-                signalWaveformSet.analize(
+        #     for u_ch in uniqueChannels:
+        #         ep = u_ch.endpoint
+        #         ch_signal = u_ch.channel
+        #         print(f'procesing run: {self.read_input_itr_1} - endpoint: {ep} - channel: {ch_signal}')
+        #         signalWaveformList = sync_run[ep][ch_signal]
+        #         signalWaveformSet = WaveformSet(*signalWaveformList)
+        #         signalWaveformSet.analize(
                     
-                )
+        #         )
                 
                 # filteredSignalWaveforms_tuple = percentileFilter(signalWaveformSet.waveforms,[0.25,0.75],'RMS')
                 # filteredSignalWaveforms = filteredSignalWaveforms_tuple[0]
