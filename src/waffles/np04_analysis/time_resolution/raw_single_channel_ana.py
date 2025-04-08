@@ -39,6 +39,7 @@ if __name__ == "__main__":
     min_min_t0 = []
     max_max_t0 = []
     hp_t0_pes = []
+    os.makedirs(output_folder, exist_ok=True)
     
     # --- LOOP OVER RUNS --------------------------------------------
     for file, run in zip(files, runs):
@@ -69,10 +70,31 @@ if __name__ == "__main__":
    
                 ch = endpoint*100 + channel
                 out_root_file_name = output_folder+f"ch_{ch}_time_resolution.root"
-                root_file = TFile(out_root_file_name, "UPDATE")
+                root_file = TFile(out_root_file_name, "RECREATE")
             
                 if a.n_select_wfs > 500:
-                    for method in methods:
+                    root_file.mkdir(f"run_{run}")
+                    root_file.cd(f"run_{run}")
+                    n_pwfs = min(9000, a.n_select_wfs)
+                    all_wfs = np.array([wf.adcs_float for wf in a.wfs[:n_pwfs] if wf.time_resolution_selection]).flatten()
+                    all_tikcs = np.array([np.arange(len(wf.adcs_float)) for wf in a.wfs[:n_pwfs] if wf.time_resolution_selection]).flatten()
+                    counts, xedges, yedges = np.histogram2d(all_tikcs, all_wfs, bins=(len(a.wfs[0].adcs_float),h2_nbins),
+                                                            range=[[0, len(a.wfs[0].adcs_float)],
+                                                                   [np.min(all_wfs), np.max(all_wfs)]])
+                                                            
+
+                    # Histogram 2D of t0 vs pe
+                    h2_persistence = TH2F("persistence", ";#p.e;t0 [ticks]",
+                                    len(a.wfs[0].adcs_float), 0, len(a.wfs[0].adcs_float),
+                                    h2_nbins, np.min(all_wfs), np.max(all_wfs))
+
+                    for i in range(len(a.wfs[0].adcs_float)):
+                        for j in range(h2_nbins):
+                            h2_persistence.SetBinContent(i+1, j+1, counts[i, j])
+                    
+                    h2_persistence.Write()
+
+                for method in methods:
                         if method == "denoise":
                             loop_filt_levels = filt_levels
                         else:
