@@ -22,6 +22,7 @@ class WaveformProcessor:
         self.self_trigger = config.get("self_trigger")  # Self-trigger filtering threshold
         self.max_files = config.get("max_files", "all")  # Limit file processing
         self.ch = self.parse_ch_dict(config.get("ch", {}))
+        self.det = config.get("det")
         
         print_colored(f"Loaded configuration: {config}", color="INFO")
     
@@ -63,7 +64,7 @@ class WaveformProcessor:
                     subsample=1,
                     wvfm_count=1e9,
                     ch=self.ch,
-                    det='HD_PDS',
+                    det=self.det,
                     temporal_copy_directory='/tmp',
                     erase_temporal_copy=False
                 )
@@ -86,7 +87,7 @@ class WaveformProcessor:
                         subsample=1,
                         wvfm_count=1e9,
                         ch=self.ch,
-                        det='HD_PDS',
+                        det=self.det,
                         temporal_copy_directory='/tmp',
                         erase_temporal_copy=False
                     )
@@ -167,7 +168,7 @@ def main(config):
         with open(config, 'r') as f:
             config_data = json.load(f)
 
-        required_keys = ["run", "rucio_dir", "output_dir", "ch"]
+        required_keys = ["run", "rucio_dir", "output_dir", "ch", "det"]
         missing_keys = [key for key in required_keys if key not in config_data]
         if missing_keys:
             raise ValueError(f"Missing required keys in config file: {missing_keys}")
