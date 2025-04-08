@@ -147,7 +147,7 @@ def extract_fragment_info(frag, trig):
         timestamps = np_array_timestamp(frag)
         adcs = np_array_adc(frag)
         channels = np_array_channels(frag)
-    elif fragType == FragmentType.kDAPHNEStream:
+    elif fragType == FragmentType.kDAPHNEStream.value:
         trigger = 'full_stream'
         timestamps = np_array_timestamp_stream(frag)
         adcs = np_array_adc_stream(frag)
