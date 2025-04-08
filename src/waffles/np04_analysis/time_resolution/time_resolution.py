@@ -1,6 +1,6 @@
 import waffles
 import numpy as np
-from typing import Literal
+from typing import Literal, Tuple
 from waffles.utils.denoising.tv1ddenoise import Denoise
 
 
@@ -43,8 +43,6 @@ class TimeResolution:
         self.wfs = []           #waveforms
         self.denoisedwfs = []   #waveforms
         self.n_select_wfs = 0   #number of selected wfs
-        self.t0s = []               #t0 values
-        self.pes = []               #pes values
         self.t0 = 0.            #Average t0 among the selected wfs
         self.t0_std = 0.        #Standard deviation to t0
         
@@ -100,7 +98,7 @@ class TimeResolution:
     def set_wfs_t0(self,
                    method: Literal["half_amplitude","denoise"],
                    relative_thr = 0.5,
-                   ) -> None:
+                   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Set the t0 of the selected waveforms
         Args:
@@ -110,11 +108,10 @@ class TimeResolution:
         - waveforms.avg_t0
         """
         waveforms = self.wfs
-        self.t0s = []
-        self.pes = []
         
         t0_list = []
         pe_list = []
+        ts_list = []
         for wf in waveforms:
             if (wf.time_resolution_selection == True):
                 thr = relative_thr*self.spe_ampl*wf.pe
@@ -129,11 +126,10 @@ class TimeResolution:
                 if wf.t0 is not None:
                     t0_list.append(wf.t0)
                     pe_list.append(wf.pe)
+                    ts_list.append(wf.timestamp)
 
-        if len(t0_list) > 10:
-            t0 = np.average(t0_list)
-            std= np.std(t0_list)
-            self.t0s = np.array(t0_list)
-            self.pes = np.array(pe_list)
-            self.t0 = t0
-            self.t0_std = std
+        t0s = np.array(t0_list)
+        pes = np.array(pe_list)
+        tss = np.array(ts_list)
+
+        return t0s, pes, tss
