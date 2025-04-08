@@ -24,7 +24,7 @@ import waffles.utils.wf_maps_utils as wuw
 
 mem_geometry_nontco_titles = ["M1(1)","M1(2)", "M2(1)","M2(2)", "M5(1)","M5(2)", "M6(1)","M6(2)"]
         
-mem_geometry_nontco_data = [  [UniqueChannel(107, 47),  UniqueChannel(107, 45) ],
+mem_geometry_nontco_data = [ [UniqueChannel(107, 47),  UniqueChannel(107, 45) ],
                              [UniqueChannel(107, 40),  UniqueChannel(107, 42) ],
                              [UniqueChannel(107,  0),  UniqueChannel(107,  7) ],
                              [UniqueChannel(107, 20),  UniqueChannel(107, 27) ]]
@@ -35,7 +35,7 @@ mem_geometry_nontco = MEMMap_geo(mem_geometry_nontco_data)
 
 mem_geometry_tco_titles = ["M3(1)","M3(2)", "M4(1)","M4(2)", "M7(1)","M7(2)", "M8(1)","M8(2)"]
 
-mem_geometry_tco_data = [    [UniqueChannel(107, 46  ),  UniqueChannel(107, 44)],
+mem_geometry_tco_data =    [ [UniqueChannel(107, 46  ),  UniqueChannel(107, 44)],
                              [UniqueChannel(107, 43  ),  UniqueChannel(107, 41)],
                              [UniqueChannel(107, 30  ),  UniqueChannel(107, 37)],
                              [UniqueChannel(107, 10  ),  UniqueChannel(107, 17)]]

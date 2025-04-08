@@ -43,12 +43,6 @@ class Analysis1(WafflesAnalysis):
                 example=[2]
             )
 
-            pdes: list = Field(
-                ...,
-                description="Photon detection efficiency",
-                example=[0.4]
-            )
-
             ch: int = Field(
                 ...,
                 description="Channels to analyze",
@@ -66,19 +60,7 @@ class Analysis1(WafflesAnalysis):
                 description="Up time limit considered for the analyzed waveforms",
                 example=[1000] # Alls
             )
-            
-            tmin_prec: int = Field(
-                ...,
-                description="Lower time limit considered for the analyzed waveforms",
-                example=[-1000] # Alls
-            )
-            
-            tmax_prec: int = Field(
-                ...,
-                description="Up time limit considered for the analyzed waveforms",
-                example=[1000] # Alls
-            )
-            
+
             rec: list = Field(
                 ...,
                 description="Records",
@@ -89,6 +71,18 @@ class Analysis1(WafflesAnalysis):
                 ...,
                 description="Number of waveforms to analyze",
                 example=[-1] #Alls
+            )
+            
+            nwfs_plot: int = Field(
+                ...,
+                description="Number of waveforms to plot",
+                example=[-1] #Alls
+            )
+            
+            nbins: int = Field(
+                ...,
+                description="Number of bins",
+                example=110
             )
             
             correct_by_baseline: bool = Field(
@@ -139,11 +133,12 @@ class Analysis1(WafflesAnalysis):
         # Save the input parameters into an Analysis1 attribute
         # so that they can be accessed by the other methods
         self.params = input_parameters
+        self.nbins=self.params.nbins
 
         self.read_input_loop_1 = self.params.runs
         self.read_input_loop_2 = self.params.det_id
-        self.read_input_loop_3 = self.params.pdes
-        self.analyze_loop = [None,]
+        self.read_input_loop_3 = [None]
+        self.analyze_loop = [None,] 
 
         self.wfset = None
 
@@ -162,7 +157,7 @@ class Analysis1(WafflesAnalysis):
         """
         self.run    = self.read_input_itr_1
         self.det_id = self.read_input_itr_2
-        self.pde    = self.read_input_itr_3
+        
         
         print(
             "In function Analysis1.read_input(): "
@@ -173,7 +168,7 @@ class Analysis1(WafflesAnalysis):
             wfset_path = self.params.input_path
             self.wfset=WaveformSet_from_hdf5_file(wfset_path)   
         except FileNotFoundError:
-            raise FileNotFoundError(f"File {wfset_path} was not found. Make sure that the wfset file is named as 'wfset_0<run_number>.hdf5'")
+            raise FileNotFoundError(f"File {wfset_path} was not found.")
         
         return True
 
@@ -203,6 +198,7 @@ class Analysis1(WafflesAnalysis):
         
         # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
         selected_wfs, selected_wfset= os_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec)
+        selected_wfs_plot,_=os_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs_plot, self.params.tmin, self.params.tmax, self.params.rec)
         
         print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
         
@@ -210,20 +206,17 @@ class Analysis1(WafflesAnalysis):
         
         # Create a grid of WaveformSets for each channel in one detector, and compute the corresponding function for each channel
         self.grid = os_utils.get_grid(selected_wfs, self.params.det, self.det_id)
+        self.grid_plot = os_utils.get_grid(selected_wfs_plot, self.params.det, self.det_id)
         
-        '''
-        
-        # Análisis como Julio 
-        
-        analysis_params = gs_utils.get_analysis_params()
+        # Using precious format: without offset and with proper zoom in each channel
+
+        analysis_params = os_utils.get_analysis_params()
         
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = selected_wfset.points_per_wf
         
         self.analysis_name = 'standard'
-        
-        # Analyze all of the waveforms in this WaveformSet:
-        # compute baseline, integral and amplitud
+    
         _ = selected_wfset.analyse(
             self.analysis_name,
             BasicWfAna,
@@ -233,16 +226,7 @@ class Analysis1(WafflesAnalysis):
             checks_kwargs=checks_kwargs,
             overwrite=True
         )
-
-        
-        print(f" 4. Computing the mean sigma in the precursor per channel")
-        # Compute the sigma of the precursor
-        
-        self.sigma_per_channel = gs_utils.get_meansigma_per_channel(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin_prec, self.params.tmax_prec, self.params.rec)
-        '''
-        
-        self.bins_number=os_utils.get_nbins(self.pde)
-        
+         
         return True
 
     def write_output(self) -> bool:
@@ -255,42 +239,31 @@ class Analysis1(WafflesAnalysis):
         bool
             True if the method ends execution normally
         """
-        '''
-       # Write the sigma values to CSV
-        with open('sigma_data.csv', 'w', newline='') as f:
-            writer = csv.writer(f)
-            for ch, sigma_val in self.sigma_per_channel.items():  # Assuming self.sigma_per_channel is a dict
-                writer.writerow([ch, sigma_val])  # Write channel and its sigma value  
 
-        '''
-        
         det_id_name=os_utils.get_det_id_name(self.det_id)
         
         base_file_path = f"{self.params.output_path}"\
-            f"run_{self.run}_det_{det_id_name}_{self.params.det}_pde_{self.pde}"
+            f"run_{self.run}_{det_id_name}_{self.params.det}"
            
-            
         # ------------- Save the waveforms plot ------------- 
 
-        '''
-        figure1 = plot_ChannelWsGrid(
+        figure0 = plot_ChannelWsGrid(
             self.grid,
             figure=None,
             share_x_scale=False,
             share_y_scale=False,
             mode="overlay",
-            #wfs_per_axes=len(self.wfset.waveforms),
-            wfs_per_axes=200,
+            wfs_per_axes=self.params.nwfs_plot,
             analysis_label=self.analysis_name,
             detailed_label=False,
             verbose=True
         )
 
-        title1 = f"Waveforms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
+        title0 = f"Waveforms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
-        figure1.update_layout(
+        figure0.update_layout(
             title={
-                "text": title1,
+                "text": title0,
                 "font": {"size": 24}
             }, 
             width=1100,
@@ -298,7 +271,7 @@ class Analysis1(WafflesAnalysis):
             showlegend=True
         )
         
-        figure1.add_annotation(
+        figure0.add_annotation(
             x=0.5,
             y=-0.05, 
             xref="paper",
@@ -307,7 +280,7 @@ class Analysis1(WafflesAnalysis):
             showarrow=False,
             font=dict(size=16)
         )
-        figure1.add_annotation(
+        figure0.add_annotation(
             x=-0.07,
             y=0.5,
             xref="paper",
@@ -320,17 +293,16 @@ class Analysis1(WafflesAnalysis):
         
         
         if self.params.show_figures:
-            figure1.show()
+            figure0.show()
 
-        fig1_path = f"{base_file_path}_wfsets.png"
-        figure1.write_image(f"{fig1_path}")
+        fig0_path = f"{base_file_path}_wfs_1.png"
+        figure0.write_image(f"{fig0_path}")
 
-        print(f" \n Waveforms plots saved in {fig1_path}")
+        print(f" \n Waveforms plots saved in {fig0_path}")
         
-        '''
         
         figure1 = plot_CustomChannelGrid(
-            self.grid, 
+            self.grid_plot, 
             plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_wfs(
                 channel_ws, figure_, row, col, offset=True),
             share_x_scale=True,
@@ -338,8 +310,6 @@ class Analysis1(WafflesAnalysis):
             show_ticks_only_on_edges=True 
         )
 
-        # Add the x-axis, y-axis and figure titles
-        
         title1 = f"Waveforms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
         figure1.update_layout(
@@ -375,7 +345,7 @@ class Analysis1(WafflesAnalysis):
         if self.params.show_figures:
             figure1.show()
             
-        fig1_path = f"{base_file_path}_wfs.png"
+        fig1_path = f"{base_file_path}_wfs_2.png"
         figure1.write_image(f"{fig1_path}")
         print(f"\n Waveforms saved in {fig1_path}")
         
@@ -384,13 +354,12 @@ class Analysis1(WafflesAnalysis):
         figure2 = plot_CustomChannelGrid(
             self.grid, 
             plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_sigma_function(
-                channel_ws, figure_, row, col, self.bins_number),
+                channel_ws, figure_, row, col, self.nbins),
             share_x_scale=True,
             share_y_scale=True,
             show_ticks_only_on_edges=True 
         )
 
-        # Add the x-axis, y-axis and figure titles
         
         title2 = f"Sigma histograms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
@@ -435,7 +404,7 @@ class Analysis1(WafflesAnalysis):
         
         # ------------- Save the FFT plots  ------------- 
         
-        # Plot the sigma histograms of each channel
+
         figure3= plot_CustomChannelGrid(
                 self.grid, 
                 plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_meanfft_function(
@@ -445,8 +414,7 @@ class Analysis1(WafflesAnalysis):
                 show_ticks_only_on_edges=True,
                 log_x_axis=True
             )
-        
-        # Add the x-axis, y-axis and figure titles
+  
         
         title3 = f"Superimposed FFT for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
 
@@ -487,5 +455,6 @@ class Analysis1(WafflesAnalysis):
         figure3.write_image(f"{fig3_path}")
 
         print(f" \n Mean FFT plots saved in {fig3_path}")
+
 
         return True

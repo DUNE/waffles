@@ -1,0 +1,4 @@
+root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune/tape_backed/dunepro//hd-protodune/raw/2024/detector/cosmics/None/00/02/61/69/np04hd_raw_run026169_0000_dataflow0_datawriter_0_20240510T153648.hdf5
+root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune/tape_backed/dunepro//hd-protodune/raw/2024/detector/cosmics/None/00/02/61/69/np04hd_raw_run026169_0001_dataflow0_datawriter_0_20240510T153921.hdf5
+root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune/tape_backed/dunepro//hd-protodune/raw/2024/detector/cosmics/None/00/02/61/69/np04hd_raw_run026169_0002_dataflow0_datawriter_0_20240510T154154.hdf5
+root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune/tape_backed/dunepro//hd-protodune/raw/2024/detector/cosmics/None/00/02/61/69/np04hd_raw_run026169_0003_dataflow0_datawriter_0_20240510T154428.hdf5
