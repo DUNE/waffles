@@ -1,12 +1,10 @@
 {
-    "run": 26169,
-    "rucio_dir": "/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts",
+    "run": 35730,
+    "rucio_dir": ".",
     "output_dir": ".",
-    "ch": {},
-    "save_single_file": true,
-    "max_files":1,
-    "det": "HD_PDS"
+    "ch": {
+    },
+    "save_single_file": false,
+    "max_files":4,
+    "det": "VD_Membrane_PDS"
 }
-
-
-
