@@ -9,7 +9,7 @@ from waffles.data_classes.WaveformAdcs import WaveformAdcs
 import waffles.core.utils as wcu
 import csv
 
-from waffles.input_output.hdf5_file_reader import WaveformSet_from_hdf5_file
+from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
 
 import plotly.graph_objects as pgo
 from waffles.plotting.plot import plot_ChannelWsGrid

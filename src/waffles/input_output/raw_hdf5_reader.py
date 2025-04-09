@@ -147,7 +147,7 @@ def extract_fragment_info(frag, trig):
         timestamps = np_array_timestamp(frag)
         adcs = np_array_adc(frag)
         channels = np_array_channels(frag)
-    elif fragType == FragmentType.kDAPHNEStream:
+    elif fragType == FragmentType.kDAPHNEStream.value:
         trigger = 'full_stream'
         timestamps = np_array_timestamp_stream(frag)
         adcs = np_array_adc_stream(frag)
@@ -311,7 +311,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
     """
     fUsedXRootD = False
     # Attempt local copy if outside known local paths
-    if "/eos" not in filepath and "/nfs" not in filepath and "/afs" not in filepath:
+    if not any(prefix in filepath for prefix in ("/eos", "/nfs", "/afs", "/data")):
         if wiu.write_permission(temporal_copy_directory):
             temp_path = os.path.join(temporal_copy_directory, os.path.basename(filepath))
             if not os.path.exists(temp_path):
@@ -381,7 +381,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
                     continue
 
                 if frag.get_data_size() == 0:
-                    logger.warning(f"Empty fragment:\n {frag}\n{r}\n{gid}")
+                    # logger.warning(f"Empty fragment:\n {frag}\n{r}\n{gid}")
                     continue
 
                 if read_full_streaming_data and frag.get_fragment_type() == FragmentType.kDAPHNE:
