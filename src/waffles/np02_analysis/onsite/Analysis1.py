@@ -166,7 +166,7 @@ class Analysis1(WafflesAnalysis):
         
         try:
             wfset_path = self.params.input_path
-            self.wfset=WaveformSet_from_hdf5_file(wfset_path)   
+            self.wfset=WaveformSet_from_hdf5_pickle(wfset_path)   
         except FileNotFoundError:
             raise FileNotFoundError(f"File {wfset_path} was not found.")
         
