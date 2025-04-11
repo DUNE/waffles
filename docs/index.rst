@@ -140,12 +140,14 @@ Once you have your environment sourced (``source env.sh``) you can install the p
 
 --- IS THIS STILL TRUE?
 
-The PDS data is stored in the ``eos`` CERN storage system. The paths would be useful:
+Part of the PDS data is stored in the ``eos`` CERN storage system. The paths would be useful:
 
 * **TUTORIAL INFO**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/0_TUTORIAL`` 
 * **RUCIO PATHS**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`` 
 * **RAW ROOT FILES**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root``
 
+
+However, the rucio path is already full. If the run is not already in there, you should create a .txt file in your own space, with the corresponding run location. 
 
 .. admonition:: **Preferred work-flow**  -- SHOULD WE CANCEL COMPLETELY THIS PART?
    
