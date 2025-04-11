@@ -1,6 +1,7 @@
 # --- IMPORTS -------------------------------------------------------
 from pandas._libs.hashtable import mode
 import waffles
+import waffles.Exceptions as exceptions
 import os
 import yaml
 import numpy as np
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     new_channel_map_file = run_info.get("new_channel_map_file")
     all_noise_runs   = list(run_vgain_dict.keys())
     integratorsON_runs = run_info.get("integratorsON_runs", [])
+    fullstreaming_runs = run_info.get("fullstreaming_runs", []) 
     ignore_ch_dict = run_info.get("ignore_ch_dict", {})
 
     # Setup variables according to the user_config.yaml file
@@ -32,7 +34,7 @@ if __name__ == "__main__":
     if (custom_filepath_folder != ""):
         filepath_folder = custom_filepath_folder
     debug_mode = user_config.get("debug_mode")
-    out_path = user_config.get("out_path")
+    ana_path = user_config.get("ana_path")
     out_writing_mode = user_config.get("out_writing_mode")
     full_stat = user_config.get("full_stat")
     runs      = user_config.get("user_runs", [])
@@ -56,7 +58,7 @@ if __name__ == "__main__":
 
     # Prepare the output directory and the output dataframe
     out_df_rows = []
-    os.makedirs(out_path+fft_folder, exist_ok=True)
+    os.makedirs(ana_path+fft_folder, exist_ok=True)
 
 
     # --- LOOP OVER RUNS ----------------------------------------------
@@ -66,12 +68,24 @@ if __name__ == "__main__":
             wfset_run = nf.read_waveformset(filepath_folder,
                                             run,
                                             full_stat=full_stat)
+
+            if (run in fullstreaming_runs):
+                wfset_fullstreaming = nf.read_waveformset(filepath_folder,
+                                                          run,
+                                                          full_stat=full_stat,
+                                                          fullstreaming = True)
         except FileNotFoundError:
             print(f"File for run {run} not found")
             continue
+        except exceptions.WafflesBaseException:
+            print(f"Error reading file for run {run}")
+            continue
 
         endpoints = wfset_run.get_set_of_endpoints()
-        # endpoints = [104, 109]
+        fullstraming_endpoints = []
+        if (run in fullstreaming_runs):
+            fullstraming_endpoints = list(wfset_fullstreaming.get_set_of_endpoints())
+            endpoints = list(endpoints) + list(fullstraming_endpoints)
         
         integrator_ON = False
         if run in integratorsON_runs:
@@ -87,7 +101,10 @@ if __name__ == "__main__":
         # --- LOOP OVER ENDPOINTS -------------------------------------
         for ep in endpoints:
             print("Endpoint: ", ep)
-            wfset_ep = waffles.WaveformSet.from_filtered_WaveformSet(wfset_run, nf.allow_ep_wfs, ep)
+            if (ep in fullstraming_endpoints):
+                wfset_ep = waffles.WaveformSet.from_filtered_WaveformSet(wfset_fullstreaming, nf.allow_ep_wfs, ep)
+            else:
+                wfset_ep = waffles.WaveformSet.from_filtered_WaveformSet(wfset_run, nf.allow_ep_wfs, ep)
 
             ep_ch_dict = wfset_ep.get_run_collapsed_available_channels()
             channels = list(ep_ch_dict[ep])
@@ -148,7 +165,7 @@ if __name__ == "__main__":
                 integrators = "OFF"
                 if integrator_ON:
                     integrators = "ON"
-                np.savetxt(out_path+fft_folder+"/FFT_PDHD_Noise"
+                np.savetxt(ana_path+fft_folder+"/FFT_PDHD_Noise"
                            +"_Run_"+str(run)
                            +"_SiPM_"+str(sipm)
                            +"_Integrators_"+integrators
@@ -169,4 +186,4 @@ if __name__ == "__main__":
     
     # Save the results in a csv file
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(out_path+"Noise_Studies_Results.csv", index=False, mode=out_writing_mode)
+    out_df.to_csv(ana_path+"Noise_Studies_Results.csv", index=False, mode=out_writing_mode)

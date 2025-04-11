@@ -31,6 +31,7 @@ if __name__ == "__main__":
         print("Not all channels are present")
         exit()
     
+    os.makedirs(output_path, exist_ok=True)
 
     for offline_channel in offline_channels:
         vgains = []

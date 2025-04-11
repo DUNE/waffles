@@ -1,5 +1,6 @@
 # --- IMPORTS -------------------------------------------------------
 import waffles.input_output.raw_hdf5_reader as reader
+import waffles.Exceptions as exceptions
 import numpy as np
 import os
 import waffles
@@ -8,8 +9,8 @@ import matplotlib.pyplot as plt
 # --- FUNCTIONS -----------------------------------------------------
 def read_waveformset(filepath_folder: str,
                      run: int, 
-                     full_stat = False
-                     ) -> waffles.WaveformSet:
+                     full_stat = False,
+                     fullstreaming = False) -> waffles.WaveformSet:
     """
     Read the WaveformSet from the hdf5 file
     Parameters:
@@ -26,12 +27,16 @@ def read_waveformset(filepath_folder: str,
     filepath = reader.get_filepaths_from_rucio(filepath_file)
 
     if (full_stat == True and len(filepath) > 1):
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
+        wfset = reader.WaveformSet_from_hdf5_file(filepath[0], read_full_streaming_data=fullstreaming)
         for fp in filepath[1:]:
-            ws = reader.WaveformSet_from_hdf5_file(fp)
+            ws = reader.WaveformSet_from_hdf5_file(fp, read_full_streaming_data=fullstreaming)
             wfset.merge(ws)
     else:
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
+        try:
+            wfset = reader.WaveformSet_from_hdf5_file(filepath[0], read_full_streaming_data=fullstreaming)
+        except:
+            print(f"Error reading file {filepath[0]}")
+            raise exceptions.WafflesBaseException
 
     return wfset
 
@@ -63,7 +68,7 @@ def create_float_waveforms(wf_set: waffles.WaveformSet) -> None:
     - wf_set: waffles.WaveformSet
     """
     for wf in wf_set.waveforms:
-        wf.adcs_float = wf.adcs.astype(np.float64)
+        wf.adcs_float = wf.adcs.astype(np.float64)[:1024]
 
 
 def get_average_rms(wf_set: waffles.WaveformSet) -> np.float64:
@@ -108,9 +113,9 @@ def sub_baseline_to_wfs(wf_set: waffles.WaveformSet, prepulse_ticks: int):
 def plot_heatmaps(wf_set: waffles.WaveformSet, flag: str, run: int, vgain: int, ch: int, offline_ch: int) -> None:
     # Convert waveform data to numpy array
     if (flag == "baseline_removed"):
-        raw_wf_arrays = np.array([wf.adcs_float for wf in wf_set.waveforms[:5000]]).astype(np.float64)
+        raw_wf_arrays = np.array([wf.adcs_float for wf in wf_set.waveforms[:2000]]).astype(np.float64)
     else:
-        raw_wf_arrays = np.array([wf.adcs for wf in wf_set.waveforms[:5000]])
+        raw_wf_arrays = np.array([wf.adcs[:1024] for wf in wf_set.waveforms[:2000]])
 
     # Create time arrays for plotting
     time_arrays = np.array([np.arange(1024) for _ in range(len(raw_wf_arrays))])
