@@ -1,8 +1,10 @@
 import waffles
 import numpy as np
 from typing import Literal
+from waffles.utils.denoising.tv1ddenoise import Denoise
 
-from TimeResolution_Utils import *
+
+from Utils import *
 
 
 ################################################################
@@ -30,11 +32,14 @@ class TimeResolution:
         self.baseline_rms = baseline_rms
         # self.qq = qq
         # self.qq = qq
+        self.denoiser = Denoise()
 
         self.ref_ep = ref_ep        #Endpoint reference channel
         self.ref_ch = ref_ch        #channel
         self.ref_wfs = []           #waveforms
+        self.ref_denoisedwfs = []   #waveforms
         self.ref_n_select_wfs = 0   #number of selected wfs
+        self.ref_t0s = []               #t0 values
         self.ref_t0 = 0.            #Average t0 among the selected wfs
         self.ref_t0_std = 0.        #Standard deviation to t0
         
@@ -42,6 +47,7 @@ class TimeResolution:
         self.com_ch = com_ch
         self.com_wfs = []
         self.com_n_select_wfs = 0
+        self.com_t0s = []
         self.com_t0 = 0.
         self.com_t0_std = 0.
 
@@ -57,7 +63,10 @@ class TimeResolution:
             self.com_wfs = t_wfset.waveforms
             create_float_waveforms(self.com_wfs)
             sub_baseline_to_wfs(self.com_wfs, self.prepulse_ticks)
- 
+
+    def create_denoised_wfs(self, filt_level: float) -> None:
+        create_filtered_waveforms(self.ref_wfs, filt_level)
+        
 
     def select_time_resolution_wfs(self, tag: Literal["ref","com"]) -> None:
         """
@@ -102,7 +111,11 @@ class TimeResolution:
         if tag == "com":
             self.com_n_select_wfs = n_selected
 
-    def set_wfs_t0(self, tag: Literal["ref","com"]) -> None:
+    def set_wfs_t0(self,
+                   tag: Literal["ref","com"],
+                   method: Literal["half_amplitude","denoise"],
+                   relative_thr = 0.5,
+                   filt_level = 0.) -> None:
         """
         Set the t0 of the selected waveforms
         Args:
@@ -120,17 +133,23 @@ class TimeResolution:
         t0_list = []
         for wf in waveforms:
             if (wf.time_resolution_selection == True):
-                half = 0.5*np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
-                wf.t0 = find_threshold_crossing(wf.adcs_float, self.prepulse_ticks, self.postpulse_ticks, half)
+                if method == "half_amplitude":
+                    thr = relative_thr*np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
+                    wf.t0 = find_threshold_crossing(wf.adcs_float, self.prepulse_ticks, self.postpulse_ticks, thr)
+                if method == "denoise":
+                    thr = relative_thr*np.max(wf.adcs_filt[self.prepulse_ticks:self.postpulse_ticks])
+                    wf.t0 = find_threshold_crossing(wf.adcs_filt, self.prepulse_ticks, self.postpulse_ticks, thr)
                 t0_list.append(wf.t0)
 
         if len(t0_list) > 10:
             t0 = np.average(t0_list)
             std= np.std(t0_list)
             if tag == "ref":
+                self.ref_t0s = np.array(t0_list)
                 self.ref_t0 = t0
                 self.ref_t0_std = std
             if tag == "com":
+                self.com_t0s = np.array(t0_list)
                 self.com_t0 = t0
                 self.com_t0_std = std
 

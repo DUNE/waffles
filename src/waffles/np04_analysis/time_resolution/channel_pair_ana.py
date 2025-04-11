@@ -1,85 +1,74 @@
-import importlib
-import os
-import csv
-
-import sys
-sys.path.append("/eos/home-f/fegalizz/ProtoDUNE_HD/waffles/src/waffles/np04_analysis/time_resolution")
-import TimeResolution as tr
-
+# --- IMPORTS -------------------------------------------------------
+import yaml
 import numpy as np
-import waffles
-import pickle
+from ROOT import TH1F, TH2F, TFile
+import time_alignment as ta
 
-######################################################################
-############### HARDCODE #############################################
-path = "/eos/home-f/fegalizz/ProtoDUNE_HD/TimeResolution/files/wfset_"
-runs = [30030, 30031, 30032, 30033, 30035]
+# --- VARIABLES -----------------------------------------------------
+ref_ch = 10401
+com_ch = 10403
+root_directory_name = "run_34081_half_amplitude_filt_0/thr_0p5/"
+h2_nbins = 200
 
-files = [path+str(run)+".pkl" for run in runs]
+# --- MAIN ----------------------------------------------------------
+if __name__ == "__main__":
+    # --- SETUP -----------------------------------------------------
+    # Setup variables according to the configs/time_resolution_config.yml file
+    with open("./configs/time_resolution_configs.yml", 'r') as config_stream:
+        config_variables = yaml.safe_load(config_stream)
 
-prepulse_ticks = 125
-postpulse_ticks = 160
-baseline_rms = 5
-endpoint = 112
-com_ch = 25
-ref_ch = 27
+    output_folder = config_variables.get("output_folder")
 
-min_amplitudes = [100, 200, 300, 400, 500, 700, 900, 1100]
-max_amplitudes = [amp+300 for amp in min_amplitudes]
+    time_alligner = ta.TimeAligner(ref_ch, com_ch)
+    time_alligner.set_quantities(output_folder, root_directory_name)
+    time_alligner.allign_events()
 
-out_path = "/eos/home-f/fegalizz/ProtoDUNE_HD/TimeResolution/raw_ana_results/"
-out_file =  out_path+"Ch_11225_11227_results.csv"
-
-######################################################################
+    t0_diff = time_alligner.ref_ch.t0s - time_alligner.com_ch.t0s
+    print("Histogram of t0 differences")
 
 
-for file, run in zip(files, runs):
-    print("Reading run ", run)
-    with open(f'{file}', 'rb') as f:
-        wfset_run = pickle.load(f)
+    # --- PLOTTING ---------------------------------------------------
+    # t0 differences distribution ------------------------------------
+    h_t0_diff = TH1F("h_t0_diff", "Reference-Comparison time difference;t0 [ticks=16ns];Counts",
+                     200, np.min(t0_diff), np.max(t0_diff))
+    for diff in t0_diff:
+        h_t0_diff.Fill(diff)
 
-    a = tr.TimeResolution(wf_set=wfset_run, 
-                          ref_ep=endpoint, ref_ch=ref_ch,
-                          com_ep=endpoint, com_ch=com_ch,
-                          prepulse_ticks=prepulse_ticks,
-                          postpulse_ticks=postpulse_ticks,
-                          min_amplitude=min_amplitudes[0],
-                          max_amplitude=max_amplitudes[0],
-                          baseline_rms=baseline_rms)
-
-    a.create_wfs(tag="ref")
-    a.create_wfs(tag="com")
-   
-    for min_amplitude, max_amplitude in zip(min_amplitudes, max_amplitudes):
-        print("Setting min ", min_amplitude, " max ", max_amplitude)
-        a.min_amplitude=min_amplitude
-        a.max_amplitude=max_amplitude
-
-        a.select_time_resolution_wfs(tag="ref")
-        a.select_time_resolution_wfs(tag="com")
-
-        a.set_wfs_t0(tag="ref")
-        a.set_wfs_t0(tag="com")
-
-        t0_diff = a.calculate_t0_differences()
+    # Com vs Ref pes -------------------------------------------------
+    counts, xedges, yedges = np.histogram2d(time_alligner.com_ch.pes, time_alligner.ref_ch.pes,
+                                            bins=(h2_nbins,h2_nbins),
+                                            range=[[500,1000],[500,1000]])
+                                            # range=[[np.min(time_alligner.com_ch.pes), np.max(time_alligner.com_ch.pes)],
+                                            #        [np.min(time_alligner.ref_ch.pes), np.max(time_alligner.ref_ch.pes)]])
         
-        if len(t0_diff) > 100:
-            print("Save this ")
-            file_exists = os.path.isfile(out_file)
-            with open(out_file, mode='a', newline='') as file:
-                writer = csv.writer(file)
-                
-            #Write the header only if new file
-            if not file_exists:
-                writer.writerow(['Run', 'min', 'max',
-                                 'Ch ref', 't0 ref', 'std ref',
-                                 'Ch com', 't0 com', 'std com',
-                                 't0 diff', 'std diff'
-                                 ])
-            
-            writer.writerow([run, min_amplitude, max_amplitude,
-                             endpoint*100+ref_ch, a.ref_t0, a.ref_t0_std,
-                             endpoint*100+com_ch, a.com_t0, a.com_t0_std,
-                             np.average(t0_diff), np.std(t0_diff)
-                             ])
+    h2_pes = TH2F("h2_pes", "Comparison vs Reference Channel p.e.s;#pe_{ref};#pe_{com}",
+                  h2_nbins, 500, 1000, h2_nbins, 500, 1000)
+                  # h2_nbins, np.min(time_alligner.ref_ch.pes), np.max(time_alligner.ref_ch.pes),
+                  # h2_nbins, np.min(time_alligner.com_ch.pes), np.max(time_alligner.com_ch.pes))
 
+    for i in range(h2_nbins):
+        for j in range(h2_nbins):
+            h2_pes.SetBinContent(i+1, j+1, counts[i, j])
+
+    # Com vs Ref t0 --------------------------------------------------
+    counts, xedges, yedges = np.histogram2d(time_alligner.com_ch.t0s, time_alligner.ref_ch.t0s,
+                                            bins=(h2_nbins,h2_nbins),
+                                            range=[[np.min(time_alligner.com_ch.t0s), np.max(time_alligner.com_ch.t0s)],
+                                                   [np.min(time_alligner.ref_ch.t0s), np.max(time_alligner.ref_ch.t0s)]])
+
+    h2_t0 = TH2F("h2_t0", "Comparison vs Reference Channel t0;t0_{ref} [ticks=16ns];t0_{com} [ticks=16ns]",
+                 h2_nbins, np.min(time_alligner.ref_ch.t0s), np.max(time_alligner.ref_ch.t0s),
+                 h2_nbins, np.min(time_alligner.com_ch.t0s), np.max(time_alligner.com_ch.t0s))
+
+    for i in range(h2_nbins):
+        for j in range(h2_nbins):
+            h2_t0.SetBinContent(i+1, j+1, counts[i, j])
+
+
+    # --- WRITING ----------------------------------------------------
+    out_root_file_name = output_folder+f"ch_{ref_ch}_vs_ch_{com_ch}_time_alignment.root"
+    out_root_file = TFile(out_root_file_name, "RECREATE")
+    h_t0_diff.Write()
+    h2_pes.Write()
+    h2_t0.Write()
+    out_root_file.Close()
