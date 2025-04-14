@@ -164,11 +164,37 @@ class Analysis1(WafflesAnalysis):
             f"Now reading waveforms for run {self.run} ..."
         )
         
+        
         try:
             wfset_path = self.params.input_path
             self.wfset=WaveformSet_from_hdf5_pickle(wfset_path)   
         except FileNotFoundError:
             raise FileNotFoundError(f"File {wfset_path} was not found.")
+        
+        def inspect_hdf5_file(file_path=wfset_path):
+            try:
+                with h5py.File(file_path, 'r') as f:
+                    print(f"\n📂 Inspeccionando archivo: {file_path}\n")
+
+                    found_wfset = False
+
+                    def visit_func(name, obj):
+                        nonlocal found_wfset
+                        print(f"{name}: {type(obj)}")
+                        if isinstance(obj, h5py.Dataset):
+                            print(f"  📏 Shape: {obj.shape}, 🧬 Dtype: {obj.dtype}")
+                        if name.endswith('wfset'):
+                            found_wfset = True
+
+                    f.visititems(visit_func)
+
+                    if found_wfset:
+                        print("\n✅ Dataset 'wfset' encontrado en el archivo.")
+                    else:
+                        print("\n⚠️ No se encontró ningún dataset llamado 'wfset'.")
+
+            except Exception as e:
+                print(f"❌ Error al abrir el archivo HDF5: {e}")
         
         return True
 
