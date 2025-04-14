@@ -62,7 +62,7 @@ class WaveformProcessor:
                     truncate_wfs_to_minimum=False,
                     folderpath=None,
                     nrecord_start_fraction=0.0,
-                    nrecord_stop_fraction=0.1,
+                    nrecord_stop_fraction=1.0,
                     subsample=1,
                     wvfm_count=1e9,
                     ch=self.ch,
