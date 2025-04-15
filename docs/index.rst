@@ -30,7 +30,7 @@
 
    <br />
 
-The **Waveform Analysis Framework For Light Emission Studies** (:tealstext:`WAFFLES`) is a Python library used for the PDS analysis in NP04 and NP02.  
+The **Waveform Analysis Framework For Light Emission Studies** (:tealstext:`WAFFLES`) is a Python library used for the PDS analysis in the protoDUNE Horizontal Drift and Vertical Drift (also called NP04 and NP02).  
 Waffles can also be used in the future for the DUNE Far Detector modules.
 
 You can navigate through the documentation using the table of contents below, and you can search for specific keywords using the search tab placed at left side.

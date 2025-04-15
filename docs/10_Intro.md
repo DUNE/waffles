@@ -43,7 +43,7 @@ Nevertheless, it is very important to keep some common rules not to harm others 
 
 ```
 
-## Current Workflow
+## Current Workflow: brief introduction
 
 <!-- IMAGE SUMMARISING THE WORKFLOW? -->
 1. **Files location**: the `rucio` paths for the NP04 runs we want to analyse are stored in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`. If they are not available, you can generate these files. First, you have to move to the waffles scripts directory, then `source setup_rucio_a9.sh` and finally run the `scripts/fetch_rucio_replicas.py` script, with options `--runs run_number` `--max-files number_of_files`. 
@@ -61,18 +61,18 @@ In this way, you can store the `WaveformSet` in a lighter `.hdf5` file and load 
 
 We recommend installing [VSCode](https://code.visualstudio.com/) as editor. Some useful extensions are: Remote-SSH, Jupyter, vscode-numpy-viewer, **Python Environment Manager**
 
-If it is your first time here you need to create an environment to be able to use all their tools. Depending on the scope of your work you can create a `daq_env` (run `hdf5` file processing) or a `ana_env` (general analysis scope) environment.
+If it is your first time here you need to create an environment to be able to use all their tools. Depending on the scope of your work you can create a `daq_env` (run `hdf5` file processing) or a `ana_env` (general analysis scope) environment. --- IS THE ANA ENVIRONMENT STILL AVAILABLE??? SEE ALSO LATER FOR THE ANA ENVIRONMENT
 
 ### DAQ ENVIRONMENT [**NEEDED TO READ THE HDF5!!**]
 
-In this case all the dependencies from the DAQ needed to translate the information from the `.hdf5` files to `.root` files are included. (We are still working to have `ROOT` directly available in this environment from a `Python` interpreter). You don't need this environment unless you plan to work on the decoding side.
+In this case all the dependencies from the DAQ needed to read the information from the `.hdf5` files are included. You don't need this environment unless you plan to work on the decoding side. --- CHECK ALSO THIS
 
 ```bash
 source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh
 
 setup_dbt latest
 dbt-create -l 
-dbt-create fddaq-v4.4.7-a9 <my_dir>
+dbt-create fddaq-v5.2.1-a9 <my_dir>
 ```
 
 
@@ -109,12 +109,17 @@ python -m ipykernel install --user --name=your_env_name --display-name "Python_W
 
 ### 0. Download the library by cloning it from GitHub
 
+Move the DAQ folder. 
+
 ```bash
-git clone https://github.com/DUNE/waffles.git # Clone the repository
+source env.sh # Activate you DAQ environment
+# Ensure your SSH keys are properly set up, then:
+git clone git@github.com:DUNE/waffles.git # Clone the repository
+cd waffles
 git checkout -b <your_branch_name>            # Create a branch to develop
 ```
 
-The expected folder structure of the repository should be
+Here is a summary of the folder structure of the repository:  --- THE FILES ARE DIFFERENT NOW. DOES IT MAKE SENSE TO REPORT ALL THE FILES HERE? IT SEEMS TOO MUCH... MAYBE WE CAN REPORT ONLY THE GENERAL STRUCTURE WITHOUT DESCRIBING EVERY SINGLE CODE.. ??
 
 ```bash
 ├── 'docs'/ # FOLDER WITH THE REPO DOCUMENTATION (THIS TEXT CAN BE IMPROVED BY YOU!)
@@ -197,7 +202,7 @@ The expected folder structure of the repository should be
             ├── 'numerical_utils.py'
             ├── 'wf_maps_utils.py'
             └── 'Exceptions.py'
-        └── 'test' # FOLDER WITH FILES UNDER TEST (temporary)
+└── 'test' # FOLDER WITH FILES UNDER TEST (temporary)
 ├── '.gitattributes'
 ├── '.gitignore'
 ├── '.readthedocs.yaml' # Configuration file for the documentation
@@ -212,19 +217,19 @@ The expected folder structure of the repository should be
 After activating the `env` with `source env.sh` or `source /path/to/new/virtual/environment/bin/activate` you can install all the requirements to run `waffles` by navigating to the repository main folder and running:
 
 ```bash
-pip install -r requirements.txt
-pip install .
+which python3 # Should show the .venv Python
+python3 -m pip install -r requirements.txt .
 ```
 
-If at some point you needed to re-run waffles with the changes you have introduced to the source code, you would just need to run the second command.
+If at some point you need to re-run waffles with the changes you have introduced to the source code, you need to run the second command.
 
 ### 2. Make sure you have access to data to analyze
 
 HERE WE SHOULD ADD SOME USEFUL LINKS (NP02 and NP04 run list, channels map, ... )
 
-* Make sure you know how to connect and work from `@lxplus.cern.ch` machines.
+* Make sure you know how to connect and work from `@lxplus.cern.ch` machines. It is better to work in your personal folder in `/afs/cern.ch/work/`, because of larger available disk quota.
 
-* To access raw data locations you need to be able to generate a `FNAL.GOV` ticket. This is already configured in the `scripts/get_rucio.py` script which is used to generate `txt` files with the data paths and store them in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`
+* To access raw data locations you need to be able to generate a `FNAL.GOV` ticket. This is already configured in the `scripts/fetch_rucio_replicas.py` script which is used to generate `txt` files with the data paths and store them in your local folder.
 
 * Request access to the `np04-t0comp-users` and `np04-daq-dev` egroup on the [CERN egroups page](https://egroups.cern.ch). This also adds you to the `np-comp` Linux group.
 
