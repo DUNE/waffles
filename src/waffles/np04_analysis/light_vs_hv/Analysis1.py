@@ -1,4 +1,5 @@
 from waffles.np04_analysis.light_vs_hv.imports import *
+import waffles.input_output.raw_hdf5_reader as reader
 
 class Analysis1(WafflesAnalysis):
 
@@ -30,7 +31,7 @@ class Analysis1(WafflesAnalysis):
             main_endpoint:  int =  Field(default=-1,          
                                 description= "Main endpoin that the code will search for coincidences in the other channels")
             input_path:      str =  Field(default="./data/list_file.txt",          
-                                description= "File with the list of files to search for the data. In each each line must be only a file name, and in that file must be a collection of .fcls from the same run")
+                                description= "File with the list of files to search for the data. In each line must be only a file name, and in that file must be a collection of .fcls from the same run")
             output:         str =  Field(default="./output",          
                                 description= "Output folder to save the correlated channels")
             time_window:    int =  Field(default= 5,  
@@ -120,12 +121,19 @@ class Analysis1(WafflesAnalysis):
             with open(file_name, "r") as file:
                 for lines in file:
                     lines=lines.strip()
-                    with open(lines, 'rb') as file_line:
-                        print("Opening file: "+lines)
-                        wfset_aux=pickle.load(file_line)
-                        for j,ch in enumerate(self.list_channels):
-                            self.wfsets[i][j].append(WaveformSet.from_filtered_WaveformSet( wfset_aux, comes_from_channel, self.list_endpoints[j], [ch]))   
-            i=i+1
+                    print("Opening HDF5 file: " + lines)
+                    
+                    wfset_aux = reader.WaveformSet_from_hdf5_file(
+                        filepath=lines,
+                    )
+
+                    for j, ch in enumerate(self.list_channels):
+                        self.wfsets[i][j].append(
+                            WaveformSet.from_filtered_WaveformSet(
+                                wfset_aux, comes_from_channel, self.list_endpoints[j], [ch]
+                            )
+                        )
+            i += 1
 
         for run_index in range(self.n_run):
             for j in range(self.n_channel):
@@ -170,7 +178,7 @@ class Analysis1(WafflesAnalysis):
         return True
     
     def write_output(self) -> bool:
-        output_file=self.output + "/data_filtered.pkl"       
+        output_file=self.output + "/data_filtered.hdf5"       
         with open(output_file, "wb") as file:
             pickle.dump(self.wfsets, file)
         return True

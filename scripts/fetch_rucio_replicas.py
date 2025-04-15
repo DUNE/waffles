@@ -5,7 +5,7 @@ import getpass
 import click
 
 # Define the path where the output files should be saved
-SAVING_PATH = ""
+SAVING_PATH = "Rucio_Paths/"
 
 def is_rucio_active():
     """Checks if Rucio is already active by running `rucio whoami`."""
