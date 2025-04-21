@@ -35,13 +35,13 @@ class WaveformProcessor:
             parsed[int(endpoint)] = chans
         return parsed
 
-    def ensure_waveformset(self, wfset):
-        if isinstance(wfset, WaveformSet):
-            return wfset
-        if isinstance(wfset, list) and all(isinstance(w, Waveform) for w in wfset):
-            print_colored("🛠️ Auto-wrapping list of Waveforms into WaveformSet", color="DEBUG")
-            return WaveformSet(wfset)
-        raise TypeError(f"Expected WaveformSet or list of Waveforms, got {type(wfset)}")
+    # def ensure_waveformset(self, wfset):
+    #     if isinstance(wfset, WaveformSet):
+    #         return wfset
+    #     if isinstance(wfset, list) and all(isinstance(w, Waveform) for w in wfset):
+    #         print_colored("🛠️ Auto-wrapping list of Waveforms into WaveformSet", color="DEBUG")
+    #         return WaveformSet(wfset)
+    #     raise TypeError(f"Expected WaveformSet or list of Waveforms, got {type(wfset)}")
 
     def read_and_save(self):
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
@@ -70,7 +70,7 @@ class WaveformProcessor:
                     temporal_copy_directory='/tmp',
                     erase_temporal_copy=False
                 )
-                self.wfset = self.ensure_waveformset(self.wfset)
+                # self.wfset = self.ensure_waveformset(self.wfset)
                 if self.wfset:
                     self.write_merged_output()
 
@@ -90,7 +90,7 @@ class WaveformProcessor:
                         temporal_copy_directory='/tmp',
                         erase_temporal_copy=False
                     )
-                    wfset = self.ensure_waveformset(wfset)
+                    # wfset = self.ensure_waveformset(wfset)
                     if wfset:
                         self.write_output(wfset, file)
 
@@ -110,7 +110,7 @@ class WaveformProcessor:
 
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")
         try:
-            self.wfset = self.ensure_waveformset(self.wfset)
+            # self.wfset = self.ensure_waveformset(self.wfset)
             print_colored(f"📦 About to save WaveformSet with {len(self.wfset.waveforms)} waveforms", color="DEBUG")
 
             WaveformSet_to_file(
@@ -133,8 +133,8 @@ class WaveformProcessor:
             return False
         
     def compare_waveformsets(self, original, loaded):
-        original = self.ensure_waveformset(original)
-        loaded = self.ensure_waveformset(loaded)
+        # original = self.ensure_waveformset(original)
+        # loaded = self.ensure_waveformset(loaded)
 
         print_colored(f"compare_waveformsets: original={type(original)}, loaded={type(loaded)}", color="DEBUG")
         print_colored(f"original.waveforms={type(original.waveforms)}, loaded.waveforms={type(loaded.waveforms)}", color="DEBUG")
@@ -173,7 +173,7 @@ class WaveformProcessor:
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
         try:
             # ✅ Make sure we overwrite the input variable with the wrapped one
-            wfset = self.ensure_waveformset(wfset)
+            # wfset = self.ensure_waveformset(wfset)
             print_colored(f"📦 About to save WaveformSet with {len(wfset.waveforms)} waveforms", color="DEBUG")
 
             WaveformSet_to_file(

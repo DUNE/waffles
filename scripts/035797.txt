@@ -1,0 +1,3 @@
+/data0/np02vd_raw_run035804_0000_df-s04-d0_dw_0_20250410T175432.hdf5
+/data0/np02vd_raw_run035799_0000_df-s04-d0_dw_0_20250410T171546.hdf5
+/data0/np02vd_raw_run035797_0000_df-s04-d0_dw_0_20250410T165146.hdf5
