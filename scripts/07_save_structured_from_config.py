@@ -14,11 +14,11 @@ from waffles.data_classes.WaveformSet import WaveformSet
 class WaveformProcessor:
     """Handles waveform data processing and structured HDF5 saving."""
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, run: int):
         self.rucio_paths_directory = config.get("rucio_dir")
         self.output_path = config.get("output_dir")
         self.detector = config.get("det")
-        self.run_number = config.get("run")
+        self.run_number = run
         self.save_single_file = config.get("save_single_file", False)
         self.max_files = config.get("max_files", "all")
         self.ch = self.parse_ch_dict(config.get("ch", {}))
@@ -62,7 +62,7 @@ class WaveformProcessor:
                     truncate_wfs_to_minimum=False,
                     folderpath=None,
                     nrecord_start_fraction=0.0,
-                    nrecord_stop_fraction=0.1,
+                    nrecord_stop_fraction=1.,
                     subsample=1,
                     wvfm_count=1e9,
                     ch=self.ch,
@@ -211,13 +211,16 @@ def main(config):
         with open(config, 'r') as f:
             config_data = json.load(f)
 
-        required_keys = ["run", "rucio_dir", "output_dir", "ch"]
+        runs = config_data.get("runs", [])
+
+        required_keys = ["runs", "rucio_dir", "output_dir", "ch"]
         missing = [key for key in required_keys if key not in config_data]
         if missing:
             raise ValueError(f"Missing keys in config: {missing}")
 
-        processor = WaveformProcessor(config_data)
-        processor.read_and_save()
+        for run in runs:
+            processor = WaveformProcessor(config_data, run)
+            processor.read_and_save()
 
     except Exception as e:
         print_colored(f"An error occurred: {e}", color="ERROR")

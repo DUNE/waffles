@@ -1,5 +1,5 @@
 {
-    "run": 35730,
+    "runs": [35730],
     "rucio_dir": ".",
     "output_dir": ".",
     "ch": {
