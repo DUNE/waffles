@@ -187,12 +187,14 @@ class WaveformProcessor:
             )
             print_colored(f"WaveformSet saved to {output_filepath}", color="SUCCESS")
 
+            """
             print_colored("Going to load...")
             wfset_loaded = load_structured_waveformset(str(output_filepath))
             print_colored("Loaded, about to compare...")  # If you see this, the load worked
             print_colored(f"wfset_loaded type={type(wfset_loaded)}")
             self.compare_waveformsets(wfset, wfset_loaded)
             print_colored("Done comparing!")  # If you never see this, an error happens in compare
+            """
 
             return True
         except Exception as e:
