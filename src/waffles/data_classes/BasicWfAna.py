@@ -6,6 +6,7 @@ from waffles.data_classes.WfAna import WfAna
 from waffles.data_classes.WfAnaResult import WfAnaResult
 
 import waffles.utils.check_utils as wuc
+from waffles.utils.baseline.baseline import SBaseline
 import waffles.Exceptions as we
 
 
@@ -19,14 +20,20 @@ class BasicWfAna(WfAna):
     ----------
     input_parameters: IPDict (inherited from WfAna)
     baseline_limits: list of int
-        It must have an even number of integers which
-        must meet baseline_limits[i] < baseline_limits[i + 1].
-        Given a WaveformAdcs object, wf, the points which
-        are used for baseline calculation are
-        wf.adcs[baseline_limits[2*i] - wf.time_offset :
-        baseline_limits[(2*i) + 1] - wf.time_offset],
-        with i = 0,1,...,(len(baseline_limits)/2) - 1. The
-        upper limits are exclusive.
+        In case `baseline_method` is set to EasyMedian:
+            It must have an even number of integers which
+            must meet baseline_limits[i] < baseline_limits[i + 1].
+            Given a WaveformAdcs object, wf, the points which
+            are used for baseline calculation are
+            wf.adcs[baseline_limits[2*i] - wf.time_offset :
+            baseline_limits[(2*i) + 1] - wf.time_offset],
+            with i = 0,1,...,(len(baseline_limits)/2) - 1. The
+            upper limits are exclusive.
+        In case `baseline_method` is set to SBaseline:
+            This parameter is not used. 
+    baseline_method: str
+        The method used to compute the baseline.
+        Values accepted: SBaseline, EasyMedian
     int_ll (resp. int_ul): int
         Stands for integration lower (resp. upper) limit.
         Iterator value for the first (resp. last) point
@@ -43,6 +50,10 @@ class BasicWfAna(WfAna):
         than amp_ul. These limits are inclusive. I.e., the
         points which are used for the amplitude calculation
         are wf.adcs[amp_ll - wf.time_offset : amp_ul + 1 - wf.time_offset].
+
+    invert: bool
+        Rather to invert the waveform or not 
+    
     result: WfAnaResult (inherited from WfAna)
 
     Methods
@@ -67,6 +78,8 @@ class BasicWfAna(WfAna):
                 - 'int_ul' (int)
                 - 'amp_ll' (int)
                 - 'amp_ul' (int)
+                - 'invert' (bool)
+                - 'baseline_method' (str)
         """
 
         self.__baseline_limits = input_parameters['baseline_limits']
@@ -74,6 +87,16 @@ class BasicWfAna(WfAna):
         self.__int_ul = input_parameters['int_ul']
         self.__amp_ll = input_parameters['amp_ll']
         self.__amp_ul = input_parameters['amp_ul']
+        self.__baseline_method = input_parameters.get('baseline_method', "EasyMedian")
+        if self.__baseline_method == "SBaseline":
+            self.__baseliner: SBaseline = input_parameters['baseliner']
+            
+        self.__onlyoptimal: bool = input_parameters.get('onlyoptimal', False)
+
+        self.__invfactor = 1
+        self.__invert = input_parameters.get('invert', False)
+        if self.__invert:
+            self.__invfactor = -1;
 
         super().__init__(input_parameters)
 
@@ -140,17 +163,47 @@ class BasicWfAna(WfAna):
         ----------
         None
         """
+        
+        optimized = True
 
-        split_baseline_samples = [
-            waveform.adcs[
-                self.__baseline_limits[2 * i] - waveform.time_offset:
-                self.__baseline_limits[(2 * i) + 1] - waveform.time_offset
+        if self.__baseline_method == "EasyMedian":
+            split_baseline_samples = [
+                waveform.adcs[
+                    self.__baseline_limits[2 * i] - waveform.time_offset:
+                    self.__baseline_limits[(2 * i) + 1] - waveform.time_offset
+                ]
+                for i in range(len(self.__baseline_limits) // 2)
             ]
-            for i in range(len(self.__baseline_limits) // 2)
-        ]
 
-        baseline_samples = np.concatenate(split_baseline_samples)
-        baseline = np.median(baseline_samples)
+            baseline_samples = np.concatenate(split_baseline_samples)
+            baseline = np.median(baseline_samples)
+        else:
+            baseline, optimized = self.__baseliner.compute_baseline(waveform.adcs, self.__baseliner.filtering)
+
+        integral = waveform.time_step_ns * self.__invfactor * (
+            np.sum(
+                waveform.adcs[ self.__int_ll - waveform.time_offset : 
+                               self.__int_ul + 1 - waveform.time_offset
+                              ]
+            ) - (( self.__int_ul - self.__int_ll + 1) * baseline))
+
+        amplitude=(
+            np.max(
+                waveform.adcs[
+                    self.__amp_ll - waveform.time_offset:
+                    self.__amp_ul + 1 - waveform.time_offset
+                ]
+            ) - np.min(
+                waveform.adcs[
+                    self.__amp_ll - waveform.time_offset:
+                    self.__amp_ul + 1 - waveform.time_offset
+                ]
+            )
+        )
+
+        if not optimized and self.__onlyoptimal:
+            integral = np.nan
+            amplitude = np.nan
 
         self._WfAna__result = WfAnaResult(
             baseline=baseline,
@@ -164,24 +217,8 @@ class BasicWfAna(WfAna):
             baseline_rms=None,
             # Assuming that the waveform is inverted and
             # using linearity to avoid some multiplications
-            integral=waveform.time_step_ns * (((
-                self.__int_ul - self.__int_ll + 1) * baseline) - np.sum(
-                waveform.adcs[
-                    self.__int_ll - waveform.time_offset:
-                    self.__int_ul + 1 - waveform.time_offset])),
-            amplitude=(
-                np.max(
-                    waveform.adcs[
-                        self.__amp_ll - waveform.time_offset:
-                        self.__amp_ul + 1 - waveform.time_offset
-                    ]
-                ) - np.min(
-                    waveform.adcs[
-                        self.__amp_ll - waveform.time_offset:
-                        self.__amp_ul + 1 - waveform.time_offset
-                    ]
-                )
-            )
+            integral=integral,
+            amplitude=amplitude,
         )
         return
 
@@ -221,20 +258,21 @@ class BasicWfAna(WfAna):
             analysed. It is assumed to be the same for all the
             waveforms.
 
-        Returns
+        Returns - ((
         ----------
         None
         """
 
-        if not wuc.baseline_limits_are_well_formed(
-                input_parameters['baseline_limits'],
-                points_no):
+        if input_parameters["baseline_method"] == "EasyMedian":
+            if not wuc.baseline_limits_are_well_formed(
+                    input_parameters['baseline_limits'],
+                    points_no):
 
-            raise Exception(we.GenerateExceptionMessage(
-                1,
-                'BasicWfAna.check_input_parameters()',
-                f"The baseline limits ({input_parameters['baseline_limits']})"
-                " are not well formed."))
+                raise Exception(we.GenerateExceptionMessage(
+                    1,
+                    'BasicWfAna.check_input_parameters()',
+                    f"The baseline limits ({input_parameters['baseline_limits']})"
+                    " are not well formed."))
         int_ul_ = input_parameters['int_ul']
         if int_ul_ is None:
             int_ul_ = points_no - 1
