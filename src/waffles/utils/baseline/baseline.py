@@ -23,7 +23,6 @@ class SBaseline:
             Minimum fraction of the baseline that needs to be used in the
             `mean` computation. If inside this fraction, `optimal` will be True
 
-
         Methods
         ----------
         compute_baseline
@@ -41,14 +40,13 @@ class SBaseline:
         self.baselinestart = baselinestart
         self.baselinefinish = baselinefinish
         self.minimumfrac = minimumfrac
-
         self.denoiser = Denoise()
 
         self.write_filtered_waveform = True
 
     @staticmethod
     @njit
-    def compute_base_mean(wvf: Waveform.adcs, res0:int, threshold, baselinestart, baselinefinish, wait, minimumfrac) -> tuple[float, bool]:
+    def compute_base_mean(wvf: np.ndarray, res0:int, threshold, baselinestart, baselinefinish, wait, minimumfrac) -> tuple[float, bool]:
         i = 0
         res = 0
         counts = 0
@@ -69,10 +67,10 @@ class SBaseline:
         else:
             return res0, False
 
-    def compute_baseline(self, wvf_base: Waveform.adcs) -> tuple[float, bool]:
+    def compute_baseline(self, wvf_base: np.ndarray, filtering = None) -> tuple[float, bool]:
         """ Computes baseline...
         The code works as following:
-            1. Insert all values of inside of
+            1. Insert all values of
                wvf_base[baselinestart:baselinefinish] in a histogram and
                computes the MPV (res0).
             2. Using res0, cycle throw wvf_base and skipping `wait` ticks if
@@ -92,6 +90,8 @@ class SBaseline:
             optimal
                 If the baseline is optimazed or not
         """
+        if filtering is not None:
+            wvf_base = self.denoiser.apply_denoise(wvf_base, filtering)
         # # find the MPV so we can estimate the offset
         hist, bin_edges = np.histogram(wvf_base[self.baselinestart:self.baselinefinish], bins=self.binsbase)
         # first estimative of baseline
@@ -110,7 +110,7 @@ class SBaseline:
             filtering: float
                 Filtering that you want to apply before evaluating the baseline
         """
-        wvf: Waveform.adcs = waveform.adcs
+        wvf: np.ndarray = waveform.adcs
         response = self.denoiser.apply_denoise(wvf, filtering)
         wvf_base = response[self.baselinestart:self.baselinefinish]
         res0, optimal = self.compute_baseline(wvf_base)
