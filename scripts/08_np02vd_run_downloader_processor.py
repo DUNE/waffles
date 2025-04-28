@@ -200,54 +200,86 @@ def plot_processed_file(path, max_waveforms=2000, label="standard"):
 # ------------------------------------------------------------------------------
 
 def main():
-    default_hostname = "np04-srv-004"
-    hostname = input(f"Enter the hostname [default: {default_hostname}]: ").strip() or default_hostname
-    port = 22
-    username = input("Enter the username: ").strip()
-    use_key = input("Are you using an SSH key (yes/no)? ").strip().lower() == "yes"
-    private_key_path = None
-    password = None
-
-    if use_key:
-        private_key_path = input("Enter the path to the private key: ").strip()
-        if input("Does the key require a passphrase (yes/no)? ").strip().lower() == "yes":
-            password = getpass.getpass("Enter the passphrase: ")
-    else:
-        password = getpass.getpass("Enter your password: ")
+    need_file = input(
+        "Do you need to download the data file in the current folder (yes/no)? "
+    ).strip().lower() == "yes"
 
     run_number = int(input("Enter the run number: "))
-    remote_path = "/data0"
-    local_dir = "."
+    run_str = f"{run_number:06d}"
 
-    try:
-        ssh_client = connect_ssh(hostname, port, username, private_key_path, password)
-        print("Connected to remote server.")
-        files = list_files(ssh_client, remote_path, run_number)
-        if not files:
-            print("No files found.")
+    if need_file:
+        default_hostname = "np04-srv-004"
+        hostname = input(f"Enter the hostname [default: {default_hostname}]: ").strip() or default_hostname
+        port = 22
+        username = input("Enter the username: ").strip()
+        use_key = input("Are you using an SSH key (yes/no)? ").strip().lower() == "yes"
+        private_key_path = None
+        password = None
+
+        if use_key:
+            private_key_path = input("Enter the path to the private key: ").strip()
+            if input("Does the key require a passphrase (yes/no)? ").strip().lower() == "yes":
+                password = getpass.getpass("Enter the passphrase: ")
+        else:
+            password = getpass.getpass("Enter your password: ")
+
+        remote_path = "/data0"
+        local_dir = "."
+
+        try:
+            ssh_client = connect_ssh(hostname, port, username, private_key_path, password)
+            print("Connected to remote server.")
+            files = list_files(ssh_client, remote_path, run_number)
+            ssh_client.close()
+
+            if not files:
+                print("No files found on remote.")
+                return
+
+            for i, f in enumerate(files):
+                print(f"[{i}] {f}")
+
+            selected_file = files[0]
+            downloaded = download_files(ssh_client, [selected_file], local_dir)
+            selected_file = downloaded[0]
+
+        except Exception as e:
+            print("Error during SSH/download:", e)
             return
 
-        for i, f in enumerate(files):
-            print(f"[{i}] {f}")
-
-        selected_file = files[0] 
-        downloaded = download_files(ssh_client, [selected_file], local_dir)
-        ssh_client.close()
-
-        run_str = f"{run_number:06d}" 
-        update_config_and_run(run_str, downloaded[0])
-
-        # Search for structured processed file and plot it
-        files_in_dir = os.listdir(os.getcwd())
-        structured_files = [f for f in files_in_dir if f.startswith(f"processed_np02vd_raw_run{run_str}_")]
-        if not structured_files:
-            print(f"⚠️ No processed structured file found for run {run_number}.")
+    else:
+        cmd = (
+            f"ls np02vd_raw_run{run_str}*.hdf5* "
+        )
+        try:
+            proc = subprocess.run(
+                cmd, shell=True,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            local_files = proc.stdout.splitlines()
+            if not local_files:
+                print(f"No .hdf5 files found locally for run {run_str}.")
+                return
+            selected_file = local_files[0]
+        except subprocess.CalledProcessError as e:
+            print("Error in looking for the local files:", e.stderr.strip())
             return
-        path = os.path.join(os.getcwd(), structured_files[0])
-        plot_processed_file(path)
 
-    except Exception as e:
-        print("An error occurred:", e)
+    update_config_and_run(run_str, selected_file)
+
+    structured_files = [
+        f for f in os.listdir(os.getcwd())
+        if f.startswith(f"processed_np02vd_raw_run{run_str}_")
+    ]
+    if not structured_files:
+        print(f"⚠️ No processed structured file found for run {run_number}.")
+        return
+
+    path = os.path.join(os.getcwd(), structured_files[0])
+    plot_processed_file(path)
 
 
 if __name__ == "__main__":
