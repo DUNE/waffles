@@ -1,0 +1,57 @@
+# ------- General parameters -------
+
+# Path to the folder containing the data
+input_path: "data/wfset_1_35718.hdf5"
+
+# Path to the output
+output_path: "output/"
+
+# Runs
+runs: [35718]
+
+# Detector to analyze: Membrane, Cathode, PMTs
+det: "Membrane"
+
+# 1 is non-TCO and 2 is TCO
+det_id: [1] 
+
+# ------- Parameters for the analysis -------
+
+# Analysis label
+analysis_label: 'standard'
+
+# Time interval in timeticks of the DAQ window to be considered 
+tmin: -1000
+tmax: 1000
+
+# Channels 
+ch: -1
+
+# Number of waveforms to analyze
+nwfs: -1
+
+# Number of waveforms to plot
+nwfs_plot: 2000
+
+# Records
+rec: [-1]
+
+# Integration limits
+starting_tick: 60
+
+# Baseline limits
+baseline_limits:
+    - 0
+    - 100
+    - 900
+    - 1000
+
+# Integration window width, in time ticks
+integ_window: 60
+
+# Number of bins for the histograms 
+nbins: 110
+
+
+
+
