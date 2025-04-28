@@ -215,9 +215,10 @@ class CalibrationHistogram(TrackedHistogram):
         samples = [
             waveform_set.waveforms[idx].get_analysis(
                 analysis_label
-            ).result[variable]
-            for idx in range(    
-                len(waveform_set.waveforms))]
+            ).result[variable]  for idx in range(    
+                len(waveform_set.waveforms))
+            if waveform_set.waveforms[idx].get_analysis( analysis_label).result[variable] is not np.nan
+        ]
         try:
             return cls.__from_samples(
                 samples,
