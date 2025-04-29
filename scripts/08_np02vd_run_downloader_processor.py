@@ -30,6 +30,7 @@ from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.plotting.plot import plot_ChannelWsGrid
+from waffles.utils.baseline.baseline import SBaseline
 
 
 # ------------------------------------------------------------------------------
@@ -120,7 +121,8 @@ def analyze_waveforms(wfset, label="standard", starting_tick=50, width=70):
         int_ll=starting_tick,
         int_ul=starting_tick + width,
         amp_ll=starting_tick,
-        amp_ul=starting_tick + width
+        amp_ul=starting_tick + width,
+        baseline_method="EasyMedian"
     )
     checks_kwargs = dict(points_no=wfset.points_per_wf)
     print("Running waveform analysis...")
@@ -133,7 +135,6 @@ def analyze_waveforms(wfset, label="standard", starting_tick=50, width=70):
         checks_kwargs=checks_kwargs,
         overwrite=True
     )
-
 
 def create_channel_grids(wfset, bins=115, domain=(-10000., 50000.)):
     """Creates TCO and non-TCO ChannelWsGrid dictionaries from a WaveformSet."""
