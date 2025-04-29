@@ -231,7 +231,6 @@ def main():
             ssh_client = connect_ssh(hostname, port, username, private_key_path, password)
             print("Connected to remote server.")
             files = list_files(ssh_client, remote_path, run_number)
-            ssh_client.close()
 
             if not files:
                 print("No files found on remote.")
@@ -243,6 +242,8 @@ def main():
             selected_file = files[0]
             downloaded = download_files(ssh_client, [selected_file], local_dir)
             selected_file = downloaded[0]
+            ssh_client.close()
+
 
         except Exception as e:
             print("Error during SSH/download:", e)
