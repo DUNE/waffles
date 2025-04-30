@@ -1,5 +1,5 @@
 {
-    "run": 28211,
+    "runs": [28211],
     "rucio_dir": "Rucio_Paths/",
     "output_dir": "/afs/cern.ch/work/f/fraleman/public/hdf5_files/",
     "ch": {
