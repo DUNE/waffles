@@ -52,7 +52,7 @@ def connect_ssh(hostname, port, username, private_key_path=None, password=None):
 
 def list_files(ssh_client, remote_path, run_number):
     """List remote .hdf5 files matching the run number."""
-    cmd = f"ls {remote_path}/np02vd_raw_run{run_number:06d}_*.hdf5"
+    cmd = f"ls {remote_path}/np02vd_raw_run{run_number:06d}_*.hdf5*"
     stdin, stdout, stderr = ssh_client.exec_command(cmd)
     files = stdout.read().decode('utf-8').splitlines()
     if stderr.read().decode('utf-8'):
