@@ -5,7 +5,7 @@ import getpass
 import click
 
 # Define the path where the output files should be saved
-SAVING_PATH = ""
+SAVING_PATH = "Rucio_Paths/"
 
 def is_rucio_active():
     """Checks if Rucio is already active by running `rucio whoami`."""
@@ -61,7 +61,7 @@ def fetch_rucio_replicas(run_number, max_files):
     print(f"\033[94mFetching Rucio replicas for run {run_str}...\033[0m")
 
     # Construct the Rucio command
-    rucio_command = f"rucio list-file-replicas --pfns hd-protodune:hd-protodune_{run_number}"
+    rucio_command = f"rucio replica list file --pfns hd-protodune:hd-protodune_{run_number}"
 
     try:
         # Run the command and capture the output
@@ -75,7 +75,7 @@ def fetch_rucio_replicas(run_number, max_files):
         # Identify the first "realm" (protocol + domain)
         first_realm = None
         for line in lines:
-            if "://" in line:
+            if "root://" in line:
                 first_realm = line.split("/")[2]  # Extracts domain (e.g., eospublic.cern.ch)
                 break
 
