@@ -10,6 +10,7 @@ import waffles.core.utils as wcu
 import csv
 
 from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
+from waffles.input_output.hdf5_structured import load_structured_waveformset
 
 import plotly.graph_objects as pgo
 from waffles.plotting.plot import plot_ChannelWsGrid
@@ -19,11 +20,12 @@ import gc
 import h5py
 
 from waffles.data_classes.BasicWfAna import BasicWfAna
+from waffles.data_classes.BasicWfAna2 import BasicWfAna2
 from waffles.data_classes.IPDict import IPDict
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, cat_geometry_map
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
-
+from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_ChannelWsGrid
 from waffles.np02_analysis.onsite import utils as os_utils
 
 import waffles.plotting.drawing_tools as draw

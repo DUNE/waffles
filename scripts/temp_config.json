@@ -1,9 +1,9 @@
 {
-    "run": "035804",
+    "run": "036174",
     "rucio_dir": ".",
     "output_dir": ".",
     "ch": {},
     "save_single_file": false,
-    "max_files": 22,
+    "max_files": 1,
     "det": "VD_Membrane_PDS"
 }

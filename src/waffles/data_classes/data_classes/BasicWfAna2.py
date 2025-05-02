@@ -9,7 +9,7 @@ import waffles.utils.check_utils as wuc
 import waffles.Exceptions as we
 
 
-class BasicWfAna(WfAna):
+class BasicWfAna2(WfAna):
     """Stands for Basic Waveform Analysis. This 
     class inherits from WfAna. It implements a 
     basic analysis which is performed over a 
@@ -47,7 +47,7 @@ class BasicWfAna(WfAna):
 
     Methods
     ----------
-    ## Add the l,ist of methods and a summary for each one here
+    ## Add the list of methods and a summary for each one here
     """
 
     @we.handle_missing_data
@@ -161,14 +161,16 @@ class BasicWfAna(WfAna):
             # np.max(baseline_samples),
             baseline_max=None,
             # and ~np.std(baseline_samples))
-            baseline_rms=None,
+            baseline_rms=np.std(baseline_samples, ddof=1),
             # Assuming that the waveform is inverted and
             # using linearity to avoid some multiplications
-            integral=waveform.time_step_ns * (((
-                self.__int_ul - self.__int_ll + 1) * baseline) - np.sum(
+            
+            integral=waveform.time_step_ns * ((-(
+                self.__int_ul - self.__int_ll + 1) * baseline) + np.sum(
                 waveform.adcs[
                     self.__int_ll - waveform.time_offset:
                     self.__int_ul + 1 - waveform.time_offset])),
+            
             amplitude=(
                 np.max(
                     waveform.adcs[
@@ -214,7 +216,7 @@ class BasicWfAna(WfAna):
         ----------
         input_parameters: IPDict
             The input parameters to be checked. It is the IPDict
-            that can be potentially given to BasicWfAna.__init__
+            that can be potentially given to BasciWfAna.__init__
             to instantiate a BasicWfAna object.
         points_no: int
             The number of points in any waveform that could be
