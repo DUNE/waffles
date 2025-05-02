@@ -1559,14 +1559,16 @@ def plot_ChannelWsGrid(
                                     list(aux_idcs),
                                     queried_no=2)
                     aux_name += ']'
-
+                    
                 aux_ranges = wpu.arrange_time_vs_ADC_ranges(
                     channel_ws,
                     time_range_lower_limit=time_range_lower_limit,
                     time_range_upper_limit=time_range_upper_limit,
-                    adc_range_above_baseline=adc_range_above_baseline,
-                    adc_range_below_baseline=adc_range_below_baseline)
-            
+                    adc_range_above_baseline=300,
+                    adc_range_below_baseline=200)
+                    #adc_range_above_baseline=adc_range_above_baseline,
+                    #adc_range_below_baseline=adc_range_below_baseline)
+       
                 figure_ = wpu.__subplot_heatmap(
                     channel_ws,
                     figure_,
@@ -1578,6 +1580,7 @@ def plot_ChannelWsGrid(
                     time_bins,
                     adc_bins,
                     aux_ranges,
+                    #aux_ranges,
                     # The color scale is not shown
                     # since it may differ from one plot
                     # to another.
