@@ -1,254 +1,254 @@
-"""
-This script allows to visualize the waveforms for a given run. 
+#!/usr/bin/env python3
+from __future__ import annotations            # postpone type-hint eval
 
-In particular, it performs the following steps:
-
-1. Connects to a remote server via SSH (with password or private key).
-2. Searches for .hdf5 files for a given run number.
-3. Downloads the selected file in the current folder.
-4. Updates a JSON configuration and runs an external processing script (07_save_structured_from_config.py).
-5. Loads the processed structured HDF5 waveform.
-6. Analyzes the waveforms using a basic analysis class.
-7. Plots the results (TCO and non-TCO membranes). 
-
-"""
-
-import os
-import getpass
-import json
-import paramiko
+import argparse, getpass, json, logging, sys
+from pathlib import Path
 import subprocess
 
+import paramiko                               # SSH / SFTP
 import numpy as np
-import plotly.graph_objects as pgo
+import matplotlib.pyplot as plt
 import plotly.subplots as psu
-import h5py
 
+# ── waffles imports ──────────────────────────────────────────────────────────
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.plotting.plot import plot_ChannelWsGrid
+# ─────────────────────────────────────────────────────────────────────────────
 
 
-# ------------------------------------------------------------------------------
-# SSH UTILS
-# ------------------------------------------------------------------------------
+# ╭────────────────────────── Helper utilities ───────────────────────────────╮
+def parse_run_list(txt: str) -> list[int]:
+    out: set[int] = set()
+    for chunk in txt.split(","):
+        if "-" in chunk:
+            lo, hi = map(int, chunk.split("-"))
+            out.update(range(lo, hi + 1))
+        else:
+            out.add(int(chunk))
+    return sorted(out)
 
-def connect_ssh(hostname, port, username, private_key_path=None, password=None):
-    """Establish an SSH connection with optional private key or password."""
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    if private_key_path:
-        key = paramiko.RSAKey.from_private_key_file(private_key_path, password=password)
-        client.connect(hostname, port=port, username=username, pkey=key)
-    elif password:
-        client.connect(hostname, port=port, username=username, password=password)
+
+def ssh_connect(host: str, port: int, user: str,
+                *, kerberos=False, key: str | None = None,
+                passwd: str | None = None) -> paramiko.SSHClient:
+    c = paramiko.SSHClient()
+    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    if kerberos:
+        c.connect(host, port=port, username=user,
+                  gss_auth=True, gss_kex=True, gss_host=host)
+    elif key:
+        pkey = paramiko.RSAKey.from_private_key_file(key, password=passwd)
+        c.connect(host, port=port, username=user, pkey=pkey)
     else:
-        raise ValueError("Either private_key_path or password must be provided")
-    return client
+        c.connect(host, port=port, username=user, password=passwd)
+    return c
 
 
-def list_files(ssh_client, remote_path, run_number):
-    """List remote .hdf5 files matching the run number."""
-    cmd = f"ls {remote_path}/np02vd_raw_run{run_number:06d}*.hdf5* | grep -v \"^.*hdf5\\.json\" "    
-    stdin, stdout, stderr = ssh_client.exec_command(cmd)
-    files = stdout.read().decode('utf-8').splitlines()
-    if stderr.read().decode('utf-8'):
-        raise RuntimeError("Error listing files on remote server")
-    return files
+def remote_hdf5_files(ssh: paramiko.SSHClient,
+                      remote_dir: str, run: int) -> list[str]:
+    """Return list of raw-data chunks for *run* (accept .hdf5[.gz][.copied])."""
+    cmd = f"ls -1 {remote_dir}/np02vd_raw_run{run:06d}*.hdf5* 2>/dev/null"
+    _in, out, err = ssh.exec_command(cmd)
+    if err.read():
+        return []
+    files = out.read().decode().splitlines()
+
+    # whitelist endings
+    keep: list[str] = []
+    for f in files:
+        if any(f.endswith(sfx) for sfx in
+               (".hdf5", ".hdf5.gz", ".hdf5.copied", ".hdf5.gz.copied")):
+            keep.append(f)
+
+    # deduplicate plain vs .copied (prefer plain)
+    uniq: dict[str, str] = {}
+    for f in keep:
+        base = f.removesuffix(".copied")
+        if base not in uniq or not uniq[base].endswith(".copied"):
+            uniq[base] = f
+    return sorted(uniq.values())
 
 
-def download_files(ssh_client, remote_files, local_dir):
-    """Download specified files from remote server via SFTP."""
-    sftp = ssh_client.open_sftp()
-    os.makedirs(local_dir, exist_ok=True)
-    downloaded_files = []
-    for remote_file in remote_files:
-        local_file = os.path.join(local_dir, os.path.basename(remote_file))
-        sftp.get(remote_file, local_file)
-        print(f"Downloaded: {remote_file} -> {local_file}")
-        downloaded_files.append(os.path.basename(remote_file))
-    sftp.close()
-    return downloaded_files
+def download_all(sftp: paramiko.SFTPClient,
+                 files: list[str], dest: Path) -> list[Path]:
+    dest.mkdir(parents=True, exist_ok=True)
+    out: list[Path] = []
+    for fr in files:
+        attr = sftp.stat(fr)
+        tgt = dest / Path(fr).name
+        if tgt.is_file() and tgt.stat().st_size == attr.st_size:
+            logging.info("⏩  %s already present (%d B)", tgt.name, attr.st_size)
+        else:
+            logging.info("⬇️  %s → %s", fr, tgt)
+            sftp.get(fr, tgt.as_posix())
+        out.append(tgt)
+    return out
+# ╰────────────────────────────────────────────────────────────────────────────╯
 
 
-# ------------------------------------------------------------------------------
-# PROCESSING UTILS
-# ------------------------------------------------------------------------------
-
-def update_config_and_run(run_number, hdf5_filename):
-    """Create a config file and run the processing script."""
-    txt_filename = f"{run_number}.txt"
-    with open(txt_filename, "w") as f:
-        f.write(hdf5_filename + "\n")
-    print(f"Text file '{txt_filename}' created.")
-
-    with open("config.json") as f:
-        config = json.load(f)
-    config["runs"] = [run_number]
-    with open("temp_config.json", "w") as f:
-        json.dump(config, f, indent=4)
-
-    print("Running 07_save_structured_from_config.py ...")
-    subprocess.run(["python3", "07_save_structured_from_config.py", "--config", "temp_config.json"], check=True)
-    print("Processing complete.")
-
-
-# ------------------------------------------------------------------------------
-# WAVEFORM ANALYSIS & PLOTTING
-# ------------------------------------------------------------------------------
-
-def print_waveform_timing_info(wfset):
-    """Logs min/max timestamp and the approximate time delta."""
-    timestamps = [wf.timestamp for wf in wfset.waveforms]
-    if not timestamps:
-        print("No waveforms found!")
-        return
-    a, b = np.min(timestamps), np.max(timestamps)
-    print(f"Min timestamp: {a}, Max timestamp: {b}, Δt: {b - a} ticks")
-    print(f"Δt in seconds: {(b - a) * 16e-9:.3e} s")
-    print(f"Light travels: {(3e5)*(b - a)*16e-9:.2f} Km (approx)")
-
-
-def analyze_waveforms(wfset, label="standard", starting_tick=50, width=70):
-    """Performs a basic waveform analysis."""
-    baseline_limits = [0, 50, 900, 1000]
-    input_params = IPDict(
-        baseline_limits=baseline_limits,
-        int_ll=starting_tick,
-        int_ul=starting_tick + width,
-        amp_ll=starting_tick,
-        amp_ul=starting_tick + width
+# ╭────────────────── Waveform analysis & plotting helpers ────────────────────╮
+def _analyse(wfset):
+    ip = IPDict(
+        baseline_limits=[0, 50, 900, 1000],
+        baseline_method="EasyMedian",      # ← NEW (or "Mean", "Fit", …)
+        int_ll=50, int_ul=120,
+        amp_ll=50, amp_ul=120,
     )
-    checks_kwargs = dict(points_no=wfset.points_per_wf)
-    print("Running waveform analysis...")
-    wfset.analyse(
-        label,
-        BasicWfAna,
-        input_params,
-        *[],
-        analysis_kwargs={},
-        checks_kwargs=checks_kwargs,
-        overwrite=True
-    )
+    wfset.analyse("std", BasicWfAna, ip,
+                  analysis_kwargs={},
+                  checks_kwargs=dict(points_no=wfset.points_per_wf),
+                  overwrite=True)
+
+def _grids(wfset):
+    return dict(
+        TCO=ChannelWsGrid(mem_geometry_map[2], wfset,
+                          bins_number=115,
+                          domain=np.array([-1e4, 5e4]),
+                          variable="integral"),
+        nTCO=ChannelWsGrid(mem_geometry_map[1], wfset,
+                           bins_number=115,
+                           domain=np.array([-1e4, 5e4]),
+                           variable="integral"))
 
 
-def create_channel_grids(wfset, bins=115, domain=(-10000., 50000.)):
-    """Creates TCO and non-TCO ChannelWsGrid dictionaries from a WaveformSet."""
-    return {
-        "TCO": ChannelWsGrid(
-            mem_geometry_map[2],
-            wfset,
-            compute_calib_histo=False,
-            bins_number=bins,
-            domain=np.array(domain),
-            variable='integral',
-            analysis_label=''
-        ),
-        "nTCO": ChannelWsGrid(
-            mem_geometry_map[1],
-            wfset,
-            compute_calib_histo=False,
-            bins_number=bins,
-            domain=np.array(domain),
-            variable='integral',
-            analysis_label=''
-        ),
+def plot_grid(grid, title, html: Path | None):
+    fig = psu.make_subplots(rows=4, cols=2)
+    plot_ChannelWsGrid( grid, figure=fig, share_x_scale=True,
+                       share_y_scale=True, mode="overlay", wfs_per_axes=50)
+    fig.update_layout(title=title, template="plotly_white",
+                      width=1000, height=800, showlegend=True)
+    if html:
+        fig.write_html(html.as_posix())
+        logging.info("💾 %s", html)
+# ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+def process_structured(h5: Path, outdir: Path,
+                       max_wfs: int, headless: bool):
+    wfset = load_structured_waveformset(h5.as_posix(),
+                                        max_waveforms=max_wfs)
+    _analyse(wfset)
+    for n, g in _grids(wfset).items():
+        html = outdir / f"{n}.html" if headless else None
+        plot_grid(g, n, html)
+
+
+# ╭─────────────────────────────── main() ─────────────────────────────────────╮
+def main() -> None:
+    ap = argparse.ArgumentParser(description="NP02-VD multi-run processor")
+    ap.add_argument("--runs", required=True)
+    ap.add_argument("--remote-dir", default="/data0")
+    ap.add_argument("--out", default=".", help="Local root output directory")
+    ap.add_argument("--hostname", default="np04-srv-004")
+    ap.add_argument("--port", type=int, default=22)
+    ap.add_argument("--user", required=True)
+    auth = ap.add_mutually_exclusive_group()
+    auth.add_argument("--kerberos", action="store_true")
+    auth.add_argument("--ssh-key", help="Path to private key")
+    ap.add_argument("--all-chunks", action="store_true")
+    ap.add_argument("--max-waveforms", type=int, default=2000)
+    ap.add_argument("--config-template", default="config.json")
+    ap.add_argument("--headless", action="store_true")
+    ap.add_argument("-v", "--verbose", action="count", default=0)
+    args = ap.parse_args()
+
+    logging.basicConfig(level=max(10, 30 - 10*args.verbose),
+                        format="%(levelname)s: %(message)s")
+
+    runs = parse_run_list(args.runs)
+    out_root = Path(args.out).resolve()
+    raw_dir = out_root / "raw"
+    list_dir = out_root / "raw_lists"
+    processed_dir = out_root / "processed"
+    plot_root = out_root / "plots"
+
+    for d in (list_dir, processed_dir, plot_root):
+        d.mkdir(parents=True, exist_ok=True)
+
+    # ── SSH login ───────────────────────────────────────────────────────────
+    pw = None
+    if not args.kerberos and not args.ssh_key:
+        pw = getpass.getpass(f"{args.user}@{args.hostname} password: ")
+    ssh = ssh_connect(args.hostname, args.port, args.user,
+                      kerberos=args.kerberos, key=args.ssh_key, passwd=pw)
+    sftp = ssh.open_sftp()
+    logging.info("✅ SSH connected")
+
+ #   ok_runs: list[int] = []
+ #   for run in runs:
+    # -----------------------------------------------------------------
+    # runs that already have a processed file -> skip EVERYTHING
+    # -----------------------------------------------------------------
+    have_struct = {
+        run for run in runs
+        if any(processed_dir.glob(f"processed_np02vd_raw_run{run:06d}_*.hdf5"))
     }
+    for r in sorted(have_struct):
+        logging.info("run %d: processed file exists – nothing to do", r)
 
+    runs_to_fetch = [r for r in runs if r not in have_struct]
+    ok_runs: list[int] = []
 
-def plot_single_grid(grid, title="Grid Plot", save_path=None):
-    """Plots a single ChannelWsGrid in overlay mode."""
-    figure = psu.make_subplots(rows=4, cols=2)
-    plot_ChannelWsGrid(
-        figure=figure,
-        channel_ws_grid=grid,
-        share_x_scale=True,
-        share_y_scale=True,
-        mode='overlay',
-        wfs_per_axes=50
-    )
-    figure.update_layout(
-        title={'text': title, 'font': {'size': 24}},
-        width=1000,
-        height=800,
-        template="plotly_white",
-        showlegend=True
-    )
-    if save_path:
-        figure.write_html(str(save_path))
-        print(f"Saved: {save_path}")
+    for run in runs_to_fetch:
+        try:
+            rem = remote_hdf5_files(ssh, args.remote_dir, run)
+            if not rem:
+                logging.warning("run %d: no remote files", run)
+                continue
+            if not args.all_chunks:
+                rem = rem[:1]
+            loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
+            (list_dir / f"{run:06d}.txt").write_text(
+                "\n".join(p.as_posix() for p in loc) + "\n")
+            ok_runs.append(run)
+        except Exception as e:
+            logging.error("run %d: %s", run, e)
+    sftp.close()
+    ssh.close()
+
+    # ── Skip already-processed runs ─────────────────────────────────────────
+    pending = []
+    for r in ok_runs:
+        if any(processed_dir.glob(f"processed_np02vd_raw_run{r:06d}_*.hdf5")):
+            logging.info("run %d already processed – skip", r)
+        else:
+            pending.append(r)
+    pending=ok_runs
+    if not pending:
+        logging.warning("Nothing to process; all runs already done.")
     else:
-        figure.show()
+        # ── Build config for 07_save_structured_from_config.py ──────────────
+        cfg = json.load(open(args.config_template))
+        cfg.update(dict(
+            runs=pending,
+            rucio_dir=list_dir.as_posix(),
+            output_dir=processed_dir.as_posix()))
+        tmp_cfg = out_root / "temp_config.json"
+        tmp_cfg.write_text(json.dumps(cfg, indent=4))
 
+        logging.info("🚀 07_save_structured_from_config.py …")
+        subprocess.run(["python3", "07_save_structured_from_config.py",
+                        "--config", tmp_cfg.as_posix()], check=True)
 
-def plot_processed_file(path, max_waveforms=2000, label="standard"):
-    """Load, analyze and plot waveform data from a structured HDF5 file."""
-    print(f"Loading structured data from: {path}")
-    wfset = load_structured_waveformset(path, max_waveforms=max_waveforms)
-    print_waveform_timing_info(wfset)
-    analyze_waveforms(wfset, label=label)
-    grids = create_channel_grids(wfset)
-    plot_single_grid(grids["TCO"], title="TCO")
-    plot_single_grid(grids["nTCO"], title="nTCO")
-
-
-# ------------------------------------------------------------------------------
-# MAIN FUNCTION
-# ------------------------------------------------------------------------------
-
-def main():
-    default_hostname = "np04-srv-004"
-    hostname = input(f"Enter the hostname [default: {default_hostname}]: ").strip() or default_hostname
-    port = 22
-    username = input("Enter the username: ").strip()
-    use_key = input("Are you using an SSH key (yes/no)? ").strip().lower() == "yes"
-    private_key_path = None
-    password = None
-
-    if use_key:
-        private_key_path = input("Enter the path to the private key: ").strip()
-        if input("Does the key require a passphrase (yes/no)? ").strip().lower() == "yes":
-            password = getpass.getpass("Enter the passphrase: ")
-    else:
-        password = getpass.getpass("Enter your password: ")
-
-    run_number = int(input("Enter the run number: "))
-    remote_path = "/data0"
-    local_dir = "."
-
-    try:
-        ssh_client = connect_ssh(hostname, port, username, private_key_path, password)
-        print("Connected to remote server.")
-        files = list_files(ssh_client, remote_path, run_number)
-        if not files:
-            print("No files found.")
-            return
-
-        for i, f in enumerate(files):
-            print(f"[{i}] {f}")
-
-        selected_file = files[0] 
-        downloaded = download_files(ssh_client, [selected_file], local_dir)
-        ssh_client.close()
-
-        run_str = f"{run_number:06d}" 
-        update_config_and_run(run_str, downloaded[0])
-
-        # Search for structured processed file and plot it
-        files_in_dir = os.listdir(os.getcwd())
-        structured_files = [f for f in files_in_dir if f.startswith(f"processed_np02vd_raw_run{run_str}_")]
-        if not structured_files:
-            print(f"⚠️ No processed structured file found for run {run_number}.")
-            return
-        path = os.path.join(os.getcwd(), structured_files[0])
-        plot_processed_file(path)
-
-    except Exception as e:
-        print("An error occurred:", e)
+    # ── Plot each run (new or existing) ─────────────────────────────────────
+    for r in ok_runs:
+        prod = list(processed_dir.glob(
+            f"processed_np02vd_raw_run{r:06d}_*.hdf5"))
+        if not prod:
+            logging.warning("run %d: processed file missing", r)
+            continue
+        pr_dir = plot_root / f"run{r:06d}"
+        pr_dir.mkdir(parents=True, exist_ok=True)
+        process_structured(prod[0], pr_dir,
+                           args.max_waveforms, args.headless)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.warning("Interrupted by user")
