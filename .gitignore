@@ -10,6 +10,9 @@ test/*
 *krb5.conf*
 *.DS_Store
 
+# Ignore processed outputs:
+src/analyisis/*
+
 # Ignore the input/output of each particular NP04 analysis
 src/waffles/np04_analysis/*/data/
 src/waffles/np04_analysis/*/output/
