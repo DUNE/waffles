@@ -4,7 +4,7 @@ from waffles.data_classes.Waveform import Waveform
 from waffles.utils.denoising.tv1ddenoise import Denoise
 
 class SBaseline:
-    def __init__(self, binsbase = None, threshold:float = 6, wait:int = 25, baselinestart:int = 0, baselinefinish:int = 112, minimumfrac:float = 1/6.):
+    def __init__(self, binsbase = None, threshold:float = 6, wait:int = 25, baselinestart:int = 0, baselinefinish:int = 112, minimumfrac:float = 1/6., default_filtering = None):
         """This class is used to compute the baseline of a Waveform.adcs or over all Waveforms. Description of the method for computing baseline in `compute_baseline`.
 
         Parameters
@@ -22,6 +22,10 @@ class SBaseline:
          minimumfrac: float
             Minimum fraction of the baseline that needs to be used in the
             `mean` computation. If inside this fraction, `optimal` will be True
+         default_filtering: float
+            For EXTERNAL USAGE, the value is stored in `self.filtering` 
+            Used only in automatic methods such as BasicWfAna: this will be the filtering applied.
+            For methods of the SBaseline class, the filtering value needs to be passed
 
         Methods
         ----------
@@ -41,6 +45,9 @@ class SBaseline:
         self.baselinefinish = baselinefinish
         self.minimumfrac = minimumfrac
         self.denoiser = Denoise()
+        self.filtering = None
+        if default_filtering is not None:
+            self.filtering = default_filtering
 
         self.write_filtered_waveform = True
 
@@ -92,6 +99,7 @@ class SBaseline:
         """
         if filtering is not None:
             wvf_base = self.denoiser.apply_denoise(wvf_base, filtering)
+
         # # find the MPV so we can estimate the offset
         hist, bin_edges = np.histogram(wvf_base[self.baselinestart:self.baselinefinish], bins=self.binsbase)
         # first estimative of baseline
@@ -118,3 +126,19 @@ class SBaseline:
             waveform.filtered = response
 
         return res0, optimal
+
+    def __repr__(self):
+        return (
+            f"SBaseline(\n"
+            f"  threshold={self.threshold},\n"
+            f"  wait={self.wait},\n"
+            f"  baselinestart={self.baselinestart},\n"
+            f"  baselinefinish={self.baselinefinish},\n"
+            f"  minimumfrac={self.minimumfrac},\n"
+            f"  write_filtered_waveform={self.write_filtered_waveform}\n"
+            f"  filtering = {self.filtering} (external usage),\n"
+            f")"
+        )
+
+
+
