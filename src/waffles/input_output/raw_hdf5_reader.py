@@ -54,6 +54,14 @@ def local_copy_path_for(filepath: str, tmp_dir: str = "/tmp") -> str:
     base_name = os.path.basename(filepath)
     return os.path.join(tmp_dir, f"{base_name}_{hash_str}")
 
+
+REMOTE_PREFIXES = ("root://", "davs://", "https://", "http://")
+
+def is_remote_path(fp: str) -> bool:
+    """Return True for any URL that points outside the local filesystem."""
+    return fp.startswith(REMOTE_PREFIXES)
+
+
 def xrdcp_if_not_exists(filepath: str,
                        tmp_dir: str = "/tmp",
                        logger: logging.Logger = None,
@@ -157,53 +165,49 @@ def extract_fragment_info(frag, trig):
 
 
 def filepath_is_hdf5_file_candidate(filepath: str) -> bool:
-    # 1) If it starts with root://, treat it as valid for further processing
-    if filepath.startswith("root://"):
-        return True
-    
-    # 2) Otherwise, it must be a local file that ends with .h5/.hdf5
-    if os.path.isfile(filepath):
-        if filepath.endswith('.hdf5') or filepath.endswith('.h5'):
-            return True
-    return False
+    # 1) Remote paths are always accepted as “candidates”
+    if is_remote_path(filepath):
+        return filepath.endswith((".hdf5", ".h5"))
 
+    # 2) Otherwise we insist the file exists *and* ends with .h5/.hdf5
+    return os.path.isfile(filepath) and filepath.endswith((".hdf5", ".h5"))
 
 
 def get_filepaths_from_rucio(rucio_filepath) -> list:
+    # The Rucio list file itself *must* be local
     if not os.path.isfile(rucio_filepath):
         raise Exception(GenerateExceptionMessage(
-            1,
-            'get_filepaths_from_rucio()',
+            1, 'get_filepaths_from_rucio()',
             f"The given rucio_filepath ({rucio_filepath}) is not a valid file."
         ))
 
-    with open(rucio_filepath, 'r') as file:
-        lines = file.readlines()
+    with open(rucio_filepath, 'r') as fh:
+        lines = fh.readlines()
 
-    filepaths = [line.strip().replace('root://eospublic.cern.ch:1094/', '') for line in lines]
-    filepaths = [line for line in filepaths if 'tpwriter' not in line]
+    filepaths = [
+        line.strip().replace('root://eospublic.cern.ch:1094/', '')
+        for line in lines if 'tpwriter' not in line
+    ]
 
     if not filepaths:
         logger.warning("No file paths found in the Rucio file.")
         return []
 
     quality_check = filepaths[0]
-    if "eos" in quality_check:
-        logger.info("Your files are stored in /eos/")
-        if not os.path.isfile(filepaths[0]):
-            raise Exception(GenerateExceptionMessage(
-                2,
-                'get_filepaths_from_rucio()',
-                f"The given filepaths[0] ({quality_check}) is not a valid file."
-            ))
+
+    #  ──► only check local files with os.path.isfile
+    if is_remote_path(quality_check):
+        logger.info("First entry is a remote EOS/WebDAV path; skipping local-file check.")
     else:
-        logger.warning(
-            "Your files are stored around the world.\n"
-            "[WARNING] Check you have a correct configuration to use XRootD."
-        )
+        if "eos" in quality_check:
+            logger.info("Your files are stored in /eos/")
+        if not os.path.isfile(quality_check):
+            raise Exception(GenerateExceptionMessage(
+                2, 'get_filepaths_from_rucio()',
+                f"The given filepaths[0] ({quality_check}) is not a valid local file."
+            ))
 
     return filepaths
-
 
 def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
                                 read_full_streaming_data: bool = False,
@@ -311,7 +315,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
     """
     fUsedXRootD = False
     # Attempt local copy if outside known local paths
-    if not any(prefix in filepath for prefix in ("/eos", "/nfs", "/afs", "/data")):
+    if is_remote_path(filepath) or not os.path.isfile(filepath):
         if wiu.write_permission(temporal_copy_directory):
             temp_path = os.path.join(temporal_copy_directory, os.path.basename(filepath))
             if not os.path.exists(temp_path):
