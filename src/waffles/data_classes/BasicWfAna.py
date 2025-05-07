@@ -273,6 +273,22 @@ class BasicWfAna(WfAna):
                     'BasicWfAna.check_input_parameters()',
                     f"The baseline limits ({input_parameters['baseline_limits']})"
                     " are not well formed."))
+        elif input_parameters["baseline_method"] == "SBaseline":
+            if not wuc.baseliner_class_is_given(
+                    input_parameters['baseliner']):
+                raise Exception(we.GenerateExceptionMessage(
+                    1,
+                    'BasicWfAna.check_input_parameters()',
+                    "The baseline method is set to SBaseline, but the"
+                    " baseliner class is not given."))
+            if not wuc.baseliner_class_has_filtering_set(
+                    input_parameters['baseliner']):
+                raise Exception(we.GenerateExceptionMessage(
+                    1,
+                    'BasicWfAna.check_input_parameters()',
+                    "The baseline method is set to SBaseline, but the"
+                    " filtering value is not set."))
+
         int_ul_ = input_parameters['int_ul']
         if int_ul_ is None:
             int_ul_ = points_no - 1
