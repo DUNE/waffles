@@ -369,15 +369,17 @@ def spe_charge(df: pd.DataFrame, endpoint: int, channel: int, hpk_ov: float = 3.
 
 #################################################
 
-def searching_maritza_template(apa, endpoint, daq_channel, folder = '/afs/cern.ch/work/a/anbalbon/public/template_larsoft', map_path = '/afs/cern.ch/work/a/anbalbon/public/template_larsoft/PDHD_PDS_ChannelMap.csv', maritza_template_folder = '/afs/cern.ch/work/a/anbalbon/public/template_larsoft'):
-      df = pd.read_csv(map_path, sep=",")
-      daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
-      daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
-      offline_to_daphne = dict(zip(df['offline_ch'],daphne_channels))
-      daphne_channel = daq_channel + 100*endpoint
-      apa_template_folder  = next((f for f in Path(maritza_template_folder).glob("*APA2*") if f.is_dir()), None)
-      martiza_template_file = next(apa_template_folder.glob(f"*APA{apa}_CH{daphne_to_offline[daphne_channel]}*.txt"), None)
-      with open(martiza_template_file, "r") as file:
-            maritza_values = [float(line.strip()) for line in file]
-      maritza_template = np.array(maritza_values)
-      return     maritza_template
+def daphne_to_offline_channel(apa, endpoint, daq_channel, map_path = '/afs/cern.ch/work/a/anbalbon/public/template_larsoft/PDHD_PDS_ChannelMap.csv', maritza_template_folder = '/afs/cern.ch/work/a/anbalbon/public/template_larsoft'):
+    df = pd.read_csv(map_path, sep=",")
+    daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
+    daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))    
+    return daphne_to_offline[daq_channel + 100*endpoint]
+
+def offline_to_daphne_channel(offline_ch, map_path = '/afs/cern.ch/work/a/anbalbon/public/template_larsoft/PDHD_PDS_ChannelMap.csv', maritza_template_folder = '/afs/cern.ch/work/a/anbalbon/public/template_larsoft'):
+    df = pd.read_csv(map_path, sep=",")
+    daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
+    offline_to_daphne = dict(zip(df['offline_ch'],daphne_channels))  
+    daphne_ch = offline_to_daphne[offline_ch]
+    end = int(str(daphne_ch)[:3])
+    daq_ch = int(str(daphne_ch)[3:])
+    return end, daq_ch

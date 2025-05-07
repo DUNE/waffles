@@ -19,7 +19,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.BasicWfAna import BasicWfAna
-from waffles.np04_analysis.lightyield_vs_energy.myWfAna import MyWfAna
+from waffles.np04_analysis.lightyield_vs_energy.myWfAna import myWfAna
 
 from waffles.data_classes.WaveformSet import *
 from waffles.data_classes.Waveform import *

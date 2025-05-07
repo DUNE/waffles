@@ -244,6 +244,16 @@ class Analysis1(WafflesAnalysis):
             int_ul = 115
         
         ######################### WAVEFORM ANALYSIS ######################### 
+        print('\nAnalysis... ')
+        
+        peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75]) 
+        analysis_kwargs = dict(  return_peaks_properties = False)
+        checks_kwargs   = dict( points_no = self.beam_wfset.points_per_wf )
+        bl = [0, 40] #not used
+        ampl_ll = 10 #not used
+        ampl_up = 110 #not used
+        
+        baseline_method = 'SBaseline'
         baseliner = SBaseline()
         baseliner.binsbase       = np.linspace(0,2**14-1,2**14) # default
         baseliner.minimumfrac    = 1/6. #default
@@ -253,29 +263,53 @@ class Analysis1(WafflesAnalysis):
         baseliner.baselinefinish = 45 #1024 #set it to the pre-trigger.
         baseliner.filtering      = 8 
         
-        print('\nAnalysis... ')
+        # BASIC ANALYSIS
         analysis_label = 'standard'
-        baseline_method = 'SBaseline'
-        bl = [0, 40, 900, 1000]
-        peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75]) 
+        analysis_class=BasicWfAna
         ip = IPDict(baseline_limits=bl,
                     int_ll=int_ll,
                     int_ul=int_ul,
-                    amp_ll=int_ll,
-                    amp_ul=int_ul,
+                    amp_ll=ampl_ll,
+                    amp_ul=ampl_up,
                     points_no=10,
                     peak_finding_kwargs=peak_finding_kwargs,
                     baseline_method=baseline_method,
                     baseliner =  baseliner)
-        analysis_kwargs = dict(  return_peaks_properties = False)
-        checks_kwargs   = dict( points_no = self.beam_wfset.points_per_wf )
-        a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=BasicWfAna, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
+        
+        b = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
+    
+        # MY ANALYSIS
+        analysis_label = 'my_deconvolution'
+        analysis_class=myWfAna
+        ip = IPDict(baseline_limits=bl,
+                    int_ll=int_ll,
+                    int_ul=int_ul,
+                    amp_ll=ampl_ll,
+                    amp_ul=ampl_up,
+                    points_no=10,
+                    peak_finding_kwargs=peak_finding_kwargs,
+                    baseline_method=baseline_method,
+                    baseliner =  baseliner,
+                    deconvolution = True, 
+                    save_devonvolved_wf = True, 
+                    maritza_template = True,
+                    gauss_filtering = True,
+                    gauss_cutoff = 2.5
+                    )
 
+        a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
+        
+        print(self.beam_wfset.waveforms[0].analyses['standard'].result['integral'])
+        print(self.beam_wfset.waveforms[0].analyses['my_deconvolution'].result['integral_before'])
+        
         baseline = self.beam_wfset.waveforms[0].analyses[analysis_label].result['baseline']
-        #plotting_overlap_wf(beam_wfset, int_ll=int_ll, int_ul=int_ul, baseline = baseline)
+        
+        #### Includere la possibilità di disgenare le waveform deconvolute!!!!
+        print()
+        plotting_overlap_wf(self.beam_wfset, int_ll=int_ll, int_ul=int_ul, baseline = baseline)
         print('done\n\n')
         
-        
+        '''
         ######################### SAVING INFORMATION #########################
         self.results_info_dic = {}
         
@@ -319,12 +353,12 @@ class Analysis1(WafflesAnalysis):
             self.results_info_dic[APA] = apa_info  
                                                               
         print('\n\nAnalysis... done\n')
-
+        '''
         return True
 
     ##################################################################
     def write_output(self) -> bool:
-        if self.params.save_file: 
+        '''if self.params.save_file: 
             print('Saving...', end='')
             with open(self.output_filepath, "w") as file:
                 json.dump(self.results_info_dic, file, indent=4)
@@ -334,5 +368,6 @@ class Analysis1(WafflesAnalysis):
         
 
         print(f"\n\nSUMMARY: \nFull-streaming data: {self.params.full_streaming}\nBeam data: {self.params.beam_data}\nSearching beam timeoffset: {self.params.searching_beam_timeoffset}\nSearching integration range: {self.params.searching_integration_range}\nSet name: {self.params.set_name}\nAPA: {self.params.apa_list}\nENDPOINT: {self.params.endpoint_list}\n# analyzed beam wavforms: {len(self.beam_wfset.waveforms)}\n\n")
-
+        '''
+        print('\n\nfatto\n\n')
         return True
