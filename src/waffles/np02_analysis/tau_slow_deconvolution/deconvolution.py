@@ -53,9 +53,8 @@ def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=10
     avg_led = np.mean(aligned_leds, axis=0)
 
     x = np.arange(max_samples)
-    p0 = [np.max(avg_cosmic), np.max(avg_cosmic)*2, 200, 10, 600, np.argmax(avg_cosmic)-20]
-    bounds = ([0, 0, 10, 1, 10, 0], [np.inf, np.inf, 400, 30, 1500, max_samples])
-    print(f"Max avg_cosmic: {np.argmax(avg_cosmic)}")
+    p0 = [np.max(avg_cosmic), np.max(avg_cosmic)*2, 200, 30, 600, np.argmax(avg_cosmic)-20]
+    bounds = ([0, 0, 10, 10, 10, 0], [np.inf, np.inf, 400, 40, 1500, max_samples])
 
     popt, _ = curve_fit(double_exp_model, x, avg_cosmic, p0=p0, bounds=bounds)
 
