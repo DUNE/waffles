@@ -364,60 +364,41 @@ class Analysis1(WafflesAnalysis):
         snr_labels = []
         
         print('The intervals for intergration are', self.integration_intervals)
-        
-        for interval in self.integration_intervals:
-
-            left = int(interval * 0.2)  # 20% of the interval to the left
-            right = interval - left     # The rest of the interval to the right
-            
-            # The peak is around 80
-            left = 80-int(interval * 0.2)
-            right = 80+int(interval * 0.8)
-            
-            print(f"\n>>> Analyzing with interval: [{left}, {right}]")
-
-            # Set parameters for this interval
-            analysis_params = lc_utils.get_analysis_params()
-            analysis_params['starting_tick'] = left
-            analysis_params['integ_window'] = interval
-            analysis_params['int_ll'] = left
-            analysis_params['int_ul'] = right
-            analysis_params['amp_ll'] = 60
-            analysis_params['amp_ul'] = 180
+    
 
             # Perform the analysis
-            _ = self.wfset.analyse(
-                self.analysis_name,
-                BasicWfAna,
-                analysis_params,
-                *[],  # *args,
-                analysis_kwargs={},
-                checks_kwargs=checks_kwargs,
-                overwrite=True
-            )
+        _ = self.wfset.analyse(
+            self.analysis_name,
+            BasicWfAna,
+            analysis_params,
+            *[],  # *args,
+            analysis_kwargs={},
+            checks_kwargs=checks_kwargs,
+            overwrite=True
+        )
 
-            # Create the grid for charge histograms
-            self.grid = lc_utils.get_grid(
-                selected_wfs,
-                self.params.det,
-                self.det_id,
-                self.nbins,
-                self.analysis_name
-            )
+        # Create the grid for charge histograms
+        self.grid = lc_utils.get_grid(
+            selected_wfs,
+            self.params.det,
+            self.det_id,
+            self.nbins,
+            self.analysis_name
+        )
    
    
-            # Fit the peaks in each channel's charge histogram
-            fit_peaks_of_ChannelWsGrid(
-                self.grid,
-                self.params.max_peaks,
-                self.params.prominence,
-                self.params.half_points_to_fit,
-                self.params.initial_percentage,
-                self.params.percentage_step
-            )
+        # Fit the peaks in each channel's charge histogram
+        fit_peaks_of_ChannelWsGrid(
+            self.grid,
+            self.params.max_peaks,
+            self.params.prominence,
+            self.params.half_points_to_fit,
+            self.params.initial_percentage,
+            self.params.percentage_step
+        )
             
-            # Plot the charge histogram for this interval
-            figure = plot_ChannelWsGrid(
+        # Plot the charge histogram for this interval
+        figure = plot_ChannelWsGrid(
                 self.grid,
                 figure=None,
                 share_x_scale=False,
@@ -428,7 +409,7 @@ class Analysis1(WafflesAnalysis):
                 detailed_label=False,
                 verbose=True
             )
-            figure.update_layout(
+        figure.update_layout(
                 title=f"Charge Histogram for Interval [{left}, {right}]",
                 width=1100,
                 height=1200,
