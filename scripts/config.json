@@ -1,5 +1,5 @@
 {
-    "run": 36198,
+    "runs": [36325],
     "rucio_dir": ".",
     "output_dir": ".",
     "ch": {},
@@ -7,4 +7,3 @@
     "max_files":1,
     "det": "VD_Membrane_PDS"
 }
-                    
