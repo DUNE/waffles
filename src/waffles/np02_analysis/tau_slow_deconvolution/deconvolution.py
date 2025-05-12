@@ -1,8 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy.optimize import curve_fit
+
+import waffles
 from waffles.input_output.hdf5_structured import load_structured_waveformset
+from waffles.data_classes.WaveformSet import WaveformSet
 
 # Dual-component scintillation model
 def double_exp_model(x, A1, A2, L, T1, T2, x0):
@@ -16,7 +20,7 @@ def double_exp_model(x, A1, A2, L, T1, T2, x0):
 def load_waveforms(path, channel, max_samples):
     wfset = load_structured_waveformset(path)
     waveforms = [wf.adcs[:max_samples] for wf in wfset.waveforms if wf.channel == channel and len(wf.adcs) >= max_samples]
-    return np.array(waveforms)
+    return wfset, np.array(waveforms)
 
 # Baseline subtraction (robust)
 def subtract_baseline(wf, baseline_region=50):
@@ -31,10 +35,49 @@ def align_waveforms(reference, target):
 
 # Main processing function
 def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=1024):
-    cosmic_wfs = load_waveforms(cosmic_path, channel, max_samples)
-    led_wfs = load_waveforms(led_path, channel, max_samples)
-    noise_wfs = load_waveforms(noise_path, channel, max_samples)
+    cosmic_wfset, cosmic_wfs = load_waveforms(cosmic_path, channel, max_samples)
+    _, led_wfs = load_waveforms(led_path, channel, max_samples)
+    _, noise_wfs = load_waveforms(noise_path, channel, max_samples)
 
+    mean_cosmic = waffles.WaveformSet.compute_mean_waveform(cosmic_wfset)
+    mean_array = mean_cosmic.adcs  
+#    mean_led = waffles.WaveformSet.compute_mean_waveform(led_wfs)
+
+    xt = np.arange(max_samples)  # NumPy’s arange creates a 1D array of evenly spaced integers
+
+    # Plotting a single waveform
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, subplot_titles=("Cosmic data", "Mean cosmic"))
+    #fig.add_trace(go.Scatter(x=xt, y=cosmic_wfs, mode="lines", name="Cosmic Waveform", line=dict(color='blue')), row=1, col=1)
+    #fig.add_trace(go.Scatter(x=xt, y=mean_array, mode="lines", name="Mean Cosmic", line=dict(color='red')), row=2, col=1)
+    #fig.update_layout(title="Waveform Analysis", height=800)
+    #fig.show()
+
+        # primo subplot: tutte le waveforms
+    for i, wf in enumerate(cosmic_wfs):
+        fig.add_trace(
+            go.Scatter(x=xt, y=wf, mode="lines",
+                       name=f"WF {i}", showlegend=False),
+            row=1, col=1
+        )
+
+    # secondo subplot: la media di tutte
+    mean_wf = cosmic_wfs.mean(axis=0)
+    fig.add_trace(
+        go.Scatter(x=xt, y=mean_wf, mode="lines",
+                   name="Mean Cosmic", line=dict(color='red')),
+        row=2, col=1
+    )
+
+    fig.update_xaxes(title_text="Sample Index", row=2, col=1)
+    fig.update_yaxes(title_text="ADC Counts", row=1, col=1)
+    fig.update_yaxes(title_text="ADC Counts", row=2, col=1)
+    fig.update_layout(height=600, width=800, title_text="Cosmic Waveforms")
+    fig.show()
+
+    print("The type of mean_array is: ",type(mean_array))
+    print("The type of cosmic_wfs is: ",type(cosmic_wfs))
+    print("The type of xt is: ",type(xt))
+    
     min_count = min(len(cosmic_wfs), len(led_wfs), len(noise_wfs))
     cosmic_wfs, led_wfs, noise_wfs = cosmic_wfs[:min_count], led_wfs[:min_count], noise_wfs[:min_count]
 
@@ -52,13 +95,14 @@ def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=10
     avg_cosmic = np.mean(aligned_cosmics, axis=0)
     avg_led = np.mean(aligned_leds, axis=0)
 
-    x = np.arange(max_samples)
+    x = np.arange(max_samples)  # NumPy’s arange creates a 1D array of evenly spaced integers
     p0 = [np.max(avg_cosmic), np.max(avg_cosmic)*2, 200, 30, 600, np.argmax(avg_cosmic)-20]
     bounds = ([0, 0, 10, 10, 10, 0], [np.inf, np.inf, 400, 40, 1500, max_samples])
 
-    popt, _ = curve_fit(double_exp_model, x, avg_cosmic, p0=p0, bounds=bounds)
+    popt, _ = curve_fit(double_exp_model, x, avg_cosmic, p0=p0, bounds=bounds)  #
 
-    fit_curve = double_exp_model(x, *popt)
+    # popt is the array of optimized parameters: the optimizer’s best-guess values for each of the six fitting parameters
+    fit_curve = double_exp_model(x, *popt)  
     mask = x >= popt[5]
     fast = np.zeros_like(x)
     slow = np.zeros_like(x)
@@ -66,6 +110,8 @@ def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=10
     slow[mask] = popt[1] * (np.exp(-(x[mask]-popt[5])/popt[2]) - np.exp(-(x[mask]-popt[5])/popt[4]))
 
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, subplot_titles=("Linear Scale", "Logarithmic Scale"))
+
+    print("The type of avg_cosmic is: ",type(avg_cosmic))
 
     fig.add_trace(go.Scatter(y=avg_cosmic, name="Avg Cosmic", line=dict(color='blue')), row=1, col=1)
     fig.add_trace(go.Scatter(y=fit_curve, name="Fit", line=dict(color='red')), row=1, col=1)
@@ -91,6 +137,7 @@ def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=10
 if __name__ == "__main__":
     cosmic_path = "data/cosmic.hdf5"
     led_path = "data/led.hdf5"
+    #led_path = "data/SPE36335_ch30.hdf5"
     noise_path = "data/noise.hdf5"
-    channel = 7
+    channel = 30
     process_waveforms(cosmic_path, led_path, noise_path, channel)
