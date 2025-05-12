@@ -12,6 +12,18 @@ from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.core.utils import build_parameters_dictionary
 from waffles.data_classes.IPDict import IPDict
 
+import json
+import os
+import click
+from pathlib import Path
+import numpy as np
+from waffles.utils.utils import print_colored
+import waffles.input_output.raw_hdf5_reader as reader
+from waffles.input_output.persistence_utils import WaveformSet_to_file
+from waffles.input_output.hdf5_structured import load_structured_waveformset
+from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WaveformSet import WaveformSet
+
 from plotly.subplots import make_subplots
 
 input_parameters = build_parameters_dictionary('params.yml')
@@ -53,35 +65,35 @@ def get_wfs(wfs: list,
             nwfs: int = -1,
             tmin: int = -1,
             tmax: int = -1,
-            rec: list = [-1],
+            rec: Union[int, list] = -1,
             adc_max_threshold: int = None): 
 
-    if type(ch) == int:
-        ch = [ch]
-    if type(ep) == int:
-        ep = [ep]
-        
+    # Normaliza a listas (o conjuntos para búsqueda eficiente)
+    ep = set([ep]) if isinstance(ep, int) else set(ep)
+    ch = set([ch]) if isinstance(ch, int) else set(ch)
+    rec = set([rec]) if isinstance(rec, int) else set(rec)
+
     waveforms = []
     n = 0
 
     for wf in wfs:
-        t = np.float32(np.int64(wf.timestamp) - np.int64(wf.daq_window_timestamp))
+        t = np.float32(int(wf.timestamp) - int(wf.daq_window_timestamp))
         max_adc = np.max(wf.adcs)
 
-        if (wf.endpoint      in ep  or ep[0] == -1) and \
-           (wf.channel       in ch  or ch[0] == -1) and \
-           (wf.record_number in rec or rec[0] == -1) and \
-           ((t > tmin and t < tmax) or (tmin == -1 and tmax == -1)) and \
-           (adc_max_threshold is None or max_adc <= adc_max_threshold):
-            
-            n += 1
-            waveforms.append(wf)  # Guardamos el waveform junto con su baseline
+        if ((-1 in ep or wf.endpoint in ep) and
+            (-1 in ch or wf.channel in ch) and
+            (-1 in rec or wf.record_number in rec) and
+            ((t > tmin and t < tmax) or (tmin == -1 and tmax == -1)) and
+            (adc_max_threshold is None or max_adc <= adc_max_threshold)):
 
-        if n >= nwfs and nwfs != -1:
+            n += 1
+            waveforms.append(wf)
+
+        if nwfs != -1 and n >= nwfs:
             break
 
-
     return waveforms, WaveformSet(*waveforms)
+
 
 
 def baseline_cut(wfs: list):
@@ -101,51 +113,223 @@ def baseline_cut(wfs: list):
 
     return selected_wfs, WaveformSet(*selected_wfs)
 
-def get_gain_and_snr(
-        grid_apa: ChannelWsGrid
-    ):
+def adc_cut(wfs: list, thr_adc: int):
+    """
+    Filters waveforms with a maximum ADC value above a given threshold.
 
+    Args:
+        wfs (list): List of waveforms. Each waveform must have an `adcs` attribute (array-like).
+        thr_adc (int): Maximum ADC threshold (exclusive). If -1, no cut is applied.
+
+    Returns:
+        tuple: (filtered waveform list, WaveformSet containing the filtered waveforms)
+    """
+    if thr_adc == -1:
+        return wfs, WaveformSet(*wfs)
+    
+    selected_wfs = [wf for wf in wfs if np.max(wf.adcs) < thr_adc]
+    
+    return selected_wfs, WaveformSet(*selected_wfs)
+
+def get_gain_snr_and_amplitude(grid: ChannelWsGrid, verbose: bool = False, run=None):
     data = {}
 
-    for i in range(grid_apa.ch_map.rows):
-        for j in range(grid_apa.ch_map.columns):
+    for i in range(grid.ch_map.rows):
+        for j in range(grid.ch_map.columns):
 
-            endpoint = grid_apa.ch_map.data[i][j].endpoint
-            channel = grid_apa.ch_map.data[i][j].channel
+            endpoint = grid.ch_map.data[i][j].endpoint
+            channel = grid.ch_map.data[i][j].channel
 
             try:
-                fit_params = grid_apa.ch_wf_sets[endpoint][channel].calib_histo.gaussian_fits_parameters
+                fit_params = grid.ch_wf_sets[endpoint][channel].calib_histo.gaussian_fits_parameters
             except KeyError:
-                print(f"Endpoint {endpoint}, channel {channel} not found in data. Continuing...")
+                if verbose:
+                    print(f"[WARN] Endpoint {endpoint}, channel {channel} not found in waveform sets. Skipping...")
                 continue
- 
-            # Handle a KeyError the first time we access a certain endpoint
-            try:
-                aux = data[endpoint]
-            except KeyError:
-                data[endpoint] = {}
-                aux = data[endpoint]
 
-            # compute the gain
-            try:
-                aux_gain = fit_params['mean'][1][0] - fit_params['mean'][0][0]
-            except IndexError:
-                print(f"Endpoint {endpoint}, channel {channel} not found in data. Continuing...")
+            if len(fit_params['mean']) < 2 or len(fit_params['std']) < 2 or len(fit_params['scale']) < 2:
+                if verbose:
+                    print(f"[WARN] Endpoint {endpoint}, channel {channel} has fewer than 2 gaussian fits. Skipping...")
                 continue
-            
-            # this is to avoid a problem the first time ch is used
+
             try:
-                aux_2 = aux[channel]
-            except KeyError:
-                aux[channel] = {}
-                aux_2 = aux[channel]
+                mean0, std0 = fit_params['mean'][0][0], fit_params['std'][0][0]
+                mean1, std1 = fit_params['mean'][1][0], fit_params['std'][1][0]
+                amplitude2, amplitude2_err = fit_params['scale'][1]
 
-            aux_2['gain'] = aux_gain
+                gain = mean1 - mean0
+                noise = np.sqrt(std0**2 + std1**2)
+                snr = gain / noise if noise > 0 else np.nan
 
-            # compute the signal to noise ratio
-            aux_2['snr'] = aux_gain/np.sqrt(fit_params['std'][0][0]**2 + fit_params['std'][1][0]**2)
+                if endpoint not in data:
+                    data[endpoint] = {}
+
+                data[endpoint][channel] = {
+                    'gain': gain,
+                    'snr': snr,
+                    'amplitude2': amplitude2,
+                    'amplitude2_err': amplitude2_err,
+                    'mean0': mean0,
+                    'std0': std0,
+                    'mean1': mean1,
+                    'std1': std1,
+                    'run': grid.ch_wf_sets[endpoint][channel].runs,
+                    'number_waveforms': len(grid.ch_wf_sets[endpoint][channel].waveforms)
+                }
+
+                if verbose:
+                    print(f"[DEBUG] EP {endpoint}, CH {channel} | Gain: {gain:.2f}, SNR: {snr:.2f}, Amp2: {amplitude2:.2f}")
+
+            except Exception as e:
+                if verbose:
+                    print(f"[ERROR] Failed to process endpoint {endpoint}, channel {channel}: {e}")
+                continue
 
     return data
+
+
+import numpy as np
+
+def find_best_snr_per_channel(all_full_data_by_interval):
+    """
+    Finds the best signal-to-noise ratio (S/N) per (endpoint, channel) from the given data.
+    
+    Parameters:
+        all_full_data_by_interval (dict): Nested dictionary structured as:
+            {interval: {endpoint: {channel: values_dict}}}
+
+    Returns:
+        dict: Dictionary with keys (endpoint, channel) and values as dicts of best S/N info.
+    """
+    best_snr_info_per_channel = {}
+
+    for interval, full_data in all_full_data_by_interval.items():
+        for ep, ch_dict in full_data.items():
+            for ch, values in ch_dict.items():
+                snr = values['snr']
+                mean0 = values['mean0']
+                
+                if not np.isfinite(snr) or not (-1000 <= mean0 <= 1000):
+                    continue
+                
+                key = (ep, ch)
+                if key not in best_snr_info_per_channel or snr > best_snr_info_per_channel[key]['snr']:
+                    best_snr_info_per_channel[key] = {
+                        'snr': snr,
+                        'interval': interval,
+                        'gain': values['gain'],
+                        'amplitude': values['amplitude2'],
+                        'amplitude_err': values['amplitude2_err'],
+                        'mean0': values['mean0'],
+                        'std0': values['std0'],
+                        'mean1': values['mean1'],
+                        'std1': values['std1'],
+                        'run': values['run'],
+                        'number_waveforms': values['number_waveforms']
+                        
+                    }
+
+    print("\n>>> Best S/N per (endpoint, channel) with mu0 in [-1000, 1000]:")
+    for (ep, ch), info in best_snr_info_per_channel.items():
+        print(f"EP {ep}, CH {ch} → Best S/N = {info['snr']:.2f} at interval {info['interval']}, "
+              f"Gain: {info['gain']:.2f}, Amplitude: {info['amplitude']:.2f}, "
+              f"Amplitude Err: {info['amplitude_err']:.2f}, Mean0: {info['mean0']:.2f}, "
+              f"Std0: {info['std0']:.2f}, Mean1: {info['mean1']:.2f}, Std1: {info['std1']:.2f},"
+              f"Run: {info['run']}, Number of processed wfs: {info['number_waveforms']}")
+    
+    return best_snr_info_per_channel
+
+def select_waveforms_around_spe(best_snr_info_per_channel, wfset2):
+    """
+    Selects waveforms whose integrals fall within 1 sigma around the mean1 (peak) 
+    for each (endpoint, channel) based on the best S/N interval.
+
+    Parameters:
+        best_snr_info_per_channel (dict): Output from find_best_snr_per_channel().
+        wfset2 (WaveformSet): A WaveformSet object with `.waveforms`.
+
+    Returns:
+        dict: A dictionary of (endpoint, channel) → WaveformSet with selected waveforms.
+    """
+    selected_wfs3_lists = {}
+
+    for (ep, ch), info in best_snr_info_per_channel.items():
+        mu1 = info['mean1']
+        sigma1 = info['std1']
+        interval = info['interval']
+        integral_min = mu1 - sigma1
+        integral_max = mu1 + sigma1
+
+        for wf in wfset2.waveforms:
+            if wf.endpoint != ep or wf.channel != ch:
+                continue
+
+            integral_key = f"charge_histogram_{interval}"
+            if integral_key not in wf.analyses or 'integral' not in wf.analyses[integral_key].result:
+                continue  # skip if data is missing
+
+            wf_integral = wf.analyses[integral_key].result['integral']
+            if not np.isnan(wf_integral) and integral_min <= wf_integral <= integral_max:
+                selected_wfs3_lists.setdefault((ep, ch), []).append(wf)
+
+    waveformsets_by_channel = {}
+    for (ep, ch), wf_list in selected_wfs3_lists.items():
+        if wf_list:  # only if we have waveforms
+            waveformsets_by_channel[(ep, ch)] = WaveformSet(*wf_list)
+
+    return waveformsets_by_channel
+
+
+def compute_average_amplitude(waveforms, interval, ch, output_dir=None):
+    amps_wf = []
+
+    for wf in waveforms:
+        key = f'charge_histogram_{interval}'
+        if key in wf.analyses and 'amplitude' in wf.analyses[key].result:
+            amp = wf.analyses[key].result['amplitude']
+            amps_wf.append(amp)
+
+    if amps_wf:
+        mean_amp = np.mean(amps_wf)
+        std_amp = np.std(amps_wf)
+
+        # Define a focused range around the bulk of the data (e.g., ±3σ)
+        #xmin = max(0, mean_amp - 4 * std_amp)
+        #xmax = mean_amp + 4 * std_amp
+
+        # Use get_histogram to build the plotly trace
+        hist_trace = get_histogram(
+            values=amps_wf,
+            nbins=120,
+            #xmin=xmin,
+            #xmax=xmax,
+            line_color='black',
+            line_width=2
+        )
+
+        fig = go.Figure()
+        fig.add_trace(hist_trace)
+
+        fig.update_layout(
+            title=f"Histogram of Amplitudes (interval {interval})",
+            xaxis_title="Amplitude",
+            yaxis_title="Counts",
+        )
+
+        # Save or show the figure
+        os.makedirs(output_dir, exist_ok=True)
+        base_name = f"amplitude_ch_{ch}_interval{interval}"
+        html_path = os.path.join(output_dir, base_name + ".html")
+        fig.write_html(html_path)
+        print(f"\n >>> Histogram of amplitudes saved to: {html_path}")
+        fig.show()
+
+        return mean_amp, amps_wf
+    else:
+        print("No valid amplitudes found.")
+        return np.nan, []
+
+
 
 def get_histogram(values: list,
                    nbins: int = 100,
@@ -174,6 +358,8 @@ def get_histogram(values: list,
         x=edges[:-1],  
         y=counts,
         mode='lines',
+        fill='tozeroy',
+        fillcolor='black',
         line=dict(
             color=line_color,
             width=line_width,
@@ -224,8 +410,8 @@ def plot_snr_per_channel_grid(snr_data, det, det_id, title="S/N vs integration i
             geometry = [
                 [46, 44],
                 [43, 41],
-                [30, 17],
-                [10, 37],
+                [30, 37],
+                [10, 17],
             ]
         elif det_id == 1:
             geometry = [
@@ -318,7 +504,7 @@ def plot_wf(waveform_adcs: WaveformAdcs,
         x = x0 + dt,   
         y = y0,
         mode = 'lines',
-        line = dict(width=0.5)
+        line = dict(width=0.5, color='black')
     )
 
     figure.add_trace(wf_trace, row, col)
@@ -329,7 +515,7 @@ def plot_wfs(channel_ws,
              figure, 
              row, 
              col,           
-             nwfs: int = -1,
+             nwfs_plot: int = -1,
              xmin: int = -1,
              xmax: int = -1,
              tmin: int = -1,
@@ -339,22 +525,23 @@ def plot_wfs(channel_ws,
              ) -> None:
     """
     Plot a list of waveforms. If baseline=True, subtract baseline from each waveform.
+    Limits number of plotted waveforms with `nwfs`.
     """
 
     if tmin == -1 and tmax == -1:
         tmin = xmin - 1024
         tmax = xmax        
 
-    n = 0        
     for i, wf in enumerate(channel_ws.waveforms):
-        n += 1
+        if nwfs_plot != -1 and i >= nwfs_plot:
+            break
+
         if baseline:
             bl = wf.analyses['baseline_computation'].result['baseline']
         else:
             bl = None
+
         plot_wf(wf, figure, row, col, baseline=bl, offset=offset)
-        if n >= nwfs and nwfs != -1:
-            break
 
     return figure
 
@@ -642,3 +829,72 @@ def plot_sigma_to_noise_vs_interval(channel_ws, figure, row, col, intervals):
     ), row=row, col=col)
 
     return figure
+
+def save_waveform_hdf5(wfset, input_filepath):
+        input_filename = Path(input_filepath).name
+        output_filepath = f"output/processed_wf_{input_filename}.hdf5"
+
+        print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
+        try:
+            # ✅ Make sure we overwrite the input variable with the wrapped one
+
+            print_colored(f"📦 About to save WaveformSet with {len(wfset.waveforms)} waveforms", color="DEBUG")
+
+            WaveformSet_to_file(
+                waveform_set=wfset,
+                output_filepath=str(output_filepath),
+                overwrite=True,
+                format="hdf5",
+                compression="gzip",
+                compression_opts=0,
+                structured=True
+            )
+            print_colored(f"WaveformSet saved to {output_filepath}", color="SUCCESS")
+
+            print_colored("Going to load...")
+            wfset_loaded = load_structured_waveformset(str(output_filepath))
+            print_colored("Loaded, about to compare...")  # If you see this, the load worked
+            print_colored(f"wfset_loaded type={type(wfset_loaded)}")
+            
+
+            return True
+        except Exception as e:
+            print_colored(f"Error saving output: {e}", color="ERROR")
+            return False
+
+
+import os
+import json
+
+import os
+import json
+
+def save_dict_to_json(data: dict, file_path: str) -> None:
+    """
+    Save (ep, ch) keyed data into nested JSON format: {ep: {ch: {...}}}
+    
+    Args:
+        data (dict): Keys are tuples (ep, ch), values are dicts with analysis info.
+        file_path (str): Path to save the JSON file.
+    """
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    nested_data = {}
+    for (ep, ch), values in data.items():
+        ep_str = str(ep)
+        ch_str = str(ch)
+
+        # Convert 'run' set to list if needed
+        if isinstance(values.get("run"), set):
+            values["run"] = list(values["run"])
+
+        if ep_str not in nested_data:
+            nested_data[ep_str] = {}
+        nested_data[ep_str][ch_str] = values
+
+    with open(file_path, 'w') as f:
+        json.dump(nested_data, f, indent=4)
+
+    print(f"\n >>> Dictionary saved to {file_path}")
+
+

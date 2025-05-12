@@ -19,6 +19,18 @@ from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
 import plotly.graph_objects as go 
 from plotly.subplots import make_subplots
 
+
+import json
+import click
+from pathlib import Path
+import numpy as np
+from waffles.utils.utils import print_colored
+import waffles.input_output.raw_hdf5_reader as reader
+from waffles.input_output.persistence_utils import WaveformSet_to_file
+from waffles.input_output.hdf5_structured import load_structured_waveformset
+from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WaveformSet import WaveformSet
+
 input_parameters = build_parameters_dictionary('params.yml')
 
 def get_input_filepath(
@@ -322,8 +334,8 @@ def plot_snr_per_channel_grid(snr_data, det, det_id, title="S/N vs integration i
             geometry = [
                 [46, 44],
                 [43, 41],
-                [30, 17],
-                [10, 37],
+                [30, 37],
+                [10, 17],
             ]
         elif det_id == 1:
             geometry = [
@@ -380,5 +392,39 @@ def plot_snr_per_channel_grid(snr_data, det, det_id, title="S/N vs integration i
     # Show the figure
     if show_figures:
         fig.show()
+        
+        
+def write_output(self, wfset, input_filepath):
+        input_filename = Path(input_filepath).name
+        output_filepath = Path(self.output_path) / f"processed_{input_filename}_structured.hdf5"
+
+        print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
+        try:
+            # ✅ Make sure we overwrite the input variable with the wrapped one
+            wfset = self.ensure_waveformset(wfset)
+            print_colored(f"📦 About to save WaveformSet with {len(wfset.waveforms)} waveforms", color="DEBUG")
+
+            WaveformSet_to_file(
+                waveform_set=wfset,
+                output_filepath=str(output_filepath),
+                overwrite=True,
+                format="hdf5",
+                compression="gzip",
+                compression_opts=0,
+                structured=True
+            )
+            print_colored(f"WaveformSet saved to {output_filepath}", color="SUCCESS")
+
+            print_colored("Going to load...")
+            wfset_loaded = load_structured_waveformset(str(output_filepath))
+            print_colored("Loaded, about to compare...")  # If you see this, the load worked
+            print_colored(f"wfset_loaded type={type(wfset_loaded)}")
+            self.compare_waveformsets(wfset, wfset_loaded)
+            print_colored("Done comparing!")  # If you never see this, an error happens in compare
+
+            return True
+        except Exception as e:
+            print_colored(f"Error saving output: {e}", color="ERROR")
+            return False
 
 
