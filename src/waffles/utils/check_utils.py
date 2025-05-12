@@ -1,4 +1,5 @@
 from typing import List
+from waffles.utils.baseline.baseline import SBaseline
 
 def fraction_is_well_formed(lower_limit : float = 0.0,
                             upper_limit : float = 1.0) -> bool:
@@ -89,6 +90,42 @@ def baseline_limits_are_well_formed(baseline_limits : List[int],
             return False
             
     if baseline_limits[-1] > points_no - 1:
+        return False
+    
+    return True
+
+def baseliner_class_is_given(baseliner: SBaseline) -> bool:
+    """
+    This method returns True if baseliner is an instance of SBaseline and False if else.
+
+    Parameters
+    ----------
+    baseliner : SBaseline
+
+    Returns
+    ----------
+    bool
+    """
+
+    if not isinstance(baseliner, SBaseline):
+        return False
+    
+    return True
+
+def baseliner_class_has_filtering_set(baseliner: SBaseline) -> bool:
+    """
+    This method returns True if baseliner has filtering set and False if else.
+
+    Parameters
+    ----------
+    baseliner : SBaseline
+
+    Returns
+    ----------
+    bool
+    """
+
+    if baseliner.filtering is None:
         return False
     
     return True
