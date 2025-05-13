@@ -175,7 +175,7 @@ def compare_fits(x, avg_cosmic):
     ]
     bounds_1 = (
         [0,   i0-10, 1,   0, 10,   0, 10,   i0],
-        [np.inf, i0+10, 20, np.inf, 500, np.inf, 2000, i0]
+        [np.inf, i0+10, 20, np.inf, 500, np.inf, 2000, i0+1]
     )
     popt1, _ = curve_fit(
         model_gauss_2exp, x, avg_cosmic,
@@ -197,7 +197,7 @@ def compare_fits(x, avg_cosmic):
     ]
     bounds_2 = (
         [0,   1,   0,   10,  0,   10,  10,  popt1[7]],
-        [np.inf, 200, np.inf, 500, np.inf, 2000, 2000, popt1[7]]
+        [np.inf, 200, np.inf, 500, np.inf, 2000, 2000, popt1[7]+1]
     )
     popt2, _ = curve_fit(
         model_3exp, x, avg_cosmic,
