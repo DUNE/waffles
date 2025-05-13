@@ -1,6 +1,6 @@
 {
     "runs": [
-        36367
+        36414
     ],
     "rucio_dir": "/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts/raw_lists",
     "output_dir": "/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts/processed",
