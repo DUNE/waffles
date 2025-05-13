@@ -320,7 +320,7 @@ class Analysis1(WafflesAnalysis):
             left = self.wf_peak-int(interval * 0.2)
             right = self.wf_peak+int(interval * 0.8)
             
-            print(f"\n >>> Analyzing with interval: [{left}, {right}]")
+            print(f"\n >>> Analyzing with interval: ({left}, {right})")
 
             # Set parameters for this interval
             
@@ -332,8 +332,9 @@ class Analysis1(WafflesAnalysis):
             analysis_params['amp_ll'] = left
             analysis_params['amp_ul'] = right
             
-            self.analysis_name2= f"charge_histogram_{interval}"
-            
+ 
+            self.analysis_name2= f"charge_histogram_({left}, {right})"
+      
             # Perform the analysis
             
             _ = self.selected_wfset3.analyse(
@@ -433,14 +434,16 @@ class Analysis1(WafflesAnalysis):
             self.should_save_waveforms = False  
         else:
             self.should_save_waveforms = True   
-
-            self.waveformsets_by_channel = os_utils.select_waveforms_around_spe(self.best_snr_info_per_channel, self.selected_wfset2)
+            self.waveformsets_by_channel = os_utils.select_waveforms_around_spe(self.best_snr_info_per_channel, self.selected_wfset3)
 
         # Compute average amplitude
         
         if isinstance(self.integration_intervals, list) and isinstance(self.params.ch, list) \
         and len(self.integration_intervals) == 1 and len(self.params.ch) == 1:
             interval = self.integration_intervals[0]
+            left = self.wf_peak - int(interval * 0.2)
+            right = self.wf_peak + int(interval * 0.8)
+            interval = (left,right)
             ch = self.params.ch[0]
             os_utils.compute_average_amplitude(self.selected_wfs3, interval, self.params.ch, self.params.output_path)
             
@@ -468,6 +471,7 @@ class Analysis1(WafflesAnalysis):
         if getattr(self, "should_save_waveforms", False):
             
             print(f"\n >>> Saving the Waveforms in a hdf5 file")
+  
             for (ep, ch), wfset in self.waveformsets_by_channel.items():
                 input_filename = f"run_{self.run}_ep{ep}_ch{ch}"
                 os_utils.save_waveform_hdf5(wfset, input_filepath=input_filename)
@@ -529,8 +533,9 @@ class Analysis1(WafflesAnalysis):
             if self.params.show_figures:
                 figure0.show()
 
-            fig0_path = f"{base_file_path}_average.html"
-            figure0.write_html(f"{fig0_path}")
+            fig0_path = f"{base_file_path}_ch_{self.params.ch}_average"
+            figure0.write_html(f"{fig0_path}.html")
+            figure0.write_image(f"{fig0_path}.png")
 
             print(f" \n Average plots saved in {fig0_path}")
     
@@ -568,8 +573,9 @@ class Analysis1(WafflesAnalysis):
             if self.params.show_figures:
                 figure1.show()
 
-            fig1_path = f"{base_file_path}_wfs_raw.html"
-            figure1.write_html(fig1_path)
+            fig1_path = f"{base_file_path}_wfs_raw"
+            figure1.write_html(f"{fig1_path}.html")
+            figure1.write_image(f"{fig1_path}.png")
             print(f"\nNo filtered waveforms saved in {fig1_path}")
 
         if self.thr_adc != -1:
@@ -602,9 +608,10 @@ class Analysis1(WafflesAnalysis):
 
             if self.params.show_figures:
                 figure12.show()
-
-            fig12_path = f"{base_file_path}_wfs_filt1.html"  # <- Renamed to avoid overwriting
-            figure12.write_html(fig12_path)
+                
+            fig12_path = f"{base_file_path}_wfs_filt1"
+            figure12.write_html(f"{fig12_path}.html")
+            figure12.write_image(f"{fig12_path}.png")
             print(f"\nWaveforms with baseline filter saved in {fig12_path}")
         
         # ------------- Save the filtered 2 waveforms plot ------------- 
@@ -653,64 +660,69 @@ class Analysis1(WafflesAnalysis):
   
         if self.params.show_figures:
             figure13.show()
-            
-        fig13_path = f"{base_file_path}_wfs_filt2.html"
-        figure13.write_html(f"{fig13_path}")
+        
+        fig13_path = f"{base_file_path}_wfs_filt"
+        figure13.write_html(f"{fig13_path}.html")
+        figure13.write_image(f"{fig13_path}.png")
         
         print(f"\n Waveforms with baseline filter saved in {fig13_path}")
         
         
         # ------------- Save the persistence plot -------------
         
-        figure2 = plot_ChannelWsGrid(
-                self.grid_filt2,
-                figure=None,
-                share_x_scale=False,
-                share_y_scale=False,
-                mode="heatmap",
-                wfs_per_axes=len(self.selected_wfs3),
-                analysis_label=self.analysis_name,
-                detailed_label=False,
-                verbose=True
+        if isinstance(self.integration_intervals, list) and isinstance(self.params.ch, list) \
+        and len(self.integration_intervals) == 1 and len(self.params.ch) == 1:  
+        
+            figure2 = plot_ChannelWsGrid(
+                    self.grid_filt2,
+                    figure=None,
+                    share_x_scale=False,
+                    share_y_scale=False,
+                    mode="heatmap",
+                    wfs_per_axes=len(self.selected_wfs3),
+                    analysis_label=self.analysis_name,
+                    detailed_label=False,
+                    verbose=True
+                )
+
+            title2 = f"Persistence of filtered waveforms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
+
+            figure2.update_layout(
+                title={
+                    "text": title2,
+                    "font": {"size": 24}
+                },
+                width=1100,
+                height=1200,
+                showlegend=True
+            )
+            
+            figure2.add_annotation(
+                x=0.5,
+                y=-0.05, 
+                xref="paper",
+                yref="paper",
+                text="Timeticks",
+                showarrow=False,
+                font=dict(size=16)
+            )
+            figure2.add_annotation(
+                x=-0.07,
+                y=0.5,
+                xref="paper",
+                yref="paper",
+                text="Entries",
+                showarrow=False,
+                font=dict(size=16),
+                textangle=-90
             )
 
-        title2 = f"Persistence of filtered waveforms for {det_id_name} {self.params.det} - Runs {list(self.wfset.runs)}"
-
-        figure2.update_layout(
-            title={
-                "text": title2,
-                "font": {"size": 24}
-            },
-            width=1100,
-            height=1200,
-            showlegend=True
-        )
-        
-        figure2.add_annotation(
-            x=0.5,
-            y=-0.05, 
-            xref="paper",
-            yref="paper",
-            text="Timeticks",
-            showarrow=False,
-            font=dict(size=16)
-        )
-        figure2.add_annotation(
-            x=-0.07,
-            y=0.5,
-            xref="paper",
-            yref="paper",
-            text="Entries",
-            showarrow=False,
-            font=dict(size=16),
-            textangle=-90
-        )
-
-        if self.params.show_figures:
-            figure2.show()
+            if self.params.show_figures:
+                figure2.show()
             
-        fig2_path = f"{base_file_path}_pers.html"
-        figure2.write_html(f"{fig2_path}")
-        print(f"\n Persistance saved in {fig2_path}")
+            fig2_path = f"{base_file_path}_ch_{self.params.ch}_pers"
+            figure2.write_html(f"{fig2_path}.html")
+            figure2.write_image(f"{fig2_path}.png")
+            print(f"\n Persistance saved in {fig2_path}")
          
         return True
