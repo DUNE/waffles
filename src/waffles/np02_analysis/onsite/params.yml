@@ -27,6 +27,7 @@ tmax: -1
 # [-1] means all channels
 ch: 
   - 30
+  - 37
 
 # Number of waveforms to analyze
 # -1 means all waveforms
@@ -48,6 +49,8 @@ integ_window: 60
 # Approximate ADC value of the waveform peak
 wf_peak: 262
 
+# 36335: 262
+
 # Baseline limits
 baseline_limits:
     - 0
@@ -59,11 +62,17 @@ nbins: 130
 # Integration intervals to use
 integration_intervals:
     - 10
+    - 12
 
-# ADC threshold for the ADC filter (second filter if there is a lot of light leakge)
+# 36335: ch 30: 10
+# 36335: ch 37: 12
+
+# ADC threshold for the ADC filter (second filter if there is a lot of light leakage). It is useful for filtered the spe waveforms.
 # -1 means no second filter applied
-thr_adc: 8268
-# 36335: ch 30: 500
+thr_adc: -1
+
+# 36335: ch 30: 130
+# 36335: ch 37: 150
 
 # ------- Parameters for peak fitting -------
 

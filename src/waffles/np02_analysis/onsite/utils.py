@@ -127,7 +127,7 @@ def adc_cut(wfs: list, thr_adc: int):
     if thr_adc == -1:
         return wfs, WaveformSet(*wfs)
     
-    selected_wfs = [wf for wf in wfs if np.max(wf.adcs) < thr_adc]
+    selected_wfs = [wf for wf in wfs if np.max(wf.adcs)-wf.analyses['baseline_computation'].result['baseline'] < thr_adc]
     
     return selected_wfs, WaveformSet(*selected_wfs)
 
@@ -281,6 +281,10 @@ def select_waveforms_around_spe(best_snr_info_per_channel, wfset2):
 
 
 def compute_average_amplitude(waveforms, interval, ch, output_dir=None):
+    import numpy as np
+    import os
+    import plotly.graph_objects as go
+
     amps_wf = []
 
     for wf in waveforms:
@@ -293,16 +297,9 @@ def compute_average_amplitude(waveforms, interval, ch, output_dir=None):
         mean_amp = np.mean(amps_wf)
         std_amp = np.std(amps_wf)
 
-        # Define a focused range around the bulk of the data (e.g., ±3σ)
-        #xmin = max(0, mean_amp - 4 * std_amp)
-        #xmax = mean_amp + 4 * std_amp
-
-        # Use get_histogram to build the plotly trace
         hist_trace = get_histogram(
             values=amps_wf,
-            nbins=120,
-            #xmin=xmin,
-            #xmax=xmax,
+            nbins=25,
             line_color='black',
             line_width=2
         )
@@ -316,19 +313,23 @@ def compute_average_amplitude(waveforms, interval, ch, output_dir=None):
             yaxis_title="Counts",
         )
 
-        # Save or show the figure
+        # Save figures
         os.makedirs(output_dir, exist_ok=True)
         base_name = f"amplitude_ch_{ch}_interval{interval}"
         html_path = os.path.join(output_dir, base_name + ".html")
+        png_path = os.path.join(output_dir, base_name + ".png")
+
         fig.write_html(html_path)
-        print(f"\n >>> Histogram of amplitudes saved to: {html_path}")
+        fig.write_image(png_path, width=800, height=600)  # PNG export
+
+        print(f"\n >>> Histogram of amplitudes saved to:")
+
         fig.show()
 
         return mean_amp, amps_wf
     else:
         print("No valid amplitudes found.")
         return np.nan, []
-
 
 
 def get_histogram(values: list,
@@ -832,7 +833,7 @@ def plot_sigma_to_noise_vs_interval(channel_ws, figure, row, col, intervals):
 
 def save_waveform_hdf5(wfset, input_filepath):
         input_filename = Path(input_filepath).name
-        output_filepath = f"output/processed_wf_{input_filename}.hdf5"
+        output_filepath = f"output_led/processed_wf_{input_filename}.hdf5"
 
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
         try:
