@@ -280,47 +280,55 @@ def select_waveforms_around_spe(best_snr_info_per_channel, wfset2):
     return waveformsets_by_channel
 
 
-def compute_average_amplitude(waveforms, interval, ch, output_dir=None):
-    import numpy as np
-    import os
-    import plotly.graph_objects as go
+import numpy as np
+import os
+import plotly.graph_objects as go
 
+def compute_average_amplitude(waveforms, interval, ch, run, output_dir=None):
+    """
+    Computes the average amplitude of waveforms in a given interval and channel.
+    """
+    ll, ul = interval 
     amps_wf = []
 
     for wf in waveforms:
-        key = f'charge_histogram_{interval}'
-        if key in wf.analyses and 'amplitude' in wf.analyses[key].result:
-            amp = wf.analyses[key].result['amplitude']
-            amps_wf.append(amp)
+        key = f'baseline_computation'
+        if key in wf.analyses and 'baseline' in wf.analyses[key].result:
+            baseline = wf.analyses[key].result['baseline']
+            adcs = wf.adcs
+            offset = wf.time_offset
+
+            amp_region = adcs[ll - offset : ul + 1 - offset]
+            amplitude = np.max(amp_region) - baseline
+            amps_wf.append(amplitude)
 
     if amps_wf:
         mean_amp = np.mean(amps_wf)
         std_amp = np.std(amps_wf)
 
-        hist_trace = get_histogram(
-            values=amps_wf,
-            nbins=25,
-            line_color='black',
-            line_width=2
+        # Crear histograma
+        hist_trace = go.Histogram(
+            x=amps_wf,
+            nbinsx=25,
+            marker=dict(color='black', line=dict(color='black', width=2)),
+            name='Amplitude Distribution'
         )
 
-        fig = go.Figure()
-        fig.add_trace(hist_trace)
-
+        fig = go.Figure(hist_trace)
         fig.update_layout(
             title=f"Histogram of Amplitudes (interval {interval})",
             xaxis_title="Amplitude",
             yaxis_title="Counts",
         )
 
-        # Save figures
+        # Guardar
         os.makedirs(output_dir, exist_ok=True)
-        base_name = f"amplitude_ch_{ch}_interval{interval}"
+        base_name = f"amplitudehist_run_{run}_ch_{ch}_interval{ll}_{ul}"
         html_path = os.path.join(output_dir, base_name + ".html")
         png_path = os.path.join(output_dir, base_name + ".png")
 
         fig.write_html(html_path)
-        fig.write_image(png_path, width=800, height=600)  # PNG export
+        fig.write_image(png_path, width=800, height=600)
 
         print(f"\n >>> Histogram of amplitudes saved to:")
 
@@ -328,7 +336,7 @@ def compute_average_amplitude(waveforms, interval, ch, output_dir=None):
 
         return mean_amp, amps_wf
     else:
-        print("No valid amplitudes found.")
+        print("No valid waveforms found.")
         return np.nan, []
 
 
