@@ -445,7 +445,7 @@ class Analysis1(WafflesAnalysis):
             right = self.wf_peak + int(interval * 0.8)
             interval = (left,right)
             ch = self.params.ch[0]
-            os_utils.compute_average_amplitude(self.selected_wfs3, interval, self.params.ch, self.params.output_path)
+            os_utils.compute_average_amplitude(self.selected_wfs3, interval, self.params.ch, self.params.runs, self.params.output_path)
             
         else:
             print("\n ⚠ The average amplitude is not calculated because there are multiple channels or/and intervals.")
