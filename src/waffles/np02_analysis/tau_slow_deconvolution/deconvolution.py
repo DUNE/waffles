@@ -147,21 +147,27 @@ def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=10
 
     popt1, popt2 = compare_fits(x, avg_cosmic)
 
-    # --- funzione di confronto fit --- #
 def compare_fits(x, avg_cosmic):
 
-    # --- 1) Fit Gaussiana + 2 Exp --- #
-    i0 = int(np.argmax(avg_cosmic))
+    # --- 1) Fit Gaus + 2 Exp --- #
+    A_fast_init = np.max(avg_cosmic)
+    mu_init = int(np.argmax(avg_cosmic))
+    sigma_init = 5
+    A_int_init = A_fast_init / 2
+    tau_int_init = 200
+    A_slow_init = A_fast_init / 3
+    tau_slow_init = 600
+    x0_init = mu_init - 10
     p0_1 = [
-        np.max(avg_cosmic),  # A_fast
-        i0,                  # mu
-        5,                   # sigma
-        np.max(avg_cosmic)/2,# A_int
-        200,                 # tau_int
-        np.max(avg_cosmic)/4,# A_slow
-        600,                 # tau_slow
-        i0                   # x0
+        A_fast_init,         
+        mu_init,             
+        sigma_init,          
+        A_int_init,
+        tau_int_init,
+        A_slow_init,
+        tau_slow_init,
     ]
+    i0 = int(np.argmax(avg_cosmic))
     bounds_1 = (
         [0,   i0-10, 1,   0, 10,   0, 10,   i0],
         [np.inf, i0+10, 20, np.inf, 500, np.inf, 2000, i0+1]
@@ -194,14 +200,44 @@ def compare_fits(x, avg_cosmic):
     )
     fit2 = model_3exp(x, *popt2)
 
-    # 3) Plot comparativo con Plotly
+    # --- compute components of fit1 (Gauss + 2exp) ---
+    A_fast, mu, sigma = popt1[0:3]
+    A_int, tau_int = popt1[3:5]
+    A_slow, tau_slow = popt1[5:7]
+    x0 = popt1[7]
+
+    mask = x >= x0
+    fast_component_1 = np.zeros_like(x)
+    intermediate_component_1 = np.zeros_like(x)
+    slow_component_1 = np.zeros_like(x)
+
+    fast_component_1[mask] = A_fast * np.exp(- (x[mask] - mu)**2 / (2 * sigma**2))
+    intermediate_component_1[mask] = A_int * np.exp(-(x[mask] - x0) / tau_int)
+    slow_component_1[mask] = A_slow * np.exp(-(x[mask] - x0) / tau_slow)
+
+    # --- compute components of fit2 (3exp) ---
+    A1, tau1 = popt2[0:2]
+    A2, tau2 = popt2[2:4]
+    A3, tau3 = popt2[4:6]
+    x0_2 = popt2[6]
+
+    mask2 = x >= x0_2
+    comp1 = np.zeros_like(x)
+    comp2 = np.zeros_like(x)
+    comp3 = np.zeros_like(x)
+
+    comp1[mask2] = A1 * np.exp(-(x[mask2] - x0_2) / tau1)
+    comp2[mask2] = A2 * np.exp(-(x[mask2] - x0_2) / tau2)
+    comp3[mask2] = A3 * np.exp(-(x[mask2] - x0_2) / tau3) 
+
+    # Plots
     fig = make_subplots(
         rows=2, cols=1,
         shared_xaxes=True,
         subplot_titles=("Fit Gauss+2exp", "Fit 3exp")
     )
 
-    # primo subplot: gauss+2exp
+    # gauss+2exp
     fig.add_trace(
         go.Scatter(x=x, y=avg_cosmic, mode="lines",
                    name="Avg Cosmic", line=dict(color='black')),
@@ -212,8 +248,17 @@ def compare_fits(x, avg_cosmic):
                    name="Gauss+2exp", line=dict(color='red')),
         row=1, col=1
     )
+    fig.add_trace(
+        go.Scatter(x=x, y=fast_component_1, name="Fast Comp.", line=dict(dash='dash', color='green')), 
+        row=1, col=1)
+    fig.add_trace(
+        go.Scatter(x=x, y=intermediate_component_1, name="Int Comp.", line=dict(dash='dash', color='orange')), 
+        row=1, col=1)
+    fig.add_trace(
+        go.Scatter(x=x, y=slow_component_1, name="Slow Comp.", line=dict(dash='dash', color='purple')), 
+        row=1, col=1)
 
-    # secondo subplot: 3 exp
+    # 3 exp
     fig.add_trace(
         go.Scatter(x=x, y=avg_cosmic, mode="lines",
                    name="Avg Cosmic", line=dict(color='black'),
@@ -225,13 +270,22 @@ def compare_fits(x, avg_cosmic):
                    name="3exp", line=dict(color='blue')),
         row=2, col=1
     )
+    fig.add_trace(
+        go.Scatter(x=x, y=comp1, name="Fast Comp.", line=dict(dash='dash', color='green')), 
+        row=2, col=1)
+    fig.add_trace(
+        go.Scatter(x=x, y=comp2, name="Int Comp.", line=dict(dash='dash', color='orange')), 
+        row=2, col=1)
+    fig.add_trace(
+        go.Scatter(x=x, y=comp3, name="Slow Comp.", line=dict(dash='dash', color='purple')), 
+        row=2, col=1)
 
-    fig.update_xaxes(title_text="Sample Index", row=2, col=1)
+    fig.update_xaxes(title_text="Samples 16ns/sample", row=2, col=1)
     fig.update_yaxes(title_text="ADC Counts", row=1, col=1)
     fig.update_yaxes(title_text="ADC Counts", row=2, col=1)
     fig.update_layout(
         height=700, width=800,
-        title="Confronto Fit: Gaussiana+2exp vs 3exp",
+        title="Gaussiana+2exp vs 3exp",
         legend=dict(x=0.7, y=0.95)
     )
     fig.show()
