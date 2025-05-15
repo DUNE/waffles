@@ -59,7 +59,7 @@ def align_waveforms(reference, target):
 def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=1024):
     cosmic_wfset, cosmic_wfs = load_waveforms(cosmic_path, channel, max_samples)
     _, led_wfs = load_waveforms(led_path, channel, max_samples)
-    _, noise_wfs = load_waveforms(noise_path, channel, max_samples)
+#    _, noise_wfs = load_waveforms(noise_path, channel, max_samples)
 
     mean_cosmic = waffles.WaveformSet.compute_mean_waveform(cosmic_wfset)
     mean_array = mean_cosmic.adcs  
@@ -91,8 +91,10 @@ def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=10
     fig.update_layout(height=600, width=800, title_text="Cosmic Waveforms")
     fig.show()
 
-    min_count = min(len(cosmic_wfs), len(led_wfs), len(noise_wfs))
-    cosmic_wfs, led_wfs, noise_wfs = cosmic_wfs[:min_count], led_wfs[:min_count], noise_wfs[:min_count]
+    min_count = min(len(cosmic_wfs), len(led_wfs))
+    cosmic_wfs, led_wfs = cosmic_wfs[:min_count], led_wfs[:min_count]
+#    min_count = min(len(cosmic_wfs), len(led_wfs), len(noise_wfs))
+#    cosmic_wfs, led_wfs, noise_wfs = cosmic_wfs[:min_count], led_wfs[:min_count], noise_wfs[:min_count]
 
     aligned_cosmics, aligned_leds = [], []
 
@@ -150,12 +152,14 @@ def process_waveforms(cosmic_path, led_path, noise_path, channel, max_samples=10
 def compare_fits(x, avg_cosmic):
 
     # --- 1) Fit Gaus + 2 Exp --- #
+    i0 = int(np.argmax(avg_cosmic))
+
     A_fast_init = np.max(avg_cosmic)
     mu_init = int(np.argmax(avg_cosmic))
     sigma_init = 5
     A_int_init = A_fast_init / 2
     tau_int_init = 200
-    A_slow_init = A_fast_init / 3
+    A_slow_init = A_fast_init / 4
     tau_slow_init = 600
     x0_init = mu_init - 10
     p0_1 = [
@@ -166,8 +170,8 @@ def compare_fits(x, avg_cosmic):
         tau_int_init,
         A_slow_init,
         tau_slow_init,
+        i0
     ]
-    i0 = int(np.argmax(avg_cosmic))
     bounds_1 = (
         [0,   i0-10, 1,   0, 10,   0, 10,   i0],
         [np.inf, i0+10, 20, np.inf, 500, np.inf, 2000, i0+1]
