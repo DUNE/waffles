@@ -155,8 +155,9 @@ def compare_fits(x, avg_cosmic):
     i0 = int(np.argmax(avg_cosmic))
 
     A_fast_init = np.max(avg_cosmic)
-    mu_init = int(np.argmax(avg_cosmic))
-    sigma_init = 5
+    mu_init = 5
+#    mu_init = int(np.argmax(avg_cosmic))
+    sigma_init = 2 #it was 5
     A_int_init = A_fast_init / 2
     tau_int_init = 200
     A_slow_init = A_fast_init / 4
@@ -173,8 +174,8 @@ def compare_fits(x, avg_cosmic):
         i0
     ]
     bounds_1 = (
-        [0,   i0-10, 1,   0, 10,   0, 10,   i0],
-        [np.inf, i0+10, 20, np.inf, 500, np.inf, 2000, i0+1]
+        [0,   0, 1,   0, 10,   0, 10,   i0-5],
+        [np.inf, 20, 20, np.inf, 500, np.inf, 2000, i0+5]
     )
     popt1, _ = curve_fit(
         model_gauss_2exp, x, avg_cosmic,
@@ -205,19 +206,23 @@ def compare_fits(x, avg_cosmic):
     fit2 = model_3exp(x, *popt2)
 
     # --- compute components of fit1 (Gauss + 2exp) ---
-    A_fast, mu, sigma = popt1[0:3]
-    A_int, tau_int = popt1[3:5]
+    A_fast, mu_rel, sigma = popt1[0:3]
+    A_int, tau_int   = popt1[3:5]
     A_slow, tau_slow = popt1[5:7]
-    x0 = popt1[7]
+    x0               = popt1[7]
 
+    # prepare masks and shifted time axis
     mask = x >= x0
-    fast_component_1 = np.zeros_like(x)
-    intermediate_component_1 = np.zeros_like(x)
-    slow_component_1 = np.zeros_like(x)
+    t    = x[mask] - x0  # time *after* the trigger
 
-    fast_component_1[mask] = A_fast * np.exp(- (x[mask] - mu)**2 / (2 * sigma**2))
-    intermediate_component_1[mask] = A_int * np.exp(-(x[mask] - x0) / tau_int)
-    slow_component_1[mask] = A_slow * np.exp(-(x[mask] - x0) / tau_slow)
+    fast_component_1 = np.zeros_like(x, dtype=float)
+    intermediate_component_1 = np.zeros_like(x, dtype=float)
+    slow_component_1 = np.zeros_like(x, dtype=float)
+
+    # now mu_rel is how many samples after x0 the Gaussian peaks
+    fast_component_1[mask] = A_fast * np.exp(- (t - mu_rel)**2 / (2 * sigma**2))
+    intermediate_component_1[mask] = A_int * np.exp(- t / tau_int)
+    slow_component_1[mask] = A_slow * np.exp(- t / tau_slow)
 
     # --- compute components of fit2 (3exp) ---
     A1, tau1 = popt2[0:2]
@@ -298,8 +303,8 @@ def compare_fits(x, avg_cosmic):
 
 if __name__ == "__main__":
     cosmic_path = "data/cosmic.hdf5"
-    led_path = "data/led.hdf5"
-    #led_path = "data/SPE36335_ch30.hdf5"
+    #led_path = "data/led.hdf5"
+    led_path = "data/SPE36335_ch30.hdf5"
     noise_path = "data/noise.hdf5"
     channel = 30
     process_waveforms(cosmic_path, led_path, noise_path, channel)
