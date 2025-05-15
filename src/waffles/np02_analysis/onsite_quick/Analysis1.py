@@ -259,7 +259,7 @@ class Analysis1(WafflesAnalysis):
         eps = osq_utils.get_endpoints(self.params.det, self.det_id)
         
         # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
-        self.selected_wfs1, self.selected_wfset1= osq_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec, adc_max_threshold=15000)
+        self.selected_wfs1, self.selected_wfset1= osq_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec)
    
         self.grid=osq_utils.get_grid(self.selected_wfs1, self.params.det, self.det_id)
         
@@ -329,7 +329,7 @@ class Analysis1(WafflesAnalysis):
         base_file_path = f"{self.params.output_path}"\
             f"run_{self.run}_{det_id_name}_{self.params.det}"   
             
-
+        '''
         # ------------- Save the raw waveforms plot ------------- 
             
         figure1 = plot_CustomChannelGrid(
@@ -368,16 +368,17 @@ class Analysis1(WafflesAnalysis):
         figure1.write_image(f"{fig1_path}.png")
         print(f"\nNo filtered waveforms saved in {fig1_path}")
 
-        
+        '''
         # ------------- Save the FFT plot ------------- 
         
             
         figure2 = plot_CustomChannelGrid(
             self.grid, 
-            plot_function=lambda channel_ws, figure_, row, col: osq_utils.plot_meanfft_function(
+            plot_function=lambda channel_ws, figure_, row, col: osq_utils.plot_meanfft(
                 channel_ws, figure_, row, col),
-            share_x_scale=True,
-            share_y_scale=True,
+            share_x_scale=False,
+            share_y_scale=False,
+            x_axis_title="Frequency [MHz]",
             show_ticks_only_on_edges=True 
         )
         
@@ -416,7 +417,7 @@ class Analysis1(WafflesAnalysis):
         if self.params.show_figures:
             figure2.show()
         
-        fig2_path = f"{base_file_path}_wfs_filt"
+        fig2_path = f"{base_file_path}_fft"
         figure2.write_html(f"{fig2_path}.html")
         figure2.write_image(f"{fig2_path}.png")
         

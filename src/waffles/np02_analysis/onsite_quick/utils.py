@@ -646,42 +646,108 @@ def fft(sig, dt=16e-9):
     y = 20*np.log10(np.abs(sigFFTPos)/2**14)
     return x,y
 
-def plot_meanfft_function(channel_ws, figure, row, col, dt=16e-9):
-    selected_wfs, _ = get_wfs(channel_ws.waveforms, -1, -1, -1, -1, -1, [-1])
+def compute_fft(signal: np.ndarray, dt: float = 16e-9):
+    """Compute FFT and return frequency [MHz] and power [dB]."""
+    np.seterr(divide='ignore')
     
-    fft_list_y = []
-    freq_ref = None
+    if signal.shape[0] % 2 != 0:
+        warnings.warn("Signal length not even, trimming last point.")
+        signal = signal[:-1]
 
-    # Compute the FFTs
+    n = len(signal)
+    freqs = np.fft.fftfreq(n, d=dt)
+    fft_vals = np.fft.fft(signal) / n
+    pos_mask = freqs > 0
+
+    freq_axis = freqs[pos_mask] / 1e6  # MHz
+    power_db = 20 * np.log10(np.abs(2 * fft_vals[pos_mask]) / 2**14)
+
+    return freq_axis, power_db
+
+
+def plot_meanfft(channel_ws, figure, row, col, tmin=-1, tmax=-1):
+    
+    if not channel_ws.waveforms:
+        print("No waveforms provided.")
+        return
+
+    selected_wfs, _ = get_wfs(channel_ws.waveforms, -1, -1, -1, -1, -1, [-1])
+    print(f"Channel has {len(selected_wfs)} selected waveforms.")
+
+    fft_powers = []
+    ref_freq_axis = None
+
     for wf in selected_wfs:
-        tmpx, tmpy = fft(wf.adcs, dt=dt)
-        if freq_ref is None:
-            freq_ref = tmpx
-            fft_list_y.append(tmpy)
-        else:
-            if np.array_equal(tmpx, freq_ref):
-                fft_list_y.append(tmpy)
-            else:
-                warnings.warn("Se ha descartado una waveform por tener diferente eje de frecuencia.")
+        offset = wf.timestamp - wf.daq_window_timestamp
+        if tmin != -1 and tmax != -1 and not (tmin <= offset <= tmax):
+            continue
 
-    if len(fft_list_y) == 0:
-        raise ValueError("No hay FFTs con el mismo eje de frecuencias. No se puede calcular la media.")
+        if np.all(wf.adcs == wf.adcs[0]):
+            continue
 
-    # Promedio sobre las FFTs compatibles
+        fx, fy = compute_fft(wf.adcs)
+        
+        fft_list_x.append(fx)
+        fft_list_y.append(fy)
+
+    freq = np.mean(fft_list_x, axis=0)
     power = np.mean(fft_list_y, axis=0)
 
-    # Graficar
+    print(f"FFT added to plot at row={row}, col={col}")
     figure.add_trace(go.Scatter(
-        x=freq_ref,
-        y=power,
+        x=freq[10:],  
+        y=power[10:],
         mode='lines',
     ), row=row, col=col)
 
-    # Mostrar el eje completo desde 0 hasta la frecuencia de Nyquist
-    f_max = 1 / (2 * dt) / 1e6  # MHz
-    figure.update_xaxes(range=[0, f_max], row=row, col=col)
-
     return figure
+
+
+'''
+def fft(sig, dt=16e-9):
+    np.seterr(divide = 'ignore')
+    if dt is None:
+        dt = 1
+        t = np.arange(0, sig.shape[-1])
+    else:
+        t = np.arange(0, sig.shape[-1]) * dt
+    if sig.shape[0] % 2 != 0:
+        warnings.warn("signal preferred to be even in size, autoFixing it...")
+        t = t[:-1]
+        sig = sig[:-1]
+    sigFFT = np.fft.fft(sig) / t.shape[0]
+    freq = np.fft.fftfreq(t.shape[0], d=dt)
+    firstNegInd = np.argmax(freq < 0)
+    freqAxisPos = freq[:firstNegInd]
+    sigFFTPos = 2 * sigFFT[:firstNegInd]
+    x = freqAxisPos /1e6
+    y = 20*np.log10(np.abs(sigFFTPos)/2**14)
+    return x,y
+
+def plot_meanfft_function(channel_ws, figure, row, col):
+
+    selected_wfs,_=get_wfs(channel_ws.waveforms,-1, -1,-1,-1,-1,[-1])
+    
+    fft_list_x = []
+    fft_list_y = []
+
+    # Compute the FFT
+    for wf in selected_wfs:
+        tmpx, tmpy = fft(wf.adcs) 
+        fft_list_x.append(tmpx)
+        fft_list_y.append(tmpy)
+
+    # Compute the mean FFT
+    freq = np.mean(fft_list_x, axis=0)
+    power = np.mean(fft_list_y, axis=0)
+
+    figure.add_trace(go.Scatter(
+        x=freq[10:],
+        y=power[10:],
+        mode='lines',
+        ))#row=row, col=col)  
+    
+    return figure  
 
 def plot_avg_waveform_with_peak_and_intervals(channel_ws, figure, row, col, intervals):
     import plotly.graph_objects as go
@@ -750,7 +816,7 @@ def plot_avg_waveform_with_peak_and_intervals(channel_ws, figure, row, col, inte
         )
 
     return figure
-
+'''
 def plot_sigma_to_noise_vs_interval_histfit(channel_ws, figure, row, col, intervals, baseline_window=50, bins=40):
     import numpy as np
     import plotly.graph_objects as go
