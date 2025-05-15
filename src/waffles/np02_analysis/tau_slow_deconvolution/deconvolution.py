@@ -177,32 +177,54 @@ def compare_fits(x, avg_cosmic):
         [0,   0, 1,   0, 10,   0, 10,   i0-5],
         [np.inf, 20, 20, np.inf, 500, np.inf, 2000, i0+5]
     )
-    popt1, _ = curve_fit(
+    popt1, pcov1 = curve_fit(
         model_gauss_2exp, x, avg_cosmic,
         p0=p0_1, bounds=bounds_1
     )
+    perr1 = np.sqrt(np.diag(pcov1))
     fit1 = model_gauss_2exp(x, *popt1)
 
-    # 2) Fit 3 esponenziali usando popt1 per partire vicino
-    tau1_est = popt1[2] * 2  # da sigma→τ1
+    # pull out your trigger and time‐axis
+    x0_2 = popt1[7]
+    x   = np.arange(len(avg_cosmic))
+
+    # define windows relative to trigger x0_2
+    fast_win    = (x >= x0_2) & (x <  x0_2 + 30)
+    inter_win   = (x >= x0_2+30) & (x <  x0_2 +150)
+    slow_win    =  x >= x0_2 +150
+
+    # compute *absolute* areas so we get positive amplitudes
+    area_fast  = abs(np.trapz(avg_cosmic[ fast_win ], x[ fast_win ]))
+    area_inter = abs(np.trapz(avg_cosmic[ inter_win ], x[ inter_win ]))
+    area_slow  = abs(np.trapz(avg_cosmic[ slow_win ],  x[ slow_win  ]))
+
+    # now set p0_2 to those positive proxies
     p0_2 = [
-        popt1[0],    # A1
-        tau1_est,    # tau1
-        popt1[3],    # A2
-        popt1[4],    # tau2
-        popt1[5],    # A3
-        popt1[6],    # tau3
-        200,         # L
-        popt1[7]     # x0
+        area_fast,    10,       # A1, τ1 init
+        area_inter,  100,       # A2, τ2 init
+        area_slow,   600,       # A3, τ3 init
+        200,          x0_2      # L, x0
     ]
+
+    # bounds ±50% around those *positive* areas, and small wiggle on x0_2
+    eps = 1
     bounds_2 = (
-        [0,   1,   0,   10,  0,   10,  10,  popt1[7]],
-        [np.inf, 200, np.inf, 500, np.inf, 2000, 2000, popt1[7]+1]
+        [0.5*area_fast,   1,   0.5*area_inter,  10,  0.5*area_slow, 100,  10, x0_2 - eps],
+        [1.5*area_fast,  50,   1.5*area_inter, 500,  1.5*area_slow,2000, 500, x0_2 + eps]
     )
-    popt2, _ = curve_fit(
+
+    print("area_fast, area_inter, area_slow =", area_fast, area_inter, area_slow)
+    print("p0_2:", p0_2)
+    print("bounds_2 lower:", bounds_2[0])
+    print("bounds_2 upper:", bounds_2[1])
+
+    popt2, pcov2 = curve_fit(
         model_3exp, x, avg_cosmic,
-        p0=p0_2, bounds=bounds_2
+        p0=p0_2, bounds=bounds_2,
+        max_nfev=10000
     )
+
+    perr2 = np.sqrt(np.diag(pcov2))
     fit2 = model_3exp(x, *popt2)
 
     # --- compute components of fit1 (Gauss + 2exp) ---
@@ -224,20 +246,24 @@ def compare_fits(x, avg_cosmic):
     intermediate_component_1[mask] = A_int * np.exp(- t / tau_int)
     slow_component_1[mask] = A_slow * np.exp(- t / tau_slow)
 
-    # --- compute components of fit2 (3exp) ---
-    A1, tau1 = popt2[0:2]
-    A2, tau2 = popt2[2:4]
-    A3, tau3 = popt2[4:6]
-    x0_2 = popt2[6]
+    # --- compute components of fit2 (3exp) --- #
+    A1, tau1 = popt2[0], popt2[1]
+    A2, tau2 = popt2[2], popt2[3]
+    A3, tau3 = popt2[4], popt2[5]
+    L        = popt2[6]
+    x0_2     = popt2[7]
 
     mask2 = x >= x0_2
-    comp1 = np.zeros_like(x)
-    comp2 = np.zeros_like(x)
-    comp3 = np.zeros_like(x)
+    t2    = x[mask2] - x0_2
 
-    comp1[mask2] = A1 * np.exp(-(x[mask2] - x0_2) / tau1)
-    comp2[mask2] = A2 * np.exp(-(x[mask2] - x0_2) / tau2)
-    comp3[mask2] = A3 * np.exp(-(x[mask2] - x0_2) / tau3) 
+    comp1 = np.zeros_like(x, dtype=float)
+    comp2 = np.zeros_like(x, dtype=float)
+    comp3 = np.zeros_like(x, dtype=float)
+
+    # each smoothed exactly as in the model
+    comp1[mask2] = A1 * (np.exp(-t2 / L) - np.exp(-t2 / tau1))
+    comp2[mask2] = A2 * (np.exp(-t2 / L) - np.exp(-t2 / tau2))
+    comp3[mask2] = A3 * (np.exp(-t2 / L) - np.exp(-t2 / tau3))
 
     # Plots
     fig = make_subplots(
@@ -295,8 +321,61 @@ def compare_fits(x, avg_cosmic):
     fig.update_layout(
         height=700, width=800,
         title="Gaussiana+2exp vs 3exp",
-        legend=dict(x=0.7, y=0.95)
+        legend=dict(
+                x=0.98, y=0.98,
+                xanchor='right', yanchor='top'
+            )
     )
+
+        # --- Parameter‐box annotations --- #
+    # (make sure perr1 and perr2 are defined via np.sqrt(np.diag(pcov1/2)))
+    text1 = (
+        f"x0 = {popt1[7]:.1f}±{perr1[7]:.1f}<br>"
+        f"A_fast = {popt1[0]:.1f}±{perr1[0]:.1f}<br>"
+        f"μ = {popt1[1]:.1f}±{perr1[1]:.1f}<br>"
+        f"σ = {popt1[2]:.1f}±{perr1[2]:.1f}<br>"
+        f"τ_int = {popt1[4]:.1f}±{perr1[4]:.1f}<br>"
+        f"τ_slow = {popt1[6]:.1f}±{perr1[6]:.1f}"
+    )
+    text2 = (
+        f"x0 = {popt2[6]:.1f}±{perr2[6]:.1f}<br>"
+        f"τ₁ = {popt2[1]:.1f}±{perr2[1]:.1f}<br>"
+        f"τ₂ = {popt2[3]:.1f}±{perr2[3]:.1f}<br>"
+        f"τ₃ = {popt2[5]:.1f}±{perr2[5]:.1f}"
+    )
+
+    # 1) Centered in the *first* subplot
+    fig.add_annotation(
+        dict(
+            x=0.5, y=0.5,                  # center of the domain
+            xref='x domain', yref='y domain',
+            text=text1,
+            showarrow=False,
+            font=dict(size=12),
+            bgcolor='rgba(255,255,255,0.7)',
+            bordercolor='black',
+            borderwidth=1,
+            align='center'
+        ),
+        row=1, col=1
+    )
+
+    # 2) Centered in the *second* subplot
+    fig.add_annotation(
+        dict(
+            x=0.5, y=0.5,                 
+            xref='x2 domain', yref='y2 domain',
+            text=text2,
+            showarrow=False,
+            font=dict(size=12),
+            bgcolor='rgba(255,255,255,0.7)',
+            bordercolor='black',
+            borderwidth=1,
+            align='center'
+        ),
+        row=2, col=1
+    )
+
     fig.show()
 
     return popt1, popt2
