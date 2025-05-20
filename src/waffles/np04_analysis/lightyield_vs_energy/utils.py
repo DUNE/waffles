@@ -128,13 +128,19 @@ def searching_for_beam_events(wfset : WaveformSet, show : bool = False, save : b
     
 ################################################################################################################################################    
 
-def plotting_overlap_wf(wfset, n_wf: int = 50, show : bool = False, save : bool = True, x_min=None, x_max=None, y_min=None, y_max=None, int_ll=None, int_ul=None, baseline=None, output_folder : str = 'output'):
+def plotting_overlap_wf(wfset, n_wf: int = 50, show : bool = False, save : bool = True, x_min=None, x_max=None, y_min=None, y_max=None, int_ll=None, int_ul=None, baseline=None, output_folder : str = 'output', deconvolution : bool = False, analysis_label : str = ''):
     fig = go.Figure()
 
     for i in range(n_wf):
+        
+        if deconvolution:
+            y = wfset.waveforms[i].analyses[analysis_label].result['filtered_deconvolved_wf']
+        else:
+            y = wfset.waveforms[i].adcs
+            
         fig.add_trace(go.Scatter(
-            x=np.arange(len(wfset.waveforms[i].adcs)) + wfset.waveforms[i].time_offset,
-            y=wfset.waveforms[i].adcs,
+            x=np.arange(len(y)) + wfset.waveforms[i].time_offset,
+            y=y,
             mode='lines',
             line=dict(width=0.5),
             showlegend=False))
@@ -230,44 +236,57 @@ def plotting_overlap_wf(wfset, n_wf: int = 50, show : bool = False, save : bool 
     
 ################################################################################################################################################
 
-def LightYield_SelfTrigger_channel_analysis(wfset : WaveformSet, end : int, ch : int, run_set : dict, analysis_label : str = 'standard'):
-    if len(wfset.runs)>2: 
-        ly_data_dic = {key: {} for key in run_set['Runs'].keys()} 
-        ly_result_dic = {'x':[], 'y':[], 'e_y':[], 'slope':{}, 'intercept':{}} 
-        for energy, run in run_set['Runs'].items():
-            try:
-                wfset_run = wfset.from_filtered_WaveformSet(wfset, run_filter, run)
-                ly_data_dic[energy] = charge_study(wfset_run, end, ch, run, energy, analysis_label)
-                ly_result_dic['x'].append(int(energy))
-                ly_result_dic['y'].append(ly_data_dic[energy]['gaussian fit']['mean']['value'])
-                ly_result_dic['e_y'].append(ly_data_dic[energy]['gaussian fit']['sigma']['value'])
-                print(f"For energy {energy} GeV --> {ly_data_dic[energy]['gaussian fit']['mean']['value']:.0f} +/- {ly_data_dic[energy]['gaussian fit']['sigma']['value']:.0f}")
-            except Exception as e:
-                print(f'For energy {energy} GeV --> no data')
+def LightYield_SelfTrigger_channel_analysis(wfset : WaveformSet, end : int, ch : int, run_set : dict, analysis_label : str, deconvolution: bool, deconvolution_filter: bool = True):
+    integral_label_list = ['integral_before']
+    if deconvolution:
+        integral_label_list.append('integral_deconv')
+    if deconvolution_filter:
+        integral_label_list.append('integral_deconv_filtered')
+    
+    info_dic = {}
+    
+    for integral_label in integral_label_list:
+        print(f'\n -- {integral_label} -- \n')
+        if len(wfset.runs)>2: 
+            ly_data_dic = {key: {} for key in run_set['Runs'].keys()} 
+            ly_result_dic = {'x':[], 'y':[], 'e_y':[], 'slope':{}, 'intercept':{}} 
+            for energy, run in run_set['Runs'].items():
+                try:
+                    wfset_run = wfset.from_filtered_WaveformSet(wfset, run_filter, run)
+                    ly_data_dic[energy] = charge_study(wfset_run, end, ch, run, energy, analysis_label, integral_label)
+                    ly_result_dic['x'].append(int(energy))
+                    ly_result_dic['y'].append(ly_data_dic[energy]['gaussian fit']['mean']['value'])
+                    ly_result_dic['e_y'].append(ly_data_dic[energy]['gaussian fit']['sigma']['value'])
+                    print(f"For energy {energy} GeV --> {ly_data_dic[energy]['gaussian fit']['mean']['value']:.0f} +/- {ly_data_dic[energy]['gaussian fit']['sigma']['value']:.0f}")
+                except Exception as e:
+                    print(f'For energy {energy} GeV --> no data')
+                
+            if len(ly_result_dic['x']) > 1:
+                popt, pcov = curve_fit(linear_fit, ly_result_dic['x'], ly_result_dic['y'], sigma=ly_result_dic['e_y'], absolute_sigma=True)
+                slope, intercept = popt
+                slope_err, intercept_err = np.sqrt(np.diag(pcov))
+                
+                ly_result_dic['slope'] = {'value': slope, 'error': slope_err}
+                ly_result_dic['intercept'] = {'value': intercept, 'error': intercept_err}
+            else:
+                ly_result_dic['slope'] = {'value' : 0, 'error' : 0}
+                ly_result_dic['intercept'] = {'value' : 0, 'error' : 0}
             
-        if len(ly_result_dic['x']) > 1:
-            popt, pcov = curve_fit(linear_fit, ly_result_dic['x'], ly_result_dic['y'], sigma=ly_result_dic['e_y'], absolute_sigma=True)
-            slope, intercept = popt
-            slope_err, intercept_err = np.sqrt(np.diag(pcov))
-            
-            ly_result_dic['slope'] = {'value': slope, 'error': slope_err}
-            ly_result_dic['intercept'] = {'value': intercept, 'error': intercept_err}
+            info_dic[integral_label] = {'ly_data_dic': ly_data_dic, 'ly_result_dic' : ly_result_dic}
+             
         else:
-            ly_result_dic['slope'] = {'value' : 0, 'error' : 0}
-            ly_result_dic['intercept'] = {'value' : 0, 'error' : 0}
-        
-        return ly_data_dic, ly_result_dic
-        
-    else:
-        print('Not enought runs avilable for that channel --> skipped')
-        return {},{} 
+            print('Not enought runs avilable for that channel --> skipped')
+            info_dic[integral_label] = {'ly_data_dic': {}, 'ly_result_dic' : {}}   
+    
+    return info_dic
 
 
-def charge_study(wfset : WaveformSet, end : int, ch : int, run : int, energy : int, analysis_label : str = 'standard'):  
+def charge_study(wfset : WaveformSet, end : int, ch : int, run : int, energy : int, analysis_label : str, integral_label : str):  
     ly_data = {'histogram data': [], 'gaussian fit' : {}}
     charges = []
+
     for wf in wfset.waveforms:
-        charges.append(wf.analyses[analysis_label].result['integral'])
+        charges.append(wf.analyses[analysis_label].result[integral_label])
     ly_data['histogram data'] = charges
     charges = np.array(charges)
     
@@ -288,6 +307,7 @@ def charge_study(wfset : WaveformSet, end : int, ch : int, run : int, energy : i
         print(f'Fit error: {e} --> skipped')
         return ly_data
     
+
 ################################################################################################################################################x    
     
 def gaussian(x, mu, sigma, amplitude):

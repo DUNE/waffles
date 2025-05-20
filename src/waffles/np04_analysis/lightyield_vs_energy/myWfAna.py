@@ -108,13 +108,15 @@ class myWfAna(WfAna):
         input_parameters: IPDict
             This IPDict must contain the following keys:
                 - 'baseline_limits' (list of int)
-                - 'int_ll' (int)
-                - 'int_ul' (int)
                 - 'amp_ll' (int)
                 - 'amp_ul' (int)
                 - 'invert' (bool)
                 - 'baseline_method' (str)
                 - 'baseliner' (if baseline_method = SBaseline)
+                
+                - 'integration' (bool)
+                - 'int_ll' (int)
+                - 'int_ul' (int)
                 
                 - 'deconvolution' (bool) 
                 - 'save_devonvolved_wf' (bool)
@@ -125,14 +127,13 @@ class myWfAna(WfAna):
         """
 
         self.__baseline_limits = input_parameters['baseline_limits']
-        self.__int_ll = input_parameters['int_ll']
-        self.__int_ul = input_parameters['int_ul']
         self.__amp_ll = input_parameters['amp_ll']
         self.__amp_ul = input_parameters['amp_ul']
         self.__baseline_method = input_parameters.get('baseline_method', "EasyMedian")
         if self.__baseline_method == "SBaseline":
             self.__baseliner: SBaseline = input_parameters['baseliner']
-        
+            
+               
         # Deconvolution parameters
         self.__devonvolution = input_parameters['deconvolution']
         if self.__devonvolution:
@@ -151,6 +152,15 @@ class myWfAna(WfAna):
         self.__invert = input_parameters.get('invert', False)
         if self.__invert:
             self.__invfactor = -1;
+            
+        # Integration parameters
+        self.__integration = input_parameters['integration']
+        if self.__integration:
+            self.__int_ll = input_parameters['int_ll']
+            self.__int_ul = input_parameters['int_ul']
+            if self.__devonvolution:
+                self.__int_ll_deconv_filter = input_parameters['int_ll_deconv_filter']
+                self.__int_ul_deconv_filter = input_parameters['int_ul_deconv_filter']
 
         super().__init__(input_parameters)
 
@@ -158,14 +168,18 @@ class myWfAna(WfAna):
     @property
     def baseline_limits(self):
         return self.__baseline_limits
-
+    
     @property
-    def int_ll(self):
-        return self.__int_ll
+    def integration(self):
+        return self.__integration
 
-    @property
-    def int_ul(self):
-        return self.__int_ul
+    # @property
+    # def int_ll(self):
+    #     return self.__int_ll
+
+    # @property
+    # def int_ul(self):
+    #     return self.__int_ul
 
     @property
     def amp_ll(self):
@@ -240,12 +254,15 @@ class myWfAna(WfAna):
         else:
             baseline, optimized = self.__baseliner.compute_baseline(waveform.adcs, self.__baseliner.filtering)
 
-        integral_before = waveform.time_step_ns * self.__invfactor * (
-            np.sum(
-                waveform.adcs[ self.__int_ll - waveform.time_offset : 
-                               self.__int_ul + 1 - waveform.time_offset
-                              ]
-            ) - (( self.__int_ul - self.__int_ll + 1) * baseline))
+        if self.__integration:
+            integral_before = waveform.time_step_ns * self.__invfactor * (
+                np.sum(
+                    waveform.adcs[ self.__int_ll - waveform.time_offset : 
+                                self.__int_ul + 1 - waveform.time_offset
+                                ]
+                ) - (( self.__int_ul - self.__int_ll + 1) * baseline))
+        else:
+            integral_before = None
         
         amplitude=(
             np.max(
@@ -293,12 +310,15 @@ class myWfAna(WfAna):
                 deconvolved_fft = signal_fft / template_fft    
                 deconvolved_wf = np.fft.ifft(deconvolved_fft).real  
                 
-                integral_deconv = waveform.time_step_ns * self.__invfactor * (
-                    np.sum(
-                        deconvolved_wf[ self.__int_ll - waveform.time_offset : 
-                                    self.__int_ul + 1 - waveform.time_offset
-                                    ]
-                    ) - (( self.__int_ul - self.__int_ll + 1) * baseline))
+                if self.__integration:
+                    integral_deconv = waveform.time_step_ns * self.__invfactor * (
+                        np.sum(
+                            deconvolved_wf[ self.__int_ll_deconv_filter - waveform.time_offset : 
+                                        self.__int_ul_deconv_filter + 1 - waveform.time_offset
+                                        ]
+                        ) - (( self.__int_ul_deconv_filter - self.__int_ll_deconv_filter + 1) * baseline))
+                else:
+                    integral_deconv = None
                 
                 
                 if self.__gauss_filtering:
@@ -309,12 +329,15 @@ class myWfAna(WfAna):
                     filtered_deconvolved_fft = deconvolved_fft * filter_gaus
                     filtered_deconvolved_wf = np.fft.ifft(filtered_deconvolved_fft).real  
                 
-                    integral_deconv_filtered = waveform.time_step_ns * self.__invfactor * (
-                        np.sum(
-                            filtered_deconvolved_wf[ self.__int_ll - waveform.time_offset : 
-                                        self.__int_ul + 1 - waveform.time_offset
-                                        ]
-                        ) - (( self.__int_ul - self.__int_ll + 1) * baseline))
+                    if self.__integration:
+                        integral_deconv_filtered = waveform.time_step_ns * self.__invfactor * (
+                            np.sum(
+                                filtered_deconvolved_wf[ self.__int_ll_deconv_filter - waveform.time_offset : 
+                                            self.__int_ul_deconv_filter + 1 - waveform.time_offset
+                                            ]
+                            ) - (( self.__int_ul_deconv_filter - self.__int_ll_deconv_filter + 1) * baseline))
+                    else:
+                        integral_deconv_filtered = None
                     
                 else:
                    integral_deconv_filtered = None 
@@ -390,7 +413,7 @@ class myWfAna(WfAna):
         ----------
         None
         """
-
+        
         if input_parameters["baseline_method"] == "EasyMedian":
             if not wuc.baseline_limits_are_well_formed(
                     input_parameters['baseline_limits'],
@@ -401,35 +424,36 @@ class myWfAna(WfAna):
                     'BasicWfAna.check_input_parameters()',
                     f"The baseline limits ({input_parameters['baseline_limits']})"
                     " are not well formed."))
-        int_ul_ = input_parameters['int_ul']
-        if int_ul_ is None:
-            int_ul_ = points_no - 1
+        
+        # int_ul_ = input_parameters['int_ul']
+        # if int_ul_ is None:
+        #     int_ul_ = points_no - 1
 
-        if not wuc.subinterval_is_well_formed(
-                input_parameters['int_ll'],
-                int_ul_,
-                points_no):
+        # if not wuc.subinterval_is_well_formed(
+        #         input_parameters['int_ll'],
+        #         int_ul_,
+        #         points_no):
 
-            raise Exception(we.GenerateExceptionMessage(
-                2,
-                'BasicWfAna.check_input_parameters()',
-                f"The integration window ({input_parameters['int_ll']},"
-                f" {int_ul_}) is not well formed. It must be a subset of"
-                f" [0, {points_no})."))
+        #     raise Exception(we.GenerateExceptionMessage(
+        #         2,
+        #         'BasicWfAna.check_input_parameters()',
+        #         f"The integration window ({input_parameters['int_ll']},"
+        #         f" {int_ul_}) is not well formed. It must be a subset of"
+        #         f" [0, {points_no})."))
                     
-        amp_ul_ = input_parameters['amp_ul']
-        if amp_ul_ is None:
-            amp_ul_ = points_no - 1
+        # amp_ul_ = input_parameters['amp_ul']
+        # if amp_ul_ is None:
+        #     amp_ul_ = points_no - 1
 
-        if not wuc.subinterval_is_well_formed(
-                input_parameters['amp_ll'],
-                amp_ul_,
-                points_no):
+        # if not wuc.subinterval_is_well_formed(
+        #         input_parameters['amp_ll'],
+        #         amp_ul_,
+        #         points_no):
 
-            raise Exception(we.GenerateExceptionMessage(
-                3,
-                'BasicWfAna.check_input_parameters()',
-                f"The amplitude window ({input_parameters['amp_ll']},"
-                f" {amp_ul_}) is not well formed. It must be a subset of"
-                f" [0, {points_no})."))
+        #     raise Exception(we.GenerateExceptionMessage(
+        #         3,
+        #         'BasicWfAna.check_input_parameters()',
+        #         f"The amplitude window ({input_parameters['amp_ll']},"
+        #         f" {amp_ul_}) is not well formed. It must be a subset of"
+        #         f" [0, {points_no})."))
 

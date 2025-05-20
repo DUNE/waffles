@@ -121,6 +121,12 @@ class Analysis1(WafflesAnalysis):
                 description="Path to the pickles file with LED calibration info (BATCH 1 from 2024/07/09)",
                 example="batch_1_LED_calibration_data.pkl"
             )
+            
+            deconvolution: bool = Field(
+                ..., 
+                description="Do you want to perform deconvolution (True/False)?",
+                example=False
+            )
 
         return InputParams
 
@@ -244,6 +250,12 @@ class Analysis1(WafflesAnalysis):
             int_ul = 115
         
         ######################### WAVEFORM ANALYSIS ######################### 
+        # # BASIC ANALYSIS
+        # analysis_label = 'standard'
+        # analysis_class=BasicWfAna
+        # ip = IPDict(baseline_limits=bl, int_ll=int_ll, int_ul=int_ul, amp_ll=ampl_ll, amp_ul=ampl_up, points_no=10, peak_finding_kwargs=peak_finding_kwargs, baseline_method=baseline_method, baseliner =  baseliner)
+        # a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
+            
         print('\nAnalysis... ')
         
         peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75]) 
@@ -263,58 +275,93 @@ class Analysis1(WafflesAnalysis):
         baseliner.baselinefinish = 45 #1024 #set it to the pre-trigger.
         baseliner.filtering      = 8 
         
-        # BASIC ANALYSIS
-        analysis_label = 'standard'
-        analysis_class=BasicWfAna
-        ip = IPDict(baseline_limits=bl,
-                    int_ll=int_ll,
-                    int_ul=int_ul,
-                    amp_ll=ampl_ll,
-                    amp_ul=ampl_up,
-                    points_no=10,
-                    peak_finding_kwargs=peak_finding_kwargs,
-                    baseline_method=baseline_method,
-                    baseliner =  baseliner)
+        if self.params.deconvolution:
+            print('Deconvolution is ON')
+            # MY ANALYSIS - DECONVOLUTION 
+            analysis_label = 'my_deconvolution_filtering'
+            analysis_class=myWfAna
+            ip = IPDict(baseline_limits=bl,
+                        integration = False,
+                        amp_ll=ampl_ll,
+                        amp_ul=ampl_up,
+                        points_no=10,
+                        peak_finding_kwargs=peak_finding_kwargs,
+                        baseline_method=baseline_method,
+                        baseliner =  baseliner,
+                        deconvolution = True, 
+                        save_devonvolved_wf = True, 
+                        maritza_template = True,
+                        gauss_filtering = True,
+                        gauss_cutoff = 2.5
+                        )
+           
+            a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
+            
+            # Searching for deconvolved integration range
+            if self.params.searching_integration_range:
+                print('Searching for filtered deconvolved waveform integration range ...')
+                answer = 'yes'
+                plotting_overlap_wf(self.beam_wfset, show=True, deconvolution=True, analysis_label=analysis_label, output_folder = self.params.output_folder)
+                while(answer == 'yes'):
+                    int_ll_deconv_filter = int(input('Lower integration limit: '))  
+                    int_ul_deconv_filter = int(input('Upper integration limit: ')) 
+                    plotting_overlap_wf(self.beam_wfset, show=True, int_ll = int_ll_deconv_filter, int_ul = int_ul_deconv_filter, deconvolution=True, analysis_label=analysis_label, output_folder = self.params.output_folder)
+                    answer = input('Do you want to CHANGE integration limits? (yes/no) ').strip().lower() 
+                print('done\n\n')
+            else:
+                int_ll_deconv_filter = 45
+                int_ul_deconv_filter = 75
         
-        b = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
     
-        # MY ANALYSIS
-        analysis_label = 'my_deconvolution'
-        analysis_class=myWfAna
-        ip = IPDict(baseline_limits=bl,
-                    int_ll=int_ll,
-                    int_ul=int_ul,
-                    amp_ll=ampl_ll,
-                    amp_ul=ampl_up,
-                    points_no=10,
-                    peak_finding_kwargs=peak_finding_kwargs,
-                    baseline_method=baseline_method,
-                    baseliner =  baseliner,
-                    deconvolution = True, 
-                    save_devonvolved_wf = True, 
-                    maritza_template = True,
-                    gauss_filtering = True,
-                    gauss_cutoff = 2.5
-                    )
+            # MY ANALYSIS - DECONVOLUTION + INTEGRATION
+            analysis_label = 'my_deconvolution_filtering_integration'
+            analysis_class=myWfAna
+            ip = IPDict(baseline_limits=bl,
+                        integration = True,
+                        int_ll=int_ll,
+                        int_ul=int_ul,
+                        int_ll_deconv_filter=int_ll_deconv_filter,
+                        int_ul_deconv_filter=int_ul_deconv_filter,
+                        amp_ll=ampl_ll,
+                        amp_ul=ampl_up,
+                        points_no=10,
+                        peak_finding_kwargs=peak_finding_kwargs,
+                        baseline_method=baseline_method,
+                        baseliner =  baseliner,
+                        deconvolution = True, 
+                        save_devonvolved_wf = True, 
+                        maritza_template = True,
+                        gauss_filtering = True,
+                        gauss_cutoff = 2.5
+                        )
 
-        a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
-        
-        print(self.beam_wfset.waveforms[0].analyses['standard'].result['integral'])
-        print(self.beam_wfset.waveforms[0].analyses['my_deconvolution'].result['integral_before'])
-        
-        baseline = self.beam_wfset.waveforms[0].analyses[analysis_label].result['baseline']
-        
-        #### Includere la possibilità di disgenare le waveform deconvolute!!!!
-        print()
-        plotting_overlap_wf(self.beam_wfset, int_ll=int_ll, int_ul=int_ul, baseline = baseline)
+        else:
+            print('Deconvolution is OFF')   
+            analysis_label = 'new_standard'
+            analysis_class=myWfAna
+            ip = IPDict(baseline_limits=bl,
+                        integration = True,
+                        int_ll=int_ll,
+                        int_ul=int_ul,
+                        amp_ll=ampl_ll,
+                        amp_ul=ampl_up,
+                        points_no=10,
+                        peak_finding_kwargs=peak_finding_kwargs,
+                        baseline_method=baseline_method,
+                        baseliner =  baseliner,
+                        deconvolution = False
+                        )     
+            
+            
+        b = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
         print('done\n\n')
         
-        '''
+        
         ######################### SAVING INFORMATION #########################
         self.results_info_dic = {}
         
         
-        ######################### COMPUTING LY vs ENERGY BEAM X CHANNEL ######################### 
+        ######################### COMPUTING LY vs ENERGY BEAM X CHANNEL ######################### -----> DA MODIFICARE!!!!!!
         for APA in self.params.apa_list:
             print(f'\n\n ------------------------------------\n \t       APA {APA} \n ------------------------------------\n')
             apa_info = {}
@@ -325,10 +372,8 @@ class Analysis1(WafflesAnalysis):
                     print(f"\n\nLet's study APA {APA} - Endpoint {endpoint} - Channel {channel}")
                     ID_String = f"APA{APA}_endpoint{endpoint}_channel{channel}"
                     ch_info = {'ID_String': ID_String, 'APA': APA, 'endpoint' : endpoint, 'channel' : channel, 'Runs' : self.run_set['Runs']}
-                    ly_data_dic = {} 
-                    ly_result_dic = {} 
-     
-                                        
+                    dic_info = {} 
+                                 
                     if (APA == 1) and self.params.full_streaming:
                         print('to be implemented...\n')
                                   
@@ -336,24 +381,26 @@ class Analysis1(WafflesAnalysis):
                         
                         try:
                             ch_beam_wfset = WaveformSet.from_filtered_WaveformSet(self.beam_wfset, channel_filter, end=endpoint, ch=channel)
-                            ly_data_dic, ly_result_dic = LightYield_SelfTrigger_channel_analysis(wfset = ch_beam_wfset, end = endpoint, ch = channel, run_set = self.run_set, analysis_label = analysis_label)
-                                    
+                            dic_info = LightYield_SelfTrigger_channel_analysis(wfset = ch_beam_wfset, end = endpoint, ch = channel, run_set = self.run_set, analysis_label = analysis_label, deconvolution = True, deconvolution_filter = True)
                         except Exception as e:
                             if "There must be at least one Waveform in the set" in str(e):
                                 print(f"No beam events --> Skipped channel")
                             else:
                                 print(f"Error: {e} --> Skipped channel")    
                                 
-                    
-                    ch_info['LY data'] = ly_data_dic
-                    ch_info['LY result'] = ly_result_dic  
+                    try:
+                        ch_info['LY data'] = dic_info['integral_before']['ly_data_dic']
+                        ch_info['LY result'] = dic_info['integral_before']['ly_result_dic']  
+                    except Exception as e:
+                        ch_info['LY data'] = {}
+                        ch_info['LY result'] = {}
                     
                     end_info[channel] = ch_info
                 apa_info[endpoint] = end_info            
             self.results_info_dic[APA] = apa_info  
                                                               
         print('\n\nAnalysis... done\n')
-        '''
+        
         return True
 
     ##################################################################
