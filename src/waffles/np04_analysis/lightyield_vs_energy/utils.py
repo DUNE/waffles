@@ -403,3 +403,16 @@ def offline_to_daphne_channel(offline_ch, map_path = '/afs/cern.ch/work/a/anbalb
     end = int(str(daphne_ch)[:3])
     daq_ch = int(str(daphne_ch)[3:])
     return end, daq_ch
+
+#################################################
+
+
+def find_analysis_keys(d):
+            if isinstance(d, dict):
+                for k, v in d.items():
+                    if k == 'Analysis' and isinstance(v, dict):
+                        return list(v.keys())
+                    result = find_analysis_keys(v)
+                    if result:
+                        return result
+            return None

@@ -329,7 +329,7 @@ class Analysis1(WafflesAnalysis):
                         baseline_method=baseline_method,
                         baseliner =  baseliner,
                         deconvolution = True, 
-                        save_devonvolved_wf = True, 
+                        save_devonvolved_wf = False, 
                         maritza_template = True,
                         gauss_filtering = True,
                         gauss_cutoff = 2.5
@@ -361,7 +361,7 @@ class Analysis1(WafflesAnalysis):
         self.results_info_dic = {}
         
         
-        ######################### COMPUTING LY vs ENERGY BEAM X CHANNEL ######################### -----> DA MODIFICARE!!!!!!
+        ######################### COMPUTING LY vs ENERGY BEAM X CHANNEL ######################### 
         for APA in self.params.apa_list:
             print(f'\n\n ------------------------------------\n \t       APA {APA} \n ------------------------------------\n')
             apa_info = {}
@@ -387,13 +387,16 @@ class Analysis1(WafflesAnalysis):
                                 print(f"No beam events --> Skipped channel")
                             else:
                                 print(f"Error: {e} --> Skipped channel")    
-                                
-                    try:
-                        ch_info['LY data'] = dic_info['integral_before']['ly_data_dic']
-                        ch_info['LY result'] = dic_info['integral_before']['ly_result_dic']  
-                    except Exception as e:
-                        ch_info['LY data'] = {}
-                        ch_info['LY result'] = {}
+                    
+                    ch_info['Analysis'] = {}
+                    for key,items in dic_info.items():
+                        ch_info['Analysis'][key] = {}
+                        try: 
+                            ch_info['Analysis'][key]['LY data'] = items['ly_data_dic']
+                            ch_info['Analysis'][key]['LY result'] = items['ly_result_dic']
+                        except Exception as e:
+                            ch_info['Analysis'][key]['LY data'] = {}
+                            ch_info['Analysis'][key]['LY result'] = {}
                     
                     end_info[channel] = ch_info
                 apa_info[endpoint] = end_info            
@@ -401,11 +404,12 @@ class Analysis1(WafflesAnalysis):
                                                               
         print('\n\nAnalysis... done\n')
         
+        
         return True
 
     ##################################################################
     def write_output(self) -> bool:
-        '''if self.params.save_file: 
+        if self.params.save_file: 
             print('Saving...', end='')
             with open(self.output_filepath, "w") as file:
                 json.dump(self.results_info_dic, file, indent=4)
@@ -415,6 +419,5 @@ class Analysis1(WafflesAnalysis):
         
 
         print(f"\n\nSUMMARY: \nFull-streaming data: {self.params.full_streaming}\nBeam data: {self.params.beam_data}\nSearching beam timeoffset: {self.params.searching_beam_timeoffset}\nSearching integration range: {self.params.searching_integration_range}\nSet name: {self.params.set_name}\nAPA: {self.params.apa_list}\nENDPOINT: {self.params.endpoint_list}\n# analyzed beam wavforms: {len(self.beam_wfset.waveforms)}\n\n")
-        '''
-        print('\n\nfatto\n\n')
+        
         return True

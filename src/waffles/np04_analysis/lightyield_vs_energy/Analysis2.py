@@ -150,45 +150,54 @@ class Analysis2(WafflesAnalysis):
         print('Analysis...')
         self.analysis_results = {}
         
+        for key in find_analysis_keys(self.result_info):
+            self.analysis_results[key] = {}
+        
         for apa, apa_dic in self.result_info.items():
-            self.analysis_results[apa] = {}
+            
+            for key in find_analysis_keys(self.result_info):
+                self.analysis_results[key][apa] = {}
+            
             print(f' ----------------------------\n\n\t APA {apa}\n')
             
             for end, end_dic in apa_dic.items():
-                self.analysis_results[apa][end] = {}
+                for key in find_analysis_keys(self.result_info):
+                    self.analysis_results[key][apa][end] = {}
                 for ch, ch_dic in end_dic.items():
+                    
                     print(f"Endpoint {end} - Channel {ch}")
                                         
-                    fig, ax = plt.subplots(3, 2, figsize=(12, 10))
-                    plt.suptitle(f'Endpoint {end} - Channel {ch}')
-                    ax = ax.flatten()
-                    i = 0
+                    for integral_label, integral_info in ch_dic['Analysis'].items():
+                        fig, ax = plt.subplots(3, 2, figsize=(12, 10))
+                        plt.suptitle(f'Endpoint {end} - Channel {ch}')
+                        ax = ax.flatten()
+                        i = 0
+                        if integral_info:
+                            for energy, histo_info in integral_info['LY data'].items():
+                                if histo_info:
+                                    ax[i].hist(histo_info['histogram data'], bins=histo_info['gaussian fit']['bins'], density=True, alpha=0.6, color='blue', label="Data")
+                                    ax[i].set_xlabel("Integrated Charge")
+                                    ax[i].set_ylabel("Density")
+                                    ax[i].set_title(f"Energy: {energy} GeV")
+                                    ax[i].legend(fontsize='small')
+                                
+                                    if histo_info['gaussian fit']:
+                                        x_fit = np.linspace(min(histo_info['histogram data']), max(histo_info['histogram data']), 1000)
+                                        y_fit = gaussian(x_fit, histo_info['gaussian fit']['mean']['value'], histo_info['gaussian fit']['sigma']['value'], histo_info['gaussian fit']['normalized amplitude']['value'])
+                                        ax[i].plot(x_fit, y_fit, color='red', lw=2, label=f"Gaussian fit: \n$\mu= {to_scientific_notation(histo_info['gaussian fit']['mean']['value'], histo_info['gaussian fit']['mean']['error'])}$ \n$\sigma= {to_scientific_notation(histo_info['gaussian fit']['sigma']['value'], histo_info['gaussian fit']['sigma']['error'])}$ \n$A= {to_scientific_notation(histo_info['gaussian fit']['normalized amplitude']['value'], histo_info['gaussian fit']['normalized amplitude']['error'])} $") 
+                                i += 1
+                                
+                            if integral_info['LY result']:
+                                ax[i].errorbar(integral_info['LY result']['x'], integral_info['LY result']['y'], yerr=np.abs(integral_info['LY result']['e_y']), fmt='o', label='Data')
+                                ax[i].plot(integral_info['LY result']['x'], linear_fit(np.array(integral_info['LY result']['x']), integral_info['LY result']['slope']['value'], integral_info['LY result']['intercept']['value']), 'r-', label=f"Linear fit: y=a+bx\n$a = {to_scientific_notation(integral_info['LY result']['intercept']['value'], integral_info['LY result']['intercept']['error'])}$ \n$b = {to_scientific_notation(integral_info['LY result']['slope']['value'], integral_info['LY result']['slope']['error'])}$") 
+                                ax[i].set_xlabel('Beam energy (GeV)')
+                                ax[i].set_ylabel('Integrated charge')
+                                ax[i].set_title('Charge vs energy with linear fit')
+                                ax[i].legend()
                     
-                    for energy, histo_info in ch_dic['LY data'].items():
-                        if histo_info:
-                            ax[i].hist(histo_info['histogram data'], bins=histo_info['gaussian fit']['bins'], density=True, alpha=0.6, color='blue', label="Data")
-                            ax[i].set_xlabel("Integrated Charge")
-                            ax[i].set_ylabel("Density")
-                            ax[i].set_title(f"Energy: {energy} GeV")
-                            ax[i].legend(fontsize='small')
-                            
-                            if histo_info['gaussian fit']:
-                                x_fit = np.linspace(min(histo_info['histogram data']), max(histo_info['histogram data']), 1000)
-                                y_fit = gaussian(x_fit, histo_info['gaussian fit']['mean']['value'], histo_info['gaussian fit']['sigma']['value'], histo_info['gaussian fit']['normalized amplitude']['value'])
-                                ax[i].plot(x_fit, y_fit, color='red', lw=2, label=f"Gaussian fit: \n$\mu= {to_scientific_notation(histo_info['gaussian fit']['mean']['value'], histo_info['gaussian fit']['mean']['error'])}$ \n$\sigma= {to_scientific_notation(histo_info['gaussian fit']['sigma']['value'], histo_info['gaussian fit']['sigma']['error'])}$ \n$A= {to_scientific_notation(histo_info['gaussian fit']['normalized amplitude']['value'], histo_info['gaussian fit']['normalized amplitude']['error'])} $") 
-                        i += 1
-                        
-                    if ch_dic['LY result']:
-                        ax[i].errorbar(ch_dic['LY result']['x'], ch_dic['LY result']['y'], yerr=ch_dic['LY result']['e_y'], fmt='o', label='Data')
-                        ax[i].plot(ch_dic['LY result']['x'], linear_fit(np.array(ch_dic['LY result']['x']), ch_dic['LY result']['slope']['value'], ch_dic['LY result']['intercept']['value']), 'r-', label=f"Linear fit: y=a+bx\n$a = {to_scientific_notation(ch_dic['LY result']['intercept']['value'], ch_dic['LY result']['intercept']['error'])}$ \n$b = {to_scientific_notation(ch_dic['LY result']['slope']['value'], ch_dic['LY result']['slope']['error'])}$") 
-                        ax[i].set_xlabel('Beam energy (GeV)')
-                        ax[i].set_ylabel('Integrated charge')
-                        ax[i].set_title('Charge vs energy with linear fit')
-                        ax[i].legend()
-                    
-                    plt.tight_layout()
-                    self.analysis_results[apa][end][ch] = fig
-                    plt.close(fig)
+                        plt.tight_layout()
+                        self.analysis_results[integral_label][apa][end][ch] = fig
+                        #plt.close(fig)
         
         print('\nAnalysis... done\n')
         return True
@@ -197,13 +206,14 @@ class Analysis2(WafflesAnalysis):
     def write_output(self) -> bool:
         print('Saving...')
         
-        for apa, apa_dic in self.analysis_results.items():
-            APA_pdf_file = PdfPages(f"{self.input_output_file}_APA{apa}.pdf")
-            for end, end_dic in apa_dic.items():
-                for ch, fig in end_dic.items():
-                    APA_pdf_file.savefig(fig)
-                    plt.close(fig)
-            APA_pdf_file.close()
+        for key in find_analysis_keys(self.result_info):
+            for apa, apa_dic in self.analysis_results[key].items():
+                APA_pdf_file = PdfPages(f"{self.input_output_file}_APA{apa}_{key}.pdf")
+                for end, end_dic in apa_dic.items():
+                    for ch, fig in end_dic.items():
+                        APA_pdf_file.savefig(fig)
+                        plt.close(fig)
+                APA_pdf_file.close()
         
         print('\nPDFs saved successfully!\n')
         return True
