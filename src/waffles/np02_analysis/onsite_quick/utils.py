@@ -667,15 +667,14 @@ def compute_fft(signal: np.ndarray, dt: float = 16e-9):
 
 def plot_meanfft(channel_ws, figure, row, col, tmin=-1, tmax=-1):
     
+    fft_list_x = []
+    fft_list_y = []
     if not channel_ws.waveforms:
         print("No waveforms provided.")
         return
 
     selected_wfs, _ = get_wfs(channel_ws.waveforms, -1, -1, -1, -1, -1, [-1])
     print(f"Channel has {len(selected_wfs)} selected waveforms.")
-
-    fft_powers = []
-    ref_freq_axis = None
 
     for wf in selected_wfs:
         offset = wf.timestamp - wf.daq_window_timestamp
