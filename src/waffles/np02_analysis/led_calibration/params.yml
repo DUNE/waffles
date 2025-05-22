@@ -78,6 +78,8 @@ thr_adc: -1
 # 36335: ch 30: 130
 # 36335: ch 37: 150
 
+save_processed_wfset: True
+
 # ------- Parameters for peak fitting -------
 
 # Maximum number of peaks to fit
