@@ -229,7 +229,6 @@ class Analysis1(WafflesAnalysis):
         
         try:
             wfset_path = self.params.input_path
-            #self.wfset=WaveformSet_from_hdf5_pickle(wfset_path)   
             self.wfset=load_structured_waveformset(wfset_path)   
         except FileNotFoundError:
             raise FileNotFoundError(f"File {wfset_path} was not found.")
@@ -257,12 +256,12 @@ class Analysis1(WafflesAnalysis):
         print("\n 1. Starting the analysis")
         
         # Obtain the endpoints from the detector
-        eps = os_utils.get_endpoints(self.params.det, self.det_id)
+        eps = lc_utils.get_endpoints(self.params.det, self.det_id)
         
         # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
-        self.selected_wfs1, self.selected_wfset1= os_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec, adc_max_threshold=15000)
+        self.selected_wfs1, self.selected_wfset1= lc_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec, adc_max_threshold=15000)
    
-        self.grid_raw=os_utils.get_grid(self.selected_wfs1, self.params.det, self.det_id)
+        self.grid_raw=lc_utils.get_grid(self.selected_wfs1, self.params.det, self.det_id)
         
         if self.params.tmin == -1 and self.params.tmax == -1:
             print(f"\n 2. Analyzing WaveformSet with {len(self.selected_wfs1)} waveforms, no specific time interval (tmin=-1 and tmax=-1).")
@@ -271,7 +270,7 @@ class Analysis1(WafflesAnalysis):
         
         print(f"\n 3. Creating the grid")
 
-        analysis_params = os_utils.get_analysis_params()
+        analysis_params = lc_utils.get_analysis_params()
         
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = self.selected_wfset1.points_per_wf
@@ -290,20 +289,20 @@ class Analysis1(WafflesAnalysis):
             overwrite=True
         )
         
-        self.selected_wfs2, self.selected_wfset2 =os_utils.baseline_cut(self.selected_wfs1)
+        self.selected_wfs2, self.selected_wfset2 =lc_utils.baseline_cut(self.selected_wfs1)
         
         print(f"\n 4. After aplying the baseline cut, we have {len(self.selected_wfs2)} waveforms")
         
-        self.selected_wfs3, self.selected_wfset3 =os_utils.adc_cut(self.selected_wfs2, thr_adc=self.thr_adc)
+        self.selected_wfs3, self.selected_wfset3 =lc_utils.adc_cut(self.selected_wfs2, thr_adc=self.thr_adc)
         
-        self.grid_filt1= os_utils.get_grid(self.selected_wfs2, self.params.det, self.det_id)
+        self.grid_filt1= lc_utils.get_grid(self.selected_wfs2, self.params.det, self.det_id)
         
         if self.thr_adc != -1:
             print(f"\n 5. After applying a filter on the ADC values, we have {len(self.selected_wfs3)} waveforms.")
         else:
             print(f"\n 5. No more filters were applied.")
         
-        self.grid_filt2= os_utils.get_grid(self.selected_wfs3, self.params.det, self.det_id)
+        self.grid_filt2= lc_utils.get_grid(self.selected_wfs3, self.params.det, self.det_id)
         
         print(f"\n 6. Computing the charge histograms, to establish the proper integration limits. Possibilities:{self.integration_intervals}")
 
@@ -349,7 +348,7 @@ class Analysis1(WafflesAnalysis):
             )
          
             # Create the grid for charge histograms
-            self.grid_charge = os_utils.get_grid_charge(
+            self.grid_charge = lc_utils.get_grid_charge(
                 self.selected_wfs3,
                 self.params.det,
                 self.det_id,
@@ -390,7 +389,7 @@ class Analysis1(WafflesAnalysis):
             if self.params.show_figures:
                 figure.show()
                 
-            full_data = os_utils.get_gain_snr_and_amplitude(self.grid_charge)
+            full_data = lc_utils.get_gain_snr_and_amplitude(self.grid_charge)
 
             all_full_data_by_interval[left, right] = full_data
             
@@ -416,8 +415,8 @@ class Analysis1(WafflesAnalysis):
 
    
         print("\n >>> Plotting the S/N ratio per channel:")
-        det_id_name = os_utils.get_det_id_name(self.det_id)
-        os_utils.plot_snr_per_channel_grid(
+        det_id_name = lc_utils.get_det_id_name(self.det_id)
+        lc_utils.plot_snr_per_channel_grid(
             snr_by_interval,
             self.params.det,
             self.det_id,
@@ -426,7 +425,7 @@ class Analysis1(WafflesAnalysis):
         
         print(f"\n 7. Computing the maximum S/N ratio per channel")
         
-        self.best_snr_info_per_channel = os_utils.find_best_snr_per_channel(all_full_data_by_interval)
+        self.best_snr_info_per_channel = lc_utils.find_best_snr_per_channel(all_full_data_by_interval)
         
         # Ask the user if they want to create a WaveformSet with the SPE waveforms
         response = input("\n ▶ Do you want to create a waveformset with with the spe waveforms for the integration interval that maximizes the S/N ratio? [y/n]: ").strip().lower()
@@ -435,7 +434,7 @@ class Analysis1(WafflesAnalysis):
             self.should_save_waveforms = False  
         else:
             self.should_save_waveforms = True   
-            self.waveformsets_by_channel = os_utils.select_waveforms_around_spe(self.best_snr_info_per_channel, self.selected_wfset3)
+            self.waveformsets_by_channel = lc_utils.select_waveforms_around_spe(self.best_snr_info_per_channel, self.selected_wfset3)
 
         # Compute average amplitude
         
@@ -446,7 +445,7 @@ class Analysis1(WafflesAnalysis):
             right = self.wf_peak + int(interval * 0.8)
             interval = (left,right)
             ch = self.params.ch[0]
-            os_utils.compute_average_amplitude(self.selected_wfs3, interval, self.params.ch, self.params.runs, self.params.output_path)
+            lc_utils.compute_average_amplitude(self.selected_wfs3, interval, self.params.ch, self.params.runs, self.params.output_path)
             
         else:
             print("\n ⚠ The average amplitude is not calculated because there are multiple channels or/and intervals.")
@@ -464,7 +463,7 @@ class Analysis1(WafflesAnalysis):
             True if the method ends execution normally
         """
 
-        det_id_name=os_utils.get_det_id_name(self.det_id)
+        det_id_name=lc_utils.get_det_id_name(self.det_id)
         
         base_file_path = f"{self.params.output_path}"\
             f"run_{self.run}_{det_id_name}_{self.params.det}"   
@@ -474,13 +473,15 @@ class Analysis1(WafflesAnalysis):
             print(f"\n >>> Saving the Waveforms in a hdf5 file")
   
             for (ep, ch), wfset in self.waveformsets_by_channel.items():
-                input_filename = f"run_{self.run}_ep{ep}_ch{ch}"
-                os_utils.save_waveform_hdf5(wfset, input_filepath=input_filename)
+                input_filename = f"run_{self.run}_ep{ep}_ch{ch}_wfs_spe"
+                lc_utils.save_waveform_hdf5(wfset, input_filepath=input_filename, output_path=self.params.output_path)
 
         if len(self.params.ch) > 1 or self.params.ch == [-1]:
-            os_utils.save_dict_to_json(self.best_snr_info_per_channel, f"{base_file_path}.json")
+            lc_utils.save_dict_to_json(self.best_snr_info_per_channel, f"{base_file_path}.json")
         
         print(f"\n 8. Performing several plots for visualization")
+        
+        lc.utils.save_waveform_hdf5(self.selected_wfset3, input_filepath=f"{base_file_path}_process_wfset", output_path=self.params.output_path)
         
         # ------------- Save the average waveform plot ------------- 
         
@@ -546,7 +547,7 @@ class Analysis1(WafflesAnalysis):
             
             figure1 = plot_CustomChannelGrid(
                 self.grid_raw, 
-                plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_wfs(
+                plot_function=lambda channel_ws, figure_, row, col: lc_utils.plot_wfs(
                     channel_ws, figure_, row, col,nwfs_plot=self.params.nwfs_plot, offset=False),
                 share_x_scale=True,
                 share_y_scale=True,
@@ -582,7 +583,7 @@ class Analysis1(WafflesAnalysis):
         if self.thr_adc != -1:
             figure12 = plot_CustomChannelGrid(
                 self.grid_filt1, 
-                plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_wfs(
+                plot_function=lambda channel_ws, figure_, row, col: lc_utils.plot_wfs(
                     channel_ws, figure_, row, col, nwfs_plot=self.params.nwfs_plot,  offset=False, baseline = False),
                 share_x_scale=True,
                 share_y_scale=True,
@@ -615,12 +616,12 @@ class Analysis1(WafflesAnalysis):
             figure12.write_image(f"{fig12_path}.png")
             print(f"\nWaveforms with baseline filter saved in {fig12_path}")
         
-        # ------------- Save the filtered 2 waveforms plot ------------- 
         
+        # ------------- Save the filtered 2 waveforms plot ------------- 
             
         figure13 = plot_CustomChannelGrid(
             self.grid_filt2, 
-            plot_function=lambda channel_ws, figure_, row, col: os_utils.plot_wfs(
+            plot_function=lambda channel_ws, figure_, row, col: lc_utils.plot_wfs(
                 channel_ws, figure_, row, col, nwfs_plot=self.params.nwfs_plot, offset=False),
             share_x_scale=True,
             share_y_scale=True,

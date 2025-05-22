@@ -1,30 +1,26 @@
 import numpy as np
 from typing import Union, Dict
 import warnings 
-import plotly.graph_objs as go
-import matplotlib.pyplot as plt
-
-from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, cat_geometry_map
-from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
-from waffles.data_classes.WaveformSet import WaveformSet
-
-from waffles.data_classes.WaveformAdcs import WaveformAdcs
-from waffles.core.utils import build_parameters_dictionary
-from waffles.data_classes.IPDict import IPDict
-
 import json
 import os
 import click
 from pathlib import Path
-import numpy as np
+
+import plotly.graph_objs as go
+import matplotlib.pyplot as plt
+from plotly.subplots import make_subplots
+
+from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, cat_geometry_map
+from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
+from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
+from waffles.core.utils import build_parameters_dictionary
+from waffles.data_classes.IPDict import IPDict
 from waffles.utils.utils import print_colored
 import waffles.input_output.raw_hdf5_reader as reader
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 from waffles.input_output.hdf5_structured import load_structured_waveformset
-from waffles.data_classes.Waveform import Waveform
-from waffles.data_classes.WaveformSet import WaveformSet
-
-from plotly.subplots import make_subplots
 
 input_parameters = build_parameters_dictionary('params.yml')
     
@@ -59,6 +55,7 @@ def get_endpoints(det:str, det_id: int):
     
     return eps
 
+
 def get_wfs(wfs: list,                
             ep: Union[int, list] = -1,
             ch: Union[int, list] = -1,
@@ -68,7 +65,7 @@ def get_wfs(wfs: list,
             rec: Union[int, list] = -1,
             adc_max_threshold: int = None): 
 
-    # Normaliza a listas (o conjuntos para búsqueda eficiente)
+
     ep = set([ep]) if isinstance(ep, int) else set(ep)
     ch = set([ch]) if isinstance(ch, int) else set(ch)
     rec = set([rec]) if isinstance(rec, int) else set(rec)
@@ -95,16 +92,13 @@ def get_wfs(wfs: list,
     return waveforms, WaveformSet(*waveforms)
 
 
-
 def baseline_cut(wfs: list):
     """
-    Filtra waveforms cuyo baseline_rms está dentro de un rango alrededor de la media.
-    baseline_tolerance: fracción (por ejemplo, 0.1 para ±10%)
+    Filters waveforms whose baseline_rms is below the mean of all baseline_rms values.
     """
     
     baseline_rms = [wf.analyses['baseline_computation'].result['baseline_rms'] for wf in wfs]
     mean_rms = np.mean(baseline_rms)
-    #print('mean_rms:', mean_rms)
 
     selected_wfs = [
         wf for wf in wfs
@@ -113,16 +107,10 @@ def baseline_cut(wfs: list):
 
     return selected_wfs, WaveformSet(*selected_wfs)
 
+
 def adc_cut(wfs: list, thr_adc: int):
     """
     Filters waveforms with a maximum ADC value above a given threshold.
-
-    Args:
-        wfs (list): List of waveforms. Each waveform must have an `adcs` attribute (array-like).
-        thr_adc (int): Maximum ADC threshold (exclusive). If -1, no cut is applied.
-
-    Returns:
-        tuple: (filtered waveform list, WaveformSet containing the filtered waveforms)
     """
     if thr_adc == -1:
         return wfs, WaveformSet(*wfs)
@@ -130,6 +118,7 @@ def adc_cut(wfs: list, thr_adc: int):
     selected_wfs = [wf for wf in wfs if np.max(wf.adcs)-wf.analyses['baseline_computation'].result['baseline'] < thr_adc]
     
     return selected_wfs, WaveformSet(*selected_wfs)
+
 
 def get_gain_snr_and_amplitude(grid: ChannelWsGrid, verbose: bool = False, run=None):
     data = {}
@@ -188,18 +177,9 @@ def get_gain_snr_and_amplitude(grid: ChannelWsGrid, verbose: bool = False, run=N
     return data
 
 
-import numpy as np
-
 def find_best_snr_per_channel(all_full_data_by_interval):
     """
     Finds the best signal-to-noise ratio (S/N) per (endpoint, channel) from the given data.
-    
-    Parameters:
-        all_full_data_by_interval (dict): Nested dictionary structured as:
-            {interval: {endpoint: {channel: values_dict}}}
-
-    Returns:
-        dict: Dictionary with keys (endpoint, channel) and values as dicts of best S/N info.
     """
     best_snr_info_per_channel = {}
 
@@ -238,6 +218,7 @@ def find_best_snr_per_channel(all_full_data_by_interval):
               f"Run: {info['run']}, Number of processed wfs: {info['number_waveforms']}")
     
     return best_snr_info_per_channel
+
 
 def select_waveforms_around_spe(best_snr_info_per_channel, wfset2):
     """
@@ -280,10 +261,6 @@ def select_waveforms_around_spe(best_snr_info_per_channel, wfset2):
     return waveformsets_by_channel
 
 
-import numpy as np
-import os
-import plotly.graph_objects as go
-
 def compute_average_amplitude(waveforms, interval, ch, run, output_dir=None):
     """
     Computes the average amplitude of waveforms in a given interval and channel.
@@ -306,7 +283,6 @@ def compute_average_amplitude(waveforms, interval, ch, run, output_dir=None):
         mean_amp = np.mean(amps_wf)
         std_amp = np.std(amps_wf)
 
-        # Crear histograma
         hist_trace = go.Histogram(
             x=amps_wf,
             nbinsx=25,
@@ -321,7 +297,6 @@ def compute_average_amplitude(waveforms, interval, ch, run, output_dir=None):
             yaxis_title="Counts",
         )
 
-        # Guardar
         os.makedirs(output_dir, exist_ok=True)
         base_name = f"amplitudehist_run_{run}_ch_{ch}_interval{ll}_{ul}"
         html_path = os.path.join(output_dir, base_name + ".html")
@@ -378,6 +353,7 @@ def get_histogram(values: list,
     
     return histogram_trace
 
+
 def get_grid(wfs: list,                
              det: str,
              det_id: list):
@@ -390,6 +366,7 @@ def get_grid(wfs: list,
         grid = None      
         
     return grid
+
 
 def get_grid_charge(wfs: list,                
                     det: str,
@@ -411,6 +388,7 @@ def get_grid_charge(wfs: list,
                         )
         
     return grid
+
 
 def plot_snr_per_channel_grid(snr_data, det, det_id, title="S/N vs integration intervals", show_figures=True):
     
@@ -486,7 +464,8 @@ def get_det_id_name(det_id: int):
         
     return det_id_name
 
-# ------------ Plot a waveform ---------------
+
+# ------------ Functions to plot in a grid mode ---------------
 
 def plot_wf(waveform_adcs: WaveformAdcs,  
             figure,
@@ -517,6 +496,7 @@ def plot_wf(waveform_adcs: WaveformAdcs,
     )
 
     figure.add_trace(wf_trace, row, col)
+
 
 # ------------- Plot a set of waveforms ----------
 
@@ -624,6 +604,7 @@ def plot_sigma_function(channel_ws, figure, row, col, nbins):
     
     return figure
 
+
 # -------------------- Mean FFT --------------------
 
 def fft(sig, dt=16e-9):
@@ -645,6 +626,7 @@ def fft(sig, dt=16e-9):
     x = freqAxisPos /1e6
     y = 20*np.log10(np.abs(sigFFTPos)/2**14)
     return x,y
+
 
 def plot_meanfft_function(channel_ws, figure, row, col):
 
@@ -671,181 +653,13 @@ def plot_meanfft_function(channel_ws, figure, row, col):
     
     return figure  
 
-def plot_avg_waveform_with_peak_and_intervals(channel_ws, figure, row, col, intervals):
-    import plotly.graph_objects as go
-    import numpy as np
 
-    all_wfs = np.array([wf.adcs for wf in channel_ws.waveforms])
-    avg_waveform = np.mean(all_wfs, axis=0)
-    peak_index = np.argmax(avg_waveform)
-    peak_value = avg_waveform[peak_index]
-
-    # Mostrar la waveform promedio
-    figure.add_trace(go.Scatter(
-        x=np.arange(len(avg_waveform)),
-        y=avg_waveform,
-        mode='lines',
-        name=f"Avg WF - Ch {channel_ws.channel}",
-        line=dict(color='blue')
-    ), row=row, col=col)
-
-    # Punto rojo en el pico
-    figure.add_trace(go.Scatter(
-        x=[peak_index],
-        y=[peak_value],
-        mode='markers',
-        marker=dict(color='red', size=8),
-        name='Peak'
-    ), row=row, col=col)
-
-    # Zonas sombreadas de carga y baseline
-    for interval in intervals:
-        left = int(interval * 0.3)
-        right = interval - left
-
-        # Intervalo de integral (zona verde)
-        start_sig = max(0, peak_index - left)
-        end_sig = min(len(avg_waveform), peak_index + right)
-
-        figure.add_shape(
-            type="rect",
-            x0=start_sig,
-            x1=end_sig,
-            y0=min(avg_waveform),
-            y1=max(avg_waveform),
-            fillcolor="rgba(0,255,0,0.15)",  # verde
-            line=dict(width=0),
-            layer="below",
-            row=row,
-            col=col
-        )
-
-        # Intervalo de baseline (zona naranja): primeros 50 puntos
-        base_start = 0
-        base_end = min(50, len(avg_waveform))
-
-        figure.add_shape(
-            type="rect",
-            x0=base_start,
-            x1=base_end,
-            y0=min(avg_waveform),
-            y1=max(avg_waveform),
-            fillcolor="rgba(255,165,0,0.2)",  # naranja
-            line=dict(width=0),
-            layer="below",
-            row=row,
-            col=col
-        )
-
-    return figure
-
-def plot_sigma_to_noise_vs_interval_histfit(channel_ws, figure, row, col, intervals, baseline_window=50, bins=40):
-    import numpy as np
-    import plotly.graph_objects as go
-    from scipy.optimize import curve_fit
-    from scipy.stats import norm
-
-    def gaussian(x, a, mu, sigma):
-        return a * np.exp(-(x - mu) ** 2 / (2 * sigma ** 2))
-
-    all_wfs = np.array([wf.adcs for wf in channel_ws.waveforms])
-    wf_len = all_wfs.shape[1]
-    avg_waveform = np.mean(all_wfs, axis=0)
-    peak_index = np.argmax(avg_waveform)
-
-    interval_labels = []
-    snr_list = []
-
-    for interval in intervals:
-        left = int(interval * 0.3)
-        right = interval - left
-
-        sig_start = max(0, peak_index - left)
-        sig_end = min(wf_len, peak_index + right)
-
-        base_start = 0
-        base_end = min(baseline_window, wf_len)
-
-        signal_charges = np.sum(all_wfs[:, sig_start:sig_end], axis=1)
-        baseline_charges = np.sum(all_wfs[:, base_start:base_end], axis=1)
-
-        # Ajuste gaussiano a histogramas
-        hist_s, bins_s = np.histogram(signal_charges, bins=bins, density=True)
-        bin_centers_s = 0.5 * (bins_s[1:] + bins_s[:-1])
-        popt_s, _ = curve_fit(gaussian, bin_centers_s, hist_s, p0=[1, np.mean(signal_charges), np.std(signal_charges)])
-
-        hist_b, bins_b = np.histogram(baseline_charges, bins=bins, density=True)
-        bin_centers_b = 0.5 * (bins_b[1:] + bins_b[:-1])
-        popt_b, _ = curve_fit(gaussian, bin_centers_b, hist_b, p0=[1, np.mean(baseline_charges), np.std(baseline_charges)])
-
-        mu_signal, sigma_signal = popt_s[1], popt_s[2]
-        mu_baseline, sigma_baseline = popt_b[1], popt_b[2]
-
-        snr = (mu_signal - mu_baseline) / sigma_baseline if sigma_baseline != 0 else 0
-        snr_list.append(snr)
-        interval_labels.append(f"[-{left},+{right}]")
-
-    figure.add_trace(go.Scatter(
-        x=interval_labels,
-        y=snr_list,
-        mode='lines+markers',
-        name=f"SNR Fit - Ch {channel_ws.channel}",
-        line=dict(width=2)
-    ), row=row, col=col)
-
-    return figure
-
-def plot_sigma_to_noise_vs_interval(channel_ws, figure, row, col, intervals):
-    import numpy as np
-    import plotly.graph_objects as go
-
-    all_wfs = np.array([wf.adcs for wf in channel_ws.waveforms])
-    avg_waveform = np.mean(all_wfs, axis=0)
-    peak_index = np.argmax(avg_waveform)
-    wf_len = all_wfs.shape[1]
-
-    sigma_to_noise_ratios = []
-    interval_labels = []
-
-    for interval in intervals:
-        left = int(interval * 0.3)
-        right = interval - left
-
-        sig_start = max(0, peak_index - left)
-        sig_end = min(wf_len, peak_index + right)
-
-        base_start = 0
-        base_end = min(50, sig_start)
-
-        signal_charges = np.sum(all_wfs[:, sig_start:sig_end], axis=1)
-        baseline_charges = np.sum(all_wfs[:, base_start:base_end], axis=1)
-
-        mu_signal = np.mean(signal_charges)
-        mu_baseline = np.mean(baseline_charges)
-        sigma_baseline = np.std(baseline_charges)
-
-        snr = (mu_signal - mu_baseline) / sigma_baseline if sigma_baseline != 0 else 0
-        sigma_to_noise_ratios.append(snr)
-        interval_labels.append(f"[-{left},+{right}]")
-
-    figure.add_trace(go.Scatter(
-        x=interval_labels,
-        y=sigma_to_noise_ratios,
-        mode='lines+markers',
-        marker=dict(size=6),
-        line=dict(width=2),
-        name=f"SNR - Ch {channel_ws.channel}"
-    ), row=row, col=col)
-
-    return figure
-
-def save_waveform_hdf5(wfset, input_filepath):
+def save_waveform_hdf5(wfset, input_filepath, output_filepath):
         input_filename = Path(input_filepath).name
-        output_filepath = f"output_led/processed_wf_{input_filename}.hdf5"
+        output_filepath = f"{output_filepath}/{input_filename}.hdf5"
 
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
         try:
-            # ✅ Make sure we overwrite the input variable with the wrapped one
 
             print_colored(f"📦 About to save WaveformSet with {len(wfset.waveforms)} waveforms", color="DEBUG")
 
@@ -865,18 +679,11 @@ def save_waveform_hdf5(wfset, input_filepath):
             print_colored("Loaded, about to compare...")  # If you see this, the load worked
             print_colored(f"wfset_loaded type={type(wfset_loaded)}")
             
-
             return True
         except Exception as e:
             print_colored(f"Error saving output: {e}", color="ERROR")
             return False
 
-
-import os
-import json
-
-import os
-import json
 
 def save_dict_to_json(data: dict, file_path: str) -> None:
     """

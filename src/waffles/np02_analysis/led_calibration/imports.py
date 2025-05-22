@@ -27,6 +27,6 @@ from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, cat_geometry_m
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_ChannelWsGrid
-from waffles.np02_analysis.led_calibration import utils as os_utils
+from waffles.np02_analysis.led_calibration import utils as lc_utils
 
 import waffles.plotting.drawing_tools as draw
