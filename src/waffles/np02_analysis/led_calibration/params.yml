@@ -1,103 +1,84 @@
 # ------- General parameters -------
 
+# Path to the folder containing the data
+# Attention: the file name must be 0<run_number>.hdf5
+input_path: "data_led/036335.hdf5"
+
+# Path to the output
+output_path: "output_led/"
+
 # Runs
-runs: [35867]
+runs: [36335]
 
 # Detector to analyze: Membrane, Cathode, PMTs
 det: "Membrane"
 
-# 1 is non-TCO and 2 is TCO
-det_id: [2] 
+# Detector id: 1 is non-TCO and 2 is TCO
+det_id: [2]
 
-# Photon detection efficiency
-pdes: [0.4] # 0.40, 0.45, 0.50
-
-# Path to the folder containing the data
-input_path: 'data'
-
-# Path to the output
-output_path: 'output'
-
-# PDE-to-OV mapping for HPK sipms
-hpk_ov:
-    0.4: 2.0
-
-# PDE-to-OV mapping for FBK sipms
-fbk_ov:
-    0.4: 3.5
-
-# Enumeration of PDE values
-ov_no:
-    0.4: 1
-
-# ------- Parameters for charge histogram -------
-
-analysis_label: 'standard'
-
-# Lower integration limits. For APA 1 the limits are
-# run-wise, while for APA 2, 3, 4 they are the same
-# for all runs 
+# ------- Parameters for the analysis -------
 
 # Time interval in timeticks of the DAQ window to be considered 
+# -1 means the whole window
 tmin: -1
 tmax: -1
 
 # Channels 
-ch: -1
+# [-1] means all channels
+ch: 
+    - 30
+    - 37
 
 # Number of waveforms to analyze
+# -1 means all waveforms
 nwfs: -1
 
 # Number of waveforms to plot
-nwfs_plot: 50
+nwfs_plot: 1000
 
 # Records
+# [-1] means all records
 rec: [-1]
 
-# Integration limits
-starting_tick: 60
-
-# Baseline limits
-baseline_limits:
-    - 0
-    - 50
-
+# Starting tick for the integration
+starting_tick: 250
 
 # Integration window width, in time ticks
 integ_window: 60
 
+# Approximate ADC value of the waveform peak
+wf_peak: 262
+
+# 36335: 262
+
+# Baseline limits
+baseline_limits:
+    - 0
+    - 250
+
 # Number of bins for the histograms 
 nbins: 130
 
+# Integration intervals to use
 integration_intervals:
-  - 20
-  - 30
-  - 40
-  - 50
-  - 60
-  - 70
-  - 80
-  - 90
-  - 100
-  - 110
-  - 120
-  - 130
-  - 140
-  - 150
-  - 160
-  - 170
-  - 180
-  - 190
-  - 200
-  - 210
-  - 220
-  - 230
-  - 240
-  - 250
-  - 260
-  - 270
-  - 280
-  - 290
+    - 6 
+    - 8
+    - 10
+    - 12
+    - 14
+    - 16
+
+# 36335: ch 30: 10
+# 36335: ch 37: 12
+
+# ADC threshold for the ADC filter (second filter if there is a lot of light leakage). It is useful for filtered the spe waveforms.
+# -1 means no second filter applied
+thr_adc: -1
+
+# 36335: ch 30: 130
+# 36335: ch 37: 150
+
+# wei runs: 200
 
 # ------- Parameters for peak fitting -------
 
@@ -122,3 +103,4 @@ half_points_to_fit: 2 # [2 - 3]
 # utils/fit_peaks/fit_peaks_utils.py
 initial_percentage: 0.15 
 percentage_step: 0.05
+

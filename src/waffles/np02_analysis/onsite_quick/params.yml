@@ -2,13 +2,13 @@
 
 # Path to the folder containing the data
 # Attention: the file name must be 0<run_number>.hdf5
-input_path: "data/036458.hdf5"
+input_path: "data/036491.hdf5"
 
 # Path to the output
 output_path: "output/"
 
 # Runs
-runs: [36458]
+runs: [36491]
 
 # Detector to analyze: Membrane, Cathode, PMTs
 det: "Membrane"

@@ -1,0 +1,124 @@
+# ------- General parameters -------
+
+# Runs
+runs: [35867]
+
+# Detector to analyze: Membrane, Cathode, PMTs
+det: "Membrane"
+
+# 1 is non-TCO and 2 is TCO
+det_id: [2] 
+
+# Photon detection efficiency
+pdes: [0.4] # 0.40, 0.45, 0.50
+
+# Path to the folder containing the data
+input_path: 'data'
+
+# Path to the output
+output_path: 'output'
+
+# PDE-to-OV mapping for HPK sipms
+hpk_ov:
+    0.4: 2.0
+
+# PDE-to-OV mapping for FBK sipms
+fbk_ov:
+    0.4: 3.5
+
+# Enumeration of PDE values
+ov_no:
+    0.4: 1
+
+# ------- Parameters for charge histogram -------
+
+analysis_label: 'standard'
+
+# Lower integration limits. For APA 1 the limits are
+# run-wise, while for APA 2, 3, 4 they are the same
+# for all runs 
+
+# Time interval in timeticks of the DAQ window to be considered 
+tmin: -1
+tmax: -1
+
+# Channels 
+ch: -1
+
+# Number of waveforms to analyze
+nwfs: -1
+
+# Number of waveforms to plot
+nwfs_plot: 50
+
+# Records
+rec: [-1]
+
+# Integration limits
+starting_tick: 60
+
+# Baseline limits
+baseline_limits:
+    - 0
+    - 50
+
+
+# Integration window width, in time ticks
+integ_window: 60
+
+# Number of bins for the histograms 
+nbins: 130
+
+integration_intervals:
+  - 20
+  - 30
+  - 40
+  - 50
+  - 60
+  - 70
+  - 80
+  - 90
+  - 100
+  - 110
+  - 120
+  - 130
+  - 140
+  - 150
+  - 160
+  - 170
+  - 180
+  - 190
+  - 200
+  - 210
+  - 220
+  - 230
+  - 240
+  - 250
+  - 260
+  - 270
+  - 280
+  - 290
+
+# ------- Parameters for peak fitting -------
+
+# Maximum number of peaks to fit
+max_peaks: 2
+
+# Minimal prominence, as a fraction
+# of the y-range, for a peak to be detected
+prominence: 0.15 # [0.10 - 0.2]
+
+# The number of points to fit on either side
+# of the peak maximum. P.e. setting this to 
+# 2 will fit 5 points in total: the maximum
+# and 2 points on either side
+half_points_to_fit: 2 # [2 - 3] 
+
+# Check the documentation of the
+# 'initial_percentage' and 'percentage_step'
+# parameters of the
+# __spot_first_peaks_in_CalibrationHistogram
+# function defined in 
+# utils/fit_peaks/fit_peaks_utils.py
+initial_percentage: 0.15 
+percentage_step: 0.05
