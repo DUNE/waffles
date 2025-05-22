@@ -481,7 +481,14 @@ class Analysis1(WafflesAnalysis):
         
         print(f"\n 8. Performing several plots for visualization")
         
-        lc.utils.save_waveform_hdf5(self.selected_wfset3, input_filepath=f"{base_file_path}_process_wfset", output_path=self.params.output_path)
+        if self.params.save_process_wfset:
+            print("\n>>> Saving the processed WaveformSet in an HDF5 file")
+            lc.utils.save_waveform_hdf5(
+                self.selected_wfset3,
+                input_filepath=f"{base_file_path}_process_wfset",
+                output_path=self.params.output_path
+            )
+
         
         # ------------- Save the average waveform plot ------------- 
         
