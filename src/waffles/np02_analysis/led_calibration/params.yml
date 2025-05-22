@@ -2,10 +2,10 @@
 
 # Path to the folder containing the data
 # Attention: the file name must be 0<run_number>.hdf5
-input_path: "data_led/036335.hdf5"
+input_path: "data/036335.hdf5"
 
 # Path to the output
-output_path: "output_led/"
+output_path: "output/"
 
 # Runs
 runs: [36335]
@@ -33,7 +33,7 @@ ch:
 # -1 means all waveforms
 nwfs: -1
 
-# Number of waveforms to plot
+# Number of waveforms to plot with function plot_wfs
 nwfs_plot: 1000
 
 # Records
@@ -77,8 +77,6 @@ thr_adc: -1
 
 # 36335: ch 30: 130
 # 36335: ch 37: 150
-
-# wei runs: 200
 
 # ------- Parameters for peak fitting -------
 
