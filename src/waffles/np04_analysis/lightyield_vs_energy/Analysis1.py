@@ -277,28 +277,29 @@ class Analysis1(WafflesAnalysis):
         
         if self.params.deconvolution:
             print('Deconvolution is ON')
-            # MY ANALYSIS - DECONVOLUTION 
-            analysis_label = 'my_deconvolution_filtering'
-            analysis_class=myWfAna
-            ip = IPDict(baseline_limits=bl,
-                        integration = False,
-                        amp_ll=ampl_ll,
-                        amp_ul=ampl_up,
-                        points_no=10,
-                        peak_finding_kwargs=peak_finding_kwargs,
-                        baseline_method=baseline_method,
-                        baseliner =  baseliner,
-                        deconvolution = True, 
-                        save_devonvolved_wf = True, 
-                        maritza_template = True,
-                        gauss_filtering = True,
-                        gauss_cutoff = 2.5
-                        )
-           
-            a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
             
             # Searching for deconvolved integration range
             if self.params.searching_integration_range:
+                # MY ANALYSIS - DECONVOLUTION 
+                analysis_label = 'my_deconvolution_filtering'
+                analysis_class=myWfAna
+                ip = IPDict(baseline_limits=bl,
+                            integration = False,
+                            amp_ll=ampl_ll,
+                            amp_ul=ampl_up,
+                            points_no=10,
+                            peak_finding_kwargs=peak_finding_kwargs,
+                            baseline_method=baseline_method,
+                            baseliner =  baseliner,
+                            deconvolution = True, 
+                            save_devonvolved_wf = True, 
+                            maritza_template = True,
+                            gauss_filtering = True,
+                            gauss_cutoff = 2.5
+                            )
+            
+                a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
+            
                 print('Searching for filtered deconvolved waveform integration range ...')
                 answer = 'yes'
                 plotting_overlap_wf(self.beam_wfset, show=True, deconvolution=True, analysis_label=analysis_label, output_folder = self.params.output_folder)
@@ -308,6 +309,7 @@ class Analysis1(WafflesAnalysis):
                     plotting_overlap_wf(self.beam_wfset, show=True, int_ll = int_ll_deconv_filter, int_ul = int_ul_deconv_filter, deconvolution=True, analysis_label=analysis_label, output_folder = self.params.output_folder)
                     answer = input('Do you want to CHANGE integration limits? (yes/no) ').strip().lower() 
                 print('done\n\n')
+                
             else:
                 int_ll_deconv_filter = 45
                 int_ul_deconv_filter = 75
