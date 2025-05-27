@@ -13,8 +13,7 @@ class Analysis1(WafflesAnalysis):
         """Implements the WafflesAnalysis.get_input_params_model()
         abstract method. Returns the InputParams class, which is a
         Pydantic model class that defines the input parameters for
-        this example analysis.
-        
+        this example analysis.        
         Returns
         -------
         type
@@ -29,7 +28,7 @@ class Analysis1(WafflesAnalysis):
             runs: list[int] = Field(
                 ...,
                 description="Run numbers of the runs to be read",
-                example=[27906, 27907]
+                example=[27906]
             )
             
             det: str = Field(
@@ -53,13 +52,13 @@ class Analysis1(WafflesAnalysis):
             tmin: int = Field(
                 ...,
                 description="Lower time limit considered for the analyzed waveforms",
-                example=[-1000] # Alls
+                example=[-1000] 
             )
             
             tmax: int = Field(
                 ...,
                 description="Up time limit considered for the analyzed waveforms",
-                example=[1000] # Alls
+                example=[1000] 
             )
 
             rec: list = Field(
@@ -82,7 +81,7 @@ class Analysis1(WafflesAnalysis):
             
             nbins: int = Field(
                 ...,
-                description="Number of bins",
+                description="Number of bins for the histograms",
                 example=110
             )
             
@@ -94,7 +93,7 @@ class Analysis1(WafflesAnalysis):
             
             wf_peak: int = Field(
                 ...,
-                description="A guess on where the photoelectron peaks are located in the timeticks axis",
+                description="Approximate position of the photoelectron peak along the timeticks axis",
                 example=262
             )
             
@@ -102,12 +101,6 @@ class Analysis1(WafflesAnalysis):
                 ...,
                 description="Intervals of intergration",
                 example=[-1] #Alls
-            )
-            
-            correct_by_baseline: bool = Field(
-                default=True,
-                description="Whether the baseline of each waveform "
-                "is subtracted before computing the average waveform"
             )
 
             input_path: str = Field(
@@ -119,12 +112,6 @@ class Analysis1(WafflesAnalysis):
                 default="/output",
                 description="Output path"
             )
-
-            validate_items = field_validator(
-                "runs",
-                mode="before"
-            )(wcu.split_comma_separated_string)
-            
             
             max_peaks: int = Field(
                 default=2,
@@ -170,6 +157,11 @@ class Analysis1(WafflesAnalysis):
                 default=True,
                 description="Whether to show the produced "
                 "figures",
+            )
+            
+            save_processed_wfset: bool = Field(
+                default=True,
+                description="Whether to save the processed wfset"
             )
         return InputParams
 
@@ -238,14 +230,7 @@ class Analysis1(WafflesAnalysis):
     def analyze(self) -> bool:
         """Implements the WafflesAnalysis.analyze() abstract method.
         It performs the analysis of the waveforms contained in the
-        self.wfset attribute, which consists of the following steps:
-
-        1. If self.params.correct_by_baseline is True, the baseline
-        for each waveform in self.wfset is computed and used in
-        the computation of the mean waveform.
-        2. A WaveformAdcs object is created which matches the mean
-        of the waveforms in self.wfset.
-        
+        self.wfset attribute.
         Returns
         -------
         bool
@@ -264,18 +249,16 @@ class Analysis1(WafflesAnalysis):
         self.grid_raw=lc_utils.get_grid(self.selected_wfs1, self.params.det, self.det_id)
         
         if self.params.tmin == -1 and self.params.tmax == -1:
-            print(f"\n 2. Analyzing WaveformSet with {len(self.selected_wfs1)} waveforms, no specific time interval (tmin=-1 and tmax=-1).")
+            print(f"\n 2. Analyzing WaveformSet with {len(self.selected_wfs1)} waveforms, in no specific time interval (tmin=-1 and tmax=-1).")
         else:
             print(f"\n 2. Analyzing WaveformSet with {len(self.selected_wfs1)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
-        
-        print(f"\n 3. Creating the grid")
 
         analysis_params = lc_utils.get_analysis_params()
         
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = self.selected_wfset1.points_per_wf
         
-        # Computing the baseline to apply the baseline cut
+        print(f"\n 3. Computing the baseline of the raw waveforms")
         
         self.analysis_name = 'baseline_computation'
     
@@ -300,7 +283,7 @@ class Analysis1(WafflesAnalysis):
         if self.thr_adc != -1:
             print(f"\n 5. After applying a filter on the ADC values, we have {len(self.selected_wfs3)} waveforms.")
         else:
-            print(f"\n 5. No more filters were applied.")
+            print(f"\n 5. No more filters are applied.")
         
         self.grid_filt2= lc_utils.get_grid(self.selected_wfs3, self.params.det, self.det_id)
         
@@ -428,7 +411,7 @@ class Analysis1(WafflesAnalysis):
         self.best_snr_info_per_channel = lc_utils.find_best_snr_per_channel(all_full_data_by_interval)
         
         # Ask the user if they want to create a WaveformSet with the SPE waveforms
-        response = input("\n ▶ Do you want to create a waveformset with with the spe waveforms for the integration interval that maximizes the S/N ratio? [y/n]: ").strip().lower()
+        response = input("\n ▶ Do you want to create a waveformset with the spe waveforms for the integration interval that maximizes the S/N ratio? [y/n]: ").strip().lower()
         if response != 'y':
             print("\n ⚠  No WaveformSet creation.")
             self.should_save_waveforms = False  
@@ -448,14 +431,14 @@ class Analysis1(WafflesAnalysis):
             lc_utils.compute_average_amplitude(self.selected_wfs3, interval, self.params.ch, self.params.runs, self.params.output_path)
             
         else:
-            print("\n ⚠ The average amplitude is not calculated because there are multiple channels or/and intervals.")
+            print("\n >>> The average amplitude is not calculated because there are multiple channels or/and intervals.")
         return True
 
     def write_output(self) -> bool:
         
         """Implements the WafflesAnalysis.write_output() abstract
-        method. It saves the mean waveform, which is a WaveformAdcs
-        object, to a pickle file.
+        method. It plots the waveforms and saves the processed
+        WaveformSet in an HDF5 file. 
 
         Returns
         -------
@@ -470,23 +453,24 @@ class Analysis1(WafflesAnalysis):
             
         if getattr(self, "should_save_waveforms", False):
             
-            print(f"\n >>> Saving the Waveforms in a hdf5 file")
+            print(f"\n >>> Saving the Waveformset with the spe waveforms in a hdf5 file")
   
             for (ep, ch), wfset in self.waveformsets_by_channel.items():
-                input_filename = f"run_{self.run}_ep{ep}_ch{ch}_wfs_spe"
-                lc_utils.save_waveform_hdf5(wfset, input_filepath=input_filename, output_path=self.params.output_path)
+                input_filename = f"run_{self.run}_ep{ep}_ch{ch}_spe_wfset"
+                lc_utils.save_waveform_hdf5(wfset, input_filepath=input_filename, output_filepath=self.params.output_path)
 
         if len(self.params.ch) > 1 or self.params.ch == [-1]:
-            lc_utils.save_dict_to_json(self.best_snr_info_per_channel, f"{base_file_path}.json")
+            lc_utils.save_dict_to_json(self.best_snr_info_per_channel, f"{base_file_path}_data.json")
         
         print(f"\n 8. Performing several plots for visualization")
         
-        if self.params.save_process_wfset:
+        if self.params.save_processed_wfset:
             print("\n>>> Saving the processed WaveformSet in an HDF5 file")
-            lc.utils.save_waveform_hdf5(
+    
+            lc_utils.save_waveform_hdf5(
                 self.selected_wfset3,
                 input_filepath=f"{base_file_path}_process_wfset",
-                output_path=self.params.output_path
+                output_filepath=self.params.output_path
             )
 
         
@@ -550,6 +534,7 @@ class Analysis1(WafflesAnalysis):
     
         user_input = input("\n Do you want to plot the raw waveforms? (y/n): ").strip().lower()
         if user_input == "y":
+            
             # ------------- Save the raw waveforms plot ------------- 
             
             figure1 = plot_CustomChannelGrid(
@@ -621,10 +606,10 @@ class Analysis1(WafflesAnalysis):
             fig12_path = f"{base_file_path}_wfs_filt1"
             figure12.write_html(f"{fig12_path}.html")
             figure12.write_image(f"{fig12_path}.png")
-            print(f"\nWaveforms with baseline filter saved in {fig12_path}")
+            print(f"\n Waveforms with only baseline filter saved in {fig12_path}")
         
         
-        # ------------- Save the filtered 2 waveforms plot ------------- 
+        # ------------- Save the filtered waveforms plot ------------- 
             
         figure13 = plot_CustomChannelGrid(
             self.grid_filt2, 
@@ -674,7 +659,7 @@ class Analysis1(WafflesAnalysis):
         figure13.write_html(f"{fig13_path}.html")
         figure13.write_image(f"{fig13_path}.png")
         
-        print(f"\n Waveforms with baseline filter saved in {fig13_path}")
+        print(f"\n Filtered waveforms saved in {fig13_path}")
         
         
         # ------------- Save the persistence plot -------------

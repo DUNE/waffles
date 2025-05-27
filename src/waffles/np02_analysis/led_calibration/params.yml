@@ -2,7 +2,7 @@
 
 # Path to the folder containing the data
 # Attention: the file name must be 0<run_number>.hdf5
-input_path: "data/036335.hdf5"
+input_path: "data_led/036335.hdf5"
 
 # Path to the output
 output_path: "output/"
@@ -27,14 +27,13 @@ tmax: -1
 # [-1] means all channels
 ch: 
     - 30
-    - 37
 
 # Number of waveforms to analyze
 # -1 means all waveforms
 nwfs: -1
 
 # Number of waveforms to plot with function plot_wfs
-nwfs_plot: 1000
+nwfs_plot: 2000
 
 # Records
 # [-1] means all records
@@ -61,19 +60,14 @@ nbins: 130
 
 # Integration intervals to use
 integration_intervals:
-    - 6 
-    - 8
     - 10
-    - 12
-    - 14
-    - 16
 
 # 36335: ch 30: 10
 # 36335: ch 37: 12
 
 # ADC threshold for the ADC filter (second filter if there is a lot of light leakage). It is useful for filtered the spe waveforms.
 # -1 means no second filter applied
-thr_adc: -1
+thr_adc: 350
 
 # 36335: ch 30: 130
 # 36335: ch 37: 150
