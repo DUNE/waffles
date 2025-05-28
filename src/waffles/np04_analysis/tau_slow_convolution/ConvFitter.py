@@ -16,7 +16,9 @@ class ConvFitter:
                 error=10, usemplhep=True, 
                 dointerpolation=False, 
                 interpolation_fraction = 8,
-                align_waveforms: bool=True):
+                align_waveforms: bool=True,
+                dtime=16,
+                 ):
 
         self.threshold_align_template = threshold_align_template
         self.threshold_align_response = threshold_align_response
@@ -32,6 +34,7 @@ class ConvFitter:
         self.first_time:int = 0
         self.template:np.ndarray = None
         self.response:np.ndarray = None
+        self.__dtime = dtime
 
     #################################################
     def read_waveforms(self, file_template, file_response):
@@ -70,7 +73,6 @@ class ConvFitter:
     def prepare_waveforms(self):    
         
         if self.dointerpolation:                        
-            self.threshold_align_response = 0.1
 
             self.response = self.interpolate(self.response, self.interpolation_fraction)
             self.template = self.interpolate(self.template, self.interpolation_fraction)
@@ -86,7 +88,7 @@ class ConvFitter:
     def interpolate(self, wf, interpolation_fraction: float):
 
         # Create an array of times with 16 ns tick width 
-        tick_width = 16
+        tick_width = self.__dtime
         nticks = len(wf)
         times = np.linspace(0, nticks*tick_width, nticks, endpoint=False)
 
@@ -94,7 +96,7 @@ class ConvFitter:
         wf_inter = interpolate.interp1d(times, wf, kind='linear', fill_value="extrapolate")
        
         # these are the new times at which to compute the value of the function
-        tick_width = 16/interpolation_fraction
+        tick_width = self.__dtime/interpolation_fraction
         nticks = len(wf)*interpolation_fraction
         newtimes = np.linspace(0, nticks*tick_width, nticks, endpoint=False)
 
@@ -145,7 +147,7 @@ class ConvFitter:
     #################################################
     def minimize(self, printresult:bool):
         
-        tick_width = 16 if not self.dointerpolation else 16/self.interpolation_fraction
+        tick_width = self.__dtime if not self.dointerpolation else self.__dtime/self.interpolation_fraction
         nticks = len(self.response)
 
         times  = np.linspace(0, tick_width*nticks, nticks,endpoint=False)
@@ -207,7 +209,7 @@ class ConvFitter:
         
 
         # Create an array of times with 16 ns tick width 
-        tick_width = 16 if not self.dointerpolation else 16/self.interpolation_fraction
+        tick_width = self.__dtime if not self.dointerpolation else self.__dtime/self.interpolation_fraction
         nticks = len(self.response)
         times  = np.linspace(0, tick_width*nticks, nticks,endpoint=False)
 
