@@ -70,7 +70,6 @@ class ConvFitter:
     def prepare_waveforms(self):    
         
         if self.dointerpolation:                        
-            self.threshold_align_response = 0.1
 
             self.response = self.interpolate(self.response, self.interpolation_fraction)
             self.template = self.interpolate(self.template, self.interpolation_fraction)
