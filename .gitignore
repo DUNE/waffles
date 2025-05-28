@@ -11,6 +11,7 @@ test/*
 .vscode/
 *krb5.conf*
 *.DS_Store
+*.html
 
 # Ignore processed outputs:
 src/analyisis/*
@@ -164,3 +165,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+*.html
+*.html
