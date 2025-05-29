@@ -1564,8 +1564,15 @@ def plot_ChannelWsGrid(
                     channel_ws,
                     time_range_lower_limit=time_range_lower_limit,
                     time_range_upper_limit=time_range_upper_limit,
+<<<<<<< HEAD
                     adc_range_above_baseline=adc_range_above_baseline,
                     adc_range_below_baseline=adc_range_below_baseline)
+=======
+                    adc_range_above_baseline=300,
+                    adc_range_below_baseline=200)
+                    #adc_range_above_baseline=adc_range_above_baseline,
+                    #adc_range_below_baseline=adc_range_below_baseline)
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
        
                 figure_ = wpu.__subplot_heatmap(
                     channel_ws,

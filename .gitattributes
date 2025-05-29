@@ -1,2 +1,5 @@
 *.ipynb filter=strip-notebook-output  
+<<<<<<< HEAD
 *.html filter=lfs diff=lfs merge=lfs -text
+=======
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
