@@ -11,7 +11,10 @@ test/*
 .vscode/
 *krb5.conf*
 *.DS_Store
+<<<<<<< HEAD
 *.html
+=======
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
 # Ignore processed outputs:
 src/analyisis/*
@@ -164,4 +167,8 @@ venv.bak/
 dmypy.json
 
 # Pyre type checker
+<<<<<<< HEAD
 .pyre/
+=======
+.pyre/
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427

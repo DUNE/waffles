@@ -13,7 +13,12 @@ class Analysis1(WafflesAnalysis):
         """Implements the WafflesAnalysis.get_input_params_model()
         abstract method. Returns the InputParams class, which is a
         Pydantic model class that defines the input parameters for
+<<<<<<< HEAD
         this example analysis.        
+=======
+        this example analysis.
+        
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
         Returns
         -------
         type
@@ -28,7 +33,11 @@ class Analysis1(WafflesAnalysis):
             runs: list[int] = Field(
                 ...,
                 description="Run numbers of the runs to be read",
+<<<<<<< HEAD
                 example=[27906]
+=======
+                example=[27906, 27907]
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
             )
             
             det: str = Field(
@@ -42,8 +51,19 @@ class Analysis1(WafflesAnalysis):
                 description="TCO [1] and no-tco [2] membrane, TCO [1] and no-tco [2] cathode, and PMTs",
                 example=[2]
             )
+<<<<<<< HEAD
 
             ch: list = Field(
+=======
+            
+            pdes: list = Field(
+                ...,
+                description="Photon detection effiency",
+                example=[0.4]
+            )
+
+            ch: int = Field(
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
                 ...,
                 description="Channels to analyze",
                 example=[-1] # Alls
@@ -52,13 +72,21 @@ class Analysis1(WafflesAnalysis):
             tmin: int = Field(
                 ...,
                 description="Lower time limit considered for the analyzed waveforms",
+<<<<<<< HEAD
                 example=[-1000] 
+=======
+                example=[-1000] # Alls
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
             )
             
             tmax: int = Field(
                 ...,
                 description="Up time limit considered for the analyzed waveforms",
+<<<<<<< HEAD
                 example=[1000] 
+=======
+                example=[1000] # Alls
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
             )
 
             rec: list = Field(
@@ -81,6 +109,7 @@ class Analysis1(WafflesAnalysis):
             
             nbins: int = Field(
                 ...,
+<<<<<<< HEAD
                 description="Number of bins for the histograms",
                 example=110
             )
@@ -101,6 +130,22 @@ class Analysis1(WafflesAnalysis):
                 ...,
                 description="Intervals of intergration",
                 example=[-1] #Alls
+=======
+                description="Number of bins",
+                example=110
+            )
+            
+            integration_intervals: list = Field(
+                ...,
+                description="Intervals for integration",
+                example=[20,30,40] 
+            )
+            
+            correct_by_baseline: bool = Field(
+                default=True,
+                description="Whether the baseline of each waveform "
+                "is subtracted before computing the average waveform"
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
             )
 
             input_path: str = Field(
@@ -158,11 +203,14 @@ class Analysis1(WafflesAnalysis):
                 description="Whether to show the produced "
                 "figures",
             )
+<<<<<<< HEAD
             
             save_processed_wfset: bool = Field(
                 default=True,
                 description="Whether to save the processed wfset"
             )
+=======
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
         return InputParams
 
     def initialize(
@@ -186,17 +234,25 @@ class Analysis1(WafflesAnalysis):
         # so that they can be accessed by the other methods
         self.params = input_parameters
         self.nbins=self.params.nbins
+<<<<<<< HEAD
         self.thr_adc=self.params.thr_adc
         self.wf_peak=self.params.wf_peak    
+=======
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
         self.integration_intervals=self.params.integration_intervals
 
         self.read_input_loop_1 = self.params.runs
         self.read_input_loop_2 = self.params.det_id
+<<<<<<< HEAD
         self.read_input_loop_3 = [None]
+=======
+        self.read_input_loop_3 = self.params.pdes
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
         self.analyze_loop = [None,] 
 
         self.wfset = None
 
+<<<<<<< HEAD
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
         method. For the current iteration of the read_input loop,
@@ -204,12 +260,28 @@ class Analysis1(WafflesAnalysis):
         self.params.waveforms_per_run waveforms from the first rucio
         path found for this run, and creates a WaveformSet out of them,
         which is assigned to the self.wfset attribute.
+=======
+
+    def read_input(self) -> bool:
+        """Implements the WafflesAnalysis.read_input() abstract
+        method. It loads a WaveformSet object into the self.wfset
+        attribute which matches the input parameters, namely the
+        APA number, the PDE and the batch number. The final
+        WaveformSet is the result of merging different WaveformSet
+        objects, each of which comes from a different run.
+        The decision on which run contributes to which channel
+        is done based on the configuration files, namely on the
+        config_to_channels and run_to_config variables, which are
+        imported from files in the configs/calibration_batches
+        directory.
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
             
         Returns
         -------
         bool
             True if the method ends execution normally
         """
+<<<<<<< HEAD
         self.run    = self.read_input_itr_1
         self.det_id = self.read_input_itr_2
         
@@ -231,11 +303,91 @@ class Analysis1(WafflesAnalysis):
         """Implements the WafflesAnalysis.analyze() abstract method.
         It performs the analysis of the waveforms contained in the
         self.wfset attribute.
+=======
+
+        self.run    = self.read_input_itr_1
+        self.det_id = self.read_input_itr_2
+        self.pde   = self.read_input_itr_3
+        
+        self.det_id_name=lc_utils.get_det_id_name(self.det_id)
+        
+        print(f"Processing runs for {self.det_id_name} {self.params.det} and PDE {self.pde}")
+
+        first = True
+
+        # Reset the WaveformSet
+        self.wfset = None
+
+        # get all runs for a given calibration batch, apa and PDE value
+        runs = configs[self.det_id][self.pde]
+        
+        # Loop over runs
+        for run in runs.keys():
+            
+            channels_and_endpoints = config_to_channels[self.det_id][self.pde][runs[run]]
+            # Loop over endpoints using the current run for calibration
+            
+            for endpoint in channels_and_endpoints.keys():
+                
+                # List of channels in that endpoint using that run for calibration
+                channels = channels_and_endpoints[endpoint]
+
+                print("  - Loading waveforms from "
+                        f"run {run},"
+                        f"endpoint {endpoint},"
+                        f"channels {channels}"
+                    )         
+                
+                # Get the filepath to the input data for this run
+                input_filepath = lc_utils.get_input_filepath(
+                    run
+                )
+                print(f"  - Input file path: {input_filepath}")
+                # Read all files for the given run
+                new_wfset = lc_utils.read_data(
+                    input_filepath,
+                )
+
+                # Keep only the waveforms coming from 
+                # the targeted channels for this run
+                new_wfset = new_wfset.from_filtered_WaveformSet(
+                    new_wfset,
+                    lc_utils.comes_from_channel,
+                    endpoint,
+                    channels
+                )
+
+                if first:
+                    self.wfset = new_wfset
+                    first=False
+                else:
+                    self.wfset.merge(new_wfset)
+
+        return True
+
+    def analyze(self) -> bool:
+        """
+        Implements the WafflesAnalysis.analyze() abstract method.
+        It performs the analysis of the waveforms contained in the
+        self.wfset attribute, which consists of the following steps:
+
+        1. Analyze the waveforms in the WaveformSet by computing
+        their baseline and integral.
+        2. Create a grid of WaveformSets, so that their are ordered
+        according to the APA ordering, and all of the waveforms in a
+        WaveformSet come from the same channel.
+        3. Compute the charge histogram for each channel in the grid
+        4. Fit peaks of each charge histogram
+        5. Plot charge histograms
+        6. Compute gain and S/N for every channel.
+        
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
         Returns
         -------
         bool
             True if the method ends execution normally
         """
+<<<<<<< HEAD
         # ------------- Analyse the waveform set -------------
         
         print("\n 1. Starting the analysis")
@@ -252,10 +404,27 @@ class Analysis1(WafflesAnalysis):
             print(f"\n 2. Analyzing WaveformSet with {len(self.selected_wfs1)} waveforms, in no specific time interval (tmin=-1 and tmax=-1).")
         else:
             print(f"\n 2. Analyzing WaveformSet with {len(self.selected_wfs1)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
+=======
+
+        # ------------- Analyze the waveform set -------------
+        
+        print(" 1. Starting the analysis")
+        eps = lc_utils.get_endpoints(self.params.det, self.det_id)
+
+        # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
+        selected_wfs, selected_wfset = lc_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec, adc_max_threshold=15000)
+
+        '''
+        
+        # Led calibration analysis once the inegtration and baseline limits are set
+        
+        print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
         analysis_params = lc_utils.get_analysis_params()
         
         checks_kwargs = IPDict()
+<<<<<<< HEAD
         checks_kwargs['points_no'] = self.selected_wfset1.points_per_wf
         
         print(f"\n 3. Computing the baseline of the raw waveforms")
@@ -265,12 +434,22 @@ class Analysis1(WafflesAnalysis):
         _ = self.selected_wfset1.analyse(
             self.analysis_name,
             BasicWfAna2,
+=======
+        checks_kwargs['points_no'] = self.wfset.points_per_wf
+
+        self.analysis_name = 'standard'
+        # Perform the analysis
+        _ = self.wfset.analyse(
+            self.analysis_name,
+            BasicWfAna,
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
             analysis_params,
             *[],  # *args,
             analysis_kwargs={},
             checks_kwargs=checks_kwargs,
             overwrite=True
         )
+<<<<<<< HEAD
         
         self.selected_wfs2, self.selected_wfset2 =lc_utils.baseline_cut(self.selected_wfs1)
         
@@ -352,17 +531,104 @@ class Analysis1(WafflesAnalysis):
             # Plot the charge histogram for this interval
             figure = plot_ChannelWsGrid(
                 self.grid_charge,
+=======
+
+        # Create the grid for charge histograms
+        self.grid = lc_utils.get_grid(
+            selected_wfs,
+            self.params.det,
+            self.det_id,
+            self.nbins,
+            self.analysis_name
+        )
+   
+        # Fit the peaks in each channel's charge histogram
+        fit_peaks_of_ChannelWsGrid(
+            self.grid,
+            self.params.max_peaks,
+            self.params.prominence,
+            self.params.half_points_to_fit,
+            self.params.initial_percentage,
+            self.params.percentage_step
+        )
+
+        checks_kwargs = IPDict()
+        checks_kwargs['points_no'] = self.wfset.points_per_wf
+
+        self.analysis_name = 'standard'
+        
+        '''
+        # Computing of the S/N to establish the proper integration limits
+        
+        print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
+
+        analysis_params = lc_utils.get_analysis_params()
+        
+        checks_kwargs = IPDict()
+        checks_kwargs['points_no'] = self.wfset.points_per_wf
+        
+        self.analysis_name = 'standard'
+        
+        snr_by_interval = {}
+        snr_labels = []
+        
+        print('The intervals for intergration are', self.integration_intervals)
+    
+
+            # Perform the analysis
+        _ = self.wfset.analyse(
+            self.analysis_name,
+            BasicWfAna,
+            analysis_params,
+            *[],  # *args,
+            analysis_kwargs={},
+            checks_kwargs=checks_kwargs,
+            overwrite=True
+        )
+
+        # Create the grid for charge histograms
+        self.grid = lc_utils.get_grid(
+            selected_wfs,
+            self.params.det,
+            self.det_id,
+            self.nbins,
+            self.analysis_name
+        )
+   
+   
+        # Fit the peaks in each channel's charge histogram
+        fit_peaks_of_ChannelWsGrid(
+            self.grid,
+            self.params.max_peaks,
+            self.params.prominence,
+            self.params.half_points_to_fit,
+            self.params.initial_percentage,
+            self.params.percentage_step
+        )
+            
+        # Plot the charge histogram for this interval
+        figure = plot_ChannelWsGrid(
+                self.grid,
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
                 figure=None,
                 share_x_scale=False,
                 share_y_scale=False,
                 mode="calibration",
+<<<<<<< HEAD
                 analysis_label=self.analysis_name2,
+=======
+                analysis_label=self.analysis_name,
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
                 plot_peaks_fits=True,
                 detailed_label=False,
                 verbose=True
             )
+<<<<<<< HEAD
             
             figure.update_layout(
+=======
+        figure.update_layout(
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
                 title=f"Charge Histogram for Interval [{left}, {right}]",
                 width=1100,
                 height=1200,
@@ -371,6 +637,7 @@ class Analysis1(WafflesAnalysis):
 
             if self.params.show_figures:
                 figure.show()
+<<<<<<< HEAD
                 
             full_data = lc_utils.get_gain_snr_and_amplitude(self.grid_charge)
 
@@ -439,10 +706,38 @@ class Analysis1(WafflesAnalysis):
         """Implements the WafflesAnalysis.write_output() abstract
         method. It plots the waveforms and saves the processed
         WaveformSet in an HDF5 file. 
+=======
+
+            # Calculate S/N for each channel
+            snr_data = lc_utils.get_gain_and_snr(
+                self.grid,
+                excluded_channels[self.det_id][self.pde]
+            )
+            
+            # Store S/N values by interval
+            snr_by_interval[interval] = snr_data
+            snr_labels.append(f"Interval [{left}, {right}]")
+            
+
+        # Print S/N results for all intervals
+        print("S/N Results by Interval:")
+        print(snr_by_interval.items())
+    
+
+        lc_utils.plot_snr_per_channel_grid(snr_by_interval, self.params.det, self.det_id, title=f"S/N vs Integral intervals - Detector {self.params.det} {self.det_id_name} - Runs {list(self.wfset.runs)}")
+
+        return True
+
+    def write_output(self) -> bool:
+        """Implements the WafflesAnalysis.write_output() abstract
+        method. It saves the results of the analysis to a dataframe,
+        which is written to a pickle file.
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
         Returns
         -------
         bool
+<<<<<<< HEAD
             True if the method ends execution normally
         """
 
@@ -627,10 +922,69 @@ class Analysis1(WafflesAnalysis):
                 "text": title13,
                 "font": {"size": 24}
             },
+=======
+            True if the method ends execution
+        """
+        base_file_path = self.params.output_path + "/run_" + str(self.run) + "_" + self.det_id_name + "_" + self.params.det
+        
+        figure0 = plot_ChannelWsGrid(
+                self.grid,
+                share_x_scale=False,
+                share_y_scale=False,
+                mode="overlay",
+                wfs_per_axes=self.params.nwfs_plot,
+                analysis_label=self.analysis_name,
+                detailed_label=False,
+                verbose=True
+                )
+
+        title0 = f"Waveforms for {self.params.det} {self.det_id_name} - Runs {list(self.wfset.runs)}"
+
+        figure0.update_layout(
+                title={
+                    "text": title0,
+                    "font": {"size": 24}
+                }, 
+                width=1100,
+                height=1200,
+                showlegend=True
+        )
+
+        if self.params.show_figures:
+            figure0.show()
+            
+        fig_path0 = f"{base_file_path}_wfs.png"
+        figure0.write_image(f"{fig_path0}")
+
+        print(f"  waveforms plots saved in {fig_path0}")
+        
+        
+        '''
+        
+        figure0 = plot_ChannelWsGrid(
+            self.grid,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="overlay",
+            wfs_per_axes=self.params.nwfs_plot,
+            analysis_label=self.analysis_name,
+            detailed_label=False,
+            verbose=True
+        )
+
+        title0 = f"Waveforms for {self.params.det} {self.det_id_name} - Runs {list(self.wfset.runs)}"
+
+        figure0.update_layout(
+            title={
+                "text": title0,
+                "font": {"size": 24}
+            }, 
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
             width=1100,
             height=1200,
             showlegend=True
         )
+<<<<<<< HEAD
         
         figure13.add_annotation(
             x=0.5,
@@ -719,4 +1073,62 @@ class Analysis1(WafflesAnalysis):
             figure2.write_image(f"{fig2_path}.png")
             print(f"\n Persistance saved in {fig2_path}")
          
+=======
+
+        if self.params.show_figures:
+            figure0.show()
+
+        fig_path0 = f"{base_file_path}_wfs.png"
+        figure0.write_image(f"{fig_path0}")
+
+        print(f"  charge histogram plots saved in {fig_path0}")
+
+        # ------------- Save the charge histogram plot ------------- 
+
+        figure = plot_ChannelWsGrid(
+            self.grid,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="calibration",
+            wfs_per_axes=None,
+            analysis_label=self.analysis_name,
+            plot_peaks_fits=True,
+            detailed_label=False,
+            verbose=True
+        )
+
+        title = f"{self.det_id_name} - Runs {list(self.wfset.runs)}"
+
+        figure.update_layout(
+            title={
+                "text": title,
+                "font": {"size": 24}
+            }, 
+            width=1100,
+            height=1200,
+            showlegend=True
+        )
+
+        if self.params.show_figures:
+            figure.show()
+
+        fig_path = f"{base_file_path}_calib_histo.png"
+        figure.write_image(f"{fig_path}")
+
+        print(f"  charge histogram plots saved in {fig_path}")
+
+        # ------------- Save calibration results to a dataframe -------------
+
+        df_path = f"{base_file_path}_df.pkl"
+
+        lc_utils.save_data_to_dataframe(
+            self,
+            self.output_data, 
+            df_path,
+        )
+
+        print(f"  dataframe with S/N and gain saved in {df_path}")
+        '''
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
         return True

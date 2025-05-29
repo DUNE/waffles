@@ -1,9 +1,15 @@
 {
+<<<<<<< HEAD
     "runs": [
         36491
     ],
     "rucio_dir": "/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts/raw_lists",
     "output_dir": "/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts/processed",
+=======
+    "run": "036368",
+    "rucio_dir": ".",
+    "output_dir": ".",
+>>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
     "ch": {},
     "save_single_file": false,
     "max_files": 1,
