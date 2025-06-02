@@ -2,13 +2,10 @@ import os
 import subprocess
 import getpass
 import click
-<<<<<<< HEAD
 from collections import defaultdict
 from urllib.parse import urlparse
 
 
-=======
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -26,7 +23,6 @@ REPLICA_PREFIXES = [
 # Helper functions
 # -----------------------------------------------------------------------------
 
-<<<<<<< HEAD
 def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
     """
     Decide which group of PFNs to keep, in the following order:
@@ -72,8 +68,6 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
     return non_cta[0]
 
 
-=======
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 def is_rucio_active() -> bool:
     """Return ``True`` if the user's Rucio environment is already usable."""
     try:
@@ -175,41 +169,23 @@ def fetch_rucio_replicas(run_number: str, max_files: int) -> None:
     # ------------------------------------------------------------------
     # Keep only PFNs from the *first* realm (protocol+domain)
     # ------------------------------------------------------------------
-<<<<<<< HEAD
     try:
         chosen_realm, same_realm_lines = _choose_realm(all_lines)
     except RuntimeError as err:
         print(f"\033[31m{err}\033[0m")
         return
 
-=======
-    first_realm = next(
-        (ln.split("/")[2] for ln in all_lines if "://" in ln), None
-    )
-    if first_realm is None:
-        print("\033[31mNo valid realm found in the Rucio output.\033[0m")
-        return
-
-    same_realm_lines = [ln for ln in all_lines if first_realm in ln]
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
     selected_lines = same_realm_lines[:max_files]
 
     with open(output_file, "w") as fh:
         fh.write("\n".join(selected_lines) + "\n")
 
     print(
-<<<<<<< HEAD
         f"\033[92mSaved {len(selected_lines)} PFNs "
         f"(realm {chosen_realm}, prefix {used_prefix}) "
         f"to {output_file}\033[0m"
     )
 
-=======
-        f"\033[92mSaved {len(selected_lines)} PFNs (realm {first_realm}, prefix {used_prefix}) to {output_file}\033[0m"
-    )
-
-
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 # -----------------------------------------------------------------------------
 # CLI
 # -----------------------------------------------------------------------------
@@ -230,9 +206,4 @@ def main(runs: str, max_files: int) -> None:
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     main()
-=======
-    main()
-
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427

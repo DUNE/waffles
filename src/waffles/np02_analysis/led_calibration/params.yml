@@ -1,6 +1,5 @@
 # ------- General parameters -------
 
-<<<<<<< HEAD
 # Path to the folder containing the data
 # Attention: the file name must be 0<run_number>.hdf5
 input_path: "data_led/036335.hdf5"
@@ -10,15 +9,10 @@ output_path: "output/"
 
 # Runs
 runs: [36335]
-=======
-# Runs
-runs: [35867]
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
 # Detector to analyze: Membrane, Cathode, PMTs
 det: "Membrane"
 
-<<<<<<< HEAD
 # Detector id: 1 is non-TCO and 2 is TCO
 det_id: [2]
 
@@ -26,46 +20,10 @@ det_id: [2]
 
 # Time interval in timeticks of the DAQ window to be considered 
 # -1 means the whole window
-=======
-# 1 is non-TCO and 2 is TCO
-det_id: [2] 
-
-# Photon detection efficiency
-pdes: [0.4] # 0.40, 0.45, 0.50
-
-# Path to the folder containing the data
-input_path: 'data'
-
-# Path to the output
-output_path: 'output'
-
-# PDE-to-OV mapping for HPK sipms
-hpk_ov:
-    0.4: 2.0
-
-# PDE-to-OV mapping for FBK sipms
-fbk_ov:
-    0.4: 3.5
-
-# Enumeration of PDE values
-ov_no:
-    0.4: 1
-
-# ------- Parameters for charge histogram -------
-
-analysis_label: 'standard'
-
-# Lower integration limits. For APA 1 the limits are
-# run-wise, while for APA 2, 3, 4 they are the same
-# for all runs 
-
-# Time interval in timeticks of the DAQ window to be considered 
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 tmin: -1
 tmax: -1
 
 # Channels 
-<<<<<<< HEAD
 # [-1] means all channels
 ch: 
     - 30
@@ -91,39 +49,15 @@ integ_window: 60
 wf_peak: 262
 
 # 36335: 262
-=======
-ch: -1
-
-# Number of waveforms to analyze
-nwfs: -1
-
-# Number of waveforms to plot
-nwfs_plot: 50
-
-# Records
-rec: [-1]
-
-# Integration limits
-starting_tick: 60
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
 # Baseline limits
 baseline_limits:
     - 0
-<<<<<<< HEAD
     - 250
-=======
-    - 50
-
-
-# Integration window width, in time ticks
-integ_window: 60
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
 # Number of bins for the histograms 
 nbins: 130
 
-<<<<<<< HEAD
 # Integration intervals to use
 integration_intervals:
     - 10
@@ -139,37 +73,6 @@ thr_adc: 350
 # 36335: ch 37: 150
 
 save_processed_wfset: True
-=======
-integration_intervals:
-  - 20
-  - 30
-  - 40
-  - 50
-  - 60
-  - 70
-  - 80
-  - 90
-  - 100
-  - 110
-  - 120
-  - 130
-  - 140
-  - 150
-  - 160
-  - 170
-  - 180
-  - 190
-  - 200
-  - 210
-  - 220
-  - 230
-  - 240
-  - 250
-  - 260
-  - 270
-  - 280
-  - 290
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
 
 # ------- Parameters for peak fitting -------
 
@@ -193,9 +96,5 @@ half_points_to_fit: 2 # [2 - 3]
 # function defined in 
 # utils/fit_peaks/fit_peaks_utils.py
 initial_percentage: 0.15 
-<<<<<<< HEAD
 percentage_step: 0.05
 
-=======
-percentage_step: 0.05
->>>>>>> ab61a4867ed0a24207a33bc6018db6cce4e18427
