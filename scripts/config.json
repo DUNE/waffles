@@ -1,6 +1,5 @@
 {
-    "runs": [36413],
-    "rucio_dir": ".",
+    "runs": [36413],    "rucio_dir": ".",
     "output_dir": ".",
     "ch": {},
     "save_single_file": false,
