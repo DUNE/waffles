@@ -1,6 +1,4 @@
-# ===============================
-# 🧹 Custom file types to ignore
-# ===============================
+# Personalized ignores
 *.root
 *.npy
 *.hdf5
@@ -9,117 +7,57 @@
 *.ipynb
 *.pkl
 *.swp
-*.log
+test/*
+.vscode/
+*krb5.conf*
+*.DS_Store
 *.html
+
+
+# Ignore processed outputs:
+src/analyisis/*
+
+# Ignore the input/output of each particular NP04 analysis
+src/waffles/np04_analysis/*/data/
+src/waffles/np04_analysis/*/output/
+
+!test/wtest_*
+!docs/examples/00_CheckData.ipynb
+!docs/examples/01_Calibration.ipynb
+
+# Ignoring common build directories
+build/
+install/
+*.egg-info
+
+# Ignoring plot results
 *.pdf
 *.svg
 *.png
 *.jpg
 *.gif
-*.DS_Store
-*krb5.conf*
 
-# ===============================
-# 📁 Ignored directories
-# ===============================
-.vscode/
-.ipynb_checkpoints/
+# Byte-compiled / optimized / DLL files
 __pycache__/
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.o
+
+# Distribution / packaging
+.Python
 build/
-install/
 develop-eggs/
 dist/
-.eggs/
-eggs/
 downloads/
+eggs/
+.eggs/
 lib64/
 parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
 share/python-wheels/
-target/
-docs/_build/
-site/
-instance/
-.webassets-cache
-.scrapy
-.mypy_cache/
-.dmypy.json
-.pyre/
-.tox/
-.nox/
-.pytest_cache/
-.hypothesis/
-profile_default/
-
-# ===============================
-# ⚙️ Compiled and binary files
-# ===============================
-*.py[cod]
-*$py.class
-*.so
-*.o
-*.egg
-*.egg-info/
-.installed.cfg
-MANIFEST
-
-# ===============================
-# 🚀 PyInstaller-related
-# ===============================
-*.manifest
-*.spec
-
-# ===============================
-# 🧪 Testing and coverage
-# ===============================
-htmlcov/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-
-# ===============================
-# 🧪 IDE and project configs
-# ===============================
-.spyderproject
-.spyproject
-.ropeproject
-
-# ===============================
-# 🔒 Local configuration files
-# ===============================
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-.python-version
-ipython_config.py
-Pipfile.lock
-
-# ===============================
-# 📂 Project-specific paths
-# ===============================
-
-# Ignore everything under test/, except wtest_* files
-test/*
-!test/wtest_*
-
-# Keep specific example notebooks
-!docs/examples/00_CheckData.ipynb
-!docs/examples/01_Calibration.ipynb
-
-# Ignore outputs and data folders in np04_analysis subdirs
-src/waffles/np04_analysis/*/data/
-src/waffles/np04_analysis/*/output/
-
-# Ignore processed outputs
-src/analyisis/*
