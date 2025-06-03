@@ -55,9 +55,6 @@ print: False
 # Do an interpolation in a single time tick, from 16 ns to 2 ns
 interpolate: True
 
-# do not save the results
-no_save: False
-
 # perform scanning in the alignment between response and template average waveforms
 # Set maximum offset if you want to scan different offsets and get minimum. 
 # Scan is done around the default offset applied (-2, -(scan-2)). Set 0 to not scan.
