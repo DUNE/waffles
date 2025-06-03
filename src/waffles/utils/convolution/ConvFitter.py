@@ -12,13 +12,50 @@ class ConvFitter:
     def __init__(self, 
                  threshold_align_template = 0.27, 
                  threshold_align_response = 0.1, 
-                 error=10,
-                 dointerpolation=False, 
+                 error = 10,
+                 dointerpolation = False, 
                  interpolation_factor = 8,
                  align_waveforms: bool=True,
-                 dtime=16,
-                 convtype = 'fft'
+                 dtime = 16,
+                 convtype = 'time'
                  ):
+        """ This class is used to fit a template waveform to a response waveform using a convolution model of LAr response.
+
+        Parameters
+        ----------
+        threshold_align_template: float
+            See `align_waveforms` parameter.
+        threshold_align_response: float
+            See `align_waveforms` parameter.
+        error: float
+            Uncertainty on the response waveform.
+        dointerpolation: bool
+            If True, the response and template waveforms will be interpolated to a finer time resolution.
+            The new dtime is dtime/interpolation_factor.
+        interpolation_factor: int
+            See `dointerpolation` parameter.
+        align_waveforms: bool
+            If True, the response waveform will be shifted to align with the
+            template waveform based on the threshold_align_template and
+            threshold_align_response. The response waveform will be shifted to
+            align with the template waveform at the threshold_align_template
+            crossing.
+        dtime: float
+            The time of each tick: 16 ns by default.
+        convtype: str ('fft' or 'time')
+            Convolution can be done in time O(n^2) or in frequency O(n log n).
+            Frequency is faster but adds weird effect in the baseline.
+
+
+        Example of usage:
+        ```python
+        conv_fitter = ConvFitter(...)
+        conv_fitter.set_template_waveform(template_waveform) # A numpy array 
+        conv_fitter.set_response_waveform(response_waveform)
+        conv_fitter.prepare_waveforms() # Prepares the waveforms for fitting
+        conv_fitter.fit(scan=2, print_flag=True)
+        ```
+        """
 
         self.threshold_align_template = threshold_align_template
         self.threshold_align_response = threshold_align_response
