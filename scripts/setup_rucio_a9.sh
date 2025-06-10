@@ -6,7 +6,8 @@ source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
 
 # Load necessary packages
 spack load r-m-dd-config experiment=dune
-spack load kx509
+#spack load kx509
+htgettoken -i dune -a htvaultprod.fnal.gov
 
 # Prompt for FNAL credentials
 read -p "Enter your @FNAL.GOV username: " username
@@ -18,7 +19,7 @@ echo "${password}" | kinit "${username}@FNAL.GOV"
 unset password  # Remove password from memory for security
 
 # Obtain Kerberos-based certificate
-kx509
+#kx509
 
 # Set Rucio account
 export RUCIO_ACCOUNT="${username}"
@@ -27,7 +28,7 @@ export RUCIO_ACCOUNT="${username}"
 rucio whoami
 
 # Initialize VOMS proxy
-voms-proxy-init -rfc -noregen -voms=dune:/dune/Role=Analysis -valid 120:00
+#voms-proxy-init -rfc -noregen -voms=dune:/dune/Role=Analysis -valid 120:00
 
 # Set UPS override
 export UPS_OVERRIDE="-H Linux64bit+3.10-2.17"

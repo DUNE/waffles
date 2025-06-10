@@ -201,8 +201,8 @@ def main(runs: str, max_files: int) -> None:
         fetch_rucio_replicas(run, max_files)
 
     # Clean‑up Kerberos tickets
-    subprocess.run("kdestroy", shell=True)
-    print("\033[92mSession complete. Kerberos credentials destroyed.\033[0m")
+    #subprocess.run("kdestroy", shell=True)
+    #print("\033[92mSession complete. Kerberos credentials destroyed.\033[0m")
 
 
 if __name__ == "__main__":
