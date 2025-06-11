@@ -51,9 +51,9 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
     for realm, lines in list(realm_to_lines.items()):
         if "fndca1.fnal.gov" in realm:
             if all("tape_backed" in ln for ln in lines):
-                print(
-                    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
-                )
+                #print(
+                #    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
+                #)
                 del realm_to_lines[realm]
 
     # Preferred realms (sub-string match makes the port irrelevant)
