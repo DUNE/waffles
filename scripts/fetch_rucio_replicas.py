@@ -47,6 +47,15 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
         host_port = urlparse(ln).netloc
         realm_to_lines[host_port].append(ln)
 
+    # Remove any fndca1.fnal.gov realm that is *only* tape_backed
+    for realm, lines in list(realm_to_lines.items()):
+        if "fndca1.fnal.gov" in realm:
+            if all("tape_backed" in ln for ln in lines):
+                #print(
+                #    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
+                #)
+                del realm_to_lines[realm]
+
     # Preferred realms (sub-string match makes the port irrelevant)
     priorities = ["eospublic.cern.ch", "fndca1.fnal.gov"]
 
@@ -54,6 +63,15 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
     for dom in priorities:
         for realm, lines in realm_to_lines.items():
             if dom in realm:
+                if dom == "fndca1.fnal.gov":
+                    # Skip this realm if any PFN contains "tape_backed"
+                    filtered = [ln for ln in lines if "tape_backed" not in ln]
+                    print(f"DEBUG: {len(lines)} PFNs at {realm}, {len(filtered)} after tape_backed filter.")                    
+                    if not filtered:
+                        continue
+                    return realm, filtered
+                
+                # for eospublic, no special filter
                 return realm, lines
 
     # 3.  If the only realm is eosctapublic → abort
@@ -98,11 +116,9 @@ def setup_rucio_environment() -> None:
     setup_cmd = f"""
     source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh && \
     spack load r-m-dd-config experiment=dune && \
-    spack load kx509 && \
+    htgettoken -i dune -a htvaultprod.fnal.gov && \
     echo "{password}" | kinit {username}@FNAL.GOV && \
-    kx509 && \
     export RUCIO_ACCOUNT={username} && \
-    voms-proxy-init -rfc -noregen -voms=dune:/dune/Role=Analysis -valid 120:00 && \
     export UPS_OVERRIDE="-H Linux64bit+3.10-2.17" && \
     setup ifdhc && \
     rucio whoami
@@ -201,8 +217,8 @@ def main(runs: str, max_files: int) -> None:
         fetch_rucio_replicas(run, max_files)
 
     # Clean‑up Kerberos tickets
-    subprocess.run("kdestroy", shell=True)
-    print("\033[92mSession complete. Kerberos credentials destroyed.\033[0m")
+    #subprocess.run("kdestroy", shell=True)
+    #print("\033[92mSession complete. Kerberos credentials destroyed.\033[0m")
 
 
 if __name__ == "__main__":
