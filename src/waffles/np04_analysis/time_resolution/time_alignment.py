@@ -10,8 +10,8 @@ class ChTimeAlignment:
         self.pes = np.array([])
         self.tss = np.array([])
 
-    def set_quantities(self, folder_path, root_directory):
-        in_root_file_name = folder_path+f"ch_{self.channel}_time_resolution.root"
+    def set_quantities(self, root_file_name, root_directory):
+        in_root_file_name = root_file_name
         root_file = uproot.open(in_root_file_name)
         try:
             directory = root_file[root_directory]
@@ -39,13 +39,13 @@ class TimeAligner:
         self.ref_ch = ChTimeAlignment(ref_ch)
         self.com_ch = ChTimeAlignment(com_ch)
 
-    def set_quantities(self, folder_path, root_directory):
+    def set_quantities(self, ref_file, com_file, root_directory):
         """
         Args:
         - folder_path: path to the root file
         """
-        self.ref_ch.set_quantities(folder_path, root_directory)
-        self.com_ch.set_quantities(folder_path, root_directory)
+        self.ref_ch.set_quantities(ref_file, root_directory)
+        self.com_ch.set_quantities(com_file, root_directory)
        
     def allign_events(self):
         """
@@ -54,6 +54,14 @@ class TimeAligner:
         print("Aligning events")
         n_ref_evts = len(self.ref_ch.t0s)
         n_com_evts = len(self.com_ch.t0s)
+        
+        # Sort arrays
+        sorted_indices = np.argsort(self.ref_ch.tss)
+        self.ref_ch.t0s, self.ref_ch.pes, self.ref_ch.tss = self.ref_ch.t0s[sorted_indices], self.ref_ch.pes[sorted_indices], self.ref_ch.tss[sorted_indices]
+
+        sorted_indices = np.argsort(self.com_ch.tss)
+        self.com_ch.t0s, self.com_ch.pes, self.com_ch.tss = self.com_ch.t0s[sorted_indices], self.com_ch.pes[sorted_indices], self.com_ch.tss[sorted_indices]
+        
 
         common_ts = np.intersect1d(self.ref_ch.tss, self.com_ch.tss)
 
@@ -68,37 +76,7 @@ class TimeAligner:
         self.com_ch.pes = self.com_ch.pes[mask_com]
         self.com_ch.tss = self.com_ch.tss[mask_com]
 
-        # Sort arrays
-        sorted_indices = np.argsort(self.ref_ch.pes)
-        self.ref_ch.t0s, self.ref_ch.pes = self.ref_ch.t0s[sorted_indices], self.ref_ch.pes[sorted_indices]
-
-        sorted_indices = np.argsort(self.com_ch.pes)
-        self.com_ch.t0s, self.com_ch.pes = self.com_ch.t0s[sorted_indices], self.com_ch.pes[sorted_indices]
-
         nf_ref_evts = len(self.ref_ch.t0s)
         nf_com_evts = len(self.com_ch.t0s)
 
         print(f"Ref evts {n_ref_evts} -> {nf_ref_evts} \nCom evts {n_com_evts} -> {nf_com_evts}")
-
-        
-
-
-
-# def calculate_t0_differences(self) -> np.array:
-#         """
-#       Calculate differences in t0 values for wf objects with matching ts values and selection==True.
-#         Args:
-#         
-#         Returns:
-#             np.ndarray: Array of t0 differences for matching ts values.
-#         """
-#         
-#         # Filter wf objects where selection is True
-#         wf1_filtered = {wf.timestamp: wf.t0 for wf in self.wfs if wf.time_resolution_selection}
-#         wf2_filtered = {wf.timestamp: wf.t0 for wf in self.com_wfs if wf.time_resolution_selection}
-#         
-#         # Find common ts values and calculate t0 differences
-#         common_ts = set(wf1_filtered.keys()).intersection(wf2_filtered.keys())
-#         t0_differences = [wf1_filtered[ts] - wf2_filtered[ts] for ts in common_ts]
-#         
-#         return np.array(t0_differences)
