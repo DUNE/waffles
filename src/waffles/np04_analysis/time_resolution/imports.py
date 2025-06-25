@@ -10,7 +10,9 @@ import uproot
 import sys
 
 import numpy as np
+import pandas as pd
 import waffles
+import waffles.input_output.hdf5_structured as reader
 import pickle
 
 import utils as tr_utils
