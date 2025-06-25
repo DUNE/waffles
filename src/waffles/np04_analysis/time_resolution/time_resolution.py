@@ -12,15 +12,15 @@ from utils import *
 class TimeResolution:
     def __init__(self,
                  wf_set: waffles.WaveformSet,
-                 prepulse_ticks: int,
-                 int_low: int,
-                 int_up: int,
-                 postpulse_ticks: int,
-                 spe_charge: float,
-                 spe_ampl: float,
-                 min_pes : float,
-                 baseline_rms: float,
-                 ep = 0,  ch = 0,
+                 prepulse_ticks= 0,
+                 int_low= 0,
+                 int_up= 0,
+                 postpulse_ticks= 0,
+                 spe_charge= 0.,
+                 spe_ampl= 0.,
+                 min_pes = 0.,
+                 baseline_rms= 0.,
+                 ch = 0,
                  ) -> None:
         """
         This class is used to estimate the time resolution.
@@ -38,18 +38,66 @@ class TimeResolution:
         # self.qq = qq
         self.denoiser = Denoise()
 
-        self.ep = ep        #Endpoint reference channel
         self.ch = ch        #channel
         self.wfs = []           #waveforms
         self.denoisedwfs = []   #waveforms
         self.n_select_wfs = 0   #number of selected wfs
         self.t0 = 0.            #Average t0 among the selected wfs
         self.t0_std = 0.        #Standard deviation to t0
-        
 
+
+    def sanity_check(self) -> None:
+        """
+        Sanity check for the parameters
+        """
+        if self.prepulse_ticks >= self.postpulse_ticks:
+            raise ValueError("prepulse_ticks must be smaller than postpulse_ticks")
+        if self.int_low >= self.int_up:
+            raise ValueError("int_low must be smaller than int_up")
+        if self.spe_charge <= 0:
+            raise ValueError("spe_charge must be greater than 0")
+        if self.spe_ampl <= 0:
+            raise ValueError("spe_ampl must be greater than 0")
+        if self.min_pes <= 0:
+            raise ValueError("min_pes must be greater than 0")
+        if self.baseline_rms <= 0:
+            raise ValueError("baseline_rms must be greater than 0")
+    
+    def set_analysis_parameters(self, 
+                                ch: int,
+                                prepulse_ticks: int,
+                                postpulse_ticks: int,
+                                int_low: int,
+                                int_up: int,
+                                spe_charge: float,
+                                spe_ampl: float,
+                                min_pes: float,
+                                baseline_rms: float) -> None:
+        """
+        Set the analysis parameters and do sanity checks
+        """
+        self.ch = ch
+        self.prepulse_ticks = prepulse_ticks
+        self.postpulse_ticks = postpulse_ticks
+        self.int_low = int_low
+        self.int_up = int_up
+        self.spe_charge = spe_charge
+        self.spe_ampl = spe_ampl
+        self.min_pes = min_pes
+        self.baseline_rms = baseline_rms
+
+        try:
+            self.sanity_check()
+        except ValueError as e:
+            print(f"Error: {e}")
+            raise
+
+
+
+    
 
     def create_wfs(self) -> None:
-        t_wfset = waffles.WaveformSet.from_filtered_WaveformSet(self.wf_set, allow_channel_wfs, self.ep, self.ch)
+        t_wfset = waffles.WaveformSet.from_filtered_WaveformSet(self.wf_set, allow_channel_wfs, self.ch)
         self.wfs = t_wfset.waveforms
         create_float_waveforms(self.wfs)
         sub_baseline_to_wfs(self.wfs, self.prepulse_ticks)
@@ -96,7 +144,7 @@ class TimeResolution:
         self.n_select_wfs = n_selected
 
     def set_wfs_t0(self,
-                   method: Literal["half_amplitude","denoise"],
+                   method: Literal["amplitude", "integral", "denoise"],
                    relative_thr = 0.5,
                    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -114,13 +162,17 @@ class TimeResolution:
         ts_list = []
         for wf in waveforms:
             if (wf.time_resolution_selection == True):
-                thr = relative_thr*self.spe_ampl*wf.pe
                 
-                if method == "half_amplitude":
-                    # thr = relative_thr*np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
+                if method == "amplitude":
+                    thr = relative_thr*np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
                     wf.t0 = find_threshold_crossing(wf.adcs_float, self.prepulse_ticks, self.postpulse_ticks, thr)
-                if method == "denoise":
-                    # thr = relative_thr*np.max(wf.adcs_filt[self.prepulse_ticks:self.postpulse_ticks])
+                
+                elif method == "integral":
+                    thr = relative_thr*self.spe_ampl*wf.pe
+                    wf.t0 = find_threshold_crossing(wf.adcs_float, self.prepulse_ticks, self.postpulse_ticks, thr)
+
+                elif method == "denoise":
+                    thr = relative_thr*np.max(wf.adcs_filt[self.prepulse_ticks:self.postpulse_ticks])
                     wf.t0 = find_threshold_crossing(wf.adcs_filt, self.prepulse_ticks, self.postpulse_ticks, thr)
               
                 if wf.t0 is not None:
