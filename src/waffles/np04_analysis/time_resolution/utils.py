@@ -3,8 +3,9 @@ import numpy as np
 from scipy.optimize import curve_fit, brentq
 from waffles.utils.denoising.tv1ddenoise import Denoise
 
-def allow_channel_wfs(waveform: waffles.Waveform, endpoint: int, channel: int) -> bool:
-    return waveform.endpoint == endpoint and waveform.channel == channel
+
+def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
+    return waveform.endpoint == (channel//100) and waveform.channel == (channel%100)
  
 # --- Waveform manipulation methods ------------------------------------------
 def create_float_waveforms(waveforms: waffles.Waveform) -> None:
