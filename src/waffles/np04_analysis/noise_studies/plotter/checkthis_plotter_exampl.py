@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 # --- HARD CODED ----------------------------------------------------
 path = "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/FFT_txt/"
-channel = 99
-estrapolated_vgain = 1700
+channel = 100
+estrapolated_vgain = 2318
 time_window = 1024 # ticks * ns/tick
 
 # --- MAIN ----------------------------------------------------------
