@@ -1,94 +1,185 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from scipy.optimize import curve_fit
+from waffles.np02_analysis.LED_trigger.imports import *
 
-import waffles
-from waffles.input_output.hdf5_structured import load_structured_waveformset
-from waffles.data_classes.WaveformSet import WaveformSet
+class Analysis1(WafflesAnalysis):
 
-# Load waveform data from HDF5 files
-def load_waveforms(path, channel, max_samples):
-    wfset = load_structured_waveformset(path)
-    waveforms = [wf.adcs[:max_samples] for wf in wfset.waveforms if wf.channel == channel and len(wf.adcs) >= max_samples]
-    return wfset, np.array(waveforms)
+    def __init__(self):
+        pass
 
-def process_waveforms(led_path, channel, max_samples=1024):
-    _, led_wfs = load_waveforms(led_path, channel, max_samples)
+    @classmethod
+    def get_input_params_model(
+        cls
+    ) -> type:
+        """Implements the WafflesAnalysis.get_input_params_model()
+        abstract method. Returns the InputParams class, which is a
+        Pydantic model class that defines the input parameters for
+        this example analysis.        
+        Returns
+        -------
+        type
+            The InputParams class, which is a Pydantic model class
+        """
 
-    xt = np.arange(max_samples)  # NumPy’s arange creates a 1D array of evenly spaced integers
+        class InputParams(BaseInputParams):
+            """Input parameters.
+            """
+            runs: list[int] = Field(
+                ...,
+                description="Run numbers of the runs to be read",
+                example=[27906]
+            )
+            
+            det: str = Field(
+                ...,
+                description= "Membrane, Cathode or PMT",
+                example = "Membrane"
+            )
+            
+            det_id: list = Field(
+                ...,
+                description="TCO [1] and no-tco [2] membrane, TCO [1] and no-tco [2] cathode, and PMTs",
+                example=[2]
+            )
 
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, subplot_titles=("LED data all", "LED data 0"))
+            ch: list = Field(
+                ...,
+                description="Channels to analyze",
+                example=[-1] # Alls
+            )
+            
+            nwfs: int = Field(
+                ...,
+                description="Number of waveforms to analyze",
+                example=[-1] #Alls
+            )
+            
+            nwfs_plot: int = Field(
+                ...,
+                description="Number of waveforms to plot",
+                example=[-1] #Alls
+            )
+            
+            nbins: int = Field(
+                ...,
+                description="Number of bins for the histograms",
+                example=110
+            )
 
-    # primo subplot: tutte le waveforms
-    for i, wf in enumerate(led_wfs):
-        fig.add_trace(
-            go.Scatter(x=xt, y=wf, mode="lines",
-                       name=f"WF {i}", showlegend=False),
-            row=1, col=1
+            input_path: str = Field(
+                default="/data",
+                description="Input path"
+            )
+            
+            output_path: str = Field(
+                default="/output",
+                description="Output path"
+            )
+
+            show_figures: bool = Field(
+                default=True,
+                description="Whether to show the produced "
+                "figures",
+            )
+        return InputParams
+
+    def initialize(
+        self,
+        input_parameters: BaseInputParams
+    ) -> None:
+        """Implements the WafflesAnalysis.initialize() abstract
+        method. It defines the attributes of the Analysis1 class.
+        
+        Parameters
+        ----------
+        input_parameters : BaseInputParams
+            The input parameters for this analysis
+            
+        Returns
+        -------
+        None
+        """
+
+        # Save the input parameters into an Analysis1 attribute
+        # so that they can be accessed by the other methods
+        self.params = input_parameters
+        self.nbins=self.params.nbins
+
+        self.read_input_loop_1 = self.params.runs
+        self.read_input_loop_2 = self.params.det_id
+        self.read_input_loop_3 = [None]
+        self.analyze_loop = [None,] 
+
+        self.wfset = None
+
+    def read_input(self) -> bool:
+        """Implements the WafflesAnalysis.read_input() abstract
+        method. For the current iteration of the read_input loop,
+        which fixes a run number, it reads the first
+        self.params.waveforms_per_run waveforms from the first rucio
+        path found for this run, and creates a WaveformSet out of them,
+        which is assigned to the self.wfset attribute.
+            
+        Returns
+        -------
+        bool
+            True if the method ends execution normally
+        """
+        self.run    = self.read_input_itr_1
+        self.det_id = self.read_input_itr_2
+        
+        
+        print(
+            "In function Analysis1.read_input(): "
+            f"Now reading waveforms for run {self.run} ..."
         )
+        
+        try:
+            wfset_path = self.params.input_path
+            self.wfset=load_structured_waveformset(wfset_path)   
+        except FileNotFoundError:
+            raise FileNotFoundError(f"File {wfset_path} was not found.")
+
+        return True
     
-    # secondo subplot: la media di tutte
-    mean_wf = led_wfs.mean(axis=0)
-    fig.add_trace(
-        go.Scatter(x=xt, y=mean_wf, mode="lines",
-                   name="Mean LED", line=dict(color='red')),
-        row=2, col=1
-    )
+    def analyze(self) -> bool:
+        """Implements the WafflesAnalysis.analyze() abstract method.
+        It performs the analysis of the waveforms contained in the
+        self.wfset attribute.
+        Returns
+        -------
+        bool
+            True if the method ends execution normally
+        """
+        # ------------- Analyse the waveform set -------------
+        
+        print("\n 1. Starting the analysis")
+        
+        # Obtain the endpoints from the detector
+        eps = lc_utils.get_endpoints(self.params.det, self.det_id)
+        
+        # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
+        self.selected_wfs1, self.selected_wfset1= lc_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs)
+   
+        self.grid_raw=lc_utils.get_grid(self.selected_wfs1, self.params.det, self.det_id)
+        
+        print(f"\n 2. Analyzing WaveformSet with {len(self.selected_wfs1)} waveforms")
 
-    fig.update_xaxes(title_text="Sample Index", row=2, col=1)
-    fig.update_yaxes(title_text="ADC Counts", row=1, col=1)
-    fig.update_yaxes(title_text="ADC Counts", row=2, col=1)
-    fig.update_layout(height=600, width=800, title_text="LED Waveforms")
-    fig.show()
+        analysis_params = lc_utils.get_analysis_params()
 
-
-    # Compute rise time for the first waveform
-    wf = led_wfs[2]
-    baseline = np.median(wf[:50])
-    wf_corrected = wf - baseline
-    peak = wf_corrected.max()
-
-    threshold_10 = 0.1 * peak
-    threshold_90 = 0.9 * peak
-
-    print(f"threshold_10: {threshold_10} threshold_90: {threshold_90}")
-
-    idx_10 = np.argmax(wf_corrected > threshold_10)
-    idx_90 = np.argmax(wf_corrected > threshold_90)
-
-    print(f"idx_10: {idx_10} idx_90: {idx_90}")
-
-    rise_time_ticks = idx_90 - idx_10
-    rise_time_ns = rise_time_ticks * 16
-
-    print(f"Rise time: {rise_time_ticks} ticks = {rise_time_ns} ns")
-
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, subplot_titles=("LED data 0", "LED baseline subtracted"))
-
-    # primo subplot: solo la prima waveform
-    fig.add_trace(
-        go.Scatter(x=xt, y=led_wfs[2], mode="lines",
-                   name="WF 0", showlegend=True),
-        row=1, col=1
-    )
+        checks_kwargs = IPDict()
+        checks_kwargs['points_no'] = self.selected_wfset1.points_per_wf
+        
+        print(f"\n 3. Computing the baseline of the raw waveforms")
+        
+        self.analysis_name = 'baseline_computation'
     
-    # secondo subplot: baseline subtracted
-    fig.add_trace(
-        go.Scatter(x=xt, y=wf_corrected, mode="lines",
-                   name="WF 0 baseline subtracted", line=dict(color='red')),
-        row=2, col=1
-    )
-
-    fig.update_xaxes(title_text="Sample Index", row=2, col=1)
-    fig.update_yaxes(title_text="ADC Counts", row=1, col=1)
-    fig.update_yaxes(title_text="ADC Counts", row=2, col=1)
-    fig.update_layout(height=600, width=800, title_text="LED Waveforms")
-    fig.show()
-
-if __name__ == "__main__":
-
-    led_path = "data/processed_np02vd_raw_run036026_0000_df-s04-d0_dw_0_20250425T094006.hdf5_structured.hdf5"
-    channel = 45
-    process_waveforms(led_path, channel)
+        _ = self.selected_wfset1.analyse(
+            self.analysis_name,
+            BasicWfAna2,
+            analysis_params,
+            *[],  # *args,
+            analysis_kwargs={},
+            checks_kwargs=checks_kwargs,
+            overwrite=True
+        )
+        
+        self.selected_wfs2, self.selected_wfset2 =lc_utils.baseline_cut(self.selected_wfs1)

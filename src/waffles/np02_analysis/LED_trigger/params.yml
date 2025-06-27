@@ -1,0 +1,38 @@
+# ------- General parameters -------
+
+# Path to the folder containing the data
+input_path: "data/<file_name>"
+
+# Path to the output
+output_path: "output/"
+
+# Runs
+runs: [36335]
+
+# Detector to analyze: Membrane, Cathode, PMTs
+det: "Membrane"
+
+# Detector id: 1 is non-TCO and 2 is TCO
+det_id: [2]
+
+# ------- Parameters for the analysis -------
+
+# Channels 
+# [-1] means all channels
+ch: 
+    - 30
+
+# Number of waveforms to analyze
+# -1 means all waveforms
+nwfs: -1
+
+# Number of waveforms to plot with function plot_wfs
+nwfs_plot: 2000
+
+# Baseline limits
+baseline_limits:
+    - 0
+    - 50
+
+# Number of bins for the histograms 
+nbins: 130

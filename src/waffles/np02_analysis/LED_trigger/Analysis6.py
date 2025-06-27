@@ -25,7 +25,7 @@ def process_waveforms(led_path, channel, max_samples=1024):
     rise_times_ns = []
     for wf in led_wfs: #led_wfs[:10]:
     
-        baseline = np.median(wf[:150])
+        baseline = np.median(wf[:50])
         wf_corr = wf - baseline
         peak_idx = np.argmax(wf_corr)
         peak = wf_corr[peak_idx]
@@ -123,7 +123,7 @@ def process_waveforms(led_path, channel, max_samples=1024):
     )
 
     hist_fig.update_layout(
-        title="Histogram of Max position - run 36026 - ch 45", 
+        title="Histogram of Max position - run 36030 - ch 20", #- ch 27",
         xaxis_title="Max position (time ticks)",
         yaxis_title="Count",
         bargap=0.1
@@ -134,6 +134,6 @@ def process_waveforms(led_path, channel, max_samples=1024):
 
 if __name__ == "__main__":
 
-    led_path = "data/processed_np02vd_raw_run036026_0000_df-s04-d0_dw_0_20250425T094006.hdf5_structured.hdf5"
-    channel = 45
+    led_path = "data/processed_np02vd_raw_run036125_0000_df-s04-d0_dw_0_20250425T142057.hdf5_structured.hdf5"
+    channel = 20 #27
     process_waveforms(led_path, channel)

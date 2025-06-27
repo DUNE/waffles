@@ -1,12 +1,4 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from scipy.optimize import curve_fit
-
-import waffles
-from waffles.input_output.hdf5_structured import load_structured_waveformset
-from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.np02_analysis.LED_trigger.imports import *
 
 # Load waveform data from HDF5 files
 def load_waveforms(path, channel, max_samples):
@@ -25,7 +17,7 @@ def process_waveforms(led_path, channel, max_samples=1024):
     rise_times_ns = []
     for wf in led_wfs: #led_wfs[:10]:
     
-        baseline = np.median(wf[:150])
+        baseline = np.median(wf[:50])
         wf_corr = wf - baseline
         peak_idx = np.argmax(wf_corr)
         peak = wf_corr[peak_idx]
@@ -123,7 +115,7 @@ def process_waveforms(led_path, channel, max_samples=1024):
     )
 
     hist_fig.update_layout(
-        title="Histogram of Max position - run 36026 - ch 45", 
+        title="Histogram of Max position - run 36030 - ch 37", #- ch 30",
         xaxis_title="Max position (time ticks)",
         yaxis_title="Count",
         bargap=0.1
@@ -134,6 +126,6 @@ def process_waveforms(led_path, channel, max_samples=1024):
 
 if __name__ == "__main__":
 
-    led_path = "data/processed_np02vd_raw_run036026_0000_df-s04-d0_dw_0_20250425T094006.hdf5_structured.hdf5"
-    channel = 45
+    led_path = "data/processed_np02vd_raw_run036062_0000_df-s04-d0_dw_0_20250425T112632.hdf5_structured.hdf5"
+    channel = 37 #30
     process_waveforms(led_path, channel)
