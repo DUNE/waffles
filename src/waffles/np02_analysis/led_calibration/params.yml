@@ -1,0 +1,94 @@
+# ------- General parameters -------
+
+# Path to the folder containing the data
+input_path: "data/<file_name>"
+
+# Path to the output
+output_path: "output/"
+
+# Runs
+runs: [36335]
+
+# Detector to analyze: Membrane, Cathode, PMTs
+det: "Membrane"
+
+# Detector id: 1 is non-TCO and 2 is TCO
+det_id: [2]
+
+# ------- Parameters for the analysis -------
+
+# Time interval in timeticks of the DAQ window to be considered 
+# -1 means the whole window
+tmin: -1
+tmax: -1
+
+# Channels 
+# [-1] means all channels
+ch: 
+    - 30
+    - 37
+
+# Number of waveforms to analyze
+# -1 means all waveforms
+nwfs: -1
+
+# Number of waveforms to plot with function plot_wfs
+nwfs_plot: 2000
+
+# Records
+# [-1] means all records
+rec: [-1]
+
+# Starting tick for the integration
+starting_tick: 250
+
+# Integration window width, in time ticks
+integ_window: 60
+
+# Approximate ADC value of the waveform peak
+wf_peak: 262
+
+# Baseline limits
+baseline_limits:
+    - 0
+    - 250
+
+# Number of bins for the histograms 
+nbins: 130
+
+# Integration intervals to use
+integration_intervals:
+    - 10
+    - 12
+    - 14
+
+# ADC threshold for the ADC filter. It is useful for filtering the spe waveforms.
+# -1 means no second filter applied
+thr_adc: 350
+
+# If True, a hdf5 file with the processed Waveformset will be created
+save_processed_wfset: False
+
+# ------- Parameters for peak fitting -------
+
+# Maximum number of peaks to fit
+max_peaks: 2
+
+# Minimal prominence, as a fraction
+# of the y-range, for a peak to be detected
+prominence: 0.15 # [0.10 - 0.2]
+
+# The number of points to fit on either side
+# of the peak maximum. P.e. setting this to 
+# 2 will fit 5 points in total: the maximum
+# and 2 points on either side
+half_points_to_fit: 2 # [2 - 3] 
+
+# Check the documentation of the
+# 'initial_percentage' and 'percentage_step'
+# parameters of the
+# __spot_first_peaks_in_CalibrationHistogram
+# function defined in 
+# utils/fit_peaks/fit_peaks_utils.py
+initial_percentage: 0.15 
+percentage_step: 0.05

@@ -2,6 +2,10 @@ import os
 import subprocess
 import getpass
 import click
+from collections import defaultdict
+from urllib.parse import urlparse
+
+
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -18,6 +22,69 @@ REPLICA_PREFIXES = [
 # -----------------------------------------------------------------------------
 # Helper functions
 # -----------------------------------------------------------------------------
+
+def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
+    """
+    Decide which group of PFNs to keep, in the following order:
+
+        1. DUNE_CERN_EOS   (host contains "eospublic.cern.ch")
+        2. FNAL_DCACHE     (host contains "fndca1.fnal.gov")
+        3. Any other realm – except eosctapublic.cern.ch
+           (if *only* eosctapublic is present, raise RuntimeError)
+
+    Returns
+    -------
+    chosen_realm : str
+        The host[:port] that won the selection.
+    realm_lines  : list[str]
+        PFNs that belong to that realm.
+    """
+    # Group PFNs by realm
+    realm_to_lines: dict[str, list[str]] = defaultdict(list)
+    for ln in pfn_lines:
+        if "://" not in ln:
+            continue
+        host_port = urlparse(ln).netloc
+        realm_to_lines[host_port].append(ln)
+
+    # Remove any fndca1.fnal.gov realm that is *only* tape_backed
+    for realm, lines in list(realm_to_lines.items()):
+        if "fndca1.fnal.gov" in realm:
+            if all("tape_backed" in ln for ln in lines):
+                #print(
+                #    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
+                #)
+                del realm_to_lines[realm]
+
+    # Preferred realms (sub-string match makes the port irrelevant)
+    priorities = ["eospublic.cern.ch", "fndca1.fnal.gov"]
+
+    # 1-2.  Try the preferred ones in order
+    for dom in priorities:
+        for realm, lines in realm_to_lines.items():
+            if dom in realm:
+                if dom == "fndca1.fnal.gov":
+                    # Skip this realm if any PFN contains "tape_backed"
+                    filtered = [ln for ln in lines if "tape_backed" not in ln]
+                    print(f"DEBUG: {len(lines)} PFNs at {realm}, {len(filtered)} after tape_backed filter.")                    
+                    if not filtered:
+                        continue
+                    return realm, filtered
+                
+                # for eospublic, no special filter
+                return realm, lines
+
+    # 3.  If the only realm is eosctapublic → abort
+    non_cta = [(r, l) for r, l in realm_to_lines.items()
+               if "eosctapublic.cern.ch" not in r]
+    if not non_cta:
+        raise RuntimeError(
+            "Only CASTOR replicas (eosctapublic.cern.ch) were found – aborting."
+        )
+
+    # Otherwise just pick the first acceptable realm
+    return non_cta[0]
+
 
 def is_rucio_active() -> bool:
     """Return ``True`` if the user's Rucio environment is already usable."""
@@ -49,11 +116,9 @@ def setup_rucio_environment() -> None:
     setup_cmd = f"""
     source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh && \
     spack load r-m-dd-config experiment=dune && \
-    spack load kx509 && \
+    htgettoken -i dune -a htvaultprod.fnal.gov && \
     echo "{password}" | kinit {username}@FNAL.GOV && \
-    kx509 && \
     export RUCIO_ACCOUNT={username} && \
-    voms-proxy-init -rfc -noregen -voms=dune:/dune/Role=Analysis -valid 120:00 && \
     export UPS_OVERRIDE="-H Linux64bit+3.10-2.17" && \
     setup ifdhc && \
     rucio whoami
@@ -120,23 +185,22 @@ def fetch_rucio_replicas(run_number: str, max_files: int) -> None:
     # ------------------------------------------------------------------
     # Keep only PFNs from the *first* realm (protocol+domain)
     # ------------------------------------------------------------------
-    first_realm = next(
-        (ln.split("/")[2] for ln in all_lines if "://" in ln), None
-    )
-    if first_realm is None:
-        print("\033[31mNo valid realm found in the Rucio output.\033[0m")
+    try:
+        chosen_realm, same_realm_lines = _choose_realm(all_lines)
+    except RuntimeError as err:
+        print(f"\033[31m{err}\033[0m")
         return
 
-    same_realm_lines = [ln for ln in all_lines if first_realm in ln]
     selected_lines = same_realm_lines[:max_files]
 
     with open(output_file, "w") as fh:
         fh.write("\n".join(selected_lines) + "\n")
 
     print(
-        f"\033[92mSaved {len(selected_lines)} PFNs (realm {first_realm}, prefix {used_prefix}) to {output_file}\033[0m"
+        f"\033[92mSaved {len(selected_lines)} PFNs "
+        f"(realm {chosen_realm}, prefix {used_prefix}) "
+        f"to {output_file}\033[0m"
     )
-
 
 # -----------------------------------------------------------------------------
 # CLI
@@ -153,10 +217,9 @@ def main(runs: str, max_files: int) -> None:
         fetch_rucio_replicas(run, max_files)
 
     # Clean‑up Kerberos tickets
-    subprocess.run("kdestroy", shell=True)
-    print("\033[92mSession complete. Kerberos credentials destroyed.\033[0m")
+    #subprocess.run("kdestroy", shell=True)
+    #print("\033[92mSession complete. Kerberos credentials destroyed.\033[0m")
 
 
 if __name__ == "__main__":
     main()
-
