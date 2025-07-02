@@ -16,6 +16,7 @@ from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
+from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.plotting.plot import plot_ChannelWsGrid
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ def _analyse(wfset):
                   analysis_kwargs={},
                   checks_kwargs=dict(points_no=wfset.points_per_wf),
                   overwrite=True)
-
+'''
 def _grids(wfset):
     return dict(
         TCO=ChannelWsGrid(mem_geometry_map[2], wfset,
@@ -113,10 +114,22 @@ def _grids(wfset):
                            bins_number=115,
                            domain=np.array([-1e4, 5e4]),
                            variable="integral"))
+'''
+def _grids(wfset):
+    return dict(
+        TCO=ChannelWsGrid(cat_geometry_map[2], wfset,
+                          bins_number=115,
+                          domain=np.array([-1e4, 5e4]),
+                          variable="integral"),
+        nTCO=ChannelWsGrid(cat_geometry_map[1], wfset,
+                           bins_number=115,
+                           domain=np.array([-1e4, 5e4]),
+                           variable="integral"))
 
 
 def plot_grid(grid, title, html: Path | None):
-    fig = psu.make_subplots(rows=4, cols=2)
+    #fig = psu.make_subplots(rows=4, cols=2)
+    fig = psu.make_subplots(rows=8, cols=4)
     plot_ChannelWsGrid( grid, figure=fig, share_x_scale=True,
                        share_y_scale=True, mode="overlay", wfs_per_axes=50)
     fig.update_layout(title=title, template="plotly_white",

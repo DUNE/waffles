@@ -58,8 +58,8 @@ class WaveformProcessor:
             if self.save_single_file:
                 self.wfset = reader.WaveformSet_from_hdf5_files(
                     filepath_list=filepaths,
-                    read_full_streaming_data=False,
-                    truncate_wfs_to_minimum=False,
+                    read_full_streaming_data=True,
+                    truncate_wfs_to_minimum=True,
                     folderpath=None,
                     nrecord_start_fraction=0.0,
                     nrecord_stop_fraction=1.,
@@ -79,8 +79,8 @@ class WaveformProcessor:
                     print_colored(f"Processing file: {file}", color="INFO")
                     wfset = reader.WaveformSet_from_hdf5_file(
                         filepath=file,
-                        read_full_streaming_data=False,
-                        truncate_wfs_to_minimum=False,
+                        read_full_streaming_data=True,
+                        truncate_wfs_to_minimum=True,
                         nrecord_start_fraction=0.0,
                         nrecord_stop_fraction=1.0,
                         subsample=1,

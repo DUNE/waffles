@@ -97,14 +97,14 @@ cat_geometry_nontco_titles = [None, "C4(1)", None, None,
                              None, None, "C2(1)", None,
                              None, None, "C2(2)", None]
 
-cat_geometry_nontco_data = [[UniqueChannel(101, 45), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 45), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 42)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 42)],
-                            [UniqueChannel(106, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(106, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 20), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 20), UniqueChannel(101, 0)]]
+cat_geometry_nontco_data = [[UniqueChannel(101, 45), UniqueChannel(106, 36), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 45), UniqueChannel(106, 37), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 34)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 35)],
+                            [UniqueChannel(106, 32), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(106, 33), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 30), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 31), UniqueChannel(101, 0)]]
 
 cat_geometry_nontco = CATMap_geo(cat_geometry_nontco_data)
 
@@ -120,14 +120,14 @@ cat_geometry_tco_titles = [None, "C8(1)", None, None,
                            None, None, "C6(1)", None,
                            None, None, "C6(2)", None]
 
-cat_geometry_tco_data = [[UniqueChannel(101, 0), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 47), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 47), UniqueChannel(101, 0)],
-                         [UniqueChannel(106, 7), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(106, 7), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 27), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 27), UniqueChannel(101, 0)]]
+cat_geometry_tco_data = [[UniqueChannel(101, 0), UniqueChannel(106, 4), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(106, 6), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 5), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 7), UniqueChannel(101, 0)],
+                         [UniqueChannel(106, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(106, 2), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 1), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 3), UniqueChannel(101, 0)]]
 
 cat_geometry_tco = CATMap_geo(cat_geometry_tco_data)
 

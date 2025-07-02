@@ -130,7 +130,7 @@ def get_inv_map_id(det):
     elif det == 'VD_Membrane_PDS':
         map_id = {'107': [700, 701, 51]}
     elif det == 'VD_Cathode_PDS':        
-        map_id = {'106': [720, 21, 22, 23]}
+        map_id = {'106': [723, 722, 721, 720, 21, 22, 23]}
     else:
         raise ValueError(f"det '{det}' is not recognized.")
     inv_map_id = {v: k for k, vals in map_id.items() for v in vals}
