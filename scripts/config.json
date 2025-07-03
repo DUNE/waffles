@@ -1,5 +1,6 @@
 {
-    "runs": [36413],    "rucio_dir": ".",
+    "runs": [35738],
+    "rucio_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/purity-runs-proc",
     "output_dir": ".",
     "ch": {},
     "save_single_file": false,

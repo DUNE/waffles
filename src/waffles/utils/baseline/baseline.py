@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit
 from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.utils.denoising.tv1ddenoise import Denoise
 
 class SBaseline:
@@ -120,8 +121,7 @@ class SBaseline:
         """
         wvf: np.ndarray = waveform.adcs
         response = self.denoiser.apply_denoise(wvf, filtering)
-        wvf_base = response[self.baselinestart:self.baselinefinish]
-        res0, optimal = self.compute_baseline(wvf_base)
+        res0, optimal = self.compute_baseline(response)
         if self.write_filtered_waveform:
             waveform.filtered = response
 
@@ -139,6 +139,3 @@ class SBaseline:
             f"  filtering = {self.filtering} (external usage),\n"
             f")"
         )
-
-
-
