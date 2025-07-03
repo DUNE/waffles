@@ -1,56 +1,77 @@
 # ---------------------------------------------------------------------
 # --- ANALYSIS 1 PARAMETERS -------------------------------------------
 # ---------------------------------------------------------------------
+# not used in the analysis
+input_path: "data"
+output_path: "output"
+
+# Useful if you have stored raw files somewhere else
+# This overwrite the "filepath_folder" parameter, if not blank
+custom_filepath_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/file_location_txts/"
+
 # Do you want to use full statistics? (True/False)
 full_stat: False
 
+# Debug mode? (True/False)
+debug_mode: False
+
 # Append or overwrite the output files? (append="a", overwrite="w")
-out_writing_mode: "w"
+out_writing_mode: "a"
 
 # Which runs are you interested in? (e.g. [31920, 31928])
 # Leave it empty if you want to use all the runs []
-user_runs: [31913, 31915, 31917, 31919, 31921, 31923, 31925, 31927, 31930, 31932, 31934,
-            31936, 31938, 31940, 31942, 31944, 31946]
+user_runs: []
+# user_runs: [31940]
 
 # Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
-out_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
+# ana_path: "./output/"  # local output
+ana_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
 
 # ---------------------------------------------------------------------
 # --- ANALYSIS 2 PARAMETERS -------------------------------------------
 # ---------------------------------------------------------------------
+# The integrators where ON or OFF? 
+integrators: "OFF" # "ON" or "OFF"
+
 # Dictionary of daphne AFEs and the vgain set
 # Remember ch [10400->10407] are in Endpoint 104 and AFE 0
 # here we call it AFE 1040
 # At the bottom a template with the AFEs used for most of the runs
 daphneAFE_vgain_dict:
-  1040: 2318
-  1041: 2318
-  1050: 2318
-  1051: 2318
-  1052: 2318
-  1070: 2318
-  1071: 2318
-  1090: 2318
-  1091: 2318
-  1092: 2318
-  1093: 2318
-  1094: 2318
-  1110: 2318
-  1111: 2318
-  1112: 2318
-  1113: 2318
-  1114: 2318
-  1120: 2318
-  1121: 2318
-  1122: 2318
-  1123: 2318
-  1124: 2318
-  1130: 2318
+  1040: 2660
+  1041: 2660
+  1042: 2660
+  1043: 2660
+  1044: 2660
+  1050: 2660
+  1051: 2660
+  1052: 2660
+  1070: 2660
+  1071: 2660
+  1090: 2660
+  1091: 2660
+  1092: 2660
+  1093: 2660
+  1094: 2660
+  1110: 2660
+  1111: 2660
+  1112: 2660
+  1113: 2660
+  1114: 2660
+  1120: 2660
+  1121: 2660
+  1122: 2660
+  1123: 2660
+  1124: 2660
+  1130: 2660
 
 # Template for the daphneAFE_vgain_dict
 daphneAFE_vgain_dict_TEMPLATED:
   1040: 2318
   1041: 2318
+  1042: 2318
+  1043: 2318
+  1044: 2318
   1050: 2318
   1051: 2318
   1052: 2318
