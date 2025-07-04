@@ -13,6 +13,7 @@ import waffles.utils.wf_maps_utils as wmu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
+import waffles.input_output.hdf5_structured as hdf5_reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 
@@ -55,11 +56,12 @@ def help(cls: str = None):
             if cls.__qualname__ == func[0]:
                 print(f"{func[0]:32} {func[1]}")
         print(inspect.signature(cls))
-    
+        
 ###########################
 def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
          read_full_streaming_data: bool = False, truncate_wfs_to_minimum: bool = False,
-         set_offset_wrt_daq_window: bool = False) -> WaveformSet:
+         set_offset_wrt_daq_window: bool = False,
+         nwfs: int = None) -> WaveformSet:
     """Read waveform data from file."""
     print(f"Reading file {filename}...")
     
@@ -77,7 +79,9 @@ def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
         )
     elif file_extension == ".pkl":
         wset = pickle_reader.WaveformSet_from_pickle_file(filename) 
-
+    elif file_extension == ".hdf5":
+        wset = hdf5_reader.load_structured_waveformset(filename,max_waveforms=nwfs) 
+        
     print("Done!")
     return wset
 
