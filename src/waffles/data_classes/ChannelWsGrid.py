@@ -124,6 +124,9 @@ class ChannelWsGrid:
             variable=variable,
             analysis_label=analysis_label)
 
+        flat_chs = [ch for row in ch_map.data for ch in row]
+        self.titles = getattr(ch_map, "titles", [f"{ch.endpoint},{ch.channel}" for ch in flat_chs])
+
     # Getters
     @property
     def ch_map(self):

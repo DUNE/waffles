@@ -30,6 +30,7 @@ mem_geometry_nontco_data = [  [UniqueChannel(107, 47),  UniqueChannel(107, 45) ]
                              [UniqueChannel(107, 20),  UniqueChannel(107, 27) ]]
 
 mem_geometry_nontco = MEMMap_geo(mem_geometry_nontco_data)
+mem_geometry_nontco.titles = mem_geometry_nontco_titles
 
 # --------------------------- Membrane TCO ---------------------------------
 
@@ -41,6 +42,7 @@ mem_geometry_tco_data = [    [UniqueChannel(107, 46  ),  UniqueChannel(107, 44)]
                              [UniqueChannel(107, 10  ),  UniqueChannel(107, 17)]]
 
 mem_geometry_tco = MEMMap_geo(mem_geometry_tco_data)
+mem_geometry_tco.  titles = mem_geometry_tco_titles
 
 
 mem_geometry_map = { 1 : mem_geometry_nontco, 
@@ -107,7 +109,7 @@ cat_geometry_nontco_data = [[UniqueChannel(101, 45), UniqueChannel(106, 36), Uni
                             [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 31), UniqueChannel(101, 0)]]
 
 cat_geometry_nontco = CATMap_geo(cat_geometry_nontco_data)
-
+cat_geometry_nontco.titles = cat_geometry_nontco_titles
 
 # ------------------------- Cathode TCO ----------------------------
 
@@ -130,6 +132,7 @@ cat_geometry_tco_data = [[UniqueChannel(101, 0), UniqueChannel(106, 4), UniqueCh
                          [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 3), UniqueChannel(101, 0)]]
 
 cat_geometry_tco = CATMap_geo(cat_geometry_tco_data)
+cat_geometry_tco.titles = cat_geometry_tco_titles
 
 
 cat_geometry_map = { 1 : cat_geometry_nontco, 
