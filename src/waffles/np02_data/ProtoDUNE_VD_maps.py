@@ -30,6 +30,7 @@ mem_geometry_nontco_data = [  [UniqueChannel(107, 47),  UniqueChannel(107, 45) ]
                              [UniqueChannel(107, 20),  UniqueChannel(107, 27) ]]
 
 mem_geometry_nontco = MEMMap_geo(mem_geometry_nontco_data)
+mem_geometry_nontco.titles = mem_geometry_nontco_titles
 
 # --------------------------- Membrane TCO ---------------------------------
 
@@ -41,6 +42,7 @@ mem_geometry_tco_data = [    [UniqueChannel(107, 46  ),  UniqueChannel(107, 44)]
                              [UniqueChannel(107, 10  ),  UniqueChannel(107, 17)]]
 
 mem_geometry_tco = MEMMap_geo(mem_geometry_tco_data)
+mem_geometry_tco.  titles = mem_geometry_tco_titles
 
 
 mem_geometry_map = { 1 : mem_geometry_nontco, 
@@ -97,17 +99,17 @@ cat_geometry_nontco_titles = [None, "C4(1)", None, None,
                              None, None, "C2(1)", None,
                              None, None, "C2(2)", None]
 
-cat_geometry_nontco_data = [[UniqueChannel(101, 45), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 45), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 42)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 42)],
-                            [UniqueChannel(106, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(106, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 20), UniqueChannel(101, 0)],
-                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 20), UniqueChannel(101, 0)]]
+cat_geometry_nontco_data = [[UniqueChannel(101, 45), UniqueChannel(106, 36), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 45), UniqueChannel(106, 37), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 34)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 35)],
+                            [UniqueChannel(106, 32), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(106, 33), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 30), UniqueChannel(101, 0)],
+                            [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 31), UniqueChannel(101, 0)]]
 
 cat_geometry_nontco = CATMap_geo(cat_geometry_nontco_data)
-
+cat_geometry_nontco.titles = cat_geometry_nontco_titles
 
 # ------------------------- Cathode TCO ----------------------------
 
@@ -120,16 +122,17 @@ cat_geometry_tco_titles = [None, "C8(1)", None, None,
                            None, None, "C6(1)", None,
                            None, None, "C6(2)", None]
 
-cat_geometry_tco_data = [[UniqueChannel(101, 0), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(106, 45), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 47), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 47), UniqueChannel(101, 0)],
-                         [UniqueChannel(106, 7), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(106, 7), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 27), UniqueChannel(101, 0)],
-                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 27), UniqueChannel(101, 0)]]
+cat_geometry_tco_data = [[UniqueChannel(101, 0), UniqueChannel(106, 4), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(106, 6), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 5), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 7), UniqueChannel(101, 0)],
+                         [UniqueChannel(106, 0), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(106, 2), UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 1), UniqueChannel(101, 0)],
+                         [UniqueChannel(101, 0), UniqueChannel(101, 0), UniqueChannel(106, 3), UniqueChannel(101, 0)]]
 
 cat_geometry_tco = CATMap_geo(cat_geometry_tco_data)
+cat_geometry_tco.titles = cat_geometry_tco_titles
 
 
 cat_geometry_map = { 1 : cat_geometry_nontco, 
@@ -147,10 +150,10 @@ flat_CAT_tco_geometry_map = {1 : ChannelMap(1, 32, [ wuw.flatten_2D_list(cat_geo
 
 cat_index_titles = ["C1(1)","C1(2)", "C5(1)","C5(2)", "C2(1)","C2(2)", "C6(1)","C6(2)","C3(1)","C3(2)", "C7(1)","C7(2)", "C4(1)", "C4(2)","C8(1)","C8(2)"]
         
-cat_index_data = [  [UniqueChannel(107, 47),  UniqueChannel(107, 45), UniqueChannel(107,  0),  UniqueChannel(107,  7)],
-                    [UniqueChannel(107, 40),  UniqueChannel(107, 42), UniqueChannel(107, 20),  UniqueChannel(107, 27)],
-                    [UniqueChannel(107, 46),  UniqueChannel(107, 44), UniqueChannel(107, 30),  UniqueChannel(107, 37)],
-                    [UniqueChannel(107, 43),  UniqueChannel(107, 41), UniqueChannel(107, 10),  UniqueChannel(107, 17)]]
+cat_index_data = [  [UniqueChannel(106, 32),  UniqueChannel(106, 33), UniqueChannel(106,  0),  UniqueChannel(106,  2)],
+                    [UniqueChannel(106, 30),  UniqueChannel(106, 31), UniqueChannel(106,  1),  UniqueChannel(106,  3)],
+                    [UniqueChannel(106, 34),  UniqueChannel(106, 35), UniqueChannel(106,  5),  UniqueChannel(106,  7)],
+                    [UniqueChannel(106, 36),  UniqueChannel(106, 37), UniqueChannel(106,  4),  UniqueChannel(106,  6)]]
                       
 
 cat_index = CATMap_ind(cat_index_data)
