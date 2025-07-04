@@ -131,9 +131,19 @@ def _grids(wfset, detector:str):
 def plot_grid(grid, title, html: Path | None, detector:str):
 
     if detector == 'VD_Membrane_PDS':
-        fig = psu.make_subplots(rows=4, cols=2)
+        rows, cols= 4, 2
     elif detector == 'VD_Cathode_PDS':
-        fig = psu.make_subplots(rows=8, cols=4)
+        rows, cols= 8, 4
+
+    subtitles = grid.titles
+
+    fig = psu.make_subplots(
+        rows=rows,
+        cols=cols,
+        subplot_titles=subtitles,
+        shared_xaxes=True,
+        shared_yaxes=True
+    )
     
     plot_ChannelWsGrid( grid, figure=fig, share_x_scale=True,
                        share_y_scale=True, mode="overlay", wfs_per_axes=50)
@@ -169,7 +179,7 @@ def main() -> None:
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
     ap.add_argument("--all-chunks", action="store_true")
-    ap.add_argument("--max-waveforms", type=int, default=100, help="Maximum waveforms to be plotted")
+    ap.add_argument("--max-waveforms", type=int, default=2000, help="Maximum waveforms to be plotted")
     ap.add_argument("--config-template", default="config.json")
     ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
     ap.add_argument("-v", "--verbose", action="count", default=1)
