@@ -191,6 +191,10 @@ def main() -> None:
     if args.headless: # if there are no plots, no reason to create directory
         plot_root.mkdir(parents=True, exist_ok=True)
 
+    processed_pattern = "processed_np02vd_raw_run%06d_*.hdf5"
+    if cfg.get("save_single_file", False):
+        processed_pattern= "processed_merged_run_%05d_*.hdf5"
+
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
     if not args.kerberos and not args.ssh_key:
@@ -207,7 +211,7 @@ def main() -> None:
     # -----------------------------------------------------------------
     have_struct = {
         run for run in runs
-        if any(processed_dir.glob(f"processed_np02vd_raw_run{run:06d}_*.hdf5"))
+        if any(processed_dir.glob(processed_pattern % run))
     }
     for r in sorted(have_struct):
         logging.info("run %d: processed file exists – nothing to do", r)
@@ -232,10 +236,11 @@ def main() -> None:
     sftp.close()
     ssh.close()
 
+
     # ── Skip already-processed runs ─────────────────────────────────────────
     pending = []
     for r in ok_runs:
-        if any(processed_dir.glob(f"processed_np02vd_raw_run{r:06d}_*.hdf5")):
+        if any(processed_dir.glob(processed_pattern % r)):
             logging.info("run %d already processed – skip", r)
         else:
             pending.append(r)
@@ -261,7 +266,7 @@ def main() -> None:
         detector = cfg.get("det")
         for r in ok_runs:
             prod = list(processed_dir.glob(
-                f"processed_np02vd_raw_run{r:06d}_*.hdf5"))
+                processed_pattern % r))
             if not prod:
                 logging.warning("run %d: processed file missing", r)
                 continue
