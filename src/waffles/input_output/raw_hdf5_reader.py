@@ -172,7 +172,7 @@ def filepath_is_hdf5_file_candidate(filepath: str) -> bool:
         return filepath.endswith((".hdf5", ".h5"))
 
     # 2) Otherwise we insist the file exists *and* ends with .h5/.hdf5
-    return os.path.isfile(filepath) and filepath.endswith((".hdf5", ".h5"))
+    return os.path.isfile(filepath) and filepath.endswith((".hdf5", ".h5", ".hdf5.copied", ".h5.copied"))
 
 
 def get_filepaths_from_rucio(rucio_filepath) -> list:

@@ -218,8 +218,6 @@ def main() -> None:
             if not rem:
                 logging.warning("run %d: no remote files", run)
                 continue
-            if not args.all_chunks:
-                rem = rem[:1]
             loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
             (list_dir / f"{run:06d}.txt").write_text(
                 "\n".join(p.as_posix() for p in loc) + "\n")
