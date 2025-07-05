@@ -169,24 +169,31 @@ def main() -> None:
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
     ap.add_argument("--all-chunks", action="store_true")
-    ap.add_argument("--max-waveforms", type=int, default=100)
+    ap.add_argument("--max-waveforms", type=int, default=100, help="Maximum waveforms to be plotted")
     ap.add_argument("--config-template", default="config.json")
-    ap.add_argument("--headless", action="store_true")
-    ap.add_argument("-v", "--verbose", action="count", default=0)
+    ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
+    ap.add_argument("-v", "--verbose", action="count", default=1)
     args = ap.parse_args()
 
     logging.basicConfig(level=max(10, 30 - 10*args.verbose),
                         format="%(levelname)s: %(message)s")
 
     runs = parse_run_list(args.runs)
-    out_root = Path(args.out).resolve()
+    cfg = json.load(open(args.config_template))
+    out_root = Path(cfg.get("output_dir", args.out)).resolve()
     raw_dir = out_root / "raw"
     list_dir = out_root / "raw_lists"
     processed_dir = out_root / "processed"
     plot_root = out_root / "plots"
 
-    for d in (list_dir, processed_dir, plot_root):
+    for d in (list_dir, processed_dir):
         d.mkdir(parents=True, exist_ok=True)
+    if args.headless: # if there are no plots, no reason to create directory
+        plot_root.mkdir(parents=True, exist_ok=True)
+
+    processed_pattern = "processed_np02vd_raw_run%06d_*.hdf5"
+    if cfg.get("save_single_file", False):
+        processed_pattern= "processed_merged_run_%05d_*.hdf5"
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -204,22 +211,22 @@ def main() -> None:
     # -----------------------------------------------------------------
     have_struct = {
         run for run in runs
-        if any(processed_dir.glob(f"processed_np02vd_raw_run{run:06d}_*.hdf5"))
+        if any(processed_dir.glob(processed_pattern % run))
     }
     for r in sorted(have_struct):
         logging.info("run %d: processed file exists – nothing to do", r)
 
-    runs_to_fetch = [r for r in runs if r not in have_struct]
     ok_runs: list[int] = []
 
-    for run in runs_to_fetch:
+    for run in runs:
+        if run in have_struct: # already processed, just keeping for plots
+            ok_runs.append(run)
+            continue
         try:
             rem = remote_hdf5_files(ssh, args.remote_dir, run)
             if not rem:
                 logging.warning("run %d: no remote files", run)
                 continue
-            if not args.all_chunks:
-                rem = rem[:1]
             loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
             (list_dir / f"{run:06d}.txt").write_text(
                 "\n".join(p.as_posix() for p in loc) + "\n")
@@ -229,42 +236,44 @@ def main() -> None:
     sftp.close()
     ssh.close()
 
+
     # ── Skip already-processed runs ─────────────────────────────────────────
     pending = []
     for r in ok_runs:
-        if any(processed_dir.glob(f"processed_np02vd_raw_run{r:06d}_*.hdf5")):
+        if any(processed_dir.glob(processed_pattern % r)):
             logging.info("run %d already processed – skip", r)
         else:
             pending.append(r)
-    pending=ok_runs
+
     if not pending:
         logging.warning("Nothing to process; all runs already done.")
     else:
         # ── Build config for 07_save_structured_from_config.py ──────────────
-        cfg = json.load(open(args.config_template))
-        detector = cfg.get("det")
         cfg.update(dict(
             runs=pending,
             rucio_dir=list_dir.as_posix(),
             output_dir=processed_dir.as_posix()))
-        tmp_cfg = out_root / "temp_config.json"
+        pathscripts=Path(__file__).resolve().parent
+        tmp_cfg = pathscripts / "temp_config.json"
         tmp_cfg.write_text(json.dumps(cfg, indent=4))
 
         logging.info("🚀 07_save_structured_from_config.py …")
-        subprocess.run(["python3", "07_save_structured_from_config.py",
+        subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
                         "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
-    for r in ok_runs:
-        prod = list(processed_dir.glob(
-            f"processed_np02vd_raw_run{r:06d}_*.hdf5"))
-        if not prod:
-            logging.warning("run %d: processed file missing", r)
-            continue
-        pr_dir = plot_root / f"run{r:06d}"
-        pr_dir.mkdir(parents=True, exist_ok=True)
-        process_structured(prod[0], pr_dir,
-                           args.max_waveforms, args.headless, detector)
+    if args.headless:
+        detector = cfg.get("det")
+        for r in ok_runs:
+            prod = list(processed_dir.glob(
+                processed_pattern % r))
+            if not prod:
+                logging.warning("run %d: processed file missing", r)
+                continue
+            pr_dir = plot_root / f"run{r:06d}"
+            pr_dir.mkdir(parents=True, exist_ok=True)
+            process_structured(prod[0], pr_dir,
+                               args.max_waveforms, args.headless, detector)
 
 
 if __name__ == "__main__":
