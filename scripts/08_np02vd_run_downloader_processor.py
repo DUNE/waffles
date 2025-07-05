@@ -169,10 +169,10 @@ def main() -> None:
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
     ap.add_argument("--all-chunks", action="store_true")
-    ap.add_argument("--max-waveforms", type=int, default=100)
+    ap.add_argument("--max-waveforms", type=int, default=100, help="Maximum waveforms to be plotted")
     ap.add_argument("--config-template", default="config.json")
-    ap.add_argument("--headless", action="store_true")
-    ap.add_argument("-v", "--verbose", action="count", default=0)
+    ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
+    ap.add_argument("-v", "--verbose", action="count", default=1)
     args = ap.parse_args()
 
     logging.basicConfig(level=max(10, 30 - 10*args.verbose),
