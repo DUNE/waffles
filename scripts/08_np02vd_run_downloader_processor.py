@@ -179,7 +179,8 @@ def main() -> None:
                         format="%(levelname)s: %(message)s")
 
     runs = parse_run_list(args.runs)
-    out_root = Path(args.out).resolve()
+    cfg = json.load(open(args.config_template))
+    out_root = Path(cfg.get("output_dir", args.out)).resolve()
     raw_dir = out_root / "raw"
     list_dir = out_root / "raw_lists"
     processed_dir = out_root / "processed"
@@ -239,17 +240,17 @@ def main() -> None:
         logging.warning("Nothing to process; all runs already done.")
     else:
         # ── Build config for 07_save_structured_from_config.py ──────────────
-        cfg = json.load(open(args.config_template))
         detector = cfg.get("det")
         cfg.update(dict(
             runs=pending,
             rucio_dir=list_dir.as_posix(),
             output_dir=processed_dir.as_posix()))
-        tmp_cfg = out_root / "temp_config.json"
+        pathscripts=Path(__file__).resolve().parent
+        tmp_cfg = pathscripts / "temp_config.json"
         tmp_cfg.write_text(json.dumps(cfg, indent=4))
 
         logging.info("🚀 07_save_structured_from_config.py …")
-        subprocess.run(["python3", "07_save_structured_from_config.py",
+        subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
                         "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
