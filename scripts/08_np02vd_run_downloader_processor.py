@@ -186,8 +186,10 @@ def main() -> None:
     processed_dir = out_root / "processed"
     plot_root = out_root / "plots"
 
-    for d in (list_dir, processed_dir, plot_root):
+    for d in (list_dir, processed_dir):
         d.mkdir(parents=True, exist_ok=True)
+    if args.headless: # if there are no plots, no reason to create directory
+        plot_root.mkdir(parents=True, exist_ok=True)
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -210,10 +212,12 @@ def main() -> None:
     for r in sorted(have_struct):
         logging.info("run %d: processed file exists – nothing to do", r)
 
-    runs_to_fetch = [r for r in runs if r not in have_struct]
     ok_runs: list[int] = []
 
-    for run in runs_to_fetch:
+    for run in runs:
+        if run in have_struct: # already processed, just keeping for plots
+            ok_runs.append(run)
+            continue
         try:
             rem = remote_hdf5_files(ssh, args.remote_dir, run)
             if not rem:
@@ -235,12 +239,11 @@ def main() -> None:
             logging.info("run %d already processed – skip", r)
         else:
             pending.append(r)
-    pending=ok_runs
+
     if not pending:
         logging.warning("Nothing to process; all runs already done.")
     else:
         # ── Build config for 07_save_structured_from_config.py ──────────────
-        detector = cfg.get("det")
         cfg.update(dict(
             runs=pending,
             rucio_dir=list_dir.as_posix(),
@@ -254,16 +257,18 @@ def main() -> None:
                         "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
-    for r in ok_runs:
-        prod = list(processed_dir.glob(
-            f"processed_np02vd_raw_run{r:06d}_*.hdf5"))
-        if not prod:
-            logging.warning("run %d: processed file missing", r)
-            continue
-        pr_dir = plot_root / f"run{r:06d}"
-        pr_dir.mkdir(parents=True, exist_ok=True)
-        process_structured(prod[0], pr_dir,
-                           args.max_waveforms, args.headless, detector)
+    if args.headless:
+        detector = cfg.get("det")
+        for r in ok_runs:
+            prod = list(processed_dir.glob(
+                f"processed_np02vd_raw_run{r:06d}_*.hdf5"))
+            if not prod:
+                logging.warning("run %d: processed file missing", r)
+                continue
+            pr_dir = plot_root / f"run{r:06d}"
+            pr_dir.mkdir(parents=True, exist_ok=True)
+            process_structured(prod[0], pr_dir,
+                               args.max_waveforms, args.headless, detector)
 
 
 if __name__ == "__main__":
