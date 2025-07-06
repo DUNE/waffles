@@ -81,22 +81,43 @@ def load_structured_waveformset(
     filepath: str,
     run_filter=None,
     endpoint_filter=None,
-    max_waveforms=None
+    max_waveforms=None,
+    max_to_load=None,
 ) -> WaveformSet:
     """
     Loads a structured HDF5 file into a WaveformSet, optionally filtering
-    by run number, endpoint, or max waveforms.
+    by run number, endpoint, and max waveforms.
+    Parameters
+    ----------
+    filepath: str
+        Path to the HDF5 file to load.
+    run_filter: int, list of int, or None
+    endpoint_filter: int, list of int, or None
+    max_waveforms: int or None
+        Maximum number of waveforms to process. If None, loads all.
+        This will take run_filter and endpoint_filter into account
+    max_to_load: int or None
+        Maximum number of waveforms to load from the file.
+        If None, loads all available waveforms.
+        The maximum number don't consider any filters. This should be used for
+        quick checks only
     """
+
+        
+    if run_filter is None and endpoint_filter is None:
+        if max_to_load is None:
+            # No reason to load everything...
+            max_to_load = max_waveforms
 
     with h5py.File(filepath, "r") as f:
         # Read datasets
-        adcs_array = f["adcs"][:]
-        timestamps = f["timestamps"][:]
-        daq_timestamps = f["daq_timestamps"][:]
-        run_numbers = f["run_numbers"][:]
-        record_numbers = f["record_numbers"][:]
-        channels = f["channels"][:]
-        endpoints = f["endpoints"][:]
+        adcs_array = f["adcs"][:max_to_load]
+        timestamps = f["timestamps"][:max_to_load]
+        daq_timestamps = f["daq_timestamps"][:max_to_load]
+        run_numbers = f["run_numbers"][:max_to_load]
+        record_numbers = f["record_numbers"][:max_to_load]
+        channels = f["channels"][:max_to_load]
+        endpoints = f["endpoints"][:max_to_load]
         time_step_ns = f.attrs["time_step_ns"]
         time_offset = f.attrs["time_offset"]
 
