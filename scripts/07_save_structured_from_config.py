@@ -111,7 +111,7 @@ class WaveformProcessor:
             return False
 
     def write_merged_output(self):
-        output_filename = f"processed_merged_run_{self.run_number}_structured.hdf5"
+        output_filename = f"processed_merged_run{self.run_number:06d}_structured.hdf5"
         output_filepath = Path(self.output_path) / output_filename
 
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")

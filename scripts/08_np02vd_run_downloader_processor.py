@@ -191,9 +191,7 @@ def main() -> None:
     if args.headless: # if there are no plots, no reason to create directory
         plot_root.mkdir(parents=True, exist_ok=True)
 
-    processed_pattern = "processed_np02vd_raw_run%06d_*.hdf5"
-    if cfg.get("save_single_file", False):
-        processed_pattern= "processed_merged_run_%05d_*.hdf5"
+    processed_pattern = "processed_*_run%06d_*.hdf5"
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -272,6 +270,7 @@ def main() -> None:
                 continue
             pr_dir = plot_root / f"run{r:06d}"
             pr_dir.mkdir(parents=True, exist_ok=True)
+            print(args.max_waveforms, args.headless, detector)
             process_structured(prod[0], pr_dir,
                                args.max_waveforms, args.headless, detector)
 
