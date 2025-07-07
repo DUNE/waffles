@@ -132,8 +132,7 @@ class WindowBaseliner(WfAna):
             np.median(baseline_samples)
 
         self._WfAna__result = WfAnaResult(
-            baseline=baseline,
-            baseline_std=np.std(baseline_samples)
+            baseline=baseline
         )
         return
 
@@ -162,7 +161,8 @@ class WindowBaseliner(WfAna):
         input_parameters: IPDict
             The input parameters to be checked. It is the IPDict
             that can be potentially given to
-            WindowBaseliner.__init__().
+            WindowBaseliner.__init__ to instantiate a
+            WindowBaseliner object.
         points_no: int
             The number of points in any waveform that could be
             analysed. It is assumed to be the same for all the
