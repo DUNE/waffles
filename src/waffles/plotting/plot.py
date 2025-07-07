@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Optional
+from typing import Callable
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -1642,3 +1643,155 @@ def plot_ChannelWsGrid(
             " or 'calibration'."))
     
     return figure_
+
+def plot_CustomChannelGrid(
+    channel_ws_grid: ChannelWsGrid,  
+    plot_function: Callable, 
+    figure: Optional[pgo.Figure] = None,  
+    share_x_scale: bool = False,  
+    share_y_scale: bool = False,  
+    wfs_per_axes: Optional[int] = 1,  
+    x_axis_title: Optional[str] = None,  
+    y_axis_title: Optional[str] = None,  
+    figure_title: Optional[str] = None,  
+    show_ticks_only_on_edges: bool = False,  
+    wf_func: Optional[Callable] = None,
+    log_x_axis: bool = False
+) -> pgo.Figure:
+    """
+    This function returns a plotly.graph_objects.Figure with a grid of subplots arranged according to the 
+    channel_ws_grid.ch_map attribute.
+
+    Parameters:
+    - channel_ws_grid (ChannelWsGrid): A grid containing waveform sets and channels.
+    - plot_function (Callable): The function used to plot the waveforms.
+    - figure (Optional[pgo.Figure]): An optional existing Plotly figure to add subplots to.
+    - share_x_scale (bool): Whether to share the X-axis scale across subplots.
+    - share_y_scale (bool): Whether to share the Y-axis scale across subplots.
+    - wfs_per_axes (Optional[int]): Number of waveforms to plot per axis.
+    - x_axis_title (Optional[str]): The title of the X-axis.
+    - y_axis_title (Optional[str]): The title of the Y-axis.
+    - figure_title (Optional[str]): The title of the entire figure.
+    - show_ticks_only_on_edges (bool): Whether to show ticks only on the edges of the plot.
+    - wf_func (Optional[Callable]): Optional function for additional waveform processing.
+    """
+
+    # Create a new figure if one is not provided
+    if figure is not None:
+        wpu.check_dimensions_of_suplots_figure(figure, channel_ws_grid.ch_map.rows, channel_ws_grid.ch_map.columns)
+        figure_ = figure
+    else:
+        figure_ = psu.make_subplots(rows=channel_ws_grid.ch_map.rows, cols=channel_ws_grid.ch_map.columns)
+
+    # Configure shared axes if needed
+    wpu.update_shared_axes_status(figure_, share_x=share_x_scale, share_y=share_y_scale)
+    
+    # Add unique channel annotations at the top
+    wpu.__add_unique_channels_top_annotations(  
+        channel_ws_grid,
+        figure_,
+        also_add_run_info=True)
+
+    # Add title to the figure if provided
+    if figure_title:
+        figure_.update_layout(title=figure_title)
+
+    # Iterate over the grid of subplots
+    total_rows = channel_ws_grid.ch_map.rows
+    total_cols = channel_ws_grid.ch_map.columns
+    
+    for i in range(total_rows):
+        for j in range(total_cols):
+            try:
+                # Get the channel and endpoint for the current subplot
+                channel_ws = channel_ws_grid.ch_wf_sets[channel_ws_grid.ch_map.data[i][j].endpoint][
+                    channel_ws_grid.ch_map.data[i][j].channel]
+            except KeyError:
+                # If there's no data, add a "No data" annotation
+                wpu.__add_no_data_annotation(figure_, i + 1, j + 1)
+                continue
+
+            # Get the indices of the waveforms to process
+            if wfs_per_axes is not None:
+                aux_idcs = range(min(wfs_per_axes, len(channel_ws.waveforms)))
+                
+            else:
+                aux_idcs = range(len(channel_ws.waveforms))
+
+            # Apply the user-defined plot function to each selected waveform
+            for idx in aux_idcs:
+                if wf_func is None:
+                    plot_function(channel_ws, figure_, i + 1, j + 1)
+                else:
+                    plot_function(channel_ws, figure_, i + 1, j + 1, wf_func)
+                    
+            # Configure axes based on the option to show ticks only on edges
+            if show_ticks_only_on_edges:
+                figure_.update_xaxes(
+                    title_text=x_axis_title if i == total_rows - 1 else '',
+                    showticklabels=(i == total_rows - 1),
+                    row=i + 1, col=j + 1
+                )
+                figure_.update_yaxes(
+                    title_text=y_axis_title if j == 0 else '',
+                    showticklabels=(j == 0),
+                    row=i + 1, col=j + 1
+                )
+            else:
+                if x_axis_title is not None and i == total_rows - 1:
+                    figure_.update_xaxes(title_text=x_axis_title, row=i + 1, col=j + 1)
+                if y_axis_title is not None and j == 0:
+                    figure_.update_yaxes(title_text=y_axis_title, row=i + 1, col=j + 1)
+
+            # Set the X-axis to logarithmic scale if the title is 'Frequency [MHz]'
+            if x_axis_title == 'Frequency [MHz]':
+                figure_.update_xaxes(
+                    type='log',  # Sets the X-axis to a logarithmic scale
+                    row=i + 1, col=j + 1
+                )
+            if log_x_axis:
+                figure_.update_xaxes(
+                    type='log',  # Aplica escala logarítmica al eje X
+                    row=i + 1, col=j + 1
+                )
+                
+    return figure_
+
+def plot_Histogram(values, nbins, x_range=None):
+    """
+    Generates a histogram with Plotly, normalizing the binning to fit the defined x_range.
+    
+    Parameters:
+    - values: List of numerical values to plot.
+    - nbins: Number of bins for the histogram.
+    - x_range: Optional range for the X-axis as a tuple (min, max), 
+               if not specified, the range will be based on the data.
+    
+    Returns:
+    - pgo.Figure: Plotly figure containing the histogram.
+    """
+    values = [v for v in values if v is not None]  # Filter out None values
+    
+    figure = pgo.Figure()
+
+    # If an x_range is provided, normalize the bins to fit that range
+    if x_range:
+        min_val, max_val = x_range
+        bin_width = (max_val - min_val) / nbins  # Calculate the width of each bin
+        
+        # Create histogram trace with the specified x_range and normalized bin width
+        figure.add_trace(pgo.Histogram(
+            x=values, 
+            nbinsx=nbins, 
+            xaxis="x", 
+            xbins=dict(start=min_val, end=max_val, size=bin_width)
+        ))
+    else:
+        # If no range is provided, use the default range
+        figure.add_trace(pgo.Histogram(x=values, nbinsx=nbins))
+    
+    # Optionally, set the X-axis range (if you want full control over the interval)
+    if x_range:
+        figure.update_layout(xaxis_range=x_range)
+
+    return figure
