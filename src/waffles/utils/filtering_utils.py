@@ -287,7 +287,7 @@ def calibration_filter(
     int_ul: int
 ) -> bool:
     """This function returns True if the waveform is good for calibration
-    calibration studies. It assume that an analysis which compute the 
+    calibration studies. It assumes that an analysis which compute the 
     baseline (result['baseline']) was already performed.
 
     Parameters
@@ -304,11 +304,11 @@ def calibration_filter(
     bool
     """
     bsl_allowance = bsl_allowed_dev*bsl_rms
-    if min(waveform.adcs[:baseline_limits[1]]) < (waveform.analyses[analysis_label].result['baseline']-bsl_allowance):
+    if (min(waveform.adcs[:baseline_limits[1]]) < (waveform.analyses[analysis_label].result['baseline']-bsl_allowance)):
         return False
-    if max(waveform.adcs[:baseline_limits[1]]) > (waveform.analyses[analysis_label].result['baseline']+bsl_allowance):
+    if (max(waveform.adcs[:baseline_limits[1]]) > (waveform.analyses[analysis_label].result['baseline']+bsl_allowance)):
         return False
-    if min(waveform.adcs[baseline_limits[1]:int_ul]) < (int_ul-sig_allowed_dev*bsl_rms):
+    if (min(waveform.adcs[baseline_limits[1]:int_ul]) < (waveform.analyses[analysis_label].result['baseline']-sig_allowed_dev*bsl_rms)):
         return False
 
     return True
