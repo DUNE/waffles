@@ -4,6 +4,7 @@ from __future__ import annotations            # postpone type-hint eval
 import argparse, getpass, json, logging, sys
 from pathlib import Path
 import subprocess
+import os
 
 import paramiko                               # SSH / SFTP
 import numpy as np
@@ -201,7 +202,7 @@ def main() -> None:
     if args.headless: # if there are no plots, no reason to create directory
         plot_root.mkdir(parents=True, exist_ok=True)
 
-    processed_pattern = "processed_*_run%06d_*.hdf5"
+    processed_pattern = "run%06d/processed_*_run%06d_*.hdf5"
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -219,7 +220,7 @@ def main() -> None:
     # -----------------------------------------------------------------
     have_struct = {
         run for run in runs
-        if any(processed_dir.glob(processed_pattern % run))
+        if any(processed_dir.glob(processed_pattern % (run, run)))
     }
     for r in sorted(have_struct):
         logging.info("run %d: processed file exists – nothing to do", r)
@@ -248,9 +249,11 @@ def main() -> None:
     # ── Skip already-processed runs ─────────────────────────────────────────
     pending = []
     for r in ok_runs:
-        if any(processed_dir.glob(processed_pattern % r)):
+        if any(processed_dir.glob(processed_pattern % (r, r))):
             logging.info("run %d already processed – skip", r)
         else:
+            pro_dir = processed_dir / f"run{r:06d}"
+            pro_dir.mkdir(parents=True, exist_ok=True)
             pending.append(r)
 
     if not pending:
@@ -274,13 +277,13 @@ def main() -> None:
         detector = cfg.get("det")
         for r in ok_runs:
             prod = list(processed_dir.glob(
-                processed_pattern % r))
+                processed_pattern % (r,r)))
             if not prod:
                 logging.warning("run %d: processed file missing", r)
                 continue
             pr_dir = plot_root / f"run{r:06d}"
             pr_dir.mkdir(parents=True, exist_ok=True)
-            print(args.max_waveforms, args.headless, detector)
+            os.chmod(pr_dir, 0o775)
             process_structured(prod[0], pr_dir,
                                args.max_waveforms, args.headless, detector)
 

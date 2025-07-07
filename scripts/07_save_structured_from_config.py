@@ -112,8 +112,7 @@ class WaveformProcessor:
 
     def write_merged_output(self):
         output_filename = f"processed_merged_run{self.run_number:06d}_structured.hdf5"
-        output_filepath = Path(self.output_path) / output_filename
-
+        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}" / output_filename
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")
         try:
             self.wfset = self.ensure_waveformset(self.wfset)
@@ -131,7 +130,8 @@ class WaveformProcessor:
             print_colored(f"Merged WaveformSet saved to {output_filepath}", color="SUCCESS")
 
             wfset_loaded = load_structured_waveformset(str(output_filepath))
-            self.compare_waveformsets(self.wfset, wfset_loaded)
+            # Uncomment to compare
+            # self.compare_waveformsets(self.wfset, wfset_loaded)
 
             return True
         except Exception as e:
@@ -174,7 +174,7 @@ class WaveformProcessor:
 
     def write_output(self, wfset, input_filepath):
         input_filename = Path(input_filepath).name
-        output_filepath = Path(self.output_path) / f"processed_{input_filename}_structured.hdf5"
+        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}" / f"processed_{input_filename}_structured.hdf5"
 
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
         try:
