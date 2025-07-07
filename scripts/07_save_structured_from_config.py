@@ -15,14 +15,15 @@ class WaveformProcessor:
     """Handles waveform data processing and structured HDF5 saving."""
 
     def __init__(self, config: dict, run: int):
-        self.rucio_paths_directory = config.get("rucio_dir")
-        self.output_path = config.get("output_dir")
+        self.rucio_paths_directory = config.get("rucio_dir", ".")
+        self.output_path = config.get("output_dir", ".")
         self.detector = config.get("det")
         self.run_number = run
         self.save_single_file = config.get("save_single_file", False)
         self.max_files = config.get("max_files", "all")
         self.ch = self.parse_ch_dict(config.get("ch", {}))
         self.trigger = config.get("trigger")
+        self.sufix = config.get("sufix", "")
 
         print_colored(f"Loaded configuration: {config}", color="INFO")
 
@@ -111,7 +112,10 @@ class WaveformProcessor:
             return False
 
     def write_merged_output(self):
-        output_filename = f"processed_merged_run{self.run_number:06d}_structured.hdf5"
+        extra = ""
+        if self.sufix:
+            extra = f"_{self.sufix}"
+        output_filename = f"processed_merged_run{self.run_number:06d}_structured{extra}.hdf5"
         output_filepath = Path(self.output_path) / f"run{self.run_number:06d}" / output_filename
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")
         try:
@@ -174,7 +178,10 @@ class WaveformProcessor:
 
     def write_output(self, wfset, input_filepath):
         input_filename = Path(input_filepath).name
-        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}" / f"processed_{input_filename}_structured.hdf5"
+        extra = ""
+        if self.sufix:
+            extra = f"_{self.sufix}"
+        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}" / f"processed_{input_filename}_structured{extra}.hdf5"
 
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
         try:

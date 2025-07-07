@@ -179,7 +179,6 @@ def main() -> None:
     auth = ap.add_mutually_exclusive_group()
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
-    ap.add_argument("--all-chunks", action="store_true")
     ap.add_argument("--max-waveforms", type=int, default=2000, help="Maximum waveforms to be plotted")
     ap.add_argument("--config-template", default="config.json")
     ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
@@ -202,7 +201,16 @@ def main() -> None:
     if args.headless: # if there are no plots, no reason to create directory
         plot_root.mkdir(parents=True, exist_ok=True)
 
-    processed_pattern = "run%06d/processed_*_run%06d_*.hdf5"
+    detector = cfg.get("det")
+    sufix=""
+    if detector == 'VD_Membrane_PDS':
+        sufix="membrane"
+    elif detector == 'VD_Cathode_PDS':
+        sufix="cathode"
+    else:
+        raise ValueError(f"Unknown detector: {detector}")
+
+    processed_pattern = f"run%06d_{sufix}/processed_*_run%06d_*_{sufix}.hdf5"
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -236,6 +244,8 @@ def main() -> None:
             if not rem:
                 logging.warning("run %d: no remote files", run)
                 continue
+            if cfg.get("max_files", "all") != "all":
+                rem = rem[:int(cfg["max_files"])]
             loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
             (list_dir / f"{run:06d}.txt").write_text(
                 "\n".join(p.as_posix() for p in loc) + "\n")
@@ -252,7 +262,7 @@ def main() -> None:
         if any(processed_dir.glob(processed_pattern % (r, r))):
             logging.info("run %d already processed – skip", r)
         else:
-            pro_dir = processed_dir / f"run{r:06d}"
+            pro_dir = processed_dir / f"run{r:06d}_{sufix}"
             pro_dir.mkdir(parents=True, exist_ok=True)
             pending.append(r)
 
@@ -263,7 +273,9 @@ def main() -> None:
         cfg.update(dict(
             runs=pending,
             rucio_dir=list_dir.as_posix(),
-            output_dir=processed_dir.as_posix()))
+            output_dir=processed_dir.as_posix(),
+            sufix=sufix,
+        ))
         pathscripts=Path(__file__).resolve().parent
         tmp_cfg = pathscripts / "temp_config.json"
         tmp_cfg.write_text(json.dumps(cfg, indent=4))
@@ -274,14 +286,13 @@ def main() -> None:
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
     if args.headless:
-        detector = cfg.get("det")
         for r in ok_runs:
             prod = list(processed_dir.glob(
                 processed_pattern % (r,r)))
             if not prod:
                 logging.warning("run %d: processed file missing", r)
                 continue
-            pr_dir = plot_root / f"run{r:06d}"
+            pr_dir = plot_root / f"run{r:06d}_{sufix}"
             pr_dir.mkdir(parents=True, exist_ok=True)
             os.chmod(pr_dir, 0o775)
             process_structured(prod[0], pr_dir,
