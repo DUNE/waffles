@@ -22,6 +22,7 @@ class WaveformProcessor:
         self.save_single_file = config.get("save_single_file", False)
         self.max_files = config.get("max_files", "all")
         self.ch = self.parse_ch_dict(config.get("ch", {}))
+        self.trigger = config.get("trigger")
 
         print_colored(f"Loaded configuration: {config}", color="INFO")
 
@@ -55,11 +56,16 @@ class WaveformProcessor:
 
             print_colored(f"Processing {len(filepaths)} files...", color="INFO")
 
+            if self.trigger == 'self_trigger':
+                trigger_value = False
+            elif self.trigger == 'full_streaming':
+                trigger_value = True
+
             if self.save_single_file:
                 self.wfset = reader.WaveformSet_from_hdf5_files(
                     filepath_list=filepaths,
-                    read_full_streaming_data=False,
-                    truncate_wfs_to_minimum=False,
+                    read_full_streaming_data=trigger_value,
+                    truncate_wfs_to_minimum=trigger_value,
                     folderpath=None,
                     nrecord_start_fraction=0.0,
                     nrecord_stop_fraction=1.,
@@ -79,8 +85,8 @@ class WaveformProcessor:
                     print_colored(f"Processing file: {file}", color="INFO")
                     wfset = reader.WaveformSet_from_hdf5_file(
                         filepath=file,
-                        read_full_streaming_data=False,
-                        truncate_wfs_to_minimum=False,
+                        read_full_streaming_data=trigger_value,
+                        truncate_wfs_to_minimum=trigger_value,
                         nrecord_start_fraction=0.0,
                         nrecord_stop_fraction=1.0,
                         subsample=1,
@@ -186,15 +192,6 @@ class WaveformProcessor:
                 structured=True
             )
             print_colored(f"WaveformSet saved to {output_filepath}", color="SUCCESS")
-
-            """
-            print_colored("Going to load...")
-            wfset_loaded = load_structured_waveformset(str(output_filepath))
-            print_colored("Loaded, about to compare...")  # If you see this, the load worked
-            print_colored(f"wfset_loaded type={type(wfset_loaded)}")
-            self.compare_waveformsets(wfset, wfset_loaded)
-            print_colored("Done comparing!")  # If you never see this, an error happens in compare
-            """
 
             return True
         except Exception as e:

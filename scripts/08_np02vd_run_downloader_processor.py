@@ -16,6 +16,7 @@ from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
+from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.plotting.plot import plot_ChannelWsGrid
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -103,20 +104,37 @@ def _analyse(wfset):
                   checks_kwargs=dict(points_no=wfset.points_per_wf),
                   overwrite=True)
 
-def _grids(wfset):
-    return dict(
-        TCO=ChannelWsGrid(mem_geometry_map[2], wfset,
-                          bins_number=115,
-                          domain=np.array([-1e4, 5e4]),
-                          variable="integral"),
-        nTCO=ChannelWsGrid(mem_geometry_map[1], wfset,
-                           bins_number=115,
-                           domain=np.array([-1e4, 5e4]),
-                           variable="integral"))
+def _grids(wfset, detector:str):
+
+    if detector == 'VD_Membrane_PDS':
+        return dict(
+            TCO=ChannelWsGrid(mem_geometry_map[2], wfset,
+                              bins_number=115,
+                              domain=np.array([-1e4, 5e4]),
+                              variable="integral"),
+            nTCO=ChannelWsGrid(mem_geometry_map[1], wfset,
+                               bins_number=115,
+                               domain=np.array([-1e4, 5e4]),
+                               variable="integral"))
+    elif detector == 'VD_Cathode_PDS':
+        return dict(
+            TCO=ChannelWsGrid(cat_geometry_map[2], wfset,
+                              bins_number=115,
+                              domain=np.array([-1e4, 5e4]),
+                              variable="integral"),
+            nTCO=ChannelWsGrid(cat_geometry_map[1], wfset,
+                               bins_number=115,
+                               domain=np.array([-1e4, 5e4]),
+                               variable="integral"))
 
 
-def plot_grid(grid, title, html: Path | None):
-    fig = psu.make_subplots(rows=4, cols=2)
+def plot_grid(grid, title, html: Path | None, detector:str):
+
+    if detector == 'VD_Membrane_PDS':
+        fig = psu.make_subplots(rows=4, cols=2)
+    elif detector == 'VD_Cathode_PDS':
+        fig = psu.make_subplots(rows=8, cols=4)
+    
     plot_ChannelWsGrid( grid, figure=fig, share_x_scale=True,
                        share_y_scale=True, mode="overlay", wfs_per_axes=50)
     fig.update_layout(title=title, template="plotly_white",
@@ -128,13 +146,14 @@ def plot_grid(grid, title, html: Path | None):
 
 
 def process_structured(h5: Path, outdir: Path,
-                       max_wfs: int, headless: bool):
+                       max_wfs: int, headless: bool, detector: str):
+    
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
     _analyse(wfset)
-    for n, g in _grids(wfset).items():
+    for n, g in _grids(wfset, detector).items():
         html = outdir / f"{n}.html" if headless else None
-        plot_grid(g, n, html)
+        plot_grid(g, n, html, detector)
 
 
 # ╭─────────────────────────────── main() ─────────────────────────────────────╮
@@ -150,7 +169,7 @@ def main() -> None:
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
     ap.add_argument("--all-chunks", action="store_true")
-    ap.add_argument("--max-waveforms", type=int, default=2000)
+    ap.add_argument("--max-waveforms", type=int, default=100)
     ap.add_argument("--config-template", default="config.json")
     ap.add_argument("--headless", action="store_true")
     ap.add_argument("-v", "--verbose", action="count", default=0)
@@ -223,6 +242,7 @@ def main() -> None:
     else:
         # ── Build config for 07_save_structured_from_config.py ──────────────
         cfg = json.load(open(args.config_template))
+        detector = cfg.get("det")
         cfg.update(dict(
             runs=pending,
             rucio_dir=list_dir.as_posix(),
@@ -244,7 +264,7 @@ def main() -> None:
         pr_dir = plot_root / f"run{r:06d}"
         pr_dir.mkdir(parents=True, exist_ok=True)
         process_structured(prod[0], pr_dir,
-                           args.max_waveforms, args.headless)
+                           args.max_waveforms, args.headless, detector)
 
 
 if __name__ == "__main__":
