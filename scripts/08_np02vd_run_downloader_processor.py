@@ -202,15 +202,15 @@ def main() -> None:
         plot_root.mkdir(parents=True, exist_ok=True)
 
     detector = cfg.get("det")
-    sufix=""
+    suffix=""
     if detector == 'VD_Membrane_PDS':
-        sufix="membrane"
+        suffix="membrane"
     elif detector == 'VD_Cathode_PDS':
-        sufix="cathode"
+        suffix="cathode"
     else:
         raise ValueError(f"Unknown detector: {detector}")
 
-    processed_pattern = f"run%06d_{sufix}/processed_*_run%06d_*_{sufix}.hdf5"
+    processed_pattern = f"run%06d_{suffix}/processed_*_run%06d_*_{suffix}.hdf5"
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -262,7 +262,7 @@ def main() -> None:
         if any(processed_dir.glob(processed_pattern % (r, r))):
             logging.info("run %d already processed – skip", r)
         else:
-            pro_dir = processed_dir / f"run{r:06d}_{sufix}"
+            pro_dir = processed_dir / f"run{r:06d}_{suffix}"
             pro_dir.mkdir(parents=True, exist_ok=True)
             pending.append(r)
 
@@ -274,7 +274,7 @@ def main() -> None:
             runs=pending,
             rucio_dir=list_dir.as_posix(),
             output_dir=processed_dir.as_posix(),
-            sufix=sufix,
+            suffix=suffix,
         ))
         pathscripts=Path(__file__).resolve().parent
         tmp_cfg = pathscripts / "temp_config.json"
@@ -292,7 +292,7 @@ def main() -> None:
             if not prod:
                 logging.warning("run %d: processed file missing", r)
                 continue
-            pr_dir = plot_root / f"run{r:06d}_{sufix}"
+            pr_dir = plot_root / f"run{r:06d}_{suffix}"
             pr_dir.mkdir(parents=True, exist_ok=True)
             os.chmod(pr_dir, 0o775)
             process_structured(prod[0], pr_dir,

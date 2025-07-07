@@ -23,7 +23,7 @@ class WaveformProcessor:
         self.max_files = config.get("max_files", "all")
         self.ch = self.parse_ch_dict(config.get("ch", {}))
         self.trigger = config.get("trigger")
-        self.sufix = config.get("sufix", "")
+        self.suffix = config.get("suffix", "")
 
         print_colored(f"Loaded configuration: {config}", color="INFO")
 
@@ -113,10 +113,10 @@ class WaveformProcessor:
 
     def write_merged_output(self):
         extra = ""
-        if self.sufix:
-            extra = f"_{self.sufix}"
+        if self.suffix:
+            extra = f"_{self.suffix}"
         output_filename = f"processed_merged_run{self.run_number:06d}_structured{extra}.hdf5"
-        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}" / output_filename
+        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / output_filename
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")
         try:
             self.wfset = self.ensure_waveformset(self.wfset)
@@ -179,9 +179,9 @@ class WaveformProcessor:
     def write_output(self, wfset, input_filepath):
         input_filename = Path(input_filepath).name
         extra = ""
-        if self.sufix:
-            extra = f"_{self.sufix}"
-        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}" / f"processed_{input_filename}_structured{extra}.hdf5"
+        if self.suffix:
+            extra = f"_{self.suffix}"
+        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / f"processed_{input_filename}_structured{extra}.hdf5"
 
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
         try:
