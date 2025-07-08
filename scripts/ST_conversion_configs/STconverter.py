@@ -80,9 +80,10 @@ class WaveformProcessor:
 
                 if self.ext_trigger_filter:
                     from collections import Counter
+                    n_endpoints = len(set([wf.endpoint for wf in wfset_run.waveforms]))
                     timestamps = sorted([wf.timestamp for wf in wfset_run.waveforms])
                     c = Counter(timestamps)
-                    matched_timestamps = [ts for ts, count in c.items() if count > 39]
+                    matched_timestamps = [ts for ts, count in c.items() if count == n_endpoints*40]
                     
                     if len(matched_timestamps) == 0:
                         print_colored("No timestamps matched the external trigger filter. Exiting.", color="ERROR")
