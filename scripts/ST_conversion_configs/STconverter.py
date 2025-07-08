@@ -31,7 +31,7 @@ class WaveformProcessor:
         self.output_path = config.get("output_dir")
         self.detector = config.get("det")
         self.ext_trigger_filter = config.get("ext_trigger_filter", False)
-        self.run_number = run
+        self.run_number = int(run)
         self.ch_pairs = ch_pairs
         self.save_single_file = config.get("save_single_file", False)
         self.max_files = config.get("max_files", "all")
