@@ -16,6 +16,12 @@ from waffles.data_classes.WaveformSet import WaveformSet
 def allow_chs_wfs(waveform: Waveform, ch_pair: list) -> bool:
     return waveform.endpoint*100 + waveform.channel in ch_pair
 
+def allow_timestamp(waveform: Waveform, validtimes = []) -> bool:
+    if waveform.timestamp in validtimes:
+        return True
+    return False
+
+
 class WaveformProcessor:
     """Handles waveform data processing and structured HDF5 saving."""
 
@@ -24,6 +30,7 @@ class WaveformProcessor:
         self.rucio_paths_directory = config.get("rucio_dir")
         self.output_path = config.get("output_dir")
         self.detector = config.get("det")
+        self.ext_trigger_filter = config.get("ext_trigger_filter", False)
         self.run_number = run
         self.ch_pairs = ch_pairs
         self.save_single_file = config.get("save_single_file", False)
@@ -70,6 +77,18 @@ class WaveformProcessor:
                     temporal_copy_directory='/tmp',
                     erase_temporal_copy=False
                 )
+
+                if self.ext_trigger_filter:
+                    from collections import Counter
+                    timestamps = sorted([wf.timestamp for wf in wfset_run.waveforms])
+                    c = Counter(timestamps)
+                    matched_timestamps = [ts for ts, count in c.items() if count > 39]
+                    
+                    if len(matched_timestamps) == 0:
+                        print_colored("No timestamps matched the external trigger filter. Exiting.", color="ERROR")
+                        return False
+
+                    wfset_run = WaveformSet.from_filtered_WaveformSet(wfset_run, allow_timestamp, validtimes=matched_timestamps)
 
                 for ch_pair in self.ch_pairs:
                     self.ch_sipm = ch_pair[0]
@@ -203,7 +222,8 @@ def main(config):
         with open(config, 'r') as f:
             config_data = json.load(f)
 
-        required_keys = ["runs_chpairs_file", "rucio_dir", "output_dir", "ch"]
+        required_keys = ["runs_chpairs_file", "rucio_dir", "output_dir", "ext_trigger_filter",
+                         "det", "save_single_file", "max_files"]
         missing = [key for key in required_keys if key not in config_data]
         if missing:
             raise ValueError(f"Missing keys in config: {missing}")
@@ -211,8 +231,8 @@ def main(config):
         runs_chpairs_file = config_data.get("runs_chpairs_file", str)
     
         df = pd.read_csv(runs_chpairs_file, sep=",")
-        runs = df['run'].values
-        ch_pairs = df[['ch_sipm', 'ch_st']].values.tolist()
+        runs = df['Run'].values
+        ch_pairs = df[['ChSiPM', 'ChST']].values.tolist()
 
         print_colored(f"Processing runs: {runs}", color="INFO")
         print_colored(f"Processing channel pairs: {ch_pairs}", color="INFO")
