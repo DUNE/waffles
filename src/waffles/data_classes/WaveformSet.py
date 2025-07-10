@@ -474,7 +474,8 @@ class WaveformSet:
         *args,
         analysis_kwargs: dict = {},
         checks_kwargs: dict = {},
-        overwrite: bool = False
+        overwrite: bool = False,
+        show_progress: bool = False
     ) -> dict:
         """For each Waveform in this WaveformSet, this method
         calls its 'analyse' method passing to it the parameters
@@ -528,6 +529,8 @@ class WaveformSet:
             'analyse' method will overwrite any existing
             WfAna (or derived) object with the same label
             (key) within its analyses attribute.
+        show_progress: bool
+            If True, will show tqdm progress bar
 
         Returns
         ----------
@@ -592,7 +595,7 @@ class WaveformSet:
         
         output = {}
 
-        for i in range(len(self.__waveforms)):
+        for i in tqdm(range(len(self.__waveforms)), disable=not show_progress):
             output[i] = self.__waveforms[i].analyse(label,
                                                     analysis_class,
                                                     input_parameters,
