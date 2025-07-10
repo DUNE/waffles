@@ -15,6 +15,20 @@ from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.np02_utils.AutoMap import generate_ChannelMap
 
 def np02_resolve_detectors(wfset, detectors: List[str] | List[UniqueChannel] | List[UniqueChannel | str ], rows=0, cols=1) -> dict[str, List[Union[ChannelWsGrid, Map]]]:
+    """
+    Resolve the detectors and generate grids for the given waveform set.
+    Parameters
+    ----------
+    wfset: WaveformSet
+    detectors: List[str] | List[UniqueChannel] | List[UniqueChannel | str]
+        List of detectors to resolve.
+    rows: int, optional
+    cols: int, optional
+        Number of rows and columns for the grid.
+    Returns
+    -------
+    dict[str, List[Union[ChannelWsGrid, Map]]]
+    """
 
     detmap = generate_ChannelMap(channels=detectors, rows=rows, cols=cols)
     return dict( 
@@ -22,7 +36,17 @@ def np02_resolve_detectors(wfset, detectors: List[str] | List[UniqueChannel] | L
     )
 
 
-def np02_gen_grids(wfset, detector:str | List[str] | List[UniqueChannel] | List[UniqueChannel | str ] = "", rows=0, cols=0) -> dict[str, List[Union[ChannelWsGrid, Map]]]:
+def np02_gen_grids(wfset, detector:str | List[str] | List[UniqueChannel] | List[UniqueChannel | str ] = "VD_Cathode_PDS", rows=0, cols=0) -> dict[str, List[Union[ChannelWsGrid, Map]]]:
+    """
+    Generate grids for the given waveform set and detector(s).
+    Parameters
+    ----------
+    wfset: WaveformSet
+    detector: str | List[str] | List[UniqueChannel] | List[UniqueChannel | str], optional
+    Returns
+    -------
+    dict[str, List[Union[ChannelWsGrid, Map]]]
+    """
 
     if isinstance(detector, str):
         if detector == 'VD_Membrane_PDS':
@@ -69,7 +93,7 @@ def np02_gen_grids(wfset, detector:str | List[str] | List[UniqueChannel] | List[
     raise ValueError(f"Could not resolve detector: {detector} or {detectors}")
 
 
-def plot_grid(chgrid: ChannelWsGrid, detmap:Map, title:str = "", html: Path | None = None, detector:str | List[str] = ""):
+def plot_grid(chgrid: ChannelWsGrid, detmap:Map, title:str = "", html: Path | None = None, detector:str | List[str] = "", **kwargs):
 
     rows, cols= detmap.rows, detmap.columns
 
@@ -83,8 +107,14 @@ def plot_grid(chgrid: ChannelWsGrid, detmap:Map, title:str = "", html: Path | No
         shared_yaxes=True
     )
     
-    plot_ChannelWsGrid( chgrid, figure=fig, share_x_scale=True,
-                       share_y_scale=True, mode="overlay", wfs_per_axes=50)
+    plot_ChannelWsGrid(chgrid,
+                       figure=fig,
+                       share_x_scale=kwargs.pop("share_x_scale", True),
+                       share_y_scale=kwargs.pop("share_y_scale", True),
+                       mode=kwargs.pop("mode", "overlay"),
+                       wfs_per_axes=kwargs.pop("wfs_per_axes", 2000),
+                       **kwargs
+                       )
     fig.update_layout(title=title, template="plotly_white",
                       width=1000, height=800, showlegend=True)
     if html:

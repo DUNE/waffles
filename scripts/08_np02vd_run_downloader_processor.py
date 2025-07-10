@@ -8,12 +8,16 @@ import os
 
 import paramiko                               # SSH / SFTP
 import numpy as np
+from typing import cast
 
 # ── waffles imports ──────────────────────────────────────────────────────────
+from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.IPDict import IPDict
 from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid
+from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
+from waffles.data_classes.Map import Map
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -88,9 +92,9 @@ def download_all(sftp: paramiko.SFTPClient,
 
 
 # ╭────────────────── Waveform analysis & plotting helpers ────────────────────╮
-def _analyse(wfset):
+def _analyse(wfset:WaveformSet):
     ip = IPDict(
-        baseline_limits=[0, 50, 900, 1000],
+        baseline_limits=[0, 50, wfset.points_per_wf-124, wfset.points_per_wf-24],
         baseline_method="EasyMedian",      # ← NEW (or "Mean", "Fit", …)
         int_ll=50, int_ul=120,
         amp_ll=50, amp_ul=120,
@@ -106,7 +110,9 @@ def process_structured(h5: Path, outdir: Path,
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
     _analyse(wfset)
-    for n, (g, m) in np02_gen_grids(wfset, detector).items():
+    for n, v in np02_gen_grids(wfset, detector).items():
+        g: ChannelWsGrid = cast(ChannelWsGrid, v[0])
+        m: Map = cast(Map, v[1])
         html = outdir / f"{n}.html" if headless else None
         plot_grid(chgrid=g, detmap=m, title=n, html=html, detector=detector)
 

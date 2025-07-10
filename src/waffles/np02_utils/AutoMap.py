@@ -59,7 +59,7 @@ def generate_ChannelMap(channels: List[UniqueChannel] | List[str] | List[UniqueC
 
     titles = [ dict_uniqch_to_module[str(channel)] for channel in unch ]
 
-    if len(unch)%2 != 0:
+    if len(unch)%2 != 0 and len(unch) != 1:
         unch.append(UniqueChannel(101, 0))
 
     n = len(unch)
