@@ -2,19 +2,16 @@ import numpy as np
 from pathlib import Path
 import plotly.subplots as psu
 import logging
-from typing import List, Union, Set
+from typing import List
 
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.UniqueChannel import UniqueChannel
-from waffles.data_classes.Map import Map
-from waffles.np02_data_classes.CATMap import CATMap_geo
-from waffles.np02_data_classes.MEMMap import MEMMap_geo
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.np02_utils.AutoMap import generate_ChannelMap
 
-def np02_resolve_detectors(wfset, detectors: List[str] | List[UniqueChannel] | List[UniqueChannel | str ], rows=0, cols=1) -> dict[str, List[Union[ChannelWsGrid, Map]]]:
+def np02_resolve_detectors(wfset, detectors: List[str] | List[UniqueChannel] | List[UniqueChannel | str ], rows=0, cols=1) -> dict[str, ChannelWsGrid]:
     """
     Resolve the detectors and generate grids for the given waveform set.
     Parameters
@@ -27,16 +24,17 @@ def np02_resolve_detectors(wfset, detectors: List[str] | List[UniqueChannel] | L
         Number of rows and columns for the grid.
     Returns
     -------
-    dict[str, List[Union[ChannelWsGrid, Map]]]
+    dict[str, ChannelWsGrid]
+        Dictionary containing the grids for the specified detectors.
     """
 
     detmap = generate_ChannelMap(channels=detectors, rows=rows, cols=cols)
     return dict( 
-        Custom=[ChannelWsGrid(detmap, wfset), detmap]
+        Custom=ChannelWsGrid(detmap, wfset)
     )
 
 
-def np02_gen_grids(wfset, detector:str | List[str] | List[UniqueChannel] | List[UniqueChannel | str ] = "VD_Cathode_PDS", rows=0, cols=0) -> dict[str, List[Union[ChannelWsGrid, Map]]]:
+def np02_gen_grids(wfset, detector:str | List[str] | List[UniqueChannel] | List[UniqueChannel | str ] = "VD_Cathode_PDS", rows=0, cols=0) -> dict[str, ChannelWsGrid]:
     """
     Generate grids for the given waveform set and detector(s).
     Parameters
@@ -45,43 +43,36 @@ def np02_gen_grids(wfset, detector:str | List[str] | List[UniqueChannel] | List[
     detector: str | List[str] | List[UniqueChannel] | List[UniqueChannel | str], optional
     Returns
     -------
-    dict[str, List[Union[ChannelWsGrid, Map]]]
+    dict[str, ChannelWsGrid]
+        Dictionary containing the grids for the specified detector(s).
     """
 
     if isinstance(detector, str):
         if detector == 'VD_Membrane_PDS':
             return dict(
-                TCO=[
-                    ChannelWsGrid(mem_geometry_map[2], wfset,
+                TCO=ChannelWsGrid(mem_geometry_map[2], wfset,
                                   bins_number=115,
                                   domain=np.array([-1e4, 5e4]),
-                                  variable="integral"),
-                    mem_geometry_map[2]
-                ],
-                nTCO=[
-                    ChannelWsGrid(mem_geometry_map[1], wfset,
-                                  bins_number=115,
-                                  domain=np.array([-1e4, 5e4]),
-                                  variable="integral"),
-                    mem_geometry_map[1]
-                ]
+                                  variable="integral")
+                ,
+                nTCO=ChannelWsGrid(mem_geometry_map[1], wfset,
+                                   bins_number=115,
+                                   domain=np.array([-1e4, 5e4]),
+                                   variable="integral")
+
             )
         elif detector == 'VD_Cathode_PDS':
             return dict(
-                TCO=[
-                    ChannelWsGrid(cat_geometry_map[2], wfset,
+                TCO=ChannelWsGrid(cat_geometry_map[2], wfset,
                                   bins_number=115,
                                   domain=np.array([-1e4, 5e4]),
-                                  variable="integral"),
-                    cat_geometry_map[2]
-                ],
-                nTCO=[
-                    ChannelWsGrid(cat_geometry_map[1], wfset,
-                                  bins_number=115,
-                                  domain=np.array([-1e4, 5e4]),
-                                  variable="integral"),
-                    cat_geometry_map[1]
-                ]
+                                  variable="integral")
+                ,
+                nTCO=ChannelWsGrid(cat_geometry_map[1], wfset,
+                                   bins_number=115,
+                                   domain=np.array([-1e4, 5e4]),
+                                   variable="integral")
+
             )
         else:
             detectors = [detector]
@@ -93,9 +84,9 @@ def np02_gen_grids(wfset, detector:str | List[str] | List[UniqueChannel] | List[
     raise ValueError(f"Could not resolve detector: {detector} or {detectors}")
 
 
-def plot_grid(chgrid: ChannelWsGrid, detmap:Map, title:str = "", html: Path | None = None, detector:str | List[str] = "", **kwargs):
+def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Path | None = None, detector:str | List[str] = "", **kwargs):
 
-    rows, cols= detmap.rows, detmap.columns
+    rows, cols= chgrid.ch_map.rows, chgrid.ch_map.columns
 
     subtitles = chgrid.titles
 
