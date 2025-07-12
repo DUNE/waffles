@@ -239,7 +239,8 @@ def __subplot_heatmap(
     adc_bins: int,
     ranges: np.ndarray,
     show_color_bar: bool = False,
-    filtering: float = 0
+    filtering: float = 0,
+    zlog: bool = False
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -319,6 +320,9 @@ def __subplot_heatmap(
         waveforms will be denoised before being
         added to the heatmap. If it is 0, then no
         denoising will be applied.
+    zlog: bool
+        If True, the z-axis of the heatmap will be
+        logarithmically scaled. 
 
     Returns
     ----------
@@ -356,6 +360,8 @@ def __subplot_heatmap(
     
     aux = aux.astype(float)
     aux[aux == 0] = np.nan
+    if zlog:
+        aux = np.log10(aux)
 
     heatmap = pgo.Heatmap(
         z=aux,

@@ -1050,6 +1050,7 @@ def plot_ChannelWsGrid(
     event_id: Optional[int] = 0,
     verbose: bool = True,
     filtering: float = 0,
+    zlog: bool = False,
     **kwargs
 ) -> pgo.Figure:
     """This function returns a plotly.graph_objects.Figure 
@@ -1581,6 +1582,7 @@ def plot_ChannelWsGrid(
                     # to another.
                     show_color_bar=False,
                     filtering=filtering,
+                    zlog=zlog
                 )
 
                 ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
