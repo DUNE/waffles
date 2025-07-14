@@ -110,11 +110,10 @@ def process_structured(h5: Path, outdir: Path,
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
     _analyse(wfset)
-    for n, v in np02_gen_grids(wfset, detector).items():
-        g: ChannelWsGrid = cast(ChannelWsGrid, v[0])
-        m: Map = cast(Map, v[1])
+    for n, g in np02_gen_grids(wfset, detector).items():
+        g: ChannelWsGrid = cast(ChannelWsGrid, g)
         html = outdir / f"{n}.html" if headless else None
-        plot_grid(chgrid=g, detmap=m, title=n, html=html, detector=detector)
+        plot_grid(chgrid=g, title=n, html=html, detector=detector)
 
 
 # ╭─────────────────────────────── main() ─────────────────────────────────────╮
