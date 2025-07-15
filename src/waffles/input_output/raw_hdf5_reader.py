@@ -460,6 +460,10 @@ def WaveformSet_from_hdf5_file(filepath: str,
         allwaveformslengths = sorted(allwaveformslengths.items(), key=lambda x: x[1], reverse=True)
         if truncate_wfs_method == "MPV":
             print(f"Most common waveform length: {allwaveformslengths[0][0]} with {allwaveformslengths[0][1]} occurrences")
+            print("Showing the next 4 most common lengths:")
+            for length, count in allwaveformslengths[0:5]:
+                print(f"Length {length} with {count} occurrences")
+            
             slice_len = allwaveformslengths[0][0] # Most common length
         elif truncate_wfs_method == "choose":
             print("Choose a length from the following options:")

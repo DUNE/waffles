@@ -60,6 +60,7 @@ class WaveformProcessor:
 
             if self.trigger == 'self_trigger':
                 trigger_value = False
+                self.truncate_wfs_method = ""
             elif self.trigger == 'full_streaming':
                 trigger_value = True
                 if self.truncate_wfs_method == "":
