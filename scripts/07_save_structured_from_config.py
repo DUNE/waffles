@@ -24,6 +24,7 @@ class WaveformProcessor:
         self.ch = self.parse_ch_dict(config.get("ch", {}))
         self.trigger = config.get("trigger")
         self.suffix = config.get("suffix", "")
+        self.truncate_wfs_method = config.get("truncate_wfs_method", "")
 
         print_colored(f"Loaded configuration: {config}", color="INFO")
 
@@ -61,12 +62,17 @@ class WaveformProcessor:
                 trigger_value = False
             elif self.trigger == 'full_streaming':
                 trigger_value = True
+                if self.truncate_wfs_method == "":
+                    print_colored("Warning: 'truncate_wfs_method' is empty, using default 'minimum'.", color="WARNING")
+                    self.truncate_wfs_method = "minimum"
+            else:
+                raise ValueError(f"Unknown trigger type: {self.trigger}. Use 'self_trigger' or 'full_streaming'.")
 
             if self.save_single_file:
                 self.wfset = reader.WaveformSet_from_hdf5_files(
                     filepath_list=filepaths,
                     read_full_streaming_data=trigger_value,
-                    truncate_wfs_to_minimum=trigger_value,
+                    truncate_wfs_method=self.truncate_wfs_method,
                     folderpath=None,
                     nrecord_start_fraction=0.0,
                     nrecord_stop_fraction=1.,
@@ -87,7 +93,7 @@ class WaveformProcessor:
                     wfset = reader.WaveformSet_from_hdf5_file(
                         filepath=file,
                         read_full_streaming_data=trigger_value,
-                        truncate_wfs_to_minimum=trigger_value,
+                        truncate_wfs_method=self.truncate_wfs_method,
                         nrecord_start_fraction=0.0,
                         nrecord_stop_fraction=1.0,
                         subsample=1,
