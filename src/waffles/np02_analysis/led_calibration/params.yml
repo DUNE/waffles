@@ -1,13 +1,13 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/<file_name>"
+input_path: "data/wfset_1_36575.hdf5"
 
 # Path to the output
 output_path: "output/"
 
 # Runs
-runs: [36335]
+runs: [36575]
 
 # Detector to analyze: Membrane, Cathode, PMTs
 det: "Membrane"

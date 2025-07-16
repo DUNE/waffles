@@ -18,7 +18,7 @@ from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.core.utils import build_parameters_dictionary
 from waffles.data_classes.IPDict import IPDict
 from waffles.utils.utils import print_colored
-import waffles.input_output.raw_hdf5_reader as reader
+# import waffles.input_output.raw_hdf5_reader as reader
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 

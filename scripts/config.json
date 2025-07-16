@@ -1,6 +1,6 @@
 {
-    "runs": [36325],
-    "rucio_dir": ".",
+    "runs": [36570],
+    "rucio_dir": "txt/",
     "output_dir": ".",
     "ch": {
     },

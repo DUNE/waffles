@@ -9,6 +9,10 @@ from waffles.data_classes.WaveformAdcs import WaveformAdcs
 import waffles.core.utils as wcu
 import csv
 
+#Addition 1 line below
+#Addition 1 line below
+from waffles.input_output.hdf5_structured import load_structured_waveformset
+
 from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
 
 import plotly.graph_objects as pgo

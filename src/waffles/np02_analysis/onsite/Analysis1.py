@@ -1,9 +1,38 @@
 from waffles.np02_analysis.onsite.imports import *
+from waffles.input_output.hdf5_structured import load_structured_waveformset
+import logging
+
+
+logging.basicConfig(
+    format="%(levelname)s %(name)s: %(message)s",
+    level=logging.INFO,
+)
 
 class Analysis1(WafflesAnalysis):
-
     def __init__(self):
-        pass
+        super().__init__()        # üst sınıfı yine çağır
+        # >>> logger'ı elle kur
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.INFO)
+
+    #Addition red_input(self) function
+#    def read_input(self) -> None:
+#        """
+#        Load the structured waveform HDF5 produced by script 07
+#        and store it in self.wfset so that analyse() can use it.
+#        """
+#        wfset_path = self.params.input_path   # YAML steering value
+#        self.logger.info("Loading structured WaveformSet: %s", wfset_path)
+#        self.wfset = load_structured_waveformset(wfset_path)
+        #print(
+        #    "In function Analysis1.read_input(): "
+        #    f"Now reading waveforms for run {self.run} ..."
+        #)
+
+
+#    def __init__(self):
+##        super().__init__()
+#        #pass
 
     @classmethod
     def get_input_params_model(
@@ -26,7 +55,7 @@ class Analysis1(WafflesAnalysis):
             """
 
             runs: list[int] = Field(
-                ...,
+                ...,#/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/src/waffles/np02_analysis/onsite
                 description="Run numbers of the runs to be read",
                 example=[27906, 27907]
             )
@@ -143,34 +172,51 @@ class Analysis1(WafflesAnalysis):
         self.wfset = None
 
     def read_input(self) -> bool:
-        """Implements the WafflesAnalysis.read_input() abstract
-        method. For the current iteration of the read_input loop,
-        which fixes a run number, it reads the first
-        self.params.waveforms_per_run waveforms from the first rucio
-        path found for this run, and creates a WaveformSet out of them,
-        which is assigned to the self.wfset attribute.
-            
-        Returns
-        -------
-        bool
-            True if the method ends execution normally
         """
+        Load the structured waveform HDF5 produced by script 07
+        and store it in self.wfset so that analyse() can use it.
+        """
+        wfset_path = self.params.input_path   # YAML steering value
+        self.logger.info("Loading structured WaveformSet: %s", wfset_path)
+        self.wfset = load_structured_waveformset(wfset_path)
         self.run    = self.read_input_itr_1
         self.det_id = self.read_input_itr_2
-        
-        
-        print(
-            "In function Analysis1.read_input(): "
-            f"Now reading waveforms for run {self.run} ..."
-        )
-        
-        try:
-            wfset_path = self.params.input_path
-            self.wfset=WaveformSet_from_hdf5_pickle(wfset_path)   
-        except FileNotFoundError:
-            raise FileNotFoundError(f"File {wfset_path} was not found.")
-        
+        print(f"Reading run {self.run} from {wfset_path}")
+        #print(
+        #    "In function Analysis1.read_input(): "
+        #    f"Now reading waveforms for run {self.run} ..."
+        #)
         return True
+
+#    def read_input(self) -> bool:
+#        """Implements the WafflesAnalysis.read_input() abstract
+#        method. For the current iteration of the read_input loop,
+#        which fixes a run number, it reads the first
+#        self.params.waveforms_per_run waveforms from the first rucio
+#        path found for this run, and creates a WaveformSet out of them,
+#        which is assigned to the self.wfset attribute.
+            
+#        Returns
+#        -------
+#        bool
+#            True if the method ends execution normally
+#        """
+#        self.run    = self.read_input_itr_1
+#        self.det_id = self.read_input_itr_2
+        
+        
+#        print(
+#            "In function Analysis1.read_input(): "
+#            f"Now reading waveforms for run {self.run} ..."
+#        )
+        
+#        try:
+#            wfset_path = self.params.input_path
+#            self.wfset=WaveformSet_from_hdf5_pickle(wfset_path)   
+#        except FileNotFoundError:
+#            raise FileNotFoundError(f"File {wfset_path} was not found.")
+        
+#        return True
 
 
     def analyze(self) -> bool:
@@ -211,6 +257,7 @@ class Analysis1(WafflesAnalysis):
         # Using precious format: without offset and with proper zoom in each channel
 
         analysis_params = os_utils.get_analysis_params()
+        analysis_params["baseline_method"] = "EasyMedian"
         
         checks_kwargs = IPDict()
         checks_kwargs['points_no'] = selected_wfset.points_per_wf

@@ -148,7 +148,7 @@ def fetch_rucio_replicas(run_number: str, max_files: int) -> None:
     """
 
     run_str = str(run_number).zfill(6)  # for nice, fixed‑width filenames only
-    output_file = f"{SAVING_PATH}{run_str}.txt"
+    output_file = f"txt/{SAVING_PATH}{run_str}.txt"
 
     all_lines = []
     used_prefix = None

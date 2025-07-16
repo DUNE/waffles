@@ -1,19 +1,22 @@
 # ------- General parameters -------
 
+#I added this
+baseline_method: EasyMedian
+
 # Path to the folder containing the data
-input_path: "data/wfset_1_35718.hdf5"
+input_path: "data/processed_np02vd_raw_run037013_0000_df-s04-d0_dw_0_20250702T145931.hdf5_structured.hdf5"
 
 # Path to the output
 output_path: "output/"
 
 # Runs
-runs: [35718]
+runs: [37013]
 
 # Detector to analyze: Membrane, Cathode, PMTs
-det: "Membrane"
+det: "Cathode"
 
 # 1 is non-TCO and 2 is TCO
-det_id: [1] 
+det_id: [2] 
 
 # ------- Parameters for the analysis -------
 
@@ -31,7 +34,7 @@ ch: -1
 nwfs: -1
 
 # Number of waveforms to plot
-nwfs_plot: 2000
+nwfs_plot: -1
 
 # Records
 rec: [-1]
