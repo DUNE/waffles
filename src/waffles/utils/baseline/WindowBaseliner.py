@@ -132,7 +132,8 @@ class WindowBaseliner(WfAna):
             np.median(baseline_samples)
 
         self._WfAna__result = WfAnaResult(
-            baseline=baseline
+            baseline=baseline,
+            baseline_std=np.std(baseline_samples)
         )
         return
 
