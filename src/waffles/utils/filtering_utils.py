@@ -22,8 +22,6 @@ def check_well_formedness_of_generic_waveform_function(
             the Waveform class, the 'WaveformAdcs'
             string literal or the 'Waveform' string
             literal
-        -   the return type of such signature 
-            is annotated as a boolean value
 
     If any of these conditions are not met, this
     function raises an exception.
@@ -59,13 +57,49 @@ def check_well_formedness_of_generic_waveform_function(
             "check_well_formedness_of_generic_waveform_function()",
             "The 'waveform' parameter of the given signature must be "
             "hinted as a WaveformAdcs (or an inherited class) object."))
+    return
+
+
+def check_well_formedness_of_waveform_filter_function(
+    wf_function_signature: inspect.Signature
+) -> None:
+    """This function gets an argument, wf_function_signature, 
+    and returns None if the following conditions are met:
+
+        -   such signature takes at least one argument
+        -   the first argument of such signature
+            is called 'waveform'
+        -   the type annotation of such argument 
+            must be either the WaveformAdcs class,
+            the Waveform class, the 'WaveformAdcs'
+            string literal or the 'Waveform' string
+            literal
+        -   the return type of such signature 
+            is annotated as a boolean value
+
+    If any of these conditions are not met, this
+    function raises an exception.
+
+    Parameters
+    ----------
+    wf_function_signature: inspect.Signature
+
+    Returns
+    ----------
+    bool
+    """
+
+    check_well_formedness_of_generic_waveform_function(
+        wf_function_signature
+    )
     
     if wf_function_signature.return_annotation != bool:
         raise Exception(GenerateExceptionMessage(
-            4,
-            "check_well_formedness_of_generic_waveform_function()",
+            1,
+            "check_well_formedness_of_waveform_filter_function()",
             "The return type of the given signature must be hinted as a "
             "boolean."))
+
     return
 
 
