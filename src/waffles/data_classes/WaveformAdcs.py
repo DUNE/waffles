@@ -29,7 +29,7 @@ class WaveformAdcs:
     ----------
     time_step_ns: float
         The time step (in nanoseconds) for this Waveform
-    adcs: unidimensional numpy array of integers
+    adcs: unidimensional numpy array of integers/floats
         The readout for this Waveform, in # of ADCs
     time_offset: int
         A time offset, in units of time_step_ns (i.e.
@@ -62,7 +62,7 @@ class WaveformAdcs:
         Parameters
         ----------
         time_step_ns: float
-        adcs: unidimensional numpy array of integers
+        adcs: unidimensional numpy array of integers/floats
         time_offset: int
             It must be semipositive and smaller than
             len(self.__adcs)-1. It is set to 0 by
