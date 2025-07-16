@@ -1,0 +1,1 @@
+root://eospublic.cern.ch:1094//eos/experiment/neutplatform/protodune/dune/vd-protodune/d3/ee/np02vd_raw_run036567_0000_df-s04-d0_dw_0_20250519T142923.hdf5

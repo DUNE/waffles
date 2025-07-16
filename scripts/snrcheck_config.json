@@ -1,0 +1,12 @@
+{
+    "runs": [
+        37078
+    ],
+    "rucio_dir": ".",
+    "output_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/",
+    "ch": {},
+    "save_single_file": false,
+    "max_files": 4,
+    "det": "VD_Cathode_PDS",
+    "trigger": "self_trigger"
+}

@@ -1,0 +1,11 @@
+{
+    "runs": [
+        37013
+    ],
+    "rucio_dir": "/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/scripts/raw_lists",
+    "output_dir": "/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/scripts/processed",
+    "ch": {},
+    "save_single_file": true,
+    "max_files": 1,
+    "det": "VD_Cathode_PDS"
+}

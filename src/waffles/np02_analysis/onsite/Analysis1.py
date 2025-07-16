@@ -245,7 +245,13 @@ class Analysis1(WafflesAnalysis):
         # Select the waveforms and the corresponding waveformset in a specific time interval of the DAQ window
         selected_wfs, selected_wfset= os_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs, self.params.tmin, self.params.tmax, self.params.rec)
         selected_wfs_plot,_=os_utils.get_wfs(self.wfset.waveforms, eps, self.params.ch, self.params.nwfs_plot, self.params.tmin, self.params.tmax, self.params.rec)
-        
+       ######################################################################Changed here hbagdu 16/07/2025
+        self.selected_wfs=selected_wfs
+        #if self.params.nwfs_plot <= 0:               # kullanıcı -1 yazmışsa
+        #    n_plot = len(selected_wfs)               # gerçek toplam sayıyı al
+        #else:
+        #    n_plot = self.params.nwfs_plot           # pozitif ise aynen kullani
+
         print(f" 2. Analyzing WaveformSet with {len(selected_wfs)} waveforms between tmin={self.params.tmin} and tmax={self.params.tmax}")
         
         print(f" 3. Creating the grid")
@@ -286,6 +292,11 @@ class Analysis1(WafflesAnalysis):
         bool
             True if the method ends execution normally
         """
+        ##################################################Changed here hbagdu 16/07/2025
+        if self.params.nwfs_plot <= 0:               # if user wrote -1 or more generally a negative number for nwfs_plot
+            n_plot = len(self.selected_wfs)               # take the total number
+        else:
+            n_plot = self.params.nwfs_plot           # If it is positive take the number given
 
         det_id_name=os_utils.get_det_id_name(self.det_id)
         
@@ -300,7 +311,7 @@ class Analysis1(WafflesAnalysis):
             share_x_scale=False,
             share_y_scale=False,
             mode="overlay",
-            wfs_per_axes=self.params.nwfs_plot,
+            wfs_per_axes=n_plot, #####################################Changed here hbagdu 16/07/2025
             analysis_label=self.analysis_name,
             detailed_label=False,
             verbose=True

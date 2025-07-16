@@ -1,0 +1,1 @@
+/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/scripts/raw/run037013/np02vd_raw_run037013_0000_df-s04-d0_dw_0_20250702T145931.hdf5
