@@ -3,7 +3,7 @@ from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_nontco_data, cat_ge
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_nontco_data, mem_geometry_tco_data, mem_geometry_nontco_titles, mem_geometry_tco_titles
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelMap import ChannelMap
-from typing import List, cast
+from typing import List, cast, Union
 
 import math
 
@@ -35,7 +35,7 @@ dict_module_to_uniqch = _merge_dicts(_merge_dicts(_setup_dicts(cat_geometry_nont
                                      )
 
 
-def generate_ChannelMap(channels: List[UniqueChannel] | List[str] | List[UniqueChannel | str], rows:int = 0, cols:int = 0) -> ChannelMap:
+def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], rows:int = 0, cols:int = 0) -> ChannelMap:
     """
     Generates a ChannelMap from a list of UniqueChannel objects.
     If the number of channels is odd, a dummy channel (UniqueChannel(101, 0)) is added to make it even.

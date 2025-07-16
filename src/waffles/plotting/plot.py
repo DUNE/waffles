@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Optional, Callable, cast
+from typing import Optional, Callable, cast, Union
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -1042,8 +1042,8 @@ def plot_ChannelWsGrid(
     adc_bins: int = 100,
     time_range_lower_limit: Optional[int] = None,
     time_range_upper_limit: Optional[int] = None,
-    adc_range_above_baseline: int | None = 100,
-    adc_range_below_baseline: int | None = 200,
+    adc_range_above_baseline: Union[int, None] = 100,
+    adc_range_below_baseline: Union[int, None] = 200,
     plot_peaks_fits: bool = False,
     detailed_label: bool = True,
     plot_event: bool = False,

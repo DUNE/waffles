@@ -1,11 +1,11 @@
 import numpy as np
 from numba import njit
 from waffles.data_classes.Waveform import Waveform
-from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.utils.denoising.tv1ddenoise import Denoise
+from typing import Dict
 
 class SBaseline:
-    def __init__(self, binsbase = None, threshold:float = 6, wait:int = 25, baselinestart:int = 0, baselinefinish:int = 112, minimumfrac:float = 1/6., default_filtering = None):
+    def __init__(self, binsbase = None, threshold:float = 6, wait:int = 25, baselinestart:int = 0, baselinefinish:int = 112, minimumfrac:float = 1/6., default_filtering = None, data_base: Dict[int, Dict[int, Dict]] = {}):
         """This class is used to compute the baseline of a Waveform.adcs or over all Waveforms. Description of the method for computing baseline in `compute_baseline`.
 
         Parameters
@@ -51,6 +51,7 @@ class SBaseline:
             self.filtering = default_filtering
 
         self.write_filtered_waveform = True
+        self.data_base:dict = data_base
 
     @staticmethod
     @njit
@@ -126,6 +127,19 @@ class SBaseline:
             waveform.filtered = response
 
         return res0, optimal
+
+    def update_params_from_db(self, ep, ch):
+        if ep not in self.data_base:
+            return
+        if ch not in self.data_base[ep]:
+            return
+        self.threshold = self.data_base[ep][ch].get('threshold', self.threshold)
+        self.wait = self.data_base[ep][ch].get('wait', self.wait)
+        self.baselinestart = self.data_base[ep][ch].get('baselinestart', self.baselinestart)
+        self.baselinefinish = self.data_base[ep][ch].get('baselinefinish', self.baselinefinish)
+        self.minimumfrac = self.data_base[ep][ch].get('minimumfrac', self.minimumfrac)
+        self.filtering = self.data_base[ep][ch].get('default_filtering', self.filtering)
+
 
     def __repr__(self):
         return (
