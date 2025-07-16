@@ -8,6 +8,7 @@ from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.input_output.raw_root_reader import WaveformSet_from_root_file
 from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.IPDict import IPDict
 from waffles.np04_utils.utils import get_channel_iterator
@@ -157,6 +158,43 @@ def read_data(
             new_wfset = WaveformSet_from_pickle_file(input_path)
 
     return new_wfset
+
+def get_average_baseline_std(
+        waveform_set: WaveformSet,
+        baseline_analysis_label: str
+) -> float:
+    """For the waveforms in a given WaveformSet, this function computes
+    the average of the signal standard deviation in the baseline region.
+
+    Parameters
+    ----------
+    waveform_set: WaveformSet
+        The WaveformSet object containing the waveforms of interest
+    baseline_analysis_label: str
+        The label of the analysis which, for each waveform, should
+        contain the baseline standard deviation under the 'baseline_std'
+        key in the analysis results.
+
+    Returns
+    ----------
+    float
+    """
+    
+    try:
+        samples = [
+            wf.analyses[baseline_analysis_label].result['baseline_std']
+            for wf in waveform_set.waveforms
+        ]
+
+    except KeyError:
+        raise KeyError(
+            f"The analysis label '{baseline_analysis_label}' "
+            "is not present in the analyses of the waveforms "
+            "in the given WaveformSet, or it is, but it does "
+            "not contain the 'baseline_std' key in its result."
+        )
+    
+    return np.mean(np.array(samples))
 
 def get_gain_and_snr(
         grid_apa: ChannelWsGrid,
