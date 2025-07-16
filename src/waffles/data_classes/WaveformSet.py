@@ -696,7 +696,7 @@ class WaveformSet:
 
             signature = inspect.signature(wf_selector)
 
-            wuf.check_well_formedness_of_generic_waveform_function(signature)
+            wuf.check_well_formedness_of_waveform_filter_function(signature)
 
             output = self.__compute_mean_waveform_with_selector(
                 wf_selector,
@@ -985,7 +985,7 @@ class WaveformSet:
 
         signature = inspect.signature(wf_filter)
 
-        wuf.check_well_formedness_of_generic_waveform_function(signature)
+        wuf.check_well_formedness_of_waveform_filter_function(signature)
 
         # Better fill the two lists during the WaveformSet scan and then return
         # the desired one, rather than filling just the dumped_ones one and then 
