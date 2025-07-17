@@ -107,6 +107,8 @@ def get_analysis_params(
     analysis_input_parameters['amp_ll'] = int_ll
     analysis_input_parameters['amp_ul'] = \
         int_ll + input_parameters['integ_window']
+    
+    analysis_input_parameters['baseline_method'] = 'EasyMedian'
 
     return analysis_input_parameters
 
