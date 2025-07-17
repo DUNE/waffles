@@ -1,7 +1,49 @@
 import numpy as np
-
+from typing import Optional
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
+from enum import IntEnum
 
+# Fallback enum, in case the real TriggerCandidateData.Type isn't usable directly
+class TriggerType(IntEnum):
+    kUnknown = 0
+    kTiming = 1
+    kTPCLowE = 2
+    kSupernova = 3
+    kRandom = 4
+    kPrescale = 5
+    kADCSimpleWindow = 6
+    kHorizontalMuon = 7
+    kMichelElectron = 8
+    kPlaneCoincidence = 9
+    kDBSCAN = 10
+    kChannelDistance = 11
+    kBundle = 12
+    kCTBFakeTrigger = 13
+    kCTBBeam = 14
+    kCTBBeamChkvHL = 15
+    kCTBCustomD = 16
+    kCTBCustomE = 17
+    kCTBCustomF = 18
+    kCTBCustomG = 19
+    kCTBBeamChkvHLx = 20
+    kCTBBeamChkvHxL = 21
+    kCTBBeamChkvHxLx = 22
+    kNeutronSourceCalib = 23
+    kChannelAdjacency = 24
+    kCIBFakeTrigger = 25
+    kCIBLaserTriggerP1 = 26
+    kCIBLaserTriggerP2 = 27
+    kCIBLaserTriggerP3 = 28
+    kCTBOffSpillSnapshot = 29
+    kCTBOffSpillCosmicJura = 30
+    kCTBOffSpillCRTCosmic = 31
+    kCTBCustomA = 32
+    kCTBCustomB = 33
+    kCTBCustomC = 34
+    kCTBCustomPulseTrain = 35
+    kDTSPulser = 36
+    kDTSCosmic = 37
+    kSSPLEDCalibration = 38
 
 class Waveform(WaveformAdcs):
 
@@ -41,7 +83,7 @@ class Waveform(WaveformAdcs):
         then this attribute equals 2. If no initial
         points have been truncated, then this
         attribute equals 0.
-    analyses: OrderedDict of WfAna objects 
+    analyses: OrderedDict of WfAna objects
     (inherited from WaveformAdcs)
 
     Methods
@@ -50,7 +92,7 @@ class Waveform(WaveformAdcs):
     """
 
     def __init__(
-        self, 
+        self,
         timestamp: int,
         time_step_ns: float,
         daq_window_timestamp: int,
@@ -60,7 +102,8 @@ class Waveform(WaveformAdcs):
         endpoint: int,
         channel: int,
         time_offset: int = 0,
-        starting_tick: int = 0):
+        starting_tick: int = 0,
+        trigger_type: Optional[int] = None):
         """
         Waveform class initializer
 
@@ -95,6 +138,7 @@ class Waveform(WaveformAdcs):
         self.__endpoint = endpoint
         self.__channel = channel
         self.__starting_tick = starting_tick
+        self.__trigger_type = trigger_type
 
         # Do we need to add trigger primitives as attributes?
 
@@ -107,7 +151,7 @@ class Waveform(WaveformAdcs):
     @property
     def timestamp(self):
         return self.__timestamp
-    
+
     @property
     def daq_window_timestamp(self):
         return self.__daq_window_timestamp
@@ -131,18 +175,27 @@ class Waveform(WaveformAdcs):
     @property
     def starting_tick(self):
         return self.__starting_tick
+    @property
+    def trigger_type(self):
+        return getattr(self, "_Waveform__trigger_type", None)
 
-#   #Setters
-#   @timestamp.setter
-#   def timestamp(self, input):
-#       self.__timestamp = input
-#       return
+    @property
+    def trigger_type_bits(self):
+        return [
+            TriggerType(i)
+            for i in range(64)
+            if self.trigger_type is not None and (self.trigger_type & (1 << i)) != 0 and i in TriggerType.__members__.values()
+        ]
 
-# For the moment there are no setters for
-# the attributes of Waveform. I.e. you can
-# only set the value of its attributes
-# through Waveform.__init__. Here's an example
-# of what a setter would look like, though.
+    @property
+    def trigger_type_names(self):
+        return [t.name for t in self.trigger_type_bits]
+
+    # For the moment there are no setters for
+    # the attributes of Waveform. I.e. you can
+    # only set the value of its attributes
+    # through Waveform.__init__. Here's an example
+    # of what a setter would look like, though.
 
     # Overrides WaveformAdcs.__slice_adcs()
     def __slice_adcs(

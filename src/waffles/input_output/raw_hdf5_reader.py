@@ -28,6 +28,7 @@ from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 import detdataformats
 import fddetdataformats
+import trgdataformats
 import waffles.input_output.input_utils as wiu
 
 
@@ -69,7 +70,7 @@ def xrdcp_if_not_exists(filepath: str,
     """
     Checks if a stable local copy of `filepath` exists in `tmp_dir`.
     If not, downloads via xrdcp. Returns the local file path.
-    
+
     If `use_lock=True` and 'filelock' is installed, we lock on the final local path
     to prevent multiple processes from partially overwriting each other in parallel.
     """
@@ -129,7 +130,7 @@ def get_inv_map_id(det):
         }
     elif det == 'VD_Membrane_PDS':
         map_id = {'107': [700, 701, 51]}
-    elif det == 'VD_Cathode_PDS':        
+    elif det == 'VD_Cathode_PDS':
         map_id = {'106': [723, 722, 721, 720, 21, 22, 23]}
     else:
         raise ValueError(f"det '{det}' is not recognized.")
@@ -372,13 +373,14 @@ def WaveformSet_from_hdf5_file(filepath: str,
             pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
                 r, detdataformats.DetID.string_to_subdetector(det)
             ))
-            
+
             try:
                 trig = h5_file.get_trh(r)
+                trigger_type_bits = trig.get_trigger_type()
             except Exception as e:
                 logger.warning(f"Corrupted fragment:\n {r}\n{gid}\nError: {e}")
                 continue
-            
+
             for gid in pds_geo_ids:
                 try:
                     frag = h5_file.get_frag(r, gid)
@@ -429,7 +431,8 @@ def WaveformSet_from_hdf5_file(filepath: str,
                                 endpoint,
                                 ch_id,
                                 time_offset=0,
-                                starting_tick=0
+                                starting_tick=0,
+                                trigger_type=trigger_type_bits
                             )
                             waveforms.append(wv)
 
@@ -484,7 +487,7 @@ def WaveformSet_from_hdf5_files_parallel(filepath_list: List[str] = [],
     """
     Parallel version of WaveformSet_from_hdf5_files. Uses multiprocessing to read each file
     in a separate process, then merges the results.
-    
+
     Before dispatching to worker processes, we pre-copy any remote files (using xrdcp_if_not_exists)
     so that every worker works with a local file and no concurrent XRootD copies occur.
     """

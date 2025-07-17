@@ -38,6 +38,7 @@ def save_structured_waveformset(
     record_numbers = np.zeros(n_waveforms, dtype=np.int32)
     channels = np.zeros(n_waveforms, dtype=np.uint8)
     endpoints = np.zeros(n_waveforms, dtype=np.int32)
+    trigger_types = np.zeros(n_waveforms, dtype=np.uint64)
 
     # Fill arrays from each Waveform
     for i, wf in enumerate(waveforms):
@@ -48,6 +49,7 @@ def save_structured_waveformset(
         record_numbers[i] = wf.record_number
         channels[i] = wf.channel
         endpoints[i] = wf.endpoint
+        trigger_types[i] = getattr(wf, "trigger_type", 0)
 
     print(f"✅ Saving {n_waveforms} waveforms to {filepath}")
     print(f"   Sample type: {type(waveforms[0])}, ADC shape: {waveforms[0].adcs.shape}")
@@ -68,6 +70,7 @@ def save_structured_waveformset(
         f.create_dataset("record_numbers", data=record_numbers, compression=compression, compression_opts=compression_opts)
         f.create_dataset("channels", data=channels, compression=compression, compression_opts=compression_opts)
         f.create_dataset("endpoints", data=endpoints, compression=compression, compression_opts=compression_opts)
+        f.create_dataset("trigger_types", data=trigger_types, compression=compression, compression_opts=compression_opts)
 
         f.attrs["n_waveforms"] = n_waveforms
         f.attrs["n_samples"] = n_samples
@@ -103,7 +106,7 @@ def load_structured_waveformset(
         quick checks only
     """
 
-        
+
     if run_filter is None and endpoint_filter is None:
         if max_to_load is None:
             # No reason to load everything...
@@ -118,6 +121,7 @@ def load_structured_waveformset(
         record_numbers = f["record_numbers"][:max_to_load]
         channels = f["channels"][:max_to_load]
         endpoints = f["endpoints"][:max_to_load]
+        trigger_types = f["trigger_types"][:max_to_load] if "trigger_types" in f else np.zeros(len(endpoints), dtype=np.uint64)
         time_step_ns = f.attrs["time_step_ns"]
         time_offset = f.attrs["time_offset"]
 
@@ -150,6 +154,7 @@ def load_structured_waveformset(
                 adcs=adcs_array[i],
                 time_step_ns=float(time_step_ns),
                 time_offset=int(time_offset),
+                trigger_type=int(trigger_types[i])
             )
         )
 
