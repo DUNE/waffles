@@ -94,21 +94,23 @@ def np02_gen_grids(wfset, detector: Union[str, List[str], List[UniqueChannel], L
 
     raise ValueError(f"Could not resolve detector: {detector} or {detectors}")
 
-def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Callable] = None, **kargs):
+def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Callable] = None, **kwargs):
     for n, g in np02_gen_grids(wfset, detector).items():
         # Keeping standard plotting 
         if n == "nTCO" or n == "TCO":
-            if "shared_xaxes" not in kargs:
-                kargs["shared_xaxes"] = True
-            if "shared_yaxes" not in kargs:
-                kargs["shared_yaxes"] = True
+            if "shared_xaxes" not in kwargs:
+                kwargs["shared_xaxes"] = True
+            if "shared_yaxes" not in kwargs:
+                kwargs["shared_yaxes"] = True
 
-        plot_grid(chgrid=g, title=n, html=None, detector=detector, plot_function=plot_function, **kargs)
+        plot_grid(chgrid=g, title=n, html=kwargs.pop("html", None), detector=detector, plot_function=plot_function, **kwargs)
 
 
 def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = None, detector: Union[str, List[str]] = "", plot_function: Optional[Callable] = None, **kwargs):
 
     rows, cols= chgrid.ch_map.rows, chgrid.ch_map.columns
+
+    showplots = kwargs.pop("showplots", False)
 
     subtitles = chgrid.titles
 
@@ -137,6 +139,8 @@ def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = N
     if html:
         fig.write_html(html.as_posix())
         logging.info("💾 %s", html)
+        if showplots:
+            fig.show()
     else:
         fig.show()
 # ╰────────────────────────────────────────────────────────────────────────────╯
