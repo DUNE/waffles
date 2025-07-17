@@ -133,12 +133,14 @@ class SBaseline:
             return
         if ch not in self.data_base[ep]:
             return
-        self.threshold = self.data_base[ep][ch].get('threshold', self.threshold)
-        self.wait = self.data_base[ep][ch].get('wait', self.wait)
-        self.baselinestart = self.data_base[ep][ch].get('baselinestart', self.baselinestart)
-        self.baselinefinish = self.data_base[ep][ch].get('baselinefinish', self.baselinefinish)
-        self.minimumfrac = self.data_base[ep][ch].get('minimumfrac', self.minimumfrac)
-        self.filtering = self.data_base[ep][ch].get('default_filtering', self.filtering)
+        if 'baseline' not in self.data_base[ep][ch]:
+            return
+        self.threshold = self.data_base[ep][ch]['baseline'].get('threshold', self.threshold)
+        self.wait = self.data_base[ep][ch]['baseline'].get('wait', self.wait)
+        self.baselinestart = self.data_base[ep][ch]['baseline'].get('baselinestart', self.baselinestart)
+        self.baselinefinish = self.data_base[ep][ch]['baseline'].get('baselinefinish', self.baselinefinish)
+        self.minimumfrac = self.data_base[ep][ch]['baseline'].get('minimumfrac', self.minimumfrac)
+        self.filtering = self.data_base[ep][ch]['baseline'].get('default_filtering', self.filtering)
 
 
     def __repr__(self):
