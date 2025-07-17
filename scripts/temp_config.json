@@ -1,11 +1,13 @@
 {
     "runs": [
-        37013
+        37276
     ],
-    "rucio_dir": "/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/scripts/raw_lists",
-    "output_dir": "/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/scripts/processed",
+    "rucio_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/raw_lists",
+    "output_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/processed",
     "ch": {},
-    "save_single_file": true,
-    "max_files": 1,
-    "det": "VD_Cathode_PDS"
+    "save_single_file": false,
+    "max_files": 5,
+    "det": "VD_Membrane_PDS",
+    "trigger": "self_trigger",
+    "suffix": "membrane"
 }

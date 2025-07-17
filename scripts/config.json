@@ -1,11 +1,11 @@
 {
-    "runs": [37262],
+    "runs": [27343],
     "rucio_dir": ".",
-    "output_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/",
+    "output_dir": ".",
     "ch": {
     },
     "save_single_file": false,
-    "max_files":4,
-    "det": "VD_Cathode_PDS",
+    "max_files":5,
+    "det": "HD_PDS",
     "trigger": "self_trigger"
 }
