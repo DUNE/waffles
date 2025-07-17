@@ -218,9 +218,8 @@ def main(config):
             config_data = json.load(f)
 
         ####################################--Automatically creates a folder named "run0 + the run number" hbagdu 17/07/2025
-        runNo = config_data.get("runs",[])
         runs = config_data.get("runs", [])
-        run_str = f"run0{runNo[0]}"
+        run_str = f"run0{runs[0]}"
         output_dir = Path(run_str)
         if output_dir.exists():
             print(f"Folder already exists: {output_dir}")
