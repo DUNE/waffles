@@ -120,15 +120,11 @@ class WaveformSet:
         # WaveformSet with 1046223 waveforms
         self.__update_available_channels(other_available_channels=None)
 
-        self.__mean_adcs = None
-        self.__mean_adcs_idcs = None
+        self.reset_mean_waveform()
 
     def __add__(self, other):
         if isinstance(other, WaveformSet): 
             return self.merge(other)
-
-            
-
 
     # Getters
     @property
@@ -1015,8 +1011,8 @@ class WaveformSet:
 
             # We also need to reset the attributes regarding the mean
             # Waveform, for which some of the waveforms might have been removed
-            self.__mean_adcs = None
-            self.__mean_adcs_idcs = None
+            self.reset_mean_waveform()
+
 
         if return_the_staying_ones:
             return staying_ones
@@ -1152,7 +1148,6 @@ class WaveformSet:
         self.__update_available_channels(
             other_available_channels=other.available_channels)
 
-        self.__mean_adcs = None
-        self.__mean_adcs_idcs = None
+        self.reset_mean_waveform()
 
         return
