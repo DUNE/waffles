@@ -29,7 +29,7 @@ class Analysis1(WafflesAnalysis):
                 example=[2]
             )
 
-            pdes: list[int] = Field(
+            pdes: list[float] = Field(
                 ...,
                 description="Photon detection efficiencies to "
                 "consider",
