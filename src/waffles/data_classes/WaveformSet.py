@@ -1016,7 +1016,6 @@ class WaveformSet:
             # Waveform, for which some of the waveforms might have been removed
             self.reset_mean_waveform()
 
-
         if return_the_staying_ones:
             return staying_ones
         else:
