@@ -217,7 +217,17 @@ def main(config):
         with open(config, 'r') as f:
             config_data = json.load(f)
 
+        ####################################--Automatically creates a folder named "run0 + the run number" hbagdu 17/07/2025
+        runNo = config_data.get("runs",[])
         runs = config_data.get("runs", [])
+        run_str = f"run0{runNo[0]}"
+        output_dir = Path(run_str)
+        if output_dir.exists():
+            print(f"Folder already exists: {output_dir}")
+        else:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            print(f"Created folder: {output_dir}")
+        ####################################--Does not create if the folder already exists
 
         required_keys = ["runs", "rucio_dir", "output_dir", "ch"]
         missing = [key for key in required_keys if key not in config_data]
