@@ -132,7 +132,7 @@ def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = N
                            **kwargs
                            )
     else:
-        plot_CustomChannelGrid(chgrid, plot_function, figure=fig, **kwargs)
+        plot_CustomChannelGrid(chgrid, plot_function, figure=fig, wf_func=kwargs.pop("doprocess", None), **kwargs)
 
     fig.update_layout(title=title, template="plotly_white",
                       width=1000, height=800, showlegend=True)
@@ -162,13 +162,24 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col):
     )
 
 
-def fithist(wfset:WaveformSet, figure:go.Figure, row, col):
+def fithist(wfset:WaveformSet, figure:go.Figure, row, col, doprocess=lambda: False):
+
     params = ch_read_params()
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
 
     if endpoint not in params or channel not in params[endpoint]:
         raise ValueError(f"No parameters found for endpoint {endpoint} and channel {channel} in the configuration file.")
+
+    
+    if doprocess():
+        runBasicWfAnaNP02(wfset,
+                          int_ll=params[endpoint][channel]['fit'].get('int_ll', 254),
+                          int_ul=params[endpoint][channel]['fit'].get('int_ul', 270),
+                          amp_ll=params[endpoint][channel]['fit'].get('amp_ll', 250),
+                          amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 280),
+                          show_progress=False
+                          )
 
     bins_int = params[endpoint][channel]['fit'].get('bins_int', 100)
     domain_int_str = params[endpoint][channel]['fit'].get('domain_int', [-10e3, 100e3])
@@ -239,7 +250,9 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       int_ll: int = 254,
                       int_ul: int = 270,
                       amp_ll: int = 250,
-                      amp_ul: int = 280):
+                      amp_ul: int = 280,
+                      show_progress: bool = True
+                      ):
     params = ch_read_params()
     baseline = SBaseline(threshold=25, baselinefinish=240, default_filtering=2, minimumfrac=0.67, data_base=params)
 
@@ -251,12 +264,12 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
         baseline_limits=[0,240],
         onlyoptimal=True,
     )
-    print("Processing waveform set with BasicWfAna")
+    if show_progress: print("Processing waveform set with BasicWfAna")
     _ = wfset.analyse("std", BasicWfAna, ip,
                       analysis_kwargs={},
                       checks_kwargs=dict(points_no=wfset.points_per_wf),
                       overwrite=True,
-                      show_progress=True
+                      show_progress=show_progress
                      )
 
 def ch_read_params():

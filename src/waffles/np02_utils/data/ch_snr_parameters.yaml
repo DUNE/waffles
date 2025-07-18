@@ -3,6 +3,8 @@ default_baseline: &dfbase
   minimumfrac: 0.67
 
 default_fit: &dfit
+    int_ll:             254            # integration lower limit in ticks
+    int_ul:             270            # integration upper limit in ticks
     bins_int:           100            # binning of the histogram
     domain_int:         [-10e3, 100e3] # min and max value of histogram x-axis
     max_peaks:          3              # maximum number of peaks to fit
