@@ -1,7 +1,10 @@
 
+import waffles
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import flat_APA_map
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.Exceptions import GenerateExceptionMessage
+from pathlib import Path
+import pandas as pd
 
 def get_channel_iterator(   
     apa_no: int,
@@ -131,3 +134,23 @@ def get_endpoint_and_channel(
             3,
             'get_endpoint_and_channel()',
             f"The retrieved map is not flat."))
+
+def get_np04_channel_mapping(version: str="old") -> pd.DataFrame:
+    """
+
+    """
+    wafflesdir = Path(waffles.__file__).parent
+    if not Path(wafflesdir / "np04_utils" / "PDHD_PDS_ChannelMap").exists() :
+        raise FileNotFoundError(
+            "The channel mapping was not found. You probably need to install waffles with -e option:\n`python3 -m pip install -e .`")
+
+    if version == "old":
+        mapping_file = wafflesdir / "np04_utils" / "PDHD_PDS_ChannelMap.csv"
+    elif version == "new":
+        mapping_file = wafflesdir / "np04_utils" / "PDHD_PDS_NewChannelMap.csv"
+    else:
+        raise ValueError("Invalid version specified. Use 'old' or 'new'.")
+
+    df = pd.read_csv(mapping_file, sep=",")
+
+    return df
