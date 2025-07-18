@@ -123,6 +123,7 @@ def main() -> None:
         xaxis_title="Frequency (MHz)",
         yaxis_title="Power (dBFS)",
         template="plotly_white",
+        showlegend=True,
         height=800, width=1200
     )
 
