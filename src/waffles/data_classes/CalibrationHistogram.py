@@ -72,7 +72,7 @@ class CalibrationHistogram(TrackedHistogram):
             counts,
             indices)
 
-        self.__gaussian_fits_parameters = None
+        self.__gaussian_fits_parameters = {}
         self.__reset_gaussian_fit_parameters()
 
     @property

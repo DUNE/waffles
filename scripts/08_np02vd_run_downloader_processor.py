@@ -8,17 +8,16 @@ import os
 
 import paramiko                               # SSH / SFTP
 import numpy as np
-import matplotlib.pyplot as plt
-import plotly.subplots as psu
+from typing import cast
 
 # ── waffles imports ──────────────────────────────────────────────────────────
+from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.IPDict import IPDict
+from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
-from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
-from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
-from waffles.plotting.plot import plot_ChannelWsGrid
+from waffles.data_classes.Map import Map
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -93,9 +92,9 @@ def download_all(sftp: paramiko.SFTPClient,
 
 
 # ╭────────────────── Waveform analysis & plotting helpers ────────────────────╮
-def _analyse(wfset):
+def _analyse(wfset:WaveformSet):
     ip = IPDict(
-        baseline_limits=[0, 50, 900, 1000],
+        baseline_limits=[0, 50, wfset.points_per_wf-124, wfset.points_per_wf-24],
         baseline_method="EasyMedian",      # ← NEW (or "Mean", "Fit", …)
         int_ll=50, int_ul=120,
         amp_ll=50, amp_ul=120,
@@ -105,66 +104,16 @@ def _analyse(wfset):
                   checks_kwargs=dict(points_no=wfset.points_per_wf),
                   overwrite=True)
 
-def _grids(wfset, detector:str):
-
-    if detector == 'VD_Membrane_PDS':
-        return dict(
-            TCO=ChannelWsGrid(mem_geometry_map[2], wfset,
-                              bins_number=115,
-                              domain=np.array([-1e4, 5e4]),
-                              variable="integral"),
-            nTCO=ChannelWsGrid(mem_geometry_map[1], wfset,
-                               bins_number=115,
-                               domain=np.array([-1e4, 5e4]),
-                               variable="integral"))
-    elif detector == 'VD_Cathode_PDS':
-        return dict(
-            TCO=ChannelWsGrid(cat_geometry_map[2], wfset,
-                              bins_number=115,
-                              domain=np.array([-1e4, 5e4]),
-                              variable="integral"),
-            nTCO=ChannelWsGrid(cat_geometry_map[1], wfset,
-                               bins_number=115,
-                               domain=np.array([-1e4, 5e4]),
-                               variable="integral"))
-
-
-def plot_grid(grid, title, html: Path | None, detector:str):
-
-    if detector == 'VD_Membrane_PDS':
-        rows, cols= 4, 2
-    elif detector == 'VD_Cathode_PDS':
-        rows, cols= 8, 4
-
-    subtitles = grid.titles
-
-    fig = psu.make_subplots(
-        rows=rows,
-        cols=cols,
-        subplot_titles=subtitles,
-        shared_xaxes=True,
-        shared_yaxes=True
-    )
-    
-    plot_ChannelWsGrid( grid, figure=fig, share_x_scale=True,
-                       share_y_scale=True, mode="overlay", wfs_per_axes=50)
-    fig.update_layout(title=title, template="plotly_white",
-                      width=1000, height=800, showlegend=True)
-    if html:
-        fig.write_html(html.as_posix())
-        logging.info("💾 %s", html)
-# ╰────────────────────────────────────────────────────────────────────────────╯
-
-
 def process_structured(h5: Path, outdir: Path,
                        max_wfs: int, headless: bool, detector: str):
     
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
     _analyse(wfset)
-    for n, g in _grids(wfset, detector).items():
+    for n, g in np02_gen_grids(wfset, detector).items():
+        g: ChannelWsGrid = cast(ChannelWsGrid, g)
         html = outdir / f"{n}.html" if headless else None
-        plot_grid(g, n, html, detector)
+        plot_grid(chgrid=g, title=n, html=html, detector=detector)
 
 
 # ╭─────────────────────────────── main() ─────────────────────────────────────╮
@@ -179,7 +128,7 @@ def main() -> None:
     auth = ap.add_mutually_exclusive_group()
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
-    ap.add_argument("--max-waveforms", type=int, default=2000, help="Maximum waveforms to be plotted")
+    ap.add_argument("--max-waveforms", type=int, default=32000, help="Maximum waveforms to be plotted")
     ap.add_argument("--config-template", default="config.json")
     ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
     ap.add_argument("-v", "--verbose", action="count", default=1)
@@ -250,6 +199,7 @@ def main() -> None:
             (list_dir / f"{run:06d}.txt").write_text(
                 "\n".join(p.as_posix() for p in loc) + "\n")
             ok_runs.append(run)
+            os.chmod(raw_dir / f"run{run:06d}", 0o775)
         except Exception as e:
             logging.error("run %d: %s", run, e)
     sftp.close()
