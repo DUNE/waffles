@@ -79,10 +79,10 @@ def main() -> None:
     fig = go.Figure()
 
     custom_labels = {
-    "processed_np02vd_raw_run037291_0000_df-s04-d0_dw_0_20250716T125207.hdf5.copied_structured_membrane": "Cathode HV on 35kV",
-    "processed_np02vd_raw_run037293_0000_df-s04-d0_dw_0_20250716T125827.hdf5.copied_structured_membrane": "Cathode HV on 70kV",
-    "processed_np02vd_raw_run037295_0000_df-s04-d0_dw_0_20250716T130616.hdf5.copied_structured_membrane": "Cathode HV on 110kV",
-    "processed_np02vd_raw_run037297_0000_df-s04-d0_dw_0_20250716T131710.hdf5.copied_structured_membrane": "Cathode HV on 154kV"
+    "processed_np02vd_raw_run037291_0000_df-s04-d0_dw_0_20250716T125207.hdf5.copied_structured_cathode": "Cathode HV on 35kV",
+    "processed_np02vd_raw_run037293_0000_df-s04-d0_dw_0_20250716T125827.hdf5.copied_structured_cathode": "Cathode HV on 70kV",
+    "processed_np02vd_raw_run037295_0000_df-s04-d0_dw_0_20250716T130616.hdf5.copied_structured_cathode": "Cathode HV on 110kV",
+    "processed_np02vd_raw_run037297_0000_df-s04-d0_dw_0_20250716T131710.hdf5.copied_structured_cathode": "Cathode HV on 154kV"
     }
 
     #print("...", dict_module_to_uniqch["M1(1)"])
@@ -117,8 +117,8 @@ def main() -> None:
     # Layout
     fig.update_layout(
         #title=f"Mean FFT{(' on channel ' + str(args.channel)) if args.channel is not None else ''}",
-        title=f"Mean FFT{(' on ' + dict_uniqch_to_module[str(UniqueChannel(107,str(args.channel)))]) if args.channel is not None else ''}",
-        yaxis_range=[-120,-40],
+        title=f"Mean FFT{(' on ' + dict_uniqch_to_module[str(UniqueChannel(106,str(args.channel)))]) if args.channel is not None else ''}",
+        yaxis_range=[-120,-60],
         xaxis_type="log",
         xaxis_title="Frequency (MHz)",
         yaxis_title="Power (dBFS)",
