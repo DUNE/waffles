@@ -4,19 +4,19 @@
 baseline_method: EasyMedian
 
 # Path to the folder containing the data
-input_path: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/processed/run037262_membrane/processed_np02vd_raw_run037262_0000_df-s04-d0_dw_0_20250715T083421.hdf5.copied_structured_membrane.hdf5"
+input_path: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/processed/run037268_cathode/processed_merged_run037268_structured_cathode.hdf5"
 
 # Path to the output
 output_path: "output/"
 
 # Runs
-runs: [37013]
+runs: [37268]
 
 # Detector to analyze: Membrane, Cathode, PMTs
-det: "Membrane"
+det: "Cathode"
 
 # 1 is non-TCO and 2 is TCO
-det_id: [1] 
+det_id: [2]
 
 # ------- Parameters for the analysis -------
 

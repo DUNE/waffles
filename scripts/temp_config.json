@@ -1,9 +1,9 @@
 {
     "runs": [
-        37276
+        37297
     ],
-    "rucio_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/raw_lists",
-    "output_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/processed",
+    "rucio_dir": "/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/scripts/raw_lists",
+    "output_dir": "/afs/cern.ch/work/h/hbagdu/fddaq-v5.3.1-a9-1/waffles/scripts/processed",
     "ch": {},
     "save_single_file": false,
     "max_files": 5,
