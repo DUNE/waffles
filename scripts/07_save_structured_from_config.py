@@ -225,6 +225,9 @@ def main(config):
             config_data = json.load(f)
 
         runs = config_data.get("runs", [])
+        run_str = f"run0{runs[0]}"
+        output_dir = Path(run_str)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         required_keys = ["runs", "rucio_dir", "output_dir", "ch"]
         missing = [key for key in required_keys if key not in config_data]
