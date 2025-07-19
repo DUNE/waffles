@@ -4,7 +4,7 @@ default_baseline: &dfbase
 
 default_fit: &dfit
     int_ll:             254            # integration lower limit in ticks
-    int_ul:             270            # integration upper limit in ticks
+    int_ul:             290            # integration upper limit in ticks
     bins_int:           100            # binning of the histogram
     domain_int:         [-10e3, 100e3] # min and max value of histogram x-axis
     max_peaks:          3              # maximum number of peaks to fit
@@ -36,12 +36,12 @@ default_fit: &dfit
 107: {
   0:  { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M5(1)
   7:  { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M5(2)
-  10: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M8(1)
-  17: { baseline: { <<: *dfbase, threshold: 20}, fit: { <<: *dfit, } }, # M8(2)
+  10: { baseline: { <<: *dfbase, threshold: 12}, fit: { <<: *dfit, int_ul: 290} }, # M8(1)
+  17: { baseline: { <<: *dfbase, threshold: 12}, fit: { <<: *dfit, int_ul: 290} }, # M8(2)
   20: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M6(1)
   27: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M6(2)
-  30: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M7(1)
-  37: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, max_peaks: 3} }, # M7(2)
+  30: { baseline: { <<: *dfbase, threshold: 20}, fit: { <<: *dfit, int_ul: 290} }, # M7(1)
+  37: { baseline: { <<: *dfbase, threshold: 20}, fit: { <<: *dfit, int_ul: 290} }, # M7(2)
   40: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M2(1)
   41: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M4(2)
   42: { baseline: { <<: *dfbase, }, fit: { <<: *dfit, } }, # M2(2)
