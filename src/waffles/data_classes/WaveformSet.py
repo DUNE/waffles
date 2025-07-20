@@ -1159,3 +1159,18 @@ class WaveformSet:
         self.__mean_adcs_idcs = None
 
         return
+
+    def __repr__(self) -> str:
+
+        retval = (f"WaveformSet with {len(self.__waveforms)} waveforms \n"
+            f"runs: {self.__runs},\n"
+            f"points_per_wf: {self.__points_per_wf},\n"
+            f"available_channels: {self.__available_channels},\n"
+            f"record_numbers per run: \n"
+                  )
+        retval += "\n".join(
+            "run {}: {} records".format(run, len(self.__record_numbers[run])) for run in self.runs)
+
+        return retval
+
+
