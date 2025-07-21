@@ -78,11 +78,19 @@ def main() -> None:
     # Prepare figure
     fig = go.Figure()
 
+    # Cathode HV ramp up
+    '''
     custom_labels = {
     "processed_np02vd_raw_run037291_0000_df-s04-d0_dw_0_20250716T125207.hdf5.copied_structured_membrane": "Cathode HV on 35kV",
     "processed_np02vd_raw_run037293_0000_df-s04-d0_dw_0_20250716T125827.hdf5.copied_structured_membrane": "Cathode HV on 70kV",
     "processed_np02vd_raw_run037295_0000_df-s04-d0_dw_0_20250716T130616.hdf5.copied_structured_membrane": "Cathode HV on 110kV",
     "processed_np02vd_raw_run037297_0000_df-s04-d0_dw_0_20250716T131710.hdf5.copied_structured_membrane": "Cathode HV on 154kV"
+    }
+    '''
+    # UPS test
+    custom_labels = {
+    "processed_np02vd_raw_run037286_0000_df-s04-d0_dw_0_20250716T115517.hdf5.copied_structured_membrane": "UPS ON",
+    "processed_np02vd_raw_run037287_0000_df-s04-d0_dw_0_20250716T122141.hdf5.copied_structured_membrane": "UPS OFF"
     }
 
     #print("...", dict_module_to_uniqch["M1(1)"])
@@ -121,7 +129,7 @@ def main() -> None:
         yaxis_range=[-120,-40],
         xaxis_type="log",
         xaxis_title="Frequency (MHz)",
-        yaxis_title="Power (dBFS)",
+        yaxis_title="Power (dB)",
         template="plotly_white",
         showlegend=True,
         height=800, width=1200
