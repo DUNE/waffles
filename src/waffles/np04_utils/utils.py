@@ -140,7 +140,8 @@ def get_np04_channel_mapping(version: str="old") -> pd.DataFrame:
 
     """
     wafflesdir = Path(waffles.__file__).parent
-    if not Path(wafflesdir / "np04_utils" / "PDHD_PDS_ChannelMap").exists() :
+    print(f"wafflesdir: {wafflesdir}")
+    if not Path(wafflesdir / "np04_utils" / "PDHD_PDS_ChannelMap.csv").exists() :
         raise FileNotFoundError(
             "The channel mapping was not found. You probably need to install waffles with -e option:\n`python3 -m pip install -e .`")
 
@@ -151,6 +152,7 @@ def get_np04_channel_mapping(version: str="old") -> pd.DataFrame:
     else:
         raise ValueError("Invalid version specified. Use 'old' or 'new'.")
 
+    print(f"Loading channel mapping from: {mapping_file}")
     df = pd.read_csv(mapping_file, sep=",")
 
     return df
