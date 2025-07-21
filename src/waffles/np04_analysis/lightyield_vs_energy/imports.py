@@ -9,7 +9,9 @@ import pandas as pd
 from pathlib import Path
 from scipy.stats import norm
 from scipy.optimize import curve_fit
+from scipy.optimize import minimize_scalar
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from tqdm import tqdm 
 from datetime import datetime
 
@@ -35,3 +37,5 @@ from pydantic import BaseModel, Field, conlist
 from typing import Union, Literal
 
 from waffles.utils.baseline.baseline import SBaseline
+
+from pylandau import langau

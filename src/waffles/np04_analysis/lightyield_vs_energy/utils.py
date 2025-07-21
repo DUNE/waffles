@@ -416,3 +416,105 @@ def find_analysis_keys(d):
                     if result:
                         return result
             return None
+        
+
+def chi2_ridotto_xy(x, y, yerr, func, fit_params):
+    y_model = func(x, *fit_params)
+    chi2_val = np.sum(((y - y_model) / yerr) ** 2)
+    ndof = len(y) - len(fit_params)
+    chi2_red = chi2_val / ndof
+    return chi2_red #, chi2_val, ndof
+    
+    
+def chi2_ridotto_distribution(counts, bin_centers, func, fit_params):
+    expected = func(bin_centers, *fit_params)
+    
+    # Filtro per evitare problemi con expected piccoli o nulli
+    mask = expected > 1e-5
+    counts = counts[mask]
+    expected = expected[mask]
+    bin_centers = bin_centers[mask]
+    
+    chi2_val = np.sum((counts - expected) ** 2 / expected)
+    ndof = len(counts) - len(fit_params)
+    chi2_red = chi2_val / ndof
+
+    return chi2_red #, chi2_val, ndof
+
+
+def bi_gaussian(x, mean1, sigma1, amp1, mean2, sigma2, amp2):
+    gauss1 = amp1 * np.exp(-0.5 * ((x - mean1) / sigma1) ** 2) #alta
+    gauss2 = amp2 * np.exp(-0.5 * ((x - mean2) / sigma2) ** 2) #bassa
+    return gauss1 + gauss2
+
+###################
+
+def find_peak(params):
+    mpv, eta, sigma, A = params
+
+    # Prevent very small sigma from breaking the optimizer
+    sigma = max(sigma, 1e-3)
+    search_width = max(0.1, 5 * sigma)  # Ensure minimum range
+
+    result = minimize_scalar(
+        lambda x: -langau(np.array([x]), mpv, eta, sigma, A)[0],
+        bounds=(mpv - search_width, mpv + search_width),
+        method='bounded'
+    )
+    return result.x
+
+
+def propagate_error(find_peak_func, params, errors, epsilon=1e-3):    
+    peak = find_peak(params)
+    partials = []
+
+    for i in range(len(params)):
+        params_eps_plus = params.copy()
+        params_eps_minus = params.copy()
+
+        params_eps_plus[i] += epsilon
+        params_eps_minus[i] -= epsilon
+
+        f_plus = find_peak(params_eps_plus)
+        f_minus = find_peak(params_eps_minus)
+
+        derivative = (f_plus - f_minus) / (2 * epsilon)
+        partials.append(derivative)
+
+    # Now propagate the errors
+    squared_terms = [(partials[i] * errors[i])**2 for i in range(len(params))]
+    # total_error = np.sqrt(sum(squared_terms))
+    total_error = np.sqrt(errors[0]**2+(params[0]-peak)**2)
+
+    return peak, total_error
+
+
+import numpy as np
+
+def prepare_histogram_curve_fit_inputs(counts, bin_centers, histogram_bin_zero_extremes, histogram_bin_error):
+    counts = np.asarray(counts)
+    bin_centers = np.asarray(bin_centers)
+
+    # Exclude extreme zero bins
+    if histogram_bin_zero_extremes:
+        nonzero_indices = np.nonzero(counts)[0]
+        if nonzero_indices.size == 0:
+            raise ValueError("Tutti i bin sono zero, fit non possibile.")
+        first_nonzero = nonzero_indices[0]
+        last_nonzero = nonzero_indices[-1]
+        mask = (np.arange(len(counts)) >= first_nonzero) & (np.arange(len(counts)) <= last_nonzero)
+    else:
+        mask = np.ones_like(counts, dtype=bool)
+
+    # Compute bin error
+    if histogram_bin_error:
+        errors = np.sqrt(counts)
+        errors[errors == 0] = 1.0
+        sigma = errors[mask]
+        absolute_sigma = True
+    else:
+        sigma = None
+        absolute_sigma = False
+
+    # Output finale
+    return bin_centers[mask], counts[mask], sigma, absolute_sigma
