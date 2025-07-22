@@ -74,7 +74,7 @@ class SBaseline:
         if(counts > (baselinefinish - baselinestart)*minimumfrac):
             return res, True
         else:
-            return res0, False
+            return res, False
 
     def compute_baseline(self, wvf_base: np.ndarray, filtering = None) -> tuple[float, bool]:
         """ Computes baseline...
