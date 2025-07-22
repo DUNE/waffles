@@ -474,7 +474,8 @@ class WaveformSet:
         *args,
         analysis_kwargs: dict = {},
         checks_kwargs: dict = {},
-        overwrite: bool = False
+        overwrite: bool = False,
+        show_progress: bool = False
     ) -> dict:
         """For each Waveform in this WaveformSet, this method
         calls its 'analyse' method passing to it the parameters
@@ -528,6 +529,8 @@ class WaveformSet:
             'analyse' method will overwrite any existing
             WfAna (or derived) object with the same label
             (key) within its analyses attribute.
+        show_progress: bool
+            If True, will show tqdm progress bar
 
         Returns
         ----------
@@ -592,7 +595,7 @@ class WaveformSet:
         
         output = {}
 
-        for i in range(len(self.__waveforms)):
+        for i in tqdm(range(len(self.__waveforms)), disable=not show_progress):
             output[i] = self.__waveforms[i].analyse(label,
                                                     analysis_class,
                                                     input_parameters,
@@ -1156,3 +1159,18 @@ class WaveformSet:
         self.__mean_adcs_idcs = None
 
         return
+
+    def __repr__(self) -> str:
+
+        retval = (f"WaveformSet with {len(self.__waveforms)} waveforms \n"
+            f"runs: {self.__runs},\n"
+            f"points_per_wf: {self.__points_per_wf},\n"
+            f"available_channels: {self.__available_channels},\n"
+            f"record_numbers per run: \n"
+                  )
+        retval += "\n".join(
+            "run {}: {} records".format(run, len(self.__record_numbers[run])) for run in self.runs)
+
+        return retval
+
+

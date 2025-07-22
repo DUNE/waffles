@@ -10,7 +10,9 @@ from multiprocessing import Pool, cpu_count
 from numba import jit
 from XRootD import client
 from tqdm import tqdm
+from collections import Counter
 import numpy as np
+
 
 from daqdataformats import FragmentType
 from hdf5libs import HDF5RawDataFile
@@ -213,7 +215,7 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
 
 def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
                                 read_full_streaming_data: bool = False,
-                                truncate_wfs_to_minimum: bool = False,
+                                truncate_wfs_method: str = "",
                                 folderpath: Optional[str] = None,
                                 nrecord_start_fraction: float = 0.0,
                                 nrecord_stop_fraction: float = 1.0,
@@ -256,7 +258,7 @@ def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
             aux = WaveformSet_from_hdf5_file(
                 filepath,
                 read_full_streaming_data,
-                truncate_wfs_to_minimum,
+                truncate_wfs_method,
                 nrecord_start_fraction,
                 nrecord_stop_fraction,
                 subsample,
@@ -283,7 +285,7 @@ def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
 
 def WaveformSet_from_hdf5_file(filepath: str,
                                read_full_streaming_data: bool = False,
-                               truncate_wfs_to_minimum: bool = False,
+                               truncate_wfs_method: str = "",
                                nrecord_start_fraction: float = 0.0,
                                nrecord_stop_fraction: float = 1.0,
                                subsample: int = 1,
@@ -292,7 +294,8 @@ def WaveformSet_from_hdf5_file(filepath: str,
                                det: str = 'HD_PDS',
                                temporal_copy_directory: str = '/tmp',
                                erase_temporal_copy: bool = True,
-                               record_chunk_size: int = 200
+                               record_chunk_size: int = 200,
+                               choose_minimum: bool = False,
                                ) -> WaveformSet:
     """
     Reads a single HDF5 file and constructs a WaveformSet. Records are processed
@@ -301,7 +304,10 @@ def WaveformSet_from_hdf5_file(filepath: str,
     Args:
         filepath (str): The path to the HDF5 file.
         read_full_streaming_data (bool): If True, read DAPHNEStream fragments (full stream).
-        truncate_wfs_to_minimum (bool): If True, truncate waveforms to shortest length found.
+        truncate_wfs_method (str): Method to truncate waveforms. Options are:
+            - "minimum": Truncate all waveforms to the minimum length.
+            - "MPV": Use the most probable waveform length.
+            - "choose": User chooses a length interactively.
         nrecord_start_fraction (float): Fraction of records to skip from start.
         nrecord_stop_fraction (float): Fraction of records to skip from end.
         subsample (int): Keep 1 out of every 'subsample' waveforms.
@@ -435,7 +441,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
 
                         wvfm_index += 1
                         if wvfm_index >= wvfm_count:
-                            if truncate_wfs_to_minimum and waveforms:
+                            if truncate_wfs_method == "minimum" and waveforms:
                                 min_len = min(len(wf.adcs) for wf in waveforms)
                                 for wf in waveforms:
                                     wf._WaveformAdcs__slice_adcs(0, min_len)
@@ -445,10 +451,39 @@ def WaveformSet_from_hdf5_file(filepath: str,
                             return WaveformSet(*waveforms)
 
     # Finished reading all chunks
-    if truncate_wfs_to_minimum and waveforms:
+    if truncate_wfs_method == "minimum" and waveforms:
         min_len = min(len(wf.adcs) for wf in waveforms)
         for wf in waveforms:
             wf._WaveformAdcs__slice_adcs(0, min_len)
+    elif truncate_wfs_method:
+        allwaveformslengths = Counter([len(wf.adcs) for wf in waveforms])
+        allwaveformslengths = sorted(allwaveformslengths.items(), key=lambda x: x[1], reverse=True)
+        if truncate_wfs_method == "MPV":
+            print(f"Most common waveform length: {allwaveformslengths[0][0]} with {allwaveformslengths[0][1]} occurrences")
+            print("Showing the next 4 most common lengths:")
+            for length, count in allwaveformslengths[0:5]:
+                print(f"Length {length} with {count} occurrences")
+            
+            slice_len = allwaveformslengths[0][0] # Most common length
+        elif truncate_wfs_method == "choose":
+            print("Choose a length from the following options:")
+            for i, (length, count) in enumerate(allwaveformslengths):
+                print(f"{i}: {length} with {count} occurrences")
+            choice = int(input("Enter the index of the length you want to choose: "))
+            if choice < 0 or choice >= len(allwaveformslengths):
+                raise ValueError("Invalid choice index.")
+            slice_len = allwaveformslengths[choice][0]
+        else:
+            raise ValueError(f"Unknown truncate_wfs_method: {truncate_wfs_method}. "
+                             "Use 'minimum', 'MPV', or 'choose'.")
+        waveforms_full = waveforms.copy()  # Keep original for reference
+        waveforms = []  
+        for wf in waveforms_full:
+            if len(wf.adcs) > slice_len:
+                wf._WaveformAdcs__slice_adcs(0, slice_len)
+            if len(wf.adcs) == slice_len:
+                waveforms.append(wf)
+
 
     if fUsedXRootD and erase_temporal_copy and os.path.exists(filepath):
         os.remove(filepath)
@@ -468,7 +503,7 @@ def process_record(r):
 # -----------------------------------------------------------------------------
 def WaveformSet_from_hdf5_files_parallel(filepath_list: List[str] = [],
                                          read_full_streaming_data: bool = False,
-                                         truncate_wfs_to_minimum: bool = False,
+                                         truncate_wfs_method: str = "",
                                          folderpath: Optional[str] = None,
                                          nrecord_start_fraction: float = 0.0,
                                          nrecord_stop_fraction: float = 1.0,
@@ -531,7 +566,7 @@ def WaveformSet_from_hdf5_files_parallel(filepath_list: List[str] = [],
     func = partial(
         WaveformSet_from_hdf5_file,
         read_full_streaming_data=read_full_streaming_data,
-        truncate_wfs_to_minimum=truncate_wfs_to_minimum,
+        truncate_wfs_method=truncate_wfs_method,
         nrecord_start_fraction=nrecord_start_fraction,
         nrecord_stop_fraction=nrecord_stop_fraction,
         subsample=subsample,
