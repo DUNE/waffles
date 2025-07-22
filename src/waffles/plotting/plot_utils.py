@@ -343,9 +343,14 @@ def __subplot_heatmap(
 
     denoiser = Denoise()
     try:
-        aux_y = np.hstack([
-            denoiser.apply_denoise(waveform_set.waveforms[idx].adcs -
-            waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'], filter=filtering) for idx in wf_idcs])
+        if filtering>0:
+            aux_y = np.hstack([
+                denoiser.apply_denoise((waveform_set.waveforms[idx].adcs).astype(np.float32) -
+                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'], filter=filtering) for idx in wf_idcs])
+        else:
+            aux_y = np.hstack([
+                waveform_set.waveforms[idx].adcs -
+                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
 
     except KeyError:
         raise Exception(GenerateExceptionMessage(
