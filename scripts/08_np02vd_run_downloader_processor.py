@@ -114,6 +114,8 @@ def process_structured(h5: Path, outdir: Path,
         g: ChannelWsGrid = cast(ChannelWsGrid, g)
         html = outdir / f"{n}.html" if headless else None
         plot_grid(chgrid=g, title=n, html=html, detector=detector)
+        if html:
+            os.chmod(html.as_posix(), 0o775)
 
 
 # ╭─────────────────────────────── main() ─────────────────────────────────────╮
@@ -128,7 +130,7 @@ def main() -> None:
     auth = ap.add_mutually_exclusive_group()
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
-    ap.add_argument("--max-waveforms", type=int, default=32000, help="Maximum waveforms to be plotted")
+    ap.add_argument("--max-waveforms", type=int, default=4000, help="Maximum waveforms to be plotted")
     ap.add_argument("--config-template", default="config.json")
     ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
     ap.add_argument("-v", "--verbose", action="count", default=1)

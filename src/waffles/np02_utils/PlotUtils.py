@@ -220,13 +220,23 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, doprocess=lambda: Fal
     )
     fit_params = hInt.gaussian_fits_parameters
 
-    zero_charge = fit_params['mean'][0][0]
-    spe_charge = fit_params['mean'][1][0]
-    baseline_stddev = fit_params['std'][0][0]
-    spe_stddev = fit_params['std'][1][0]
+    zero_charge = 0
+    spe_charge = 0
+    baseline_stddev = 0
+    spe_stddev = 0
 
-    gain = spe_charge - zero_charge
-    snr = gain / baseline_stddev
+    gain = 0
+    snr = 0
+    try:
+        zero_charge = fit_params['mean'][0][0]
+        spe_charge = fit_params['mean'][1][0]
+        baseline_stddev = fit_params['std'][0][0]
+        spe_stddev = fit_params['std'][1][0]
+
+        gain = spe_charge - zero_charge
+        snr = gain / baseline_stddev
+    except:
+        print(f"Could fit for {dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}")
 
     plot_CalibrationHistogram(
         hInt,
@@ -236,15 +246,16 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, doprocess=lambda: Fal
         name=f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}; snr={snr:.2f}",
     )
 
-    print(
-        f"{list(wfset.runs)[0]},",
-        f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]},",
-        f"{snr:.2f},",
-        f"{gain:.2f},",
-        f"{baseline_stddev:.2f},",
-        f"{spe_stddev:.2f},",
-        f"{average_hits/gain:.2f}",
-    )
+    if snr != 0:
+        print(
+            f"{list(wfset.runs)[0]},",
+            f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]},",
+            f"{snr:.2f},",
+            f"{gain:.2f},",
+            f"{baseline_stddev:.2f},",
+            f"{spe_stddev:.2f},",
+            f"{average_hits/gain:.2f}",
+        )
 
 def runBasicWfAnaNP02(wfset: WaveformSet,
                       int_ll: int = 254,
