@@ -11,6 +11,7 @@ def fit_peaks_of_CalibrationHistogram(
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
+    fit_type: str = 'independent_gaussians',
     half_points_to_fit: int = 2
 ) -> bool:
     """For the given CalibrationHistogram object, 
@@ -79,7 +80,27 @@ def fit_peaks_of_CalibrationHistogram(
         wuff.__spot_first_peaks_in_CalibrationHistogram() 
         function. For more information, check the 
         documentation of such function.
+    fit_type: str
+        The only supported values are 'independent_gaussians'
+        and 'correlated_gaussians'. If any other value is
+        given, the 'independent_gaussians' value will be
+        used instead. If the 'independent_gaussians' value
+        is used, the function will fit each peak independently,
+        i.e. it will fit a gaussian function to each peak
+        independently of the others. For more information
+        on this type of fit, check the documentation of the
+        wuff.__fit_independent_gaussians_to_calibration_histogram()
+        function. If the 'correlated_gaussians' value is given,
+        the function will fit all of the peaks at once using
+        a fitting function which is a sum of gaussians whose
+        means and standard deviations are correlated. For
+        more information on this type of fit, check the
+        documentation of the
+        wuff.__fit_correlated_gaussians_to_calibration_histogram()
+        function.
     half_points_to_fit: int
+        This parameter is only used if the fit_type
+        parameter is set to 'independent_gaussians'.
         It must be a positive integer. For each peak, it 
         gives the number of points to consider on either 
         side of the peak maximum, to fit each gaussian 
@@ -133,14 +154,24 @@ def fit_peaks_of_CalibrationHistogram(
         prominence,
         initial_percentage,
         percentage_step)
+    
+    if fit_type == 'correlated_gaussians':
+        raise NotImplementedError(
+            GenerateExceptionMessage(
+                5,
+                'fit_peaks_of_CalibrationHistogram()',
+                "The 'correlated_gaussians' fit type is not "
+                "implemented yet."
+            )
+        )
+    else:
+        fFitAll = wuff.__fit_independent_gaussians_to_calibration_histogram(
+            spsi_output,
+            calibration_histogram,
+            half_points_to_fit
+        )
 
-    fFitAll = wuff.__fit_independent_gaussians_to_calibration_histogram(
-        spsi_output,
-        calibration_histogram,
-        half_points_to_fit
-    )
-
-    return fFoundMax*fFitAll
+        return fFoundMax*fFitAll
 
 def fit_peaks_of_ChannelWsGrid( 
     channel_ws_grid: ChannelWsGrid,
@@ -148,6 +179,7 @@ def fit_peaks_of_ChannelWsGrid(
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
+    fit_type: str = 'independent_gaussians',
     half_points_to_fit: int = 2
 ) -> bool:
     """For each ChannelWs object, say chws, contained in
@@ -198,7 +230,17 @@ def fit_peaks_of_ChannelWsGrid(
         parameter of the fit_peaks_of_CalibrationHistogram()
         function for each calibration histogram. For more 
         information, check the documentation of such function.
+    fit_type: str
+        The only supported values are 'independent_gaussians'
+        and 'correlated_gaussians'. If any other value is
+        given, the 'independent_gaussians' value will be
+        used instead. This parameter is passed to the
+        'fit_type' parameter of the fit_peaks_of_CalibrationHistogram()
+        function for each calibration histogram. For more 
+        information, check the documentation of such function.
     half_points_to_fit: int
+        This parameter is only used if the fit_type
+        parameter is set to 'independent_gaussians'.
         It must be a positive integer. For each peak in
         each calibration histogram, it gives the number 
         of points to consider on either side of the peak 
@@ -235,6 +277,7 @@ def fit_peaks_of_ChannelWsGrid(
                 prominence,
                 initial_percentage=initial_percentage,
                 percentage_step=percentage_step,
+                fit_type=fit_type,
                 half_points_to_fit=half_points_to_fit
             )
 
