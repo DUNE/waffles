@@ -1,9 +1,6 @@
-from scipy import optimize as spopt
-
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
-import waffles.utils.numerical_utils as wun
 import waffles.utils.fit_peaks.fit_peaks_utils as wuff
 
 from waffles.Exceptions import GenerateExceptionMessage
@@ -95,9 +92,9 @@ def fit_peaks_of_CalibrationHistogram(
     Returns
     -------
     bool
-        True if the number of found peaks matches the given
-        max_peaks parameter, and False if it is smaller than
-        max_peaks.
+        True if the number of found-and-fitted peaks matches
+        the given max_peaks parameter, and False if it is
+        smaller than max_peaks.
     """
 
     if max_peaks < 1:
@@ -136,85 +133,14 @@ def fit_peaks_of_CalibrationHistogram(
         prominence,
         initial_percentage,
         percentage_step)
-    
-    peaks_n_to_fit = len(spsi_output[0])
 
-    for i in range(peaks_n_to_fit):
-            
-        aux_idx  = spsi_output[0][i]
+    fFitAll = wuff.__fit_independent_gaussians_to_calibration_histogram(
+        spsi_output,
+        calibration_histogram,
+        half_points_to_fit
+    )
 
-        aux_seeds = [
-            # Scale seed
-            calibration_histogram.counts[aux_idx],
-            # Mean seed
-            (calibration_histogram.edges[aux_idx] \
-             + calibration_histogram.edges[aux_idx + 1]) / 2.,
-            # Std seed : Note that 
-            # wuff.__spot_first_peaks_in_CalibrationHistogram()
-            # is computing the widths of the peaks, in
-            # number of samples, at half of their height 
-            # (rel_height = 0.5). 2.355 is approximately 
-            # the conversion factor between the standard 
-            # deviation and the FWHM. Also, note that here
-            # we are assuming that the binning is uniform.
-            spsi_output[1]['widths'][i] * calibration_histogram.mean_bin_width / 2.355]                             
-
-        # Restrict the fit lower limit to 0
-        aux_lower_lim = max(
-            0,
-            aux_idx - half_points_to_fit)
-        
-        # The upper limit should be restricted to
-        # len(calibration_histogram.counts). Making it
-        # be further restricted to 
-        # len(calibration_histogram.counts) - 1 so that
-        # there is always available data to compute
-        # the center of the bins, in the following line.
-        
-        aux_upper_lim = min(
-            len(calibration_histogram.counts) - 1,
-            aux_idx + half_points_to_fit + 1)
-        
-        aux_bin_centers = ( 
-            calibration_histogram.edges[aux_lower_lim : aux_upper_lim] \
-            + calibration_histogram.edges[
-                aux_lower_lim + 1 : aux_upper_lim + 1] ) / 2.
-        
-        aux_counts = calibration_histogram.counts[
-            aux_lower_lim : aux_upper_lim]
-
-        try:
-            aux_optimal_parameters, aux_covariance_matrix = spopt.curve_fit(
-                wun.gaussian, 
-                aux_bin_centers, 
-                aux_counts, 
-                p0=aux_seeds)
-            
-        # Happens if scipy.optimize.curve_fit()
-        # could not converge to a solution
-
-        except RuntimeError:
-
-            # In this case, we will skip this peak
-            # (so, in case fFoundMax was True, now 
-            # it must be false) and we will continue 
-            # with the next one, if any
-
-            fFoundMax = False
-
-            continue    
-
-        aux_errors = np.sqrt(np.diag(aux_covariance_matrix))
-
-        calibration_histogram._CalibrationHistogram__add_gaussian_fit_parameters(   
-            aux_optimal_parameters[0],
-            aux_errors[0],
-            aux_optimal_parameters[1],
-            aux_errors[1],
-            aux_optimal_parameters[2],
-            aux_errors[2])
-        
-    return fFoundMax
+    return fFoundMax*fFitAll
 
 def fit_peaks_of_ChannelWsGrid( 
     channel_ws_grid: ChannelWsGrid,
