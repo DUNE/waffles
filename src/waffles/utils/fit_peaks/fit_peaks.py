@@ -1,4 +1,3 @@
-import numpy as np
 from scipy import optimize as spopt
 
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
