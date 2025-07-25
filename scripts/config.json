@@ -1,21 +1,12 @@
 {
-    "runs": [27343,27355,27361,27367,27374],
-    "rucio_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths",   
-    "output_dir": "/afs/cern.ch/work/a/anbalbon/public/np04_beam_pickles/set_A/prova_lettura",
-    "ch": {"109": [7,35]},
-    "save_single_file": true,
+    "runs": [27343],
+    "rucio_dir": "/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW",
+    "output_dir": "/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW",
+    "ch": {
+    },
+    "save_single_file": false,
     "max_files": 1,
-    "det": "HD_PDS"
+    "det": "HD_PDS",
+    "trigger": "self_trigger",
+    "truncate_wfs_method": "choose" 
 }
-// {
-//     "runs": [
-//     26301
-//     ],
-//     "rucio_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/",
-//     "output_dir": "/afs/cern.ch/work/a/anbalbon/public/np04_beam_pickles/set_A/prova_lettura/",
-//     "ch": {
-//     },
-//     "save_single_file": false,
-//     "max_files":1,
-//     "det": "HD_PDS"
-// }
