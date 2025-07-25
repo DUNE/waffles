@@ -13,9 +13,9 @@ def fit_peaks_of_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
     max_peaks: int,
     prominence: float,
-    half_points_to_fit: int,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
+    half_points_to_fit: int = 2
 ) -> bool:
     """For the given CalibrationHistogram object, 
     calibration_histogram, this function
@@ -69,15 +69,6 @@ def fit_peaks_of_CalibrationHistogram(
         scipy.signal.find_peaks() from spotting peaks 
         whose amplitude is less than half of the total 
         amplitude of the histogram.
-    half_points_to_fit: int
-        It must be a positive integer. For each peak, it 
-        gives the number of points to consider on either 
-        side of the peak maximum, to fit each gaussian 
-        function. I.e. if i is the iterator value for
-        calibration_histogram.counts of the i-th peak, 
-        then the histogram bins which will be considered 
-        for the fit are given by the slice 
-        calibration_histogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
     initial_percentage: float
         It must be greater than 0.0 and smaller than 1.0.
         This parameter is passed to the 'initial_percentage' 
@@ -92,6 +83,15 @@ def fit_peaks_of_CalibrationHistogram(
         wuff.__spot_first_peaks_in_CalibrationHistogram() 
         function. For more information, check the 
         documentation of such function.
+    half_points_to_fit: int
+        It must be a positive integer. For each peak, it 
+        gives the number of points to consider on either 
+        side of the peak maximum, to fit each gaussian 
+        function. I.e. if i is the iterator value for
+        calibration_histogram.counts of the i-th peak, 
+        then the histogram bins which will be considered 
+        for the fit are given by the slice 
+        calibration_histogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
 
     Returns
     -------
@@ -221,9 +221,9 @@ def fit_peaks_of_ChannelWsGrid(
     channel_ws_grid: ChannelWsGrid,
     max_peaks: int,
     prominence: float,
-    half_points_to_fit: int,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
+    half_points_to_fit: int = 2
 ) -> bool:
     """For each ChannelWs object, say chws, contained in
     the ChWfSets attribute of the given ChannelWsGrid
@@ -261,15 +261,6 @@ def fit_peaks_of_ChannelWsGrid(
         for each calibration histogram. For more 
         information, check the documentation of such 
         function.
-    half_points_to_fit: int
-        It must be a positive integer. For each peak in
-        each calibration histogram, it gives the number 
-        of points to consider on either side of the peak 
-        maximum, to fit each gaussian function. It is
-        given to the 'half_points_to_fit' parameter of
-        the fit_peaks_of_CalibrationHistogram() function 
-        for each calibration histogram. For more information, 
-        check the documentation of such function.
     initial_percentage: float
         It must be greater than 0.0 and smaller than 1.0.
         This parameter is passed to the 'initial_percentage' 
@@ -282,6 +273,15 @@ def fit_peaks_of_ChannelWsGrid(
         parameter of the fit_peaks_of_CalibrationHistogram()
         function for each calibration histogram. For more 
         information, check the documentation of such function.
+    half_points_to_fit: int
+        It must be a positive integer. For each peak in
+        each calibration histogram, it gives the number 
+        of points to consider on either side of the peak 
+        maximum, to fit each gaussian function. It is
+        given to the 'half_points_to_fit' parameter of
+        the fit_peaks_of_CalibrationHistogram() function 
+        for each calibration histogram. For more information, 
+        check the documentation of such function.
 
     Returns
     ----------
@@ -308,8 +308,9 @@ def fit_peaks_of_ChannelWsGrid(
                 channel_ws.calib_histo,
                 max_peaks,
                 prominence,
-                half_points_to_fit,
                 initial_percentage=initial_percentage,
-                percentage_step=percentage_step)
-            
+                percentage_step=percentage_step,
+                half_points_to_fit=half_points_to_fit
+            )
+
     return output
