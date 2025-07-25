@@ -14,8 +14,8 @@ def fit_peaks_of_CalibrationHistogram(
     max_peaks: int,
     prominence: float,
     half_points_to_fit: int,
-    initial_percentage = 0.1,
-    percentage_step = 0.1
+    initial_percentage: float = 0.1,
+    percentage_step: float = 0.1,
 ) -> bool:
     """For the given CalibrationHistogram object, 
     calibration_histogram, this function
@@ -222,8 +222,8 @@ def fit_peaks_of_ChannelWsGrid(
     max_peaks: int,
     prominence: float,
     half_points_to_fit: int,
-    initial_percentage = 0.1,
-    percentage_step = 0.1
+    initial_percentage: float = 0.1,
+    percentage_step: float = 0.1,
 ) -> bool:
     """For each ChannelWs object, say chws, contained in
     the ChWfSets attribute of the given ChannelWsGrid
