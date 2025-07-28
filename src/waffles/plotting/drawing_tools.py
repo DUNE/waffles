@@ -374,9 +374,9 @@ def compute_peaks(calibh: CalibrationHistogram,
     fp.fit_peaks_of_CalibrationHistogram(calibration_histogram=calibh,
                                         max_peaks = npeaks,
                                         prominence = prominence,
-                                        half_points_to_fit = half_points_to_fit,
                                         initial_percentage = 0.1,
-                                        percentage_step = 0.1)
+                                        percentage_step = 0.1,
+                                        half_points_to_fit = half_points_to_fit)
 
 
     # print the gain and the S/N

@@ -2,10 +2,12 @@ import math
 
 import numpy as np
 from scipy import signal as spsi
+from scipy import optimize as spopt
 from typing import Tuple, Dict
 
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 
+import waffles.utils.numerical_utils as wun
 
 def trim_spsi_find_peaks_output_to_max_peaks(
     spsi_output: Tuple[np.ndarray, Dict[str, np.ndarray]],
@@ -175,3 +177,130 @@ def __spot_first_peaks_in_CalibrationHistogram(
         return (True, spsi_output)
     else:
         return (False, spsi_output)
+    
+
+def __fit_independent_gaussians_to_calibration_histogram(
+    spsi_output: Tuple[np.ndarray, Dict[str, np.ndarray]], 
+    calibration_histogram: CalibrationHistogram,
+    half_points_to_fit: int
+) -> bool:
+    """This function gets the output of a certain call to 
+    scipy.signal.find_peaks() and a CalibrationHistogram
+    object, and tries to fit one independent gaussian to
+    each one of the peaks spotted by scipy.signal.find_peaks()
+    in the given calibration histogram. The number of
+    points to fit around each peak is related to the
+    half_points_to_fit parameter.
+
+    Parameters
+    ----------
+    spsi_output: tuple of ( np.ndarray,  dict, )
+        The output of a call to scipy.signal.find_peaks().
+        No checks are performed here regarding the
+        well-formedness of this input.
+    calibration_histogram: CalibrationHistogram
+        The CalibrationHistogram object to fit peaks on
+    half_points_to_fit: int
+        It must be a positive integer. This is not checked
+        here. It is the caller's responsibility to check so.
+        For each peak, it gives the number of points to
+        consider on either side of the peak maximum, to
+        fit each gaussian function. I.e. if i is the
+        iterator value for calibration_histogram.counts of
+        the i-th peak, then the histogram bins which will
+        be considered for the fit are given by the slice
+        calibration_histogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
+
+    Returns
+    -------
+    fFitAll: bool
+        True if all of the given peaks could be fit. I.e.
+        it may happen for some peaks that
+        scipy.optimize.curve_fit() could not converge to
+        a solution. If that is the case for at least one
+        peak, then this function returns False.
+    """
+
+    # Number of peaks to try fit
+    peaks_n_to_fit = len(spsi_output[0])
+
+    # Whether all of the peaks could be fit
+    fFitAll = True
+
+    for i in range(peaks_n_to_fit):
+            
+        aux_idx  = spsi_output[0][i]
+
+        aux_seeds = [
+            # Scale seed for wun.gaussian()
+            calibration_histogram.counts[aux_idx],
+            # Mean seed for wun.gaussian()
+            (calibration_histogram.edges[aux_idx] \
+             + calibration_histogram.edges[aux_idx + 1]) / 2.,
+            # Std seed for wun.gaussian(): Here we are
+            # assuming that scipy.signal.find_peaks()
+            # was given the width=0 and rel_height=0.5
+            # keyword arguments. This means that
+            # spsi_output should contain the widths of
+            # the peaks, in number of samples, at half
+            # of their height. 2.355 is approximately
+            # the conversion factor between the standard
+            # deviation and the FWHM. Also, note that here
+            # we are assuming that the binning is uniform.
+            spsi_output[1]['widths'][i] * calibration_histogram.mean_bin_width / 2.355
+        ]
+
+        # Restrict the fit lower limit to 0
+        aux_lower_lim = max(
+            0,
+            aux_idx - half_points_to_fit
+        )
+        
+        # The upper limit should be restricted to
+        # len(calibration_histogram.counts). Making it
+        # be further restricted to 
+        # len(calibration_histogram.counts) - 1 so that
+        # there is always available data to compute
+        # the center of the bins, in the following line.
+        aux_upper_lim = min(
+            len(calibration_histogram.counts) - 1,
+            aux_idx + half_points_to_fit + 1
+        )
+        
+        aux_bin_centers = ( 
+            calibration_histogram.edges[aux_lower_lim : aux_upper_lim] \
+            + calibration_histogram.edges[
+                aux_lower_lim + 1 : aux_upper_lim + 1] ) / 2.
+        
+        aux_counts = calibration_histogram.counts[
+            aux_lower_lim : aux_upper_lim]
+
+        try:
+            aux_optimal_parameters, aux_covariance_matrix = spopt.curve_fit(
+                wun.gaussian,
+                aux_bin_centers,
+                aux_counts,
+                p0=aux_seeds
+            )
+            
+        # Happens if scipy.optimize.curve_fit()
+        # could not converge to a solution
+        except RuntimeError:
+
+            # In this case, we will skip this peak
+            # so, in case fFitAll was True, it
+            # should be set to False
+            fFitAll = False
+            continue    
+
+        aux_errors = np.sqrt(np.diag(aux_covariance_matrix))
+
+        calibration_histogram._CalibrationHistogram__add_gaussian_fit_parameters(   
+            aux_optimal_parameters[0],
+            aux_errors[0],
+            aux_optimal_parameters[1],
+            aux_errors[1],
+            aux_optimal_parameters[2],
+            aux_errors[2])
+
+    return fFitAll
