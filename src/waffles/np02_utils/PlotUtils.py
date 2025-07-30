@@ -122,6 +122,8 @@ def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = N
         shared_yaxes=kwargs.pop("shared_yaxes", False)
     )
 
+    width = kwargs.pop("width", 1000)
+    height = kwargs.pop("height", 800)
     if plot_function is None:
         plot_ChannelWsGrid(chgrid,
                            figure=fig,
@@ -135,7 +137,7 @@ def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = N
         plot_CustomChannelGrid(chgrid, plot_function, figure=fig, wf_func=kwargs.pop("wf_func", None), **kwargs)
 
     fig.update_layout(title=title, template="plotly_white",
-                      width=1000, height=800, showlegend=True)
+                      width=width, height=height, showlegend=True)
     if html:
         fig.write_html(html.as_posix())
         logging.info("💾 %s", html)
@@ -261,7 +263,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
     try:
         zero_charge = fit_params['mean'][0][0]
         spe_charge = fit_params['mean'][1][0]
-        baseline_stddev = fit_params['std'][0][0]
+        baseline_stddev = abs(fit_params['std'][0][0])
         spe_stddev = fit_params['std'][1][0]
 
         gain = spe_charge - zero_charge
