@@ -163,9 +163,10 @@ def fit_peaks_of_CalibrationHistogram(
         calibration_histogram,
         max_peaks,
         prominence,
-        initial_percentage,
-        percentage_step)
+        initial_percentage=initial_percentage,
+        percentage_step=percentage_step,
         return_last_addition_if_fail=return_last_addition_if_fail
+    )
     
     if fit_type == 'correlated_gaussians':
         raise NotImplementedError(
