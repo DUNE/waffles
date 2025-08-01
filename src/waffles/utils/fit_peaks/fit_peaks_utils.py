@@ -62,6 +62,7 @@ def __spot_first_peaks_in_CalibrationHistogram(
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
+    return_last_addition_if_fail: bool = False
 ) -> Tuple[bool, Tuple]:
     """This function is not intended for user usage. It 
     must be only called by fit_peaks_of_CalibrationHistogram(),
@@ -94,12 +95,23 @@ def __spot_first_peaks_in_CalibrationHistogram(
 
     If the last call found a number of peaks smaller than
     max_peaks, then this function returns (False, peaks),
-    where peaks is the output of the last call to 
-    scipy.signal.find_peaks(). If the last call found a
-    number of peaks greater than or equal to max_peaks, 
-    then the function returns (True, peaks), where peaks 
-    is the output of scipy.signal.find_peaks() but 
-    truncated to the first max_peaks found peaks.
+    where peaks is
+    
+        - the output of the last call to
+        scipy.signal.find_peaks() if return_last_addition_if_fail
+        is False
+
+        - the output of the last call to
+        scipy.signal.find_peaks() which added one peak
+        with respect to the immediately previous
+        call, if return_last_addition_if_fail is
+        True.
+        
+    Otherwise, if the last call found a number of peaks
+    greater than or equal to max_peaks, then the function
+    returns (True, peaks), where peaks is the output of
+    scipy.signal.find_peaks() but truncated to the first
+    max_peaks found peaks.
 
     Parameters
     ----------
@@ -127,20 +139,36 @@ def __spot_first_peaks_in_CalibrationHistogram(
         to consider in successive calls of 
         scipy.signal.find_peaks(). It must be greater 
         than 0.0 and smaller than 1.0.
+    return_last_addition_if_fail: bool
+        This parameter only makes a difference if the
+        specified number of peaks (max_peaks) is not
+        found not even in the last call to
+        scipy.signal.find_peaks() which includes the
+        whole calibration histogram. In that case, if
+        this parameter is False, then the second
+        output returned by this function is the output
+        of the last call to scipy.signal.find_peaks().
+        If this parameter is True, then the second
+        output returned by this function is the output
+        of the last call to scipy.signal.find_peaks()
+        which added one peak with respect to the
+        immediately previous call.
 
     Returns
     -------
     output: tuple of ( bool, tuple, )
         The first entry is a boolean which is True if 
         the number of peaks found is greater than or 
-        equal to max_peaks, and False otherwise. The
-        second entry is the output of the last call to
-        scipy.signal.find_peaks() if the first entry
-        of the tuple is False. If the first entry of
-        the tuple is True, then the second entry is
-        the output of scipy.signal.find_peaks() but
-        truncated to the first max_peaks found peaks. 
-        For more information, check the 
+        equal to max_peaks, and False otherwise. If
+        the first entry of the tuple is False, then
+        the second entry is the output of a call to
+        scipy.signal.find_peaks(), depending on the
+        value given to return_last_addition_if_fail.
+        If the first entry of the tuple is True, then
+        the second entry is the output of
+        scipy.signal.find_peaks() but truncated to
+        the first max_peaks found peaks. For more
+        information, check the
         scipy.signal.find_peaks() documentation.
     """
 
@@ -148,8 +176,11 @@ def __spot_first_peaks_in_CalibrationHistogram(
         calibration_histogram.counts - np.min(calibration_histogram.counts)
     ) / np.max(calibration_histogram.counts)
 
+    # Some initializations for the loop
     fFoundMax = False
     fReachedEnd = False
+    last_spotted_peaks = 0
+    last_spsi_output_with_addition = None
     points = math.floor(initial_percentage * len(signal))
 
     while not fFoundMax and not fReachedEnd:
@@ -164,11 +195,20 @@ def __spot_first_peaks_in_CalibrationHistogram(
             signal[0:points],
             prominence=prominence,
             width=0,
-            rel_height=0.5)
-        if len(spsi_output[0]) >= max_peaks:
+            rel_height=0.5
+        )
 
-            spsi_output = trim_spsi_find_peaks_output_to_max_peaks(spsi_output,
-                                                                   max_peaks)
+        if len(spsi_output[0]) > last_spotted_peaks:
+            last_spsi_output_with_addition = spsi_output
+
+        last_spotted_peaks = len(spsi_output[0])
+        
+        if last_spotted_peaks >= max_peaks:
+
+            spsi_output = trim_spsi_find_peaks_output_to_max_peaks(
+                spsi_output,
+                max_peaks
+            )
             fFoundMax = True
 
         if points == len(signal):
@@ -179,7 +219,11 @@ def __spot_first_peaks_in_CalibrationHistogram(
     if fFoundMax:
         return (True, spsi_output)
     else:
-        return (False, spsi_output)
+        if return_last_addition_if_fail and \
+            last_spsi_output_with_addition is not None:
+            return (False, last_spsi_output_with_addition)
+        else:
+            return (False, spsi_output)
     
 
 def __fit_independent_gaussians_to_calibration_histogram(
