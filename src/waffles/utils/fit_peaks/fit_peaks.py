@@ -191,6 +191,7 @@ def fit_peaks_of_ChannelWsGrid(
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
+    return_last_addition_if_fail: bool = False,
     fit_type: str = 'independent_gaussians',
     half_points_to_fit: int = 2
 ) -> bool:
@@ -242,6 +243,14 @@ def fit_peaks_of_ChannelWsGrid(
         parameter of the fit_peaks_of_CalibrationHistogram()
         function for each calibration histogram. For more 
         information, check the documentation of such function.
+    return_last_addition_if_fail: bool
+        This parameter is given to the
+        return_last_addition_if_fail parameter of the
+        fit_peaks_of_CalibrationHistogram() function. It
+        makes a difference only if the specified number
+        of peaks (max_peaks) is not found. For more
+        information, check the documentation of the
+        fit_peaks_of_CalibrationHistogram() function.
     fit_type: str
         The only supported values are 'independent_gaussians'
         and 'correlated_gaussians'. If any other value is
@@ -289,6 +298,7 @@ def fit_peaks_of_ChannelWsGrid(
                 prominence,
                 initial_percentage=initial_percentage,
                 percentage_step=percentage_step,
+                return_last_addition_if_fail=return_last_addition_if_fail,
                 fit_type=fit_type,
                 half_points_to_fit=half_points_to_fit
             )
