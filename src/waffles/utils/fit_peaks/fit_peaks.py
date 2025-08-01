@@ -210,7 +210,9 @@ def fit_peaks_of_ChannelWsGrid(
     percentage_step: float = 0.1,
     return_last_addition_if_fail: bool = False,
     fit_type: str = 'independent_gaussians',
-    half_points_to_fit: int = 2
+    half_points_to_fit: int = 2,
+    std_increment_seed_fallback: float = 1e+2,
+    ch_span_fraction_around_peaks: float = 0.05
 ) -> bool:
     """For each ChannelWs object, say chws, contained in
     the ChWfSets attribute of the given ChannelWsGrid
@@ -287,6 +289,18 @@ def fit_peaks_of_ChannelWsGrid(
         the fit_peaks_of_CalibrationHistogram() function 
         for each calibration histogram. For more information, 
         check the documentation of such function.
+    std_increment_seed_fallback: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        For more information, check the documentation
+        of the fit_peaks_of_CalibrationHistogram()
+        function.
+    ch_span_fraction_around_peaks: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        For more information, check the documentation
+        of the fit_peaks_of_CalibrationHistogram()
+        function.
 
     Returns
     ----------
@@ -317,7 +331,9 @@ def fit_peaks_of_ChannelWsGrid(
                 percentage_step=percentage_step,
                 return_last_addition_if_fail=return_last_addition_if_fail,
                 fit_type=fit_type,
-                half_points_to_fit=half_points_to_fit
+                half_points_to_fit=half_points_to_fit,
+                std_increment_seed_fallback=std_increment_seed_fallback,
+                ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
             )
 
     return output
