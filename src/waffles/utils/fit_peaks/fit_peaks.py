@@ -11,6 +11,7 @@ def fit_peaks_of_CalibrationHistogram(
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
+    return_last_addition_if_fail: bool = False,
     fit_type: str = 'independent_gaussians',
     half_points_to_fit: int = 2
 ) -> bool:
@@ -80,6 +81,16 @@ def fit_peaks_of_CalibrationHistogram(
         wuff.__spot_first_peaks_in_CalibrationHistogram() 
         function. For more information, check the 
         documentation of such function.
+    return_last_addition_if_fail: bool
+        This parameter is given to the
+        return_last_addition_if_fail parameter of the
+        wuff.__spot_first_peaks_in_CalibrationHistogram()
+        function. It makes a difference only if the
+        specified number of peaks (max_peaks) is not
+        found. For more information, check the
+        documentation of the 
+        wuff.__spot_first_peaks_in_CalibrationHistogram()
+        function.
     fit_type: str
         The only supported values are 'independent_gaussians'
         and 'correlated_gaussians'. If any other value is
@@ -154,6 +165,7 @@ def fit_peaks_of_CalibrationHistogram(
         prominence,
         initial_percentage,
         percentage_step)
+        return_last_addition_if_fail=return_last_addition_if_fail
     
     if fit_type == 'correlated_gaussians':
         raise NotImplementedError(
