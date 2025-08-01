@@ -8,6 +8,7 @@ import numpy as np
 import os
 import pandas as pd
 
+
 run_info_file = "./configs/SelfTrigger_RunInfo.csv"
 ana_folder  = "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/"
 calibration_file = "SelfTrigger_Calibration.csv"
@@ -119,7 +120,8 @@ runs = [31519,
     32149,
     32150,]
 
-SiPM_channel = 11221
+SiPM_channel = 11121
+perform_selection = True
 
 
 if __name__ == "__main__":
@@ -141,13 +143,14 @@ if __name__ == "__main__":
     SiPM = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
 
 
-    out_root_file = TFile(ana_folder+f"Ch_{SiPM_channel}.root", "RECREATE")
-    ch_folder = ana_folder+f"Ch_{SiPM_channel}/"
+    out_root_file = TFile(ana_folder+f"Ch_{SiPM_channel}_Selection_{perform_selection}.root", "RECREATE")
+    ch_folder = ana_folder+f"Ch_{SiPM_channel}_Selection_{perform_selection}/"
     if not os.path.exists(ch_folder):
         os.makedirs(ch_folder)
 
     for run in runs:
-        print("RUN: ", run)
+        # print the run number and the run index in runs
+        print(f"Processing run {run} ({runs.index(run)+1}/{len(runs)})")
         # Load run information ------------------------------------------------
         led  = int(df_runs.loc[df_runs['Run'] == run, 'LED'].values[0])
         exa_threshold = str(df_runs.loc[df_runs['Run'] == run, 'Threshold'].values[0])
@@ -177,20 +180,23 @@ if __name__ == "__main__":
                                       snr=snr)
         st.create_wfs()
 
+        if perform_selection:
+            st.select_waveforms()
+
         h_st = st.create_self_trigger_distribution()
         h_st = st.fit_self_trigger_distribution()
-        bkg_trg_rate = st.bkg_trg_rate
         
         fig = plt.figure(figsize=(10, 8))
-        h_total, h_passed = st.create_efficiency_histos("he_efficiency")
-        plt.savefig(ch_folder+f"Efficiency_Run_{run}_LED_{led}_Thr_{threshold}.png")
+        htotal, hpassed = st.create_efficiency_histos("he_efficiency")
+        plt.savefig(ch_folder+f"Efficiency_Run_{run}_LED_{led}_Thr_{threshold}_Selection_{perform_selection}.png")
+        plt.close(fig)
         
         f_sigmoid = TF1("f_sigmoid", "[2]/(1+exp(([0]-x)/[1]))", -2, 7)
         he_efficiency = st.fit_efficiency(f_sigmoid=f_sigmoid)
 
         st.get_trigger_rate()
-        
 
+        accuracy, accuracy_thr = self_trigger.get_max_accuracy(st.h_total, st.h_passed)
 
         out_df_rows.append({
             "Run": run,
@@ -203,7 +209,15 @@ if __name__ == "__main__":
             "ThresholdSet": threshold,
             "AccWinLow": st.window_low,
             "AccWinUp": st.window_up,
-            "BkgTrgRate": bkg_trg_rate,
+            "BkgTrgRate": st.bkg_trg_rate,
+            "BkgTrgRatePreLED": st.bkg_trg_rate_preLED,
+            "MaxAccuracy": accuracy,
+            "MaxAccuracyThr": accuracy_thr,
+            "FalsePositiveRateMaxAcc": self_trigger.get_false_positive_rate(st.h_total, st.h_passed, accuracy_thr),
+            "TruePositiveRateMaxAcc": self_trigger.get_true_positive_rate(st.h_total, st.h_passed, accuracy_thr),
+            "AccuracyThresholdFit": self_trigger.get_accuracy(st.h_total, st.h_passed, f_sigmoid.GetParameter(0)),
+            "FalsePositiveRate": self_trigger.get_false_positive_rate(st.h_total, st.h_passed, f_sigmoid.GetParameter(0)),
+            "TruePositiveRate": self_trigger.get_true_positive_rate(st.h_total, st.h_passed, f_sigmoid.GetParameter(0)),
             "MeanTrgPos": st.f_STpeak.GetParameter(1),
             "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
             "SigmaTrg": st.f_STpeak.GetParameter(2),
@@ -221,27 +235,8 @@ if __name__ == "__main__":
 
     out_root_file.Close()
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}.csv", index=False)
+    out_df.to_csv(ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}_Selection_{perform_selection}.csv", index=False)
 
-
-
-
-        #
-        #
-        # # Analysis on selected waveforms ---------------------------------------------
-        # st.select_waveforms()
-        #
-        # h_st = st.create_self_trigger_distribution()
-        # x_model, y_model = st.fit_self_trigger_distribution()
-        # 
-        # fig = plt.figure(figsize=(10, 8))
-        # h_total, h_passed = st.create_efficiency_histos("he_efficiency_select")
-        # plt.savefig(homedir+"efficiency_select.png")
-        # 
-        # he_efficiency_select = st.fit_efficiency(f_sigmoid=f_sigmoid)
-        #
-        #
-        # # Outlier studies ---------------------------------------------------------
         # st.select_outliers(f_sigmoid=f_sigmoid)
         # fig = plt.figure(figsize=(10, 8))
         # h_st = st.create_self_trigger_distribution()

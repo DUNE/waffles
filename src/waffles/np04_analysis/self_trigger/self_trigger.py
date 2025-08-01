@@ -26,6 +26,60 @@ def persistence_plot(wfs):
     h[h==0] = np.nan
     return h, xedges, yedges
 
+def get_max_accuracy(h_total: TH1D, h_passed: TH1D):
+    """
+    Calculate the accuracy of the self-triggering based on the total and passed histograms.
+    Def: accuracy = true_positive + true_negative / (true_positive + true_negative + false_positive + false_negative)
+    Returns the accuracy and the threshold at which it is achieved.
+    NOTE: in computing "acc" we omitted the terms that cancel out.
+    """
+    accuracy = -1e6
+    accuracy_thr = -1e6
+    nbins = h_total.GetNbinsX()
+    itera = 0
+    for i in range(3,nbins-1):
+        if h_total.GetBinContent(i+1) == 0:
+            continue
+        acc = ( h_passed.Integral(i,nbins) + h_total.Integral(1,i-1)-h_passed.Integral(1,i-1) ) / \
+                ( h_total.Integral(1,nbins) )
+        if acc > accuracy:
+            accuracy = acc
+            accuracy_thr = h_total.GetBinCenter(i+1)
+            itera = i
+
+    print(f"Max accuracy: {accuracy} at threshold {accuracy_thr} (bin {itera})")
+    return accuracy, accuracy_thr
+    
+def get_true_positive_rate(h_total: TH1D, h_passed: TH1D, threshold: float):
+    """
+
+    """
+    thr_bin = h_total.FindBin(threshold)
+    true_positive_rate = h_passed.Integral(thr_bin, h_passed.GetNbinsX()) / h_total.Integral(thr_bin, h_total.GetNbinsX())
+    
+    return true_positive_rate
+
+def get_false_positive_rate(h_total: TH1D, h_passed: TH1D, threshold: float):
+    """
+
+    """
+    thr_bin = h_total.FindBin(threshold)
+    false_positive_rate = h_passed.Integral(1, thr_bin) / h_total.Integral(thr_bin, h_total.GetNbinsX())
+
+    return false_positive_rate
+
+def get_accuracy(h_total: TH1D, h_passed: TH1D, threshold: float):
+    """
+
+    """
+    thr_bin = h_total.FindBin(threshold)    
+    nbins = h_total.GetNbinsX()
+    acc = ( h_passed.Integral(thr_bin,nbins) + h_total.Integral(1,thr_bin)-h_passed.Integral(1,thr_bin) ) / \
+                ( h_total.Integral(1,nbins) )
+
+    return acc
+
+    
 
 
 class SelfTrigger:
@@ -62,6 +116,9 @@ class SelfTrigger:
         self.h_bins = 140
         self.bkg_trg_win_low = 800
         self.trigger_rate = 0.0
+
+        self.window_low = 0
+        self.window_up = 0
         # self.st_selection = np.zeros(len(self.wfset_st.waveforms), dtype=bool)
 
 
@@ -97,6 +154,8 @@ class SelfTrigger:
 
         n_bkg_triggers = h_selftrigger.Integral(self.bkg_trg_win_low, h_selftrigger.GetNbinsX())
         self.bkg_trg_rate = (n_bkg_triggers * 10**9) / (len(self.wfs_st) * (len(self.wfs_st[0].adcs)-self.bkg_trg_win_low) * 16.)
+        n_bkg_triggers_preLED = h_selftrigger.Integral(1, self.int_low)
+        self.bkg_trg_rate_preLED = (n_bkg_triggers_preLED * 10**9) / (len(self.wfs_st) * self.int_low * 16.)
 
        
         self.h_st = h_selftrigger
@@ -136,12 +195,17 @@ class SelfTrigger:
         f_STpeak = TF1("f_STpeak", f"{f_constant.GetParameter(0)}+gaus", pretrg, afttrg)
         estimated_gaus_amp = y_hST_max - f_constant.GetParameter(0)
         f_STpeak.SetParameters(estimated_gaus_amp, x_hST_max, 1.0)
+        f_STpeak.SetParLimits(0, estimated_gaus_amp * 0.5, estimated_gaus_amp * 1.5)
+        f_STpeak.SetParLimits(1, pretrg, afttrg)
+        f_STpeak.SetParLimits(2, 0.05, 5.0)
         f_STpeak.SetNpx(1000)
         self.h_st.Fit(f_STpeak, "R")
 
         self.f_STpeak = f_STpeak
+        # if (self.window_low==0): self.window_low = int(pretrg)
+        # if (self.window_up==0):  self.window_up  = int(afttrg)
         self.window_low = int(pretrg)
-        self.window_up = int(afttrg)
+        self.window_up  = int(afttrg)
         return self.h_st
 
 
@@ -149,18 +213,24 @@ class SelfTrigger:
         """
         Create efficiency histograms for the self-triggering.
         """
-        htotal  = Hist.new.Reg(self.h_bins, self.h_low, self.h_up, label="#P.E.").Double()
-        hpassed = Hist.new.Reg(self.h_bins, self.h_low, self.h_up, label="#P.E.").Double()
+        htotal   = Hist.new.Reg(self.h_bins, self.h_low, self.h_up, label="#P.E.").Double()
+        hpassed  = Hist.new.Reg(self.h_bins, self.h_low, self.h_up, label="#P.E.").Double()
         spe_norm = 1./self.spe_charge
 
-        h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  self.h_bins, self.h_low, self.h_up)
-        h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", self.h_bins, self.h_low, self.h_up)
+        nspes = np.array([wf.adcs_float[self.int_low:self.int_up].sum() * spe_norm for wf in self.wfs_sipm])
+        sorted_nspes = nspes.copy()
+        sorted_nspes.sort()
 
-        for wf_sipm, wf_st in zip(self.wfs_sipm, self.wfs_st):
+        nspe_min = sorted_nspes[int(0.005 * len(sorted_nspes))]
+        nspe_max = sorted_nspes[int(0.995 * len(sorted_nspes))]
+
+        h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  self.h_bins, nspe_min, nspe_max)
+        h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", self.h_bins, nspe_min, nspe_max)
+
+        for wf_sipm, wf_st, nspe in zip(self.wfs_sipm, self.wfs_st, nspes):
             if (wf_sipm.timestamp != wf_st.timestamp):
                 print(f"Timestamp mismatch: SiPM {wf_sipm.timestamp}, ST {wf_st.timestamp}")
                 continue
-            nspe = wf_sipm.adcs_float[self.int_low:self.int_up].sum() * spe_norm
             htotal.fill(nspe)
             h_total.Fill(nspe)
             triggers = np.flatnonzero(wf_st.adcs[self.window_low:self.window_up+1])
@@ -168,7 +238,13 @@ class SelfTrigger:
                 hpassed.fill(nspe)
                 h_passed.Fill(nspe)
 
+        for i in range(1, h_total.GetNbinsX()):
+            if h_total.GetBinContent(i) < 5:
+                h_total.SetBinContent(i, 0)
+                h_passed.SetBinContent(i, 0)
 
+        self.h_total = h_total
+        self.h_passed = h_passed
         self.he_STEfficiency = TEfficiency(h_passed, h_total)
         self.he_STEfficiency.SetName(he_name)
         self.he_STEfficiency.SetTitle(he_name)
@@ -206,9 +282,9 @@ class SelfTrigger:
                 break
         
         print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
-        f_sigmoid.SetParameters(thr_x, 0.2, max_efficiency)
+        f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
         f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
-        f_sigmoid.SetParLimits(1, 0.1, 2)
+        f_sigmoid.SetParLimits(1, 0.01, 2)
         f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
         f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
         f_sigmoid.SetNpx(1000)
