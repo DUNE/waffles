@@ -13,7 +13,9 @@ def fit_peaks_of_CalibrationHistogram(
     percentage_step: float = 0.1,
     return_last_addition_if_fail: bool = False,
     fit_type: str = 'independent_gaussians',
-    half_points_to_fit: int = 2
+    half_points_to_fit: int = 2,
+    std_increment_seed_fallback: float = 1e+2,
+    ch_span_fraction_around_peaks: float = 0.05
 ) -> bool:
     """For the given CalibrationHistogram object, 
     calibration_histogram, this function
@@ -120,6 +122,22 @@ def fit_peaks_of_CalibrationHistogram(
         then the histogram bins which will be considered 
         for the fit are given by the slice 
         calibration_histogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
+    std_increment_seed_fallback: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        In that case, it is given to the
+        std_increment_seed_fallback parameter of the
+        wuff.__fit_correlated_gaussians_to_calibration_histogram()
+        function. For more information, check the
+        documentation of such function.
+    ch_span_fraction_around_peaks: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        In that case, it is given to the
+        ch_span_fraction_around_peaks parameter of the
+        wuff.__fit_correlated_gaussians_to_calibration_histogram()
+        function. For more information, check the
+        documentation of such function.
 
     Returns
     -------
@@ -169,13 +187,11 @@ def fit_peaks_of_CalibrationHistogram(
     )
     
     if fit_type == 'correlated_gaussians':
-        raise NotImplementedError(
-            GenerateExceptionMessage(
-                5,
-                'fit_peaks_of_CalibrationHistogram()',
-                "The 'correlated_gaussians' fit type is not "
-                "implemented yet."
-            )
+        fFitAll = wuff.__fit_correlated_gaussians_to_calibration_histogram(
+            spsi_output,
+            calibration_histogram,
+            std_increment_seed_fallback=std_increment_seed_fallback,
+            ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
         )
     else:
         fFitAll = wuff.__fit_independent_gaussians_to_calibration_histogram(
@@ -184,7 +200,7 @@ def fit_peaks_of_CalibrationHistogram(
             half_points_to_fit
         )
 
-        return fFoundMax*fFitAll
+    return fFoundMax*fFitAll
 
 def fit_peaks_of_ChannelWsGrid( 
     channel_ws_grid: ChannelWsGrid,
