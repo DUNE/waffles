@@ -1091,6 +1091,7 @@ def plot_ChannelWsGrid(
     adc_range_above_baseline: int = 100,
     adc_range_below_baseline: int = 200,
     plot_peaks_fits: bool = False,
+    plot_sum_of_gaussians: bool = False,
     detailed_label: bool = True,
     plot_event: bool = False,
     event_id: Optional[int] = 0,
@@ -1314,6 +1315,16 @@ def plot_ChannelWsGrid(
         parameter of the call to plot_CalibrationHistogram().
         It means whether to plot the fits of the peaks, if
         available, over the histogram.
+    plot_sum_of_gaussians: bool
+        This parameter only makes a difference if the
+        'mode' parameter is set to 'calibration' and the
+        'plot_peaks_fits' parameter is set to True. In that
+        case, it means whether to plot the sum of gaussians
+        over the span of the calibration histogram, or to
+        plot individual gaussian fits limited to the fitting
+        range of each peak. It is given to the
+        'plot_sum_of_gaussians' parameter of the
+        plot_CalibrationHistogram() function.
     detailed_label: bool
         This parameter only makes a difference if
         the 'mode' parameter is set to 'average' or
@@ -1670,6 +1681,7 @@ def plot_ChannelWsGrid(
                     row=i + 1,
                     col=j + 1,
                     plot_fits=plot_peaks_fits,
+                    plot_sum_of_gaussians=plot_sum_of_gaussians,
                     fit_npoints=200)
 
         if verbose:
