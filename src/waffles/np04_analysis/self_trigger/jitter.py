@@ -24,6 +24,8 @@ if __name__ == "__main__":
 
     df_runs = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
+    out_root_file = TFile(ana_folder+f"Jitter_Ch_{SiPM_channel}_Selection_{perform_selection}.root", "RECREATE")
+    out_root_file.cd()
 
     calibration_df = pd.read_csv(ana_folder+calibration_file, sep=",")
     int_low = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntLow'].values[0])
@@ -39,7 +41,6 @@ if __name__ == "__main__":
     SiPM = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
 
 
-    out_root_file = TFile(ana_folder+f"Ch_{SiPM_channel}_Selection_{perform_selection}.root", "RECREATE")
     ch_folder = ana_folder+f"Ch_{SiPM_channel}_Selection_{perform_selection}/"
     if not os.path.exists(ch_folder):
         os.makedirs(ch_folder)
@@ -81,5 +82,23 @@ if __name__ == "__main__":
         if perform_selection:
             st.select_waveforms()
 
-         
+        dict_hSTdisrt = st.trigger_distr_per_nspe()
 
+        for nspe, h_STdisrt in dict_hSTdisrt.items():
+            h_STdisrt.SetName(f"h_STdisrt_nspe_{nspe}")
+            st.h_st = h_STdisrt
+            h_st = st.fit_self_trigger_distribution()
+            h_st.Write()
+
+            out_df_rows.append({
+                               "Run": run_with_threshold[0],
+                               "Threshold": threshold,
+                               "MeanTrgPos": st.f_STpeak.GetParameter(1),
+                               "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
+                               "SigmaTrg": st.f_STpeak.GetParameter(2),
+                               "ErrSigmaTrg": st.f_STpeak.GetParError(2),
+            })
+
+    out_df = pd.DataFrame(out_df_rows)
+    out_df.to_csv(ch_folder+f"Jitter_Ch_{SiPM_channel}_Selection_{perform_selection}.csv", index=False)
+    out_root_file.Close()

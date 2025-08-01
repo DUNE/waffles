@@ -361,3 +361,30 @@ class SelfTrigger:
 
         full_trigger_rate = (n_triggers * 10**9) / (n_wfs * len(self.wfs_st[0].adcs) * 16.)
         return full_trigger_rate
+
+    def trigger_distr_per_nspe(self) -> dict:
+        """
+
+        """
+        for wf in self.wfs_sipm:
+            wf.nspe = wf.adcs_float[self.int_low:self.int_up].sum() * (1./self.spe_charge)
+
+        nspe_arr = np.array([wf.nspe for wf in self.wfs_sipm])
+        nspe_arr.sort()
+        nspe_min = nspe_arr[int(0.005 * len(nspe_arr))]
+        nspe_max = nspe_arr[int(0.995 * len(nspe_arr))]
+
+        dict_hists = {}
+
+        for spe in range(int(nspe_min), int(nspe_max)+1):
+            dict_hists[spe] = TH1D(f"h_st_{spe}", f"h_st_{spe};Ticks;Counts", 1024, -0.5, 1023.5)
+
+        for wf_sipm, wf_st in zip(self.wfs_sipm, self.wfs_st):
+            if wf_sipm.nspe < nspe_min or wf_sipm.nspe > nspe_max:
+                continue
+            spe = int(wf_sipm.nspe+0.5)
+            st_arr = np.flatnonzero(wf_st.adcs)
+            for st in st_arr:
+                dict_hists[spe].Fill(st)
+        
+        return dict_hists
