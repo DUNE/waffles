@@ -191,11 +191,11 @@ def main() -> None:
         if run in have_struct: # already processed, just keeping for plots
             ok_runs.append(run)
             continue
+        if any(raw_dir.glob(raw_pattern % (run, run))):
+            logging.info("run %d: raw data already present – skip", run)
+            ok_runs.append(run)
+            continue
         try:
-            if any(raw_dir.glob(raw_pattern % (run, run))):
-                logging.info("run %d: raw data already present – skip", run)
-                ok_runs.append(run)
-                continue
             rem = remote_hdf5_files(ssh, args.remote_dir, run)
             if not rem:
                 logging.warning("run %d: no remote files", run)
