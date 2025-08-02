@@ -162,6 +162,7 @@ def main() -> None:
         raise ValueError(f"Unknown detector: {detector}")
 
     processed_pattern = f"run%06d_{suffix}/processed_*_run%06d_*_{suffix}.hdf5"
+    raw_pattern = f"run%06d/np02vd_raw_run%06d_*"
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -191,6 +192,10 @@ def main() -> None:
             ok_runs.append(run)
             continue
         try:
+            if any(raw_dir.glob(raw_pattern % (run, run))):
+                logging.info("run %d: raw data already present – skip", run)
+                ok_runs.append(run)
+                continue
             rem = remote_hdf5_files(ssh, args.remote_dir, run)
             if not rem:
                 logging.warning("run %d: no remote files", run)
