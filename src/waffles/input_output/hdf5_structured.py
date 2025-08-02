@@ -86,6 +86,7 @@ def load_structured_waveformset(
     endpoint_filter=None,
     max_waveforms=None,
     max_to_load=None,
+    verbose: bool = True
 ) -> WaveformSet:
     """
     Loads a structured HDF5 file into a WaveformSet, optionally filtering
@@ -160,6 +161,7 @@ def load_structured_waveformset(
 
     # Expand waveforms with * so that WaveformSet sees them as varargs
     wfset = WaveformSet(*waveforms)
-    print(f"📤 load_structured_waveformset returning type: {type(wfset)} with {len(wfset.waveforms)} waveforms")
+    if verbose:
+        print(f"📤 load_structured_waveformset returning type: {type(wfset)} with {len(wfset.waveforms)} waveforms")
 
     return wfset
