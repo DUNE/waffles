@@ -196,7 +196,6 @@ def main() -> None:
             (list_dir / f"{run:06d}.txt").write_text(
                 "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
             ok_runs.append(run)
-            ok_runs.append(run)
             continue
         try:
             rem = remote_hdf5_files(ssh, args.remote_dir, run)
