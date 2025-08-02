@@ -193,6 +193,9 @@ def main() -> None:
             continue
         if any(raw_dir.glob(raw_pattern % (run, run))):
             logging.info("run %d: raw data already present – skip", run)
+            (list_dir / f"{run:06d}.txt").write_text(
+                "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
+            ok_runs.append(run)
             ok_runs.append(run)
             continue
         try:
