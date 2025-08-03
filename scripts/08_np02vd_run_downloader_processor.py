@@ -134,6 +134,10 @@ def main() -> None:
     ap.add_argument("--config-template", default="config.json")
     ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
     ap.add_argument("-v", "--verbose", action="count", default=1)
+    ap.add_argument("-m", "--membrane", action="store_const",
+                    const="VD_Membrane_PDS", dest="det", help="Use membrane PDS detector, overwrites the config")
+    ap.add_argument("-c", "--cathode", action="store_const",
+                    const="VD_Cathode_PDS", dest="det", help="Use cathode PDS detector, overwrites the config")
     args = ap.parse_args()
 
     logging.basicConfig(level=max(10, 30 - 10*args.verbose),
@@ -152,7 +156,11 @@ def main() -> None:
     if args.headless: # if there are no plots, no reason to create directory
         plot_root.mkdir(parents=True, exist_ok=True)
 
+    if args.det is not None:
+        cfg["det"] = args.det
+
     detector = cfg.get("det")
+
     suffix=""
     if detector == 'VD_Membrane_PDS':
         suffix="membrane"
