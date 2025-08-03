@@ -84,8 +84,10 @@ def load_structured_waveformset(
     filepath: str,
     run_filter=None,
     endpoint_filter=None,
+    channels_filter=None,
     max_waveforms=None,
     max_to_load=None,
+    onlymetadata: bool = False,
     verbose: bool = True
 ) -> WaveformSet:
     """
@@ -108,21 +110,40 @@ def load_structured_waveformset(
     """
 
 
-    if run_filter is None and endpoint_filter is None:
+    if run_filter is None and endpoint_filter is None and channels_filter is None:
         if max_to_load is None:
             # No reason to load everything...
             max_to_load = max_waveforms
+    if endpoint_filter is None and channels_filter is not None:
+        raise ValueError("If channels_filter is provided, endpoint_filter must also be provided.")
+
 
     with h5py.File(filepath, "r") as f:
-        # Read datasets
-        adcs_array = f["adcs"][:max_to_load]
-        timestamps = f["timestamps"][:max_to_load]
-        daq_timestamps = f["daq_timestamps"][:max_to_load]
-        run_numbers = f["run_numbers"][:max_to_load]
-        record_numbers = f["record_numbers"][:max_to_load]
+        # Preload data set for filtering...
         channels = f["channels"][:max_to_load]
         endpoints = f["endpoints"][:max_to_load]
-        trigger_types = f["trigger_types"][:max_to_load] if "trigger_types" in f else np.zeros(len(endpoints), dtype=np.uint64)
+        
+        mask = np.ones_like(channels, dtype=bool)
+        if endpoint_filter is not None:
+            mask &= np.isin(endpoints, endpoint_filter)
+        if channels_filter is not None:
+            mask &= np.isin(channels, channels_filter)
+
+
+
+        # Read datasets
+        endpoints = endpoints[mask]
+        channels = channels[mask]
+        if not onlymetadata:
+            adcs_array = f["adcs"][:max_to_load][mask]
+        else:
+            adcs_array = np.zeros((len(endpoints[mask]), 2))
+        timestamps = f["timestamps"][:max_to_load][mask]
+        daq_timestamps = f["daq_timestamps"][:max_to_load][mask]
+        run_numbers = f["run_numbers"][:max_to_load][mask]
+        record_numbers = f["record_numbers"][:max_to_load][mask]
+        trigger_types = f["trigger_types"][:max_to_load][mask] if "trigger_types" in f else np.zeros(len(endpoints[mask]), dtype=np.uint64)
+
         time_step_ns = f.attrs["time_step_ns"]
         time_offset = f.attrs["time_offset"]
 
