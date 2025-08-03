@@ -95,15 +95,15 @@ def np02_gen_grids(wfset, detector: Union[str, List[str], List[UniqueChannel], L
     raise ValueError(f"Could not resolve detector: {detector} or {detectors}")
 
 def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Callable] = None, **kwargs):
-    for n, g in np02_gen_grids(wfset, detector).items():
+    for title, g in np02_gen_grids(wfset, detector, rows=kwargs.pop("rows", 0), cols=kwargs.pop("cols", 0)).items():
         # Keeping standard plotting 
-        if n == "nTCO" or n == "TCO":
+        if title == "nTCO" or title == "TCO":
             if "shared_xaxes" not in kwargs:
                 kwargs["shared_xaxes"] = True
             if "shared_yaxes" not in kwargs:
                 kwargs["shared_yaxes"] = True
 
-        plot_grid(chgrid=g, title=n, html=kwargs.pop("html", None), detector=detector, plot_function=plot_function, **kwargs)
+        plot_grid(chgrid=g, title=title, html=kwargs.pop("html", None), detector=detector, plot_function=plot_function, **kwargs)
 
 
 def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = None, detector: Union[str, List[str]] = "", plot_function: Optional[Callable] = None, **kwargs):
@@ -136,8 +136,13 @@ def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = N
     else:
         plot_CustomChannelGrid(chgrid, plot_function, figure=fig, wf_func=kwargs.pop("wf_func", None), **kwargs)
 
+    title = title if title != "Custom" else ""
     fig.update_layout(title=title, template="plotly_white",
                       width=width, height=height, showlegend=True)
+    fig.update_annotations(
+        font=dict(size=14),
+        align="center",
+    )
     if html:
         fig.write_html(html.as_posix())
         logging.info("💾 %s", html)
@@ -277,6 +282,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
         row=row, col=col,
         plot_fits=True,
         name=f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}; snr={snr:.2f}",
+        showfitlabels=False,
     )
 
     if snr != 0:
