@@ -182,7 +182,6 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
     variable = wf_func.get('variable', 'integral') if wf_func is not None else 'integral'
     show_progress = wf_func.get('show_progress', False) if wf_func is not None else False
     
-
     params = ch_read_params()
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
@@ -305,9 +304,13 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       baselinefinish:int = 240,
                       minimumfrac: float = 0.67,
                       onlyoptimal: bool = True,
-                      show_progress: bool = True
+                      show_progress: bool = True,
+                      configyaml:str = 'ch_snr_parameters.yaml'
                       ):
-    params = ch_read_params()
+    
+    params = {}
+    if configyaml is not None and configyaml != "":
+        params = ch_read_params(configyaml)
     baseline = SBaseline(threshold=threshold, baselinefinish=baselinefinish, default_filtering=2, minimumfrac=minimumfrac, data_base=params)
 
     ip = IPDict(
@@ -326,14 +329,14 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       show_progress=show_progress
                      )
 
-def ch_read_params():
+def ch_read_params(filename:str = 'ch_snr_parameters.yaml') -> dict:
     try:
-        with resources.files('waffles.np02_utils.data').joinpath('ch_snr_parameters.yaml').open('r') as f:
+        with resources.files('waffles.np02_utils.data').joinpath(filename).open('r') as f:
             return yaml.safe_load(f)
-    except Exception as e:
-        print(e)
+    except Exception as error:
+        print(error)
         print("\n\n")
         raise FileNotFoundError(
-            "Could not find the ch_snr_parameters.json file in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
+            f"Could not find the {filename} file in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
         )
 
