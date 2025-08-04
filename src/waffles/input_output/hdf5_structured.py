@@ -125,8 +125,10 @@ def load_structured_waveformset(
         
         mask = np.ones_like(channels, dtype=bool)
         if endpoint_filter is not None:
+            endpoint_filter = np.atleast_1d(endpoint_filter)
             mask &= np.isin(endpoints, endpoint_filter)
         if channels_filter is not None:
+            channels_filter = np.atleast_1d(channels_filter)
             mask &= np.isin(channels, channels_filter)
 
 
@@ -150,10 +152,12 @@ def load_structured_waveformset(
     # Figure out which indices to include
     indices = np.arange(len(adcs_array))
 
+    # potentially this ca go first...
     if run_filter is not None:
         run_filter = np.atleast_1d(run_filter)
         indices = indices[np.isin(run_numbers[indices], run_filter)]
 
+    # Almost sure this can be removed, to be tested...
     if endpoint_filter is not None:
         endpoint_filter = np.atleast_1d(endpoint_filter)
         indices = indices[np.isin(endpoints[indices], endpoint_filter)]
@@ -162,23 +166,22 @@ def load_structured_waveformset(
         indices = indices[:max_waveforms]
 
     # Build the Waveform objects
-    waveforms = []
-    for i in indices:
-        waveforms.append(
-            Waveform(
-                run_number=int(run_numbers[i]),
-                record_number=int(record_numbers[i]),
-                endpoint=int(endpoints[i]),
-                channel=int(channels[i]),
-                timestamp=int(timestamps[i]),
-                daq_window_timestamp=int(daq_timestamps[i]),
-                starting_tick=0,
-                adcs=adcs_array[i],
-                time_step_ns=float(time_step_ns),
-                time_offset=int(time_offset),
-                trigger_type=int(trigger_types[i])
-            )
+    waveforms = [
+        Waveform(
+            run_number=int(run_numbers[i]),
+            record_number=int(record_numbers[i]),
+            endpoint=int(endpoints[i]),
+            channel=int(channels[i]),
+            timestamp=int(timestamps[i]),
+            daq_window_timestamp=int(daq_timestamps[i]),
+            starting_tick=0,
+            adcs=adcs_array[i],
+            time_step_ns=float(time_step_ns),
+            time_offset=int(time_offset),
+            trigger_type=int(trigger_types[i])
         )
+        for i in indices
+    ]
 
     # Expand waveforms with * so that WaveformSet sees them as varargs
     wfset = WaveformSet(*waveforms)
