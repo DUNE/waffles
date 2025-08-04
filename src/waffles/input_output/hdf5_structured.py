@@ -139,12 +139,12 @@ def load_structured_waveformset(
         if not onlymetadata:
             adcs_array = f["adcs"][:max_to_load][mask]
         else:
-            adcs_array = np.zeros((len(endpoints[mask]), 2))
+            adcs_array = np.zeros((len(endpoints), 2))
         timestamps = f["timestamps"][:max_to_load][mask]
         daq_timestamps = f["daq_timestamps"][:max_to_load][mask]
         run_numbers = f["run_numbers"][:max_to_load][mask]
         record_numbers = f["record_numbers"][:max_to_load][mask]
-        trigger_types = f["trigger_types"][:max_to_load][mask] if "trigger_types" in f else np.zeros(len(endpoints[mask]), dtype=np.uint64)
+        trigger_types = f["trigger_types"][:max_to_load][mask] if "trigger_types" in f else np.zeros(len(endpoints), dtype=np.uint64)
 
         time_step_ns = f.attrs["time_step_ns"]
         time_offset = f.attrs["time_offset"]
