@@ -241,15 +241,15 @@ class Waveform(WaveformAdcs):
         pass
 
     def __repr__(self):
-        return (f"Waveform: \n"
-            f"run_number: {self.__run_number}, \n"
-            f"endpoint: {self.__endpoint}, \n"
-            f"channel: {self.__channel}, \n"
-            f"record_number: {self.__record_number}, \n"
-            f"time_step_ns: {self.time_step_ns}, \n"
-            f"timestamp: {self.__timestamp} [ticks], \n"
-            f"daq_window_timestamp: {self.__daq_window_timestamp} [ticks], \n"
-            f"starting_tick: {self.__starting_tick}, \n"
+        return (f"Waveform: "
+            f"run_number: {self.__run_number}, "
+            f"endpoint: {self.__endpoint}, "
+            f"channel: {self.__channel}, "
+            f"record_number: {self.__record_number}, "
+            f"time_step_ns: {self.time_step_ns}, "
+            f"timestamp: {self.__timestamp} [ticks], "
+            f"daq_window_timestamp: {self.__daq_window_timestamp} [ticks], "
+            f"starting_tick: {self.__starting_tick}, "
             f"time_offset: {self.time_offset}\n"
                 )
 
