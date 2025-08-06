@@ -23,6 +23,13 @@ class Analysis1(WafflesAnalysis):
             """Validation model for the input parameters of the LED
             calibration analysis."""
 
+            batches: list[int] = Field(
+                ...,
+                description="Number of the calibration batches "
+                "to consider",
+                example=[2]
+            )
+
             apas: list[int] = Field(
                 ...,
                 description="Numbers of the APAs to consider",
@@ -36,11 +43,24 @@ class Analysis1(WafflesAnalysis):
                 example=[0.4]
             )
 
-            batches: list[int] = Field(
+            channels_per_run_filepath: str = Field(
                 ...,
-                description="Number of the calibration batches "
-                "to consider",
-                example=[2]
+                description="Path to a CSV file which lists "
+                "the channels which should be calibrated for "
+                "each run. Apart from the run number and the "
+                "targeted channels, each row contains a value "
+                "for the batch number, the acquired APAs and "
+                "the photon detection efficiency (PDE).",
+                example='./configs/channels_per_run_database.csv'
+            )
+
+            excluded_channels_filepath: str = Field(
+                ...,
+                description="Path to a CSV file which lists "
+                "the channels which should be excluded from "
+                "the calibration for each combination of "
+                "batch number, APA number and PDE",
+                example='./configs/excluded_channels_database.csv'
             )
 
             excluded_channels_filepath: str = Field(
