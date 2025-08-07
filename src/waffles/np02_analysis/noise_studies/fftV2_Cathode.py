@@ -87,10 +87,16 @@ def main() -> None:
     "processed_np02vd_raw_run037297_0000_df-s04-d0_dw_0_20250716T131710.hdf5.copied_structured_cathode": "Cathode HV on 154kV"
     }
     '''
-
+    # UPS Test
+    '''
     custom_labels = {
     "processed_np02vd_raw_run037286_0000_df-s04-d0_dw_0_20250716T115517.hdf5.copied_structured_cathode": "UPS ON",
     "processed_np02vd_raw_run037287_0000_df-s04-d0_dw_0_20250716T122141.hdf5.copied_structured_cathode": "UPS OFF"
+    }
+    '''
+    # Check low frequency
+    custom_labels = {
+    "processed_np02vd_raw_run038549_0000_df-s05-d0_dw_0_20250804T144848.hdf5.copied_structured_cathode.hdf5": "Cathode Full streaming",
     }
 
     #print("...", dict_module_to_uniqch["M1(1)"])
@@ -98,7 +104,7 @@ def main() -> None:
 
     for f in files:
         logging.info("Processing %s", f.name)
-        wfset = load_structured_waveformset(f.as_posix())
+        wfset = load_structured_waveformset(f.as_posix(), max_waveforms=1000)
         # Filter waveforms by channel if specified
         if args.channel is None:
             sel_wfs = wfset.waveforms
@@ -109,7 +115,7 @@ def main() -> None:
             continue
 
         # Compute FFT for each waveform
-        fft_list = [fft(wf.adcs) for wf in sel_wfs]
+        fft_list = [fft(wf.adcs) for wf in sel_wfs[:10]]
         freqs, powers = zip(*fft_list)
         freqs = freqs[0]
         mean_power = np.mean(powers, axis=0)
@@ -126,12 +132,13 @@ def main() -> None:
     fig.update_layout(
         #title=f"Mean FFT{(' on channel ' + str(args.channel)) if args.channel is not None else ''}",
         title=f"Mean FFT{(' on ' + dict_uniqch_to_module[str(UniqueChannel(106,str(args.channel)))]) if args.channel is not None else ''}",
-        yaxis_range=[-120,-60],
+        #yaxis_range=[-120,-60],
+        yaxis_range=[-145,-20],
         xaxis_type="log",
         xaxis_title="Frequency (MHz)",
         yaxis_title="Power (dB)",
         template="plotly_white",
-        showlegend=True,
+        #showlegend=True,
         height=800, width=1200
     )
 
