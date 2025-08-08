@@ -357,6 +357,70 @@ class ChannelWsGrid:
                 aux[channel_map.data[i][j].channel] = []
 
         return output
+    
+    def compute_calib_histos(
+        self,
+        bins_number: int,
+        domain: np.ndarray,
+        variable: str,
+        analysis_label: Optional[str] = None
+    ) -> None:
+        """This method iterates through all of the endpoint and
+        channels in the self.__ch_wf_sets attribute and, for
+        every ChannelWs object, say x, it computes its associated
+        calibration histogram by calling x.compute_calib_histo().
+
+        Parameters
+        ----------
+        bins_number: int
+            The number of bins that the calibration histograms
+            will have. It must be greater than 1.
+        domain: np.ndarray
+            A 2x1 numpy array where (domain[0], domain[1])
+            gives the range to consider for the
+            calibration histograms. Any sample which falls
+            outside this range is ignored.
+        variable: str
+            It is eventually given to the 'variable'
+            positional argument of the
+            CalibrationHistogram.from_WaveformSet class
+            method. For each Waveform object within
+            each ChannelWs, this parameter gives the key
+            for the considered WfAna object (up to the
+            analysis_label input parameter) from where
+            to take the sample to add to the computed
+            calibration histogram. Namely, for a WfAna
+            object x, x.result[variable] is the considered
+            sample. It is the caller's responsibility to
+            ensure that the values for the given variable
+            (key) are scalars, i.e. that they are valid
+            samples for a 1D histogram.
+        analysis_label: str
+            For each Waveform object in each ChannelWs,
+            this parameter gives the key for the WfAna
+            object within the analyses attribute from
+            where to take the sample to add to the
+            calibration histogram. If 'analysis_label'
+            is None, then the last analysis added to the
+            analyses attribute will be the used one. If
+            there is not even one analysis, then an
+            exception will be raised.
+
+        Returns
+        ----------
+        None
+        """
+        
+        for endpoint in self.__ch_wf_sets.keys():
+            for channel in self.__ch_wf_sets[endpoint].keys():
+                self.__ch_wf_sets[endpoint][channel].compute_calib_histo(
+                    bins_number,
+                    domain,
+                    variable,
+                    analysis_label=analysis_label
+                )
+
+        return
 
     # Before 2024/06/27, this method was used in 
     # ChannelWsGrid.__init___, because the output

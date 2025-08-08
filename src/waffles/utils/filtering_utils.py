@@ -1,4 +1,5 @@
 import inspect
+import numpy as np
 from typing import Optional
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
@@ -21,8 +22,6 @@ def check_well_formedness_of_generic_waveform_function(
             the Waveform class, the 'WaveformAdcs'
             string literal or the 'Waveform' string
             literal
-        -   the return type of such signature 
-            is annotated as a boolean value
 
     If any of these conditions are not met, this
     function raises an exception.
@@ -58,13 +57,49 @@ def check_well_formedness_of_generic_waveform_function(
             "check_well_formedness_of_generic_waveform_function()",
             "The 'waveform' parameter of the given signature must be "
             "hinted as a WaveformAdcs (or an inherited class) object."))
+    return
+
+
+def check_well_formedness_of_waveform_filter_function(
+    wf_function_signature: inspect.Signature
+) -> None:
+    """This function gets an argument, wf_function_signature, 
+    and returns None if the following conditions are met:
+
+        -   such signature takes at least one argument
+        -   the first argument of such signature
+            is called 'waveform'
+        -   the type annotation of such argument 
+            must be either the WaveformAdcs class,
+            the Waveform class, the 'WaveformAdcs'
+            string literal or the 'Waveform' string
+            literal
+        -   the return type of such signature 
+            is annotated as a boolean value
+
+    If any of these conditions are not met, this
+    function raises an exception.
+
+    Parameters
+    ----------
+    wf_function_signature: inspect.Signature
+
+    Returns
+    ----------
+    bool
+    """
+
+    check_well_formedness_of_generic_waveform_function(
+        wf_function_signature
+    )
     
     if wf_function_signature.return_annotation != bool:
         raise Exception(GenerateExceptionMessage(
-            4,
-            "check_well_formedness_of_generic_waveform_function()",
+            1,
+            "check_well_formedness_of_waveform_filter_function()",
             "The return type of the given signature must be hinted as a "
             "boolean."))
+
     return
 
 
@@ -275,3 +310,91 @@ def truncate_waveforms_in_WaveformSet(
     input_WaveformSet.reset_mean_waveform()
 
     return
+
+
+def selection_for_led_calibration(
+    waveform: Waveform,
+    baseline_analysis_label: str,
+    baseline_i_up: int,
+    signal_i_up: int,
+    baseline_std: float,
+    baseline_allowed_dev: float,
+    signal_allowed_dev: float,
+) -> bool:
+    """This function returns True if the following two
+    conditions are met simultaneously:
+
+        - the waveform adcs do not deviate from the
+          baseline by more than baseline_allowed_dev
+          times the baseline_std in the baseline region,
+
+        - and the waveform adcs do not drop below
+          the baseline by more than signal_allowed_dev
+          times the baseline_std in the signal region.
+
+    If any of them is not met, it returns False. For more
+    information on how the regions are defined, see the
+    parameters documentation below.
+
+    Parameters
+    ----------
+    waveform: Waveform
+        The waveform to apply the selection to
+    baseline_analysis_label: str
+        The baseline of the filtered waveform must be available
+        under the 'baseline' key of the result of the analysis
+        whose label is given by this parameter, i.e. in
+        waveform.analyses[analysis_label].result['baseline']
+    baseline_i_up: int
+        Iterator value for the waveform.adcs array which gives
+        the upper limit of the baseline region
+    signal_i_up: int
+        Iterator value for the waveform.adcs array which gives
+        the upper limit of the signal region. It may match the
+        integration upper limit of the charge integration.
+    baseline_std: float
+        Its absolute value is assumed to be the standard
+        deviation of the baseline
+    baseline_allowed_dev: float
+        Its absolute value is assumed to be the maximum multiple
+        of baseline_std which the signal can deviate from the
+        baseline in the baseline region, i.e. in the
+        waveform.adcs[0:baseline_i_up] region
+    signal_allowed_dev: float
+        Its absolute value is assumed to be the maximum multiple
+        of baseline_std which the signal can deviate, negatively,
+        from the baseline in the signal region, i.e. in the
+        waveform.adcs[baseline_i_up:signal_i_up] region.
+
+    Returns
+    ----------
+    bool
+    """
+
+    try:
+        baseline_samples = waveform.adcs[:baseline_i_up] - \
+            waveform.analyses[baseline_analysis_label].result['baseline']
+
+    except KeyError:
+        raise Exception(
+            GenerateExceptionMessage(
+                1,
+                "selection_for_led_calibration()",
+                f"The given waveform does not have the analysis"
+                f" '{baseline_analysis_label}' in its analyses "
+                "attribute, or it does, but the 'baseline' key "
+                "is not present in its result."
+            )
+        )
+    
+    if np.max(np.abs(baseline_samples)) > abs(baseline_allowed_dev * baseline_std):
+        return False
+    
+    # The baseline is available, otherwise exception #1 would have been raised
+    signal_samples = waveform.adcs[baseline_i_up:signal_i_up] - \
+        waveform.analyses[baseline_analysis_label].result['baseline']
+    
+    if np.min(signal_samples) < -1.*abs(signal_allowed_dev * baseline_std):
+        return False
+    
+    return True

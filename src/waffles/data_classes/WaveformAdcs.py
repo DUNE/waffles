@@ -29,7 +29,7 @@ class WaveformAdcs:
     ----------
     time_step_ns: float
         The time step (in nanoseconds) for this Waveform
-    adcs: unidimensional numpy array of integers
+    adcs: unidimensional numpy array of integers/floats
         The readout for this Waveform, in # of ADCs
     time_offset: int
         A time offset, in units of time_step_ns (i.e.
@@ -62,7 +62,7 @@ class WaveformAdcs:
         Parameters
         ----------
         time_step_ns: float
-        adcs: unidimensional numpy array of integers
+        adcs: unidimensional numpy array of integers/floats
         time_offset: int
             It must be semipositive and smaller than
             len(self.__adcs)-1. It is set to 0 by
@@ -101,16 +101,27 @@ class WaveformAdcs:
     def analyses(self):
         return self.__analyses
 
-# For the moment there are no setters for
-# the attributes of WaveformAdcs. I.e. you
-# can only set the value of its attributes
-# through WaveformAdcs.__init__. Here's an
-# example of what a setter would look like.
-#
-#   @time_step_ns.setter
-#   def time_step_ns(self, input):
-#       self.__time_step_ns = input
-#       return
+    def __set_adcs(
+        self,
+        input: np.ndarray
+    ) -> None:
+        """This method is not intended for user usage. It 
+        is a setter for the adcs attribute.
+
+        Parameters
+        ----------
+        input: np.ndarray
+            An unidimensional numpy array of integers/floats
+            which will be assigned to the adcs attribute,
+            overwriting any previous value.
+
+        Returns
+        ----------
+        None
+        """
+
+        self.__adcs = input
+        return
 
     def __set_time_offset(self, input: float) -> None:
         """This method is not intended for user usage. It 

@@ -190,7 +190,7 @@ class WfPeak:
             self.__amplitude = amplitude
             
             # Reset the integral to None, since the baseline has changed.
-            #  This is to avoid inconsistencies between the baseline used
+            # This is to avoid inconsistencies between the baseline used
             # to compute the integral and the one that is stored in
             # self.__baseline as of now.
             self.reset_integral()
