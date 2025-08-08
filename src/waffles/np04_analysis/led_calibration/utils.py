@@ -69,6 +69,19 @@ def join_channel_number(
 
     return (endpoint * 100) + int(channel)
 
+def split_channel_number(
+        joint_channel: int,
+    ) -> tuple:
+    """This function splits the given joint channel number
+    into its constituent endpoint and channel values.
+    For example, if the joint channel is 11307, the
+    returned values will be (113, 7)."""
+
+    endpoint = joint_channel // 100
+    channel = joint_channel % 100
+
+    return (endpoint, channel)
+
 def comes_from_channel( 
         waveform: Waveform, 
         channels: list,
