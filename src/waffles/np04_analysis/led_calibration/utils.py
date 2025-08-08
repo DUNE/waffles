@@ -57,7 +57,7 @@ def get_apa_foldername(
         else:
             return 'apas_34'
 
-def format_channel_number(
+def join_channel_number(
         endpoint: int,
         channel: int,
     ) -> int:
@@ -75,12 +75,12 @@ def comes_from_channel(
     ) -> bool:
     """The channels list should contain integers which
     are the concatenation of the endpoint and a channel
-    number, as returned by the format_channel_number()
+    number, as returned by the join_channel_number()
     function. This function returns true if the
     given waveform comes from one of the channels in the
     list. Otherwise, it returns false."""
 
-    aux = format_channel_number(
+    aux = join_channel_number(
         waveform.endpoint,
         waveform.channel
     )
@@ -212,7 +212,7 @@ def get_gain_and_snr(
             endpoint = grid_apa.ch_map.data[i][j].endpoint
             channel = grid_apa.ch_map.data[i][j].channel
 
-            if format_channel_number(
+            if join_channel_number(
                 endpoint,
                 channel
             ) in excluded_channels:
