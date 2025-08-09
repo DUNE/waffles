@@ -7,7 +7,7 @@ from waffles.utils.baseline.baseline import SBaseline
 
 
 class Extractor:
-    def __init__(self, params, selection_type:str, current_run:int = None, factor:float = 1.0):
+    def __init__(self, params, selection_type:str, current_run:int = None, factor:float = 1.0, pathtoyaml="."):
         """This class extract either responses or templates from the rawfiles
 
         Parameters
@@ -27,6 +27,7 @@ class Extractor:
         }
 
         self.selection_type = selection_type
+        self.pathtoyaml = pathtoyaml
         self.loadcuts()
         self.skeepcuts = False
         self.factor = factor
@@ -125,7 +126,7 @@ class Extractor:
         
     def loadcuts(self):
         try:
-            with open(f'configs/cuts_{self.selection_type}.yaml', 'r') as f:
+            with open(f'{self.pathtoyaml}/configs/cuts_{self.selection_type}.yaml', 'r') as f:
                 self.cutsdata = yaml.safe_load(f)
         except:
             print("Could not load yaml file..., creating fake cut, all waveforms will be applied")

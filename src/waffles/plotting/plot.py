@@ -912,7 +912,8 @@ def plot_CalibrationHistogram(
     row: Optional[int] = None,
     col: Optional[int] = None,
     plot_fits: bool = False,
-    fit_npoints: int = 200
+    fit_npoints: int = 200,
+    showfitlabels: bool = True
 ) -> bool:
     """This function plots the given calibration histogram in 
     the given figure and returns a boolean which is True if 
@@ -1005,7 +1006,6 @@ def plot_CalibrationHistogram(
                 gaussian_fits_parameters['mean'][i][0],
                 calibration_histogram.
                 gaussian_fits_parameters['std'][i][0])
-            
             fit_trace = pgo.Scatter(
                 x=fit_x,
                 y=fit_y,
@@ -1013,7 +1013,9 @@ def plot_CalibrationHistogram(
                 line=dict(
                     color='red', 
                     width=0.5),
-                name=f"{name} (Fit {i})")
+                name=f"{name} Fit({i})",
+                showlegend=showfitlabels
+            )
             
             figure.add_trace(
                 fit_trace,
