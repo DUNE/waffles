@@ -480,6 +480,8 @@ def __add_unique_channels_top_annotations(
     figure: plotly.graph_objects.Figure
         The given figure with the annotations added
     """
+    # y position of the annotations, changed from 1.25 for low rows,cols
+    yp = 1.05
 
     for i in range(channel_ws_grid.ch_map.rows):
         for j in range(channel_ws_grid.ch_map.columns):
@@ -489,12 +491,13 @@ def __add_unique_channels_top_annotations(
                 # The annotation is left-aligned
                 # and on top of each subplot
                 x=0.,
-                y=1.25,
+                y=yp,
                 showarrow=False,
                 # Implicitly using UniqueChannel.__repr__()
                 text=str(channel_ws_grid.ch_map.data[i][j]),
                 row=i + 1,
                 col=j + 1)
+            text=str(channel_ws_grid.ch_map.data[i][j]),
             
     if also_add_run_info:
         for i in range(channel_ws_grid.ch_map.rows):
@@ -523,7 +526,7 @@ def __add_unique_channels_top_annotations(
                     yref="y domain",
                     # The run annotation is right-aligned
                     x=1.,
-                    y=1.25,
+                    y=yp,
                     showarrow=False,
                     text=annotation,
                     row=i + 1,
