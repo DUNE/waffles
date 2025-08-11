@@ -71,6 +71,8 @@ class SBaseline:
                 i+=1
         if (counts>0):
             res /= counts
+        else:
+            return res0, False
         if(counts > (baselinefinish - baselinestart)*minimumfrac):
             return res, True
         else:
