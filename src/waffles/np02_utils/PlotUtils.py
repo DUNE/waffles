@@ -7,6 +7,7 @@ from typing import List, Union
 from typing import Optional, Callable
 import yaml
 from importlib import resources
+import matplotlib.pyplot as plt
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -20,7 +21,41 @@ from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
 from waffles.utils.baseline.baseline import SBaseline
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
-from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module
+from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
+
+
+tol_colors = [
+    "#E41A1C",  # red
+    "#377EB8",  # blue
+    "#4DAF4A",  # green
+    "#984EA3",  # purple
+    "#FF7F00",  # orange
+    "#FFFF33",  # yellow
+    "#A65628",  # brown
+    "#F781BF"   # pink
+]
+modules_colormap = {module: tol_colors[int(module[1:-3])-1] for module in ordered_modules_cathode + ordered_modules_membrane}
+endpoint_channel_colormap = {}
+for module, uniqch in dict_module_to_uniqch.items():
+    endpoint_channel_colormap[uniqch.endpoint] = endpoint_channel_colormap.get(uniqch.endpoint, {})
+    endpoint_channel_colormap[uniqch.endpoint][uniqch.channel] = modules_colormap[module]
+
+style_map_matplotlib = {
+    "1": {"linestyle": "-",  "lw":2, "alpha": 1.0},
+    "2": {"linestyle": "--", "lw":2, "alpha": 0.8}
+}
+
+def get_style_channel(endpoint: int, channel:int) -> dict:
+    modulename = dict_uniqch_to_module[strUch(endpoint,channel)]
+    return get_style_module(modulename)
+
+def get_style_module(modulename:str) -> dict:
+    ch_num = modulename[3:-1] # "1" or "2"
+    return {
+        "color": modules_colormap[modulename],
+        **style_map_matplotlib[ch_num]
+    }
+
 
 def np02_resolve_detectors(wfset, detectors: Union[List[str], List[UniqueChannel], List[Union[UniqueChannel, str]]], rows=0, cols=1) -> dict[str, ChannelWsGrid]:
     """
@@ -176,13 +211,14 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
     )
 
 
-def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
-    doprocess = wf_func.get("doprocess", True) if wf_func is not None else True
-    dofit = wf_func.get("dofit", True) if wf_func is not None else True
-    variable = wf_func.get('variable', 'integral') if wf_func is not None else 'integral'
-    show_progress = wf_func.get('show_progress', False) if wf_func is not None else False
+def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
+    doprocess = wf_func.get("doprocess", True)
+    dofit = wf_func.get("dofit", True)
+    normalize_hist = wf_func.get("normalize_hist", False)
+    variable = wf_func.get('variable', 'integral')
+    show_progress = wf_func.get('show_progress', False)
+    params = ch_read_params(filename=wf_func.get('configyaml', 'ch_snr_parameters.yaml'))
     
-    params = ch_read_params()
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
 
@@ -191,6 +227,19 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
 
     if(len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
         raise ValueError(f"Should have only one channel in the waveform set...")
+
+    if wf_func.get("update_threshold", False):
+        runs = params['updates'][endpoint][channel]['runs']
+        thresholds = params['updates'][endpoint][channel]['thresholds']
+        currentrun = list(wfset.runs)
+        if len(currentrun) != 1:
+            raise ValueError(f"WaveformSet should have only one run, but has {len(currentrun)} runs.")
+        currentrun = currentrun[0]
+        if currentrun not in runs:
+            print(currentrun, runs)
+            raise ValueError(f"Run {currentrun} not found in the updates for endpoint {endpoint} and channel {channel}.")
+        threshold = thresholds[runs.index(currentrun)]
+        params[endpoint][channel]['baseline']['threshold'] = threshold
     
     if doprocess:
         runBasicWfAnaNP02(wfset,
@@ -199,6 +248,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
                           amp_ll=params[endpoint][channel]['fit'].get('amp_ll', 254),
                           amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
                           show_progress=show_progress,
+                          configyaml=params
                           )
 
     bins_int = params[endpoint][channel]['fit'].get('bins_int', 100)
@@ -207,11 +257,10 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
 
     domain_int = [float(x) for x in domain_int_str]
     domain_int = np.array(domain_int)
-    if wf_func is not None:
-        if 'bins' in wf_func:
-            tbins = wf_func['bins']
-            bins_int = len(tbins)
-            domain_int = np.array([tbins[0], tbins[-1]])
+    if 'bins' in wf_func:
+        tbins = wf_func['bins']
+        bins_int = len(tbins)
+        domain_int = np.array([tbins[0], tbins[-1]])
 
     max_peaks = params[endpoint][channel]['fit'].get('max_peaks', 3)
     prominence = params[endpoint][channel]['fit'].get('prominence', 0.15)
@@ -219,14 +268,16 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
     initial_percentage = params[endpoint][channel]['fit'].get('initial_percentage', 0.15)
     percentage_step = params[endpoint][channel]['fit'].get('percentage_step', 0.05)
 
-
     hInt = CalibrationHistogram.from_WaveformSet(
         wfset,
         bins_number=bins_int,
         domain=domain_int,
         variable=variable,
         analysis_label = "std",
+        normalize_histogram=normalize_hist
     )
+    for wf in wfset.waveforms:
+        wf.analyses["std"].result['normalization'] = hInt.normalization
 
     if not dofit:
         plot_CalibrationHistogram(
@@ -305,12 +356,15 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       minimumfrac: float = 0.67,
                       onlyoptimal: bool = True,
                       show_progress: bool = True,
-                      configyaml:str = 'ch_snr_parameters.yaml'
+                      configyaml:Union[str,dict] = 'ch_snr_parameters.yaml'
                       ):
     
     params = {}
-    if configyaml is not None and configyaml != "":
-        params = ch_read_params(configyaml)
+    if isinstance(configyaml, dict):
+        params = configyaml
+    elif isinstance(configyaml, str):
+        if configyaml is not None and configyaml != "":
+            params = ch_read_params(configyaml)
     baseline = SBaseline(threshold=threshold, baselinefinish=baselinefinish, default_filtering=2, minimumfrac=minimumfrac, data_base=params)
 
     ip = IPDict(
@@ -320,6 +374,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
         baseliner=baseline,
         baseline_limits=[0,240],
         onlyoptimal=onlyoptimal,
+        amplitude_method="max_minus_baseline"
     )
     if show_progress: print("Processing waveform set with BasicWfAna")
     _ = wfset.analyse("std", BasicWfAna, ip,
