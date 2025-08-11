@@ -120,15 +120,11 @@ class WaveformSet:
         # WaveformSet with 1046223 waveforms
         self.__update_available_channels(other_available_channels=None)
 
-        self.__mean_adcs = None
-        self.__mean_adcs_idcs = None
+        self.reset_mean_waveform()
 
     def __add__(self, other):
         if isinstance(other, WaveformSet): 
             return self.merge(other)
-
-            
-
 
     # Getters
     @property
@@ -699,7 +695,7 @@ class WaveformSet:
 
             signature = inspect.signature(wf_selector)
 
-            wuf.check_well_formedness_of_generic_waveform_function(signature)
+            wuf.check_well_formedness_of_waveform_filter_function(signature)
 
             output = self.__compute_mean_waveform_with_selector(
                 wf_selector,
@@ -988,7 +984,7 @@ class WaveformSet:
 
         signature = inspect.signature(wf_filter)
 
-        wuf.check_well_formedness_of_generic_waveform_function(signature)
+        wuf.check_well_formedness_of_waveform_filter_function(signature)
 
         # Better fill the two lists during the WaveformSet scan and then return
         # the desired one, rather than filling just the dumped_ones one and then 
@@ -1018,13 +1014,78 @@ class WaveformSet:
 
             # We also need to reset the attributes regarding the mean
             # Waveform, for which some of the waveforms might have been removed
-            self.__mean_adcs = None
-            self.__mean_adcs_idcs = None
+            self.reset_mean_waveform()
 
         if return_the_staying_ones:
             return staying_ones
         else:
             return dumped_ones
+        
+    def apply(
+        self,
+        wf_operation: Callable,
+        *args,
+        show_progress: bool = False,
+        **kwargs
+    ) -> None:
+        """This method applies the given waveform operation,
+        wf_operation, to each waveform in this WaveformSet.
+        I.e. for each Waveform object, wf, in this WaveformSet,
+        it runs wf_operation(wf, *args, **kwargs).
+
+        Parameters
+        ----------
+        wf_operation: Callable
+            It must be a callable whose first parameter
+            must be called 'waveform' and its type
+            annotation must match the Waveform class.
+            This callable is iteratively run on each
+            waveform, say wf, of this WaveformSet, as
+            wf_operation(wf, *args, **kwargs).
+        *args
+            For each Waveform, wf, these are the
+            positional arguments which are given to
+            wf_operation(wf, *args, **kwargs) as *args.
+        show_progress: bool
+            If True, a progress bar will be shown
+            as this method iterates through every
+            waveform.
+        *kwargs
+            For each Waveform, wf, these are the
+            keyword arguments which are given to
+            wf_operation(wf, *args, **kwargs) as *kwargs
+
+        Returns
+        ----------
+        None
+        """
+
+        signature = inspect.signature(wf_operation)
+
+        wuf.check_well_formedness_of_generic_waveform_function(signature)
+
+        for i in tqdm(
+            range(len(self.__waveforms)), 
+            disable=not show_progress
+        ):
+            wf_operation(self.__waveforms[i], *args, **kwargs)
+
+        # Still require that the WaveformSet is homogeneous in length
+        if not self.check_length_homogeneity():
+            raise Exception(
+                GenerateExceptionMessage(
+                    1,
+                    'WaveformSet.apply()',
+                    'The operation of the waveforms broke the'
+                    ' length homogeneity of the waveform set.'
+                )
+            )
+
+        # We also need to reset the attributes regarding the mean
+        # Waveform, for which some of the waveforms might have been modified
+        self.reset_mean_waveform()
+
+        return
 
     @classmethod
     def from_filtered_WaveformSet(
@@ -1155,8 +1216,7 @@ class WaveformSet:
         self.__update_available_channels(
             other_available_channels=other.available_channels)
 
-        self.__mean_adcs = None
-        self.__mean_adcs_idcs = None
+        self.reset_mean_waveform()
 
         return
 

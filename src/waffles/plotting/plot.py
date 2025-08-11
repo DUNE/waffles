@@ -912,6 +912,7 @@ def plot_CalibrationHistogram(
     row: Optional[int] = None,
     col: Optional[int] = None,
     plot_fits: bool = False,
+    plot_sum_of_gaussians: bool = False,
     fit_npoints: int = 200
 ) -> bool:
     """This function plots the given calibration histogram in 
@@ -951,13 +952,21 @@ def plot_CalibrationHistogram(
         CH will be plotted. Note that if no fit has been performed
         yet, then the calibration_histogram.gaussian_fits_parameters 
         attribute will be empty and no fit will be plotted.
+    plot_sum_of_gaussians: bool
+        This parameter only makes a difference if the
+        'plot_fits' parameter is set to True. In that case,
+        it means whether to plot the sum of gaussians over
+        the span of the calibration histogram, or to plot
+        individual gaussian fits limited to the fitting
+        range of each peak.
     fit_npoints: int
         This parameter only makes a difference if 'plot_fits'
-        is set to True. In that case, it gives the number of
-        points to use to plot each gaussian fit. Note that
-        the plot range of the fit will be the same as the
-        range of the CH. It must be greater than 1. It is
-        the caller's responsibility to ensure this.
+        is set to True. It gives the number of points to use
+        to plot the gaussian fits. Note that regardless of
+        plot_sum_of_gaussians, the plot range of the fit(s)
+        will be the same as the range of the CH. It must be
+        greater than 1. It is the caller's responsibility to
+        ensure this.
 
     Returns
     ----------
@@ -987,38 +996,74 @@ def plot_CalibrationHistogram(
 
     if plot_fits:
 
-        for i in range(len(calibration_histogram.
-                           gaussian_fits_parameters['scale'])):
+        fit_x = np.linspace(
+            calibration_histogram.edges[0],
+            calibration_histogram.edges[-1],
+            num=fit_npoints
+        )
 
-            fPlottedOneFit = True
+        if not plot_sum_of_gaussians:
+            for i in range(len(calibration_histogram.
+                            gaussian_fits_parameters['scale'])):
 
-            fit_x = np.linspace(
-                calibration_histogram.edges[0],
-                calibration_histogram.edges[-1],
-                num=fit_npoints)
-            
-            fit_y = wun.gaussian(   
-                fit_x,
-                calibration_histogram.
-                gaussian_fits_parameters['scale'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['mean'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['std'][i][0])
-            
-            fit_trace = pgo.Scatter(
-                x=fit_x,
-                y=fit_y,
-                mode='lines',
-                line=dict(
-                    color='red', 
-                    width=0.5),
-                name=f"{name} (Fit {i})")
-            
-            figure.add_trace(
-                fit_trace,
-                row=row,
-                col=col)
+                fPlottedOneFit = True
+                
+                fit_y = wun.gaussian(   
+                    fit_x,
+                    calibration_histogram.
+                    gaussian_fits_parameters['scale'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['mean'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['std'][i][0])
+                
+                fit_trace = pgo.Scatter(
+                    x=fit_x,
+                    y=fit_y,
+                    mode='lines',
+                    line=dict(
+                        color='red', 
+                        width=0.5),
+                    name=f"{name} (Fit {i})")
+                
+                figure.add_trace(
+                    fit_trace,
+                    row=row,
+                    col=col)
+        else:
+
+            fit_y = np.zeros(np.shape(fit_x))
+
+            for i in range(len(calibration_histogram.
+                            gaussian_fits_parameters['scale'])):
+
+                fPlottedOneFit = True
+
+                fit_y += wun.gaussian(
+                    fit_x,
+                    calibration_histogram.
+                    gaussian_fits_parameters['scale'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['mean'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['std'][i][0]
+                )
+
+            if fPlottedOneFit:
+                
+                fit_trace = pgo.Scatter(
+                    x=fit_x,
+                    y=fit_y,
+                    mode='lines',
+                    line=dict(
+                        color='red', 
+                        width=0.5),
+                    name=f"{name} (Fit {i})")
+                
+                figure.add_trace(
+                    fit_trace,
+                    row=row,
+                    col=col)
             
     return fPlottedOneFit
 
@@ -1045,6 +1090,7 @@ def plot_ChannelWsGrid(
     adc_range_above_baseline: Union[int, None] = 100,
     adc_range_below_baseline: Union[int, None] = 200,
     plot_peaks_fits: bool = False,
+    plot_sum_of_gaussians: bool = False,
     detailed_label: bool = True,
     plot_event: bool = False,
     event_id: Optional[int] = 0,
@@ -1270,6 +1316,16 @@ def plot_ChannelWsGrid(
         parameter of the call to plot_CalibrationHistogram().
         It means whether to plot the fits of the peaks, if
         available, over the histogram.
+    plot_sum_of_gaussians: bool
+        This parameter only makes a difference if the
+        'mode' parameter is set to 'calibration' and the
+        'plot_peaks_fits' parameter is set to True. In that
+        case, it means whether to plot the sum of gaussians
+        over the span of the calibration histogram, or to
+        plot individual gaussian fits limited to the fitting
+        range of each peak. It is given to the
+        'plot_sum_of_gaussians' parameter of the
+        plot_CalibrationHistogram() function.
     detailed_label: bool
         This parameter only makes a difference if
         the 'mode' parameter is set to 'average' or
@@ -1642,6 +1698,7 @@ def plot_ChannelWsGrid(
                     row=i + 1,
                     col=j + 1,
                     plot_fits=plot_peaks_fits,
+                    plot_sum_of_gaussians=plot_sum_of_gaussians,
                     fit_npoints=200)
 
         if verbose:
