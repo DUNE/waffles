@@ -211,6 +211,34 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
     )
 
 
+def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = ""):
+    endpoint = wfset.waveforms[0].endpoint
+    channel = wfset.waveforms[0].channel
+    if not params:
+        configyaml = configyaml if configyaml else 'ch_snr_parameters.yaml'
+        params = ch_read_params(filename=configyaml)
+
+    if endpoint not in params or channel not in params[endpoint]:
+        raise ValueError(f"No parameters found for endpoint {endpoint} and channel {channel} in the configuration file.")
+
+    if(len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
+        raise ValueError(f"Should have only one channel in the waveform set...")
+
+    if updatethreshold:
+        run = list(wfset.runs)[0]
+        threshold = params['updates'][endpoint][channel].get(run, 0)
+        if threshold != 0:
+            params[endpoint][channel]['baseline']['threshold'] = threshold
+    
+    runBasicWfAnaNP02(wfset,
+                      int_ll=params[endpoint][channel]['fit'].get('int_ll', 254),
+                      int_ul=params[endpoint][channel]['fit'].get('int_ul', 270),
+                      amp_ll=params[endpoint][channel]['fit'].get('amp_ll', 254),
+                      amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
+                      show_progress=show_progress,
+                      configyaml=params
+                      )
+
 def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     doprocess = wf_func.get("doprocess", True)
     dofit = wf_func.get("dofit", True)
@@ -228,28 +256,16 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     if(len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
         raise ValueError(f"Should have only one channel in the waveform set...")
 
-    if wf_func.get("update_threshold", False):
-        runs = params['updates'][endpoint][channel]['runs']
-        thresholds = params['updates'][endpoint][channel]['thresholds']
-        currentrun = list(wfset.runs)
-        if len(currentrun) != 1:
-            raise ValueError(f"WaveformSet should have only one run, but has {len(currentrun)} runs.")
-        currentrun = currentrun[0]
-        if currentrun not in runs:
-            print(currentrun, runs)
-            raise ValueError(f"Run {currentrun} not found in the updates for endpoint {endpoint} and channel {channel}.")
-        threshold = thresholds[runs.index(currentrun)]
-        params[endpoint][channel]['baseline']['threshold'] = threshold
+    update_threshold = wf_func.get("update_threshold", False)
     
     if doprocess:
-        runBasicWfAnaNP02(wfset,
-                          int_ll=params[endpoint][channel]['fit'].get('int_ll', 254),
-                          int_ul=params[endpoint][channel]['fit'].get('int_ul', 270),
-                          amp_ll=params[endpoint][channel]['fit'].get('amp_ll', 254),
-                          amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
-                          show_progress=show_progress,
-                          configyaml=params
-                          )
+        # params get updated inide here
+        runBasicWfAnaNP02Updating(
+            wfset,
+            updatethreshold=update_threshold,
+            show_progress=show_progress,
+            params=params
+        )
 
     bins_int = params[endpoint][channel]['fit'].get('bins_int', 100)
     domain_int_str = params[endpoint][channel]['fit'].get('domain_int', [-10e3, 100e3])
@@ -276,8 +292,6 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         analysis_label = "std",
         normalize_histogram=normalize_hist
     )
-    for wf in wfset.waveforms:
-        wf.analyses["std"].result['normalization'] = hInt.normalization
 
     if not dofit:
         plot_CalibrationHistogram(
@@ -315,13 +329,17 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
 
     gain = 0
     snr = 0
+    errgain=0
     try:
         zero_charge = fit_params['mean'][0][0]
+        zero_charge_err = fit_params['mean'][0][1]
         spe_charge = fit_params['mean'][1][0]
+        spe_charge_err = fit_params['mean'][1][1]
         baseline_stddev = abs(fit_params['std'][0][0])
         spe_stddev = fit_params['std'][1][0]
 
         gain = spe_charge - zero_charge
+        errgain = np.sqrt( zero_charge_err**2 + spe_charge_err**2 )
         snr = gain / baseline_stddev
     except:
         print(f"Could not fit for {dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}")
@@ -336,6 +354,10 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     )
 
     if snr != 0:
+        for wf in wfset.waveforms:
+            wf.analyses["std"].result['normalization'] = hInt.normalization
+            wf.analyses["std"].result['gain'] = gain
+            wf.analyses["std"].result['errgain'] = errgain
         print(
             f"{list(wfset.runs)[0]},",
             # f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]},",
@@ -345,6 +367,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             f"{spe_stddev:.2f},",
             f"{average_hits/gain:.2f}",
         )
+
 
 def runBasicWfAnaNP02(wfset: WaveformSet,
                       int_ll: int = 254,
