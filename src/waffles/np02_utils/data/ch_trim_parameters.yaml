@@ -6,7 +6,7 @@ default_fit: &dfit
     int_ll:             254            # integration lower limit in ticks
     int_ul:             270            # integration upper limit in ticks
     bins_int:           100            # binning of the histogram
-    domain_int:         [-0.5, 3] # min and max value of histogram x-axis
+    domain_int:         [-0.3, 2.5] # min and max value of histogram x-axis
     max_peaks:          3              # maximum number of peaks to fit
     half_point_to_fit:  2              # positive int, maximum number of bins to the left and right of the peak to fit
     prominence:         0.15           # 0 to 1, minimum fraction of peaks to spot relative to maximum peak
@@ -36,84 +36,54 @@ default_fit: &dfit
 updates: {
   107: {
     # M1(1)
-  47: {
-    runs: [],
-  thresholds: []
-  },
+    47: {
+    },
     # M1(2)
-  45: {
-    runs: [],
-    thresholds: []
+    45: {
     },
     # M2(1)
-  40: {
-    runs: [],
-    thresholds: []
+    40: {
     },
     # M2(2)
-  42: {
-    runs: [],
-    thresholds: []
+    42: {
     },
     # M3(1)
-  46: {
-    runs: [],
-    thresholds: []
+    46: {
     },
     # M3(2)
-  44: {
-    runs: [],
-    thresholds: []
+    44: {
     },
     # M4(1)
-  43: {
-    runs: [],
-    thresholds: []
+    43: {
     },
     # M4(2)
-  41: {
-    runs: [],
-    thresholds: []
+    41: {
     },
     # M5(1)
-  7: {
-    runs: [],
-    thresholds: []
+    7: {
     },
     # M5(2)
-  0: {
-    runs: [],
-    thresholds: []
+    0: {
     },
     # M6(1)
-  27: {
-    runs: [],
-    thresholds: []
+    27: {
     },
     # M6(2)
-  20: {
-    runs: [],
-    thresholds: []
+    20: {
     },
     # M7(1)
-  37: {
-    runs: [38584, 38401],
-    thresholds: [8, 5]
+    37: {
+      38584: 8,
+      38401: 8,
     },
     # M7(2)
-  30: {
-    runs: [],
-    thresholds: []
+    30: {
     },
     # M8(1)
-  17: {
-    runs: [],
-    thresholds: []
+    17: {
     },
     # M8(2)
-  10: {
-    runs: [],
-    thresholds: []
+    10: {
     },
-    }
   }
+}
