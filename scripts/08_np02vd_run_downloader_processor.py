@@ -139,6 +139,8 @@ def main() -> None:
     ap.add_argument("-c", "--cathode", action="store_const",
                     const="VD_Cathode_PDS", dest="det", help="Use cathode PDS detector, ignores the json")
     ap.add_argument('-fs', '--full-stream', action='store_true', help="Use full stream instead of self-trigger")
+    ap.add_argument("-p", "--pmt", action="store_const",
+                    const="VD_PMT_PDS", dest="det", help="Use PMT PDS detector, ignores the json") 
 
     args = ap.parse_args()
 
@@ -168,6 +170,9 @@ def main() -> None:
         suffix="membrane"
     elif detector == 'VD_Cathode_PDS':
         suffix="cathode"
+    elif detector == 'VD_PMT_PDS':
+        suffix="pmt"
+        
     else:
         raise ValueError(f"Unknown detector: {detector}")
 
