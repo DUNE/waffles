@@ -239,6 +239,9 @@ def main(config):
         elif detector == 'VD_Cathode_PDS':
             suffix="cathode"
             extra="_cathode"
+        elif detector == 'VD_PMT_PDS':    
+            suffix="pmt"
+            extra="_pmt"
         config_data["suffix"] = suffix
 
 
