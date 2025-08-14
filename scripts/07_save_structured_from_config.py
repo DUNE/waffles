@@ -151,7 +151,7 @@ class WaveformProcessor:
         except Exception as e:
             print_colored(f"Error saving merged output: {e}", color="ERROR")
             return False
-        
+
     def compare_waveformsets(self, original, loaded):
         original = self.ensure_waveformset(original)
         loaded = self.ensure_waveformset(loaded)
@@ -215,7 +215,7 @@ class WaveformProcessor:
             print_colored(f"Error saving output: {e}", color="ERROR")
             return False
 
-    
+
 
 
 @click.command(help="\033[34mProcess and save structured waveform data from JSON config.\033[0m")
@@ -229,7 +229,7 @@ def main(config):
 
         runs = config_data.get("runs", [])
 
-        # Addressing changes in script 08 
+        # Addressing changes in script 08
         detector = config_data.get("det") # Ensure 'det' is present
         suffix = ""
         extra = ""
@@ -239,7 +239,7 @@ def main(config):
         elif detector == 'VD_Cathode_PDS':
             suffix="cathode"
             extra="_cathode"
-        elif detector == 'VD_PMT_PDS':    
+        elif detector == 'VD_PMT_PDS':
             suffix="pmt"
             extra="_pmt"
         config_data["suffix"] = suffix
