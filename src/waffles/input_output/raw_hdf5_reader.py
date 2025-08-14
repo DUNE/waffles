@@ -134,6 +134,8 @@ def get_inv_map_id(det):
         map_id = {'107': [700, 701, 51]}
     elif det == 'VD_Cathode_PDS':
         map_id = {'106': [723, 722, 721, 720, 21, 22, 23]}
+    elif det == "VD_PMT_PDS":
+        map_id = {'110': [710]}
     else:
         raise ValueError(f"det '{det}' is not recognized.")
     inv_map_id = {v: k for k, vals in map_id.items() for v in vals}
@@ -372,6 +374,10 @@ def WaveformSet_from_hdf5_file(filepath: str,
     wvfm_index = 0
     inv_map_id = get_inv_map_id(det)
 
+    detdaq = det
+    # This is necessary to keep PMTs different from x-arapuca
+    if detdaq == "VD_PMT_PDS": 
+        detdaq = "VD_Membrane_PDS" 
     # Process records in chunks
     for chunk_start in range(0, len(records), record_chunk_size):
         chunk_end = chunk_start + record_chunk_size
@@ -379,7 +385,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
 
         for r in record_chunk:
             pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
-                r, detdataformats.DetID.string_to_subdetector(det)
+                r, detdataformats.DetID.string_to_subdetector(detdaq)
             ))
 
             try:
