@@ -1,14 +1,14 @@
 default_baseline: &dfbase
-  threshold: 25 # Will be updated!!!
+  threshold: 50 # Will be updated!!!
   minimumfrac: 0.67
 
 default_fit: &dfit
     int_ll:             254            # integration lower limit in ticks
-    int_ul:             270            # integration upper limit in ticks
-    bins_int:           100            # binning of the histogram
-    domain_int:         [-0.3, 2.5] # min and max value of histogram x-axis
-    max_peaks:          3              # maximum number of peaks to fit
-    half_point_to_fit:  2              # positive int, maximum number of bins to the left and right of the peak to fit
+    int_ul:             290           # integration upper limit in ticks
+    bins_int:           75            # binning of the histogram
+    domain_int:         [-0.5, 2.7] # min and max value of histogram x-axis
+    max_peaks:          2              # maximum number of peaks to fit
+    half_point_to_fit:  5              # positive int, maximum number of bins to the left and right of the peak to fit
     prominence:         0.15           # 0 to 1, minimum fraction of peaks to spot relative to maximum peak
     initial_percentage: 0.10           # 0 to 1, starting percentage to search for peaks
     percentage_step:    0.05           # if n peaks < max_peaks, increase the percentage by this value
@@ -49,15 +49,51 @@ updates: {
     },
     # M3(1)
     46: {
+      38785: 40,
+      38786: 40,
+      38787: 40,
+      38789: 40,
+      38790: 40,
+      38792: 40,
+      38794: 37,
+      38796: 36,
+      38798: 35
     },
     # M3(2)
     44: {
+      38785: 50,
+      38786: 50,
+      38787: 50,
+      38789: 50,
+      38790: 50,
+      38792: 50,
+      38794: 50,
+      38796: 50,
+      38798: 50
     },
     # M4(1)
     43: {
+      38785: 50,
+      38786: 50,
+      38787: 50,
+      38789: 50,
+      38790: 50,
+      38792: 50,
+      38794: 50,
+      38796: 50,
+      38798: 50
     },
     # M4(2)
     41: {
+      38785: 50,
+      38786: 50,
+      38787: 50,
+      38789: 50,
+      38790: 50,
+      38792: 50,
+      38794: 50,
+      38796: 50,
+      38798: 50
     },
     # M5(1)
     7: {

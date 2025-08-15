@@ -355,6 +355,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
 
     if snr != 0:
         for wf in wfset.waveforms:
+            wf.analyses["std"].result['snr'] = snr
             wf.analyses["std"].result['normalization'] = hInt.normalization
             wf.analyses["std"].result['gain'] = gain
             wf.analyses["std"].result['errgain'] = errgain
