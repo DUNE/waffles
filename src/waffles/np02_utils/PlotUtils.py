@@ -211,7 +211,10 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
     )
 
 
-def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = ""):
+def __update_dict(dictd, dictup, key):
+        dictd[key] = dictup.get(key, dictd[key])
+
+def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True):
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
     if not params:
@@ -226,18 +229,27 @@ def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_pro
 
     if updatethreshold:
         run = list(wfset.runs)[0]
-        threshold = params['updates'][endpoint][channel].get(run, 0)
-        if threshold != 0:
-            params[endpoint][channel]['baseline']['threshold'] = threshold
+        dictbaseline = params[endpoint][channel]['baseline']
+        dictfit = params[endpoint][channel]['fit']
+        if run in params['updates'][endpoint][channel]:
+            dictupdate = params['updates'][endpoint][channel][run]
+            __update_dict(dictbaseline, dictupdate, 'threshold')
+            __update_dict(dictbaseline, dictupdate, 'default_filtering')
+            __update_dict(dictfit, dictupdate, 'bins_int')
+            __update_dict(dictfit, dictupdate, 'domain_int')
+            __update_dict(dictfit, dictupdate, 'max_peaks')
+            __update_dict(dictfit, dictupdate, 'prominence')
+            __update_dict(dictfit, dictupdate, 'half_point_to_fit')
     
-    runBasicWfAnaNP02(wfset,
-                      int_ll=params[endpoint][channel]['fit'].get('int_ll', 254),
-                      int_ul=params[endpoint][channel]['fit'].get('int_ul', 270),
-                      amp_ll=params[endpoint][channel]['fit'].get('amp_ll', 254),
-                      amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
-                      show_progress=show_progress,
-                      configyaml=params
-                      )
+    if doprocess:
+        runBasicWfAnaNP02(wfset,
+                          int_ll=params[endpoint][channel]['fit'].get('int_ll', 254),
+                          int_ul=params[endpoint][channel]['fit'].get('int_ul', 270),
+                          amp_ll=params[endpoint][channel]['fit'].get('amp_ll', 254),
+                          amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
+                          show_progress=show_progress,
+                          configyaml=params
+                          )
 
 def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     doprocess = wf_func.get("doprocess", True)
@@ -245,6 +257,8 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     normalize_hist = wf_func.get("normalize_hist", False)
     variable = wf_func.get('variable', 'integral')
     show_progress = wf_func.get('show_progress', False)
+    fitmultigauss = wf_func.get('fitmultigauss', False)
+    verbosemultigauss = wf_func.get('verbosemultigauss', False)
     params = ch_read_params(filename=wf_func.get('configyaml', 'ch_snr_parameters.yaml'))
     
     endpoint = wfset.waveforms[0].endpoint
@@ -258,14 +272,14 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
 
     update_threshold = wf_func.get("update_threshold", False)
     
-    if doprocess:
-        # params get updated inide here
-        runBasicWfAnaNP02Updating(
-            wfset,
-            updatethreshold=update_threshold,
-            show_progress=show_progress,
-            params=params
-        )
+    # params get updated inide here
+    runBasicWfAnaNP02Updating(
+        wfset,
+        updatethreshold=update_threshold,
+        show_progress=show_progress,
+        params=params,
+        doprocess=doprocess,
+    )
 
     bins_int = params[endpoint][channel]['fit'].get('bins_int', 100)
     domain_int_str = params[endpoint][channel]['fit'].get('domain_int', [-10e3, 100e3])
@@ -318,8 +332,11 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         prominence,
         half_point_to_fit,
         initial_percentage,
-        percentage_step
+        percentage_step,
+        fitmultigauss=fitmultigauss,
     )
+    if verbosemultigauss:
+        print(getattr(hInt, "iminuit", None))
     fit_params = hInt.gaussian_fits_parameters
 
     zero_charge = 0

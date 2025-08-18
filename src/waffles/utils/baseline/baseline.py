@@ -50,7 +50,7 @@ class SBaseline:
         if default_filtering is not None:
             self.filtering = default_filtering
 
-        self.write_filtered_waveform = True
+        self.write_filtered_waveform = False
         self.data_base:dict = data_base
 
     @staticmethod
