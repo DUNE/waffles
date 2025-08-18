@@ -1,4 +1,5 @@
 import os
+import pickle
 import numpy as np
 import pandas as pd
 
@@ -487,3 +488,53 @@ def save_data_to_dataframe(
             path_to_output_file,
             index=False
         )
+
+def dump_object_to_pickle(
+    object, 
+    saving_folderpath : str,
+    output_filename : str,
+    verbose : bool = True
+) -> None:
+    """This function gets the following positional argument:
+
+    - object
+    - saving_folderpath (str): Path to the folder
+    where to save the file.
+    - output_filename (str): Name of the output 
+    pickle file.
+
+    And the following keyword argument:
+
+    - verbose (bool): Whether to print functioning
+    related messages.
+    
+    It saves the given object, object, to a pickle file 
+    which is stored in the path given by saving_filepath
+    """
+
+    # If the saving folder does not exist, create it
+    if not os.path.exists(saving_folderpath):
+
+        if verbose:
+            print(
+                "In function dump_object_to_pickle(): Folder "
+                f"{saving_folderpath} does not exist. It will "
+                "be created."
+            )
+
+        os.makedirs(saving_folderpath)
+
+    # Create the output filepath
+    output_filepath = os.path.join(
+        saving_folderpath, 
+        output_filename
+    )
+    
+    with open(
+        output_filepath, 
+        "wb"
+    ) as output_file:
+
+        pickle.dump(object, output_file)
+
+        return
