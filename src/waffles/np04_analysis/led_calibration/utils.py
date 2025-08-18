@@ -82,6 +82,38 @@ def split_channel_number(
 
     return (endpoint, channel)
 
+def arrange_dictionary_of_endpoints_and_channels(
+    list_of_joint_channels: list[int]
+    ) -> dict[int, list[int]]:
+    """This function takes a list of joint channel numbers
+    and arranges them into a dictionary where the keys are
+    endpoint numbers and the values are lists of channel
+    numbers.
+
+    Example:
+    - [11102, 11107, 11307, 10931, 11315, 11317] -> \
+        {111: [2, 7], 113: [7, 15, 17], 109: [31]}
+    """
+
+    result = {}
+
+    for joint_channel in list_of_joint_channels:
+        endpoint, channel = split_channel_number(joint_channel)
+
+        try:
+            result[endpoint].append(channel)
+
+        except KeyError:
+            # Happens if it is the first
+            # occurrence of this endpoint
+            result[endpoint] = [channel]
+
+    for endpoint in result.keys():
+        # Prevent duplicates
+        result[endpoint] = list(set(result[endpoint]))
+
+    return result
+
 def comes_from_channel( 
         waveform: Waveform, 
         channels: list,
