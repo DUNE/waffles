@@ -1,6 +1,7 @@
 default_baseline: &dfbase
   threshold: 50 # Will be updated!!!
   minimumfrac: 0.67
+  default_filtering: 2
 
 default_fit: &dfit
     int_ll:             254            # integration lower limit in ticks
@@ -19,7 +20,7 @@ default_fit: &dfit
   40: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M2(1)
   42: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M2(2)
   46: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M3(1)
-  44: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M3(2)
+  44: { baseline: { <<: *dfbase}, fit: { <<: *dfit, domain_int: [-0.4, 2.5], half_point_to_fit: 3, bins_int: 70 }}, # M3(2)
   43: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M4(1)
   41: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M4(2)
    7: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M5(1)
@@ -49,51 +50,51 @@ updates: {
     },
     # M3(1)
     46: {
-      38785: 40,
-      38786: 40,
-      38787: 40,
-      38789: 40,
-      38790: 40,
-      38792: 40,
-      38794: 37,
-      38796: 36,
-      38798: 35
+      38785: {threshold: 40},
+      38786: {threshold: 40},
+      38787: {threshold: 40},
+      38789: {threshold: 40},
+      38790: {threshold: 40},
+      38792: {threshold: 40},
+      38794: {threshold: 37},
+      38796: {threshold: 36},
+      38798: {threshold: 35}
     },
     # M3(2)
     44: {
-      38785: 50,
-      38786: 50,
-      38787: 50,
-      38789: 50,
-      38790: 50,
-      38792: 50,
-      38794: 50,
-      38796: 50,
-      38798: 50
+      38785: {threshold: 47, domain_int: [-0.3, 2.3]},
+      38786: {threshold: 46},
+      38787: {threshold: 45},
+      38789: {threshold: 50},
+      38790: {threshold: 45, domain_int: [-0.7, 2.5], bins_int: 50},
+      38792: {threshold: 42, domain_int: [-0.7, 2.5], bins_int: 50},
+      38794: {threshold: 39, half_point_to_fit: 4, domain_int: [-0.7, 2.5], bins_int: 50},
+      38796: {threshold: 35},
+      38798: {threshold: 35}
     },
     # M4(1)
     43: {
-      38785: 50,
-      38786: 50,
-      38787: 50,
-      38789: 50,
-      38790: 50,
-      38792: 50,
-      38794: 50,
-      38796: 50,
-      38798: 50
+      38785: {threshold: 50},
+      38786: {threshold: 50},
+      38787: {threshold: 50},
+      38789: {threshold: 50},
+      38790: {threshold: 50},
+      38792: {threshold: 50},
+      38794: {threshold: 50},
+      38796: {threshold: 50},
+      38798: {threshold: 50}
     },
     # M4(2)
     41: {
-      38785: 50,
-      38786: 50,
-      38787: 50,
-      38789: 50,
-      38790: 50,
-      38792: 50,
-      38794: 50,
-      38796: 50,
-      38798: 50
+      38785: {threshold: 50},
+      38786: {threshold: 50},
+      38787: {threshold: 50},
+      38789: {threshold: 50},
+      38790: {threshold: 50},
+      38792: {threshold: 50},
+      38794: {threshold: 50},
+      38796: {threshold: 50},
+      38798: {threshold: 50}
     },
     # M5(1)
     7: {
@@ -109,8 +110,8 @@ updates: {
     },
     # M7(1)
     37: {
-      38584: 8,
-      38401: 8,
+      38584: {threshold: 8},
+      38401: {threshold: 8},
     },
     # M7(2)
     30: {

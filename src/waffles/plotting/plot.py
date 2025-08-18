@@ -991,15 +991,16 @@ def plot_CalibrationHistogram(
 
     if plot_fits:
 
+
+        fit_x = np.linspace(
+            calibration_histogram.edges[0],
+            calibration_histogram.edges[-1],
+            num=fit_npoints)
+        multigaussianparams = []
         for i in range(len(calibration_histogram.
                            gaussian_fits_parameters['scale'])):
 
             fPlottedOneFit = True
-
-            fit_x = np.linspace(
-                calibration_histogram.edges[0],
-                calibration_histogram.edges[-1],
-                num=fit_npoints)
             
             fit_y = wun.gaussian(   
                 fit_x,
@@ -1009,6 +1010,16 @@ def plot_CalibrationHistogram(
                 gaussian_fits_parameters['mean'][i][0],
                 calibration_histogram.
                 gaussian_fits_parameters['std'][i][0])
+
+            multigaussianparams+= [
+                calibration_histogram.
+                gaussian_fits_parameters['scale'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['mean'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['std'][i][0]
+            ]
+
             fit_trace = pgo.Scatter(
                 x=fit_x,
                 y=fit_y,
@@ -1019,11 +1030,28 @@ def plot_CalibrationHistogram(
                 name=f"{name} Fit({i})",
                 showlegend=showfitlabels
             )
-            
+
             figure.add_trace(
                 fit_trace,
                 row=row,
                 col=col)
+        fit_trace_multi = pgo.Scatter(
+            x=fit_x,
+            y=wun.multigaussplot(   
+                fit_x,
+                *multigaussianparams),
+            mode='lines',
+            line=dict(
+                color='blue', 
+                width=0.5),
+            name=f"{name} MultiFit",
+            showlegend=showfitlabels
+        )
+        figure.add_trace(
+            fit_trace_multi,
+            row=row,
+            col=col)
+
             
     return fPlottedOneFit
 

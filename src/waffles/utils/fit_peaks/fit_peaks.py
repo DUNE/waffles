@@ -9,13 +9,18 @@ import waffles.utils.fit_peaks.fit_peaks_utils as wuff
 
 from waffles.Exceptions import GenerateExceptionMessage
 
+from iminuit import Minuit
+from iminuit.cost import LeastSquares
+
+
 def fit_peaks_of_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
     max_peaks: int,
     prominence: float,
     half_points_to_fit: int,
     initial_percentage = 0.1,
-    percentage_step = 0.1
+    percentage_step = 0.1,
+    fitmultigauss: bool = False,
 ) -> bool:
     """For the given CalibrationHistogram object, 
     calibration_histogram, this function
@@ -92,6 +97,10 @@ def fit_peaks_of_CalibrationHistogram(
         wuff.__spot_first_peaks_in_CalibrationHistogram() 
         function. For more information, check the 
         documentation of such function.
+    fitmultigauss: bool
+        If True, it will fit a multigaussian function
+        to the histogram, instead of a single gaussian
+        function. 
 
     Returns
     -------
@@ -214,8 +223,109 @@ def fit_peaks_of_CalibrationHistogram(
             aux_errors[1],
             aux_optimal_parameters[2],
             aux_errors[2])
+
+
+    n_peaks_found = len(calibration_histogram.gaussian_fits_parameters['scale'])
+
+    if not fitmultigauss or n_peaks_found == 0:
+        return fFoundMax
+
+
+
+    # initialize parameters for iminuit
+    paramnames = ['scale_baseline', 'mean_baseline', 'std_baseline', 'gain', 'propstd']
+    iminuitparams = []
+    iminuitparams.append(calibration_histogram.gaussian_fits_parameters['scale'][0][0])
+    iminuitparams.append(calibration_histogram.gaussian_fits_parameters['mean'][0][0])
+    iminuitparams.append(calibration_histogram.gaussian_fits_parameters['std'][0][0])
+
+    # in case there is is no 1pe fitted, still try our best
+    onepe_scale = iminuitparams[0]
+    onepe_std = iminuitparams[2]
+    onepe_mean = iminuitparams[1] + 2*onepe_std # mean of the baseline + 2*sigma
+
+    if n_peaks_found > 1: # in case peak of 1 pe was found, use it...
+        onepe_scale = calibration_histogram.gaussian_fits_parameters['scale'][1][0]
+        onepe_mean = calibration_histogram.gaussian_fits_parameters['mean'][1][0]
+        onepe_std = calibration_histogram.gaussian_fits_parameters['std'][1][0]
+
+    # std dev of 1, 2, n-th peak is are proportional
+    estimated_stdprop = np.sqrt(abs(onepe_std**2 - iminuitparams[2]**2)) # abs just in case
+    iminuitparams.append(onepe_mean)
+    iminuitparams.append(estimated_stdprop)
+
+    # Estimates the number of peaks that should be fitted based on the histogram
+    # Starts with a huge number of peaks, and then reduces it
+    n_peaks_to_fit_iminuit = n_peaks_found + 15 
+    searchdone=False
+    for i in range(1, n_peaks_to_fit_iminuit):
+        ipeakscale = np.argmin( np.abs( calibration_histogram.edges - onepe_mean*i ))
+        if ipeakscale >= len(calibration_histogram.counts):
+            ipeakscale = len(calibration_histogram.counts) - 1
+            searchdone = True # accept last extra peak
+        iminuitparams.append(calibration_histogram.counts[ipeakscale]*0.95)
+        paramnames.append(f'scale_{i}pe')
+        if searchdone:
+            n_peaks_to_fit_iminuit = i + 1
+            break
+
+    data_x = ( calibration_histogram.edges[:-1] + calibration_histogram.edges[1:] )*0.5
+    data_y = calibration_histogram.counts
+    data_err = np.sqrt(data_y)
+    data_err[data_err == 0] = 1 # avoid division by zero
+    chi2 = LeastSquares(data_x, data_y, data_err, wun.multigaussfit)
+    mm = Minuit(chi2, *iminuitparams, name=paramnames)
+    mm.fixed['scale_baseline'] = True
+    mm.fixed['mean_baseline'] = True
+    mm.fixed['std_baseline'] = True
+    mm.fixed['gain'] = True
+    mm.fixed['propstd'] = False
+    mm.fixed['scale_1pe'] = True
+    mm.migrad()
+
+    for p in mm.parameters: # we are now free
+        mm.fixed[p] = False
+        mm.limits[p] = (0, None) # They are all positive btw
+    mm.migrad() # second call to ensure convergence now with free parameters
+    mm.migrad() # try hard call 
+    mm.hesse() # compute errors
+    fitstatus = mm.fmin.is_valid if mm.fmin else False
         
-    return fFoundMax
+    # Resize the gaussian_fits_parameters
+    calibration_histogram._CalibrationHistogram__reset_gaussian_fit_parameters()
+
+    calibration_histogram._CalibrationHistogram__add_gaussian_fit_parameters(
+        mm.params[0].value,mm.params[0].error,
+        mm.params[1].value,mm.params[1].error,
+        mm.params[2].value,mm.params[2].error,
+    )
+
+    gain = mm.params[3].value
+    errgain = mm.params[3].error
+
+    propstd = mm.params[4].value
+    errpropstd = mm.params[4].error
+
+    for i in range(1, n_peaks_to_fit_iminuit):
+        calibration_histogram._CalibrationHistogram__add_gaussian_fit_parameters(   
+            mm.params[4 + i].value,
+            mm.params[4 + i].error, 
+
+            gain * i + mm.params[1].value,
+            np.sqrt(errgain**2 * i + mm.params[1].error**2) ,
+
+            np.sqrt( mm.params[2].value**2 + propstd**2 * i ), 
+            np.sqrt( mm.params[2].value**2 * mm.params[2].error**2
+                + propstd**2 * errpropstd**2 * i ) / np.sqrt(
+                    mm.params[2].value**2 + propstd**2 * i )
+        )
+
+    n_peaks_found = len(calibration_histogram.gaussian_fits_parameters['mean'])
+
+    setattr(calibration_histogram, 'n_peaks_found', n_peaks_found)
+    setattr(calibration_histogram, 'iminuit', mm)
+        
+    return fitstatus
 
 def fit_peaks_of_ChannelWsGrid( 
     channel_ws_grid: ChannelWsGrid,
