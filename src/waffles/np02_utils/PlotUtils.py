@@ -356,8 +356,10 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         spe_stddev = fit_params['std'][1][0]
 
         gain = spe_charge - zero_charge
-        # errgain = np.sqrt( zero_charge_err**2 + spe_charge_err**2 )
-        errgain = hInt.iminuit.params[3].error
+        errgain = np.sqrt( zero_charge_err**2 + spe_charge_err**2 )
+        mm = getattr(hInt, "iminuit", None)
+        if mm is not None:
+            errgain = hInt.iminuit.params[3].error
         snr = gain / baseline_stddev
     except:
         print(f"Could not fit for {dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}")
