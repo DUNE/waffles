@@ -538,3 +538,50 @@ def dump_object_to_pickle(
         pickle.dump(object, output_file)
 
         return
+
+def next_subsample(
+    current_subsample: int,
+    read_quantity: int,
+    required_quantity: int
+) -> int:
+    """In the context of a reading process which uses a certain
+    subsampling rate, this function gives an estimation of the
+    subsampling rate which should be used next to get the required
+    number of elements.
+
+    Parameters
+    ----------
+    current_subsample: int
+        The subsampling rate which yielded the number of elements
+        given by read_quantity
+    read_quantity: int
+        The number of elements yielded by the last reading process
+        which used the subsampling rate given by current_subsample
+    required_quantity: int
+        The required number of elements
+
+    Returns
+    ----------
+    proposed_subsample: int
+        The subsampling rate which should be used next to get
+        the required number of elements
+    """
+
+    if current_subsample <= 1:
+        return 1
+    
+    else:
+        estimated_available_quantity = \
+            current_subsample * read_quantity
+
+        for proposed_subsample in reversed(range(1, current_subsample+1)):
+            # int() always truncates
+            if int(estimated_available_quantity / proposed_subsample) \
+                >= required_quantity:
+                break
+
+        # If not even proposed_subsample = 1 reaches the desired
+        # quantity, then return the best-case scenario which is
+        # still proposed_subsample = 1
+
+        return proposed_subsample
