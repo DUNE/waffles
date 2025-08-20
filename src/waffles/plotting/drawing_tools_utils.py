@@ -10,7 +10,6 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
-import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
