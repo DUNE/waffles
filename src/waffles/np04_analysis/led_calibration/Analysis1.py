@@ -366,7 +366,25 @@ class Analysis1(WafflesAnalysis):
             (self.channels_per_run['pde'] == self.pde)
         ]
 
-        targeted_runs = filtered_channels_per_run['run'].values
+        targeted_runs = list(
+            filtered_channels_per_run['run'].values
+        )
+
+        if len(targeted_runs) == 0:
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.read_input(): "
+                    f"Found no runs for batch {self.batch}, "
+                    f"APA {self.apa} and PDE {self.pde}. "
+                    "Skipping this configuration."
+                )
+
+            # WafflesAnalysis.execute() takes care of
+            # skipping this iteration of the loop if
+            # read_input() returns False, i.e. self.analyze()
+            # and self.write_output() won't be executed
+            # for this particular configuration
+            return False
 
         fFirstRun = True
 
