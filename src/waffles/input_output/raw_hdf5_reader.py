@@ -134,6 +134,8 @@ def get_inv_map_id(det):
         map_id = {'107': [700, 701, 51]}
     elif det == 'VD_Cathode_PDS':
         map_id = {'106': [723, 722, 721, 720, 21, 22, 23]}
+    elif det == "VD_PMT_PDS":
+        map_id = {'110': [710]}
     else:
         raise ValueError(f"det '{det}' is not recognized.")
     inv_map_id = {v: k for k, vals in map_id.items() for v in vals}
@@ -225,7 +227,8 @@ def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
                                 ch: Optional[dict] = {},
                                 det: str = 'HD_PDS',
                                 temporal_copy_directory: str = '/tmp',
-                                erase_temporal_copy: bool = True
+                                erase_temporal_copy: bool = True,
+                                repeat_choice: list = [0],
                                 ) -> WaveformSet:
     """
     Creates a WaveformSet from multiple HDF5 files by sequentially reading
@@ -267,7 +270,8 @@ def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
                 ch,
                 det,
                 temporal_copy_directory=temporal_copy_directory,
-                erase_temporal_copy=erase_temporal_copy
+                erase_temporal_copy=erase_temporal_copy,
+                repeat_choice=repeat_choice
             )
         except Exception as error:
             logger.error(f"Error reading file {filepath}: {error}")
@@ -296,7 +300,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
                                temporal_copy_directory: str = '/tmp',
                                erase_temporal_copy: bool = True,
                                record_chunk_size: int = 200,
-                               choose_minimum: bool = False,
+                               repeat_choice: list = [0],
                                ) -> WaveformSet:
     """
     Reads a single HDF5 file and constructs a WaveformSet. Records are processed
@@ -370,6 +374,10 @@ def WaveformSet_from_hdf5_file(filepath: str,
     wvfm_index = 0
     inv_map_id = get_inv_map_id(det)
 
+    detdaq = det
+    # This is necessary to keep PMTs different from x-arapuca
+    if detdaq == "VD_PMT_PDS": 
+        detdaq = "VD_Membrane_PDS" 
     # Process records in chunks
     for chunk_start in range(0, len(records), record_chunk_size):
         chunk_end = chunk_start + record_chunk_size
@@ -377,7 +385,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
 
         for r in record_chunk:
             pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
-                r, detdataformats.DetID.string_to_subdetector(det)
+                r, detdataformats.DetID.string_to_subdetector(detdaq)
             ))
 
             try:
@@ -472,13 +480,28 @@ def WaveformSet_from_hdf5_file(filepath: str,
             
             slice_len = allwaveformslengths[0][0] # Most common length
         elif truncate_wfs_method == "choose":
-            print("Choose a length from the following options:")
-            for i, (length, count) in enumerate(allwaveformslengths):
-                print(f"{i}: {length} with {count} occurrences")
-            choice = int(input("Enter the index of the length you want to choose: "))
-            if choice < 0 or choice >= len(allwaveformslengths):
-                raise ValueError("Invalid choice index.")
-            slice_len = allwaveformslengths[choice][0]
+            if repeat_choice[0] > 0:
+                if repeat_choice[0] not in dict(allwaveformslengths).keys():
+                    raise ValueError("Could not find same length over all files.... :(")
+                print(f"Repeating waveform length: {repeat_choice[0]}")
+                slice_len = repeat_choice[0]
+            elif repeat_choice[0] == 0:
+                print("Choose a length from the following options:")
+                for i, (length, count) in enumerate(allwaveformslengths):
+                    print(f"{i}: {length} with {count} occurrences")
+                choice = int(input("Enter the index of the length you want to choose: "))
+                if choice < 0:
+                    raise ValueError("Invalid choice index.")
+                if choice > 10:
+                    if choice not in dict(allwaveformslengths).keys():
+                        raise ValueError("Maximum choice is 10... more than this it should be a valid waveform length...")
+                    print("Setting up wavelength to be repeated..")
+                    repeat_choice[0] = choice
+                    slice_len = choice
+                else:
+                    slice_len = allwaveformslengths[choice][0]
+            else:
+                raise ValueError("You have to set repeat_choice to 0 if you want to choose a length interactively.")
         else:
             raise ValueError(f"Unknown truncate_wfs_method: {truncate_wfs_method}. "
                              "Use 'minimum', 'MPV', or 'choose'.")

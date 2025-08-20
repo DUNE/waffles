@@ -106,7 +106,7 @@ def _analyse(wfset:WaveformSet):
 
 def process_structured(h5: Path, outdir: Path,
                        max_wfs: int, headless: bool, detector: str):
-    
+
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
     _analyse(wfset)
@@ -139,6 +139,8 @@ def main() -> None:
     ap.add_argument("-c", "--cathode", action="store_const",
                     const="VD_Cathode_PDS", dest="det", help="Use cathode PDS detector, ignores the json")
     ap.add_argument('-fs', '--full-stream', action='store_true', help="Use full stream instead of self-trigger")
+    ap.add_argument("-p", "--pmt", action="store_const",
+                    const="VD_PMT_PDS", dest="det", help="Use PMT PDS detector, ignores the json")
 
     args = ap.parse_args()
 
@@ -168,6 +170,9 @@ def main() -> None:
         suffix="membrane"
     elif detector == 'VD_Cathode_PDS':
         suffix="cathode"
+    elif detector == 'VD_PMT_PDS':
+        suffix="pmt"
+
     else:
         raise ValueError(f"Unknown detector: {detector}")
 
@@ -242,7 +247,12 @@ def main() -> None:
             pending.append(r)
 
     if not pending:
-        logging.warning("Nothing to process; all runs already done.")
+        noprocessmessage = "Nothing to process; "
+        if len(ok_runs) == 0:
+            noprocessmessage += "no runs found..."
+        else:
+            noprocessmessage += "all runs already done."
+        logging.warning(noprocessmessage)
     else:
         # ── Build config for 07_save_structured_from_config.py ──────────────
         cfg.update(dict(
