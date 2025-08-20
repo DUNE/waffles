@@ -141,7 +141,7 @@ def get_inv_map_id(det):
 
 
 def find_endpoint(map_id, target_value):
-    return map_id[target_value]
+    return map_id.get(target_value, None)
 
 
 def extract_fragment_info(frag, trig):
@@ -407,7 +407,10 @@ def WaveformSet_from_hdf5_file(filepath: str,
                  channels_frag, adcs_frag, timestamps_frag,
                  trigger_ts) = extract_fragment_info(frag, trig)
 
-                endpoint = int(find_endpoint(inv_map_id, scr_id))
+                endpoint = find_endpoint(inv_map_id, scr_id)
+                if endpoint is None:
+                    continue
+                endpoint = int(endpoint)
 
                 if trigger == 'full_stream':
                     adcs_frag = adcs_frag.transpose()

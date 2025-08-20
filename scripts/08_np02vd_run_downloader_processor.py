@@ -114,6 +114,8 @@ def process_structured(h5: Path, outdir: Path,
         g: ChannelWsGrid = cast(ChannelWsGrid, g)
         html = outdir / f"{n}.html" if headless else None
         plot_grid(chgrid=g, title=n, html=html, detector=detector)
+        if html:
+            os.chmod(html.as_posix(), 0o775)
 
 
 # ╭─────────────────────────────── main() ─────────────────────────────────────╮
@@ -128,10 +130,16 @@ def main() -> None:
     auth = ap.add_mutually_exclusive_group()
     auth.add_argument("--kerberos", action="store_true")
     auth.add_argument("--ssh-key", help="Path to private key")
-    ap.add_argument("--max-waveforms", type=int, default=32000, help="Maximum waveforms to be plotted")
+    ap.add_argument("--max-waveforms", type=int, default=4000, help="Maximum waveforms to be plotted")
     ap.add_argument("--config-template", default="config.json")
     ap.add_argument("--headless", action="store_true", help="Set it to save html plots instead of showing them")
     ap.add_argument("-v", "--verbose", action="count", default=1)
+    ap.add_argument("-m", "--membrane", action="store_const",
+                    const="VD_Membrane_PDS", dest="det", help="Use membrane PDS detector, ignores the json")
+    ap.add_argument("-c", "--cathode", action="store_const",
+                    const="VD_Cathode_PDS", dest="det", help="Use cathode PDS detector, ignores the json")
+    ap.add_argument('-fs', '--full-stream', action='store_true', help="Use full stream instead of self-trigger")
+
     args = ap.parse_args()
 
     logging.basicConfig(level=max(10, 30 - 10*args.verbose),
@@ -150,7 +158,11 @@ def main() -> None:
     if args.headless: # if there are no plots, no reason to create directory
         plot_root.mkdir(parents=True, exist_ok=True)
 
+    if args.det is not None:
+        cfg["det"] = args.det
+
     detector = cfg.get("det")
+
     suffix=""
     if detector == 'VD_Membrane_PDS':
         suffix="membrane"
@@ -160,6 +172,14 @@ def main() -> None:
         raise ValueError(f"Unknown detector: {detector}")
 
     processed_pattern = f"run%06d_{suffix}/processed_*_run%06d_*_{suffix}.hdf5"
+    raw_pattern = f"run%06d/np02vd_raw_run%06d_*"
+
+
+    if args.full_stream:
+        if detector == "VD_Cathode_PDS":
+            cfg["trigger"] = "full_streaming"
+        else:
+            logging.warning("Full stream only available for VD_Cathode_PDS, ignoring\nIf this warning is outdated, remove it.")
 
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
@@ -191,7 +211,12 @@ def main() -> None:
         try:
             rem = remote_hdf5_files(ssh, args.remote_dir, run)
             if not rem:
-                logging.warning("run %d: no remote files", run)
+                logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
+                if any(raw_dir.glob(raw_pattern % (run, run))):
+                    logging.info("run %d: raw data already present – ok", run)
+                    (list_dir / f"{run:06d}.txt").write_text(
+                        "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
+                    ok_runs.append(run)
                 continue
             if cfg.get("max_files", "all") != "all":
                 rem = rem[:int(cfg["max_files"])]
@@ -235,7 +260,7 @@ def main() -> None:
                         "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
-    if args.headless:
+    if args.headless and cfg.get("trigger", "full_streaming") != "full_streaming":
         for r in ok_runs:
             prod = list(processed_dir.glob(
                 processed_pattern % (r,r)))

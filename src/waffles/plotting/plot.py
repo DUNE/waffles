@@ -912,8 +912,8 @@ def plot_CalibrationHistogram(
     row: Optional[int] = None,
     col: Optional[int] = None,
     plot_fits: bool = False,
-    plot_sum_of_gaussians: bool = False,
-    fit_npoints: int = 200
+    fit_npoints: int = 200,
+    showfitlabels: bool = True
 ) -> bool:
     """This function plots the given calibration histogram in 
     the given figure and returns a boolean which is True if 
@@ -1006,64 +1006,36 @@ def plot_CalibrationHistogram(
             for i in range(len(calibration_histogram.
                             gaussian_fits_parameters['scale'])):
 
-                fPlottedOneFit = True
-                
-                fit_y = wun.gaussian(   
-                    fit_x,
-                    calibration_histogram.
-                    gaussian_fits_parameters['scale'][i][0],
-                    calibration_histogram.
-                    gaussian_fits_parameters['mean'][i][0],
-                    calibration_histogram.
-                    gaussian_fits_parameters['std'][i][0])
-                
-                fit_trace = pgo.Scatter(
-                    x=fit_x,
-                    y=fit_y,
-                    mode='lines',
-                    line=dict(
-                        color='red', 
-                        width=0.5),
-                    name=f"{name} (Fit {i})")
-                
-                figure.add_trace(
-                    fit_trace,
-                    row=row,
-                    col=col)
-        else:
 
-            fit_y = np.zeros(np.shape(fit_x))
+            fit_x = np.linspace(
+                calibration_histogram.edges[0],
+                calibration_histogram.edges[-1],
+                num=fit_npoints)
+            
+            fit_y = wun.gaussian(   
+                fit_x,
+                calibration_histogram.
+                gaussian_fits_parameters['scale'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['mean'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['std'][i][0])
+            fit_trace = pgo.Scatter(
+                x=fit_x,
+                y=fit_y,
+                mode='lines',
+                line=dict(
+                    color='red', 
+                    width=0.5),
+                name=f"{name} Fit({i})",
+                showlegend=showfitlabels
+            )
+            
+            figure.add_trace(
+                fit_trace,
+                row=row,
+                col=col)
 
-            for i in range(len(calibration_histogram.
-                            gaussian_fits_parameters['scale'])):
-
-                fPlottedOneFit = True
-
-                fit_y += wun.gaussian(
-                    fit_x,
-                    calibration_histogram.
-                    gaussian_fits_parameters['scale'][i][0],
-                    calibration_histogram.
-                    gaussian_fits_parameters['mean'][i][0],
-                    calibration_histogram.
-                    gaussian_fits_parameters['std'][i][0]
-                )
-
-            if fPlottedOneFit:
-                
-                fit_trace = pgo.Scatter(
-                    x=fit_x,
-                    y=fit_y,
-                    mode='lines',
-                    line=dict(
-                        color='red', 
-                        width=0.5),
-                    name=f"{name} (Fit {i})")
-                
-                figure.add_trace(
-                    fit_trace,
-                    row=row,
-                    col=col)
             
     return fPlottedOneFit
 
