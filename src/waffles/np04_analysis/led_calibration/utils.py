@@ -164,6 +164,9 @@ def parse_numeric_list(input_string: str) -> list:
     # Remove the brackets
     input_string = input_string.strip()[1:-1]
 
+    if len(input_string) == 0:
+        return []
+
     # Split the string by commas
     items = input_string.split(',')
 
