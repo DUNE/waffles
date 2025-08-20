@@ -37,6 +37,66 @@ def gaussian(
 
     return scale * np.exp(-1. * (np.power((x - mean) / (2 * std), 2)))
 
+def multigaussfit(x, *params):
+    """Multivariate Gaussian function for fitting.
+    Parameters
+    ----------
+    x : array_like
+        The input data points.
+    params : tuple
+    n_peaks : int
+        The number of peaks to fit.
+
+    Returns
+    -------
+    output : array_like
+        The evaluated multivariate Gaussian function.
+    """
+    
+    output = np.zeros_like(x)
+    
+    n_peaks = (len(params)-4)
+    baseline_amplitude = abs(params[0])
+    baseline_mean = params[1]
+    baseline_std = params[2]
+    output += gaussian(x, baseline_amplitude, baseline_mean, baseline_std)
+
+    gain = params[3]
+    std_prop = params[4]
+
+    for i in range(1, n_peaks):
+        gaus_amplitude = abs(params[i + 4])
+        gaus_mean = i*gain + baseline_mean
+        gaus_std = np.sqrt( baseline_std ** 2 + std_prop ** 2 * i )
+        output += gaussian(x, gaus_amplitude, gaus_mean, gaus_std)
+
+    return output
+
+def multigaussplot(x, *params):
+    """Multivariate Gaussian function for plotting.
+    Parameters
+    ----------
+    x : array_like
+        The input data points.
+    params : array with values of scale, mean and std
+        The parameters of the Gaussian function.
+    Returns
+    -------
+    output : array_like
+        The evaluated multivariate Gaussian function.
+    """
+    output = np.zeros_like(x)
+    for i in range(len(params)//3):
+        output += gaussian(
+            x,
+            params[i * 3],  # scale
+            params[i * 3 + 1],  # mean
+            params[i * 3 + 2]  # std
+        )
+    return output
+
+
+
 
 def correlated_sum_of_gaussians(
     x: float,

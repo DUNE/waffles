@@ -1,0 +1,126 @@
+default_baseline: &dfbase
+  threshold: 50 # Will be updated!!!
+  minimumfrac: 0.67
+  default_filtering: 2
+
+default_fit: &dfit
+    int_ll:             254            # integration lower limit in ticks
+    int_ul:             290           # integration upper limit in ticks
+    bins_int:           75            # binning of the histogram
+    domain_int:         [-0.5, 2.7] # min and max value of histogram x-axis
+    max_peaks:          2              # maximum number of peaks to fit
+    half_point_to_fit:  5              # positive int, maximum number of bins to the left and right of the peak to fit
+    prominence:         0.15           # 0 to 1, minimum fraction of peaks to spot relative to maximum peak
+    initial_percentage: 0.10           # 0 to 1, starting percentage to search for peaks
+    percentage_step:    0.05           # if n peaks < max_peaks, increase the percentage by this value
+
+107: {
+  47: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M1(1)
+  45: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M1(2)
+  40: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M2(1)
+  42: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M2(2)
+  46: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M3(1)
+  44: { baseline: { <<: *dfbase}, fit: { <<: *dfit, domain_int: [-0.4, 2.5], half_point_to_fit: 3, bins_int: 70 }}, # M3(2)
+  43: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M4(1)
+  41: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M4(2)
+   7: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M5(1)
+   0: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M5(2)
+  27: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M6(1)
+  20: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M6(2)
+  37: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M7(1)
+  30: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M7(2)
+  17: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M8(1)
+  10: { baseline: { <<: *dfbase}, fit: { <<: *dfit }}, # M8(2)
+}
+
+# Threshold...
+updates: {
+  107: {
+    # M1(1)
+    47: {
+    },
+    # M1(2)
+    45: {
+    },
+    # M2(1)
+    40: {
+    },
+    # M2(2)
+    42: {
+    },
+    # M3(1)
+    46: {
+      38785: {threshold: 40},
+      38786: {threshold: 40},
+      38787: {threshold: 40},
+      38789: {threshold: 40},
+      38790: {threshold: 40},
+      38792: {threshold: 40},
+      38794: {threshold: 37},
+      38796: {threshold: 36},
+      38798: {threshold: 35}
+    },
+    # M3(2)
+    44: {
+      38785: {threshold: 47, domain_int: [-0.3, 2.3]},
+      38786: {threshold: 46},
+      38787: {threshold: 45},
+      38789: {threshold: 50},
+      38790: {threshold: 45, domain_int: [-0.7, 2.5], bins_int: 50},
+      38792: {threshold: 42, domain_int: [-0.7, 2.5], bins_int: 50},
+      38794: {threshold: 39, half_point_to_fit: 4, domain_int: [-0.7, 2.5], bins_int: 50},
+      38796: {threshold: 35},
+      38798: {threshold: 35}
+    },
+    # M4(1)
+    43: {
+      38785: {threshold: 50},
+      38786: {threshold: 50},
+      38787: {threshold: 50},
+      38789: {threshold: 50},
+      38790: {threshold: 50},
+      38792: {threshold: 50},
+      38794: {threshold: 50},
+      38796: {threshold: 50},
+      38798: {threshold: 50}
+    },
+    # M4(2)
+    41: {
+      38785: {threshold: 50},
+      38786: {threshold: 50},
+      38787: {threshold: 50},
+      38789: {threshold: 50},
+      38790: {threshold: 50},
+      38792: {threshold: 50},
+      38794: {threshold: 50},
+      38796: {threshold: 50},
+      38798: {threshold: 50}
+    },
+    # M5(1)
+    7: {
+    },
+    # M5(2)
+    0: {
+    },
+    # M6(1)
+    27: {
+    },
+    # M6(2)
+    20: {
+    },
+    # M7(1)
+    37: {
+      38584: {threshold: 8},
+      38401: {threshold: 8},
+    },
+    # M7(2)
+    30: {
+    },
+    # M8(1)
+    17: {
+    },
+    # M8(2)
+    10: {
+    },
+  }
+}

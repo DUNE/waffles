@@ -87,6 +87,7 @@ class BasicWfAna(WfAna):
         self.__int_ul = input_parameters['int_ul']
         self.__amp_ll = input_parameters['amp_ll']
         self.__amp_ul = input_parameters['amp_ul']
+        self.__amp_method = input_parameters.get('amplitude_method', "PeakToPeak")
         self.__baseline_method = input_parameters.get('baseline_method', "EasyMedian")
         if self.__baseline_method == "SBaseline":
             self.__baseliner: SBaseline = input_parameters['baseliner']
@@ -188,19 +189,29 @@ class BasicWfAna(WfAna):
                               ]
             ) - (( self.__int_ul - self.__int_ll + 1) * baseline))
 
-        amplitude=(
-            np.max(
-                waveform.adcs[
-                    self.__amp_ll - waveform.time_offset:
-                    self.__amp_ul + 1 - waveform.time_offset
-                ]
-            ) - np.min(
-                waveform.adcs[
-                    self.__amp_ll - waveform.time_offset:
-                    self.__amp_ul + 1 - waveform.time_offset
-                ]
+        if self.__amp_method == "PeakToPeak":
+            amplitude=(
+                np.max(
+                    waveform.adcs[
+                        self.__amp_ll - waveform.time_offset:
+                        self.__amp_ul + 1 - waveform.time_offset
+                    ]
+                ) - np.min(
+                    waveform.adcs[
+                        self.__amp_ll - waveform.time_offset:
+                        self.__amp_ul + 1 - waveform.time_offset
+                    ]
+                )
             )
-        )
+        elif self.__amp_method == "max_minus_baseline":
+            amplitude=(
+                np.max(
+                    waveform.adcs[
+                        self.__amp_ll - waveform.time_offset:
+                        self.__amp_ul + 1 - waveform.time_offset
+                    ]
+                ) - baseline
+            )
 
         if not optimized and self.__onlyoptimal:
             integral = np.nan
