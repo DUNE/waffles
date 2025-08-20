@@ -419,8 +419,11 @@ class Analysis1(WafflesAnalysis):
                     print(
                         f"The read channels are: {channels}."
                     )   
+
+            # Get the filepaths to the input chunks for this run
+            input_filepaths = led_utils.get_input_filepaths_for_run(
+                self.params.input_path,
                 self.batch,
-                self.apa,
                 self.pde,
                 run
             )
