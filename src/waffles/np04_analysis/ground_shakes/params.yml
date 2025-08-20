@@ -1,0 +1,108 @@
+# ------- General parameters -------
+
+# Path to the folder containing the data
+input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
+
+# Path to the output
+output_path: "output_pres/"
+
+runs: [30201]
+
+# APA number
+apas: [2] 
+
+# Photon detection efficiency
+pdes: [0.45] 
+
+# PDE-to-OV mapping for HPK sipms
+hpk_ov:
+    0.4: 2.0
+    0.45: 3.5
+    0.50: 4.0
+
+# PDE-to-OV mapping for FBK sipms
+fbk_ov:
+    0.4: 3.5
+    0.45: 4.5
+    0.50 : 7.0
+
+# Enumeration of PDE values
+ov_no:
+    0.4: 1
+    0.45: 2
+    0.50: 3
+
+# ------- Parameters for the analysis -------
+
+analysis_label: 'standard'
+
+# Time interval in timeticks of the DAQ window to be considered 
+
+tmin: -1000
+tmax: 1000
+
+# Time interval of the precursor to be considered 
+
+tmin_prec: -10000
+tmax_prec: -1000
+
+# Channels
+
+ch: -1
+
+# Number of waveforms
+
+nwfs: -1
+
+# Records
+
+rec: [-1]
+
+
+
+# Lower integration limits. For APA 1 the limits are
+# run-wise, while for APA 2, 3, 4 they are the same
+# for all runs 
+starting_tick:
+    1:
+        60
+    2:
+        60
+    3:
+        60
+    4:
+        60
+
+# Baseline limits
+baseline_limits:
+    1:
+        - 100
+        - 400
+    2: 
+        - 0
+        - 50
+        - 900
+        - 1000
+    3: 
+        - 0
+        - 100
+        - 900
+        - 1000
+    4: 
+        - 0
+        - 100
+        - 900
+        - 1000
+
+# Integration window width, in time ticks
+integ_window: 60
+
+
+
+
+
+
+
+
+
+
