@@ -14,8 +14,7 @@ import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
-import waffles.input_output.hdf5_file_reader as hdf5_reader
-#import waffles.input_output.hdf5_structured as hdf5_reader
+import waffles.input_output.hdf5_structured as hdf5_reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 
@@ -89,8 +88,8 @@ def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
     elif file_extension == ".pkl":
         wset = pickle_reader.WaveformSet_from_pickle_file(filename) 
     elif file_extension == ".hdf5":
-        wset = hdf5_reader.WaveformSet_from_hdf5_file(filename)
-#        wset = hdf5_reader.load_structured_waveformset(filename,max_waveforms=nwfs) 
+#        wset = hdf5_reader.WaveformSet_from_hdf5_file(filename)
+        wset = hdf5_reader.load_structured_waveformset(filename,max_waveforms=nwfs) 
    
         
     print("Done!")
