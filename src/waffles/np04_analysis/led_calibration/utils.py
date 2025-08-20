@@ -149,11 +149,17 @@ def parse_numeric_list(input_string: str) -> list:
     - "[1.2, 3, 5.]" -> [1.2, 3.0, 5.0]
     """
 
-    if input_string[0] != '[' or input_string[-1] != ']':
+    if len(input_string) < 2:
         raise ValueError(
             "In function parse_numeric_list():"
-            "Input string must start with '[' and end with ']'"
+            "The input string must contain at least 2 characters"
         )
+    else:
+        if input_string[0] != '[' or input_string[-1] != ']':
+            raise ValueError(
+                "In function parse_numeric_list():"
+                "The input string must start with '[' and end with ']'"
+            )
 
     # Remove the brackets
     input_string = input_string.strip()[1:-1]
