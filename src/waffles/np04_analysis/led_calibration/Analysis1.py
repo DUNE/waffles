@@ -404,13 +404,21 @@ class Analysis1(WafflesAnalysis):
             if self.params.verbose:
                 print(
                     "In function Analysis1.read_input(): "
-                    f"Reading the data for run {run}. "
-                    f"\nThe read channels are: {channels}."
+                    f"Reading the data for run {run}.",
                 )
-            
-            # Get the filepath to the input data for this run
-            input_folderpath = led_utils.get_input_folderpath(
-                self.params.input_path, 
+
+            if len(channels) == 0:
+                if self.params.verbose:
+                    print(
+                        "The list of aimed channels is empty"
+                        " for this run. Skipping this run."
+                    )
+                continue
+            else:
+                if self.params.verbose:
+                    print(
+                        f"The read channels are: {channels}."
+                    )   
                 self.batch,
                 self.apa,
                 self.pde,
