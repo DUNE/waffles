@@ -38,6 +38,74 @@ def gaussian(
     return scale * np.exp(-1. * (np.power((x - mean) / (2 * std), 2)))
 
 
+def correlated_sum_of_gaussians(
+    x: float,
+    gaussians_num: int,
+    scaling_factors: np.ndarray,
+    mean_0: float,
+    mean_increment: float,
+    std_0: float,
+    std_increment: float,
+) -> float:
+    """Evaluates a correlated sum of gaussians
+    in x. The function is defined as:
+
+    f(x) = sum_{i=0}^{gaussians_num - 1} \
+        gaussian(
+            x,
+            scaling_factors[i],
+            mean_0 + (i * mean_increment),
+            ((std_0 ** 2) + (i * (std_increment ** 2))) ** 0.5
+        )
+
+    It is the caller's responsibility to make sure
+    that the input parameters are well-formed. No
+    checks are done here.
+
+    Parameters
+    ----------
+    x: float
+        The point at which the function is evaluated
+    gaussians_num: int
+        The number of gaussians to be summed
+    scaling_factors: np.ndarray
+        A 1D numpy array of floats, where
+        scaling_factors[i] gives the scale factor
+        of the i-th gaussian function in the sum.
+    mean_0: float
+        The mean value of the first gaussian function
+        in the sum
+    mean_increment: float
+        The increment in the mean value of each
+        gaussian function in the sum with respect
+        to the previous one
+    std_0: float
+        The standard deviation of the first gaussian
+        function in the sum
+    std_increment: float
+        The i-th gaussian function in the sum
+        has a standard deviation equal to
+        ((std_0 ** 2) + (i * (std_increment ** 2))) ** 0.5.
+
+    Returns
+    -------
+    float
+        The value of the function at x
+    """
+
+    result = 0.
+
+    for i in range(gaussians_num):
+        result += gaussian(
+            x,
+            scaling_factors[i],
+            mean_0 + (i * mean_increment),
+            ((std_0 ** 2) + (i * (std_increment ** 2))) ** 0.5
+        )
+
+    return result
+
+
 @numba.njit(nogil=True, parallel=False)
 def __histogram1d(
     samples: np.ndarray,
