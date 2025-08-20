@@ -248,9 +248,9 @@ def main(config):
         for run in runs:
 
             # Creating output directory for each run
-            # run_str = f"run{run:06d}{extra}"
-            # output_dir = Path(run_str)
-            # output_dir.mkdir(parents=True, exist_ok=True)
+            run_str = f"run{run:06d}{extra}"
+            output_dir = Path(run_str)
+            output_dir.mkdir(parents=True, exist_ok=True)
 
             processor = WaveformProcessor(config_data, run)
             processor.read_and_save()
