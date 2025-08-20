@@ -435,7 +435,10 @@ class Analysis1(WafflesAnalysis):
             )
 
             # Keep only the waveforms coming from 
-            # the targeted channels for this run
+            # the targeted channels for this run.
+            # This step is useless for cases when
+            # the input pickles were already filtered
+            # when copied from the original HDF5 files
             new_wfset = WaveformSet.from_filtered_WaveformSet(
                 new_wfset,
                 led_utils.comes_from_channel,
