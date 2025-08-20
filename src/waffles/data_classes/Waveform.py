@@ -60,7 +60,7 @@ class Waveform(WaveformAdcs):
     daq_window_timestamp: int
         The timestamp value for the DAQ window in which
         this Waveform was acquired
-    adcs: unidimensional numpy array of integers
+    adcs: unidimensional numpy array of integers/floats
     (inherited from WaveformAdcs)
     run_number: int
         Number of the run from which this Waveform was
@@ -114,7 +114,7 @@ class Waveform(WaveformAdcs):
             It is given to the 'time_step_ns' parameter of
             the base class initializer.
         daq_window_timestamp: int
-        adcs: unidimensional numpy array of integers
+        adcs: unidimensional numpy array of integers/floats
             It is given to the 'adcs' parameter of the base
             class initializer.
         run_number: int
