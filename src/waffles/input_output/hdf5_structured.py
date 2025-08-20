@@ -38,6 +38,7 @@ def save_structured_waveformset(
     record_numbers = np.zeros(n_waveforms, dtype=np.int32)
     channels = np.zeros(n_waveforms, dtype=np.uint8)
     endpoints = np.zeros(n_waveforms, dtype=np.int32)
+    trigger_types = np.zeros(n_waveforms, dtype=np.uint64)
 
     # Fill arrays from each Waveform
     for i, wf in enumerate(waveforms):
@@ -48,6 +49,7 @@ def save_structured_waveformset(
         record_numbers[i] = wf.record_number
         channels[i] = wf.channel
         endpoints[i] = wf.endpoint
+        trigger_types[i] = getattr(wf, "trigger_type", 0)
 
     print(f"✅ Saving {n_waveforms} waveforms to {filepath}")
     print(f"   Sample type: {type(waveforms[0])}, ADC shape: {waveforms[0].adcs.shape}")
@@ -68,6 +70,7 @@ def save_structured_waveformset(
         f.create_dataset("record_numbers", data=record_numbers, compression=compression, compression_opts=compression_opts)
         f.create_dataset("channels", data=channels, compression=compression, compression_opts=compression_opts)
         f.create_dataset("endpoints", data=endpoints, compression=compression, compression_opts=compression_opts)
+        f.create_dataset("trigger_types", data=trigger_types, compression=compression, compression_opts=compression_opts)
 
         f.attrs["n_waveforms"] = n_waveforms
         f.attrs["n_samples"] = n_samples
@@ -81,32 +84,80 @@ def load_structured_waveformset(
     filepath: str,
     run_filter=None,
     endpoint_filter=None,
-    max_waveforms=None
+    channels_filter=None,
+    max_waveforms=None,
+    max_to_load=None,
+    onlymetadata: bool = False,
+    verbose: bool = True
 ) -> WaveformSet:
     """
     Loads a structured HDF5 file into a WaveformSet, optionally filtering
-    by run number, endpoint, or max waveforms.
+    by run number, endpoint, and max waveforms.
+    Parameters
+    ----------
+    filepath: str
+        Path to the HDF5 file to load.
+    run_filter: int, list of int, or None
+    endpoint_filter: int, list of int, or None
+    max_waveforms: int or None
+        Maximum number of waveforms to process. If None, loads all.
+        This will take run_filter and endpoint_filter into account
+    max_to_load: int or None
+        Maximum number of waveforms to load from the file.
+        If None, loads all available waveforms.
+        The maximum number don't consider any filters. This should be used for
+        quick checks only
     """
 
+
+    if run_filter is None and endpoint_filter is None and channels_filter is None:
+        if max_to_load is None:
+            # No reason to load everything...
+            max_to_load = max_waveforms
+    if endpoint_filter is None and channels_filter is not None:
+        raise ValueError("If channels_filter is provided, endpoint_filter must also be provided.")
+
+
     with h5py.File(filepath, "r") as f:
+        # Preload data set for filtering...
+        channels = f["channels"][:max_to_load]
+        endpoints = f["endpoints"][:max_to_load]
+        
+        mask = np.ones_like(channels, dtype=bool)
+        if endpoint_filter is not None:
+            endpoint_filter = np.atleast_1d(endpoint_filter)
+            mask &= np.isin(endpoints, endpoint_filter)
+        if channels_filter is not None:
+            channels_filter = np.atleast_1d(channels_filter)
+            mask &= np.isin(channels, channels_filter)
+
+
+
         # Read datasets
-        adcs_array = f["adcs"][:]
-        timestamps = f["timestamps"][:]
-        daq_timestamps = f["daq_timestamps"][:]
-        run_numbers = f["run_numbers"][:]
-        record_numbers = f["record_numbers"][:]
-        channels = f["channels"][:]
-        endpoints = f["endpoints"][:]
+        endpoints = endpoints[mask]
+        channels = channels[mask]
+        if not onlymetadata:
+            adcs_array = f["adcs"][:max_to_load][mask]
+        else:
+            adcs_array = np.zeros((len(endpoints), 2))
+        timestamps = f["timestamps"][:max_to_load][mask]
+        daq_timestamps = f["daq_timestamps"][:max_to_load][mask]
+        run_numbers = f["run_numbers"][:max_to_load][mask]
+        record_numbers = f["record_numbers"][:max_to_load][mask]
+        trigger_types = f["trigger_types"][:max_to_load][mask] if "trigger_types" in f else np.zeros(len(endpoints), dtype=np.uint64)
+
         time_step_ns = f.attrs["time_step_ns"]
         time_offset = f.attrs["time_offset"]
 
     # Figure out which indices to include
     indices = np.arange(len(adcs_array))
 
+    # potentially this ca go first...
     if run_filter is not None:
         run_filter = np.atleast_1d(run_filter)
         indices = indices[np.isin(run_numbers[indices], run_filter)]
 
+    # Almost sure this can be removed, to be tested...
     if endpoint_filter is not None:
         endpoint_filter = np.atleast_1d(endpoint_filter)
         indices = indices[np.isin(endpoints[indices], endpoint_filter)]
@@ -115,25 +166,26 @@ def load_structured_waveformset(
         indices = indices[:max_waveforms]
 
     # Build the Waveform objects
-    waveforms = []
-    for i in indices:
-        waveforms.append(
-            Waveform(
-                run_number=int(run_numbers[i]),
-                record_number=int(record_numbers[i]),
-                endpoint=int(endpoints[i]),
-                channel=int(channels[i]),
-                timestamp=int(timestamps[i]),
-                daq_window_timestamp=int(daq_timestamps[i]),
-                starting_tick=0,
-                adcs=adcs_array[i],
-                time_step_ns=float(time_step_ns),
-                time_offset=int(time_offset),
-            )
+    waveforms = [
+        Waveform(
+            run_number=int(run_numbers[i]),
+            record_number=int(record_numbers[i]),
+            endpoint=int(endpoints[i]),
+            channel=int(channels[i]),
+            timestamp=int(timestamps[i]),
+            daq_window_timestamp=int(daq_timestamps[i]),
+            starting_tick=0,
+            adcs=adcs_array[i],
+            time_step_ns=float(time_step_ns),
+            time_offset=int(time_offset),
+            trigger_type=int(trigger_types[i])
         )
+        for i in indices
+    ]
 
     # Expand waveforms with * so that WaveformSet sees them as varargs
     wfset = WaveformSet(*waveforms)
-    print(f"📤 load_structured_waveformset returning type: {type(wfset)} with {len(wfset.waveforms)} waveforms")
+    if verbose:
+        print(f"📤 load_structured_waveformset returning type: {type(wfset)} with {len(wfset.waveforms)} waveforms")
 
     return wfset
