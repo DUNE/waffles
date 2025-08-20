@@ -221,39 +221,6 @@ def parse_numeric_list(input_string: str) -> list:
 
     return [cast(item) for item in items]
 
-def read_data(
-        input_path: str,
-        batch: int,
-        apa_no: int,
-        stop_fraction: float = 1.,
-        verbose: bool = True
-    ):
-    """It is assumed that the input_path is a folder."""
-
-    fProcessRootNotPickles = True if batch == 1 else False
-
-    if fProcessRootNotPickles:
-        new_wfset = WaveformSet_from_root_files(
-            "pyroot",
-            folderpath=input_path,
-            bulk_data_tree_name="raw_waveforms",
-            meta_data_tree_name="metadata",
-            set_offset_wrt_daq_window=True if apa_no == 1 else False,
-            read_full_streaming_data=True if apa_no == 1 else False,
-            truncate_wfs_to_minimum=True if apa_no == 1 else False,
-            start_fraction=0.0,
-            stop_fraction=stop_fraction,
-            subsample=1,
-        )
-    else:
-        new_wfset = WaveformSet_from_pickle_files(                
-            folderpath=input_path,
-            target_extension=".pkl",
-            verbose=verbose,
-        )
-
-    return new_wfset
-
 def get_average_baseline_std(
         waveform_set: WaveformSet,
         baseline_analysis_label: str

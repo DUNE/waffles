@@ -428,13 +428,10 @@ class Analysis1(WafflesAnalysis):
                 run
             )
 
-            # Read all files for the given run
-            new_wfset = led_utils.read_data(
-                input_folderpath,
-                self.batch,
-                self.apa,
-                stop_fraction=1.,
-                verbose=self.params.verbose
+            new_wfset = WaveformSet_from_pickle_files(
+                    filepath_list=input_filepaths,
+                    target_extension='.pkl',
+                    verbose=self.params.verbose
             )
 
             # Keep only the waveforms coming from 
