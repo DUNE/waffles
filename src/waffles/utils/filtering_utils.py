@@ -394,7 +394,22 @@ def selection_for_led_calibration(
     signal_samples = waveform.adcs[baseline_i_up:signal_i_up] - \
         waveform.analyses[baseline_analysis_label].result['baseline']
     
-    if np.min(signal_samples) < -1.*abs(signal_allowed_dev * baseline_std):
-        return False
+    try:
+        if np.min(signal_samples) < -1.*abs(signal_allowed_dev * baseline_std):
+            return False
+    
+    except ValueError as e:
+        raise ValueError(
+            GenerateExceptionMessage(
+                1,
+                "selection_for_led_calibration()",
+                f"Caught the following ValueError: {e}. It could "
+                "have been due to an empty signal_samples array. "
+                f"If len(signal_samples) (={len(signal_samples)}) "
+                "is equal to zero, then make sure that baseline_i_up "
+                f"(={baseline_i_up}) is smaller than signal_i_up "
+                f"(={signal_i_up})."
+            )
+        )
     
     return True
