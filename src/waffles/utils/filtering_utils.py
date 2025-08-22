@@ -312,7 +312,7 @@ def truncate_waveforms_in_WaveformSet(
     return
 
 
-def selection_for_led_calibration(
+def fine_selection_for_led_calibration(
     waveform: Waveform,
     baseline_analysis_label: str,
     baseline_i_up: int,

@@ -569,7 +569,7 @@ class Analysis1(WafflesAnalysis):
                 # the selection cut
                 aux = WaveformSet.from_filtered_WaveformSet(
                     self.grid_apa.ch_wf_sets[endpoint][channel],
-                    selection_for_led_calibration,
+                    fine_selection_for_led_calibration,
                     self.params.baseline_analysis_label,
                     self.params.baseline_i_up,
                     self.params.signal_i_up,
