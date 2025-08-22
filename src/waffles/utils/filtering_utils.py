@@ -379,7 +379,7 @@ def fine_selection_for_led_calibration(
         raise Exception(
             GenerateExceptionMessage(
                 1,
-                "selection_for_led_calibration()",
+                "fine_selection_for_led_calibration()",
                 f"The given waveform does not have the analysis"
                 f" '{baseline_analysis_label}' in its analyses "
                 "attribute, or it does, but the 'baseline' key "
@@ -402,7 +402,7 @@ def fine_selection_for_led_calibration(
         raise ValueError(
             GenerateExceptionMessage(
                 1,
-                "selection_for_led_calibration()",
+                "fine_selection_for_led_calibration()",
                 f"Caught the following ValueError: {e}. It could "
                 "have been due to an empty signal_samples array. "
                 f"If len(signal_samples) (={len(signal_samples)}) "
