@@ -397,6 +397,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       amp_ul: int = 280,
                       threshold: float = 25,
                       baselinefinish:int = 240,
+                      baselinestart:int = 0,
                       minimumfrac: float = 0.67,
                       onlyoptimal: bool = True,
                       show_progress: bool = True,
@@ -409,7 +410,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
     elif isinstance(configyaml, str):
         if configyaml is not None and configyaml != "":
             params = ch_read_params(configyaml)
-    baseline = SBaseline(threshold=threshold, baselinefinish=baselinefinish, default_filtering=2, minimumfrac=minimumfrac, data_base=params)
+    baseline = SBaseline(threshold=threshold, baselinestart=baselinestart, baselinefinish=baselinefinish, default_filtering=2, minimumfrac=minimumfrac, data_base=params)
 
     ip = IPDict(
         baseline_method="SBaseline",      # ← NEW (or "Mean", "Fit", …)
