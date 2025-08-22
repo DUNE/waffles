@@ -413,3 +413,74 @@ def fine_selection_for_led_calibration(
         )
     
     return True
+
+def coarse_selection_for_led_calibration(
+    waveform: Waveform,
+    baseline_analysis_label: str,
+    lower_limit_wrt_baseline: float,
+    upper_limit_wrt_baseline: float
+) -> bool:
+    """This function returns True if the following two
+    conditions are met simultaneously:
+
+        - the waveform adcs do not drop below the
+        baseline minus the absolute value of
+        lower_limit_wrt_baseline and
+
+        - the waveform adcs do not raise above the
+        baseline plus the absolute value of
+        upper_limit_wrt_baseline
+
+    If any of them is not met, it returns False.
+
+    Parameters
+    ----------
+    waveform: Waveform
+        The waveform to apply the selection to
+    baseline_analysis_label: str
+        The baseline of the filtered waveform must be available
+        under the 'baseline' key of the result of the analysis
+        whose label is given by this parameter, i.e. in
+        waveform.analyses[analysis_label].result['baseline']
+    lower_limit_wrt_baseline: float
+        Its absolute value is the allowed margin for the
+        waveform adcs below its baseline.
+    upper_limit_wrt_baseline: float
+        Its absolute value is the allowed margin for the
+        waveform adcs above its baseline.
+
+    Returns
+    ----------
+    bool
+    """
+
+    try:
+        baseline = \
+            waveform.analyses[baseline_analysis_label].result['baseline']
+
+    except KeyError:
+        raise Exception(
+            GenerateExceptionMessage(
+                1,
+                "coarse_selection_for_led_calibration()",
+                f"The given waveform does not have the analysis"
+                f" '{baseline_analysis_label}' in its analyses "
+                "attribute, or it does, but the 'baseline' key "
+                "is not present in its result."
+            )
+        )
+
+    lower_threshold = baseline - abs(lower_limit_wrt_baseline)
+    upper_threshold = baseline + abs(upper_limit_wrt_baseline)
+
+    # The following algorithm is slightly faster (~0.61 vs
+    # ~0.68 seconds on average for a waveformset with 199453
+    # waveforms with 1024 points each on a Mac M2) than the
+    # one which computes np.max(waveform.adcs) and
+    # np.min(waveform.adcs) and compares it to lower_threshold
+    # and upper_threshold.
+    for adc in waveform.adcs:
+        if adc < lower_threshold or adc > upper_threshold:
+            return False
+    
+    return True
