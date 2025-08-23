@@ -92,3 +92,7 @@ class IncompatibleInput(WafflesBaseException):
 class NonExistentDirectory(WafflesBaseException):
     """Exception raised when an specified directory does
     not exist."""
+
+class EmptyCalibrationHistogram(WafflesBaseException):
+    """Exception raised when a calibration histogram 
+    has no entries."""
