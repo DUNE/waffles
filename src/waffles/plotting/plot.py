@@ -1711,11 +1711,13 @@ def plot_ChannelWsGrid(
 
         if verbose:
             if plot_peaks_fits and not fPlottedOneFit:
-                print("In function plot_ChannelWsGrid(): "
-                      "No gaussian fit was found for plotting. "
-                      "You may have forgotten to call the "
-                      "fit_peaks_of_calibration_histograms() "
-                      "method of ChannelWsGrid.")
+                print(
+                    "In function plot_ChannelWsGrid(): "
+                    "No gaussian fit was found for plotting. "
+                    "You may have forgotten to call the "
+                    "fit_peaks_of_calibration_histograms() "
+                    "method of ChannelWsGrid."
+                )
     else:                                                                                                           
         raise Exception(GenerateExceptionMessage( 
             4,
