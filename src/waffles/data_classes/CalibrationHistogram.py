@@ -201,16 +201,22 @@ class CalibrationHistogram(TrackedHistogram):
         """
 
         if bins_number < 2:
-            raise Exception(GenerateExceptionMessage(
-                1,
-                'CalibrationHistogram.from_WaveformSet()',
-                f"The given bins number ({bins_number}) must be"
-                " greater than 1."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    1,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    f"The given bins number ({bins_number}) must be"
+                    " greater than 1."
+                )
+            )
         if np.ndim(domain) != 1 or len(domain) != 2:
-            raise Exception(GenerateExceptionMessage(
-                2,
-                'CalibrationHistogram.from_WaveformSet()',
-                "The 'domain' parameter must be a 2x1 numpy array."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    2,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    "The 'domain' parameter must be a 2x1 numpy array."
+                )
+            )
 
         # Trying to grab the WfAna object Waveform by Waveform using
         # WaveformAdcs.get_analysis() might be slow. Find a different
@@ -235,11 +241,14 @@ class CalibrationHistogram(TrackedHistogram):
             )
         except numba.errors.TypingError:
 
-            raise Exception(GenerateExceptionMessage(
-                3,
-                'CalibrationHistogram.from_WaveformSet()',
-                f"The given variable ('{variable}') does not give"
-                " suited samples for a 1D histogram."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    3,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    f"The given variable ('{variable}') does not give"
+                    " suited samples for a 1D histogram."
+                )
+            )
 
     @classmethod
     def __from_samples(
