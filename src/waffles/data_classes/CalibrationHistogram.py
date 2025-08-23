@@ -6,8 +6,7 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.TrackedHistogram import TrackedHistogram
 
 import waffles.utils.numerical_utils as wun
-
-from waffles.Exceptions import GenerateExceptionMessage
+import waffles.Exceptions as we
 
 
 class CalibrationHistogram(TrackedHistogram):
@@ -66,6 +65,15 @@ class CalibrationHistogram(TrackedHistogram):
         counts: unidimensional numpy array of integers
         indices: list of lists of integers
         """
+
+        if not np.any(counts):
+            raise we.EmptyCalibrationHistogram(
+                we.GenerateExceptionMessage(
+                    1,
+                    'CalibrationHistogram.__init__()',
+                    "The given calibration histogram is empty."
+                )
+            )
 
         super().__init__(
             bins_number,
