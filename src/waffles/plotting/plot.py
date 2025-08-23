@@ -1167,10 +1167,10 @@ def plot_ChannelWsGrid(
         Check its documentation for more information.
             If it is set to 'calibration', then the
         calibration histogram of each ChannelWs object
-        will be plotted. In this case, the calib_histo
-        attribute of each ChannelWs object must be
-        defined, i.e. it must be different to None.
-        If it is not, then an exception will be raised.
+        will be plotted. In this case, if the
+        calib_histo attribute of a ChannelWs object
+        is not defined, a no-data annotation will be
+        added to the plot.
     wfs_per_axes: int
         If it is None, then every waveform in each
         ChannelWs object will be considered. Otherwise,
@@ -1689,12 +1689,21 @@ def plot_ChannelWsGrid(
                     continue
 
                 if channel_ws.calib_histo is None:
-                    raise Exception(GenerateExceptionMessage( 
-                        3,
-                        'plot_ChannelWsGrid()',
-                        f"In 'calibration' mode, the calib_histo "
-                        "attribute of each considered ChannelWs "
-                        "object must be defined."))
+                    if verbose:
+                        print(
+                            "In function plot_ChannelWsGrid(): "
+                            "The calib_histo attribute of channel "
+                            f"{channel_ws_grid.ch_map.data[i][j].endpoint}-"
+                            f"{channel_ws_grid.ch_map.data[i][j].channel} "
+                            "is not defined. This channel will be skipped."
+                        )
+
+                    wpu.__add_no_data_annotation(
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
+                    continue
                 
                 aux_name = f"C.H. of channel "
                 f"{channel_ws_grid.ch_map.data[i][j]}"
@@ -1720,7 +1729,7 @@ def plot_ChannelWsGrid(
                 )
     else:                                                                                                           
         raise Exception(GenerateExceptionMessage( 
-            4,
+            3,
             'plot_ChannelWsGrid()',
             f"The given mode ({mode}) must match "
             "either 'overlay', 'average', 'heatmap'"
