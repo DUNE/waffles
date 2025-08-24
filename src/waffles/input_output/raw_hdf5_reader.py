@@ -469,7 +469,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
         min_len = min(len(wf.adcs) for wf in waveforms)
         for wf in waveforms:
             wf._WaveformAdcs__slice_adcs(0, min_len)
-    elif truncate_wfs_method:
+    elif truncate_wfs_method and waveforms:
         allwaveformslengths = Counter([len(wf.adcs) for wf in waveforms])
         allwaveformslengths = sorted(allwaveformslengths.items(), key=lambda x: x[1], reverse=True)
         if truncate_wfs_method == "MPV":
@@ -512,6 +512,8 @@ def WaveformSet_from_hdf5_file(filepath: str,
                 wf._WaveformAdcs__slice_adcs(0, slice_len)
             if len(wf.adcs) == slice_len:
                 waveforms.append(wf)
+    elif not waveforms:
+        raise ValueError("There appears to have no waveforms in this hdf5 file :(")
 
 
     if fUsedXRootD and erase_temporal_copy and os.path.exists(filepath):
