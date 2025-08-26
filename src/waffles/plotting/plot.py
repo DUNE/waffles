@@ -222,7 +222,7 @@ def plot_WaveformAdcs(
         if show_baseline:
 
             try:
-                aux = ana.result['baseline']
+                aux = ana.result['baseline'] 
 
             except KeyError:
                 if verbose:
@@ -1620,7 +1620,7 @@ def plot_ChannelWsGrid(
                     # to another.
                     show_color_bar=False,
                     filtering=filtering,
-                    zlog=zlog
+                    zlog=zlog,
                 )
 
                 ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
