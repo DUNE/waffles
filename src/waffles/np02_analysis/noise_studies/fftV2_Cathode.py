@@ -114,8 +114,15 @@ def main() -> None:
             logging.warning("No waveforms on channel %s in %s", args.channel, f.name)
             continue
 
+        wf_corr_list = []
+        for wf in sel_wfs:
+            baseline = np.median(wf.adcs[:100])
+            wf_corr = wf.adcs - baseline
+            wf_corr_list.append(wf_corr)
+
         # Compute FFT for each waveform
-        fft_list = [fft(wf.adcs) for wf in sel_wfs[:10]]
+        #fft_list = [fft(wf.adcs) for wf in sel_wfs[:10]]
+        fft_list = [fft(wf) for wf in wf_corr_list[:100]]
         freqs, powers = zip(*fft_list)
         freqs = freqs[0]
         mean_power = np.mean(powers, axis=0)
@@ -135,8 +142,8 @@ def main() -> None:
         #yaxis_range=[-120,-60],
         yaxis_range=[-145,-20],
         xaxis_type="log",
-        xaxis_title="Frequency (MHz)",
-        yaxis_title="Power (dB)",
+        xaxis_title=r'$Frequency (MHz)$',
+        yaxis_title=r'$\text{Power (dB}_{FS})$',
         template="plotly_white",
         #showlegend=True,
         height=800, width=1200
