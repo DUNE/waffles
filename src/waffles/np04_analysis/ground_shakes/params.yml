@@ -1,15 +1,15 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: "data/wfset_1_26169.hdf5"
+input_path: "data/processed_merged_run_30201_self_trigger.hdf5"
 
 # Path to the output
 output_path: "output_pres/"
 
-runs: [26169]
+runs: [30201]
 
 # APA number
-apas: [3] 
+apas: [2] 
 
 # Photon detection efficiency
 pdes: [0.45] 
@@ -38,8 +38,8 @@ analysis_label: 'standard'
 
 # Time interval in timeticks of the DAQ window to be considered 
 
-tmin: -1
-tmax: -1
+tmin: -1000
+tmax: 1000
 
 # Time interval of the precursor to be considered 
 
@@ -52,7 +52,7 @@ ch: -1
 
 # Number of waveforms
 
-nwfs: 6000
+nwfs: -1
 
 # Records
 
@@ -96,6 +96,11 @@ baseline_limits:
 
 # Integration window width, in time ticks
 integ_window: 60
+
+
+
+
+
 
 
 

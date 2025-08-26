@@ -1,6 +1,5 @@
 import numpy as np
-from typing import Optional
-from typing import Callable
+from typing import Optional, Callable, cast, Union
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -924,7 +923,8 @@ def plot_CalibrationHistogram(
     row: Optional[int] = None,
     col: Optional[int] = None,
     plot_fits: bool = False,
-    fit_npoints: int = 200
+    fit_npoints: int = 200,
+    showfitlabels: bool = True
 ) -> bool:
     """This function plots the given calibration histogram in 
     the given figure and returns a boolean which is True if 
@@ -963,13 +963,21 @@ def plot_CalibrationHistogram(
         CH will be plotted. Note that if no fit has been performed
         yet, then the calibration_histogram.gaussian_fits_parameters 
         attribute will be empty and no fit will be plotted.
+    plot_sum_of_gaussians: bool
+        This parameter only makes a difference if the
+        'plot_fits' parameter is set to True. In that case,
+        it means whether to plot the sum of gaussians over
+        the span of the calibration histogram, or to plot
+        individual gaussian fits limited to the fitting
+        range of each peak.
     fit_npoints: int
         This parameter only makes a difference if 'plot_fits'
-        is set to True. In that case, it gives the number of
-        points to use to plot each gaussian fit. Note that
-        the plot range of the fit will be the same as the
-        range of the CH. It must be greater than 1. It is
-        the caller's responsibility to ensure this.
+        is set to True. It gives the number of points to use
+        to plot the gaussian fits. Note that regardless of
+        plot_sum_of_gaussians, the plot range of the fit(s)
+        will be the same as the range of the CH. It must be
+        greater than 1. It is the caller's responsibility to
+        ensure this.
 
     Returns
     ----------
@@ -999,10 +1007,16 @@ def plot_CalibrationHistogram(
 
     if plot_fits:
 
-        for i in range(len(calibration_histogram.
-                           gaussian_fits_parameters['scale'])):
+        fit_x = np.linspace(
+            calibration_histogram.edges[0],
+            calibration_histogram.edges[-1],
+            num=fit_npoints
+        )
 
-            fPlottedOneFit = True
+        if not plot_sum_of_gaussians:
+            for i in range(len(calibration_histogram.
+                            gaussian_fits_parameters['scale'])):
+
 
             fit_x = np.linspace(
                 calibration_histogram.edges[0],
@@ -1017,7 +1031,6 @@ def plot_CalibrationHistogram(
                 gaussian_fits_parameters['mean'][i][0],
                 calibration_histogram.
                 gaussian_fits_parameters['std'][i][0])
-            
             fit_trace = pgo.Scatter(
                 x=fit_x,
                 y=fit_y,
@@ -1025,12 +1038,15 @@ def plot_CalibrationHistogram(
                 line=dict(
                     color='red', 
                     width=0.5),
-                name=f"{name} (Fit {i})")
+                name=f"{name} Fit({i})",
+                showlegend=showfitlabels
+            )
             
             figure.add_trace(
                 fit_trace,
                 row=row,
                 col=col)
+
             
     return fPlottedOneFit
 
@@ -1054,14 +1070,16 @@ def plot_ChannelWsGrid(
     adc_bins: int = 100,
     time_range_lower_limit: Optional[int] = None,
     time_range_upper_limit: Optional[int] = None,
-    adc_range_above_baseline: int = 100,
-    adc_range_below_baseline: int = 200,
+    adc_range_above_baseline: Union[int, None] = 100,
+    adc_range_below_baseline: Union[int, None] = 200,
     plot_peaks_fits: bool = False,
+    plot_sum_of_gaussians: bool = False,
     detailed_label: bool = True,
     plot_event: bool = False,
     event_id: Optional[int] = 0,
     verbose: bool = True,
-    offset: bool=False,    
+    filtering: float = 0,
+    zlog: bool = False,
     **kwargs
 ) -> pgo.Figure:
     """This function returns a plotly.graph_objects.Figure 
@@ -1281,6 +1299,16 @@ def plot_ChannelWsGrid(
         parameter of the call to plot_CalibrationHistogram().
         It means whether to plot the fits of the peaks, if
         available, over the histogram.
+    plot_sum_of_gaussians: bool
+        This parameter only makes a difference if the
+        'mode' parameter is set to 'calibration' and the
+        'plot_peaks_fits' parameter is set to True. In that
+        case, it means whether to plot the sum of gaussians
+        over the span of the calibration histogram, or to
+        plot individual gaussian fits limited to the fitting
+        range of each peak. It is given to the
+        'plot_sum_of_gaussians' parameter of the
+        plot_CalibrationHistogram() function.
     detailed_label: bool
         This parameter only makes a difference if
         the 'mode' parameter is set to 'average' or
@@ -1559,14 +1587,31 @@ def plot_ChannelWsGrid(
                                     list(aux_idcs),
                                     queried_no=2)
                     aux_name += ']'
-                    
+
+                if adc_range_above_baseline is None:
+                    adc_range_below_baseline = np.min([
+                        waveform.adcs
+                        - waveform.analyses[analysis_label].result['baseline']
+                        for waveform in channel_ws.waveforms])
+                if adc_range_above_baseline is None:
+                    adc_range_above_baseline = np.max([
+                        waveform.adcs
+                        - waveform.analyses[analysis_label].result['baseline']
+                        for waveform in channel_ws.waveforms])
+                adc_range_above_baseline = cast(int, int(adc_range_above_baseline))
+                adc_range_below_baseline = cast(int, int(adc_range_below_baseline))
+
                 aux_ranges = wpu.arrange_time_vs_ADC_ranges(
                     channel_ws,
                     time_range_lower_limit=time_range_lower_limit,
                     time_range_upper_limit=time_range_upper_limit,
                     adc_range_above_baseline=adc_range_above_baseline,
                     adc_range_below_baseline=adc_range_below_baseline)
+<<<<<<< HEAD
        
+=======
+                    
+>>>>>>> main
                 figure_ = wpu.__subplot_heatmap(
                     channel_ws,
                     figure_,
@@ -1582,7 +1627,10 @@ def plot_ChannelWsGrid(
                     # The color scale is not shown
                     # since it may differ from one plot
                     # to another.
-                    show_color_bar=False)
+                    show_color_bar=False,
+                    filtering=filtering,
+                    zlog=zlog
+                )
 
                 ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
                 ## every plot in the grid, though, but comes at the
@@ -1641,6 +1689,7 @@ def plot_ChannelWsGrid(
                     row=i + 1,
                     col=j + 1,
                     plot_fits=plot_peaks_fits,
+                    plot_sum_of_gaussians=plot_sum_of_gaussians,
                     fit_npoints=200)
 
         if verbose:

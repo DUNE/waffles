@@ -10,11 +10,10 @@ from plotly import graph_objects as pgo
 import plotly.io as pio
 
 import waffles.utils.wf_maps_utils as wmu
-import waffles.utils.template_utils as tu
 from waffles.plotting.plot import *
 import waffles.input_output.raw_root_reader as root_reader
 import waffles.input_output.pickle_file_reader as pickle_reader
-import waffles.input_output.hdf5_file_reader as hdf5_reader
+import waffles.input_output.hdf5_structured as hdf5_reader
 from waffles.utils.fit_peaks import fit_peaks as fp
 import waffles.utils.numerical_utils as wun
 
@@ -68,7 +67,8 @@ def help(cls: str = None):
 ###########################
 def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
          read_full_streaming_data: bool = False, truncate_wfs_to_minimum: bool = False,
-         set_offset_wrt_daq_window: bool = False) -> WaveformSet:
+         set_offset_wrt_daq_window: bool = False,
+         nwfs: int = None) -> WaveformSet:
     """Read waveform data from file."""
     print(f"Reading file {filename}...")
     
@@ -87,8 +87,8 @@ def read(filename, start_fraction: float = 0, stop_fraction: float = 1,
     elif file_extension == ".pkl":
         wset = pickle_reader.WaveformSet_from_pickle_file(filename) 
     elif file_extension == ".hdf5":
-        wset = hdf5_reader.WaveformSet_from_hdf5_file(filename)
-
+#        wset = hdf5_reader.WaveformSet_from_hdf5_file(filename)
+        wset = hdf5_reader.load_structured_waveformset(filename,max_waveforms=nwfs) 
    
         
     print("Done!")
@@ -458,6 +458,19 @@ def get_histogram(values: list,
     # Create the histogram
     counts, edges = np.histogram(values, bins=nbins, range=domain)
     
+    return counts, edges
+
+###########################
+def get_histogram_trace(values: list,
+                        nbins: int = 100,
+                        xmin: float = None,
+                        xmax: float = None,
+                        line_color: str = 'black',
+                        line_width: float = 2):
+
+
+    counts, edges = get_histogram(values,nbins,xmin,xmax)
+    
     histogram_trace = go.Scatter(
         x=edges[:-1],  
         y=counts,
@@ -470,6 +483,8 @@ def get_histogram(values: list,
     )
     
     return histogram_trace
+
+
 
 
 ##########################
