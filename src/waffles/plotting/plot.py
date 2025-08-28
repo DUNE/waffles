@@ -1018,34 +1018,34 @@ def plot_CalibrationHistogram(
                             gaussian_fits_parameters['scale'])):
 
 
-            fit_x = np.linspace(
-                calibration_histogram.edges[0],
-                calibration_histogram.edges[-1],
-                num=fit_npoints)
-            
-            fit_y = wun.gaussian(   
-                fit_x,
-                calibration_histogram.
-                gaussian_fits_parameters['scale'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['mean'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['std'][i][0])
-            fit_trace = pgo.Scatter(
-                x=fit_x,
-                y=fit_y,
-                mode='lines',
-                line=dict(
-                    color='red', 
-                    width=0.5),
-                name=f"{name} Fit({i})",
-                showlegend=showfitlabels
-            )
-            
-            figure.add_trace(
-                fit_trace,
-                row=row,
-                col=col)
+                fit_x = np.linspace(
+                    calibration_histogram.edges[0],
+                    calibration_histogram.edges[-1],
+                    num=fit_npoints)
+                
+                fit_y = wun.gaussian(   
+                    fit_x,
+                    calibration_histogram.
+                    gaussian_fits_parameters['scale'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['mean'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['std'][i][0])
+                fit_trace = pgo.Scatter(
+                    x=fit_x,
+                    y=fit_y,
+                    mode='lines',
+                    line=dict(
+                        color='red', 
+                        width=0.5),
+                    name=f"{name} Fit({i})",
+                    showlegend=showfitlabels
+                )
+                
+                figure.add_trace(
+                    fit_trace,
+                    row=row,
+                    col=col)
 
             
     return fPlottedOneFit
@@ -1607,11 +1607,7 @@ def plot_ChannelWsGrid(
                     time_range_upper_limit=time_range_upper_limit,
                     adc_range_above_baseline=adc_range_above_baseline,
                     adc_range_below_baseline=adc_range_below_baseline)
-<<<<<<< HEAD
-       
-=======
                     
->>>>>>> main
                 figure_ = wpu.__subplot_heatmap(
                     channel_ws,
                     figure_,
