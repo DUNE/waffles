@@ -240,7 +240,7 @@ def __subplot_heatmap(
     ranges: np.ndarray,
     show_color_bar: bool = False,
     filtering: float = 0,
-    zlog: bool = False
+    zlog: bool = False,
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -376,11 +376,14 @@ def __subplot_heatmap(
         dy=adc_step,
         name=name,
         transpose=True,
-        showscale=show_color_bar)
+        showscale=show_color_bar,
+    )
 
     figure_.add_trace(heatmap,
                       row=row,
                       col=col)
+    figure_.update_xaxes(title_text="Time [ticks]", row=row, col=col)
+    figure_.update_yaxes(title_text="Amplitude [ADCs]", row=row, col=1)
     return figure_
 
 

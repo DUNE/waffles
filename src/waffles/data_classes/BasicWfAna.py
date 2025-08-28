@@ -180,7 +180,12 @@ class BasicWfAna(WfAna):
             baseline = np.median(baseline_samples)
         else:
             self.__baseliner.update_params_from_db(getattr(waveform, "endpoint", 0), getattr(waveform, "channel", 0))
+            self.__baseliner.baselinestart -= waveform.time_offset
+            self.__baseliner.baselinefinish -= waveform.time_offset
             baseline, optimized = self.__baseliner.compute_baseline(waveform.adcs, self.__baseliner.filtering)
+            # Needs to go back...
+            self.__baseliner.baselinestart += waveform.time_offset
+            self.__baseliner.baselinefinish += waveform.time_offset
 
         integral = waveform.time_step_ns * self.__invfactor * (
             np.sum(
