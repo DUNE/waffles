@@ -285,7 +285,8 @@ def fit_peaks_of_CalibrationHistogram(
 
     for p in mm.parameters: # we are now free
         mm.fixed[p] = False
-        mm.limits[p] = (1e-6, None) # They are all positive btw
+        if p != "mean_baseline":
+            mm.limits[p] = (1e-6, None) # They are all positive btw
     mm.migrad() # second call to ensure convergence now with free parameters
     mm.migrad() # try hard call 
     mm.hesse() # compute errors

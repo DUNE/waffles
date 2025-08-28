@@ -23,10 +23,10 @@ default_fit: &dfit
   44: { baseline: { <<: *dfbase}, fit: { <<: *dfit, domain_int: [-0.4, 2.5], half_point_to_fit: 3, int_ul: 285, bins_int: 70 }}, # M3(2)
   43: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300, bins_int: 70, domain_int: [-0.5, 2.3]}}, # M4(1)
   41: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300}}, # M4(2)
-  7: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 320, domain_int: [-0.3, 2.5]}}, # M5(1)
+  7: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300, domain_int: [-0.3, 1.7]}}, # M5(1)
   0: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 285, domain_int: [-0.5, 2.5]}}, # M5(2)
   27: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300, half_point_to_fit: 2, domain_int: [-0.3, 1.2]}}, # M6(1)
-  20: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 285, domain_int: [-0.3, 1.7]}}, # M6(2)
+  20: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 285, domain_int: [-0.3, 1.5]}}, # M6(2)
   37: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300, domain_int: [-0.5, 2.7]}}, # M7(1)
   30: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300}}, # M7(2)
   17: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300}}, # M8(1)
@@ -100,10 +100,10 @@ updates: {
   7: {
       38954: {threshold: 35.5},
       38955: {threshold: 30.5},
-      38957: {threshold: 30.5},
+      38957: {threshold: 30.5, domain_int: [-0.2, 1.5], prominence: 0.1},
       38958: {threshold: 21},
-      38959: {threshold: 21, domain_int: [-0.5, 2.5], half_point_to_fit: 5, prominence: 0.1},
-      38960: {threshold: 16},
+      38959: {threshold: 21, domain_int: [-0.5, 1.5], half_point_to_fit: 5, prominence: 0.1},
+      38960: {threshold: 16, domain_int: [-0.5, 1.7], prominence: 0.1},
         #38963: {threshold: }
     },
     # M5(2)
