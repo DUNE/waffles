@@ -25,6 +25,8 @@ from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.Event import Event
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 from waffles.np04_data.ProtoDUNE_HD_APA_maps_APA1_104 import APA_map as APA_map_2
+#from waffles.np02_data.ProtoDUNE_VD_maps import flat_MEM_geometry_map as np02_map
+from waffles.np02_data.ProtoDUNE_VD_maps import np02_geometry_map as np02_map 
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 import waffles.utils.event_utils as evt_utils
 from scipy import signal
@@ -116,9 +118,9 @@ def tsort_wfset(wfset0: WaveformSet) -> WaveformSet:
 
 
 ###########################
-def get_grid(wfs: list,                
-             apa: int = -1,
-             run: int = -1):
+def get_grid_np04(wfs: list,                
+                  apa: int = -1,
+                  run: int = -1):
 
     if run < 29927:
         grid_apa = ChannelWsGrid(APA_map[apa], WaveformSet(*wfs))
@@ -128,7 +130,7 @@ def get_grid(wfs: list,
     return grid_apa
             
 ###########################
-def get_grid_index(wf: Waveform):
+def get_grid_index_np04(wf: Waveform):
 
     # get the apa for that waveform      
     if    wf.endpoint <  109: gi = 1
@@ -139,7 +141,7 @@ def get_grid_index(wf: Waveform):
     return gi 
 
 ###########################
-def get_endpoints(apa: int):
+def get_endpoints_np04(apa: int):
 
     eps=[]
 
@@ -149,7 +151,36 @@ def get_endpoints(apa: int):
     elif  apa == 4: eps =[112,113]
 
     return eps
-        
+
+###########################
+def get_grid_np02(wfs: list,                
+                  subdet: int = -1):
+    
+    grid = ChannelWsGrid(np02_map[subdet], WaveformSet(*wfs))
+
+    return grid
+            
+###########################
+def get_grid_index_np02(wf: Waveform):
+
+    # get the subdet for that waveform      
+    if    wf.endpoint == 106: gi = 0
+    elif  wf.endpoint == 107: gi = 1 
+
+    return gi 
+
+###########################
+def get_endpoints_np02(subdet: int):
+
+    eps=[]
+
+    if    subdet == 3: eps =[106]
+    elif  subdet == 4: eps =[106]
+    elif  subdet == 1: eps =[107]
+    elif  subdet == 2: eps =[107]    
+
+    return eps
+
 ###########################        
 def read_avg(filename):
 
