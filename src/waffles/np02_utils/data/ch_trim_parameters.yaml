@@ -86,15 +86,15 @@ updates: {
     },
     # M4(2)
     41: {
-      38785: {threshold: 50},
-      38786: {threshold: 50},
-      38787: {threshold: 50},
-      38789: {threshold: 50},
-      38790: {threshold: 50},
-      38792: {threshold: 50},
-      38794: {threshold: 50},
-      38796: {threshold: 50},
-      38798: {threshold: 50}
+      38877: {threshold: 75, domain_int: [-0.3, 2.5], bins_int: 70},
+      38878: {threshold: 71, domain_int: [-0.3, 2.5], bins_int: 65},
+      38879: {threshold: 69, bins_int: 65},
+      38880: {threshold: 67, bins_int: 65},
+      38881: {threshold: 67, domain_int: [-0.5, 2.5], bins_int: 85},
+      38882: {threshold: 66, domain_int: [-0.5, 2.5], bins_int: 65},
+      38883: {threshold: 60},
+      38884: {threshold: 55},
+      38885: {threshold: 50}
     },
     # M5(1)
   7: {
@@ -144,23 +144,49 @@ updates: {
     },
     # M7(1)
     37: {
-    38987: {threshold: 40},
-    38988: {threshold: 35},
-    38990: {threshold: 30.5},
-    38991: {threshold: 25.5},
-    38992: {threshold: 21},
-    38993: {threshold: 16},
-    38994: {threshold: 16},
-    38995: {threshold: 11.2}  
+      38987: {threshold: 27,  domain_int: [-0.2,2.7], bins_int: 155},
+      38988: {threshold: 25,  domain_int: [-0.2,2.7], bins_int: 155},
+      38990: {threshold: 24.5,domain_int: [-0.2,2.7], bins_int: 155},
+      38991: {threshold: 22.5,domain_int: [-0.2,2.7], bins_int: 175},
+      38992: {threshold: 22,  domain_int: [-0.2,2.7], bins_int: 175},
+      38993: {threshold: 21.5,domain_int: [-0.3,2.7], bins_int: 175},
+      38994: {threshold: 21,  domain_int: [-0.4,2.7], bins_int: 175},
+      38995: {threshold: 20.5,domain_int: [-0.4,2.7], bins_int: 175},
     },
     # M7(2)
     30: {
+      38987: {threshold: 27,   domain_int: [-0.2,2.7], bins_int: 175},
+      38988: {threshold: 24.8, domain_int: [-0.2,2.7], bins_int: 175},
+      38990: {threshold: 24.5, domain_int: [-0.2,2.7], bins_int: 175},
+      38991: {threshold: 22.5, domain_int: [-0.2,2.7], bins_int: 175},
+      38992: {threshold: 22,   domain_int: [-0.2,2.7], bins_int: 175},
+      38993: {threshold: 21.5, domain_int: [-0.3,2.7], bins_int: 175},
+      38994: {threshold: 21,   domain_int: [-0.4,2.7], bins_int: 175},
+      38995: {threshold: 19,   domain_int: [-0.6,2.7], bins_int: 175},
     },
     # M8(1)
     17: {
+      39015: {threshold: 26.5, bins_int: 60, domain_int:[-0.3,2.1]},
+      39016: {threshold: 23,  bins_int: 65, domain_int:[-0.3,2.5]},
+      38999: {threshold: 21.5,  bins_int: 65, domain_int:[-0.3,2.5]},
+      39000: {threshold: 21, domain_int:[-0.3,2.5]},
+      39001: {threshold: 20},
+      39002: {threshold: 19},
+      39003: {threshold: 19, domain_int:[-0.5,2]},
+      39004: {threshold: 17},
+      39005: {threshold: 16},
     },
     # M8(2)
     10: {
+      39015: {threshold: 29, domain_int:[-0.3,2.3], bins_int: 60},
+      39016: {threshold: 27, domain_int:[-0.3,2.5], bins_int: 70},
+      38999: {threshold: 26, domain_int:[-0.3,2.5], bins_int: 70},
+      39000: {threshold: 22, domain_int:[-0.3,2.5]},
+      39001: {threshold: 21},
+      39002: {threshold: 20.5},
+      39003: {threshold: 20, domain_int:[-0.5,2.1]},
+      39004: {threshold: 19, domain_int:[-0.7,2.1]},
+      39005: {threshold: 18},
     },
   }
 }
