@@ -19,10 +19,7 @@ def fit_peaks_of_CalibrationHistogram(
     fit_type: str = 'independent_gaussians',
     half_points_to_fit: int = 2,
     std_increment_seed_fallback: float = 1e+2,
-    ch_span_fraction_around_peaks: float = 0.05
-    half_points_to_fit: int,
-    initial_percentage = 0.1,
-    percentage_step = 0.1,
+    ch_span_fraction_around_peaks: float = 0.05,
     fitmultigauss: bool = False,
 ) -> bool:
     """For the given CalibrationHistogram object, 
