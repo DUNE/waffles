@@ -1,0 +1,33 @@
+# Runs to be analyzed
+runs : [39033]
+
+# File.csv with an OfflineCh <-> RMS mapping for a given
+# VGain and Integrators ON/OFF configuration
+noise_results_file : "/afs/cern.ch/work/h/hvieirad/public/np02_time_resolution/noise_results_file.csv"
+
+# File.csv with the calibration results 
+calibration_file : "/afs/cern.ch/work/h/hvieirad/public/np02_time_resolution/calibration_results_file.csv"
+
+dettype : "cathode"
+
+channels  : []
+
+nwaveforms : null
+
+prepulse_ticks : 250
+int_low : 250
+int_up : 600
+postpulse_ticks : 600
+
+min_pes : 2
+
+methods : ["amplitude", "integral", "denoise"]
+
+relative_thrs : [0.5]
+
+filt_levels : [8, 12]
+
+h2_nbins  : 100
+stat_lost : 0.005
+
+min_selec_wfs: 1

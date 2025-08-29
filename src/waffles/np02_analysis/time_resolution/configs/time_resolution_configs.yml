@@ -1,0 +1,7 @@
+# Data folder
+data_folder: "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/"
+
+# Ana folder
+ana_folder : "/afs/cern.ch/work/h/hvieirad/public/np02_time_resolution/"
+raw_ana_folder: "raw_ana/"
+single_ana_folder: "single_ana/"

@@ -2,24 +2,26 @@ import waffles
 import numpy as np
 from scipy.optimize import curve_fit, brentq
 from waffles.utils.denoising.tv1ddenoise import Denoise
+from typing import List
 
 
 def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
     return waveform.endpoint == (channel//100) and waveform.channel == (channel%100)
  
 # --- Waveform manipulation methods ------------------------------------------
-def create_float_waveforms(waveforms: waffles.Waveform) -> None:
+def create_float_waveforms(waveforms: List[waffles.Waveform]) -> None:
     for wf in waveforms:
         wf.adcs_float = wf.adcs.astype(np.float64)
 
-def sub_baseline_to_wfs(waveforms: waffles.Waveform, prepulse_ticks: int):
+def sub_baseline_to_wfs(waveforms: List[waffles.Waveform], prepulse_ticks: int, invert: bool=True) -> None:
     norm = 1./prepulse_ticks
     for wf in waveforms:
         baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
         wf.adcs_float -= baseline
-        wf.adcs_float *= -1
+        if invert:
+            wf.adcs_float *= -1
 
-def create_filtered_waveforms(waveforms: waffles.Waveform,
+def create_filtered_waveforms(waveforms: List[waffles.Waveform],
                               filt_level: float) -> None:
     denoiser = Denoise()
     for wf in waveforms:
@@ -105,13 +107,14 @@ def find_zero_crossing(y: np.array,
 
 
 
-def smooth_wfs(waveforms: waffles.Waveform, sigma: int) -> None:
-    """
+# # Old fuction, not used
+# def smooth_wfs(waveforms: List[waffles.Waveform], sigma: int) -> None:
+#     """
 
-    """
-    gx = np.linspace(-4*sigma, 4*sigma, 8*sigma+1)
-    gauss = np.exp(-0.5*((gx/sigma)**2))*(1/(sigma*(2*np.pi)**0.5))
+#     """
+#     gx = np.linspace(-4*sigma, 4*sigma, 8*sigma+1)
+#     gauss = np.exp(-0.5*((gx/sigma)**2))*(1/(sigma*(2*np.pi)**0.5))
 
-    for wf in waveforms:
-        wf = np.convolve(wf,gauss,"same")
+#     for wf in waveforms:
+#         wf = np.convolve(wf,gauss,"same")
 

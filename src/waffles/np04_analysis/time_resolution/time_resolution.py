@@ -4,7 +4,7 @@ from typing import Literal, Tuple
 from waffles.utils.denoising.tv1ddenoise import Denoise
 
 
-from utils import *
+from waffles.np04_analysis.time_resolution.utils import *
 
 
 ################################################################
@@ -72,7 +72,9 @@ class TimeResolution:
                                 spe_charge: float,
                                 spe_ampl: float,
                                 min_pes: float,
-                                baseline_rms: float) -> None:
+                                baseline_rms: float,
+                                invert: bool = True,
+                                ) -> None:
         """
         Set the analysis parameters and do sanity checks
         """
@@ -85,6 +87,8 @@ class TimeResolution:
         self.spe_ampl = spe_ampl
         self.min_pes = min_pes
         self.baseline_rms = baseline_rms
+        self.invert = invert
+        self.debug_counter = {}
 
         try:
             self.sanity_check()
@@ -100,7 +104,7 @@ class TimeResolution:
         t_wfset = waffles.WaveformSet.from_filtered_WaveformSet(self.wf_set, allow_channel_wfs, self.ch)
         self.wfs = t_wfset.waveforms
         create_float_waveforms(self.wfs)
-        sub_baseline_to_wfs(self.wfs, self.prepulse_ticks)
+        sub_baseline_to_wfs(self.wfs, self.prepulse_ticks, invert=self.invert)
 
     def create_denoised_wfs(self, filt_level: float) -> None:
         create_filtered_waveforms(self.wfs, filt_level)
@@ -117,6 +121,7 @@ class TimeResolution:
         waveforms = self.wfs
 
         n_selected = 0
+        self.debug_counter['nwfs'] = len(waveforms) 
 
         for wf in waveforms:
             max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
@@ -132,14 +137,19 @@ class TimeResolution:
                 # Check if the signal is within saturation limits
                 if (ampl_post < 0.8*max_el_signal
                     and wf.pe > self.min_pes):
-                    wf.time_resolution_selection = True
-                    n_selected += 1
+                    wf.time_resolution_selection = True; n_selected += 1
+                    self.debug_counter['selected'] = self.debug_counter.get('selected', 0) + 1 
 
                 else:
                     wf.time_resolution_selection = False
+                    if wf.pe <= self.min_pes:
+                        self.debug_counter['excluded_pe'] = self.debug_counter.get('excluded_pe', 0) + 1
+                    else:
+                        self.debug_counter['excluded_ampl_post'] = self.debug_counter.get('excluded_ampl_post', 0) + 1 
 
             else:
                 wf.time_resolution_selection = False
+                self.debug_counter['excluded_rms'] = self.debug_counter.get('excluded_rms', 0) + 1 
         
         self.n_select_wfs = n_selected
 
