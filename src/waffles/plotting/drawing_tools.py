@@ -77,7 +77,8 @@ def plot_wfs(wfs: list,
 
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
-        tmin=xmin-1024    # harcoded number
+#        tmin=xmin-1024    # harcoded number
+        tmin=xmin
         tmax=xmax        
         
     # get all waveforms in the specified endpoint, channels,  time offset range and record
@@ -157,11 +158,12 @@ def plot_grid(wfset: WaveformSet,
 
     # don't consider time intervals that will not appear in the plot
     if tmin == -1 and tmax == -1:
-        tmin=xmin-1024    # harcoded number
+#        tmin=xmin-1024    # harcoded number
+        tmin=xmin
         tmax=xmax        
     
     # get the endpoints corresponding to a given APA
-    eps= get_endpoints(apa)
+    eps= get_endpoints_np04(apa)
 
     # get all waveforms in the specified endpoint, channels,  time offset range and record
     selected_wfs= get_wfs(wfset.waveforms,eps,ch,nwfs,tmin,tmax,rec)
@@ -169,7 +171,7 @@ def plot_grid(wfset: WaveformSet,
     run = wfset.waveforms[0].run_number
     
     # get the ChannelWsGrid for that subset of wafeforms and that APA
-    grid = get_grid(selected_wfs,apa,run)
+    grid = get_grid_np04(selected_wfs,apa,run)
 
     # plot the grid
     global fig
@@ -182,6 +184,56 @@ def plot_grid(wfset: WaveformSet,
         fig.update_yaxes(range = [ymin,ymax])
     
     write_image(fig,800,1200)
+
+
+###########################
+def plot_grid_np02(wfset: WaveformSet,                
+                   subdet: int = -1, 
+                   ch: Union[int, list]=-1,
+                   nwfs: int = -1,
+                   tmin: int = -1,
+                   tmax: int = -1,
+                   xmin: int = -1,
+                   xmax: int = -1,
+                   ymin: int = -1,
+                   ymax: int = -1,
+                   offset: bool = False,
+                   rec: list = [-1],
+                   mode: str = 'overlay'):
+
+    """
+    Plot a WaveformSet in grid mode
+    """
+
+    # don't consider time intervals that will not appear in the plot
+    if tmin == -1 and tmax == -1:
+#        tmin=xmin-1024    # harcoded number
+        tmin=xmin
+        tmax=xmax        
+    
+    # get the endpoints corresponding to a given APA
+    eps= get_endpoints_np02(subdet)
+
+    # get all waveforms in the specified endpoint, channels,  time offset range and record
+    selected_wfs= get_wfs(wfset.waveforms,eps,ch,nwfs,tmin,tmax,rec)
+
+    run = wfset.waveforms[0].run_number
+    
+    # get the ChannelWsGrid for that subset of wafeforms and that APA
+    grid = get_grid_np02(selected_wfs,subdet)
+
+    # plot the grid
+    global fig
+    fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000,mode=mode,offset=offset)
+
+    if xmin != -1 and xmax != -1:
+        fig.update_xaxes(range = [xmin,xmax])
+    
+    if ymin != -1 and ymax != -1:
+        fig.update_yaxes(range = [ymin,ymax])
+    
+    write_image(fig,800,1200)
+
 
     
 ###########################
@@ -685,7 +737,7 @@ def plot_grid_histogram(wfset: WaveformSet,
         tmax=xmax        
         
     # Obtener los endpoints para el APA
-    eps = get_endpoints(apa)
+    eps = get_endpoints_np04(apa)
     
     # Obtener solo las waveforms que cumplen las condiciones
     selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
@@ -699,7 +751,7 @@ def plot_grid_histogram(wfset: WaveformSet,
 
     # Obtener la cuadrícula de canales
     run = wfset.waveforms[0].run_number
-    grid = get_grid(selected_wfs, apa, run)
+    grid = get_grid_np04(selected_wfs, apa, run)
     
     # Pasar la función correcta para graficar histogramas, con filtrado por canal
     fig = plot_CustomChannelGrid(
@@ -859,9 +911,9 @@ def plot_to_interval(wset,
         fig = go.Figure()
 
     if isinstance(apa, list):
-        eps_list = [get_endpoints(apa_value) for apa_value in apa]
+        eps_list = [get_endpoints_np04(apa_value) for apa_value in apa]
     else:
-        eps_list = [get_endpoints(apa)]
+        eps_list = [get_endpoints_np04(apa)]
 
     colors = ['blue', 'green', 'red', 'purple', 'orange']
 
@@ -1080,7 +1132,7 @@ def plot_function_grid(wfset: WaveformSet,
         fig = go.Figure()
         
     # Obtain the endpoints from the APA
-    eps = get_endpoints(apa)
+    eps = get_endpoints_np04(apa)
 
     # Select the waveforms in a specific time interval of the DAQ window
     selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
