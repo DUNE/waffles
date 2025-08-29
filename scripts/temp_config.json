@@ -9,6 +9,6 @@
     "max_files": 4,
     "det": "VD_Membrane_PDS",
     "trigger": "self_trigger",
-    "truncate_wfs_method": "choose",
+    "truncate_wfs_method": "",
     "suffix": "membrane"
 }

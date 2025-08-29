@@ -11,6 +11,7 @@ from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 
+
 class WaveformProcessor:
     """Handles waveform data processing and structured HDF5 saving."""
 
