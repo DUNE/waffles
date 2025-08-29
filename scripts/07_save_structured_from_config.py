@@ -127,6 +127,9 @@ class WaveformProcessor:
             extra = f"_{self.suffix}"
         output_filename = f"processed_merged_run{self.run_number:06d}_structured{extra}.hdf5"
         output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / output_filename
+        if not output_filepath.parent.exists():
+            print_colored(f"Creating output directory: {output_filepath.parent}", color="WARNING")
+            output_filepath.parent.mkdir(parents=True, exist_ok=True)
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")
         try:
             self.wfset = self.ensure_waveformset(self.wfset)
@@ -192,6 +195,10 @@ class WaveformProcessor:
         if self.suffix:
             extra = f"_{self.suffix}"
         output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / f"processed_{input_filename}_structured{extra}.hdf5"
+
+        if not output_filepath.parent.exists():
+            print_colored(f"Creating output directory: {output_filepath.parent}", color="WARNING")
+            output_filepath.parent.mkdir(parents=True, exist_ok=True)
 
         print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
         try:

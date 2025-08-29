@@ -222,6 +222,14 @@ def main() -> None:
                     (list_dir / f"{run:06d}.txt").write_text(
                         "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
                     ok_runs.append(run)
+                else:
+                    # Then, accept .txt file with rucio path if already there
+                    logging.info("Checking if .txt file already exists...")
+                    if (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").is_file():
+                        (list_dir / f"{run:06d}.txt").write_text(
+                            (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").read_text())
+                        logging.info("run %d: using existing .txt file", run)
+                        ok_runs.append(run)
                 continue
             if cfg.get("max_files", "all") != "all":
                 rem = rem[:int(cfg["max_files"])]
@@ -232,6 +240,8 @@ def main() -> None:
             os.chmod(raw_dir / f"run{run:06d}", 0o775)
         except Exception as e:
             logging.error("run %d: %s", run, e)
+
+        logging.warning("run %d: skipped", run)
     sftp.close()
     ssh.close()
 
