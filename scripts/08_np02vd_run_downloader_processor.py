@@ -186,6 +186,7 @@ def main() -> None:
         else:
             logging.warning("Full stream only available for VD_Cathode_PDS, ignoring\nIf this warning is outdated, remove it.")
 
+    databaserucio = Path( "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/ruciopaths/" )
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
     if not args.kerberos and not args.ssh_key:
@@ -230,6 +231,13 @@ def main() -> None:
                             (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").read_text())
                         logging.info("run %d: using existing .txt file", run)
                         ok_runs.append(run)
+                    if run not in ok_runs:
+                        if (databaserucio / f"{run:06d}.txt").is_file():
+                            (list_dir / f"{run:06d}.txt").write_text(
+                                (databaserucio / f"{run:06d}.txt").read_text())
+                            logging.info("run %d: using existing .txt file", run)
+                            ok_runs.append(run)
+
                 continue
             if cfg.get("max_files", "all") != "all":
                 rem = rem[:int(cfg["max_files"])]
