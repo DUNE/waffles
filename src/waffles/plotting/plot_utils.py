@@ -9,6 +9,8 @@ import waffles.utils.numerical_utils as wun
 
 from waffles.Exceptions import GenerateExceptionMessage
 
+from waffles.utils.denoising.tv1ddenoise import Denoise
+
 
 def check_dimensions_of_suplots_figure(
     figure: pgo.Figure,
@@ -236,7 +238,9 @@ def __subplot_heatmap(
     time_bins: int,
     adc_bins: int,
     ranges: np.ndarray,
-    show_color_bar: bool = False
+    show_color_bar: bool = False,
+    filtering: float = 0,
+    zlog: bool = False
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -310,6 +314,15 @@ def __subplot_heatmap(
         plotly.graph_objects.Heatmap(). If True, a
         bar with the color scale of the plotted 
         heatmap is shown. If False, it is not.
+    filtering: float
+        It is given to the Denoise.apply_denoise()
+        method. If it is greater than 0, then the
+        waveforms will be denoised before being
+        added to the heatmap. If it is 0, then no
+        denoising will be applied.
+    zlog: bool
+        If True, the z-axis of the heatmap will be
+        logarithmically scaled. 
 
     Returns
     ----------
@@ -328,10 +341,16 @@ def __subplot_heatmap(
         waveform_set.points_per_wf,
         dtype=np.float32) + waveform_set.waveforms[idx].time_offset for idx in wf_idcs])
 
+    denoiser = Denoise()
     try:
-        aux_y = np.hstack([
-            waveform_set.waveforms[idx].adcs -
-            waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
+        if filtering>0:
+            aux_y = np.hstack([
+                denoiser.apply_denoise((waveform_set.waveforms[idx].adcs).astype(np.float32) -
+                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'], filter=filtering) for idx in wf_idcs])
+        else:
+            aux_y = np.hstack([
+                waveform_set.waveforms[idx].adcs -
+                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
 
     except KeyError:
         raise Exception(GenerateExceptionMessage(
@@ -346,6 +365,8 @@ def __subplot_heatmap(
     
     aux = aux.astype(float)
     aux[aux == 0] = np.nan
+    if zlog:
+        aux = np.log10(aux)
 
     heatmap = pgo.Heatmap(
         z=aux,

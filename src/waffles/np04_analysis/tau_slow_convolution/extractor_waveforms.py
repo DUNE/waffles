@@ -7,7 +7,7 @@ from waffles.utils.baseline.baseline import SBaseline
 
 
 class Extractor:
-    def __init__(self, params, selection_type:str, current_run:int = None):
+    def __init__(self, params, selection_type:str, current_run:int = None, factor:float = 1.0, pathtoyaml="."):
         """This class extract either responses or templates from the rawfiles
 
         Parameters
@@ -16,6 +16,8 @@ class Extractor:
             `template` or `response`
         current_run: int
             The current run being analyzed
+        factor: float
+            Multiplicative factor for the waveforms. Set it to -1 if signals are negative polarity.
 
         """
 
@@ -25,8 +27,10 @@ class Extractor:
         }
 
         self.selection_type = selection_type
+        self.pathtoyaml = pathtoyaml
         self.loadcuts()
         self.skeepcuts = False
+        self.factor = factor
         self.current_run = current_run
 
         self.denoiser = Denoise()
@@ -50,7 +54,7 @@ class Extractor:
         """Uses the cuts speficied in a yaml file to select the proper waveforms
         """
         if self.channel_correction:
-            ch = 100*waveform.endpoint + ch.astype(np.int32)
+            ch = 100*waveform.endpoint + ch
         try:
             cuts = self.cutsdata[ch]['cuts']
         except Exception as error:
@@ -71,7 +75,7 @@ class Extractor:
             stop      = cut['stop']
 
             # Substract baseline, invert and denoise before getting the reference value for the cut
-            wf_cut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*(-1)
+            wf_cut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*self.factor
 
             # get the reference value in the time range specified [t0, tf]
             # the type of reference value is given by cut['npop'] = 'max, 'min' 
@@ -122,7 +126,7 @@ class Extractor:
         
     def loadcuts(self):
         try:
-            with open(f'configs/cuts_{self.selection_type}.yaml', 'r') as f:
+            with open(f'{self.pathtoyaml}/configs/cuts_{self.selection_type}.yaml', 'r') as f:
                 self.cutsdata = yaml.safe_load(f)
         except:
             print("Could not load yaml file..., creating fake cut, all waveforms will be applied")
