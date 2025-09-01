@@ -72,7 +72,7 @@ class CalibrationHistogram(TrackedHistogram):
             counts,
             indices)
 
-        self.__gaussian_fits_parameters = None
+        self.__gaussian_fits_parameters = {}
         self.__reset_gaussian_fit_parameters()
 
     @property
@@ -211,13 +211,14 @@ class CalibrationHistogram(TrackedHistogram):
 
         # Trying to grab the WfAna object Waveform by Waveform using
         # WaveformAdcs.get_analysis() might be slow. Find a different
-        # solution if this becomesa problem at some point.
+        # solution if this becomes a problem at some point.
         samples = [
             waveform_set.waveforms[idx].get_analysis(
                 analysis_label
-            ).result[variable]
-            for idx in range(    
-                len(waveform_set.waveforms))]
+            ).result[variable]  for idx in range(    
+                len(waveform_set.waveforms))
+            if waveform_set.waveforms[idx].get_analysis( analysis_label).result[variable] is not np.nan
+        ]
         try:
             return cls.__from_samples(
                 samples,
