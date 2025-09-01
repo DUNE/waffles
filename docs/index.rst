@@ -74,11 +74,11 @@ To access lxplus run ``ssh yourusername@lxplus.cern.ch``
   
      setup_dbt latest                                            # Setup the latest version of dbt
      dbt-create -l                                               # List the available versions of dbt
-     dbt-create fddaq-v5.2.1-a9                                  # Create a new dbt environment with the version fddaq-v5.2.1-a9
+     dbt-create <latest_dbt_version>                             # Create a new dbt environment with the version fddaq-v*
      source <my_daq_dir>/env.sh                                  # Source the dbt environment
 
 
-* If you just want to analyze the already generated ``ROOT`` files this requirement becomes optional and you can create a python virtual environment with:
+* If you just want to analyze the already generated processed files this requirement becomes optional and you can create a python virtual environment with:
 
   .. code-block:: bash
   
@@ -86,7 +86,7 @@ To access lxplus run ``ssh yourusername@lxplus.cern.ch``
      source /path/to/new/virtual/environment/bin/activate  # Activate the environment
   
     
-  In order to have access to the ``ROOT`` library you need to have it sourced in your environment. Add these lines at the end of the ``bin/activate`` file:
+  If you want to have access to the ``ROOT`` library you need to have it sourced in your environment. Add these lines at the end of the ``bin/activate`` file:
 
   .. code-block:: bash
   
