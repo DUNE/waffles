@@ -1,7 +1,7 @@
 # 🔍 **INTRODUCTION**
 
-
-This is a python library to process and analyze raw data from the ProtoDUNEs. The design objectives were:
+This is a python library to process and analyze raw data from the ProtoDUNEs, which can be used in the future for the DUNE Far Detector modules. 
+The design objectives are:
 
 * **Unify** the tools and efforts into a common framework for the PDS working group.
 * Avoid over calculation as possible
@@ -15,7 +15,7 @@ This is a python library to process and analyze raw data from the ProtoDUNEs. Th
     * Signal deconvolution
     * Physics fits
     * ...
-3. Electronics studies --> DAPHNE response ?
+3. Electronics studies 
 4. Fast analysis
     * Look at the data during the protoDUNE data taking
     * Plot various quantities such as full waveforms, average waveform, FFT 
@@ -26,7 +26,7 @@ This is a python library to process and analyze raw data from the ProtoDUNEs. Th
 
 The idea of `waffles` framework is to unify efforts and to develop a robust analysis tool. 
 Users should become developers! if you need something that is not available, or you have an idea on how to improve and optimize a part of the framework, try to do it and commit your changes.
-Join the waffles Slack channel - send a Slack message to Francesca Alemanno or Andrea Roche.
+Join the waffles Slack channel. At the moment the channel is private: send a Slack message to Francesca Alemanno or Andrea Roche to be added.
 You can always ask in the Slack channel if you have any doubt. 
 Your analysis can become part of the framework, and you can promote the tools you developed, if they can be useful to other people.
 
@@ -39,19 +39,58 @@ Nevertheless, it is very important to keep some common rules not to harm others 
 
 * To include functions/methods follow the analysis structure and coding conventions
 
-* Update this documentation with your latest additions and modifications to the main branch. This will help everyone, also yourself!
+* Update this documentation with your latest additions and modifications to the main branch (see instructions below)
 
 ```
+
+# Writing Code and Documentation
+
+To keep the documentation always **up to date**, please follow these rules when adding new code:
+
+- **Always write a docstring** for every new function, class, and module.  
+- Use either **Google style** or **NumPy style** docstrings (both are supported by Sphinx but NumPy is preferred).  
+- The documentation is built automatically using **Sphinx autodoc**, so once you push your code, the docstrings will appear in the **API Reference** section without extra work.  
+
+## Example of good practice for code writing (NumPy style)
+
+def function(param1, param2=None):
+    """
+    Short description of the function.
+
+    Parameters
+    ----------
+    param1 : type
+        Description of param1.
+    param2 : type, optional
+        Description of param2 (default is ...).
+
+    Returns
+    -------
+    type
+        Description of return value.
+
+    Raises
+    ------
+    ExceptionName
+        Condition when this exception is raised.
+
+    Examples
+    --------
+    >>> function(42)
+    'result'
+    """
+
+---
 
 ## Current Workflow: brief introduction
 
 <!-- IMAGE SUMMARISING THE WORKFLOW? -->
-1. **Files location**: the `rucio` paths for the NP04 runs we want to analyse are stored in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`. If they are not available, you can generate these files. First, you have to move to the waffles scripts directory, then `source setup_rucio_a9.sh` and finally run the `scripts/fetch_rucio_replicas.py` script, with options `--runs run_number` `--max-files number_of_files`. 
+1. **Files location**: the `rucio` paths for the protoDUNEs runs are stored in `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/ruciopaths/` for NP02 and `/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths` for NP04. If they are not available, you can generate these files. First, you have to move to the waffles scripts directory, then `source setup_rucio_a9.sh` and finally run the `scripts/fetch_rucio_replicas.py` script, with options `--runs run_number` `--max-files number_of_files`. 
 
 2. **Data extraction**: the raw data is stored in `.hdf5` files. The optimal way of extracting the data is as follows:
     * Move to the waffles scripts directory
     * Modify the `config.json` file, according to your needs
-    * Run `python3 06_RawHDF5Reader.py --config config.json `
+    * Run `python3 07_save_structured_from_config.py --config config.json `
 
 In this way, you can store the `WaveformSet` in a lighter `.hdf5` file and load it whenever you want to work with it. 
 
@@ -61,11 +100,11 @@ In this way, you can store the `WaveformSet` in a lighter `.hdf5` file and load 
 
 We recommend installing [VSCode](https://code.visualstudio.com/) as editor. Some useful extensions are: Remote-SSH, Jupyter, vscode-numpy-viewer, **Python Environment Manager**
 
-If it is your first time here you need to create an environment to be able to use all their tools. Depending on the scope of your work you can create a `daq_env` (run `hdf5` file processing) or a `ana_env` (general analysis scope) environment. --- IS THE ANA ENVIRONMENT STILL AVAILABLE??? SEE ALSO LATER FOR THE ANA ENVIRONMENT
+If it is your first time here you need to create an environment to be able to use all their tools. Depending on the scope of your work you can create a `daq_env` (run `hdf5` file processing) or a `ana_env` (general analysis scope) environment.
 
 ### DAQ ENVIRONMENT [**NEEDED TO READ THE HDF5!!**]
 
-In this case all the dependencies from the DAQ needed to read the information from the `.hdf5` files are included. You don't need this environment unless you plan to work on the decoding side. --- CHECK ALSO THIS
+In this case all the dependencies from the DAQ needed to read the information from the `.hdf5` files are included. You don't need this environment unless you plan to work on the decoding side.
 
 ```bash
 source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh
@@ -109,7 +148,7 @@ python -m ipykernel install --user --name=your_env_name --display-name "Python_W
 
 ### 0. Download the library by cloning it from GitHub
 
-Move the DAQ folder. 
+Move to the DAQ folder. 
 
 ```bash
 source env.sh # Activate you DAQ environment
@@ -119,7 +158,10 @@ cd waffles
 git checkout -b <your_branch_name>            # Create a branch to develop
 ```
 
-Here is a summary of the folder structure of the repository:  --- THE FILES ARE DIFFERENT NOW. DOES IT MAKE SENSE TO REPORT ALL THE FILES HERE? IT SEEMS TOO MUCH... MAYBE WE CAN REPORT ONLY THE GENERAL STRUCTURE WITHOUT DESCRIBING EVERY SINGLE CODE.. ??
+Here is a summary of the folder structure of the repository: 
+
+.. admonition:: **WARNING** 
+    This folder structure is not updated, but it gives a good idea of the general structure
 
 ```bash
 ├── 'docs'/ # FOLDER WITH THE REPO DOCUMENTATION (THIS TEXT CAN BE IMPROVED BY YOU!)
@@ -224,8 +266,6 @@ python3 -m pip install -r requirements.txt .
 If at some point you need to re-run waffles with the changes you have introduced to the source code, you need to run the second command.
 
 ### 2. Make sure you have access to data to analyze
-
-HERE WE SHOULD ADD SOME USEFUL LINKS (NP02 and NP04 run list, channels map, ... )
 
 * Make sure you know how to connect and work from `@lxplus.cern.ch` machines. It is better to work in your personal folder in `/afs/cern.ch/work/`, because of larger available disk quota.
 
