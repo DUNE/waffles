@@ -78,7 +78,13 @@ if __name__ == "__main__":
         if (channels == []):
             print("No channels specified. Using all channels.")
             channels = ordered_channels_cathode if dettype=="cathode" else ordered_channels_membrane
-        for ch in channels:
+            channels = [ 100*endpoint + ch for ch in channels]
+        for epch in channels:
+            ep = epch // 100
+            if ep != endpoint:
+                continue
+            ch = epch % 100
+
             if ch not in listofchannels:
                 print(f"Channel {ch} is not valid...")
                 continue
@@ -120,7 +126,10 @@ if __name__ == "__main__":
                                                 postpulse_ticks=postpulse_ticks, int_low=int_low,
                                                 int_up=int_up, spe_charge=spe_charge,
                                                 spe_ampl=spe_ampl, min_pes=min_pes,
-                                                baseline_rms=baseline_rms, invert=invert)
+                                                baseline_rms=baseline_rms, invert=invert,
+                                                rms_times_thoreshold=6.0,
+                                                ticks_to_ns=16.0
+                                                )
             except ValueError as e:
                 print(f"Error: {e}")
                 continue
@@ -138,7 +147,7 @@ if __name__ == "__main__":
                 all_wfs = np.array([wf.adcs_float for wf in timeRes.wfs if wf.time_resolution_selection])[:n_pwfs].flatten()
                 all_tikcs = np.array([np.arange(len(wf.adcs_float)) for wf in timeRes.wfs if wf.time_resolution_selection])[:n_pwfs].flatten()
 
-                histmin = float(np.quantile(all_wfs,0.02))
+                histmin = float(np.quantile(all_wfs,0.01))
                 histmax = float(np.quantile(all_wfs,0.98))
                 counts, xedges, yedges = np.histogram2d(all_tikcs, all_wfs, bins=(len(timeRes.wfs[0].adcs_float),h2_nbins),
                                                         range=[[0, len(timeRes.wfs[0].adcs_float)],
