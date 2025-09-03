@@ -65,6 +65,8 @@ if __name__ == "__main__":
             tss_aux = np.array(tss, dtype='d')
 
             print(len(t0s), len(pes), len(tss))
+            if len(t0s) <= 1:
+                continue
                 
             out_root_file.mkdir(root_dir.replace(";1", ""))
             out_root_file.cd(root_dir.replace(";1", ""))
