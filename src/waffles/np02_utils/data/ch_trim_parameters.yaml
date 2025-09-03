@@ -26,11 +26,11 @@ default_fit: &dfit
   7: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300, domain_int: [-0.3, 1.7]}}, # M5(1)
   0: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 285, domain_int: [-0.5, 2.5]}}, # M5(2)
   27: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300, half_point_to_fit: 2, domain_int: [-0.3, 1.2]}}, # M6(1)
-  20: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 285, domain_int: [-0.3, 1.5]}}, # M6(2)
-  37: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300, domain_int: [-0.5, 2.7]}}, # M7(1)
-  30: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300}}, # M7(2)
-  17: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300}}, # M8(1)
-  10: { baseline: { <<: *dfbase}, fit: { <<: *dfit, int_ul: 300}}, # M8(2)
+  20: { baseline: { <<: *dfbase}, fit: { <<: *dfit, max_peaks: 3, int_ul: 285, domain_int: [-0.3, 1.5]}}, # M6(2)
+  37: { baseline: { <<: *dfbase}, fit: { <<: *dfit, half_point_to_fit: 5, max_peaks: 2, int_ul: 300, domain_int: [-0.5, 2.7]}}, # M7(1)
+  30: { baseline: { <<: *dfbase}, fit: { <<: *dfit, half_point_to_fit: 5, max_peaks: 2, int_ul: 300}}, # M7(2)
+  17: { baseline: { <<: *dfbase}, fit: { <<: *dfit, half_point_to_fit: 5, max_peaks: 2, int_ul: 300}}, # M8(1)
+  10: { baseline: { <<: *dfbase}, fit: { <<: *dfit, half_point_to_fit: 5, max_peaks: 2, int_ul: 300}}, # M8(2)
 }
 
 # Threshold...
