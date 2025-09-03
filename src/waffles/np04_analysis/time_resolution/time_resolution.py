@@ -73,7 +73,9 @@ class TimeResolution:
                                 spe_ampl: float,
                                 min_pes: float,
                                 baseline_rms: float,
-                                invert: bool = True,
+                                invert: bool = True,               # added for np02, no inverted channels
+                                rms_times_thoreshold: float = 4.0, # added for np02
+                                ticks_to_ns: float = 1.            # added for np02, spe_charge is in ADC*ns
                                 ) -> None:
         """
         Set the analysis parameters and do sanity checks
@@ -88,6 +90,8 @@ class TimeResolution:
         self.min_pes = min_pes
         self.baseline_rms = baseline_rms
         self.invert = invert
+        self.rms_times_thoreshold = rms_times_thoreshold
+        self.ticks_to_ns = ticks_to_ns
         self.debug_counter = {}
 
         try:
@@ -128,11 +132,11 @@ class TimeResolution:
             min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
 
             # Check if the baseline condition is satisfied
-            if max_el_pre < 4*self.baseline_rms and min_el_pre > -(4*self.baseline_rms):
+            if max_el_pre < self.rms_times_thoreshold*self.baseline_rms and min_el_pre > -(self.rms_times_thoreshold*self.baseline_rms):
                 # Calculate max and min in the signal region (after the pre region)
                 max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
                 ampl_post = wf.adcs_float[self.postpulse_ticks]
-                wf.pe = wf.adcs_float[self.int_low:self.int_up].sum()/self.spe_charge
+                wf.pe = wf.adcs_float[self.int_low:self.int_up].sum()*self.ticks_to_ns/self.spe_charge
 
                 # Check if the signal is within saturation limits
                 if (ampl_post < 0.8*max_el_signal
