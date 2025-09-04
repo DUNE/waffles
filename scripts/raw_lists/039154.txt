@@ -1,0 +1,1 @@
+/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts/raw/run039154/np02vd_raw_run039154_0000_df-s04-d0_dw_0_20250827T153903.hdf5.copied
