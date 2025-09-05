@@ -42,8 +42,6 @@ def chicago_time_from_timestamp(timestamp_s):
     dt_chicago = dt_utc.astimezone(timezone(timedelta(hours=-5)))
     return dt_chicago
 
-def format_timestamp(dt):
-    return dt.strftime("%Y-%m-%dT%H:%M:%S")
 
 def read_waveformset(input_path):
     print(f"Reading the WaveformSet from: {input_path}")
