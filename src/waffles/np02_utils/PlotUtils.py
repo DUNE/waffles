@@ -8,6 +8,7 @@ from typing import Optional, Callable
 import yaml
 from importlib import resources
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -433,6 +434,23 @@ def ch_read_params(filename:str = 'ch_snr_parameters.yaml') -> dict:
     try:
         with resources.files('waffles.np02_utils.data').joinpath(filename).open('r') as f:
             return yaml.safe_load(f)
+    except Exception as error:
+        print(error)
+        print("\n\n")
+        raise FileNotFoundError(
+            f"Could not find the {filename} file in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
+        )
+
+def ch_read_calib(filename: str = 'calibration_results_file.csv') -> dict:
+    try:
+        with resources.files('waffles.np02_utils.data').joinpath(filename).open('r') as f:
+            df = pd.read_csv(f)
+            result = ( df.set_index(['endpoint', 'channel'])[['Gain', 'SpeAmpl']].to_dict(orient='index'))
+            # now regroup by endpoint
+            nested_dict = {}
+            for (ep, ch), values in result.items():
+                nested_dict.setdefault(ep, {})[ch] = values
+            return nested_dict
     except Exception as error:
         print(error)
         print("\n\n")
