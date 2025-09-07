@@ -25,6 +25,7 @@ class WaveformProcessor:
         self.trigger = config.get("trigger")
         self.suffix = config.get("suffix", "")
         self.truncate_wfs_method = config.get("truncate_wfs_method", "")
+        self.only_unprocessed = config.get("only_unprocessed", False)
 
         print_colored(f"Loaded configuration: {config}", color="INFO")
 
@@ -92,6 +93,17 @@ class WaveformProcessor:
             else:
                 choice=[0]
                 for file in filepaths:
+                    input_filename = Path(file).name
+                    extra = ""
+                    if self.suffix:
+                        extra = f"_{self.suffix}"
+                    self.output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / f"processed_{input_filename}_structured{extra}.hdf5"
+
+                    if self.only_unprocessed:
+                        if self.output_filepath.exists():
+                            print_colored(f"Skipping already processed file: {self.output_filepath}", color="WARNING")
+                            continue
+                        
                     print_colored(f"Processing file: {file}", color="INFO")
                     wfset = reader.WaveformSet_from_hdf5_file(
                         filepath=file,
@@ -109,7 +121,7 @@ class WaveformProcessor:
                     )
                     wfset = self.ensure_waveformset(wfset)
                     if wfset:
-                        self.write_output(wfset, file)
+                        self.write_output(wfset)
 
             print_colored("All files processed successfully.", color="SUCCESS")
             return True
@@ -189,18 +201,13 @@ class WaveformProcessor:
 
         print_colored("Comparison finished.", color="DEBUG")
 
-    def write_output(self, wfset, input_filepath):
-        input_filename = Path(input_filepath).name
-        extra = ""
-        if self.suffix:
-            extra = f"_{self.suffix}"
-        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / f"processed_{input_filename}_structured{extra}.hdf5"
+    def write_output(self, wfset):
 
-        if not output_filepath.parent.exists():
-            print_colored(f"Creating output directory: {output_filepath.parent}", color="WARNING")
-            output_filepath.parent.mkdir(parents=True, exist_ok=True)
+        if not self.output_filepath.parent.exists():
+            print_colored(f"Creating output directory: {self.output_filepath.parent}", color="WARNING")
+            self.output_filepath.parent.mkdir(parents=True, exist_ok=True)
 
-        print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
+        print_colored(f"Saving waveform data to {self.output_filepath}...", color="DEBUG")
         try:
             # ✅ Make sure we overwrite the input variable with the wrapped one
             wfset = self.ensure_waveformset(wfset)
@@ -208,14 +215,14 @@ class WaveformProcessor:
 
             WaveformSet_to_file(
                 waveform_set=wfset,
-                output_filepath=str(output_filepath),
+                output_filepath=str(self.output_filepath),
                 overwrite=True,
                 format="hdf5",
                 compression="gzip",
                 compression_opts=0,
                 structured=True
             )
-            print_colored(f"WaveformSet saved to {output_filepath}", color="SUCCESS")
+            print_colored(f"WaveformSet saved to {self.output_filepath}", color="SUCCESS")
 
             return True
         except Exception as e:
@@ -259,12 +266,6 @@ def main(config):
             raise ValueError(f"Missing keys in config: {missing}")
 
         for run in runs:
-
-            # Creating output directory for each run
-            # run_str = f"run{run:06d}{extra}"
-            # output_dir = Path(run_str)
-            # output_dir.mkdir(parents=True, exist_ok=True)
-
             processor = WaveformProcessor(config_data, run)
             processor.read_and_save()
 
