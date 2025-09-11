@@ -259,6 +259,9 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     variable = wf_func.get('variable', 'integral')
     show_progress = wf_func.get('show_progress', False)
     fitmultigauss = wf_func.get('fitmultigauss', False)
+    fit_type:str = 'independent_gaussians'
+    if fitmultigauss:
+        fit_type = wf_func.get('fit_type', 'multigauss_iminuit')
     verbosemultigauss = wf_func.get('verbosemultigauss', False)
     params = ch_read_params(filename=wf_func.get('configyaml', 'ch_snr_parameters.yaml'))
     
@@ -329,12 +332,12 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
 
     fit_hist = fit_peaks_of_CalibrationHistogram(
         hInt,
-        max_peaks,
-        prominence,
-        half_point_to_fit,
-        initial_percentage,
-        percentage_step,
-        fitmultigauss=fitmultigauss,
+        max_peaks          = max_peaks,
+        prominence         = prominence,
+        initial_percentage = initial_percentage,
+        half_points_to_fit  = half_point_to_fit,
+        percentage_step    = percentage_step,
+        fit_type=fit_type
     )
     if verbosemultigauss:
         print(getattr(hInt, "iminuit", None))
@@ -389,7 +392,6 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             f"{spe_stddev:.2f},",
             f"{average_hits/gain:.2f}",
         )
-
 
 def runBasicWfAnaNP02(wfset: WaveformSet,
                       int_ll: int = 254,
