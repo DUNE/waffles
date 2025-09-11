@@ -13,8 +13,8 @@ import math
 def _setup_dicts(map_data, map_title):
     map_data = np.array([map_data]).flatten()
     map_title = np.array([map_title]).flatten()
-    dict_uniqch_to_module = {str(k): v for k, v in zip(map_data, map_title)}
-    dict_module_to_uniqch = {v: k for k, v in zip(map_data, map_title)}
+    dict_uniqch_to_module = {str(k): v for k, v in zip(map_data, map_title) if v}
+    dict_module_to_uniqch = {v: k for k, v in zip(map_data, map_title) if v}
     return dict_uniqch_to_module, dict_module_to_uniqch
 
 def _merge_dicts(dict1, dict2):
@@ -33,6 +33,11 @@ dict_module_to_uniqch = _merge_dicts(_merge_dicts(_setup_dicts(cat_geometry_nont
                                      _merge_dicts(_setup_dicts(mem_geometry_nontco_data, mem_geometry_nontco_titles)[1],
                                                   _setup_dicts(mem_geometry_tco_data, mem_geometry_tco_titles)[1])
                                      )
+
+ordered_modules_membrane = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("M") ] )
+ordered_modules_cathode = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("C") ] )
+ordered_channels_membrane = [ dict_module_to_uniqch[m].channel for m in ordered_modules_membrane ]
+ordered_channels_cathode = [ dict_module_to_uniqch[m].channel for m in ordered_modules_cathode ]
 
 
 def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], rows:int = 0, cols:int = 0) -> ChannelMap:
@@ -84,6 +89,7 @@ def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Uni
     output.titles = titles
     return output
 
-
+def strUch(endpoint:int, channel: int):
+    return str(UniqueChannel(endpoint, channel))
 
 

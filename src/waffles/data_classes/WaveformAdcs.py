@@ -121,7 +121,21 @@ class WaveformAdcs:
         """
 
         self.__adcs = input
-        return
+
+    # For the moment there are no setters for
+    # the attributes of WaveformAdcs. I.e. you
+    # can only set the value of its attributes
+    # through WaveformAdcs.__init__. Here's an
+    # example of what a setter would look like.
+    #
+    #   @time_step_ns.setter
+    #   def time_step_ns(self, input):
+    #       self.__time_step_ns = input
+    #       return
+
+    @time_offset.setter
+    def time_offset(self, offset: float):
+        self.__time_offset = offset
 
     def __set_time_offset(self, input: float) -> None:
         """This method is not intended for user usage. It 

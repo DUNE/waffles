@@ -240,7 +240,7 @@ def __subplot_heatmap(
     ranges: np.ndarray,
     show_color_bar: bool = False,
     filtering: float = 0,
-    zlog: bool = False
+    zlog: bool = False,
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -376,11 +376,14 @@ def __subplot_heatmap(
         dy=adc_step,
         name=name,
         transpose=True,
-        showscale=show_color_bar)
+        showscale=show_color_bar,
+    )
 
     figure_.add_trace(heatmap,
                       row=row,
                       col=col)
+    figure_.update_xaxes(title_text="Time [ticks]", row=row, col=col)
+    figure_.update_yaxes(title_text="Amplitude [ADCs]", row=row, col=1)
     return figure_
 
 
@@ -443,7 +446,8 @@ def arrange_time_vs_ADC_ranges(
 def __add_unique_channels_top_annotations(
     channel_ws_grid: ChannelWsGrid,
     figure: pgo.Figure,
-    also_add_run_info: bool = False
+    also_add_run_info: bool = False,
+    yannotation = 1.25,
 ) -> pgo.Figure:
     """This function is not intended for user usage. It is
     meant to be called uniquely by the plot_ChannelWSGrid() 
@@ -480,6 +484,7 @@ def __add_unique_channels_top_annotations(
     figure: plotly.graph_objects.Figure
         The given figure with the annotations added
     """
+    # y position of the annotations, changed from 1.25 for low rows,cols
 
     for i in range(channel_ws_grid.ch_map.rows):
         for j in range(channel_ws_grid.ch_map.columns):
@@ -489,12 +494,13 @@ def __add_unique_channels_top_annotations(
                 # The annotation is left-aligned
                 # and on top of each subplot
                 x=0.,
-                y=1.25,
+                y=yannotation,
                 showarrow=False,
                 # Implicitly using UniqueChannel.__repr__()
                 text=str(channel_ws_grid.ch_map.data[i][j]),
                 row=i + 1,
                 col=j + 1)
+            text=str(channel_ws_grid.ch_map.data[i][j]),
             
     if also_add_run_info:
         for i in range(channel_ws_grid.ch_map.rows):
@@ -523,7 +529,7 @@ def __add_unique_channels_top_annotations(
                     yref="y domain",
                     # The run annotation is right-aligned
                     x=1.,
-                    y=1.25,
+                    y=yannotation,
                     showarrow=False,
                     text=annotation,
                     row=i + 1,

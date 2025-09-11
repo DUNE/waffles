@@ -4,7 +4,7 @@ from typing import Literal, Tuple
 from waffles.utils.denoising.tv1ddenoise import Denoise
 
 
-from utils import *
+from waffles.np04_analysis.time_resolution.utils import *
 
 
 ################################################################
@@ -72,7 +72,11 @@ class TimeResolution:
                                 spe_charge: float,
                                 spe_ampl: float,
                                 min_pes: float,
-                                baseline_rms: float) -> None:
+                                baseline_rms: float,
+                                invert: bool = True,               # added for np02, no inverted channels
+                                rms_times_thoreshold: float = 4.0, # added for np02
+                                ticks_to_ns: float = 1.            # added for np02, spe_charge is in ADC*ns
+                                ) -> None:
         """
         Set the analysis parameters and do sanity checks
         """
@@ -85,6 +89,10 @@ class TimeResolution:
         self.spe_ampl = spe_ampl
         self.min_pes = min_pes
         self.baseline_rms = baseline_rms
+        self.invert = invert
+        self.rms_times_thoreshold = rms_times_thoreshold
+        self.ticks_to_ns = ticks_to_ns
+        self.debug_counter = {}
 
         try:
             self.sanity_check()
@@ -100,7 +108,7 @@ class TimeResolution:
         t_wfset = waffles.WaveformSet.from_filtered_WaveformSet(self.wf_set, allow_channel_wfs, self.ch)
         self.wfs = t_wfset.waveforms
         create_float_waveforms(self.wfs)
-        sub_baseline_to_wfs(self.wfs, self.prepulse_ticks)
+        sub_baseline_to_wfs(self.wfs, self.prepulse_ticks, invert=self.invert)
 
     def create_denoised_wfs(self, filt_level: float) -> None:
         create_filtered_waveforms(self.wfs, filt_level)
@@ -117,29 +125,35 @@ class TimeResolution:
         waveforms = self.wfs
 
         n_selected = 0
+        self.debug_counter['nwfs'] = len(waveforms) 
 
         for wf in waveforms:
             max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
             min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
 
             # Check if the baseline condition is satisfied
-            if max_el_pre < 4*self.baseline_rms and min_el_pre > -(4*self.baseline_rms):
+            if max_el_pre < self.rms_times_thoreshold*self.baseline_rms and min_el_pre > -(self.rms_times_thoreshold*self.baseline_rms):
                 # Calculate max and min in the signal region (after the pre region)
                 max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
                 ampl_post = wf.adcs_float[self.postpulse_ticks]
-                wf.pe = wf.adcs_float[self.int_low:self.int_up].sum()/self.spe_charge
+                wf.pe = wf.adcs_float[self.int_low:self.int_up].sum()*self.ticks_to_ns/self.spe_charge
 
                 # Check if the signal is within saturation limits
                 if (ampl_post < 0.8*max_el_signal
                     and wf.pe > self.min_pes):
-                    wf.time_resolution_selection = True
-                    n_selected += 1
+                    wf.time_resolution_selection = True; n_selected += 1
+                    self.debug_counter['selected'] = self.debug_counter.get('selected', 0) + 1 
 
                 else:
                     wf.time_resolution_selection = False
+                    if wf.pe <= self.min_pes:
+                        self.debug_counter['excluded_pe'] = self.debug_counter.get('excluded_pe', 0) + 1
+                    else:
+                        self.debug_counter['excluded_ampl_post'] = self.debug_counter.get('excluded_ampl_post', 0) + 1 
 
             else:
                 wf.time_resolution_selection = False
+                self.debug_counter['excluded_rms'] = self.debug_counter.get('excluded_rms', 0) + 1 
         
         self.n_select_wfs = n_selected
 
