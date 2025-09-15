@@ -382,6 +382,8 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         print(
             f"{list(wfset.runs)[0]},",
             # f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]},",
+            f"{endpoint},",
+            f"{channel},",
             f"{snr:.2f},",
             f"{gain:.2f},",
             f"{baseline_stddev:.2f},",
