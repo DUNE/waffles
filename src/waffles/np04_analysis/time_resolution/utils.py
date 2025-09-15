@@ -57,6 +57,8 @@ def find_threshold_crossing(y: np.array,
     x2, y2 = idx, y[idx]
     
     # Interpolate the exact crossing point
+    if (y2 - y1) == 0:
+        return None  # Avoid division by zero; return the lower index
     x_cross = x1 + (threshold - y1) * (x2 - x1) / (y2 - y1)
     return x_cross
 

@@ -141,6 +141,7 @@ def main() -> None:
     ap.add_argument('-fs', '--full-stream', action='store_true', help="Use full stream instead of self-trigger")
     ap.add_argument("-p", "--pmt", action="store_const",
                     const="VD_PMT_PDS", dest="det", help="Use PMT PDS detector, ignores the json")
+    ap.add_argument("-ur", "--use-rucio", action="store_true", help="Use rucio paths instead of downloading from remote server.\nScript 07 will be called directly using the `databaserucio`.")
 
     args = ap.parse_args()
 
@@ -196,68 +197,80 @@ def main() -> None:
     sftp = ssh.open_sftp()
     logging.info("✅ SSH connected")
 
- #   ok_runs: list[int] = []
- #   for run in runs:
-    # -----------------------------------------------------------------
-    # runs that already have a processed file -> skip EVERYTHING
-    # -----------------------------------------------------------------
-    have_struct = {
-        run for run in runs
-        if any(processed_dir.glob(processed_pattern % (run, run)))
-    }
-    for r in sorted(have_struct):
-        logging.info("run %d: processed file exists – nothing to do", r)
 
-    ok_runs: list[int] = []
+    if args.use_rucio:
+        logging.info("Using rucio paths from %s", databaserucio)
+        ok_runs: list[int] = []
+        cfg["only_unprocessed"] = True
+        for run in runs:
+            if (databaserucio / f"{run:06d}.txt").is_file():
+                (list_dir / f"{run:06d}.txt").write_text(
+                    (databaserucio / f"{run:06d}.txt").read_text())
+                logging.info("run %d: using existing .txt file", run)
+                ok_runs.append(run)
+            else:
+                logging.warning("run %d: no .txt file in rucio paths %s", run, databaserucio)
+    else:
+        # -----------------------------------------------------------------
+        # runs that already have a processed file -> skip EVERYTHING
+        # -----------------------------------------------------------------
+        have_struct = {
+            run for run in runs
+            if any(processed_dir.glob(processed_pattern % (run, run)))
+        }
+        for r in sorted(have_struct):
+            logging.info("run %d: processed file exists – nothing to do", r)
 
-    for run in runs:
-        if run in have_struct: # already processed, just keeping for plots
-            ok_runs.append(run)
-            continue
-        try:
-            rem = remote_hdf5_files(ssh, args.remote_dir, run)
-            if not rem:
-                logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
-                if any(raw_dir.glob(raw_pattern % (run, run))):
-                    logging.info("run %d: raw data already present – ok", run)
-                    (list_dir / f"{run:06d}.txt").write_text(
-                        "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
-                    ok_runs.append(run)
-                else:
-                    # Then, accept .txt file with rucio path if already there
-                    logging.info("Checking if .txt file already exists...")
-                    if (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").is_file():
+        ok_runs: list[int] = []
+
+        for run in runs:
+            if run in have_struct: # already processed, just keeping for plots
+                ok_runs.append(run)
+                continue
+            try:
+                rem = remote_hdf5_files(ssh, args.remote_dir, run)
+                if not rem:
+                    logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
+                    if any(raw_dir.glob(raw_pattern % (run, run))):
+                        logging.info("run %d: raw data already present – ok", run)
                         (list_dir / f"{run:06d}.txt").write_text(
-                            (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").read_text())
-                        logging.info("run %d: using existing .txt file", run)
+                            "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
                         ok_runs.append(run)
-                    if run not in ok_runs:
-                        if (databaserucio / f"{run:06d}.txt").is_file():
+                    else:
+                        # Then, accept .txt file with rucio path if already there
+                        logging.info("Checking if .txt file already exists...")
+                        if (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").is_file():
                             (list_dir / f"{run:06d}.txt").write_text(
-                                (databaserucio / f"{run:06d}.txt").read_text())
+                                (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").read_text())
                             logging.info("run %d: using existing .txt file", run)
                             ok_runs.append(run)
+                        if run not in ok_runs:
+                            if (databaserucio / f"{run:06d}.txt").is_file():
+                                (list_dir / f"{run:06d}.txt").write_text(
+                                    (databaserucio / f"{run:06d}.txt").read_text())
+                                logging.info("run %d: using existing .txt file", run)
+                                ok_runs.append(run)
 
-                continue
-            if cfg.get("max_files", "all") != "all":
-                rem = rem[:int(cfg["max_files"])]
-            loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
-            (list_dir / f"{run:06d}.txt").write_text(
-                "\n".join(p.as_posix() for p in loc) + "\n")
-            ok_runs.append(run)
-            os.chmod(raw_dir / f"run{run:06d}", 0o775)
-        except Exception as e:
-            logging.error("run %d: %s", run, e)
+                    continue
+                if cfg.get("max_files", "all") != "all":
+                    rem = rem[:int(cfg["max_files"])]
+                loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
+                (list_dir / f"{run:06d}.txt").write_text(
+                    "\n".join(p.as_posix() for p in loc) + "\n")
+                ok_runs.append(run)
+                os.chmod(raw_dir / f"run{run:06d}", 0o775)
+            except Exception as e:
+                logging.error("run %d: %s", run, e)
 
-        logging.warning("run %d: skipped", run)
-    sftp.close()
-    ssh.close()
+            logging.warning("run %d: skipped", run)
+        sftp.close()
+        ssh.close()
 
 
     # ── Skip already-processed runs ─────────────────────────────────────────
     pending = []
     for r in ok_runs:
-        if any(processed_dir.glob(processed_pattern % (r, r))):
+        if any(processed_dir.glob(processed_pattern % (r, r))) and not args.use_rucio:
             logging.info("run %d already processed – skip", r)
         else:
             pro_dir = processed_dir / f"run{r:06d}_{suffix}"

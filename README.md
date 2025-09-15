@@ -1,7 +1,7 @@
 # WAFFLES
 PDS Working group tool intended for **Waveform Analysis Framework For Light Emission Studies (WAFFLES)**
 
-Check our [documentation](https://waffles.readthedocs.io/en/latest/index.html) to learn all the details on how to use, contribute and develop with WAFFLES. [![Documentation Status](https://readthedocs.org/projects/waffles/badge/?version=latest)](https://waffles.readthedocs.io/en/latest/?badge=latest)
+Check our documentation (https://waffles.readthedocs.io/en/latest/index.html) to learn all the details on how to use, contribute and develop with WAFFLES. [![Documentation Status](https://readthedocs.org/projects/waffles/badge/?version=latest)](https://waffles.readthedocs.io/en/latest/?badge=latest)
 
 
 ## Quick Start

@@ -8,6 +8,7 @@ from typing import Optional, Callable
 import yaml
 from importlib import resources
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -258,6 +259,9 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     variable = wf_func.get('variable', 'integral')
     show_progress = wf_func.get('show_progress', False)
     fitmultigauss = wf_func.get('fitmultigauss', False)
+    fit_type:str = 'independent_gaussians'
+    if fitmultigauss:
+        fit_type = wf_func.get('fit_type', 'multigauss_iminuit')
     verbosemultigauss = wf_func.get('verbosemultigauss', False)
     params = ch_read_params(filename=wf_func.get('configyaml', 'ch_snr_parameters.yaml'))
     
@@ -328,12 +332,12 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
 
     fit_hist = fit_peaks_of_CalibrationHistogram(
         hInt,
-        max_peaks,
-        prominence,
-        half_point_to_fit,
-        initial_percentage,
-        percentage_step,
-        fitmultigauss=fitmultigauss,
+        max_peaks          = max_peaks,
+        prominence         = prominence,
+        initial_percentage = initial_percentage,
+        half_points_to_fit  = half_point_to_fit,
+        percentage_step    = percentage_step,
+        fit_type=fit_type
     )
     if verbosemultigauss:
         print(getattr(hInt, "iminuit", None))
@@ -391,7 +395,6 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             f"{average_hits/gain:.2f}",
         )
 
-
 def runBasicWfAnaNP02(wfset: WaveformSet,
                       int_ll: int = 254,
                       int_ul: int = 270,
@@ -435,6 +438,23 @@ def ch_read_params(filename:str = 'ch_snr_parameters.yaml') -> dict:
     try:
         with resources.files('waffles.np02_utils.data').joinpath(filename).open('r') as f:
             return yaml.safe_load(f)
+    except Exception as error:
+        print(error)
+        print("\n\n")
+        raise FileNotFoundError(
+            f"Could not find the {filename} file in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
+        )
+
+def ch_read_calib(filename: str = 'calibration_results_file.csv') -> dict:
+    try:
+        with resources.files('waffles.np02_utils.data').joinpath(filename).open('r') as f:
+            df = pd.read_csv(f)
+            result = ( df.set_index(['endpoint', 'channel'])[['Gain', 'SpeAmpl']].to_dict(orient='index'))
+            # now regroup by endpoint
+            nested_dict = {}
+            for (ep, ch), values in result.items():
+                nested_dict.setdefault(ep, {})[ch] = values
+            return nested_dict
     except Exception as error:
         print(error)
         print("\n\n")

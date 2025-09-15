@@ -1,6 +1,3 @@
-# Runs to be analyzed
-runs : [39033]
-
 # File.csv with an OfflineCh <-> RMS mapping for a given
 # VGain and Integrators ON/OFF configuration
 noise_results_file : "/afs/cern.ch/work/h/hvieirad/public/np02_time_resolution/noise_results_file.csv"
@@ -10,16 +7,43 @@ calibration_file : "/afs/cern.ch/work/h/hvieirad/public/np02_time_resolution/cal
 
 dettype : "cathode"
 
+# Runs to be analyzed
+runs : [39033]
+
 channels  : []
+
+
+# # ----Mask1----
+# runs : [39032]
+# channels  : [10632, 10633]
+
+# runs : [39033, 39035]
+# channels  : [10600,10602]
+# runs : [39034, 39036]
+# channels  : [10634,10635]
+
+
+# # ----Mask16----
+# runs : [39037, 39038, 39039, 39040]
+# channels  : [10632, 10633, 10634, 10635, 10636, 10637, 10600, 10602, 10707, 10700, 10727, 10720]
+
+
+
+# # ----Mask8----
+# runs : [39041, 39042, 39043, 39044]
+# channels  : [10630, 10631, 10634, 10635, 10600, 10602, 10601, 10603, 10605, 10607, 10746, 10744, 10743, 10741, 10727, 10720, 10737, 10730]
+
+# runs : [39045]
+# channels  : [10632, 10633, 10630, 10631, 10601, 1063, 10605, 10607, 10604, 10606, 10707, 10700, 10727, 10720, 10737, 10730]
 
 nwaveforms : null
 
 prepulse_ticks : 250
 int_low : 250
-int_up : 600
-postpulse_ticks : 600
+int_up : 300
+postpulse_ticks : 270
 
-min_pes : 2
+min_pes : 5
 
 methods : ["amplitude", "integral", "denoise"]
 
@@ -30,4 +54,4 @@ filt_levels : [8, 12]
 h2_nbins  : 100
 stat_lost : 0.005
 
-min_selec_wfs: 1
+min_selec_wfs: 100
