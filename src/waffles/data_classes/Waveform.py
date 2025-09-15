@@ -37,8 +37,8 @@ class TriggerType(IntEnum):
     kCTBOffSpillSnapshot = 29
     kCTBOffSpillCosmicJura = 30
     kCTBOffSpillCRTCosmic = 31
-    kCTBCustomA = 32
-    kCTBCustomB = 33
+    kCTBBeamSpillStart = 32
+    kCTBBeamSpillSnapshot = 33
     kCTBCustomC = 34
     kCTBCustomPulseTrain = 35
     kDTSPulser = 36

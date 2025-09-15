@@ -31,11 +31,11 @@ class Map:
     """
 
     def __init__(
-        self: int,
+        self,
         rows: int,
         columns: int,
         type_: type,
-        data: Optional[List[List[Any]]] = None
+        data: List[List[Any]]
     ):
         """Map class initializer
 

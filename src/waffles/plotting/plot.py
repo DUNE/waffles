@@ -222,7 +222,7 @@ def plot_WaveformAdcs(
         if show_baseline:
 
             try:
-                aux = ana.result['baseline']
+                aux = ana.result['baseline'] 
 
             except KeyError:
                 if verbose:
@@ -393,6 +393,7 @@ def plot_WaveformSet(
     adc_range_below_baseline: int = 200,
     detailed_label: bool = True,
     verbose: bool = False,
+    yannotation: Optional[float] = 1.25,
     **kwargs
 ) -> pgo.Figure: 
     """This function returns a plotly.graph_objects.Figure 
@@ -617,6 +618,8 @@ def plot_WaveformSet(
         of each subplot.
     verbose: bool
         Whether to print functioning-related messages
+    yannotation: float
+        y-coordinate of the top annotation of each subplot
     **kwargs
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
@@ -885,7 +888,7 @@ def plot_WaveformSet(
                         # The annotation is left-aligned
                         # and on top of each subplot
                         x=0.,
-                        y=1.25,
+                        y=yannotation,
                         showarrow=False,
                         text=aux_name,
                         row=i + 1,
@@ -913,7 +916,8 @@ def plot_CalibrationHistogram(
     col: Optional[int] = None,
     plot_fits: bool = False,
     fit_npoints: int = 200,
-    showfitlabels: bool = True
+    showfitlabels: bool = True,
+    plot_sum_of_gaussians: bool = True,
 ) -> bool:
     """This function plots the given calibration histogram in 
     the given figure and returns a boolean which is True if 
@@ -999,18 +1003,12 @@ def plot_CalibrationHistogram(
         fit_x = np.linspace(
             calibration_histogram.edges[0],
             calibration_histogram.edges[-1],
-            num=fit_npoints
-        )
+            num=fit_npoints)
+        multigaussianparams = []
+        for i in range(len(calibration_histogram.
+                           gaussian_fits_parameters['scale'])):
 
-        if not plot_sum_of_gaussians:
-            for i in range(len(calibration_histogram.
-                            gaussian_fits_parameters['scale'])):
-
-
-            fit_x = np.linspace(
-                calibration_histogram.edges[0],
-                calibration_histogram.edges[-1],
-                num=fit_npoints)
+            fPlottedOneFit = True
             
             fit_y = wun.gaussian(   
                 fit_x,
@@ -1020,6 +1018,16 @@ def plot_CalibrationHistogram(
                 gaussian_fits_parameters['mean'][i][0],
                 calibration_histogram.
                 gaussian_fits_parameters['std'][i][0])
+
+            multigaussianparams+= [
+                calibration_histogram.
+                gaussian_fits_parameters['scale'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['mean'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['std'][i][0]
+            ]
+
             fit_trace = pgo.Scatter(
                 x=fit_x,
                 y=fit_y,
@@ -1030,9 +1038,26 @@ def plot_CalibrationHistogram(
                 name=f"{name} Fit({i})",
                 showlegend=showfitlabels
             )
-            
+
             figure.add_trace(
                 fit_trace,
+                row=row,
+                col=col)
+        if plot_sum_of_gaussians:
+            fit_trace_multi = pgo.Scatter(
+                x=fit_x,
+                y=wun.multigaussplot(   
+                    fit_x,
+                    *multigaussianparams),
+                mode='lines',
+                line=dict(
+                    color='blue', 
+                    width=0.5),
+                name=f"{name} MultiFit",
+                showlegend=showfitlabels
+            )
+            figure.add_trace(
+                fit_trace_multi,
                 row=row,
                 col=col)
 
@@ -1066,6 +1091,7 @@ def plot_ChannelWsGrid(
     detailed_label: bool = True,
     plot_event: bool = False,
     event_id: Optional[int] = 0,
+    yannotation: Optional[float] = 1.25,
     verbose: bool = True,
     filtering: float = 0,
     zlog: bool = False,
@@ -1322,6 +1348,8 @@ def plot_ChannelWsGrid(
         parameter is set to True. In that case, it is the index
         of the waveform in the ChannelWs object which will be
         plotted. It must be a valid index.
+    yannotation: float
+        y-coordinate of the top annotation of each subplot
     verbose: bool
         Whether to print functioning-related messages
     **kwargs
@@ -1380,7 +1408,9 @@ def plot_ChannelWsGrid(
     wpu.__add_unique_channels_top_annotations(  
         channel_ws_grid,
         figure_,
-        also_add_run_info=True if mode != 'heatmap' else False)
+        also_add_run_info=True if mode != 'heatmap' else False,
+        yannotation=yannotation,
+    )
 
     # An alternative way is to specify 
     # shared_xaxes=True (or share_yaxes=True)
@@ -1610,7 +1640,7 @@ def plot_ChannelWsGrid(
                     # to another.
                     show_color_bar=False,
                     filtering=filtering,
-                    zlog=zlog
+                    zlog=zlog,
                 )
 
                 ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
@@ -1626,7 +1656,7 @@ def plot_ChannelWsGrid(
                     # The annotation is right-aligned,
                     # and placed on top of each subplot.
                     x=1.,
-                    y=1.25,
+                    y=yannotation,
                     showarrow=False,
                     text=aux_name,
                     row=i + 1,
@@ -1702,7 +1732,8 @@ def plot_CustomChannelGrid(
     figure_title: Optional[str] = None,  
     show_ticks_only_on_edges: bool = False,  
     wf_func: Optional[Callable] = None,
-    log_x_axis: bool = False
+    log_x_axis: bool = False,
+    yannotation: Optional[float] = 1.25
 ) -> pgo.Figure:
     """
     This function returns a plotly.graph_objects.Figure with a grid of subplots arranged according to the 
@@ -1720,6 +1751,7 @@ def plot_CustomChannelGrid(
     - figure_title (Optional[str]): The title of the entire figure.
     - show_ticks_only_on_edges (bool): Whether to show ticks only on the edges of the plot.
     - wf_func (Optional[Callable]): Optional function for additional waveform processing.
+    - yannotation (Optional[float]): Y-coordinate for the top annotation of each subplot.
     """
 
     # Create a new figure if one is not provided
@@ -1736,7 +1768,9 @@ def plot_CustomChannelGrid(
     wpu.__add_unique_channels_top_annotations(  
         channel_ws_grid,
         figure_,
-        also_add_run_info=True)
+        also_add_run_info=True,
+        yannotation=yannotation
+    )
 
     # Add title to the figure if provided
     if figure_title:

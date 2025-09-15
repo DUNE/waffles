@@ -106,7 +106,7 @@ def _analyse(wfset:WaveformSet):
 
 def process_structured(h5: Path, outdir: Path,
                        max_wfs: int, headless: bool, detector: str):
-    
+
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
     _analyse(wfset)
@@ -139,6 +139,9 @@ def main() -> None:
     ap.add_argument("-c", "--cathode", action="store_const",
                     const="VD_Cathode_PDS", dest="det", help="Use cathode PDS detector, ignores the json")
     ap.add_argument('-fs', '--full-stream', action='store_true', help="Use full stream instead of self-trigger")
+    ap.add_argument("-p", "--pmt", action="store_const",
+                    const="VD_PMT_PDS", dest="det", help="Use PMT PDS detector, ignores the json")
+    ap.add_argument("-ur", "--use-rucio", action="store_true", help="Use rucio paths instead of downloading from remote server.\nScript 07 will be called directly using the `databaserucio`.")
 
     args = ap.parse_args()
 
@@ -168,6 +171,9 @@ def main() -> None:
         suffix="membrane"
     elif detector == 'VD_Cathode_PDS':
         suffix="cathode"
+    elif detector == 'VD_PMT_PDS':
+        suffix="pmt"
+
     else:
         raise ValueError(f"Unknown detector: {detector}")
 
@@ -181,6 +187,7 @@ def main() -> None:
         else:
             logging.warning("Full stream only available for VD_Cathode_PDS, ignoring\nIf this warning is outdated, remove it.")
 
+    databaserucio = Path( "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/ruciopaths/" )
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
     if not args.kerberos and not args.ssh_key:
@@ -190,51 +197,80 @@ def main() -> None:
     sftp = ssh.open_sftp()
     logging.info("✅ SSH connected")
 
- #   ok_runs: list[int] = []
- #   for run in runs:
-    # -----------------------------------------------------------------
-    # runs that already have a processed file -> skip EVERYTHING
-    # -----------------------------------------------------------------
-    have_struct = {
-        run for run in runs
-        if any(processed_dir.glob(processed_pattern % (run, run)))
-    }
-    for r in sorted(have_struct):
-        logging.info("run %d: processed file exists – nothing to do", r)
 
-    ok_runs: list[int] = []
+    if args.use_rucio:
+        logging.info("Using rucio paths from %s", databaserucio)
+        ok_runs: list[int] = []
+        cfg["only_unprocessed"] = True
+        for run in runs:
+            if (databaserucio / f"{run:06d}.txt").is_file():
+                (list_dir / f"{run:06d}.txt").write_text(
+                    (databaserucio / f"{run:06d}.txt").read_text())
+                logging.info("run %d: using existing .txt file", run)
+                ok_runs.append(run)
+            else:
+                logging.warning("run %d: no .txt file in rucio paths %s", run, databaserucio)
+    else:
+        # -----------------------------------------------------------------
+        # runs that already have a processed file -> skip EVERYTHING
+        # -----------------------------------------------------------------
+        have_struct = {
+            run for run in runs
+            if any(processed_dir.glob(processed_pattern % (run, run)))
+        }
+        for r in sorted(have_struct):
+            logging.info("run %d: processed file exists – nothing to do", r)
 
-    for run in runs:
-        if run in have_struct: # already processed, just keeping for plots
-            ok_runs.append(run)
-            continue
-        try:
-            rem = remote_hdf5_files(ssh, args.remote_dir, run)
-            if not rem:
-                logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
-                if any(raw_dir.glob(raw_pattern % (run, run))):
-                    logging.info("run %d: raw data already present – ok", run)
-                    (list_dir / f"{run:06d}.txt").write_text(
-                        "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
-                    ok_runs.append(run)
+        ok_runs: list[int] = []
+
+        for run in runs:
+            if run in have_struct: # already processed, just keeping for plots
+                ok_runs.append(run)
                 continue
-            if cfg.get("max_files", "all") != "all":
-                rem = rem[:int(cfg["max_files"])]
-            loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
-            (list_dir / f"{run:06d}.txt").write_text(
-                "\n".join(p.as_posix() for p in loc) + "\n")
-            ok_runs.append(run)
-            os.chmod(raw_dir / f"run{run:06d}", 0o775)
-        except Exception as e:
-            logging.error("run %d: %s", run, e)
-    sftp.close()
-    ssh.close()
+            try:
+                rem = remote_hdf5_files(ssh, args.remote_dir, run)
+                if not rem:
+                    logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
+                    if any(raw_dir.glob(raw_pattern % (run, run))):
+                        logging.info("run %d: raw data already present – ok", run)
+                        (list_dir / f"{run:06d}.txt").write_text(
+                            "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
+                        ok_runs.append(run)
+                    else:
+                        # Then, accept .txt file with rucio path if already there
+                        logging.info("Checking if .txt file already exists...")
+                        if (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").is_file():
+                            (list_dir / f"{run:06d}.txt").write_text(
+                                (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").read_text())
+                            logging.info("run %d: using existing .txt file", run)
+                            ok_runs.append(run)
+                        if run not in ok_runs:
+                            if (databaserucio / f"{run:06d}.txt").is_file():
+                                (list_dir / f"{run:06d}.txt").write_text(
+                                    (databaserucio / f"{run:06d}.txt").read_text())
+                                logging.info("run %d: using existing .txt file", run)
+                                ok_runs.append(run)
+
+                    continue
+                if cfg.get("max_files", "all") != "all":
+                    rem = rem[:int(cfg["max_files"])]
+                loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
+                (list_dir / f"{run:06d}.txt").write_text(
+                    "\n".join(p.as_posix() for p in loc) + "\n")
+                ok_runs.append(run)
+                os.chmod(raw_dir / f"run{run:06d}", 0o775)
+            except Exception as e:
+                logging.error("run %d: %s", run, e)
+
+            logging.warning("run %d: skipped", run)
+        sftp.close()
+        ssh.close()
 
 
     # ── Skip already-processed runs ─────────────────────────────────────────
     pending = []
     for r in ok_runs:
-        if any(processed_dir.glob(processed_pattern % (r, r))):
+        if any(processed_dir.glob(processed_pattern % (r, r))) and not args.use_rucio:
             logging.info("run %d already processed – skip", r)
         else:
             pro_dir = processed_dir / f"run{r:06d}_{suffix}"
@@ -242,7 +278,12 @@ def main() -> None:
             pending.append(r)
 
     if not pending:
-        logging.warning("Nothing to process; all runs already done.")
+        noprocessmessage = "Nothing to process; "
+        if len(ok_runs) == 0:
+            noprocessmessage += "no runs found..."
+        else:
+            noprocessmessage += "all runs already done."
+        logging.warning(noprocessmessage)
     else:
         # ── Build config for 07_save_structured_from_config.py ──────────────
         cfg.update(dict(
@@ -260,18 +301,19 @@ def main() -> None:
                         "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
-    if args.headless and cfg.get("trigger", "full_streaming") != "full_streaming":
-        for r in ok_runs:
-            prod = list(processed_dir.glob(
-                processed_pattern % (r,r)))
-            if not prod:
-                logging.warning("run %d: processed file missing", r)
-                continue
-            pr_dir = plot_root / f"run{r:06d}_{suffix}"
-            pr_dir.mkdir(parents=True, exist_ok=True)
-            os.chmod(pr_dir, 0o775)
-            process_structured(prod[0], pr_dir,
-                               args.max_waveforms, args.headless, detector)
+    if args.headless:
+        if  cfg.get("trigger", "full_streaming") != "full_streaming" and detector != "VD_PMT_PDS":
+            for r in ok_runs:
+                prod = list(processed_dir.glob(
+                    processed_pattern % (r,r)))
+                if not prod:
+                    logging.warning("run %d: processed file missing", r)
+                    continue
+                pr_dir = plot_root / f"run{r:06d}_{suffix}"
+                pr_dir.mkdir(parents=True, exist_ok=True)
+                os.chmod(pr_dir, 0o775)
+                process_structured(prod[0], pr_dir,
+                                   args.max_waveforms, args.headless, detector)
 
 
 if __name__ == "__main__":
