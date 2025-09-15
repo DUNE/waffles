@@ -301,18 +301,19 @@ def main() -> None:
                         "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
-    if args.headless and cfg.get("trigger", "full_streaming") != "full_streaming":
-        for r in ok_runs:
-            prod = list(processed_dir.glob(
-                processed_pattern % (r,r)))
-            if not prod:
-                logging.warning("run %d: processed file missing", r)
-                continue
-            pr_dir = plot_root / f"run{r:06d}_{suffix}"
-            pr_dir.mkdir(parents=True, exist_ok=True)
-            os.chmod(pr_dir, 0o775)
-            process_structured(prod[0], pr_dir,
-                               args.max_waveforms, args.headless, detector)
+    if args.headless:
+        if  cfg.get("trigger", "full_streaming") != "full_streaming" and detector != "VD_PMT_PDS":
+            for r in ok_runs:
+                prod = list(processed_dir.glob(
+                    processed_pattern % (r,r)))
+                if not prod:
+                    logging.warning("run %d: processed file missing", r)
+                    continue
+                pr_dir = plot_root / f"run{r:06d}_{suffix}"
+                pr_dir.mkdir(parents=True, exist_ok=True)
+                os.chmod(pr_dir, 0o775)
+                process_structured(prod[0], pr_dir,
+                                   args.max_waveforms, args.headless, detector)
 
 
 if __name__ == "__main__":
