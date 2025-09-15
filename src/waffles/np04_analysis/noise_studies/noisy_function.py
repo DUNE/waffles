@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-
-import waffles.input.raw_hdf5_reader as reader
-import numpy as np
-import waffles
-
-# --- FUNCTIONS -----------------------------------------------------
-def read_waveformset(filepath_folder: str, run: int, full_stat = True) -> waffles.WaveformSet:
-=======
 # --- IMPORTS -------------------------------------------------------
 import waffles.input_output.raw_hdf5_reader as reader
 import waffles.Exceptions as exceptions
@@ -20,7 +11,6 @@ def read_waveformset(filepath_folder: str,
                      run: int, 
                      full_stat = False,
                      fullstreaming = False) -> waffles.WaveformSet:
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
     """
     Read the WaveformSet from the hdf5 file
     Parameters:
@@ -29,17 +19,6 @@ def read_waveformset(filepath_folder: str,
     - full_stat: bool, if True, merge all the waveform_set in the run
     """
     filepath_file = filepath_folder + "0" + str(run) + ".txt"
-<<<<<<< HEAD
-    filepath = reader.get_filepaths_from_rucio(filepath_file)
-
-    if full_stat:
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
-        for fp in filepath[1:]:
-            ws = reader.WaveformSet_from_hdf5_file(fp)
-            wfset.merge(ws)
-    else:
-        wfset = reader.WaveformSet_from_hdf5_file(filepath[0])
-=======
     # check if the file exists
     if not os.path.isfile(filepath_file):
         print(f"File {filepath_file} does not exist")
@@ -58,7 +37,6 @@ def read_waveformset(filepath_folder: str,
         except:
             print(f"Error reading file {filepath[0]}")
             raise exceptions.WafflesBaseException
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
     return wfset
 
@@ -83,19 +61,6 @@ def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
     return waveform.channel == channel
 
 
-<<<<<<< HEAD
-def create_float_waveforms(waveforms: waffles.Waveform) -> None:
-    """
-    Convert the waveform.adcs from int to np.float64, creating a new attribute adcs_float
-    Parameters:
-    - waveforms: waffles.Waveform
-    """
-    for wf in waveforms:
-        wf.adcs_float = wf.adcs.astype(np.float64)
-
-
-def sub_baseline_to_wfs(waveforms: waffles.Waveform, prepulse_ticks: int):
-=======
 def create_float_waveforms(wf_set: waffles.WaveformSet) -> None:
     """
     Convert the waveform.adcs from int to np.float64
@@ -133,7 +98,6 @@ def noise_wf_selection(waveform: waffles.Waveform, rms: np.float64) -> bool:
 
 
 def sub_baseline_to_wfs(wf_set: waffles.WaveformSet, prepulse_ticks: int):
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
     """
     Subtract the baseline from the waveforms and invert the signal
     Parameters:
@@ -141,12 +105,6 @@ def sub_baseline_to_wfs(wf_set: waffles.WaveformSet, prepulse_ticks: int):
     - prepulse_ticks: int, number of ticks to calculate the baseline
     """
     norm = 1./prepulse_ticks
-<<<<<<< HEAD
-    for wf in waveforms:
-        baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
-        wf.adcs_float -= baseline
-        wf.adcs_float *= -1
-=======
     for wf in wf_set.waveforms:
         baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
         wf.adcs_float -= baseline
@@ -236,4 +194,3 @@ def create_golden_fft(golden_offline_ch: int,
 
     return estimated_fft
 
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107

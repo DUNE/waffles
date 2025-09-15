@@ -2,11 +2,8 @@
 import waffles.input.raw_hdf5_reader as reader
 import numpy as np
 import waffles
-<<<<<<< HEAD
-=======
 import matplotlib.pyplot as plt
 import os
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
 # --- FUNCTIONS -----------------------------------------------------
 def read_waveformset(filepath_folder: str, run: int, full_stat = True) -> waffles.WaveformSet:
@@ -73,8 +70,6 @@ def sub_baseline_to_wfs(waveforms: waffles.Waveform, prepulse_ticks: int):
         baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
         wf.adcs_float -= baseline
         wf.adcs_float *= -1
-<<<<<<< HEAD
-=======
 
 
 def plot_heatmaps(wfs: waffles.Waveform, flag: str, run: int, vgain: int, ch: int, offline_ch: int) -> None:
@@ -121,4 +116,3 @@ def plot_heatmaps(wfs: waffles.Waveform, flag: str, run: int, vgain: int, ch: in
     plt.close(fig)  # Close figure to save memory
 
     print(f"Saved heatmap: {filename}")
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107

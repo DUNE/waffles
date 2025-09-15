@@ -7,11 +7,7 @@ from waffles.utils.baseline.baseline import SBaseline
 
 
 class Extractor:
-<<<<<<< HEAD
-    def __init__(self, params, selection_type:str, current_run:int = None):
-=======
     def __init__(self, params, selection_type:str, current_run:int = None, factor:float = 1.0, pathtoyaml="."):
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
         """This class extract either responses or templates from the rawfiles
 
         Parameters
@@ -20,11 +16,8 @@ class Extractor:
             `template` or `response`
         current_run: int
             The current run being analyzed
-<<<<<<< HEAD
-=======
         factor: float
             Multiplicative factor for the waveforms. Set it to -1 if signals are negative polarity.
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
         """
 
@@ -34,15 +27,10 @@ class Extractor:
         }
 
         self.selection_type = selection_type
-<<<<<<< HEAD
-        self.loadcuts()
-        self.skeepcuts = False
-=======
         self.pathtoyaml = pathtoyaml
         self.loadcuts()
         self.skeepcuts = False
         self.factor = factor
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
         self.current_run = current_run
 
         self.denoiser = Denoise()
@@ -66,11 +54,7 @@ class Extractor:
         """Uses the cuts speficied in a yaml file to select the proper waveforms
         """
         if self.channel_correction:
-<<<<<<< HEAD
-            ch = 100*waveform.endpoint + ch.astype(np.int32)
-=======
             ch = 100*waveform.endpoint + ch
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
         try:
             cuts = self.cutsdata[ch]['cuts']
         except Exception as error:
@@ -91,11 +75,7 @@ class Extractor:
             stop      = cut['stop']
 
             # Substract baseline, invert and denoise before getting the reference value for the cut
-<<<<<<< HEAD
-            wf_cut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*(-1)
-=======
             wf_cut = self.denoiser.apply_denoise((waveform.adcs-waveform.baseline), filter)*self.factor
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
             # get the reference value in the time range specified [t0, tf]
             # the type of reference value is given by cut['npop'] = 'max, 'min' 
@@ -146,11 +126,7 @@ class Extractor:
         
     def loadcuts(self):
         try:
-<<<<<<< HEAD
-            with open(f'configs/cuts_{self.selection_type}.yaml', 'r') as f:
-=======
             with open(f'{self.pathtoyaml}/configs/cuts_{self.selection_type}.yaml', 'r') as f:
->>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
                 self.cutsdata = yaml.safe_load(f)
         except:
             print("Could not load yaml file..., creating fake cut, all waveforms will be applied")
