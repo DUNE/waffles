@@ -2,9 +2,16 @@ import numpy as np
 from numba import njit
 from waffles.data_classes.Waveform import Waveform
 from waffles.utils.denoising.tv1ddenoise import Denoise
+<<<<<<< HEAD
 
 class SBaseline:
     def __init__(self, binsbase = None, threshold:float = 6, wait:int = 25, baselinestart:int = 0, baselinefinish:int = 112, minimumfrac:float = 1/6.):
+=======
+from typing import Dict
+
+class SBaseline:
+    def __init__(self, binsbase = None, threshold:float = 6, wait:int = 25, baselinestart:int = 0, baselinefinish:int = 112, minimumfrac:float = 1/6., default_filtering = None, data_base: Dict[int, Dict[int, Dict]] = {}):
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
         """This class is used to compute the baseline of a Waveform.adcs or over all Waveforms. Description of the method for computing baseline in `compute_baseline`.
 
         Parameters
@@ -22,7 +29,14 @@ class SBaseline:
          minimumfrac: float
             Minimum fraction of the baseline that needs to be used in the
             `mean` computation. If inside this fraction, `optimal` will be True
+<<<<<<< HEAD
 
+=======
+         default_filtering: float
+            For EXTERNAL USAGE, the value is stored in `self.filtering` 
+            Used only in automatic methods such as BasicWfAna: this will be the filtering applied.
+            For methods of the SBaseline class, the filtering value needs to be passed
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
         Methods
         ----------
@@ -41,6 +55,7 @@ class SBaseline:
         self.baselinestart = baselinestart
         self.baselinefinish = baselinefinish
         self.minimumfrac = minimumfrac
+<<<<<<< HEAD
 
         self.denoiser = Denoise()
 
@@ -49,6 +64,19 @@ class SBaseline:
     @staticmethod
     @njit
     def compute_base_mean(wvf: Waveform.adcs, res0:int, threshold, baselinestart, baselinefinish, wait, minimumfrac) -> tuple[float, bool]:
+=======
+        self.denoiser = Denoise()
+        self.filtering = None
+        if default_filtering is not None:
+            self.filtering = default_filtering
+
+        self.write_filtered_waveform = True
+        self.data_base:dict = data_base
+
+    @staticmethod
+    @njit
+    def compute_base_mean(wvf: np.ndarray, res0:int, threshold, baselinestart, baselinefinish, wait, minimumfrac) -> tuple[float, bool]:
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
         i = 0
         res = 0
         counts = 0
@@ -67,12 +95,21 @@ class SBaseline:
         if(counts > (baselinefinish - baselinestart)*minimumfrac):
             return res, True
         else:
+<<<<<<< HEAD
             return res0, False
 
     def compute_baseline(self, wvf_base: Waveform.adcs) -> tuple[float, bool]:
         """ Computes baseline...
         The code works as following:
             1. Insert all values of inside of
+=======
+            return res, False
+
+    def compute_baseline(self, wvf_base: np.ndarray, filtering = None) -> tuple[float, bool]:
+        """ Computes baseline...
+        The code works as following:
+            1. Insert all values of
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
                wvf_base[baselinestart:baselinefinish] in a histogram and
                computes the MPV (res0).
             2. Using res0, cycle throw wvf_base and skipping `wait` ticks if
@@ -92,6 +129,12 @@ class SBaseline:
             optimal
                 If the baseline is optimazed or not
         """
+<<<<<<< HEAD
+=======
+        if filtering is not None:
+            wvf_base = self.denoiser.apply_denoise(wvf_base, filtering)
+
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
         # # find the MPV so we can estimate the offset
         hist, bin_edges = np.histogram(wvf_base[self.baselinestart:self.baselinefinish], bins=self.binsbase)
         # first estimative of baseline
@@ -110,11 +153,48 @@ class SBaseline:
             filtering: float
                 Filtering that you want to apply before evaluating the baseline
         """
+<<<<<<< HEAD
         wvf: Waveform.adcs = waveform.adcs
         response = self.denoiser.apply_denoise(wvf, filtering)
         wvf_base = response[self.baselinestart:self.baselinefinish]
         res0, optimal = self.compute_baseline(wvf_base)
+=======
+        wvf: np.ndarray = waveform.adcs
+        response = self.denoiser.apply_denoise(wvf, filtering)
+        res0, optimal = self.compute_baseline(response)
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
         if self.write_filtered_waveform:
             waveform.filtered = response
 
         return res0, optimal
+<<<<<<< HEAD
+=======
+
+    def update_params_from_db(self, ep, ch):
+        if ep not in self.data_base:
+            return
+        if ch not in self.data_base[ep]:
+            return
+        if 'baseline' not in self.data_base[ep][ch]:
+            return
+        self.threshold = self.data_base[ep][ch]['baseline'].get('threshold', self.threshold)
+        self.wait = self.data_base[ep][ch]['baseline'].get('wait', self.wait)
+        self.baselinestart = self.data_base[ep][ch]['baseline'].get('baselinestart', self.baselinestart)
+        self.baselinefinish = self.data_base[ep][ch]['baseline'].get('baselinefinish', self.baselinefinish)
+        self.minimumfrac = self.data_base[ep][ch]['baseline'].get('minimumfrac', self.minimumfrac)
+        self.filtering = self.data_base[ep][ch]['baseline'].get('default_filtering', self.filtering)
+
+
+    def __repr__(self):
+        return (
+            f"SBaseline(\n"
+            f"  threshold={self.threshold},\n"
+            f"  wait={self.wait},\n"
+            f"  baselinestart={self.baselinestart},\n"
+            f"  baselinefinish={self.baselinefinish},\n"
+            f"  minimumfrac={self.minimumfrac},\n"
+            f"  write_filtered_waveform={self.write_filtered_waveform}\n"
+            f"  filtering = {self.filtering} (external usage),\n"
+            f")"
+        )
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107

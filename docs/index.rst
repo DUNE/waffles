@@ -74,11 +74,11 @@ To access lxplus run ``ssh yourusername@lxplus.cern.ch``
   
      setup_dbt latest                                            # Setup the latest version of dbt
      dbt-create -l                                               # List the available versions of dbt
-     dbt-create fddaq-v5.2.1-a9                                  # Create a new dbt environment with the version fddaq-v5.2.1-a9
+     dbt-create <latest_dbt_version>                             # Create a new dbt environment with the version fddaq-v*
      source <my_daq_dir>/env.sh                                  # Source the dbt environment
 
 
-* If you just want to analyze the already generated ``ROOT`` files this requirement becomes optional and you can create a python virtual environment with:
+* If you just want to analyze the already generated processed files this requirement becomes optional and you can create a python virtual environment with:
 
   .. code-block:: bash
   
@@ -86,14 +86,15 @@ To access lxplus run ``ssh yourusername@lxplus.cern.ch``
      source /path/to/new/virtual/environment/bin/activate  # Activate the environment
   
     
-  In order to have access to the ``ROOT`` library you need to have it sourced in your environment. Add these lines at the end of the ``bin/activate`` file:
+  If you want to have access to the ``ROOT`` library you need to have it sourced in your environment. Add these lines at the end of the ``bin/activate`` file:
 
   .. code-block:: bash
   
      source /cvmfs/sft.cern.ch/lcg/app/releases/ROOT/6.32.02/x86_64-almalinux9.4-gcc114-opt/bin/thisroot.sh
      export JUPYTER_CONFIG_DIR=$VIRTUAL_ENV
 
-##WARNING: ROOT will not be supported anymore. Gradually move to only ``hdf5`` files.
+.. admonition:: **WARNING** 
+   ROOT will not be supported anymore. Gradually move to only ``hdf5`` files.
 
 -------------------------
 1.- Clone the repository
@@ -138,30 +139,27 @@ Once you have your environment sourced (``source env.sh``) you can install the p
 3.- Access the data  
 ----------------------
 
---- IS THIS STILL TRUE?
+Part of the PDS data is stored in the ``eos`` CERN storage system. 
 
-Part of the PDS data is stored in the ``eos`` CERN storage system. The paths would be useful:
+Useful paths for NP02:
+* **RAW ROOT FILES**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/raw/``
+* **WAFFLES PROCESSED FILES**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/processed/``
+* **RUCIO PATHS**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/ruciopaths/``
 
+Useful paths for NP04:
 * **TUTORIAL INFO**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/0_TUTORIAL`` 
 * **RUCIO PATHS**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths`` 
 * **RAW ROOT FILES**: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/2_daq_root``
 
 
-However, the rucio path is already full. If the run is not already in there, you should create a .txt file in your own space, with the corresponding run location. 
-
-.. admonition:: **Preferred work-flow**  -- SHOULD WE CANCEL COMPLETELY THIS PART?
-   
-   Convert the ``hdf5`` files to ``ROOT`` files using ``00_HDF5toROOT`` scripts. (For using the bash script you need to have the cpp tools previously compiled, see ``cpp_utils`` folder).
-   This will generate the ``rucio`` paths if they are not already created and store them in the ``1_rucio_paths`` folder. The output will be stored in the ``2_daq_root`` folder.
+If the run is not already in there, you should create a .txt file, with the corresponding rucio path. 
 
 Have a look at the examples tab for more information on how to run waffles.
 
 Depending on the scope of your analysis you may need a different machine:
    
 * **OFFLINE** analysis: log-in to lxplus with your CERN user: ``ssh CERNuser@lxplus.cern.ch``
-* **ONLINE** + **DATA TAKING**: log-in to np04-srv-015 with your CERN user: ``ssh CERNuser@np04-srv-015``
-
-Inside the daq machines, to access the network we need to do: ``source ~np04daq/bin/web_proxy.sh``
+* **ONLINE** + **DATA TAKING**: log-in to np04-srv-004 with your CERN user: ``ssh CERNuser@np04-srv-004.cern.ch``. This can also be accessed inside lxplus.
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 

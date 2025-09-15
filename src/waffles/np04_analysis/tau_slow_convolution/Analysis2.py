@@ -76,17 +76,28 @@ class Analysis2(WafflesAnalysis):
             self.output_subfolder += "_fixtemplate"
           
         # create the Convolution Fitter
+<<<<<<< HEAD
         self.cfit = ConvFitter(threshold_align_template = 0.27, 
                                 threshold_align_response = 0.1, 
                                 error=10, usemplhep=True, 
                                 dointerpolation=self.params.interpolate, 
                                 interpolation_fraction = 8, 
+=======
+        self.cfit = ConvFitterHDWrapper(threshold_align_template = 0.27, 
+                                threshold_align_response = 0.1, 
+                                error=10, usemplhep=True, 
+                                dointerpolation=self.params.interpolate, 
+                                interpolation_factor = 8, 
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
                                 align_waveforms = True)
                         
         if self.params.scan > 0:
             self.cfit.reduce_offset = True
 
+<<<<<<< HEAD
         self.cfit.dosave = not self.params.no_save
+=======
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
         # loop over runs
         self.read_input_loop_1 = runs

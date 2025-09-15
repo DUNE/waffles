@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import numpy as np
 from scipy import optimize as spopt
 
@@ -5,6 +6,11 @@ from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
 import waffles.utils.numerical_utils as wun
+=======
+from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
+from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
+
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 import waffles.utils.fit_peaks.fit_peaks_utils as wuff
 
 from waffles.Exceptions import GenerateExceptionMessage
@@ -13,9 +19,19 @@ def fit_peaks_of_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
     max_peaks: int,
     prominence: float,
+<<<<<<< HEAD
     half_points_to_fit: int,
     initial_percentage = 0.1,
     percentage_step = 0.1
+=======
+    initial_percentage: float = 0.1,
+    percentage_step: float = 0.1,
+    return_last_addition_if_fail: bool = False,
+    fit_type: str = 'independent_gaussians',
+    half_points_to_fit: int = 2,
+    std_increment_seed_fallback: float = 1e+2,
+    ch_span_fraction_around_peaks: float = 0.05
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 ) -> bool:
     """For the given CalibrationHistogram object, 
     calibration_histogram, this function
@@ -69,6 +85,7 @@ def fit_peaks_of_CalibrationHistogram(
         scipy.signal.find_peaks() from spotting peaks 
         whose amplitude is less than half of the total 
         amplitude of the histogram.
+<<<<<<< HEAD
     half_points_to_fit: int
         It must be a positive integer. For each peak, it 
         gives the number of points to consider on either 
@@ -78,6 +95,8 @@ def fit_peaks_of_CalibrationHistogram(
         then the histogram bins which will be considered 
         for the fit are given by the slice 
         calibration_histogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
+=======
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
     initial_percentage: float
         It must be greater than 0.0 and smaller than 1.0.
         This parameter is passed to the 'initial_percentage' 
@@ -92,13 +111,77 @@ def fit_peaks_of_CalibrationHistogram(
         wuff.__spot_first_peaks_in_CalibrationHistogram() 
         function. For more information, check the 
         documentation of such function.
+<<<<<<< HEAD
+=======
+    return_last_addition_if_fail: bool
+        This parameter is given to the
+        return_last_addition_if_fail parameter of the
+        wuff.__spot_first_peaks_in_CalibrationHistogram()
+        function. It makes a difference only if the
+        specified number of peaks (max_peaks) is not
+        found. For more information, check the
+        documentation of the 
+        wuff.__spot_first_peaks_in_CalibrationHistogram()
+        function.
+    fit_type: str
+        The only supported values are 'independent_gaussians'
+        and 'correlated_gaussians'. If any other value is
+        given, the 'independent_gaussians' value will be
+        used instead. If the 'independent_gaussians' value
+        is used, the function will fit each peak independently,
+        i.e. it will fit a gaussian function to each peak
+        independently of the others. For more information
+        on this type of fit, check the documentation of the
+        wuff.__fit_independent_gaussians_to_calibration_histogram()
+        function. If the 'correlated_gaussians' value is given,
+        the function will fit all of the peaks at once using
+        a fitting function which is a sum of gaussians whose
+        means and standard deviations are correlated. For
+        more information on this type of fit, check the
+        documentation of the
+        wuff.__fit_correlated_gaussians_to_calibration_histogram()
+        function.
+    half_points_to_fit: int
+        This parameter is only used if the fit_type
+        parameter is set to 'independent_gaussians'.
+        It must be a positive integer. For each peak, it 
+        gives the number of points to consider on either 
+        side of the peak maximum, to fit each gaussian 
+        function. I.e. if i is the iterator value for
+        calibration_histogram.counts of the i-th peak, 
+        then the histogram bins which will be considered 
+        for the fit are given by the slice 
+        calibration_histogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
+    std_increment_seed_fallback: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        In that case, it is given to the
+        std_increment_seed_fallback parameter of the
+        wuff.__fit_correlated_gaussians_to_calibration_histogram()
+        function. For more information, check the
+        documentation of such function.
+    ch_span_fraction_around_peaks: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        In that case, it is given to the
+        ch_span_fraction_around_peaks parameter of the
+        wuff.__fit_correlated_gaussians_to_calibration_histogram()
+        function. For more information, check the
+        documentation of such function.
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
     Returns
     -------
     bool
+<<<<<<< HEAD
         True if the number of found peaks matches the given
         max_peaks parameter, and False if it is smaller than
         max_peaks.
+=======
+        True if the number of found-and-fitted peaks matches
+        the given max_peaks parameter, and False if it is
+        smaller than max_peaks.
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
     """
 
     if max_peaks < 1:
@@ -135,6 +218,7 @@ def fit_peaks_of_CalibrationHistogram(
         calibration_histogram,
         max_peaks,
         prominence,
+<<<<<<< HEAD
         initial_percentage,
         percentage_step)
     
@@ -216,14 +300,46 @@ def fit_peaks_of_CalibrationHistogram(
             aux_errors[2])
         
     return fFoundMax
+=======
+        initial_percentage=initial_percentage,
+        percentage_step=percentage_step,
+        return_last_addition_if_fail=return_last_addition_if_fail
+    )
+    
+    if fit_type == 'correlated_gaussians':
+        fFitAll = wuff.__fit_correlated_gaussians_to_calibration_histogram(
+            spsi_output,
+            calibration_histogram,
+            std_increment_seed_fallback=std_increment_seed_fallback,
+            ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
+        )
+    else:
+        fFitAll = wuff.__fit_independent_gaussians_to_calibration_histogram(
+            spsi_output,
+            calibration_histogram,
+            half_points_to_fit
+        )
+
+    return fFoundMax*fFitAll
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
 def fit_peaks_of_ChannelWsGrid( 
     channel_ws_grid: ChannelWsGrid,
     max_peaks: int,
     prominence: float,
+<<<<<<< HEAD
     half_points_to_fit: int,
     initial_percentage = 0.1,
     percentage_step = 0.1
+=======
+    initial_percentage: float = 0.1,
+    percentage_step: float = 0.1,
+    return_last_addition_if_fail: bool = False,
+    fit_type: str = 'independent_gaussians',
+    half_points_to_fit: int = 2,
+    std_increment_seed_fallback: float = 1e+2,
+    ch_span_fraction_around_peaks: float = 0.05
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 ) -> bool:
     """For each ChannelWs object, say chws, contained in
     the ChWfSets attribute of the given ChannelWsGrid
@@ -261,6 +377,7 @@ def fit_peaks_of_ChannelWsGrid(
         for each calibration histogram. For more 
         information, check the documentation of such 
         function.
+<<<<<<< HEAD
     half_points_to_fit: int
         It must be a positive integer. For each peak in
         each calibration histogram, it gives the number 
@@ -270,6 +387,8 @@ def fit_peaks_of_ChannelWsGrid(
         the fit_peaks_of_CalibrationHistogram() function 
         for each calibration histogram. For more information, 
         check the documentation of such function.
+=======
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
     initial_percentage: float
         It must be greater than 0.0 and smaller than 1.0.
         This parameter is passed to the 'initial_percentage' 
@@ -282,6 +401,48 @@ def fit_peaks_of_ChannelWsGrid(
         parameter of the fit_peaks_of_CalibrationHistogram()
         function for each calibration histogram. For more 
         information, check the documentation of such function.
+<<<<<<< HEAD
+=======
+    return_last_addition_if_fail: bool
+        This parameter is given to the
+        return_last_addition_if_fail parameter of the
+        fit_peaks_of_CalibrationHistogram() function. It
+        makes a difference only if the specified number
+        of peaks (max_peaks) is not found. For more
+        information, check the documentation of the
+        fit_peaks_of_CalibrationHistogram() function.
+    fit_type: str
+        The only supported values are 'independent_gaussians'
+        and 'correlated_gaussians'. If any other value is
+        given, the 'independent_gaussians' value will be
+        used instead. This parameter is passed to the
+        'fit_type' parameter of the fit_peaks_of_CalibrationHistogram()
+        function for each calibration histogram. For more 
+        information, check the documentation of such function.
+    half_points_to_fit: int
+        This parameter is only used if the fit_type
+        parameter is set to 'independent_gaussians'.
+        It must be a positive integer. For each peak in
+        each calibration histogram, it gives the number 
+        of points to consider on either side of the peak 
+        maximum, to fit each gaussian function. It is
+        given to the 'half_points_to_fit' parameter of
+        the fit_peaks_of_CalibrationHistogram() function 
+        for each calibration histogram. For more information, 
+        check the documentation of such function.
+    std_increment_seed_fallback: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        For more information, check the documentation
+        of the fit_peaks_of_CalibrationHistogram()
+        function.
+    ch_span_fraction_around_peaks: float
+        This parameter is only used if the fit_type
+        parameter is set to 'correlated_gaussians'.
+        For more information, check the documentation
+        of the fit_peaks_of_CalibrationHistogram()
+        function.
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
 
     Returns
     ----------
@@ -308,8 +469,20 @@ def fit_peaks_of_ChannelWsGrid(
                 channel_ws.calib_histo,
                 max_peaks,
                 prominence,
+<<<<<<< HEAD
                 half_points_to_fit,
                 initial_percentage=initial_percentage,
                 percentage_step=percentage_step)
             
+=======
+                initial_percentage=initial_percentage,
+                percentage_step=percentage_step,
+                return_last_addition_if_fail=return_last_addition_if_fail,
+                fit_type=fit_type,
+                half_points_to_fit=half_points_to_fit,
+                std_increment_seed_fallback=std_increment_seed_fallback,
+                ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
+            )
+
+>>>>>>> 264bdce2c6b35b5dd071455c3cbe62221217a107
     return output
