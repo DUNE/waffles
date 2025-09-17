@@ -207,10 +207,10 @@ def fit_peaks_of_CalibrationHistogram(
             half_points_to_fit
         )
 
-    if fit_type != 'multigauss_iminuit':
-        return fFoundMax & fFitAll
-
     n_peaks_found = len(calibration_histogram.gaussian_fits_parameters['scale'])
+
+    if fit_type != 'multigauss_iminuit' or n_peaks_found < 1:
+        return fFoundMax & fFitAll
 
 
     # initialize parameters for iminuit

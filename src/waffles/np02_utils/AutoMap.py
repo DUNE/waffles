@@ -80,9 +80,11 @@ def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Uni
         rows = math.ceil(n / cols)
     else:
         rows = math.isqrt(n)
-        while n % rows != 0:
-            rows -= 1
-        cols = n // rows
+        cols = rows
+        while cols * rows <= n:
+            cols += 1
+    if cols * rows > n:
+        unch.extend( [ UniqueChannel(101,0) ] * (cols*rows - n) )
     channels_shaped = np.array(unch).reshape(rows, cols)
     channelsmap:List[List[UniqueChannel]] = [ list(row) for row in channels_shaped ]
     output = ChannelMap(rows, cols, channelsmap)
