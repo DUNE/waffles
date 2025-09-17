@@ -1,7 +1,7 @@
 # Personalized ignores
 *.root
 *.npy
-*.hdf5
+*.hdf5*
 *.ipynb
 *.pkl
 *.swp
