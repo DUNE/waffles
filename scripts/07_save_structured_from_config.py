@@ -14,14 +14,18 @@ from waffles.data_classes.WaveformSet import WaveformSet
 class WaveformProcessor:
     """Handles waveform data processing and structured HDF5 saving."""
 
-    def __init__(self, config: dict):
-        self.rucio_paths_directory = config.get("rucio_dir")
-        self.output_path = config.get("output_dir")
+    def __init__(self, config: dict, run: int):
+        self.rucio_paths_directory = config.get("rucio_dir", ".")
+        self.output_path = config.get("output_dir", ".")
         self.detector = config.get("det")
-        self.run_number = config.get("run")
+        self.run_number = run
         self.save_single_file = config.get("save_single_file", False)
         self.max_files = config.get("max_files", "all")
         self.ch = self.parse_ch_dict(config.get("ch", {}))
+        self.trigger = config.get("trigger")
+        self.suffix = config.get("suffix", "")
+        self.truncate_wfs_method = config.get("truncate_wfs_method", "")
+        self.only_unprocessed = config.get("only_unprocessed", False)
 
         print_colored(f"Loaded configuration: {config}", color="INFO")
 
@@ -55,32 +59,56 @@ class WaveformProcessor:
 
             print_colored(f"Processing {len(filepaths)} files...", color="INFO")
 
+            if self.trigger == 'self_trigger':
+                trigger_value = False
+                self.truncate_wfs_method = ""
+            elif self.trigger == 'full_streaming':
+                trigger_value = True
+                if self.truncate_wfs_method == "":
+                    print_colored("Warning: 'truncate_wfs_method' is empty, using default 'minimum'.", color="WARNING")
+                    self.truncate_wfs_method = "minimum"
+            else:
+                raise ValueError(f"Unknown trigger type: {self.trigger}. Use 'self_trigger' or 'full_streaming'.")
+
             if self.save_single_file:
                 self.wfset = reader.WaveformSet_from_hdf5_files(
                     filepath_list=filepaths,
-                    read_full_streaming_data=False,
-                    truncate_wfs_to_minimum=False,
+                    read_full_streaming_data=trigger_value,
+                    truncate_wfs_method=self.truncate_wfs_method,
                     folderpath=None,
                     nrecord_start_fraction=0.0,
-                    nrecord_stop_fraction=0.1,
+                    nrecord_stop_fraction=1.,
                     subsample=1,
                     wvfm_count=1e9,
                     ch=self.ch,
                     det=self.detector,
                     temporal_copy_directory='/tmp',
-                    erase_temporal_copy=False
+                    erase_temporal_copy=False,
+                    repeat_choice=[0]
                 )
                 self.wfset = self.ensure_waveformset(self.wfset)
                 if self.wfset:
                     self.write_merged_output()
 
             else:
+                choice=[0]
                 for file in filepaths:
+                    input_filename = Path(file).name
+                    extra = ""
+                    if self.suffix:
+                        extra = f"_{self.suffix}"
+                    self.output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / f"processed_{input_filename}_structured{extra}.hdf5"
+
+                    if self.only_unprocessed:
+                        if self.output_filepath.exists():
+                            print_colored(f"Skipping already processed file: {self.output_filepath}", color="WARNING")
+                            continue
+                        
                     print_colored(f"Processing file: {file}", color="INFO")
                     wfset = reader.WaveformSet_from_hdf5_file(
                         filepath=file,
-                        read_full_streaming_data=False,
-                        truncate_wfs_to_minimum=False,
+                        read_full_streaming_data=trigger_value,
+                        truncate_wfs_method=self.truncate_wfs_method,
                         nrecord_start_fraction=0.0,
                         nrecord_stop_fraction=1.0,
                         subsample=1,
@@ -88,11 +116,12 @@ class WaveformProcessor:
                         ch=self.ch,
                         det=self.detector,
                         temporal_copy_directory='/tmp',
-                        erase_temporal_copy=False
+                        erase_temporal_copy=False,
+                        repeat_choice=choice
                     )
                     wfset = self.ensure_waveformset(wfset)
                     if wfset:
-                        self.write_output(wfset, file)
+                        self.write_output(wfset)
 
             print_colored("All files processed successfully.", color="SUCCESS")
             return True
@@ -105,9 +134,14 @@ class WaveformProcessor:
             return False
 
     def write_merged_output(self):
-        output_filename = f"processed_merged_run_{self.run_number}_structured.hdf5"
-        output_filepath = Path(self.output_path) / output_filename
-
+        extra = ""
+        if self.suffix:
+            extra = f"_{self.suffix}"
+        output_filename = f"processed_merged_run{self.run_number:06d}_structured{extra}.hdf5"
+        output_filepath = Path(self.output_path) / f"run{self.run_number:06d}{extra}" / output_filename
+        if not output_filepath.parent.exists():
+            print_colored(f"Creating output directory: {output_filepath.parent}", color="WARNING")
+            output_filepath.parent.mkdir(parents=True, exist_ok=True)
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")
         try:
             self.wfset = self.ensure_waveformset(self.wfset)
@@ -125,13 +159,14 @@ class WaveformProcessor:
             print_colored(f"Merged WaveformSet saved to {output_filepath}", color="SUCCESS")
 
             wfset_loaded = load_structured_waveformset(str(output_filepath))
-            self.compare_waveformsets(self.wfset, wfset_loaded)
+            # Uncomment to compare
+            # self.compare_waveformsets(self.wfset, wfset_loaded)
 
             return True
         except Exception as e:
             print_colored(f"Error saving merged output: {e}", color="ERROR")
             return False
-        
+
     def compare_waveformsets(self, original, loaded):
         original = self.ensure_waveformset(original)
         loaded = self.ensure_waveformset(loaded)
@@ -166,11 +201,13 @@ class WaveformProcessor:
 
         print_colored("Comparison finished.", color="DEBUG")
 
-    def write_output(self, wfset, input_filepath):
-        input_filename = Path(input_filepath).name
-        output_filepath = Path(self.output_path) / f"processed_{input_filename}_structured.hdf5"
+    def write_output(self, wfset):
 
-        print_colored(f"Saving waveform data to {output_filepath}...", color="DEBUG")
+        if not self.output_filepath.parent.exists():
+            print_colored(f"Creating output directory: {self.output_filepath.parent}", color="WARNING")
+            self.output_filepath.parent.mkdir(parents=True, exist_ok=True)
+
+        print_colored(f"Saving waveform data to {self.output_filepath}...", color="DEBUG")
         try:
             # ✅ Make sure we overwrite the input variable with the wrapped one
             wfset = self.ensure_waveformset(wfset)
@@ -178,28 +215,21 @@ class WaveformProcessor:
 
             WaveformSet_to_file(
                 waveform_set=wfset,
-                output_filepath=str(output_filepath),
+                output_filepath=str(self.output_filepath),
                 overwrite=True,
                 format="hdf5",
                 compression="gzip",
                 compression_opts=0,
                 structured=True
             )
-            print_colored(f"WaveformSet saved to {output_filepath}", color="SUCCESS")
-
-            print_colored("Going to load...")
-            wfset_loaded = load_structured_waveformset(str(output_filepath))
-            print_colored("Loaded, about to compare...")  # If you see this, the load worked
-            print_colored(f"wfset_loaded type={type(wfset_loaded)}")
-            self.compare_waveformsets(wfset, wfset_loaded)
-            print_colored("Done comparing!")  # If you never see this, an error happens in compare
+            print_colored(f"WaveformSet saved to {self.output_filepath}", color="SUCCESS")
 
             return True
         except Exception as e:
             print_colored(f"Error saving output: {e}", color="ERROR")
             return False
 
-    
+
 
 
 @click.command(help="\033[34mProcess and save structured waveform data from JSON config.\033[0m")
@@ -211,13 +241,33 @@ def main(config):
         with open(config, 'r') as f:
             config_data = json.load(f)
 
-        required_keys = ["run", "rucio_dir", "output_dir", "ch"]
+        runs = config_data.get("runs", [])
+
+        # Addressing changes in script 08
+        detector = config_data.get("det") # Ensure 'det' is present
+        suffix = ""
+        extra = ""
+        if detector == 'VD_Membrane_PDS':
+            suffix="membrane"
+            extra="_membrane"
+        elif detector == 'VD_Cathode_PDS':
+            suffix="cathode"
+            extra="_cathode"
+        elif detector == 'VD_PMT_PDS':
+            suffix="pmt"
+            extra="_pmt"
+        config_data["suffix"] = suffix
+
+
+
+        required_keys = ["runs", "rucio_dir", "output_dir", "ch"]
         missing = [key for key in required_keys if key not in config_data]
         if missing:
             raise ValueError(f"Missing keys in config: {missing}")
 
-        processor = WaveformProcessor(config_data)
-        processor.read_and_save()
+        for run in runs:
+            processor = WaveformProcessor(config_data, run)
+            processor.read_and_save()
 
     except Exception as e:
         print_colored(f"An error occurred: {e}", color="ERROR")

@@ -4,25 +4,23 @@
 
 ## Obtain file paths
 
-Before starting with the analysis you may need to get the paths of the HDF5 files you want to use. To get this `rucio_path` you can find some tools listed below:
-* `get_protodunehd_files.sh`: this script return the filepaths of the input run if `rucio` is setup correctly (if not it tries and setup it per run).
-* `setup_rucio_*.sh`: scripts to setup the `rucio` environment variables in your terminal. After that you can produce all the paths you need without re-authenticating.
-* `get_rucio.py`: script that wraps the needed tools to save the paths of the HDF5 files you want to decode and move it to the shared `eos` folder. This script will ask for the run number and the number of files you want to get. The output will be a list of paths to the HDF5 files. Moreover, this scripts handles the runs that have already been moved to tape and are not available in the `eos` folder. In this case, the script will ask for the tape location `root://filepath/`.
+Before starting with the analysis you may need to get the paths of the HDF5 files you want to use. 
+They could be already availbale in the folder: ``/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/ruciopaths/`` (for NP02) or you can get the `rucio_path` using the tools listed below:
+* `setup_rucio_a9.sh`: script to setup the `rucio` environment variables in your terminal. After that you can produce all the paths you need without re-authenticating.
+* `fetch_rucio_replicas.py`: script that wraps the needed tools to save the paths of the HDF5 files you want to decode.
 
-This is summarized in the following steps:
-
-#### Get path for a single run
-```bash
-python get_rucio.py # Optional argument --runs 27632
-```
+This can be summarized in the following steps:
 
 #### Get path for several runs (without re-authenticating)
+For using these scripts you need valid `FNAL` credentials. Have a look at the [RUCIO DOCS](https://github.com/DUNE/data-mgmt-ops/wiki/Using-Rucio-to-find-Protodune-files-at-CERN/) for more details of this process.
+
 ```bash
 source setup_rucio_a9.sh
-python get_rucio.py # Optional argument --runs 27632,27633
+python fetch_rucio_replicas.py --runs <run_number>, <run_number2>,...
 ```
 
-For using these scripts you need valid `FNAL` credentials. Have a look at the [RUCIO DOCS](https://github.com/DUNE/data-mgmt-ops/wiki/Using-Rucio-to-find-Protodune-files-at-CERN/) for more details of this process.
+.. warning::
+    The following five paragraphs (00_HDF5toROOT, C++, Python, 01_Process, 02_RawAna) are valid only for NP04 data 
 
 ## 00_HDF5toROOT
 
@@ -151,3 +149,5 @@ After filtering the full `WaveformSet` object, a plot will be displayed using `p
                             show_spotted_peaks = True,
                             show_peaks_integration_limits = False)
 ```
+## 07_save_structured_from_config.py
+This script is used to convert the raw `.hdf5` files into `waffles` classes and save it in a compressed `.hdf5` format.
