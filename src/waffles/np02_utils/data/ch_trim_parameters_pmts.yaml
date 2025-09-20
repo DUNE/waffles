@@ -1,15 +1,16 @@
 default_baseline: &dfbase
   threshold: 50
   minimumfrac: 0.67
+  default_filtering: 2
 
 default_fit: &dfit
     int_ll:             254            # integration lower limit in ticks
     int_ul:             275            # integration upper limit in ticks
-    bins_int:           200            # binning of the histogram
-    domain_int:         [-10e3, 100e3] # min and max value of histogram x-axis
+    bins_int:           75            # binning of the histogram
+    domain_int:         [-0.5, 3] # min and max value of histogram x-axis
     max_peaks:          3              # maximum number of peaks to fit
     half_point_to_fit:  5              # positive int, maximum number of bins to the left and right of the peak to fit
-    prominence:         0.02           # 0 to 1, minimum fraction of peaks to spot relative to maximum peak
+    prominence:         0.05           # 0 to 1, minimum fraction of peaks to spot relative to maximum peak
     initial_percentage: 0.10           # 0 to 1, starting percentage to search for peaks
     percentage_step:    0.05           # if n peaks < max_peaks, increase the percentage by this value
 
@@ -38,42 +39,52 @@ default_fit: &dfit
   46 : { baseline: { <<: *dfbase }, fit: { <<: *dfit }}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+updates: {
+  110: {
+    0  : {
+    },
+    2  : {
+    },
+    4  : {
+    },
+    6  : {
+    },
+    7  : {
+    },
+    10 : {
+    },
+    12 : {
+      39533: {threshold: 50},
+    },
+    14 : {
+    },
+    16 : {
+    },
+    17 : {
+    },
+    20 : {
+    },
+    22 : {
+    },
+    24 : {
+    },
+    26 : {
+    },
+    30 : {
+    },
+    32 : {
+    },
+    34 : {
+    },
+    36 : {
+    },
+    40 : {
+    },
+    42 : {
+    },
+    44 : {
+    },
+    46 : {
+    },
+  }
+}

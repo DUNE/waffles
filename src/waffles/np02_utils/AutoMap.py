@@ -81,7 +81,7 @@ def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Uni
     else:
         rows = math.isqrt(n)
         cols = rows
-        while cols * rows <= n:
+        while cols * rows < n:
             cols += 1
     if cols * rows > n:
         unch.extend( [ UniqueChannel(101,0) ] * (cols*rows - n) )

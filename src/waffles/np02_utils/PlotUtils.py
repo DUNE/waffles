@@ -320,6 +320,8 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             plot_fits=False,
             name=f"{dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)), '')}",
         )
+        if wf_func.get("log_y", False):
+            figure.update_yaxes(type="log")
         return
 
     # This method in case histogram should cut average
@@ -377,6 +379,8 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         name=f"{dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)),'')}; snr={snr:.2f}",
         showfitlabels=False,
     )
+    if wf_func.get("log_y", False):
+        figure.update_yaxes(type="log", range=[-1, np.log10(np.max(hInt.counts)*2) ], row=row, col=col)
 
     if snr != 0:
         for wf in wfset.waveforms:
