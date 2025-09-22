@@ -1,4 +1,5 @@
 
+from re import split
 import waffles.np04_analysis.self_trigger.self_trigger as self_trigger
 from waffles.np04_utils.utils import get_np04_channel_mapping
 import waffles.input_output.hdf5_structured as reader
@@ -41,32 +42,33 @@ if __name__ == "__main__":
     SiPM = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
 
 
-    ch_folder = ana_folder+f"Ch_{SiPM_channel}_Selection_{perform_selection}/"
-    if not os.path.exists(ch_folder):
-        os.makedirs(ch_folder)
-
     thresholds_set = df_runs['Threshold'].unique()
+    print(thresholds_set)
+
 
     for threshold in thresholds_set:
-        run_with_threshold = df_runs.loc[df_runs['Threshold'] == threshold, 'Run'].values
-        filename = [f for f in files_in_folder if str(run_with_threshold[0])+"_ChSiPM_"+str(SiPM_channel) in f]
-
-        if len(filename) == 0:
-            print(f"No file found for run {run_with_threshold[0]} and SiPM channel {SiPM_channel}")
+        run_with_threshold = df_runs.loc[df_runs['Threshold'] == str(threshold), 'Run'].values
+        
+        run_files = [f for f in files_in_folder if any(str(run) in f for run in run_with_threshold)]
+        files = [f for f in run_files if f"_ChSiPM_{SiPM_channel}" in f]
+        if len(files) == 0:
             continue
-        filename = filename[0]
+
+        out_root_file.mkdir(f"Threshold_{int(threshold,16)}")
+        out_root_file.cd(f"Threshold_{int(threshold,16)}")
+        
+        filename = files[0]
         print("Reading file ", filename)
 
         wfset = reader.load_structured_waveformset(filename)
 
-        for run in run_with_threshold[1:]:
-            filename = [f for f in files_in_folder if str(run)+"_ChSiPM_"+str(SiPM_channel) in f]
-            print(f"Merging file for run {run} with threshold {threshold}")
-            wfset_temp = reader.load_structured_waveformset(filename[0])
+        for filename in files[1:]:
+            wfset_temp = reader.load_structured_waveformset(filename)
             wfset.merge(wfset_temp)
+            del wfset_temp
 
         ch_sipm = SiPM_channel
-        ch_st = filename[0].split("ChST_")[-1].split("_")[0]
+        ch_st = files[0].split("ChST_")[-1].split("_")[0]
         st = self_trigger.SelfTrigger(ch_sipm=int(ch_sipm),
                                       ch_st=int(ch_st),
                                       wf_set=wfset,
@@ -83,6 +85,7 @@ if __name__ == "__main__":
             st.select_waveforms()
 
         dict_hSTdisrt = st.trigger_distr_per_nspe()
+        del wfset
 
         for nspe, h_STdisrt in dict_hSTdisrt.items():
             h_STdisrt.SetName(f"h_STdisrt_nspe_{nspe}")
@@ -92,13 +95,17 @@ if __name__ == "__main__":
 
             out_df_rows.append({
                                "Run": run_with_threshold[0],
-                               "Threshold": threshold,
+                               "Threshold": int(threshold, 16),
+                               "PE": nspe,
                                "MeanTrgPos": st.f_STpeak.GetParameter(1),
                                "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
                                "SigmaTrg": st.f_STpeak.GetParameter(2),
                                "ErrSigmaTrg": st.f_STpeak.GetParError(2),
+                               "IntegralTrg": st.f_STpeak.Integral(st.f_STpeak.GetParameter(1) - 3 * st.f_STpeak.GetParameter(2),
+                                                                   st.f_STpeak.GetParameter(1) + 3 * st.f_STpeak.GetParameter(2),
+                                                                   1e-4),
             })
 
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(ch_folder+f"Jitter_Ch_{SiPM_channel}_Selection_{perform_selection}.csv", index=False)
+    out_df.to_csv(ana_folder+f"Jitter_Ch_{SiPM_channel}_Selection_{perform_selection}.csv", index=False)
     out_root_file.Close()
