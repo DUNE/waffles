@@ -217,12 +217,12 @@ class SelfTrigger:
         hpassed  = Hist.new.Reg(self.h_bins, self.h_low, self.h_up, label="#P.E.").Double()
         spe_norm = 1./self.spe_charge
 
-        nspes = np.array([wf.adcs_float[self.int_low:self.int_up].sum() * spe_norm for wf in self.wfs_sipm])
+        nspes = np.array([wf.adcs_float[self.int_low:self.int_up+1].sum() * spe_norm for wf in self.wfs_sipm])
         sorted_nspes = nspes.copy()
         sorted_nspes.sort()
 
-        nspe_min = sorted_nspes[int(0.005 * len(sorted_nspes))]
-        nspe_max = sorted_nspes[int(0.995 * len(sorted_nspes))]
+        nspe_min = sorted_nspes[int(0.001 * len(sorted_nspes))]
+        nspe_max = sorted_nspes[int(0.96 * len(sorted_nspes))]
 
         h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  self.h_bins, nspe_min, nspe_max)
         h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", self.h_bins, nspe_min, nspe_max)
@@ -282,14 +282,14 @@ class SelfTrigger:
                 break
         
         print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
-        f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
-        f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
-        f_sigmoid.SetParLimits(1, 0.01, 2)
-        f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
-        f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
-        f_sigmoid.SetNpx(1000)
-
-        self.he_STEfficiency.Fit(f_sigmoid, "R")
+        # f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
+        # f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
+        # f_sigmoid.SetParLimits(1, 0.01, 2)
+        # f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
+        # f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
+        # f_sigmoid.SetNpx(1000)
+        #
+        # self.he_STEfficiency.Fit(f_sigmoid, "R")
 
         return self.he_STEfficiency
 
@@ -383,6 +383,8 @@ class SelfTrigger:
             if wf_sipm.nspe < nspe_min or wf_sipm.nspe > nspe_max:
                 continue
             spe = int(wf_sipm.nspe+0.5)
+            if spe not in dict_hists:
+                continue
             st_arr = np.flatnonzero(wf_st.adcs)
             for st in st_arr:
                 dict_hists[spe].Fill(st)
