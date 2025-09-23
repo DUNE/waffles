@@ -1,4 +1,4 @@
-
+# --- IMPORTS -------------------------------------------------------
 from re import split
 import waffles.np04_analysis.self_trigger.self_trigger as self_trigger
 from waffles.np04_utils.utils import get_np04_channel_mapping
@@ -9,20 +9,25 @@ import mplhep
 import numpy as np
 import os
 import pandas as pd
-
-run_info_file = "./configs/SelfTrigger_RunInfo.csv"
-ana_folder  = "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/"
-calibration_file = "SelfTrigger_Calibration.csv"
-file_folder = "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/files/"
-files_in_folder = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
+import yaml
 
 
-SiPM_channel = 11121
-perform_selection = True
 
-
+# --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
 
+    # --- SETUP -----------------------------------------------------
+    with open("params.yml", 'r') as stream:
+        user_config = yaml.safe_load(stream)
+
+    run_info_file = user_config.get("run_info_file")
+    ana_folder  = user_config.get("ana_folder")
+    calibration_file = user_config.get("calibration_file")
+    file_folder = user_config.get("file_folder")
+    SiPM_channel = user_config.get("SiPM_channel")
+    perform_selection = user_config.get("perform_selection", True)
+    files_in_folder = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
+    
     df_runs = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
     out_root_file = TFile(ana_folder+f"Jitter_Ch_{SiPM_channel}_Selection_{perform_selection}.root", "RECREATE")
