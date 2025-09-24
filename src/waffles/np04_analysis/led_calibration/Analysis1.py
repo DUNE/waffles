@@ -143,12 +143,14 @@ class Analysis1(WafflesAnalysis):
                 example={1: 575, 2: 120, 3: 120, 4: 120}
             )
 
-            signal_i_up: int = Field(
+            signal_i_up: dict[int, int] = Field(
                 ...,
-                description="ADCs-array iterator value for the "
-                "upper limit of the window where an upper-bound "
-                "cut to the signal is applied",
-                example=165
+                description="A dictionary whose keys refer to "
+                "the APA number, and its values are the "
+                "ADCs-array iterator value for the upper limit "
+                "of the window where an upper-bound cut to the "
+                "signal is applied",
+                example={1: 650, 2: 165, 3: 165, 4: 165}
             )
 
             baseline_allowed_dev: float = Field(
@@ -618,8 +620,8 @@ class Analysis1(WafflesAnalysis):
                     self.grid_apa.ch_wf_sets[endpoint][channel],
                     fine_selection_for_led_calibration,
                     self.params.baseline_analysis_label,
-                    self.params.baseline_i_up,
-                    self.params.signal_i_up,
+                    self.params.baseline_i_up[self.apa],
+                    self.params.signal_i_up[self.apa],
                     average_baseline_std,
                     self.params.baseline_allowed_dev,
                     self.params.signal_allowed_dev
@@ -844,7 +846,13 @@ class Analysis1(WafflesAnalysis):
         # Save the persistence heatmaps
         if self.params.save_persistence_heatmaps:
 
-            aux_time_increment = 40
+            aux_time_increment = {
+                1: 80,
+                2: 40,
+                3: 40,
+                4: 40
+            }
+
             persistence_figure = plot_ChannelWsGrid(
                 self.grid_apa,
                 figure=None,
@@ -853,10 +861,10 @@ class Analysis1(WafflesAnalysis):
                 mode='heatmap',
                 wfs_per_axes=None,
                 analysis_label=self.params.null_baseline_analysis_label,
-                time_bins=40,
+                time_bins=aux_time_increment[self.apa],
                 adc_bins=30,
-                time_range_lower_limit=125,
-                time_range_upper_limit=125 + aux_time_increment,
+                time_range_lower_limit=self.params.baseline_i_up[self.apa],
+                time_range_upper_limit=self.params.baseline_i_up[self.apa] + aux_time_increment[self.apa],
                 adc_range_above_baseline=10,
                 adc_range_below_baseline=80,
                 detailed_label=True,
