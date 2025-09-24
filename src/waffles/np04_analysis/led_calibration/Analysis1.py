@@ -733,6 +733,7 @@ class Analysis1(WafflesAnalysis):
             ),
             variable='integral',
             analysis_label=self.params.integration_analysis_label,
+            verbose=self.params.verbose
         )
 
         fit_peaks_of_ChannelWsGrid( 
@@ -745,7 +746,8 @@ class Analysis1(WafflesAnalysis):
             fit_type=self.params.fit_type,
             half_points_to_fit=self.params.half_points_to_fit,
             std_increment_seed_fallback=self.params.std_increment_seed_fallback,
-            ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks
+            ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
+            verbose=self.params.verbose
         )
 
         if self.params.verbose:
@@ -868,7 +870,7 @@ class Analysis1(WafflesAnalysis):
                 adc_range_above_baseline=10,
                 adc_range_below_baseline=80,
                 detailed_label=True,
-                verbose=True,
+                verbose=self.params.verbose
             )
 
             persistence_figure.update_layout(
