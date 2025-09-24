@@ -609,7 +609,7 @@ class Analysis1(WafflesAnalysis):
                         end=''
                     )
 
-                len_before_cut = len(
+                len_before_fine_selection = len(
                     self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
                 )
 
@@ -631,13 +631,13 @@ class Analysis1(WafflesAnalysis):
                     ChannelWs(*aux.waveforms)
 
 
-                len_after_cut = len(
+                len_after_fine_selection = len(
                     self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
                 )
 
                 if self.params.verbose:
                     print(
-                        f"Kept {100.*(len_after_cut/len_before_cut):.2f}%"
+                        f"Kept {100.*(len_after_fine_selection/len_before_fine_selection):.2f}%"
                         " of the waveforms"
                     )
                     print(
