@@ -20,5 +20,6 @@ from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_ChannelWsGrid
 from waffles.utils.baseline.baseline_utils import subtract_baseline
 from waffles.utils.filtering_utils import fine_selection_for_led_calibration
+from waffles.utils.filtering_utils import coarse_selection_for_led_calibration
 from waffles.utils.integral.integral_utils import get_pulse_window_limits
 from waffles.plotting.plot import plot_ChannelWsGrid

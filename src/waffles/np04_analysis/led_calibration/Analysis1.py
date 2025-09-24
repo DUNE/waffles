@@ -115,15 +115,32 @@ class Analysis1(WafflesAnalysis):
                 "of the selected ADC samples",
             )
 
-            baseline_i_up: int = Field(
+            lower_limit_wrt_baseline: float = Field(
                 ...,
-                description="ADCs-array iterator value for the "
-                "upper limit of the window which is considered "
-                "to be the baseline region. If the waveform "
-                "deviates from the baseline by more than "
-                "a certain amount in this region, it will be "
-                "excluded from the analysis.",
-                example=100
+                description="It is used for the coarse selection "
+                "cut. Its absolute value is the allowed margin for "
+                "the waveform adcs below its baseline.",
+                example=-200.
+            )
+
+            upper_limit_wrt_baseline: float = Field(
+                ...,
+                description="It is used for the coarse selection "
+                "cut. Its absolute value is the allowed margin for "
+                "the waveform adcs above its baseline.",
+                example=40.
+            )
+
+            baseline_i_up: dict[int, int] = Field(
+                ...,
+                description="A dictionary whose keys refer to "
+                "the APA number, and its values are the "
+                "ADCs-array iterator value for the upper limit "
+                "of the window which is considered to be the "
+                "baseline region. If the waveform deviates from "
+                "the baseline by more than a certain amount in "
+                "this region, it will be excluded from the analysis.",
+                example={1: 575, 2: 120, 3: 120, 4: 120}
             )
 
             signal_i_up: int = Field(
@@ -460,16 +477,18 @@ class Analysis1(WafflesAnalysis):
         steps:
 
         1. Compute the baseline of each waveform
-        2. Compute the average baseline STD for each channel
-        3. Apply a selection cut to each channel, based on
+        2. Apply a coarse selection cut to the whole waveform
+        set based on their maximum deviation from the baseline
+        3. Compute the average baseline STD for each channel
+        4. Apply a selection cut to each channel, based on
         its average baseline STD
-        4. Subtract the baseline from each waveform and
+        5. Subtract the baseline from each waveform and
         compute the average waveform of each channel
-        5. Compute the integration window for each channel
+        6. Compute the integration window for each channel
         and integrate the waveforms
-        6. Compute the calibration histogram for each channel
+        7. Compute the calibration histogram for each channel
         and fit the first N peaks
-        7. Out of the fit parameters, compute the gain and
+        8. Out of the fit parameters, compute the gain and
         S/N for each channel
         
         Returns
@@ -522,6 +541,34 @@ class Analysis1(WafflesAnalysis):
             {'baseline': 0.},
             overwrite=True
         )
+
+        if self.params.verbose:
+            print(
+                "In function Analysis1.analyze(): "
+                "Applying the coarse selection cut on  "
+                "the merged WaveformSet for batch "
+                f"{self.batch}, APA {self.apa}, and PDE "
+                f"{self.pde} ... ",
+                end=''
+            )
+
+        len_before_coarse_selection = len(self.wfset.waveforms)
+
+        self.wfset = WaveformSet.from_filtered_WaveformSet(
+            self.wfset,
+            coarse_selection_for_led_calibration,
+            self.params.baseline_analysis_label,
+            self.params.lower_limit_wrt_baseline,
+            self.params.upper_limit_wrt_baseline
+        )
+
+        len_after_coarse_selection = len(self.wfset.waveforms)
+
+        if self.params.verbose:
+            print(
+                f"Kept {100.*(len_after_coarse_selection/len_before_coarse_selection):.2f}%"
+                " of the waveforms"
+            )
 
         # Separate the WaveformSet into a grid of WaveformSets,
         # so that each WaveformSet contains all of the waveforms
