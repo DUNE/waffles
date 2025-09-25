@@ -16,9 +16,9 @@ plt.rcParams.update({'font.size': 16,
                         })
 
 
-def create_df(runs=[], blacklist=[], datadir="/afs/cern.ch/work/h/hvieirad/public/np02_light_response_data"):
+def create_df(runs=[], datadir="/afs/cern.ch/work/f/fraleman/public/np02_light_response_data", blacklist=[]):
     if not runs:
-        foundfiles = glob(f"{datadir}/pe_info_cathode_run*.csv")
+        foundfiles = glob(f"{datadir}/pe_info_*_run*.csv")
         runs = [int(os.path.basename(f).split('_run')[1].split('.csv')[0]) for f in foundfiles]
 
     #load the csv file from public directory and create the pandas DataFrame
@@ -46,7 +46,7 @@ def create_df(runs=[], blacklist=[], datadir="/afs/cern.ch/work/h/hvieirad/publi
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--runs", type=int, nargs='+', default=[], help="List of run numbers to process")
-    parser.add_argument("--datadir", type=str, default="/afs/cern.ch/work/h/hvieirad/public/np02_light_response_data", help="Directory containing the data files")
+    parser.add_argument("--datadir", type=str, default="/afs/cern.ch/work/f/fraleman/public/np02_light_response_data", help="Directory containing the data files")
     parser.add_argument("--blacklist", type=int, nargs='+', default=[], help="List of run numbers to exclude")
     args = parser.parse_args()
     runs = args.runs
