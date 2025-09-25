@@ -1,4 +1,5 @@
 # --- IMPORTS -------------------------------------------------------
+from pandas._libs.hashtable import mode
 import waffles
 import waffles.Exceptions as exceptions
 import os

@@ -80,9 +80,10 @@ class ChannelWs(WaveformSet):
             This parameter only makes a difference if
             'compute_calib_histo' is set to True.
             If so, this parameter must be defined,
-            and it is given to the 'variable' positional
-            argument of the CalibrationHistogram.from_WaveformSet
-            class method. For each Waveform object within
+            and it is eventually given to the 'variable'
+            positional argument of the
+            CalibrationHistogram.from_WaveformSet class
+            method. For each Waveform object within
             this ChannelWs, this parameter gives the key
             for the considered WfAna object (up to the
             analysis_label input parameter) from where
@@ -132,12 +133,12 @@ class ChannelWs(WaveformSet):
                     'The domain must be provided if the '
                     'calibration histogram is to be computed.'))
 
-            self.__calib_histo = CalibrationHistogram.from_WaveformSet(
-                self,
+            self.compute_calib_histo(
                 bins_number,
                 domain,
                 variable,
-                analysis_label=analysis_label)
+                analysis_label=analysis_label
+            )
 
     # Getters
     @property
@@ -188,4 +189,70 @@ class ChannelWs(WaveformSet):
         self.__endpoint = endpoint
         self.__channel = channel
 
+        return
+    
+    def compute_calib_histo(
+        self,
+        bins_number: int,
+        domain: np.ndarray,
+        variable: str,
+        analysis_label: Optional[str] = None
+    ) -> None:
+        """This method computes the calibration histogram for
+        this ChannelWs object.
+        
+        Parameters
+        ----------
+        bins_number: int
+            The number of bins that the calibration histogram
+            will have. It must be greater than 1.
+        domain: np.ndarray
+            A 2x1 numpy array where (domain[0], domain[1])
+            gives the range to consider for the
+            calibration histogram. Any sample which falls
+            outside this range is ignored.
+        variable: str
+            It is given to the 'variable' positional
+            argument of the CalibrationHistogram.from_WaveformSet
+            class method. For each Waveform object within
+            this ChannelWs, this parameter gives the key
+            for the considered WfAna object (up to the
+            analysis_label input parameter) from where
+            to take the sample to add to the computed
+            calibration histogram. Namely, for a WfAna
+            object x, x.result[variable] is the considered
+            sample. It is the caller's responsibility to
+            ensure that the values for the given variable
+            (key) are scalars, i.e. that they are valid
+            samples for a 1D histogram.
+        analysis_label: str
+            For each Waveform object in this ChannelWs,
+            this parameter gives the key for the WfAna
+            object within the analyses attribute from
+            where to take the sample to add to the
+            calibration histogram. If 'analysis_label'
+            is None, then the last analysis added to the
+            analyses attribute will be the used one. If
+            there is not even one analysis, then an
+            exception will be raised.
+
+        Returns
+        ----------
+        None
+        """
+
+        # One could have the code below called directly from the
+        # __init__() method. However, it is convenient to have this
+        # wrapper method (and optionally call it from the __init__()
+        # method) for cases when one needs to recompute the calibration
+        # histogram, or when the calibration histogram cannot be
+        # computed at the moment of the ChannelWs object creation.
+
+        self.__calib_histo = CalibrationHistogram.from_WaveformSet(
+            self,
+            bins_number,
+            domain,
+            variable,
+            analysis_label=analysis_label)
+        
         return

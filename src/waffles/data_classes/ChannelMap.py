@@ -24,7 +24,7 @@ class ChannelMap(Map):
         self, 
         rows: int,
         columns: int,
-        data: List[List[UniqueChannel]]
+        data: List[List[UniqueChannel]] = []
     ):
         """ChannelMap class initializer
 
@@ -42,7 +42,7 @@ class ChannelMap(Map):
 
         # Shall we add type checks here?
 
-        if data is None:
+        if not data:
             raise Exception(GenerateExceptionMessage(
                 1,
                 'ChannelMap.__init__()',

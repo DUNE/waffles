@@ -5,6 +5,8 @@
     "ch": {
     },
     "save_single_file": false,
-    "max_files":4,
-    "det": "VD_Membrane_PDS"
+    "max_files": 4,
+    "det": "VD_Cathode_PDS",
+    "trigger": "self_trigger",
+    "truncate_wfs_method": "choose" 
 }
