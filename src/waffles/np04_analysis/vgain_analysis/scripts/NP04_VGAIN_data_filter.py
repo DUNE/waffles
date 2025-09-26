@@ -3,6 +3,7 @@
 # generate 4 pickle files or 4 sets of binary files for the corresponding VGAIN point
 
 print('importing waffles: waffles.input.raw_hdf5_reader')
+import argparse
 import time
 from waffles.input_output.raw_hdf5_reader import *
 import waffles.input_output.raw_hdf5_reader as reader
@@ -15,6 +16,7 @@ import pandas as pd
 import ast
 from itertools import chain
 from collections import defaultdict
+from waffles.np04_analysis.vgain_analysis.scripts.rucioHandler import *
 import pdb
 import json
 
@@ -31,27 +33,51 @@ def getRunsFromCSV(file_path):
 #################################################################
 ### HARD CODE HERE ##############################################
 
+parser = argparse.ArgumentParser(description="NP04 Filter app.")
+parser.add_argument("-vgain", type=int, required=True, help="Vgain of the dataset to retrieve.")
+# parser.add_argument("-destination_folder", type=str, required=True, help="Location to save procesed data.")
+# parser.add_argument("-run_numbers_error_list", type=str, required=True, help="Error file.")
+# parser.add_argument("-local_rucio_txt_files", type=str, required=True, help="Txt location for rucio.")
+# parser.add_argument("-local_temp_hdf5_files", type=str, required=True, help="Temporal storage location of downloaded HDF5 files.")
+# # Parse arguments
+args = parser.parse_args()
+
+
 save_pickle = True
-save_binary = True
+save_binary = False
 
 folder_with_file_locations = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/"
 destination_folder = "/afs/cern.ch/work/e/ecristal/"
+#destination_folder = args.destination_folder
 csv_database = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/vgain_top_level.csv"
+run_error_database = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/run_numbers_with_errors.csv"
 csv_channels_per_run = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/vgain_channels.csv"
-run_numbers_error_list = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/output/vgain_scans_mapping_runs_error_list.txt"
+run_numbers_error_list = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/output/vgain_scans_mapping_runs_error_list_r3.txt"
+#run_numbers_error_list = args.run_numbers_error_list
+local_rucio_txt_files_folder = f'/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/data/rucio_txt_files_{args.vgain}' 
+local_temp_hdf5_files = f'/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/data/temp_hdf5_files_{args.vgain}'
+#local_rucio_txt_files_folder = args.local_rucio_txt_files
+#local_temp_hdf5_files = args.local_temp_hdf5_files
+#Rucio handler for downloads
+rh = RucioHandler(data_folder=local_temp_hdf5_files,txt_folder=local_rucio_txt_files_folder,max_files=10)
 #runs_to_convert = getRunsFromCSV(csv_database)
 # runs_to_convert must be changed to the column runs of the table vgain_top_level.csv.
-
-vgain_skip_list = []
-run_number_skip_list = []
+rh.setup_rucio_1()
+rh.setup_rucio_2()
 
 run_database = pd.read_csv(csv_database)
 ch_per_run_database = pd.read_csv(csv_channels_per_run)
 
+run_error_database = pd.read_csv(run_error_database)
+
 runs_to_convert = run_database["run"]
+runs_with_errors = run_error_database["run"]
 led_intensity = run_database["intensity"]
 vgain = run_database["vgain"]
 ov = run_database["ov"]
+
+vgain_skip_list = []
+run_number_skip_list = runs_to_convert[~runs_to_convert.isin(runs_with_errors)].tolist()
 
 runs_ch_list = ch_per_run_database["run"]
 channels_list_per_run = ch_per_run_database["channels"]
@@ -90,6 +116,7 @@ ov_string_dict = {
 # the for each overvoltage is endpoint
 
 unique_vgain = np.unique(vgain)
+unique_vgain = unique_vgain[unique_vgain == args.vgain]
 unique_ov = np.unique(ov)
 iteration_dict = defaultdict(dict)
 for vgain_value in unique_vgain:
@@ -348,9 +375,10 @@ for vgain_index, vgain_value in enumerate(iteration_dict.keys()):
             try:
                 run_folder = ov_folder + '/run_' + str(run_value)
                 os.makedirs(run_folder, exist_ok=True)
-                rucio_path = filepaths_dict[run_value]
-                print(rucio_path)
-                file_to_read = reader.get_filepaths_from_rucio(rucio_path)
+                #rucio_path = filepaths_dict[run_value]
+                #print(rucio_path)
+                #file_to_read = reader.get_filepaths_from_rucio(rucio_path)
+                file_to_read = rh.download_data_from_rucio(run_number=run_value)
                 wfset = getWfsetFromFile(file_to_read[0])
                 run_endpoints = wfset.get_set_of_endpoints()
                 channels_to_save = channels_by_run_dict[run_value]
@@ -361,7 +389,7 @@ for vgain_index, vgain_value in enumerate(iteration_dict.keys()):
                 print(f"Error en procesamiento de los datos:\n {e}")
                 print(traceback.format_exc())
                 with open(run_numbers_error_list, 'a') as error_file:
-                    error_file.write(rucio_path + '\n')
+                    error_file.write(f'Error in run number: {run_value}')
                 error_file.close()
                 continue
             endpoint_dict = defaultdict(dict)
@@ -373,6 +401,7 @@ for vgain_index, vgain_value in enumerate(iteration_dict.keys()):
             ov_dict[ov_string_dict[ov_value]][run_value] = endpoint_dict
             saveWaveDict(endpoint_wf_dict, save_pickle, save_binary, run_folder, channels_to_save_dict, channels_dict_inv,
                          channels_dict)
+            rh.clean_downloads()
     export_dict['METADATA'] = ov_dict
     with open(vgain_folder_name + '/export.json', 'w') as export_file:
         json.dump(sanitize_data(export_dict), export_file, indent=4)
