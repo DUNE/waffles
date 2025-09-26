@@ -63,15 +63,6 @@ class Analysis1(WafflesAnalysis):
                 example='./configs/excluded_channels_database.csv'
             )
 
-            excluded_channels_filepath: str = Field(
-                ...,
-                description="Path to a CSV file which lists "
-                "the channels which should be excluded from "
-                "the calibration for each combination of "
-                "batch number, APA number and PDE",
-                example='./configs/excluded_channels_database.csv'
-            )
-
             show_figures: bool = Field(
                 default=False,
                 description="Whether to show the produced "
