@@ -594,7 +594,7 @@ class Analysis1(WafflesAnalysis):
                         end=''
                     )
 
-                average_baseline_std = led_utils.get_average_baseline_std(
+                average_baseline_std = led_utils.compute_average_baseline_std(
                     self.grid_apa.ch_wf_sets[endpoint][channel],
                     self.params.baseline_analysis_label
                 )
