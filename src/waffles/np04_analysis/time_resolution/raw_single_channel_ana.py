@@ -1,5 +1,6 @@
 from pandas.core import base
-from imports import *
+from waffles.np04_utils.utils import get_np04_channel_mapping
+from waffles.np04_analysis.time_resolution.imports import *
 
 
 # --- MAIN ----------------------------------------------------------
@@ -13,8 +14,8 @@ if __name__ == "__main__":
     ana_folder = config_variables.get("ana_folder")
     raw_ana_folder = ana_folder+config_variables.get("raw_ana_folder")
     # channel_map_file = config_variables.get("channel_map_file")
-    new_channel_map_file = config_variables.get("new_channel_map_file")
-    mapping_df = pd.read_csv("configs/"+new_channel_map_file, sep=",")
+    # new_channel_map_file = config_variables.get("new_channel_map_file")
+    mapping_df = get_np04_channel_mapping(version="new")
     new_daphne_channels = mapping_df['daphne_ch'].values + 100*mapping_df['endpoint'].values
     new_daphne_to_offline = dict(zip(new_daphne_channels, mapping_df['offline_ch']))
     

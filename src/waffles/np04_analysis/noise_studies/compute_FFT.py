@@ -6,7 +6,8 @@ import os
 import yaml
 import numpy as np
 import pandas as pd
-import noisy_function as nf
+import waffles.np04_analysis.noise_studies.noisy_function as nf
+from waffles.np04_utils.utils import get_np04_channel_mapping
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
@@ -19,8 +20,6 @@ if __name__ == "__main__":
     filepath_folder  = run_info.get("filepath_folder")
     fft_folder = run_info.get("fft_folder")
     run_vgain_dict   = run_info.get("run_vgain_dict", {})
-    channel_map_file = run_info.get("channel_map_file")
-    new_channel_map_file = run_info.get("new_channel_map_file")
     all_noise_runs   = list(run_vgain_dict.keys())
     integratorsON_runs = run_info.get("integratorsON_runs", [])
     fullstreaming_runs = run_info.get("fullstreaming_runs", []) 
@@ -47,12 +46,12 @@ if __name__ == "__main__":
             exit()
 
     # Read the channel map file (daphne ch <-> offline ch)
-    df = pd.read_csv("configs/"+channel_map_file, sep=",")
-    daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
+    df = get_np04_channel_mapping(version="old")
+    daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
     daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
     offline_to_sipm_dict = dict(zip(df['offline_ch'], df['sipm']))
-    df = pd.read_csv("configs/"+new_channel_map_file, sep=",")
-    new_daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
+    df = get_np04_channel_mapping(version="new")
+    new_daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
     new_daphne_to_offline = dict(zip(new_daphne_channels, df['offline_ch']))
 
 
@@ -129,7 +128,7 @@ if __name__ == "__main__":
                 sipm = str(offline_to_sipm_dict[offline_ch])
                 
                 if debug_mode:
-                    nf.plot_heatmaps(wfset_ch, "raw", run, vgain, channel, offline_ch)
+                    nf.plot_heatmaps(wfset_ch, "raw", run, vgain, int(channel), offline_ch)
                     print("done")
 
                 nf.create_float_waveforms(wfset_ch)
@@ -175,7 +174,7 @@ if __name__ == "__main__":
 
                
                 if debug_mode:
-                    nf.plot_heatmaps(wfset_ch, "baseline_removed", run, vgain, channel, offline_ch)
+                    nf.plot_heatmaps(wfset_ch, "baseline_removed", run, vgain, int(channel), offline_ch)
                     print("done")
 
                 del wfset_ch
