@@ -213,6 +213,39 @@ class Analysis1(WafflesAnalysis):
                 "histogram",
             )
 
+            gain_seeds_filepath: str | None = Field(
+                default=None,
+                description="If None, the number of bins and the "
+                "domain of the charge calibration histogram are computed "
+                "out of the calib_histo_bin_width, calib_histo_lower_limit "
+                "and calib_histo_upper_limit input parameters. If it is "
+                "defined, then it should give the path to a CSV file which "
+                "contains, at least, the following columns: 'batch', 'APA', "
+                "'PDE', 'endpoint', 'channel' and 'gain'. The channel-wise "
+                "gain read from such file is used to compute a channel-wise "
+                "domain for the charge calibration histograms.",
+                example='./configs/gain_seeds.csv'
+            )
+
+            bins_per_charge_peak: int = Field(
+                default=7,
+                description="Used only if the gain_seeds_filepath parameter "
+                "is defined. In that case, the calibration histogram (CH) "
+                "domain is automatically set to [-1.*gain_seed, 5.*gain_seed], "
+                "and the number of bins in the CH is computed as the domain "
+                "width (i.e. 6.*gain_seed) multiplied by this parameter."
+            )
+
+            average_fallback: bool = Field(
+                default=True,
+                description="Used only if the gain_seeds_filepath parameter "
+                "is defined. In that case, and if the given CSV lacks the "
+                "gain-seed information for one or more of the required "
+                "channels, then the domain (for the calibration histogram) "
+                "for the lacking channels is set to the average domain of "
+                "all of the other channels."
+            )
+
             max_peaks: int = Field(
                 ...,
                 description="Maximum number of peaks to fit in "
@@ -704,6 +737,41 @@ class Analysis1(WafflesAnalysis):
                 if self.params.verbose:
                     print("Finished.")
 
+        if self.params.gain_seeds_filepath is None:
+            bins_number = round(
+                (
+                    self.params.calib_histo_upper_limit - \
+                    self.params.calib_histo_lower_limit
+                ) / self.params.calib_histo_bin_width[self.pde]
+            )
+
+            domain = np.array(
+                (
+                    self.params.calib_histo_lower_limit,
+                    self.params.calib_histo_upper_limit
+                )
+            )
+        else:
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.analyze(): "
+                    "Computing channel-wise number of bins "
+                    "and domain (for the calibration histograms)"
+                    " out of the gain seeds in file "
+                    f"{self.params.gain_seeds_filepath}"
+                )
+
+            bins_number, domain = led_utils.get_nbins_and_channel_wise_domain(
+                self.batch,
+                self.apa,
+                self.pde,
+                self.params.gain_seeds_filepath,
+                self.params.bins_per_charge_peak,
+                -1.,
+                5.,
+                verbose=self.params.verbose
+            )
+
         if self.params.verbose:
             print(
                 "In function Analysis1.analyze(): "
@@ -715,20 +783,11 @@ class Analysis1(WafflesAnalysis):
             )
 
         self.grid_apa.compute_calib_histos(
-            round(
-                (
-                    self.params.calib_histo_upper_limit - \
-                    self.params.calib_histo_lower_limit
-                ) / self.params.calib_histo_bin_width[self.pde]
-            ),
-            domain=np.array(
-                (
-                    self.params.calib_histo_lower_limit,
-                    self.params.calib_histo_upper_limit
-                )
-            ),
+            bins_number=bins_number,
+            domain=domain,
             variable='integral',
             analysis_label=self.params.integration_analysis_label,
+            average_fallback=self.params.average_fallback,
             verbose=self.params.verbose
         )
 
@@ -748,7 +807,6 @@ class Analysis1(WafflesAnalysis):
 
         if self.params.verbose:
             print("Finished.")
-
 
         if self.params.verbose:
             print(
