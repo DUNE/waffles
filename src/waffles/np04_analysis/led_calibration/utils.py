@@ -283,10 +283,14 @@ def get_gain_and_snr(
                 )
                 if reset_excluded_channels:
                     try:
-                        grid_apa.ch_wf_sets[endpoint][channel].\
-                            calib_histo._CalibrationHistogram__reset_gaussian_fit_parameters()
+                        calibration_histogram = \
+                            grid_apa.ch_wf_sets[endpoint][channel].calib_histo
                     except KeyError:
-                        pass
+                        continue
+
+                    if calibration_histogram is not None:
+                        calibration_histogram._CalibrationHistogram__reset_gaussian_fit_parameters()
+
                 continue
 
             try:
