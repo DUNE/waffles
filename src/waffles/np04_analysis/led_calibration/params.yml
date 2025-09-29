@@ -117,8 +117,8 @@ calib_histo_upper_limit: 50000.
 # then it should give the path to a CSV file which contains,
 # at least, the following columns: 'batch', 'APA', 'PDE',
 # 'endpoint', 'channel' and 'gain'. The channel-wise gain
-# read from such file is used to compute a channel-wise number
-# of bins and domain for the charge calibration histograms.
+# read from such file is used to compute a channel-wise domain
+# for the charge calibration histograms.
 gain_seeds_filepath: './configs/gain_seeds.csv'
 
 # Used only if the gain_seeds_filepath parameter is defined.
@@ -183,7 +183,7 @@ std_increment_seed_fallback: 100.
 # (resp. plus) this fraction of the full range of the
 # calibration histogram. For 50% (resp. 40%) PDE, this value
 # should not be greater than 0.05 (resp. 0.04).
-ch_span_fraction_around_peaks: 0.03
+ch_span_fraction_around_peaks: 0.06
 
 # Whether to save the persistence heatmaps of the
 # integrated waveforms or not
