@@ -95,6 +95,7 @@ upper_limit_correction: 0
 integration_analysis_label: 'integrator'
 
 ## Parameters for the calibration histogram
+# Used if gain_seeds_filepath is None
 # Bins width in the calibration histogram for each PDE
 calib_histo_bin_width:
     0.4:
@@ -104,9 +105,36 @@ calib_histo_bin_width:
     0.50:
         667.
 
+# Used if gain_seeds_filepath is None
 # Lower and upper limits for the calibration histogram
 calib_histo_lower_limit: -10000.
 calib_histo_upper_limit: 50000.
+
+# If None, the number of bins and the domain of the charge
+# calibration histogram are computed out of the
+# calib_histo_bin_width, calib_histo_lower_limit and
+# calib_histo_upper_limit input parameters. If it is defined,
+# then it should give the path to a CSV file which contains,
+# at least, the following columns: 'batch', 'APA', 'PDE',
+# 'endpoint', 'channel' and 'gain'. The channel-wise gain
+# read from such file is used to compute a channel-wise number
+# of bins and domain for the charge calibration histograms.
+gain_seeds_filepath: './configs/gain_seeds.csv'
+
+# Used only if the gain_seeds_filepath parameter is defined.
+# In that case, the calibration histogram (CH) domain is
+# automatically set to [-1.*gain_seed, 5.*gain_seed], and
+# the number of bins in the CH is computed as the domain 
+# width (i.e. 6.*gain_seed) multiplied by this parameter.
+bins_per_charge_peak: 7
+
+# Used only if the gain_seeds_filepath parameter
+# is defined. In that case, and if the given CSV lacks the
+# gain-seed information for one or more of the required
+# channels, then the domain (for the calibration histogram)
+# for the lacking channels is set to the average domain of
+# all of the other channels.
+average_fallback: true
 
 ## Parameters for peak fitting
 # Maximum number of peaks to fit
