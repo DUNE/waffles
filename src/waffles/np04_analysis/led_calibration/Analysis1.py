@@ -193,11 +193,11 @@ class Analysis1(WafflesAnalysis):
                 description="Label for the integration analysis",
             )
 
-            calib_histo_bins_number: dict[float, int] = Field(
+            calib_histo_bin_width: dict[float, float] = Field(
                 ...,
-                description="Number of bins in the calibration "
+                description="Bin width in the calibration "
                 "histogram for each PDE. The keys are the "
-                "PDEs, and the values are the number of bins "
+                "PDEs, and the values are the bins width "
                 "in the calibration histogram."
             )
 
@@ -715,7 +715,12 @@ class Analysis1(WafflesAnalysis):
             )
 
         self.grid_apa.compute_calib_histos(
-            self.params.calib_histo_bins_number[self.pde],
+            round(
+                (
+                    self.params.calib_histo_upper_limit - \
+                    self.params.calib_histo_lower_limit
+                ) / self.params.calib_histo_bin_width[self.pde]
+            ),
             domain=np.array(
                 (
                     self.params.calib_histo_lower_limit,

@@ -95,14 +95,14 @@ upper_limit_correction: 0
 integration_analysis_label: 'integrator'
 
 ## Parameters for the calibration histogram
-# Number of bins in the calibration histogram for each PDE
-calib_histo_bins_number: 
+# Bins width in the calibration histogram for each PDE
+calib_histo_bin_width:
     0.4:
-        125
+        480.
     0.45:
-        105
+        571.
     0.50:
-        90
+        667.
 
 # Lower and upper limits for the calibration histogram
 calib_histo_lower_limit: -10000.
