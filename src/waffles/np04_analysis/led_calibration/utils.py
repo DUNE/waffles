@@ -603,3 +603,152 @@ def next_subsample(
         # still proposed_subsample = 1
 
         return proposed_subsample
+    
+def get_nbins_and_channel_wise_domain(
+    batch: int,
+    apa: int,
+    pde: float,
+    gain_seeds_filepath: str,
+    bins_per_charge_peak: int,
+    domain_ll_in_gain_seeds: float = -1.,
+    domain_ul_in_gain_seeds: float = 5.,
+    verbose: bool = True
+) -> tuple[dict, dict]:
+    """This function reads the gain seeds, for the specified
+    batch and PDE, from the given CSV file and computes the
+    number of bins and domain for the charge calibration
+    histograms for each channel of the specified APA which
+    appear in the gain seeds file.
+
+    Parameters
+    ----------
+    batch: int
+        The batch number to look for
+    apa: int
+        The APA number to look for
+    pde: float
+        The PDE (Photon Detection Efficiency) value
+        to look for
+    gain_seeds_filepath: str
+        The path to the CSV file which must contain, at
+        least, the following columns:
+            - 'batch'
+            - 'APA'
+            - 'PDE'
+            - 'endpoint'
+            - 'channel'
+            - 'gain'
+        The 'gain' column contains the gain seeds for
+        the charge calibration histograms.
+    bins_per_charge_peak: int
+        The number of bins per charge peak to use when
+        computing the number of bins. It is assumed
+        that the gain seed is a good estimate of the
+        width (i.e. valley to valley distance) of each
+        charge peak.
+    domain_ll_in_gain_seeds: float
+        The lower limit of the domain, in units of the
+        gain seed, to use when computing the domain
+    domain_ul_in_gain_seeds: float
+        The upper limit of the domain, in units of the
+        gain seed, to use when computing the domain
+    verbose: bool
+        Whether to print functioning related messages
+
+    Returns
+    -------
+    nbins: int
+        The number of bins to use for the charge calibration
+        histogram of every channel. It is computed as
+        round(
+            bins_per_charge_peak * \
+                (domain_ul_in_gain_seeds - domain_ll_in_gain_seeds)
+        )
+    domain: Dict[int, Dict[int, np.ndarray]]
+        A dictionary where the keys are endpoint numbers
+        and the values are dictionaries where the keys
+        are channel numbers and the values are 2x1 numpy
+        arrays where (domain[0], domain[1]) gives the
+        range to consider for the charge calibration
+        histogram.
+    """
+
+    if verbose:
+        print(
+            "In function get_nbins_and_channel_wise_domain(): "
+            f"Reading gain seeds from {gain_seeds_filepath}"
+        )
+
+    try:
+        df = pd.read_csv(gain_seeds_filepath)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"In function get_nbins_and_channel_wise_domain(): "
+            f"The file {gain_seeds_filepath} was not found."
+        )
+    
+    required_columns = [
+        'batch',
+        'APA',
+        'PDE',
+        'endpoint',
+        'channel',
+        'gain'
+    ]
+
+    for col in required_columns:
+        if col not in df.columns:
+            raise Exception(
+                f"In function get_nbins_and_channel_wise_domain(): "
+                f"The column '{col}' was not found in the given "
+                f"gain seeds file, {gain_seeds_filepath}. "
+                f"Make sure that the file contains at least the "
+                f"following columns: {required_columns}."
+            )
+        
+    # Filter the dataframe by the given batch, APA and PDE
+    df = df[
+        (df['batch'] == batch) &
+        (df['APA'] == apa) &
+        (df['PDE'] == pde)
+    ]
+
+    if df.empty:
+        raise Exception(
+            f"In function get_nbins_and_channel_wise_domain(): "
+            f"No entries were found in the given gain seeds file, "
+            f"{gain_seeds_filepath}, for batch {batch}, APA {apa} "
+            f"and PDE {pde}."
+        )
+    
+    domain = {}
+
+    for _, row in df.iterrows():
+        endpoint = int(row['endpoint'])
+        channel = int(row['channel'])
+        gain_seed = float(row['gain'])
+
+        if endpoint not in domain.keys():
+            domain[endpoint] = {}
+
+        if channel in domain[endpoint].keys():
+            raise Exception(
+                "In function get_nbins_and_channel_wise_domain(): "
+                f"Duplicate entry for channel {endpoint}-{channel} "
+                f"found in the given gain seeds file, {gain_seeds_filepath},"
+                f" for batch {batch}, APA {apa} and PDE {pde}. Each "
+                "endpoint-channel pair should appear only once."
+            )
+
+        domain[endpoint][channel] = np.array([
+            domain_ll_in_gain_seeds * gain_seed,
+            domain_ul_in_gain_seeds * gain_seed
+        ])
+
+    nbins = round(
+        bins_per_charge_peak * (
+            domain_ul_in_gain_seeds - domain_ll_in_gain_seeds
+        )
+    )
+
+    return nbins, domain
