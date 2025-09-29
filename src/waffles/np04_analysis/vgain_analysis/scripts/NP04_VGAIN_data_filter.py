@@ -35,10 +35,10 @@ def getRunsFromCSV(file_path):
 
 parser = argparse.ArgumentParser(description="NP04 Filter app.")
 parser.add_argument("-vgain", type=int, required=True, help="Vgain of the dataset to retrieve.")
-# parser.add_argument("-destination_folder", type=str, required=True, help="Location to save procesed data.")
-# parser.add_argument("-run_numbers_error_list", type=str, required=True, help="Error file.")
-# parser.add_argument("-local_rucio_txt_files", type=str, required=True, help="Txt location for rucio.")
-# parser.add_argument("-local_temp_hdf5_files", type=str, required=True, help="Temporal storage location of downloaded HDF5 files.")
+parser.add_argument("-destination_folder", type=str, required=True, help="Location to save procesed data.")
+parser.add_argument("-error_file_name", type=str, required=True, help="Error file name.")
+parser.add_argument("-temp_data_folder", type=str, required=True, help="Directory location for temporal files.")
+#parser.add_argument("-local_temp_hdf5_folder", type=str, required=True, help="Temporal storage location of downloaded HDF5 files.")
 # # Parse arguments
 args = parser.parse_args()
 
@@ -46,16 +46,16 @@ args = parser.parse_args()
 save_pickle = True
 save_binary = False
 
-folder_with_file_locations = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/"
-destination_folder = "/afs/cern.ch/work/e/ecristal/"
-#destination_folder = args.destination_folder
-csv_database = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/vgain_top_level.csv"
-run_error_database = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/run_numbers_with_errors.csv"
-csv_channels_per_run = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/configs/vgain_channels.csv"
-run_numbers_error_list = "/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/output/vgain_scans_mapping_runs_error_list_r3.txt"
+# folder_with_file_locations = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/"
+# destination_folder = "/afs/cern.ch/work/e/ecristal/"
+destination_folder = args.destination_folder
+csv_database = "../configs/vgain_top_level.csv"
+run_error_database = "../configs/run_numbers_with_errors.csv"
+csv_channels_per_run = "../configs/vgain_channels.csv"
+run_numbers_error_list = f"../output/{args.error_file_name}_error.txt"
 #run_numbers_error_list = args.run_numbers_error_list
-local_rucio_txt_files_folder = f'/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/data/rucio_txt_files_{args.vgain}' 
-local_temp_hdf5_files = f'/afs/cern.ch/work/e/ecristal/daphne/waffles/src/waffles/np04_analysis/vgain_analysis/data/temp_hdf5_files_{args.vgain}'
+local_rucio_txt_files_folder = f'{args.temp_data_folder}/rucio_txt_files_{args.vgain}' 
+local_temp_hdf5_files = f'{args.temp_data_folder}/temp_hdf5_files_{args.vgain}'
 #local_rucio_txt_files_folder = args.local_rucio_txt_files
 #local_temp_hdf5_files = args.local_temp_hdf5_files
 #Rucio handler for downloads
@@ -88,12 +88,12 @@ channels_list_per_run = ch_per_run_database["channels"]
 #                     30, 31, 32, 33, 34, 35, 36, 37,
 #                     40, 41, 42, 43, 44, 45, 46, 47]
 #channels_to_save must be retrieved from the vgain_channels.csv table
-rucio_filepaths = [folder_with_file_locations + "0" + str(run) + ".txt" for run in
-                   runs_to_convert]
+# rucio_filepaths = [folder_with_file_locations + "0" + str(run) + ".txt" for run in
+#                    runs_to_convert]
 
-filepaths_dict = defaultdict(dict)
-for path_index, path in enumerate(rucio_filepaths):
-    filepaths_dict[runs_to_convert[path_index]] = path
+# filepaths_dict = defaultdict(dict)
+# for path_index, path in enumerate(rucio_filepaths):
+#     filepaths_dict[runs_to_convert[path_index]] = path
 
 channels_by_run_dict = defaultdict(dict)
 for run_index, run_value in enumerate(runs_ch_list):

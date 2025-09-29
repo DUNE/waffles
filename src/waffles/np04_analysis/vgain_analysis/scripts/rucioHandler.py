@@ -39,7 +39,7 @@ class RucioHandler:
         txt_folder: str,
         max_files: int,
         *,
-        waffles_scripts_dir: str = "/afs/cern.ch/work/e/ecristal/daphne/waffles/scripts",
+        waffles_scripts_dir: str = "/home/ecristal/software/DUNE/waffles/scripts",
         log_dir: Optional[str] = None,
         rucio_cmd: str = "rucio",
         replicas_filename_template: str = "0{run}.txt",
