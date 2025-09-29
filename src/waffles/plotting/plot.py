@@ -915,9 +915,9 @@ def plot_CalibrationHistogram(
     row: Optional[int] = None,
     col: Optional[int] = None,
     plot_fits: bool = False,
+    plot_sum_of_gaussians: bool = False,
     fit_npoints: int = 200,
-    showfitlabels: bool = True,
-    plot_sum_of_gaussians: bool = True,
+    showfitlabels: bool = True
 ) -> bool:
     """This function plots the given calibration histogram in 
     the given figure and returns a boolean which is True if 
@@ -1003,10 +1003,11 @@ def plot_CalibrationHistogram(
         fit_x = np.linspace(
             calibration_histogram.edges[0],
             calibration_histogram.edges[-1],
-            num=fit_npoints)
-        multigaussianparams = []
+            num=fit_npoints
+        )
+
         for i in range(len(calibration_histogram.
-                           gaussian_fits_parameters['scale'])):
+                        gaussian_fits_parameters['scale'])):
 
             fPlottedOneFit = True
             
@@ -1018,16 +1019,7 @@ def plot_CalibrationHistogram(
                 gaussian_fits_parameters['mean'][i][0],
                 calibration_histogram.
                 gaussian_fits_parameters['std'][i][0])
-
-            multigaussianparams+= [
-                calibration_histogram.
-                gaussian_fits_parameters['scale'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['mean'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['std'][i][0]
-            ]
-
+            
             fit_trace = pgo.Scatter(
                 x=fit_x,
                 y=fit_y,
@@ -1035,32 +1027,51 @@ def plot_CalibrationHistogram(
                 line=dict(
                     color='red', 
                     width=0.5),
-                name=f"{name} Fit({i})",
+                name=f"{name} (Fit {i})",
                 showlegend=showfitlabels
             )
-
+            
             figure.add_trace(
                 fit_trace,
                 row=row,
                 col=col)
-        if plot_sum_of_gaussians:
-            fit_trace_multi = pgo.Scatter(
-                x=fit_x,
-                y=wun.multigaussplot(   
-                    fit_x,
-                    *multigaussianparams),
-                mode='lines',
-                line=dict(
-                    color='blue', 
-                    width=0.5),
-                name=f"{name} MultiFit",
-                showlegend=showfitlabels
-            )
-            figure.add_trace(
-                fit_trace_multi,
-                row=row,
-                col=col)
 
+        if plot_sum_of_gaussians:
+
+            fit_y = np.zeros(np.shape(fit_x))
+
+            for i in range(len(calibration_histogram.
+                            gaussian_fits_parameters['scale'])):
+
+                fPlottedOneFit = True
+
+                fit_y += wun.gaussian(
+                    fit_x,
+                    calibration_histogram.
+                    gaussian_fits_parameters['scale'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['mean'][i][0],
+                    calibration_histogram.
+                    gaussian_fits_parameters['std'][i][0]
+                )
+
+            if fPlottedOneFit:
+                
+                fit_trace = pgo.Scatter(
+                    x=fit_x,
+                    y=fit_y,
+                    mode='lines',
+                    line=dict(
+                        color='red', 
+                        width=0.5),
+                    name=f"{name} (MultiFit)",
+                    showlegend=showfitlabels
+                )
+                
+                figure.add_trace(
+                    fit_trace,
+                    row=row,
+                    col=col)
             
     return fPlottedOneFit
 
@@ -1161,10 +1172,10 @@ def plot_ChannelWsGrid(
         Check its documentation for more information.
             If it is set to 'calibration', then the
         calibration histogram of each ChannelWs object
-        will be plotted. In this case, the calib_histo
-        attribute of each ChannelWs object must be
-        defined, i.e. it must be different to None.
-        If it is not, then an exception will be raised.
+        will be plotted. In this case, if the
+        calib_histo attribute of a ChannelWs object
+        is not defined, a no-data annotation will be
+        added to the plot.
     wfs_per_axes: int
         If it is None, then every waveform in each
         ChannelWs object will be considered. Otherwise,
@@ -1683,12 +1694,21 @@ def plot_ChannelWsGrid(
                     continue
 
                 if channel_ws.calib_histo is None:
-                    raise Exception(GenerateExceptionMessage( 
-                        3,
-                        'plot_ChannelWsGrid()',
-                        f"In 'calibration' mode, the calib_histo "
-                        "attribute of each considered ChannelWs "
-                        "object must be defined."))
+                    if verbose:
+                        print(
+                            "In function plot_ChannelWsGrid(): "
+                            "The calib_histo attribute of channel "
+                            f"{channel_ws_grid.ch_map.data[i][j].endpoint}-"
+                            f"{channel_ws_grid.ch_map.data[i][j].channel} "
+                            "is not defined. This channel will be skipped."
+                        )
+
+                    wpu.__add_no_data_annotation(
+                        figure_,
+                        i + 1,
+                        j + 1)
+                    
+                    continue
                 
                 aux_name = f"C.H. of channel "
                 f"{channel_ws_grid.ch_map.data[i][j]}"
@@ -1705,14 +1725,16 @@ def plot_ChannelWsGrid(
 
         if verbose:
             if plot_peaks_fits and not fPlottedOneFit:
-                print("In function plot_ChannelWsGrid(): "
-                      "No gaussian fit was found for plotting. "
-                      "You may have forgotten to call the "
-                      "fit_peaks_of_calibration_histograms() "
-                      "method of ChannelWsGrid.")
+                print(
+                    "In function plot_ChannelWsGrid(): "
+                    "No gaussian fit was found for plotting. "
+                    "You may have forgotten to call the "
+                    "fit_peaks_of_calibration_histograms() "
+                    "method of ChannelWsGrid."
+                )
     else:                                                                                                           
         raise Exception(GenerateExceptionMessage( 
-            4,
+            3,
             'plot_ChannelWsGrid()',
             f"The given mode ({mode}) must match "
             "either 'overlay', 'average', 'heatmap'"

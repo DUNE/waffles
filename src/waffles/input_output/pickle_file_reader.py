@@ -25,7 +25,7 @@ def WaveformSet_from_pickle_files(
         files in the given folder.
     filepath_list: list of strings
         This parameter only makes a difference if the
-        'folderpath'parameter is not defined. It is the list
+        'folderpath' parameter is not defined. It is the list
         of paths to the pickle files to be read.
     target_extension: str
         The extension of the files to be read. The candidate
@@ -50,34 +50,44 @@ def WaveformSet_from_pickle_files(
         valid_filepaths = [
             os.path.join(folderpath, filename) 
             for filename in os.listdir(folderpath) 
-            if filename.endswith(target_extension)]
+            if filename.endswith(target_extension)
+        ]
     else:
 
         # Remove possible duplicates
         valid_filepaths = [
             Path(filepath)
             for filepath in set(filepath_list)
-            if filepath.endswith(target_extension)]
+            if filepath.endswith(target_extension)
+        ]
 
     if len(valid_filepaths) == 0:
-        raise Exception(we.GenerateExceptionMessage(
-            2,
-            'WaveformSet_from_pickle_files()',
-            f"No valid pickle files were found in the "
-            "given folder or filepath list."))
+        raise Exception(
+            we.GenerateExceptionMessage(
+                2,
+                'WaveformSet_from_pickle_files()',
+                f"No valid pickle files were found in the "
+                "given folder or filepath list."
+            )
+        )
 
     if verbose:
 
-        print(f"In function WaveformSet_from_pickle_files():"
-              f" Found {len(valid_filepaths)} different"
-              " valid pickle file(s): \n\n", end = '')
+        print(
+            f"In function WaveformSet_from_pickle_files():"
+            f" Found {len(valid_filepaths)} different"
+            " valid pickle file(s): \n\n",
+            end = ''
+        )
 
         for filepath in valid_filepaths:
             print(f"\t - {filepath}\n", end = '')
 
         print("\n", end = '')
-        print(f"In function WaveformSet_from_pickle_files():"
-              f" Reading file 1/{len(valid_filepaths)} ...")
+        print(
+            f"In function WaveformSet_from_pickle_files():"
+            f" Reading file 1/{len(valid_filepaths)} ..."
+        )
 
     # There's at least one entry in valid_filepaths
     # The first WaveformSet is handled separatedly, so
@@ -98,8 +108,10 @@ def WaveformSet_from_pickle_files(
         count += 1
 
     if verbose:
-        print(f"In function WaveformSet_from_pickle_files():"
-              " Reading finished")
+        print(
+            f"In function WaveformSet_from_pickle_files():"
+            " Reading finished"
+        )
 
     return output
 

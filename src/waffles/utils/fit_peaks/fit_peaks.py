@@ -319,7 +319,8 @@ def fit_peaks_of_ChannelWsGrid(
     fit_type: str = 'independent_gaussians',
     half_points_to_fit: int = 2,
     std_increment_seed_fallback: float = 1e+2,
-    ch_span_fraction_around_peaks: float = 0.05
+    ch_span_fraction_around_peaks: float = 0.05,
+    verbose: bool = False
 ) -> bool:
     """For each ChannelWs object, say chws, contained in
     the ChWfSets attribute of the given ChannelWsGrid
@@ -408,6 +409,8 @@ def fit_peaks_of_ChannelWsGrid(
         For more information, check the documentation
         of the fit_peaks_of_CalibrationHistogram()
         function.
+    verbose: bool = False
+        Whether to print functioning related messages
 
     Returns
     ----------
@@ -430,17 +433,26 @@ def fit_peaks_of_ChannelWsGrid(
             except KeyError:
                 continue
 
-            output &= fit_peaks_of_CalibrationHistogram(
-                channel_ws.calib_histo,
-                max_peaks,
-                prominence,
-                initial_percentage=initial_percentage,
-                percentage_step=percentage_step,
-                return_last_addition_if_fail=return_last_addition_if_fail,
-                fit_type=fit_type,
-                half_points_to_fit=half_points_to_fit,
-                std_increment_seed_fallback=std_increment_seed_fallback,
-                ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
-            )
+            if channel_ws.calib_histo is not None:
+                output *= fit_peaks_of_CalibrationHistogram(
+                    channel_ws.calib_histo,
+                    max_peaks,
+                    prominence,
+                    initial_percentage=initial_percentage,
+                    percentage_step=percentage_step,
+                    return_last_addition_if_fail=return_last_addition_if_fail,
+                    fit_type=fit_type,
+                    half_points_to_fit=half_points_to_fit,
+                    std_increment_seed_fallback=std_increment_seed_fallback,
+                    ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
+                )
+            elif verbose:
+                print(
+                    f"In function fit_peaks_of_ChannelWsGrid(): "
+                    f"Skipping the peak-fitting process for channel "
+                    f"{channel_ws_grid.ch_map.data[i][j].endpoint}-"
+                    f"{channel_ws_grid.ch_map.data[i][j].channel}, "
+                    f"because its calibration histogram is not available"
+                )
 
     return output
