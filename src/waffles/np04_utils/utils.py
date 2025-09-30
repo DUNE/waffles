@@ -141,7 +141,7 @@ def get_np04_channel_mapping(version: str="", run: int=-1) -> pd.DataFrame:
     The dataframe contains the following columns:
     endpoint, daphne_ch, offline_ch, APA, sipm
     Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
-    We consider run 29174 as the first run with the new channel mapping.
+    We consider run 29297 as the first run with the new channel mapping.
     Parameters
     ----------
     - version: str, optional ("old" or "new")
@@ -162,7 +162,7 @@ def get_np04_channel_mapping(version: str="", run: int=-1) -> pd.DataFrame:
         version = "old"
 
     if run != -1:
-        if run >= 29174:
+        if run >= 29297:
             version = "new"
         else:
             version = "old"
@@ -183,7 +183,7 @@ def get_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dict:
     """
     This function returns a dictionary that maps daphne channels to offline channels.
     Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
-    We consider run 29174 as the first run with the new channel mapping.
+    We consider run 29297 as the first run with the new channel mapping.
     Daphne channels are numbered as endpoint*100 + daphne_ch, where daphne_ch is from 0->7, 10->17, 20->27, 30->37.
     Offline channels are numbered from 0 to 159.
     Parameters
@@ -205,7 +205,7 @@ def get_offline_to_daphne_channel_dict(version: str="", run: int=-1) -> dict:
     """
     This function returns a dictionary that maps offline channels to daphne channels.
     Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
-    We consider run 29174 as the first run with the new channel mapping.
+    We consider run 29297 as the first run with the new channel mapping.
     Offline channels are numbered from 0 to 159.
     Daphne channels are numbered as endpoint*100 + daphne_ch, where daphne_ch is from 0->7, 10->17, 20->27, 30->37.
     Parameters
