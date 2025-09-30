@@ -8,8 +8,6 @@ GENERAL DATA CLASSES
    * WaveformAdcs: implements the adcs array of a Waveform.
    * Waveform: implements a Waveform from WaveformAdcs.
    * WaveformSet: implements a set of Waveforms.
-   * WfAna: stands for Waveform Analysis and implements an analysis over an arbitrary WaveformAdcs.
-   * WfAnaResult: store the results of an analysis inside the waveform object.
 
 WaveformAdcs
 -----------------
@@ -29,8 +27,32 @@ WaveformSet
 .. autoclass:: waffles.WaveformSet
    :members:
 
+
+.. admonition:: **Analysis related classes**
+   
+      The following classes are related to the analysis of the waveforms:
+
+      * BasicWfAna: implements a basic analysis over a waveform. **Each analyser can create a particular class for their analysis (i.e. BeamWfAna.py) from BasicWfAna as template.**
+      * WfAna: stands for Waveform Analysis and implements an analysis over an arbitrary WaveformAdcs.
+      * WfAnaResult: stores the results of an analysis inside the waveform object.
+      * WfPeak: implements a peak which has been spotted in the adcs attribute of a certain Waveform object.
+      * CalibrationHistogram: implements a histogram for the calibration of the waveforms.
+      * TrackedHistogram: implements a histogram for the tracking of the waveforms.
+      * WafflesAnalysis: implements a Waffles Analysis, fixing a common interface and workflow for all Waffles analyses.
+      * StoreWfAna: implements a dummy analysis which is performed over a certain WaveformAdcs object, which simply stores the given input parameters as if they were the result of a real analysis.
+      * PeakFindingWfAna: implements a peak finding analysis over a waveform. 
+      
+BasicWfAna
+-----------------
+.. inheritance-diagram::  waffles.BasicWfAna
+
+.. autoclass:: waffles.BasicWfAna
+   :members:
+
 WfAna
 -----------------
+.. inheritance-diagram::  waffles.WfAna
+
 .. autoclass:: waffles.WfAna
    :members:
 
@@ -43,24 +65,9 @@ WfAnaResult
 
 WfPeak
 -----------------
+.. inheritance-diagram::  waffles.WfPeak
+
 .. autoclass:: waffles.WfPeak
-   :members:
-
-
-.. admonition:: **Analysis related classes**
-   
-      The following classes are related to the analysis of the waveforms:
-
-      * BasicWfAna: implements a basic analysis over a waveform. **Each analyser can create a particular class for their analysis (i.e. BeamWfAna.py) from BasicWfAna as template.**
-      * CalibrationHistogram: implements a histogram for the calibration of the waveforms.
-      * PeakFindingWfAna: implements a peak finding analysis over a waveform.
-      * TrackedHistogram: implements a histogram for the tracking of the waveforms. 
-      
-BasicWfAna
------------------
-.. inheritance-diagram::  waffles.BasicWfAna
-
-.. autoclass:: waffles.BasicWfAna
    :members:
 
 CalibrationHistogram
@@ -70,6 +77,27 @@ CalibrationHistogram
 .. autoclass:: waffles.CalibrationHistogram
    :members:
 
+TrackedHistogram
+------------------
+.. inheritance-diagram::  waffles.TrackedHistogram
+   
+.. autoclass:: waffles.TrackedHistogram
+   :members:
+
+WafflesAnalysis
+------------------
+.. inheritance-diagram::  waffles.WafflesAnalysis
+
+.. autoclass:: waffles.WafflesAnalysis
+   :members:
+
+StoreWfAna
+------------------
+.. inheritance-diagram::  waffles.StoreWfAna
+
+.. autoclass:: waffles.StoreWfAna
+   :members:
+
 PeakFindingWfAna
 ------------------
 .. inheritance-diagram::  waffles.PeakFindingWfAna
@@ -77,12 +105,35 @@ PeakFindingWfAna
 .. autoclass:: waffles.PeakFindingWfAna
    :members:
 
-TrackedHistogram
-------------------
 
-.. autoclass:: waffles.TrackedHistogram
+.. admonition:: **Beam Information related classes**
+   
+      The following classes are related to the Beam Information:
+
+      * BeamInfo: implements a BeamInfo, containing information about the beam particle (time of flight, momentum, cherenkov bits).
+      * BeamEvent: implements a BeamEvent, inheriting from Event and extends the base class with beam information (BeamInfo).
+      * BeamWfAna: implements a basic analysis which is performed over a certain WaveformAdcs object.
+
+BeamInfo
+------------------
+.. inheritance-diagram::  waffles.BeamInfo
+
+.. autoclass:: waffles.BeamInfo
    :members:
 
+BeamEvent
+------------------
+.. inheritance-diagram::  waffles.BeamEvent
+
+.. autoclass:: waffles.BeamEvent
+   :members:
+
+BeamWfAna
+------------------
+.. inheritance-diagram::  waffles.BeamWfAna
+
+.. autoclass:: waffles.BeamWfAna
+   :members:
 
 
 .. admonition:: **Structural classes**

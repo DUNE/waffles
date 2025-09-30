@@ -52,7 +52,8 @@ class CalibrationHistogram(TrackedHistogram):
         bins_number: int,
         edges: np.ndarray,
         counts: np.ndarray,
-        indices: List[List[int]]
+        indices: List[List[int]],
+        normalization: float = 1.0
     ):
         """CalibrationHistogram class initializer. It is the
         caller's responsibility to check the types of the
@@ -72,7 +73,8 @@ class CalibrationHistogram(TrackedHistogram):
             counts,
             indices)
 
-        self.__gaussian_fits_parameters = None
+        self.normalization = normalization
+        self.__gaussian_fits_parameters = {}
         self.__reset_gaussian_fit_parameters()
 
     @property
@@ -143,7 +145,8 @@ class CalibrationHistogram(TrackedHistogram):
         bins_number: int,
         domain: np.ndarray,
         variable: str,
-        analysis_label: Optional[str] = None
+        analysis_label: Optional[str] = None,
+        normalize_histogram: bool = False
     ):
         """This method creates a CalibrationHistogram object
         by taking one sample per Waveform from the given
@@ -211,7 +214,7 @@ class CalibrationHistogram(TrackedHistogram):
 
         # Trying to grab the WfAna object Waveform by Waveform using
         # WaveformAdcs.get_analysis() might be slow. Find a different
-        # solution if this becomesa problem at some point.
+        # solution if this becomes a problem at some point.
         samples = [
             waveform_set.waveforms[idx].get_analysis(
                 analysis_label
@@ -219,11 +222,17 @@ class CalibrationHistogram(TrackedHistogram):
                 len(waveform_set.waveforms))
             if waveform_set.waveforms[idx].get_analysis( analysis_label).result[variable] is not np.nan
         ]
+        meansample = 1.0
+        if normalize_histogram:
+            meansample = np.mean(samples)
+            samples = [ s/meansample for s in samples ]
         try:
             return cls.__from_samples(
                 samples,
                 bins_number,
-                domain)
+                domain,
+                normalization=meansample
+            )
         except numba.errors.TypingError:
 
             raise Exception(GenerateExceptionMessage(
@@ -237,7 +246,8 @@ class CalibrationHistogram(TrackedHistogram):
         cls, 
         samples: List[Union[int, float]],
         bins_number: int,
-        domain: np.ndarray
+        domain: np.ndarray,
+        normalization: float = 1.0
     ) -> 'CalibrationHistogram':
         """This method is not intended for user usage. It 
         must be only called by the
@@ -277,4 +287,6 @@ class CalibrationHistogram(TrackedHistogram):
             bins_number,
             edges,
             counts,
-            indices)
+            indices,
+            normalization=normalization
+        )

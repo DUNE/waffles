@@ -9,6 +9,8 @@ import waffles.utils.numerical_utils as wun
 
 from waffles.Exceptions import GenerateExceptionMessage
 
+from waffles.utils.denoising.tv1ddenoise import Denoise
+
 
 def check_dimensions_of_suplots_figure(
     figure: pgo.Figure,
@@ -236,7 +238,9 @@ def __subplot_heatmap(
     time_bins: int,
     adc_bins: int,
     ranges: np.ndarray,
-    show_color_bar: bool = False
+    show_color_bar: bool = False,
+    filtering: float = 0,
+    zlog: bool = False,
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -310,6 +314,15 @@ def __subplot_heatmap(
         plotly.graph_objects.Heatmap(). If True, a
         bar with the color scale of the plotted 
         heatmap is shown. If False, it is not.
+    filtering: float
+        It is given to the Denoise.apply_denoise()
+        method. If it is greater than 0, then the
+        waveforms will be denoised before being
+        added to the heatmap. If it is 0, then no
+        denoising will be applied.
+    zlog: bool
+        If True, the z-axis of the heatmap will be
+        logarithmically scaled. 
 
     Returns
     ----------
@@ -328,10 +341,16 @@ def __subplot_heatmap(
         waveform_set.points_per_wf,
         dtype=np.float32) + waveform_set.waveforms[idx].time_offset for idx in wf_idcs])
 
+    denoiser = Denoise()
     try:
-        aux_y = np.hstack([
-            waveform_set.waveforms[idx].adcs -
-            waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
+        if filtering>0:
+            aux_y = np.hstack([
+                denoiser.apply_denoise((waveform_set.waveforms[idx].adcs).astype(np.float32) -
+                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'], filter=filtering) for idx in wf_idcs])
+        else:
+            aux_y = np.hstack([
+                waveform_set.waveforms[idx].adcs -
+                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
 
     except KeyError:
         raise Exception(GenerateExceptionMessage(
@@ -346,6 +365,8 @@ def __subplot_heatmap(
     
     aux = aux.astype(float)
     aux[aux == 0] = np.nan
+    if zlog:
+        aux = np.log10(aux)
 
     heatmap = pgo.Heatmap(
         z=aux,
@@ -355,11 +376,14 @@ def __subplot_heatmap(
         dy=adc_step,
         name=name,
         transpose=True,
-        showscale=show_color_bar)
+        showscale=show_color_bar,
+    )
 
     figure_.add_trace(heatmap,
                       row=row,
                       col=col)
+    figure_.update_xaxes(title_text="Time [ticks]", row=row, col=col)
+    figure_.update_yaxes(title_text="Amplitude [ADCs]", row=row, col=1)
     return figure_
 
 
@@ -422,7 +446,8 @@ def arrange_time_vs_ADC_ranges(
 def __add_unique_channels_top_annotations(
     channel_ws_grid: ChannelWsGrid,
     figure: pgo.Figure,
-    also_add_run_info: bool = False
+    also_add_run_info: bool = False,
+    yannotation = 1.25,
 ) -> pgo.Figure:
     """This function is not intended for user usage. It is
     meant to be called uniquely by the plot_ChannelWSGrid() 
@@ -459,6 +484,7 @@ def __add_unique_channels_top_annotations(
     figure: plotly.graph_objects.Figure
         The given figure with the annotations added
     """
+    # y position of the annotations, changed from 1.25 for low rows,cols
 
     for i in range(channel_ws_grid.ch_map.rows):
         for j in range(channel_ws_grid.ch_map.columns):
@@ -468,12 +494,13 @@ def __add_unique_channels_top_annotations(
                 # The annotation is left-aligned
                 # and on top of each subplot
                 x=0.,
-                y=1.25,
+                y=yannotation,
                 showarrow=False,
                 # Implicitly using UniqueChannel.__repr__()
                 text=str(channel_ws_grid.ch_map.data[i][j]),
                 row=i + 1,
                 col=j + 1)
+            text=str(channel_ws_grid.ch_map.data[i][j]),
             
     if also_add_run_info:
         for i in range(channel_ws_grid.ch_map.rows):
@@ -502,7 +529,7 @@ def __add_unique_channels_top_annotations(
                     yref="y domain",
                     # The run annotation is right-aligned
                     x=1.,
-                    y=1.25,
+                    y=yannotation,
                     showarrow=False,
                     text=annotation,
                     row=i + 1,

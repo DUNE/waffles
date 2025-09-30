@@ -4,6 +4,7 @@ import waffles.utils.time_align_utils as tutils
 from iminuit import Minuit, cost
 from iminuit.util import describe
 from iminuit.util import FMin
+from waffles.utils.fft.fftutils import FFTWaffles
 from waffles.utils.convolution.ConvUtils import *
 
 from scipy import interpolate
@@ -94,7 +95,7 @@ class ConvFitter:
             self.template = self.template[offset:]
 
         if self.convtype == 'fft':
-            self.templatefft = getFFT(self.template)
+            self.templatefft = FFTWaffles.getFFT(self.template)
 
     #################################################
     def interpolate(self, wf:np.ndarray, interpolation_factor: int):
@@ -133,7 +134,7 @@ class ConvFitter:
                 self.response = np.roll(resp_original, offset, axis=0)
                 self.response = self.response[offset:]
                 self.template = temp_original[offset:]
-                self.templatefft = getFFT(self.template)
+                self.templatefft = FFTWaffles.getFFT(self.template)
                 params, chi2 = self.minimize(False)
                 chi2s.append(chi2)
                 if(print_flag): print(offset, params, chi2)
@@ -143,7 +144,7 @@ class ConvFitter:
             self.response = np.roll(resp_original, offsets[idxMinChi2], axis=0)
             self.response = self.response[offsets[idxMinChi2]:]
             self.template = temp_original[offsets[idxMinChi2]:]
-            self.templatefft = getFFT(self.template)
+            self.templatefft = FFTWaffles.getFFT(self.template)
 
         # recompute parameters for the minimum chi2
         params, chi2 = self.minimize(print_flag)
@@ -159,8 +160,8 @@ class ConvFitter:
     #################################################
     def lar_convolution_freq(self, t, A, fp, t1, t3):
         self.lar = A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
-        larfreq = getFFT(self.lar)
-        res = backFFT(convolveFFT(self.templatefft, larfreq))
+        larfreq = FFTWaffles.getFFT(self.lar)
+        res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
         return np.real(res)
 
     #################################################
