@@ -7,7 +7,7 @@ fft_folder: "FFTs_txt"
 
 # Name of the folder where the set of FFTs will be saved (set == all the FFTs of a given configuration)
 # No "/" in the name!
-fft_set_folder: "Configs/ConfigXXX"
+fft_set_folder: "FFT_sets"
 
 # File with the daphne-channel <-> Offline channel mapping
 # The new channel map is the one after 24 September 2024
