@@ -62,7 +62,8 @@ local_temp_hdf5_files = f'{args.temp_data_folder}/temp_hdf5_files_{args.vgain}'
 rh = RucioHandler(data_folder=local_temp_hdf5_files,txt_folder=local_rucio_txt_files_folder,max_files=10)
 #runs_to_convert = getRunsFromCSV(csv_database)
 # runs_to_convert must be changed to the column runs of the table vgain_top_level.csv.
-rh.setup_rucio()
+rh.setup_rucio_1()
+rh.setup_rucio_2()
 
 run_database = pd.read_csv(csv_database)
 ch_per_run_database = pd.read_csv(csv_channels_per_run)
