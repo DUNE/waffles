@@ -135,15 +135,37 @@ def get_endpoint_and_channel(
             'get_endpoint_and_channel()',
             f"The retrieved map is not flat."))
 
-def get_np04_channel_mapping(version: str="old") -> pd.DataFrame:
+def get_np04_channel_mapping(version: str="", run: int=-1) -> pd.DataFrame:
     """
+    This function reads the NP04 channel mapping file and returns it as a pandas DataFrame.
+    The dataframe contains the following columns:
+    endpoint, daphne_ch, offline_ch, APA, sipm
+    Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
+    We consider run 29174 as the first run with the new channel mapping.
+    Parameters
+    ----------
+    - version: str, optional ("old" or "new")
+    - run: int, optional
 
+    Returns
+    -------
+    - df: pd.DataFrame
+        The channel mapping as a pandas DataFrame
     """
     wafflesdir = Path(waffles.__file__).parent
     print(f"wafflesdir: {wafflesdir}")
     if not Path(wafflesdir / "np04_utils" / "PDHD_PDS_ChannelMap.csv").exists() :
         raise FileNotFoundError(
             "The channel mapping was not found. You probably need to install waffles with -e option:\n`python3 -m pip install -e .`")
+
+    if version == "":
+        version = "old"
+
+    if run != -1:
+        if run >= 29174:
+            version = "new"
+        else:
+            version = "old"
 
     if version == "old":
         mapping_file = wafflesdir / "np04_utils" / "PDHD_PDS_ChannelMap.csv"
@@ -156,3 +178,47 @@ def get_np04_channel_mapping(version: str="old") -> pd.DataFrame:
     df = pd.read_csv(mapping_file, sep=",")
 
     return df
+
+def get_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dict:
+    """
+    This function returns a dictionary that maps daphne channels to offline channels.
+    Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
+    We consider run 29174 as the first run with the new channel mapping.
+    Daphne channels are numbered as endpoint*100 + daphne_ch, where daphne_ch is from 0->7, 10->17, 20->27, 30->37.
+    Offline channels are numbered from 0 to 159.
+    Parameters
+    ----------
+    - version: str, optional ("old" or "new")
+    - run: int, optional
+
+    Returns
+    -------
+    - daphne_to_offline: dict
+        A dictionary that maps daphne channels to offline channels
+    """
+    df = get_np04_channel_mapping(version=version, run=run)
+    daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
+    daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
+    return daphne_to_offline
+
+def get_offline_to_daphne_channel_dict(version: str="", run: int=-1) -> dict:
+    """
+    This function returns a dictionary that maps offline channels to daphne channels.
+    Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
+    We consider run 29174 as the first run with the new channel mapping.
+    Offline channels are numbered from 0 to 159.
+    Daphne channels are numbered as endpoint*100 + daphne_ch, where daphne_ch is from 0->7, 10->17, 20->27, 30->37.
+    Parameters
+    ----------
+    - version: str, optional ("old" or "new")
+    - run: int, optional
+
+    Returns
+    -------
+    - offline_to_daphne: dict
+        A dictionary that maps offline channels to daphne channels
+    """
+    df = get_np04_channel_mapping(version=version, run=run)
+    daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
+    offline_to_daphne = dict(zip(df['offline_ch'], daphne_channels))
+    return offline_to_daphne
