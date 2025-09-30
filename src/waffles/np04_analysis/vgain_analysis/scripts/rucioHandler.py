@@ -61,52 +61,44 @@ class RucioHandler:
 
     # ---------- public API ----------
 
-    def setup_rucio_1(self, script_name: str = "setup_rucio_a9.sh") -> None:
-        """
-        Run the Rucio setup script interactively.
-        This will show all prompts (user/pass, etc.) and let the user type into the terminal.
-        """
-        script = self.waffles_scripts_dir / script_name
-        if not script.exists():
-            raise FileNotFoundError(f"Rucio setup script not found: {script}")
+    # needs: import os, shlex, subprocess
+    # optional: from pathlib import Path
 
-        # Use subprocess.run with shell=True so `source` works inside bash.
-        # stdin/stdout/stderr are connected to the parent process (interactive).
-        subprocess.run(
-            f"bash -i -c 'source {shlex.quote(str(script))}'",
-            shell=True,
-            check=True
-        )
-
-
-    def setup_rucio_2(self, script_name: str = "setup_rucio_a9.sh") -> dict:
+    def setup_rucio(
+        self,
+        script_name: str = "setup_rucio_a9.sh",
+        storage_token_path: str | None = None,
+    ) -> dict:
         """
-        Run the Rucio setup script interactively (user can type credentials),
-        then capture the resulting environment for later subprocess calls.
+        Run the Rucio setup script interactively (user sees prompts), then capture
+        the resulting environment for later subprocess calls. After capturing, prefer
+        a *storage* SciToken (davs.token) over any API token (bt_u...), and inject
+        CA bundle vars to avoid TLS warnings.
+
+        - storage_token_path: force a specific token path (takes precedence).
+        If not given, we try WAFFLES_STORAGE_TOKEN, then BEARER_TOKEN_FILE,
+        then /run/user/$UID/davs.token.
         """
         script = self.waffles_scripts_dir / script_name
         if not script.exists():
             raise FileNotFoundError(f"Rucio setup script not found: {script}")
 
-        # Run one interactive shell:
-        #  1. source the script (interactive prompts shown)
-        #  2. after setup completes, dump environment with env -0
+        # Run an interactive bash, source the script, then dump the environment.
+        # stderr is inherited so the user can see prompts from the setup script.
         cmd = f"bash -i -c 'source {shlex.quote(str(script))}; env -0'"
-
         proc = subprocess.Popen(
             cmd,
             shell=True,
             text=False,
             stdout=subprocess.PIPE,
-            stderr=None  # let stderr go to your terminal for prompts
+            stderr=None,  # inherit to terminal
         )
-
         out, _ = proc.communicate()
         if proc.returncode != 0:
             raise subprocess.CalledProcessError(proc.returncode, cmd)
 
-        # Parse env -0 output
-        new_env = {}
+        # Parse "env -0" output into a dict
+        new_env: dict[str, str] = {}
         for entry in out.split(b"\x00"):
             if not entry:
                 continue
@@ -115,9 +107,36 @@ class RucioHandler:
 
         env = os.environ.copy()
         env.update(new_env)
+
+        # --- Prefer a *storage* token over an API token --------------------------
+        # Priority: explicit arg -> WAFFLES_STORAGE_TOKEN (env) -> BEARER_TOKEN_FILE
+        # -> /run/user/$UID/davs.token
+        uid = os.getuid()
+        candidates = [
+            storage_token_path,
+            env.get("WAFFLES_STORAGE_TOKEN"),
+            os.environ.get("WAFFLES_STORAGE_TOKEN"),
+            env.get("BEARER_TOKEN_FILE"),
+            f"/run/user/{uid}/davs.token",
+        ]
+        tok = next((t for t in candidates if t and os.path.isfile(t)), None)
+        if tok:
+            env["BEARER_TOKEN_FILE"] = tok
+            env["RUCIO_AUTH_TOKEN_FILE"] = tok
+            try:
+                with open(tok, "r") as fh:
+                    env["BEARER_TOKEN"] = fh.read().strip()
+            except Exception:
+                pass
+            # If a proxy is set, drop it so it doesn't take precedence over tokens
+            env.pop("X509_USER_PROXY", None)
+
+        # --- Reasonable defaults for trust anchors (quiet TLS warnings) ----------
+        env.setdefault("REQUESTS_CA_BUNDLE", "/etc/pki/tls/certs/ca-bundle.crt")
+        env.setdefault("X509_CERT_DIR", "/etc/grid-security/certificates")
+
         self._env = env
         return env
-
 
     def download_data_from_rucio(self, run_number: int) -> List[str]:
         """
@@ -165,7 +184,7 @@ class RucioHandler:
             did_name = did.split(':')
             local_dids.append(f'{self.data_folder}/hd-protodune/{did_name[-1]}')
             self._stream_run(
-                [self.rucio_cmd, "download", did],
+                [self.rucio_cmd, "download","--protocol","davs", did],
                 cwd=self.data_folder,
                 log_file=dl_log,
                 env=self._env,
