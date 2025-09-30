@@ -98,7 +98,6 @@ class RucioHandler:
         # One interactive shell: source the script (prompts shown), then dump env.
         cmd = (
             "bash -i -c '"
-            "source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; "
             f"source {shlex.quote(str(script))}; env -0'"
         )        
         proc = subprocess.Popen(
