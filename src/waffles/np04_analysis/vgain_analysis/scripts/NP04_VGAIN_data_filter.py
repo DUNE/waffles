@@ -44,7 +44,7 @@ args = parser.parse_args()
 
 
 save_pickle = True
-save_binary = False
+save_binary = True
 
 # folder_with_file_locations = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/"
 # destination_folder = "/afs/cern.ch/work/e/ecristal/"
@@ -295,6 +295,10 @@ def saveWaveDict(wf_dict,save_pickle, save_binary, folder_location, channels_to_
             except Exception as e:
                 print(f"Error en procesamiento de los datos:\n {e}")
                 print(traceback.format_exc())
+        with open(folder_location + '/ok_compression.txt', 'w') as ok_compress_file:
+            ok_compress_file.write('OK to compress files.')
+        ok_compress_file.close()
+
 def unflatten_list(flat_list, n):
     return [flat_list[i:i+n] for i in range(0, len(flat_list), n)]
 
