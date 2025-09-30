@@ -2,24 +2,24 @@
   "0": {
     "starting_date": "01/01/2024",
     "end_date": "01/06/2024",
-    "starting_run_number": 1,
-    "end_run_number": 26586,
+    "first_run": 1,
+    "last_run": 26586,
     "integrators": "ON",
     "VGain": 2700
   },
   "1": {
     "starting_date": "02/06/2024",
     "end_date": "12/08/2024",
-    "starting_run_number": 26587,
-    "end_run_number": 28621,
+    "first_run": 26587,
+    "last_run": 28621,
     "integrators": "ON",
     "VGain": 2318
   },
   "2": {
     "starting_date": "13/08/2024",
     "end_date": "13/08/2024",
-    "starting_run_number": 28622,
-    "end_run_number": 28636,
+    "first_run": 28622,
+    "last_run": 28636,
     "integrators": "ON",
     "AFE_VGain_dict": {
       "1040": 2500,
@@ -62,8 +62,8 @@
   "3": {
     "starting_date": "13/08/2024",
     "end_date": "13/08/2024",
-    "starting_run_number": 28637,
-    "end_run_number": 28652,
+    "first_run": 28637,
+    "last_run": 28652,
     "integrators": "ON",
     "AFE_VGain_dict": {
       "1040":	2250,
@@ -106,8 +106,8 @@
   "4": {
     "starting_date": "13/08/2024",
     "end_date": "13/08/2024",
-    "starting_run_number": 28653,
-    "end_run_number": 28667,
+    "first_run": 28653,
+    "last_run": 28667,
     "integrators": "ON",
     "AFE_VGain_dict": {
       "1040":	2750,
@@ -150,8 +150,8 @@
   "5": {
     "starting_date": "13/08/2024",
     "end_date": "28/08/2024",
-    "starting_run_number": 28669,
-    "end_run_number": 28995,
+    "first_run": 28669,
+    "last_run": 28995,
     "integrators": "ON",
     "AFE_VGain_dict": {
       "1040": 2500,
@@ -194,8 +194,8 @@
   "6": {
     "starting_date": "14/09/2024",
     "end_date": "07/10/2024",
-    "starting_run_number": 29174,
-    "end_run_number": 29427,
+    "first_run": 29174,
+    "last_run": 29427,
     "integrators": "ON",
     "AFE_VGain_dict": {
       "1040":	2477,
@@ -238,48 +238,48 @@
   "7": {
     "starting_date": "07/10/2024",
     "end_date": "07/10/2024",
-    "starting_run_number": 29428,
-    "end_run_number": 29431,
+    "first_run": 29428,
+    "last_run": 29431,
     "integrators": "OFF",
     "VGain": 2128
   },
   "8": {
     "starting_date": "07/10/2024",
     "end_date": "07/10/2024",
-    "starting_run_number": 29432,
-    "end_run_number": 29435,
+    "first_run": 29432,
+    "last_run": 29435,
     "integrators": "OFF",
     "VGain": 1995
   },
   "9": {
     "starting_date": "07/10/2024",
     "end_date": "07/10/2024",
-    "starting_run_number": 29436,
-    "end_run_number": 29439,
+    "first_run": 29436,
+    "last_run": 29439,
     "integrators": "OFF",
     "VGain": 1862
   },
   "10": {
     "starting_date": "07/10/2024",
     "end_date": "07/10/2024",
-    "starting_run_number": 29440,
-    "end_run_number": 29443,
+    "first_run": 29440,
+    "last_run": 29443,
     "integrators": "OFF",
     "VGain": 1729
   },
   "11": {
     "starting_date": "10/10/2024",
     "end_date": "10/10/2024",
-    "starting_run_number": 29823,
-    "end_run_number": 29860,
+    "first_run": 29823,
+    "last_run": 29860,
     "integrators": "OFF",
     "VGain": 3192
   },
   "12": {
     "starting_date": "11/10/2024",
     "end_date": "11/10/2024",
-    "starting_run_number": 29861,
-    "end_run_number": 29878,
+    "first_run": 29861,
+    "last_run": 29878,
     "integrators": "OFF",
     "VGain": 2926
   },
@@ -287,208 +287,208 @@
     "CHECK_ME": "check vgain",
     "starting_date": "11/10/2024",
     "end_date": "11/10/2024",
-    "starting_run_number": 29880,
-    "end_run_number": 29903,
+    "first_run": 29880,
+    "last_run": 29903,
     "integrators": "OFF",
     "VGain": 3333
   },
   "14": {
     "starting_date": "21/10/2024",
     "end_date": "21/10/2024",
-    "starting_run_number": 31157,
-    "end_run_number": 31178,
+    "first_run": 31157,
+    "last_run": 31178,
     "integrators": "OFF",
     "VGain": 3192
   },
   "15": {
     "starting_date": "21/10/2024",
     "end_date": "21/10/2024",
-    "starting_run_number": 31179,
-    "end_run_number": 31197,
+    "first_run": 31179,
+    "last_run": 31197,
     "integrators": "OFF",
     "VGain": 2926
   },
   "16": {
     "starting_date": "15/10/2024",
     "end_date": "15/10/2024",
-    "starting_run_number": 29927,
-    "end_run_number": 29983,
+    "first_run": 29927,
+    "last_run": 29983,
     "integrators": "OFF",
     "VGain": 2793
   },
   "17": {
     "starting_date": "15/10/2024",
     "end_date": "15/10/2024",
-    "starting_run_number": 29984,
-    "end_run_number": 30035,
+    "first_run": 29984,
+    "last_run": 30035,
     "integrators": "OFF",
     "VGain": 2660
   },
   "18": {
     "starting_date": "15/10/2024",
     "end_date": "15/10/2024",
-    "starting_run_number": 30036,
-    "end_run_number": 30083,
+    "first_run": 30036,
+    "last_run": 30083,
     "integrators": "OFF",
     "VGain": 2527
   },
   "19": {
     "starting_date": "15/10/2024",
     "end_date": "15/10/2024",
-    "starting_run_number": 30084,
-    "end_run_number": 30131,
+    "first_run": 30084,
+    "last_run": 30131,
     "integrators": "OFF",
     "VGain": 2394
   },
   "20": {
     "starting_date": "15/10/2024",
     "end_date": "15/10/2024",
-    "starting_run_number": 30132,
-    "end_run_number": 30179,
+    "first_run": 30132,
+    "last_run": 30179,
     "integrators": "OFF",
     "VGain": 2261
   },
   "21": {
     "starting_date": "16/10/2024",
     "end_date": "16/10/2024",
-    "starting_run_number": 30214,
-    "end_run_number": 30216,
+    "first_run": 30214,
+    "last_run": 30216,
     "integrators": "OFF",
     "VGain": 2793
   },
   "22": {
     "starting_date": "16/10/2024",
     "end_date": "16/10/2024",
-    "starting_run_number": 30217,
-    "end_run_number": 30222,
+    "first_run": 30217,
+    "last_run": 30222,
     "integrators": "OFF",
     "VGain": 2660
   },
   "23": {
     "starting_date": "16/10/2024",
     "end_date": "16/10/2024",
-    "starting_run_number": 30223,
-    "end_run_number": 30226,
+    "first_run": 30223,
+    "last_run": 30226,
     "integrators": "OFF",
     "VGain": 2527
   },
   "24": {
     "starting_date": "16/10/2024",
     "end_date": "16/10/2024",
-    "starting_run_number": 30227,
-    "end_run_number": 30233,
+    "first_run": 30227,
+    "last_run": 30233,
     "integrators": "OFF",
     "VGain": 2394
   },
   "25": {
     "starting_date": "16/10/2024",
     "end_date": "16/10/2024",
-    "starting_run_number": 30234,
-    "end_run_number": 30238,
+    "first_run": 30234,
+    "last_run": 30238,
     "integrators": "OFF",
     "VGain": 2261
   },
   "26": {
     "starting_date": "16/10/2024",
     "end_date": "16/10/2024",
-    "starting_run_number": 30239,
-    "end_run_number": 30300,
+    "first_run": 30239,
+    "last_run": 30300,
     "integrators": "OFF",
     "VGain": 2128
   },
   "27": {
     "starting_date": "16/10/2024",
     "end_date": "16/10/2024",
-    "starting_run_number": 30301,
-    "end_run_number": 30346,
+    "first_run": 30301,
+    "last_run": 30346,
     "integrators": "OFF",
     "VGain": 1995
   },
   "28": {
     "starting_date": "16/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30348,
-    "end_run_number": 30427,
+    "first_run": 30348,
+    "last_run": 30427,
     "integrators": "OFF",
     "VGain": 1862
   },
   "29": {
     "starting_date": "17/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30429,
-    "end_run_number": 30508,
+    "first_run": 30429,
+    "last_run": 30508,
     "integrators": "OFF",
     "VGain": 1729
   },
   "30": {
     "starting_date": "17/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30510,
-    "end_run_number": 30588,
+    "first_run": 30510,
+    "last_run": 30588,
     "integrators": "OFF",
     "VGain": 1596
   },
   "31": {
     "starting_date": "17/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30591,
-    "end_run_number": 30670,
+    "first_run": 30591,
+    "last_run": 30670,
     "integrators": "OFF",
     "VGain": 1463
   },
   "32": {
     "starting_date": "17/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30673,
-    "end_run_number": 30752,
+    "first_run": 30673,
+    "last_run": 30752,
     "integrators": "OFF",
     "VGain": 1330
   },
   "33": {
     "starting_date": "17/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30754,
-    "end_run_number": 30833,
+    "first_run": 30754,
+    "last_run": 30833,
     "integrators": "OFF",
     "VGain": 1197
   },
   "34": {
     "starting_date": "17/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30835,
-    "end_run_number": 30916,
+    "first_run": 30835,
+    "last_run": 30916,
     "integrators": "OFF",
     "VGain": 1064
   },
   "35": {
     "starting_date": "17/10/2024",
     "end_date": "17/10/2024",
-    "starting_run_number": 30918,
-    "end_run_number": 30981,
+    "first_run": 30918,
+    "last_run": 30981,
     "integrators": "OFF",
     "VGain": 931
   },
   "36": {
     "starting_date": "18/10/2024",
     "end_date": "18/10/2024",
-    "starting_run_number": 31040,
-    "end_run_number": 31041,
+    "first_run": 31040,
+    "last_run": 31041,
     "integrators": "OFF",
     "VGain": 1197
   },
   "37": {
     "starting_date": "18/10/2024",
     "end_date": "18/10/2024",
-    "starting_run_number": 31062,
-    "end_run_number": 31081,
+    "first_run": 31062,
+    "last_run": 31081,
     "integrators": "OFF",
     "VGain": 1064
   },
   "38": {
     "starting_date": "18/10/2024",
     "end_date": "18/10/2024",
-    "starting_run_number": 31082,
-    "end_run_number": 31110,
+    "first_run": 31082,
+    "last_run": 31110,
     "integrators": "OFF",
     "VGain": 931
   },
@@ -496,16 +496,16 @@
     "CHECK_ME": "check vgain",
     "starting_date": "22/10/2024",
     "end_date": "29/10/2024",
-    "starting_run_number": 31503,
-    "end_run_number": 32517,
+    "first_run": 31503,
+    "last_run": 32517,
     "integrators": "OFF",
     "VGain": 3333
   },
   "40": {
     "starting_date": "31/10/2024",
     "end_date": "01/11/2024",
-    "starting_run_number": 32518,
-    "end_run_number": 32700,
+    "first_run": 32518,
+    "last_run": 32700,
     "integrators": "OFF",
     "VGain": 2128
   }

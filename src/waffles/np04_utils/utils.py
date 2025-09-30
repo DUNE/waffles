@@ -179,7 +179,7 @@ def get_np04_channel_mapping(version: str="", run: int=-1) -> pd.DataFrame:
 
     return df
 
-def get_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dict:
+def get_np04_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dict:
     """
     This function returns a dictionary that maps daphne channels to offline channels.
     Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
@@ -201,7 +201,7 @@ def get_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dict:
     daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
     return daphne_to_offline
 
-def get_offline_to_daphne_channel_dict(version: str="", run: int=-1) -> dict:
+def get_np04_offline_to_daphne_channel_dict(version: str="", run: int=-1) -> dict:
     """
     This function returns a dictionary that maps offline channels to daphne channels.
     Version "old" refers to the channel mapping used before the change on the 24th of September 2024.
