@@ -5,7 +5,6 @@ from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.Exceptions import GenerateExceptionMessage
 from pathlib import Path
 import pandas as pd
-from pathlib import Path
 import json
 from functools import lru_cache
 
