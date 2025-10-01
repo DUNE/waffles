@@ -5,6 +5,9 @@ from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.Exceptions import GenerateExceptionMessage
 from pathlib import Path
 import pandas as pd
+from pathlib import Path
+import json
+from functools import lru_cache
 
 def get_channel_iterator(   
     apa_no: int,
@@ -135,6 +138,7 @@ def get_endpoint_and_channel(
             'get_endpoint_and_channel()',
             f"The retrieved map is not flat."))
 
+@lru_cache(maxsize=1)
 def get_np04_channel_mapping(version: str="", run: int=-1) -> pd.DataFrame:
     """
     This function reads the NP04 channel mapping file and returns it as a pandas DataFrame.
@@ -153,7 +157,6 @@ def get_np04_channel_mapping(version: str="", run: int=-1) -> pd.DataFrame:
         The channel mapping as a pandas DataFrame
     """
     wafflesdir = Path(waffles.__file__).parent
-    print(f"wafflesdir: {wafflesdir}")
     if not Path(wafflesdir / "np04_utils" / "PDHD_PDS_ChannelMap.csv").exists() :
         raise FileNotFoundError(
             "The channel mapping was not found. You probably need to install waffles with -e option:\n`python3 -m pip install -e .`")
@@ -174,11 +177,11 @@ def get_np04_channel_mapping(version: str="", run: int=-1) -> pd.DataFrame:
     else:
         raise ValueError("Invalid version specified. Use 'old' or 'new'.")
 
-    print(f"Loading channel mapping from: {mapping_file}")
     df = pd.read_csv(mapping_file, sep=",")
 
     return df
 
+@lru_cache(maxsize=1)
 def get_np04_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dict:
     """
     This function returns a dictionary that maps daphne channels to offline channels.
@@ -197,10 +200,11 @@ def get_np04_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dic
         A dictionary that maps daphne channels to offline channels
     """
     df = get_np04_channel_mapping(version=version, run=run)
-    daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
+    daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
     daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
     return daphne_to_offline
 
+@lru_cache(maxsize=1)
 def get_np04_offline_to_daphne_channel_dict(version: str="", run: int=-1) -> dict:
     """
     This function returns a dictionary that maps offline channels to daphne channels.
@@ -222,3 +226,105 @@ def get_np04_offline_to_daphne_channel_dict(version: str="", run: int=-1) -> dic
     daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
     offline_to_daphne = dict(zip(df['offline_ch'], daphne_channels))
     return offline_to_daphne
+
+
+@lru_cache(maxsize=1)
+def load_configs(daphne_config_file = "") -> dict:
+    """Load and cache Daphne configuration JSON."""
+    if not daphne_config_file:
+        wafflesdir = Path(waffles.__file__).parent
+        daphne_config_file = wafflesdir / "np04_utils" / "DaphneConfigs.json"
+
+    if not Path(daphne_config_file).exists():
+        raise FileNotFoundError(
+            "DaphneConfigs.json not found. Install waffles with -e option:\n"
+            "`python3 -m pip install -e .`"
+        )
+
+    with open(daphne_config_file, "r") as f:
+        return json.load(f)
+
+
+@lru_cache(maxsize=1)
+def load_noise_results(noise_results_file = "") -> pd.DataFrame:
+    """Load and cache noise results CSV."""
+    if not noise_results_file:
+        noise_results_file = Path("OfflineCh_RMS_Config_all.csv")
+
+    if not Path(noise_results_file).exists():
+        raise FileNotFoundError(
+            "Noise results file not found. Install waffles with -e option:\n"
+            "`python3 -m pip install -e .`"
+        )
+
+    return pd.read_csv(noise_results_file)
+
+
+def get_average_baseline_std_from_file(
+    run: int,
+    endpoint: int = -1,
+    channel: int = -1,
+    daphne_channel: int = -1,
+    offline_channel: int = -1,
+    daphne_configuration_database_filepath: str = "",
+    noise_results_dataframe_filepath: str = "",
+) -> float:
+    """
+    Get the average baseline RMS for a given run/channel.
+    Parameters
+    ----------
+    run: int
+    endpoint: int, optional
+    channel: int, optional (if endpoint is given). Channel number within the endpoint (0-7, 10-17, 20-27, 30-37)
+    daphne_channel: int, optional. Daphne channel number (endpoint*100 + daphne_ch)
+    offline_channel: int, optional. Offline channel number (0-159)
+    daphne_configuration_database_filepath: str, optional
+        Path to Daphne configuration JSON file.
+    noise_results_dataframe_filepath: str, optional
+        Path to noise results CSV file. It must contain columns: ConfigNumber, OfflineCh, RMS
+
+    Returns
+    -------
+    rms of the baseline: float
+        The expected baseline RMS for the specified run and channel.
+    """
+    # --- Load configs + find config ---
+    configs = load_configs(daphne_configuration_database_filepath)
+
+    this_config = next(
+        (int(k) for k, v in configs.items() if v["first_run"] <= run <= v["last_run"]),
+        -1,
+    )
+    if this_config == -1:
+        raise ValueError(f"No config found for run {run}")
+
+    print(
+        f"Run {run} is in config {this_config} "
+        f"(first_run={configs[str(this_config)]['first_run']}, "
+        f"last_run={configs[str(this_config)]['last_run']})"
+    )
+
+    # --- Resolve offline channel ---
+    if offline_channel == -1:
+        if daphne_channel != -1:
+            offline_channel = get_np04_daphne_to_offline_channel_dict()[daphne_channel]
+        elif endpoint != -1 and channel != -1:
+            offline_channel = get_np04_daphne_to_offline_channel_dict()[endpoint * 100 + channel]
+        else:
+            raise ValueError(
+                "You must provide at least one of: endpoint+channel, daphne_channel, offline_channel"
+            )
+
+    # --- Get noise results ---
+    df = load_noise_results(noise_results_dataframe_filepath)
+    channel_rms = df.loc[
+        (df["ConfigNumber"] == this_config) & (df["OfflineCh"] == offline_channel),
+        "RMS",
+    ].values
+
+    if len(channel_rms) == 0:
+        raise ValueError(
+            f"No RMS found for run {run}, config {this_config}, offline_channel {offline_channel}"
+        )
+
+    return float(channel_rms[0])
