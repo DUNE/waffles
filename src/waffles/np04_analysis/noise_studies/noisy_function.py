@@ -1,5 +1,5 @@
 # --- IMPORTS -------------------------------------------------------
-# import waffles.input_output.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 import waffles.Exceptions as exceptions
 import numpy as np
 from pathlib import Path
@@ -9,38 +9,38 @@ import waffles
 import matplotlib.pyplot as plt
 
 # --- FUNCTIONS -----------------------------------------------------
-# def read_waveformset(filepath_folder: str,
-#                      run: int, 
-#                      full_stat = False,
-#                      fullstreaming = False) -> waffles.WaveformSet:
-#     """
-#     Read the WaveformSet from the hdf5 file
-#     Parameters:
-#     - filepath_folder: str, folder where the file with the paths to the hdf5 files is located
-#     - run: int, run number
-#     - full_stat: bool, if True, merge all the waveform_set in the run
-#     """
-#     filepath_file = filepath_folder + "0" + str(run) + ".txt"
-#     # check if the file exists
-#     if not os.path.isfile(filepath_file):
-#         print(f"File {filepath_file} does not exist")
-#         raise FileNotFoundError
-#
-#     filepath = reader.get_filepaths_from_rucio(filepath_file)
-#
-#     if (full_stat == True and len(filepath) > 1):
-#         wfset = reader.WaveformSet_from_hdf5_file(filepath[0], read_full_streaming_data=fullstreaming)
-#         for fp in filepath[1:]:
-#             ws = reader.WaveformSet_from_hdf5_file(fp, read_full_streaming_data=fullstreaming)
-#             wfset.merge(ws)
-#     else:
-#         try:
-#             wfset = reader.WaveformSet_from_hdf5_file(filepath[0], read_full_streaming_data=fullstreaming)
-#         except:
-#             print(f"Error reading file {filepath[0]}")
-#             raise exceptions.WafflesBaseException
-#
-#     return wfset
+def read_waveformset(filepath_folder: str,
+                     run: int, 
+                     full_stat = False,
+                     fullstreaming = False) -> waffles.WaveformSet:
+    """
+    Read the WaveformSet from the hdf5 file
+    Parameters:
+    - filepath_folder: str, folder where the file with the paths to the hdf5 files is located
+    - run: int, run number
+    - full_stat: bool, if True, merge all the waveform_set in the run
+    """
+    filepath_file = filepath_folder + "0" + str(run) + ".txt"
+    # check if the file exists
+    if not os.path.isfile(filepath_file):
+        print(f"File {filepath_file} does not exist")
+        raise FileNotFoundError
+
+    filepath = reader.get_filepaths_from_rucio(filepath_file)
+
+    if (full_stat == True and len(filepath) > 1):
+        wfset = reader.WaveformSet_from_hdf5_file(filepath[0], read_full_streaming_data=fullstreaming)
+        for fp in filepath[1:]:
+            ws = reader.WaveformSet_from_hdf5_file(fp, read_full_streaming_data=fullstreaming)
+            wfset.merge(ws)
+    else:
+        try:
+            wfset = reader.WaveformSet_from_hdf5_file(filepath[0], read_full_streaming_data=fullstreaming)
+        except:
+            print(f"Error reading file {filepath[0]}")
+            raise exceptions.WafflesBaseException
+
+    return wfset
 
 
 def allow_ep_wfs(waveform: waffles.Waveform, endpoint) -> bool:
