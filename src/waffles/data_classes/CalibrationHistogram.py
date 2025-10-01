@@ -6,8 +6,7 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.TrackedHistogram import TrackedHistogram
 
 import waffles.utils.numerical_utils as wun
-
-from waffles.Exceptions import GenerateExceptionMessage
+import waffles.Exceptions as we
 
 
 class CalibrationHistogram(TrackedHistogram):
@@ -66,6 +65,15 @@ class CalibrationHistogram(TrackedHistogram):
         counts: unidimensional numpy array of integers
         indices: list of lists of integers
         """
+
+        if not np.any(counts):
+            raise we.EmptyCalibrationHistogram(
+                we.GenerateExceptionMessage(
+                    1,
+                    'CalibrationHistogram.__init__()',
+                    "The given calibration histogram is empty."
+                )
+            )
 
         super().__init__(
             bins_number,
@@ -201,16 +209,22 @@ class CalibrationHistogram(TrackedHistogram):
         """
 
         if bins_number < 2:
-            raise Exception(GenerateExceptionMessage(
-                1,
-                'CalibrationHistogram.from_WaveformSet()',
-                f"The given bins number ({bins_number}) must be"
-                " greater than 1."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    1,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    f"The given bins number ({bins_number}) must be"
+                    " greater than 1."
+                )
+            )
         if np.ndim(domain) != 1 or len(domain) != 2:
-            raise Exception(GenerateExceptionMessage(
-                2,
-                'CalibrationHistogram.from_WaveformSet()',
-                "The 'domain' parameter must be a 2x1 numpy array."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    2,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    "The 'domain' parameter must be a 2x1 numpy array."
+                )
+            )
 
         # Trying to grab the WfAna object Waveform by Waveform using
         # WaveformAdcs.get_analysis() might be slow. Find a different
@@ -235,11 +249,14 @@ class CalibrationHistogram(TrackedHistogram):
             )
         except numba.errors.TypingError:
 
-            raise Exception(GenerateExceptionMessage(
-                3,
-                'CalibrationHistogram.from_WaveformSet()',
-                f"The given variable ('{variable}') does not give"
-                " suited samples for a 1D histogram."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    3,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    f"The given variable ('{variable}') does not give"
+                    " suited samples for a 1D histogram."
+                )
+            )
 
     @classmethod
     def __from_samples(

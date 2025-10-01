@@ -6,6 +6,8 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.ChannelMap import ChannelMap
 
+import waffles.Exceptions as we
+
 
 class ChannelWsGrid:
     """Stands for Channel Waveform Set Grid. This class
@@ -363,7 +365,8 @@ class ChannelWsGrid:
         bins_number: int,
         domain: np.ndarray,
         variable: str,
-        analysis_label: Optional[str] = None
+        analysis_label: Optional[str] = None,
+        verbose: bool = False
     ) -> None:
         """This method iterates through all of the endpoint and
         channels in the self.__ch_wf_sets attribute and, for
@@ -405,20 +408,33 @@ class ChannelWsGrid:
             analyses attribute will be the used one. If
             there is not even one analysis, then an
             exception will be raised.
+        verbose: bool
+            Whether to print functioning related messages
 
         Returns
         ----------
         None
         """
-        
+
         for endpoint in self.__ch_wf_sets.keys():
             for channel in self.__ch_wf_sets[endpoint].keys():
-                self.__ch_wf_sets[endpoint][channel].compute_calib_histo(
-                    bins_number,
-                    domain,
-                    variable,
-                    analysis_label=analysis_label
-                )
+                try:
+                    self.__ch_wf_sets[endpoint][channel].compute_calib_histo(
+                        bins_number,
+                        domain,
+                        variable,
+                        analysis_label=analysis_label
+                    )
+                except we.EmptyCalibrationHistogram:
+                    if verbose:
+                        print(
+                            f"In method ChannelWsGrid.compute_calib_histos(): "
+                            "The calibration histogram for channel "
+                            f"{endpoint}-{channel} could not be computed. "
+                            "A reason for this may have been that no "
+                            "samples fell into the specified "
+                            f"domain (={domain}). Skipping this channel."
+                        )
 
         return
 

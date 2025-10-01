@@ -346,7 +346,7 @@ def percentileFilter(
     percentileWaveformSet = (percentileWaveforms.tolist(), percentileConditon)
     return percentileWaveformSet
 
-def selection_for_led_calibration(
+def fine_selection_for_led_calibration(
     waveform: Waveform,
     baseline_analysis_label: str,
     baseline_i_up: int,
@@ -413,7 +413,7 @@ def selection_for_led_calibration(
         raise Exception(
             GenerateExceptionMessage(
                 1,
-                "selection_for_led_calibration()",
+                "fine_selection_for_led_calibration()",
                 f"The given waveform does not have the analysis"
                 f" '{baseline_analysis_label}' in its analyses "
                 "attribute, or it does, but the 'baseline' key "
@@ -428,7 +428,93 @@ def selection_for_led_calibration(
     signal_samples = waveform.adcs[baseline_i_up:signal_i_up] - \
         waveform.analyses[baseline_analysis_label].result['baseline']
     
-    if np.min(signal_samples) < -1.*abs(signal_allowed_dev * baseline_std):
-        return False
+    try:
+        if np.min(signal_samples) < -1.*abs(signal_allowed_dev * baseline_std):
+            return False
+    
+    except ValueError as e:
+        raise ValueError(
+            GenerateExceptionMessage(
+                1,
+                "fine_selection_for_led_calibration()",
+                f"Caught the following ValueError: {e}. It could "
+                "have been due to an empty signal_samples array. "
+                f"If len(signal_samples) (={len(signal_samples)}) "
+                "is equal to zero, then make sure that baseline_i_up "
+                f"(={baseline_i_up}) is smaller than signal_i_up "
+                f"(={signal_i_up})."
+            )
+        )
+    
+    return True
+
+def coarse_selection_for_led_calibration(
+    waveform: Waveform,
+    baseline_analysis_label: str,
+    lower_limit_wrt_baseline: float,
+    upper_limit_wrt_baseline: float
+) -> bool:
+    """This function returns True if the following two
+    conditions are met simultaneously:
+
+        - the waveform adcs do not drop below the
+        baseline minus the absolute value of
+        lower_limit_wrt_baseline and
+
+        - the waveform adcs do not raise above the
+        baseline plus the absolute value of
+        upper_limit_wrt_baseline
+
+    If any of them is not met, it returns False.
+
+    Parameters
+    ----------
+    waveform: Waveform
+        The waveform to apply the selection to
+    baseline_analysis_label: str
+        The baseline of the filtered waveform must be available
+        under the 'baseline' key of the result of the analysis
+        whose label is given by this parameter, i.e. in
+        waveform.analyses[analysis_label].result['baseline']
+    lower_limit_wrt_baseline: float
+        Its absolute value is the allowed margin for the
+        waveform adcs below its baseline.
+    upper_limit_wrt_baseline: float
+        Its absolute value is the allowed margin for the
+        waveform adcs above its baseline.
+
+    Returns
+    ----------
+    bool
+    """
+
+    try:
+        baseline = \
+            waveform.analyses[baseline_analysis_label].result['baseline']
+
+    except KeyError:
+        raise Exception(
+            GenerateExceptionMessage(
+                1,
+                "coarse_selection_for_led_calibration()",
+                f"The given waveform does not have the analysis"
+                f" '{baseline_analysis_label}' in its analyses "
+                "attribute, or it does, but the 'baseline' key "
+                "is not present in its result."
+            )
+        )
+
+    lower_threshold = baseline - abs(lower_limit_wrt_baseline)
+    upper_threshold = baseline + abs(upper_limit_wrt_baseline)
+
+    # The following algorithm is slightly faster (~0.61 vs
+    # ~0.68 seconds on average for a waveformset with 199453
+    # waveforms with 1024 points each on a Mac M2) than the
+    # one which computes np.max(waveform.adcs) and
+    # np.min(waveform.adcs) and compares it to lower_threshold
+    # and upper_threshold.
+    for adc in waveform.adcs:
+        if adc < lower_threshold or adc > upper_threshold:
+            return False
     
     return True

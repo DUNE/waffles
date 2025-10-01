@@ -15,7 +15,8 @@ import sys
 import yaml
 import numpy as np
 import pandas as pd
-import noisy_function as nf
+import waffles.np04_analysis.noise_studies.noisy_function as nf
+from waffles.np04_utils.utils import get_np04_channel_mapping
 
 
 # --- MAIN --------------------------------------------------------------------
@@ -37,16 +38,16 @@ if __name__ == "__main__":
     ana_path  = user_config.get("ana_path")
     integrators = user_config.get("integrators")
     if integrators == "OFF":
-        channel_map_file = run_info.get("new_channel_map_file")
+        channel_map_file = "new"
     elif integrators == "ON":
-        channel_map_file = run_info.get("channel_map_file")
+        channel_map_file = "old"
     else:
         print("Integrators must be either ON or OFF")
         exit()
 
 
     # Read the channel map file (daphne ch <-> offline ch) --------------------
-    df = pd.read_csv("configs/"+channel_map_file, sep=",")
+    df = get_np04_channel_mapping(version=channel_map_file)
     daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
     daphne_to_offline_dict = dict(zip(daphne_channels, df['offline_ch']))
     offline_to_daphne_dict = dict(zip(df['offline_ch'], daphne_channels))

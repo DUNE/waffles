@@ -11,7 +11,8 @@ single_ana_folder: "single_ana/"
 pair_ana_folder: "pair_ana/"
 
 # File.csv with daphne<->offline channel mapping
+# Note: now useless! These files are in np04_utils
 # channel_map_file: "PDHD_PDS_ChannelMap.csv"
-new_channel_map_file: "PDHD_PDS_NewChannelMap.csv"
+#new_channel_map_file: "PDHD_PDS_NewChannelMap.csv"
 
 run_info_file: "RunInfo.csv"

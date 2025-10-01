@@ -1,0 +1,34 @@
+# File.csv containing (at least) the columns:
+# Run, Threshold, LED
+# Run: run number
+# Threshold: threshold in exadecimal
+# LED: LED intensity
+# run_info_file: "./configs/SelfTrigger_RunInfo.csv"
+run_info_file: "./configs/ColdboxDec24_ST_RunInfo.csv"
+
+# Where to store the output files
+# ana_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/"
+ana_folder: "/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/"
+
+# File.csv stored in ana_folder containing (at least) the columns:
+# SiPMChannel, IntLow, IntUp, PrepulseTicks, BaselineRMS, SpeCharge, SNR, SpeAmpl
+# SiPMChannel: SiPM channel number (e.g. 11121)
+# IntLow: lower integration limit (in ticks)
+# IntUp: upper integration limit (in ticks)
+# PrepulseTicks: number of ticks before the signal to compute the baseline
+# BaselineRMS: baseline RMS (in ADC counts)
+# SpeCharge: SPE charge (in ADC x ticks)
+# SpeAmpl: SPE amplitude (in ADC counts)
+calibration_file: "SelfTrigger_Calibration.csv"
+
+# Path to the hdf5 files with name:
+# Run_XXXXXX_ChSiPM_YYYYY_ChST_ZZZZZ_structured.hdf5 
+# file_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/files/"
+file_folder: "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/December2024run/Daphne_DAQ/hdf5s_M4_SelfTriggerData/"
+
+# SiPM channel to analyze
+# SiPM_channel: 11121
+SiPM_channel: 10403
+
+# Perform selection on the waveforms? (True/False)
+perform_selection: True

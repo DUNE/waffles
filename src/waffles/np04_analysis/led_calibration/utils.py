@@ -10,53 +10,91 @@ from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
 from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
 from waffles.np04_utils.utils import get_channel_iterator
+import waffles.Exceptions as we
 
-def get_input_folderpath(
+def get_input_filepaths_for_run(
         base_folderpath: str,
         batch: int,
-        apa: int,
         pde: float,
         run: int
-    ) -> str:
-    
-    aux = get_apa_foldername(
-        batch,
-        apa
+    ) -> list[str]:
+    """Get the list of input file paths for a specific run
+    within a batch and PDE setting.
+
+    Parameters
+    ----------
+    base_folderpath: str
+        The base directory containing batch and PDE
+        subdirectories
+    batch: int
+        The batch number to look for
+    pde: float
+        The PDE (Photon Detection Efficiency) value
+        to look for
+    run: int
+        The run number to filter files by
+
+    Returns
+    -------
+    input_filepaths: list of str
+        A list of file paths corresponding to the
+        specified run. Files are selected if their
+        filenames contain the substring "run_{run}_".
+        The function expects the directory structure
+        to be organized as
+        f"{base_folderpath}/batch_{batch}/pde_{pde}/"
+
+    Raises
+    ------
+    we.NonExistentDirectory
+        If the expected folder path, based on the 'base_folderpath',
+        'batch' and 'pde' parameters, does not exist or is not a
+        directory.
+    """
+
+    if pde < 1.:
+        # Assume that the PDE is given as a fraction
+        pde_str = str(int(100. * pde))
+    else:
+        # Assume that the PDE is given as a percentage
+        pde_str = str(int(pde))
+
+    candidate_folderpath = os.path.join(
+        base_folderpath,
+        f"batch_{batch}/pde_{pde_str}"
     )
 
-    return  f"{base_folderpath}/batch_{batch}/{aux}/pde_{pde}/data/run_0{run}/"
-
-def get_apa_foldername(
-        measurements_batch,
-        apa_no
-    ) -> str:
-    """This function encapsulates the non-homogeneous 
-    naming convention of the APA folders depending 
-    on the measurements batch.""" 
-
-    if measurements_batch not in [1, 2, 3]:
-        raise ValueError(
-            f"Measurements batch {measurements_batch} is not valid"
+    # Check that the candidate folderpath exists
+    # and that it is a directory
+    if not os.path.exists(candidate_folderpath):
+        raise we.NonExistentDirectory(
+            we.GenerateExceptionMessage(
+                1,
+                'get_input_filepaths_for_run()',
+                f"The path {candidate_folderpath} does not exist."
+            )
         )
-    
-    if apa_no not in [1, 2, 3, 4]:
-        raise ValueError(
-            f"APA number {apa_no} is not valid"
+    elif not os.path.isdir(candidate_folderpath):
+        raise we.NonExistentDirectory(
+            we.GenerateExceptionMessage(
+                1,
+                'get_input_filepaths_for_run()',
+                f"The path {candidate_folderpath} is not a directory."
+            )
         )
 
-    if measurements_batch == 1:
-        if apa_no in [1, 2]:
-            return 'apas_12'
-        else:
-            return 'apas_34'
-        
-    if measurements_batch in [2, 3]:
-        if apa_no == 1:
-            return 'apa_1'
-        elif apa_no == 2:
-            return 'apa_2'
-        else:
-            return 'apas_34'
+    input_filepaths = []
+
+    for filename in os.listdir(candidate_folderpath):
+        if f"run_{str(run)}_" in filename:
+            input_filepaths.append(
+                os.path.join(
+                    candidate_folderpath,
+                    filename
+                )
+            )
+
+    return input_filepaths
 
 def join_channel_number(
         endpoint: int,
@@ -149,14 +187,23 @@ def parse_numeric_list(input_string: str) -> list:
     - "[1.2, 3, 5.]" -> [1.2, 3.0, 5.0]
     """
 
-    if input_string[0] != '[' or input_string[-1] != ']':
+    if len(input_string) < 2:
         raise ValueError(
             "In function parse_numeric_list():"
-            "Input string must start with '[' and end with ']'"
+            "The input string must contain at least 2 characters"
         )
+    else:
+        if input_string[0] != '[' or input_string[-1] != ']':
+            raise ValueError(
+                "In function parse_numeric_list():"
+                "The input string must start with '[' and end with ']'"
+            )
 
     # Remove the brackets
     input_string = input_string.strip()[1:-1]
+
+    if len(input_string) == 0:
+        return []
 
     # Split the string by commas
     items = input_string.split(',')
@@ -174,40 +221,7 @@ def parse_numeric_list(input_string: str) -> list:
 
     return [cast(item) for item in items]
 
-def read_data(
-        input_path: str,
-        batch: int,
-        apa_no: int,
-        stop_fraction: float = 1.,
-        verbose: bool = True
-    ):
-    """It is assumed that the input_path is a folder."""
-
-    fProcessRootNotPickles = True if batch == 1 else False
-
-    if fProcessRootNotPickles:
-        new_wfset = WaveformSet_from_root_files(
-            "pyroot",
-            folderpath=input_path,
-            bulk_data_tree_name="raw_waveforms",
-            meta_data_tree_name="metadata",
-            set_offset_wrt_daq_window=True if apa_no == 1 else False,
-            read_full_streaming_data=True if apa_no == 1 else False,
-            truncate_wfs_to_minimum=True if apa_no == 1 else False,
-            start_fraction=0.0,
-            stop_fraction=stop_fraction,
-            subsample=1,
-        )
-    else:
-        new_wfset = WaveformSet_from_pickle_files(                
-            folderpath=input_path,
-            target_extension=".pkl",
-            verbose=verbose,
-        )
-
-    return new_wfset
-
-def get_average_baseline_std(
+def compute_average_baseline_std(
         waveform_set: WaveformSet,
         baseline_analysis_label: str
 ) -> float:
