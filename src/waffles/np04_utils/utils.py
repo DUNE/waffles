@@ -200,7 +200,7 @@ def get_np04_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dic
         A dictionary that maps daphne channels to offline channels
     """
     df = get_np04_channel_mapping(version=version, run=run)
-    daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
+    daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
     daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
     return daphne_to_offline
 
@@ -249,7 +249,8 @@ def load_configs(daphne_config_file = "") -> dict:
 def load_noise_results(noise_results_file = "") -> pd.DataFrame:
     """Load and cache noise results CSV."""
     if not noise_results_file:
-        noise_results_file = Path("OfflineCh_RMS_Config_all.csv")
+        wafflesdir = Path(waffles.__file__).parent
+        noise_results_file = wafflesdir / "np04_data" / "OfflineCh_RMS_Config_all.csv"
 
     if not Path(noise_results_file).exists():
         raise FileNotFoundError(
