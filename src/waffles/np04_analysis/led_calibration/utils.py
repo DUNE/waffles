@@ -2,6 +2,10 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+# START:imports for vgain scan analysis.
+from pathlib import Path
+import tarfile, gzip, pickle, io
+# END: imports for vgain scan analysis.
 
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -598,4 +602,26 @@ def next_subsample(
         # quantity, then return the best-case scenario which is
         # still proposed_subsample = 1
 
-        return proposed_subsample
+        return proposed_subsamplie
+
+# START: auxiliar vgain scan functions
+def load_waveformSet_from_tar_gz(tar_path: str | Path, member_path: str):
+    """
+    tar_path: path to the .tar (e.g., 'vgain_3126.tar')
+    member_path: full path inside the tar to the .gz file
+                 (e.g., 'vgain_1064/40p/run_30842/data_endpoint_104.gz')
+    """
+    tar_path = Path(tar_path)
+    with tarfile.open(tar_path, mode = "r:*") as tar:
+        ti = tar.getmember(member_path)
+        gz_stream = tar.extractfile(ti)
+        if gz_stream is None:
+            raise FileNotFoundError(f"Could not extract memeber: {member_path}")
+
+        with gzip.GzipFile(fileobj=gz_stream, mode="rb") as f:
+            buf = io.BufferedReader(f)
+            obj = pickle.load(buf)
+            waveforms = [wave for wvs in obj for wave in wvs]
+            del obj
+            return WaveformSet(*waveforms)
+# END: auxiliar vgain scan functions
