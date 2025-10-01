@@ -200,7 +200,7 @@ def get_np04_daphne_to_offline_channel_dict(version: str="", run: int=-1) -> dic
         A dictionary that maps daphne channels to offline channels
     """
     df = get_np04_channel_mapping(version=version, run=run)
-    daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
+    daphne_channels = df['daphne_ch'].values[0] + 100*df['endpoint'].values[0]
     daphne_to_offline = dict(zip(daphne_channels, df['offline_ch']))
     return daphne_to_offline
 

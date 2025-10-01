@@ -391,6 +391,38 @@ def plot_charge_peaks(calibh: CalibrationHistogram,
     write_image(fig)
 
 ###########################
+def compute_peaks(calibh: CalibrationHistogram,
+                    npeaks: int=2, 
+                    prominence: float=0.2,
+                    half_points_to_fit: int =10,
+                    op: str = ''):        
+
+
+    # fit the peaks of the calibration histogram
+    fp.fit_peaks_of_CalibrationHistogram(calibration_histogram=calibh,
+                                        max_peaks = npeaks,
+                                        prominence = prominence,
+                                        initial_percentage = 0.1,
+                                        percentage_step = 0.1,
+                                        half_points_to_fit = half_points_to_fit)
+
+
+    # print the gain and the S/N
+    if op and op.find('print') !=-1:
+        if len(calibh.gaussian_fits_parameters['mean']) < 2:
+            print ('<2 peaks found. S/N and gain cannot be computed')
+        else:
+            gain = (calibh.gaussian_fits_parameters['mean'][1][0]-calibh.gaussian_fits_parameters['mean'][0][0])
+            signal_to_noise = gain/sqrt(calibh.gaussian_fits_parameters['std'][1][0]**2+calibh.gaussian_fits_parameters['std'][0][0]**2)        
+            print ('S/N =  ', signal_to_noise)
+            print ('gain = ', gain)
+            print ('s.p.e. mean charge = ', calibh.gaussian_fits_parameters['mean'][1][0], 
+                ' +- ', 
+                calibh.gaussian_fits_parameters['mean'][1][1])
+
+
+
+###########################
 def plot_avg(wset: WaveformSet,
             ep: int = -1, 
             ch: int = -1,            

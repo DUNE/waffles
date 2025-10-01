@@ -106,23 +106,42 @@ class Analysis1(WafflesAnalysis):
                 "of the selected ADC samples",
             )
 
-            baseline_i_up: int = Field(
+            lower_limit_wrt_baseline: float = Field(
                 ...,
-                description="ADCs-array iterator value for the "
-                "upper limit of the window which is considered "
-                "to be the baseline region. If the waveform "
-                "deviates from the baseline by more than "
-                "a certain amount in this region, it will be "
-                "excluded from the analysis.",
-                example=100
+                description="It is used for the coarse selection "
+                "cut. Its absolute value is the allowed margin for "
+                "the waveform adcs below its baseline.",
+                example=-200.
             )
 
-            signal_i_up: int = Field(
+            upper_limit_wrt_baseline: float = Field(
                 ...,
-                description="ADCs-array iterator value for the "
-                "upper limit of the window where an upper-bound "
-                "cut to the signal is applied",
-                example=165
+                description="It is used for the coarse selection "
+                "cut. Its absolute value is the allowed margin for "
+                "the waveform adcs above its baseline.",
+                example=40.
+            )
+
+            baseline_i_up: dict[int, int] = Field(
+                ...,
+                description="A dictionary whose keys refer to "
+                "the APA number, and its values are the "
+                "ADCs-array iterator value for the upper limit "
+                "of the window which is considered to be the "
+                "baseline region. If the waveform deviates from "
+                "the baseline by more than a certain amount in "
+                "this region, it will be excluded from the analysis.",
+                example={1: 575, 2: 120, 3: 120, 4: 120}
+            )
+
+            signal_i_up: dict[int, int] = Field(
+                ...,
+                description="A dictionary whose keys refer to "
+                "the APA number, and its values are the "
+                "ADCs-array iterator value for the upper limit "
+                "of the window where an upper-bound cut to the "
+                "signal is applied",
+                example={1: 650, 2: 165, 3: 165, 4: 165}
             )
 
             baseline_allowed_dev: float = Field(
@@ -357,7 +376,25 @@ class Analysis1(WafflesAnalysis):
             (self.channels_per_run['pde'] == self.pde)
         ]
 
-        targeted_runs = filtered_channels_per_run['run'].values
+        targeted_runs = list(
+            filtered_channels_per_run['run'].values
+        )
+
+        if len(targeted_runs) == 0:
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.read_input(): "
+                    f"Found no runs for batch {self.batch}, "
+                    f"APA {self.apa} and PDE {self.pde}. "
+                    "Skipping this configuration."
+                )
+
+            # WafflesAnalysis.execute() takes care of
+            # skipping this iteration of the loop if
+            # read_input() returns False, i.e. self.analyze()
+            # and self.write_output() won't be executed
+            # for this particular configuration
+            return False
 
         fFirstRun = True
 
@@ -377,30 +414,41 @@ class Analysis1(WafflesAnalysis):
             if self.params.verbose:
                 print(
                     "In function Analysis1.read_input(): "
-                    f"Reading the data for run {run}. "
-                    f"\nThe read channels are: {channels}."
+                    f"Reading the data for run {run}.",
                 )
-            
-            # Get the filepath to the input data for this run
-            input_folderpath = led_utils.get_input_folderpath(
-                self.params.input_path, 
+
+            if len(channels) == 0:
+                if self.params.verbose:
+                    print(
+                        "The list of aimed channels is empty"
+                        " for this run. Skipping this run."
+                    )
+                continue
+            else:
+                if self.params.verbose:
+                    print(
+                        f"The read channels are: {channels}."
+                    )   
+
+            # Get the filepaths to the input chunks for this run
+            input_filepaths = led_utils.get_input_filepaths_for_run(
+                self.params.input_path,
                 self.batch,
-                self.apa,
                 self.pde,
                 run
             )
 
-            # Read all files for the given run
-            new_wfset = led_utils.read_data(
-                input_folderpath,
-                self.batch,
-                self.apa,
-                stop_fraction=1.,
-                verbose=self.params.verbose
+            new_wfset = WaveformSet_from_pickle_files(
+                    filepath_list=input_filepaths,
+                    target_extension='.pkl',
+                    verbose=self.params.verbose
             )
 
             # Keep only the waveforms coming from 
-            # the targeted channels for this run
+            # the targeted channels for this run.
+            # This step is useless for cases when
+            # the input pickles were already filtered
+            # when copied from the original HDF5 files
             new_wfset = WaveformSet.from_filtered_WaveformSet(
                 new_wfset,
                 led_utils.comes_from_channel,
@@ -422,16 +470,18 @@ class Analysis1(WafflesAnalysis):
         steps:
 
         1. Compute the baseline of each waveform
-        2. Compute the average baseline STD for each channel
-        3. Apply a selection cut to each channel, based on
+        2. Apply a coarse selection cut to the whole waveform
+        set based on their maximum deviation from the baseline
+        3. Compute the average baseline STD for each channel
+        4. Apply a selection cut to each channel, based on
         its average baseline STD
-        4. Subtract the baseline from each waveform and
+        5. Subtract the baseline from each waveform and
         compute the average waveform of each channel
-        5. Compute the integration window for each channel
+        6. Compute the integration window for each channel
         and integrate the waveforms
-        6. Compute the calibration histogram for each channel
+        7. Compute the calibration histogram for each channel
         and fit the first N peaks
-        7. Out of the fit parameters, compute the gain and
+        8. Out of the fit parameters, compute the gain and
         S/N for each channel
         
         Returns
@@ -485,6 +535,34 @@ class Analysis1(WafflesAnalysis):
             overwrite=True
         )
 
+        if self.params.verbose:
+            print(
+                "In function Analysis1.analyze(): "
+                "Applying the coarse selection cut on  "
+                "the merged WaveformSet for batch "
+                f"{self.batch}, APA {self.apa}, and PDE "
+                f"{self.pde} ... ",
+                end=''
+            )
+
+        len_before_coarse_selection = len(self.wfset.waveforms)
+
+        self.wfset = WaveformSet.from_filtered_WaveformSet(
+            self.wfset,
+            coarse_selection_for_led_calibration,
+            self.params.baseline_analysis_label,
+            self.params.lower_limit_wrt_baseline,
+            self.params.upper_limit_wrt_baseline
+        )
+
+        len_after_coarse_selection = len(self.wfset.waveforms)
+
+        if self.params.verbose:
+            print(
+                f"Kept {100.*(len_after_coarse_selection/len_before_coarse_selection):.2f}%"
+                " of the waveforms"
+            )
+
         # Separate the WaveformSet into a grid of WaveformSets,
         # so that each WaveformSet contains all of the waveforms
         # which come from the same channel
@@ -507,7 +585,7 @@ class Analysis1(WafflesAnalysis):
                         end=''
                     )
 
-                average_baseline_std = led_utils.get_average_baseline_std(
+                average_baseline_std = led_utils.compute_average_baseline_std(
                     self.grid_apa.ch_wf_sets[endpoint][channel],
                     self.params.baseline_analysis_label
                 )
@@ -522,7 +600,7 @@ class Analysis1(WafflesAnalysis):
                         end=''
                     )
 
-                len_before_cut = len(
+                len_before_fine_selection = len(
                     self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
                 )
 
@@ -531,10 +609,10 @@ class Analysis1(WafflesAnalysis):
                 # the selection cut
                 aux = WaveformSet.from_filtered_WaveformSet(
                     self.grid_apa.ch_wf_sets[endpoint][channel],
-                    selection_for_led_calibration,
+                    fine_selection_for_led_calibration,
                     self.params.baseline_analysis_label,
-                    self.params.baseline_i_up,
-                    self.params.signal_i_up,
+                    self.params.baseline_i_up[self.apa],
+                    self.params.signal_i_up[self.apa],
                     average_baseline_std,
                     self.params.baseline_allowed_dev,
                     self.params.signal_allowed_dev
@@ -544,13 +622,13 @@ class Analysis1(WafflesAnalysis):
                     ChannelWs(*aux.waveforms)
 
 
-                len_after_cut = len(
+                len_after_fine_selection = len(
                     self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
                 )
 
                 if self.params.verbose:
                     print(
-                        f"Kept {100.*(len_after_cut/len_before_cut):.2f}%"
+                        f"Kept {100.*(len_after_fine_selection/len_before_fine_selection):.2f}%"
                         " of the waveforms"
                     )
                     print(
@@ -646,6 +724,7 @@ class Analysis1(WafflesAnalysis):
             ),
             variable='integral',
             analysis_label=self.params.integration_analysis_label,
+            verbose=self.params.verbose
         )
 
         fit_peaks_of_ChannelWsGrid( 
@@ -658,7 +737,8 @@ class Analysis1(WafflesAnalysis):
             fit_type=self.params.fit_type,
             half_points_to_fit=self.params.half_points_to_fit,
             std_increment_seed_fallback=self.params.std_increment_seed_fallback,
-            ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks
+            ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
+            verbose=self.params.verbose
         )
 
         if self.params.verbose:
@@ -759,7 +839,13 @@ class Analysis1(WafflesAnalysis):
         # Save the persistence heatmaps
         if self.params.save_persistence_heatmaps:
 
-            aux_time_increment = 40
+            aux_time_increment = {
+                1: 80,
+                2: 40,
+                3: 40,
+                4: 40
+            }
+
             persistence_figure = plot_ChannelWsGrid(
                 self.grid_apa,
                 figure=None,
@@ -768,14 +854,14 @@ class Analysis1(WafflesAnalysis):
                 mode='heatmap',
                 wfs_per_axes=None,
                 analysis_label=self.params.null_baseline_analysis_label,
-                time_bins=40,
+                time_bins=aux_time_increment[self.apa],
                 adc_bins=30,
-                time_range_lower_limit=125,
-                time_range_upper_limit=125 + aux_time_increment,
+                time_range_lower_limit=self.params.baseline_i_up[self.apa],
+                time_range_upper_limit=self.params.baseline_i_up[self.apa] + aux_time_increment[self.apa],
                 adc_range_above_baseline=10,
                 adc_range_below_baseline=80,
                 detailed_label=True,
-                verbose=True,
+                verbose=self.params.verbose
             )
 
             persistence_figure.update_layout(
