@@ -72,11 +72,11 @@ class RucioHandler:
             raise FileNotFoundError(f"Rucio setup script not found: {script}")
 
         #Use an interactive login shell so 'source' works and prompts are visible.
-        subprocess.run(
-            f"bash -i -c 'source {shlex.quote(str(script))}'",
-            shell=True,
-            check=True,
-        )
+        #subprocess.run(
+        #    f"bash -i -c 'source {shlex.quote(str(script))}'",
+        #    shell=True,
+        #    check=True,
+        #)
 
 
     def setup_rucio_2(self, script_name: str = "setup_rucio_a9.sh") -> dict:
@@ -96,28 +96,28 @@ class RucioHandler:
             raise FileNotFoundError(f"Rucio setup script not found: {script}")
 
         # One interactive shell: source the script (prompts shown), then dump env.
-        cmd = (
-            "bash -i -c '"
-            f"source {shlex.quote(str(script))}; env -0'"
-        )        
-        proc = subprocess.Popen(
-            cmd,
-            shell=True,
-            text=False,
-            stdout=subprocess.PIPE,
-            stderr=None,  # inherit stderr so prompts and messages are visible
-        )
-        out, _ = proc.communicate()
-        if proc.returncode != 0:
-            raise subprocess.CalledProcessError(proc.returncode, cmd)
+        #cmd = (
+        #    "bash -i -c '"
+        #    f"source {shlex.quote(str(script))}; env -0'"
+        #)        
+        #proc = subprocess.Popen(
+        #    cmd,
+        #    shell=True,
+        #    text=False,
+        #    stdout=subprocess.PIPE,
+        #    stderr=None,  # inherit stderr so prompts and messages are visible
+        #)
+        #out, _ = proc.communicate()
+        #if proc.returncode != 0:
+        #    raise subprocess.CalledProcessError(proc.returncode, cmd)
 
         # Parse `env -0` output into a dict
         new_env: dict[str, str] = {}
-        for entry in out.split(b"\x00"):
-            if not entry:
-                continue
-            k, _, v = entry.partition(b"=")
-            new_env[k.decode()] = v.decode()
+        #for entry in out.split(b"\x00"):
+        #    if not entry:
+        #        continue
+        #    k, _, v = entry.partition(b"=")
+        #    new_env[k.decode()] = v.decode()
 
         # Start from current env, then overlay what the setup script exported
         env = os.environ.copy()
@@ -149,10 +149,16 @@ class RucioHandler:
                 pass
             # Ensure a proxy (if any) doesn't override bearer tokens at DAVS
             env.pop("X509_USER_PROXY", None)
+        else:
+            env.setdefault("BEARER_TOKEN_FILE", f"/run/user/{os.getuid()}/davs.token")
+
 
         # ---- Reasonable defaults for trust anchors / TLS -------------------------
         env.setdefault("REQUESTS_CA_BUNDLE", "/etc/pki/tls/certs/ca-bundle.crt")
         env.setdefault("X509_CERT_DIR", "/etc/grid-security/certificates")
+        
+        print("[DEBUG] Using token file:", env.get("BEARER_TOKEN_FILE"))
+        print("[DEBUG] Using cert dir :", env.get("X509_CERT_DIR"))
 
         self._env = env
         return env
@@ -227,15 +233,24 @@ class RucioHandler:
         
         dest_dir = self.data_folder / "hd-protodune"
         dest_dir.mkdir(parents=True, exist_ok=True)
+        
+        #print("[DEBUG] Using token file:", self._env.get("BEARER_TOKEN_FILE"))
+        #print("[DEBUG] Using cert dir :", self._env.get("X509_CERT_DIR"))
 
         # 3. copy each file with xrdcp
         downloaded = []
         for pfn in pfn_list:
             dest = dest_dir / Path(pfn).name
             print(f"Copying {pfn} → {dest}")
+            #tokfile = self._env.get("BEARER_TOKEN_FILE")
+            #print("[DEBUG] token file exists:", tokfile, os.path.isfile(tokfile))
+            #if tokfile:
+            #    with open(tokfile) as f:
+            #        head = f.read(40)
+            #        print("[DEBUG] token head:", head[:20], "... len:", len(head))
             self._stream_run(
                 ["xrdcp", pfn, str(dest)],
-                env=self._env,
+                # env=self._env,   <-- remove
             )
             downloaded.append(str(dest))
 
