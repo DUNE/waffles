@@ -71,7 +71,7 @@ class RucioHandler:
         if not script.exists():
             raise FileNotFoundError(f"Rucio setup script not found: {script}")
 
-        # Use an interactive login shell so 'source' works and prompts are visible.
+        #Use an interactive login shell so 'source' works and prompts are visible.
         subprocess.run(
             f"bash -i -c 'source {shlex.quote(str(script))}'",
             shell=True,
@@ -198,13 +198,13 @@ class RucioHandler:
             raise FileNotFoundError(f"Fetch script not found: {fetch_script}")
 
         # 1. produce the replicas list
-        self._stream_run(
-            ["python", "-u", str(fetch_script), "--runs", str(run_number),
-             "--max-files", str(self.max_files)],
-            cwd=self.txt_folder,
-            log_file=fetch_log,
-            env=self._env,
-        )
+        #self._stream_run(
+        #    ["python", "-u", str(fetch_script), "--runs", str(run_number),
+        #     "--max-files", str(self.max_files)],
+        #    cwd=self.txt_folder,
+        #    log_file=fetch_log,
+        #    env=self._env,
+        #)
 
         # 2. parse the list and pick PFNs
         replica_file = self.txt_folder / self.replicas_filename_template.format(run=run_number)
@@ -224,11 +224,14 @@ class RucioHandler:
 
         if not pfn_list:
             raise RuntimeError(f"No xrootd PFNs found in {replica_file}")
+        
+        dest_dir = self.data_folder / "hd-protodune"
+        dest_dir.mkdir(parents=True, exist_ok=True)
 
         # 3. copy each file with xrdcp
         downloaded = []
         for pfn in pfn_list:
-            dest = self.data_folder / Path(pfn).name
+            dest = dest_dir / Path(pfn).name
             print(f"Copying {pfn} → {dest}")
             self._stream_run(
                 ["xrdcp", pfn, str(dest)],
