@@ -94,7 +94,7 @@ if __name__ == "__main__":
         plt.close(fig)
         
         f_sigmoid = TF1("f_sigmoid", "[2]/(1+exp(([0]-x)/[1]))", -2, 7)
-        he_efficiency = st.fit_efficiency(f_sigmoid=f_sigmoid)
+        efficiency_fit_ok = st.fit_efficiency(f_sigmoid=f_sigmoid)
 
         st.get_trigger_rate()
 
@@ -124,35 +124,17 @@ if __name__ == "__main__":
             "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
             "SigmaTrg": st.f_STpeak.GetParameter(2),
             "ErrSigmaTrg": st.f_STpeak.GetParError(2),
-            "ThresholdFit": f_sigmoid.GetParameter(0),
-            "ErrThresholdFit": f_sigmoid.GetParError(0),
-            "TauFit": f_sigmoid.GetParameter(1),
-            "ErrTauFit": f_sigmoid.GetParError(1),
-            "MaxEffFit": f_sigmoid.GetParameter(2),
-            "ErrMaxEffFit": f_sigmoid.GetParError(2),
+            "ThresholdFit": f_sigmoid.GetParameter(0) if efficiency_fit_ok else np.nan,
+            "ErrThresholdFit": f_sigmoid.GetParError(0) if efficiency_fit_ok else np.nan,
+            "TauFit": f_sigmoid.GetParameter(1) if efficiency_fit_ok else np.nan,
+            "ErrTauFit": f_sigmoid.GetParError(1) if efficiency_fit_ok else np.nan,
+            "MaxEffFit": f_sigmoid.GetParameter(2) if efficiency_fit_ok else np.nan,
+            "ErrMaxEffFit": f_sigmoid.GetParError(2) if efficiency_fit_ok else np.nan,
         })
         h_st.Write()
-        he_efficiency.Write()
+        st.he_STEfficiency.Write()
           
 
     out_root_file.Close()
     out_df = pd.DataFrame(out_df_rows)
     out_df.to_csv(ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}_Selection_{perform_selection}.csv", index=False)
-
-        # st.select_outliers(f_sigmoid=f_sigmoid)
-        # fig = plt.figure(figsize=(10, 8))
-        # h_st = st.create_self_trigger_distribution()
-        # mplhep.histplot(h_st, label="Self Trigger Distribution", color="blue")
-        # plt.xlabel("Ticks")
-        # plt.ylabel("Counts")
-        # plt.savefig(homedir+"outliers_self_trigger_distribution.png")
-        #
-        # fig = plt.figure(figsize=(10, 8))
-        # h, xedges, yedges = self_trigger.persistence_plot(st.wfs_sipm)
-        # x, y = np.meshgrid(xedges, yedges)
-        # pcm = plt.pcolormesh(x, y, np.log10(h))
-        # plt.xlabel("Ticks")
-        # plt.ylabel("Counts")
-        # plt.savefig(homedir+"outliers_persistence_plot.png")
-        #
-        #

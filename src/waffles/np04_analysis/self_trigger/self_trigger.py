@@ -259,7 +259,7 @@ class SelfTrigger:
         return main_ax_artists, sublot_ax_arists
 
 
-    def fit_efficiency(self, f_sigmoid) -> TEfficiency:
+    def fit_efficiency(self, f_sigmoid) -> bool:
         """
         Fit the efficiency histogram.
         """
@@ -271,6 +271,12 @@ class SelfTrigger:
 
         half_max_efficiency = 0.5 * max_efficiency
         effs = np.array([self.he_STEfficiency.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
+        low_effs = np.where(effs < 0.1)
+        high_effs = np.where(effs > 0.9)
+        if len(low_effs) < 5 or len(high_effs) < 0:
+            print("No low or high efficiency points found.")
+            return False
+
         thr_x = 0
         for i in range(len(effs)-4):
             effs_short = effs[i:i+5]
@@ -282,16 +288,16 @@ class SelfTrigger:
                 break
         
         print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
-        # f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
-        # f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
-        # f_sigmoid.SetParLimits(1, 0.01, 2)
-        # f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
-        # f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
-        # f_sigmoid.SetNpx(1000)
-        #
-        # self.he_STEfficiency.Fit(f_sigmoid, "R")
+        f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
+        f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
+        f_sigmoid.SetParLimits(1, 0.01, 2)
+        f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
+        f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
+        f_sigmoid.SetNpx(3000)
 
-        return self.he_STEfficiency
+        self.he_STEfficiency.Fit(f_sigmoid, "R")
+
+        return True
 
 
     def st_selector(self, wf) -> bool:
