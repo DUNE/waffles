@@ -22,7 +22,6 @@ if __name__ == "__main__":
     calibration_file = user_config.get("calibration_file")
     file_folder = user_config.get("file_folder")
     SiPM_channel = user_config.get("SiPM_channel")
-    # perform_selection = user_config.get("perform_selection", True)
     save_pngs = user_config.get("save_pngs", True)
     runs = user_config.get("runs", [])
     files_in_folder = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
