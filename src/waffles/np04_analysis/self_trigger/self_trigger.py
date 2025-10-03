@@ -157,21 +157,28 @@ class SelfTrigger:
         self.h_st = h_selftrigger
         return h_selftrigger
 
-    def get_bkg_trg_rate(self, h_selftrigger : TH1D) -> float:
+    def get_bkg_trg_rate(self, h_selftrigger : TH1D) -> tuple:
         """
         Get the background trigger rate.
         """
         n_bkg_triggers = h_selftrigger.Integral(self.bkg_trg_win_low, h_selftrigger.GetNbinsX())
-        bkg_trg_rate = (n_bkg_triggers * 10**9) / (len(self.wfs_st) * (len(self.wfs_st[0].adcs)-self.bkg_trg_win_low) * 16.)
-        return bkg_trg_rate
+        unc_n_bkg_triggers = sqrt(n_bkg_triggers)
+        norm_factor = 10**9 / (len(self.wfs_st) * (len(self.wfs_st[0].adcs)-self.bkg_trg_win_low) * 16.)
+        bkg_trg_rate = n_bkg_triggers * norm_factor
+        unc_bkg_trg_rate = unc_n_bkg_triggers * norm_factor
 
-    def get_bkg_trg_rate_preLED(self, h_selftrigger : TH1D) -> float:
+        return (bkg_trg_rate, unc_bkg_trg_rate)
+
+    def get_bkg_trg_rate_preLED(self, h_selftrigger : TH1D) -> tuple:
         """
         Get the background trigger rate before the LED pulse.
         """
         n_bkg_triggers_preLED = h_selftrigger.Integral(1, self.int_low)
-        bkg_trg_rate_preLED = (n_bkg_triggers_preLED * 10**9) / (len(self.wfs_st) * self.int_low * 16.)
-        return bkg_trg_rate_preLED
+        unc_n_bkg_triggers_preLED = sqrt(n_bkg_triggers_preLED)
+        norm_factor = 10**9 / (len(self.wfs_st) * (self.int_low-1) * 16.)
+        bkg_trg_rate_preLED = n_bkg_triggers_preLED * norm_factor
+        unc_bkg_trg_rate_preLED = unc_n_bkg_triggers_preLED * norm_factor
+        return bkg_trg_rate_preLED, unc_bkg_trg_rate_preLED
 
 
     def fit_self_trigger_distribution(self) -> TH1D:
@@ -389,23 +396,6 @@ class SelfTrigger:
         self.wfs_sipm = np.array(self.wfs_sipm[self.outlier_selection])
         self.wfs_st = np.array(self.wfs_st[self.outlier_selection])
 
-    def get_trigger_rate(self) -> float:
-        """
-        Calculate the trigger rate based on the self-triggering waveforms.
-        """
-        n_triggers = 0
-        n_wfs = len(self.wfs_st)
-        win_low = 800
-
-        for wf in self.wfs_st:
-            n_triggers += np.sum(wf.adcs[win_low+1:])
-
-        ntrig_hist = self.h_st.Integral(win_low, self.h_st.GetNbinsX())
-
-        print(f"Number of triggers: {n_triggers} or {ntrig_hist}")
-
-        full_trigger_rate = (n_triggers * 10**9) / (n_wfs * len(self.wfs_st[0].adcs) * 16.)
-        return full_trigger_rate
 
     def trigger_distr_per_nspe(self) -> dict:
         """
