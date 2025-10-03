@@ -63,6 +63,28 @@ baseliner_type: 'mean'
 lower_limit_wrt_baseline: -200.
 upper_limit_wrt_baseline: 40.
 
+## Parameters for the average-baseline-std computation
+
+# If True, the baseline std is retrieved 
+# from external files whose paths are given by th 
+# daphne_configuration_database_filepath and the 
+# noise_results_dataframe_filepath input parameters. 
+# If False, the baseline std is computed from the data.
+baseline_std_from_noise_results: true
+
+# Only used if the
+# baseline_std_from_noise_results parameter is set to 
+# True. It is the path to the Daphne configuration JSON
+# file.
+daphne_configuration_database_filepath: '../../np04_utils/DaphneConfigs.json'
+
+# Only used if the 
+# baseline_std_from_noise_results parameter is set to 
+# True. It is the path to the noise results CSV file, 
+# which must contain the columns 'ConfigNumber', 
+# 'OfflineCh' and 'RMS'.
+noise_results_dataframe_filepath: '../../np04_data/OfflineCh_RMS_Config_all.csv'
+
 ## Parameters for the fine selection cut
 baseline_i_up:
     1:
