@@ -10,9 +10,6 @@ import pandas as pd
 import yaml
 
 
-runs = [34952, 34968, 34976, 35016]
-
-
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
 
@@ -25,7 +22,9 @@ if __name__ == "__main__":
     calibration_file = user_config.get("calibration_file")
     file_folder = user_config.get("file_folder")
     SiPM_channel = user_config.get("SiPM_channel")
-    perform_selection = user_config.get("perform_selection", True)
+    # perform_selection = user_config.get("perform_selection", True)
+    save_pngs = user_config.get("save_pngs", True)
+    runs = user_config.get("runs", [])
     files_in_folder = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
 
     df_runs = pd.read_csv(run_info_file, sep=",") 
@@ -45,8 +44,8 @@ if __name__ == "__main__":
     SiPM = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
 
 
-    out_root_file = TFile(ana_folder+f"Ch_{SiPM_channel}_Selection_{perform_selection}.root", "RECREATE")
-    ch_folder = ana_folder+f"Ch_{SiPM_channel}_Selection_{perform_selection}/"
+    out_root_file = TFile(ana_folder+"AnaST_Ch_{SiPM_channel}.root", "RECREATE")
+    ch_folder = ana_folder+f"Ch_{SiPM_channel}/"
     if not os.path.exists(ch_folder):
         os.makedirs(ch_folder)
 
@@ -82,19 +81,23 @@ if __name__ == "__main__":
                                       snr=snr)
         st.create_wfs()
 
-        if perform_selection:
-            st.select_waveforms()
+            
+        h_st_full = st.create_self_trigger_distribution("h_st_full")
+        bkg_trg_rate, unc_bkg_trg_rate = st.get_bkg_trg_rate(h_st_full)
+        bkg_trg_rate_preLED, unc_bkg_trg_rate_preLED = st.get_bkg_trg_rate_preLED(h_st_full)
 
+        st.select_waveforms()
         h_st = st.create_self_trigger_distribution()
         h_st = st.fit_self_trigger_distribution()
         
-        fig = plt.figure(figsize=(10, 8))
+        if save_pngs:
+            fig = plt.figure(figsize=(10, 8))
         htotal, hpassed = st.create_efficiency_histos("he_efficiency")
-        plt.savefig(ch_folder+f"Efficiency_Run_{run}_LED_{led}_Thr_{threshold}_Selection_{perform_selection}.png")
-        plt.close(fig)
+        if save_pngs:
+            plt.savefig(ch_folder+f"Efficiency_Run_{run}_LED_{led}_Thr_{threshold}.png")
+            plt.close(fig)
         
-        f_sigmoid = TF1("f_sigmoid", "[2]/(1+exp(([0]-x)/[1]))", -2, 7)
-        efficiency_fit_ok = st.fit_efficiency(f_sigmoid=f_sigmoid)
+        efficiency_fit_ok = st.fit_efficiency()
 
         st.get_trigger_rate()
 
@@ -111,25 +114,28 @@ if __name__ == "__main__":
             "ThresholdSet": threshold,
             "AccWinLow": st.window_low,
             "AccWinUp": st.window_up,
-            "BkgTrgRate": st.bkg_trg_rate,
-            "BkgTrgRatePreLED": st.bkg_trg_rate_preLED,
+            "BkgTrgRate": bkg_trg_rate,
+            "ErrBkgTrgRate": unc_bkg_trg_rate,
+            "BkgTrgRatePreLED": bkg_trg_rate_preLED,
+            "ErrBkgTrgRatePreLED": unc_bkg_trg_rate_preLED,
             "MaxAccuracy": accuracy,
             "MaxAccuracyThr": accuracy_thr,
             "FalsePositiveRateMaxAcc": self_trigger.get_false_positive_rate(st.h_total, st.h_passed, accuracy_thr),
             "TruePositiveRateMaxAcc": self_trigger.get_true_positive_rate(st.h_total, st.h_passed, accuracy_thr),
-            "AccuracyThresholdFit": self_trigger.get_accuracy(st.h_total, st.h_passed, f_sigmoid.GetParameter(0)),
-            "FalsePositiveRate": self_trigger.get_false_positive_rate(st.h_total, st.h_passed, f_sigmoid.GetParameter(0)),
-            "TruePositiveRate": self_trigger.get_true_positive_rate(st.h_total, st.h_passed, f_sigmoid.GetParameter(0)),
+            "AccuracyThresholdFit": self_trigger.get_accuracy(st.h_total, st.h_passed, st.f_sigmoid.GetParameter(0)),
+            "FalsePositiveRate": self_trigger.get_false_positive_rate(st.h_total, st.h_passed, st.f_sigmoid.GetParameter(0)),
+            "TruePositiveRate": self_trigger.get_true_positive_rate(st.h_total, st.h_passed, st.f_sigmoid.GetParameter(0)),
             "MeanTrgPos": st.f_STpeak.GetParameter(1),
             "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
             "SigmaTrg": st.f_STpeak.GetParameter(2),
             "ErrSigmaTrg": st.f_STpeak.GetParError(2),
-            "ThresholdFit": f_sigmoid.GetParameter(0) if efficiency_fit_ok else np.nan,
-            "ErrThresholdFit": f_sigmoid.GetParError(0) if efficiency_fit_ok else np.nan,
-            "TauFit": f_sigmoid.GetParameter(1) if efficiency_fit_ok else np.nan,
-            "ErrTauFit": f_sigmoid.GetParError(1) if efficiency_fit_ok else np.nan,
-            "MaxEffFit": f_sigmoid.GetParameter(2) if efficiency_fit_ok else np.nan,
-            "ErrMaxEffFit": f_sigmoid.GetParError(2) if efficiency_fit_ok else np.nan,
+            "ThresholdFit": st.f_sigmoid.GetParameter(0) if efficiency_fit_ok else np.nan,
+            "ErrThresholdFit": st.f_sigmoid.GetParError(0) if efficiency_fit_ok else np.nan,
+            "TauFit": st.f_sigmoid.GetParameter(1) if efficiency_fit_ok else np.nan,
+            "ErrTauFit": st.f_sigmoid.GetParError(1) if efficiency_fit_ok else np.nan,
+            "MaxEffFit": st.f_sigmoid.GetParameter(2) if efficiency_fit_ok else np.nan,
+            "ErrMaxEffFit": st.f_sigmoid.GetParError(2) if efficiency_fit_ok else np.nan,
+            "10to90": st.get_10to90_range()
         })
         h_st.Write()
         st.he_STEfficiency.Write()
@@ -137,4 +143,4 @@ if __name__ == "__main__":
 
     out_root_file.Close()
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}_Selection_{perform_selection}.csv", index=False)
+    out_df.to_csv(ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}.csv", index=False)

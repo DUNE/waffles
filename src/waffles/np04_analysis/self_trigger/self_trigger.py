@@ -120,6 +120,8 @@ class SelfTrigger:
         self.window_low = 0
         self.window_up = 0
         # self.st_selection = np.zeros(len(self.wfset_st.waveforms), dtype=bool)
+        
+        self.f_sigmoid = TF1("f_sigmoid", "[2]/(1+exp(([0]-x)/[1]))", -2, 7)
 
 
     
@@ -151,15 +153,25 @@ class SelfTrigger:
             st_positions = np.flatnonzero(wf.adcs)
             for st in st_positions:
                 h_selftrigger.Fill(st)
-
-        n_bkg_triggers = h_selftrigger.Integral(self.bkg_trg_win_low, h_selftrigger.GetNbinsX())
-        self.bkg_trg_rate = (n_bkg_triggers * 10**9) / (len(self.wfs_st) * (len(self.wfs_st[0].adcs)-self.bkg_trg_win_low) * 16.)
-        n_bkg_triggers_preLED = h_selftrigger.Integral(1, self.int_low)
-        self.bkg_trg_rate_preLED = (n_bkg_triggers_preLED * 10**9) / (len(self.wfs_st) * self.int_low * 16.)
-
        
         self.h_st = h_selftrigger
         return h_selftrigger
+
+    def get_bkg_trg_rate(self, h_selftrigger : TH1D) -> float:
+        """
+        Get the background trigger rate.
+        """
+        n_bkg_triggers = h_selftrigger.Integral(self.bkg_trg_win_low, h_selftrigger.GetNbinsX())
+        bkg_trg_rate = (n_bkg_triggers * 10**9) / (len(self.wfs_st) * (len(self.wfs_st[0].adcs)-self.bkg_trg_win_low) * 16.)
+        return bkg_trg_rate
+
+    def get_bkg_trg_rate_preLED(self, h_selftrigger : TH1D) -> float:
+        """
+        Get the background trigger rate before the LED pulse.
+        """
+        n_bkg_triggers_preLED = h_selftrigger.Integral(1, self.int_low)
+        bkg_trg_rate_preLED = (n_bkg_triggers_preLED * 10**9) / (len(self.wfs_st) * self.int_low * 16.)
+        return bkg_trg_rate_preLED
 
 
     def fit_self_trigger_distribution(self) -> TH1D:
@@ -259,7 +271,7 @@ class SelfTrigger:
         return main_ax_artists, sublot_ax_arists
 
 
-    def fit_efficiency(self, f_sigmoid) -> bool:
+    def fit_efficiency(self) -> bool:
         """
         Fit the efficiency histogram.
         """
@@ -269,18 +281,16 @@ class SelfTrigger:
             if self.he_STEfficiency.GetEfficiency(i+1) > max_efficiency:
                 max_efficiency = self.he_STEfficiency.GetEfficiency(i+1)
 
-        half_max_efficiency = 0.5 * max_efficiency
         effs = np.array([self.he_STEfficiency.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
-        low_effs = np.where(effs < 0.1)
-        high_effs = np.where(effs > 0.9)
-        if len(low_effs) < 5 or len(high_effs) < 0:
+
+        if len(effs[np.where(effs < 0.03)]) < 10 or len(effs[np.where(effs > 0.9*max_efficiency)]) < 10:
             print("No low or high efficiency points found.")
             return False
 
         thr_x = 0
         for i in range(len(effs)-4):
             effs_short = effs[i:i+5]
-            if effs_short[-1] < half_max_efficiency:
+            if effs_short[-1] < 0.5 * max_efficiency:
                 continue
             grad = np.gradient(effs_short)
             if np.all(grad > 0):
@@ -288,16 +298,45 @@ class SelfTrigger:
                 break
         
         print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
-        f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
-        f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
-        f_sigmoid.SetParLimits(1, 0.01, 2)
-        f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
-        f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
-        f_sigmoid.SetNpx(3000)
+        bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
+        populated_bins = np.where(bin_contents > 10)
+        print(populated_bins)
+        print(populated_bins[0][0], populated_bins[-1][-1])
+        self.f_sigmoid.SetRange(h_total.GetBinCenter(int(populated_bins[0][0])), h_total.GetBinCenter(int(populated_bins[-1][-1])))
+        self.f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
+        self.f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
+        self.f_sigmoid.SetParLimits(1, 0.001, 1)
+        self.f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
+        self.f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
+        self.f_sigmoid.SetNpx(3000)
 
-        self.he_STEfficiency.Fit(f_sigmoid, "R")
+        self.he_STEfficiency.Fit(self.f_sigmoid, "R")
 
         return True
+
+    def get_10to90_range(self) -> float:
+        """
+        Get the 10% to 90% range of the efficiencies points.
+        """
+        h_total = self.he_STEfficiency.GetTotalHistogram()
+        thr_10 = np.nan
+        thr_90 = np.nan
+
+        for i in range(h_total.GetNbinsX()-2):
+            if self.he_STEfficiency.GetEfficiency(i+1) >= 0.1 \
+                and self.he_STEfficiency.GetEfficiency(i) < 0.1 \
+                and self.he_STEfficiency.GetEfficiency(i+2) > 0.1:
+                thr_10 = h_total.GetBinCenter(i+1)
+                break
+        
+        for i in range(h_total.GetNbinsX()-2):
+            if self.he_STEfficiency.GetEfficiency(i+1) >= 0.9 \
+                and self.he_STEfficiency.GetEfficiency(i) < 0.9 \
+                and self.he_STEfficiency.GetEfficiency(i+2) > 0.9:
+                thr_90 = h_total.GetBinCenter(i+1)
+                break
+
+        return thr_90 - thr_10
 
 
     def st_selector(self, wf) -> bool:
