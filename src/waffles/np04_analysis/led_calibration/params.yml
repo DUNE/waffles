@@ -63,6 +63,28 @@ baseliner_type: 'mean'
 lower_limit_wrt_baseline: -200.
 upper_limit_wrt_baseline: 40.
 
+## Parameters for the average-baseline-std computation
+
+# If True, the baseline std is retrieved 
+# from external files whose paths are given by th 
+# daphne_configuration_database_filepath and the 
+# noise_results_dataframe_filepath input parameters. 
+# If False, the baseline std is computed from the data.
+baseline_std_from_noise_results: true
+
+# Only used if the
+# baseline_std_from_noise_results parameter is set to 
+# True. It is the path to the Daphne configuration JSON
+# file.
+daphne_configuration_database_filepath: '../../np04_utils/DaphneConfigs.json'
+
+# Only used if the 
+# baseline_std_from_noise_results parameter is set to 
+# True. It is the path to the noise results CSV file, 
+# which must contain the columns 'ConfigNumber', 
+# 'OfflineCh' and 'RMS'.
+noise_results_dataframe_filepath: '../../np04_data/OfflineCh_RMS_Config_all.csv'
+
 ## Parameters for the fine selection cut
 baseline_i_up:
     1:
@@ -95,18 +117,46 @@ upper_limit_correction: 0
 integration_analysis_label: 'integrator'
 
 ## Parameters for the calibration histogram
-# Number of bins in the calibration histogram for each PDE
-calib_histo_bins_number: 
+# Used if gain_seeds_filepath is None
+# Bins width in the calibration histogram for each PDE
+calib_histo_bin_width:
     0.4:
-        125
+        480.
     0.45:
-        105
+        571.
     0.50:
-        90
+        667.
 
+# Used if gain_seeds_filepath is None
 # Lower and upper limits for the calibration histogram
 calib_histo_lower_limit: -10000.
 calib_histo_upper_limit: 50000.
+
+# If None, the number of bins and the domain of the charge
+# calibration histogram are computed out of the
+# calib_histo_bin_width, calib_histo_lower_limit and
+# calib_histo_upper_limit input parameters. If it is defined,
+# then it should give the path to a CSV file which contains,
+# at least, the following columns: 'batch', 'APA', 'PDE',
+# 'endpoint', 'channel' and 'gain'. The channel-wise gain
+# read from such file is used to compute a channel-wise domain
+# for the charge calibration histograms.
+gain_seeds_filepath: './configs/gain_seeds.csv'
+
+# Used only if the gain_seeds_filepath parameter is defined.
+# In that case, the calibration histogram (CH) domain is
+# automatically set to [-1.*gain_seed, 5.*gain_seed], and
+# the number of bins in the CH is computed as the domain 
+# width (i.e. 6.*gain_seed) multiplied by this parameter.
+bins_per_charge_peak: 7
+
+# Used only if the gain_seeds_filepath parameter
+# is defined. In that case, and if the given CSV lacks the
+# gain-seed information for one or more of the required
+# channels, then the domain (for the calibration histogram)
+# for the lacking channels is set to the average domain of
+# all of the other channels.
+average_fallback: true
 
 ## Parameters for peak fitting
 # Maximum number of peaks to fit
@@ -155,7 +205,7 @@ std_increment_seed_fallback: 100.
 # (resp. plus) this fraction of the full range of the
 # calibration histogram. For 50% (resp. 40%) PDE, this value
 # should not be greater than 0.05 (resp. 0.04).
-ch_span_fraction_around_peaks: 0.03
+ch_span_fraction_around_peaks: 0.06
 
 # Whether to save the persistence heatmaps of the
 # integrated waveforms or not
