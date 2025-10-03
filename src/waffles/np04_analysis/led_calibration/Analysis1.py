@@ -122,6 +122,33 @@ class Analysis1(WafflesAnalysis):
                 example=40.
             )
 
+            baseline_std_from_noise_results: bool = Field(
+                default=False,
+                description="If True, the baseline std is retrieved "
+                "from external files whose paths are given by the "
+                "daphne_configuration_database_filepath and the "
+                "noise_results_dataframe_filepath input parameters. "
+                "If False, the baseline std is computed from the data."
+            )
+
+            daphne_configuration_database_filepath: str | None = Field(
+                default=None,
+                description="Only used if the "
+                "baseline_std_from_noise_results parameter is set to "
+                "True. It is the path to the Daphne configuration JSON file.",
+                example='../../np04_utils/DaphneConfigs.json'
+            )
+
+            noise_results_dataframe_filepath: str | None = Field(
+                default=None,
+                description="Only used if the "
+                "baseline_std_from_noise_results parameter is set to "
+                "True. It is the path to the noise results CSV file, "
+                "which must contain the columns 'ConfigNumber', "
+                "'OfflineCh' and 'RMS'.",
+                example='../../np04_data/OfflineCh_RMS_Config_all.csv'
+            )
+
             baseline_i_up: dict[int, int] = Field(
                 ...,
                 description="A dictionary whose keys refer to "
@@ -618,10 +645,25 @@ class Analysis1(WafflesAnalysis):
                         end=''
                     )
 
-                average_baseline_std = led_utils.compute_average_baseline_std(
-                    self.grid_apa.ch_wf_sets[endpoint][channel],
-                    self.params.baseline_analysis_label
-                )
+                if self.params.baseline_std_from_noise_results:
+                    average_baseline_std = get_average_baseline_std_from_file(
+                        self.wfset.waveforms[0].run_number,
+                        endpoint=endpoint,
+                        channel=channel,
+                        daphne_configuration_database_filepath=\
+                            self.params.daphne_configuration_database_filepath
+                            if self.params.daphne_configuration_database_filepath is not None
+                            else "",
+                        noise_results_dataframe_filepath=\
+                            self.params.noise_results_dataframe_filepath
+                            if self.params.noise_results_dataframe_filepath is not None
+                            else ""
+                    )
+                else:
+                    average_baseline_std = led_utils.compute_average_baseline_std(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        self.params.baseline_analysis_label
+                    )
 
                 if self.params.verbose:
                     print(f"Found {average_baseline_std:.2f} ADCs.")
