@@ -1,6 +1,6 @@
 from waffles.np04_analysis.vgain_analysis.imports import *
 
-class Analysis2(WafflesAnalysis):
+class Analysis3(WafflesAnalysis):
 
     def __init__(self):
         pass
@@ -347,6 +347,8 @@ class Analysis2(WafflesAnalysis):
         self.filter_type = None
         self.filter_cutoff = None
 
+        self.skip_data_loading = False
+
         # Auxiliar waveformsets
         self.grid_apa_zero_baselined = None
         self.grid_apa_hpf_filtered = None
@@ -447,81 +449,85 @@ class Analysis2(WafflesAnalysis):
         fFirstRun = True
 
         # Reset the WaveformSet
-        self.wfset = None
+        # self.wfset = None # the same waveformset will be used
+                            # for all the runs for the current batch, APA and PDE
         
+
+
         # Loop over the list of runs for the current
         # batch, APA and PDE
-        for i, run in enumerate(targeted_runs):
+        if not self.skip_data_loading:
+            for i, run in enumerate(targeted_runs):
 
-            channels = led_utils.parse_numeric_list(
-                self.channels_per_run[
-                    self.channels_per_run['run'] == run
-                ]['aimed_channels'].values[0]
-            )
-
-            channels = [ch for ch in channels if ch == self.params.channel_to_analyze]
-                
-            if self.params.verbose:
-                print(
-                    "In function Analysis1.read_input(): "
-                    f"Reading the data for run {run}.",
+                channels = led_utils.parse_numeric_list(
+                    self.channels_per_run[
+                        self.channels_per_run['run'] == run
+                    ]['aimed_channels'].values[0]
                 )
 
-            if len(channels) == 0:
+                channels = [ch for ch in channels if ch == self.params.channel_to_analyze]
+                    
                 if self.params.verbose:
                     print(
-                        "The list of aimed channels is empty"
-                        " for this run. Skipping this run."
+                        "In function Analysis1.read_input(): "
+                        f"Reading the data for run {run}.",
                     )
-                continue
-            else:
-                if self.params.verbose:
-                    print(
-                        f"The read channels are: {channels}."
-                    )   
-            
-            # Get the filepaths to the input chunks for this run
-            #input_filepaths = led_utils.get_input_filepaths_for_run(
-            #    self.params.input_path,
-            #    self.batch,
-            #    self.pde,
-            #    run
-            #)
 
-            #new_wfset = WaveformSet_from_pickle_files(
-            #        filepath_list=input_filepaths,
-            #        target_extension='.pkl',
-            #        verbose=self.params.verbose
-            #)
+                if len(channels) == 0:
+                    if self.params.verbose:
+                        print(
+                            "The list of aimed channels is empty"
+                            " for this run. Skipping this run."
+                        )
+                    continue
+                else:
+                    if self.params.verbose:
+                        print(
+                            f"The read channels are: {channels}."
+                        )   
+                
+                # Get the filepaths to the input chunks for this run
+                #input_filepaths = led_utils.get_input_filepaths_for_run(
+                #    self.params.input_path,
+                #    self.batch,
+                #    self.pde,
+                #    run
+                #)
 
-            input_filepaths = led_utils.get_input_filepaths_for_vgain_scan_run(
-                    self.params.input_path,
-                    self.batch,
-                    self.pde,
-                    run)
+                #new_wfset = WaveformSet_from_pickle_files(
+                #        filepath_list=input_filepaths,
+                #        target_extension='.pkl',
+                #        verbose=self.params.verbose
+                #)
 
-            new_wfset = led_utils.get_vgain_scan_waveformSet(
-                    self.params.input_path,
-                    self.batch,
-                    input_filepaths)
+                input_filepaths = led_utils.get_input_filepaths_for_vgain_scan_run(
+                        self.params.input_path,
+                        self.batch,
+                        self.pde,
+                        run)
 
-            # Keep only the waveforms coming from 
-            # the targeted channels for this run.
-            # This step is useless for cases when
-            # the input pickles were already filtered
-            # when copied from the original HDF5 files
-            new_wfset = WaveformSet.from_filtered_WaveformSet(
-                new_wfset,
-                led_utils.comes_from_channel,
-                channels
-            )
+                new_wfset = led_utils.get_vgain_scan_waveformSet(
+                        self.params.input_path,
+                        self.batch,
+                        input_filepaths)
 
-            if fFirstRun:
-                self.wfset = new_wfset
-                fFirstRun = False
-            else:
-                self.wfset.merge(new_wfset)
+                # Keep only the waveforms coming from 
+                # the targeted channels for this run.
+                # This step is useless for cases when
+                # the input pickles were already filtered
+                # when copied from the original HDF5 files
+                new_wfset = WaveformSet.from_filtered_WaveformSet(
+                    new_wfset,
+                    led_utils.comes_from_channel,
+                    channels
+                )
 
+                if fFirstRun:
+                    self.wfset = new_wfset
+                    fFirstRun = False
+                else:
+                    self.wfset.merge(new_wfset)
+                self.skip_data_loading = True
         return True
 
     def analyze(self) -> bool:
