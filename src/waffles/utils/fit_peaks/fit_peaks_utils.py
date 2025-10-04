@@ -359,7 +359,7 @@ def __fit_correlated_gaussians_to_calibration_histogram(
     # Data from runs (27905, 27906, 27907 and 27908
     # typically gave std_increment optimal values of
     # this order of magnitude
-    std_increment_seed_fallback: float = 1e+2,
+    std_increment_seed_fallback: float = 1e+2, # leave it for now
     ch_span_fraction_around_peaks: float = 0.05
 ) -> bool:
     """This function gets the output of a certain call to 
@@ -440,9 +440,21 @@ def __fit_correlated_gaussians_to_calibration_histogram(
             )
         )
     
-    points_to_fit_around_peaks = round(
-        ch_span_fraction_around_peaks * len(calibration_histogram.counts)
-    )
+    ############## modified here ##############
+    _widths_bins, _, _, _ = spsi.peak_widths(
+            calibration_histogram.counts, spsi_output[0], rel_height=0.5
+            )
+    _binw = calibration_histogram.mean_bin_width
+
+        # Peak centers (x) from edges
+    _centers_x = [ (calibration_histogram.edges[p] + calibration_histogram.edges[p+1]) * 0.5
+                for p in spsi_output[0] ]
+
+        # Robust Δμ seed from several peaks (fallback below if not available)
+    _median_mean_inc = None
+    if len(_centers_x) >= 2:
+        _median_mean_inc = float(np.median(np.diff(_centers_x)))
+    ##########end modified here ##########
 
     # Number of peaks to try to fit on the first attempt
     max_peaks_n_to_fit = len(spsi_output[0])
@@ -475,8 +487,8 @@ def __fit_correlated_gaussians_to_calibration_histogram(
         # the conversion factor between the standard
         # deviation and the FWHM. Also, note that here
         # we are assuming that the binning is uniform.
-        std_0_seed = spsi_output[1]['widths'][0] * \
-            calibration_histogram.mean_bin_width / 2.355
+        # std_0 seed from robust widths
+        std_0_seed = (_widths_bins[0] * _binw) / 2.355
 
         if peaks_n_to_fit >= 2:
 
@@ -500,34 +512,29 @@ def __fit_correlated_gaussians_to_calibration_histogram(
 
             # Needed for the computation of the
             # mean_increment seed
-            mean_1_seed = (calibration_histogram.edges[
-                second_peak_idx
-            ] + calibration_histogram.edges[
-                second_peak_idx + 1
-            ]) / 2.
+            mean_1_seed = (calibration_histogram.edges[second_peak_idx] +
+                   calibration_histogram.edges[second_peak_idx + 1]) * 0.5
 
             # mean_increment seed for fitting_function
-            mean_increment_seed = mean_1_seed - mean_0_seed
+            mean_increment_seed = _median_mean_inc if _median_mean_inc is not None else (mean_1_seed - mean_0_seed)
+
 
             # Needed for the computation of the std_increment
             # seed
-            std_1_seed = spsi_output[1]['widths'][1] * \
-                calibration_histogram.mean_bin_width / 2.355
+            std_1_seed = (_widths_bins[1] * _binw) / 2.355 if len(_widths_bins) > 1 else std_0_seed
 
-            # std_increment seed for fitting_function
-            # Using std_i = ((std_0^2) + (i * (std_increment^2))) ** 0.5
-            # for i=1
-            if std_1_seed > std_0_seed:
-                std_increment_seed = ((std_1_seed ** 2) - \
-                    (std_0_seed ** 2)) ** 0.5
-            else:
-                std_increment_seed = std_increment_seed_fallback
+            diff = max(0.0, (std_1_seed ** 2) - (std_0_seed ** 2))
+            std_increment_seed = math.sqrt(diff)  # 0.0 if diff <= 0
             
             # scaling_factors seed for fitting_function
-            scaling_factors_seed = [
-                calibration_histogram.counts[idx] 
-                for idx in spsi_output[0][0:peaks_n_to_fit]
-            ]
+            scaling_factors_seed = []
+            for i in range(peaks_n_to_fit):
+                p = spsi_output[0][i]
+                w_bins = _widths_bins[i] if i < len(_widths_bins) else _widths_bins[-1]
+                half = max(1, int(round(w_bins / 2)))
+                lo = max(0, p - half)
+                hi = min(len(calibration_histogram.counts), p + half + 1)
+                scaling_factors_seed.append(float(calibration_histogram.counts[lo:hi].max()))
 
             aux_seeds = [
                 mean_0_seed,
@@ -554,9 +561,11 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 )
             
             # scaling_factors seed for fitting_function
-            scaling_0_seed = calibration_histogram.counts[
-                first_peak_idx
-            ]
+            w_bins0 = _widths_bins[0] if len(_widths_bins) else 3.0
+            half0 = max(1, int(round(w_bins0 / 2)))
+            lo0 = max(0, first_peak_idx - half0)
+            hi0 = min(len(calibration_histogram.counts), first_peak_idx + half0 + 1)
+            scaling_0_seed = float(calibration_histogram.counts[lo0:hi0].max())
 
             aux_seeds = [
                 mean_0_seed,
@@ -565,62 +574,76 @@ def __fit_correlated_gaussians_to_calibration_histogram(
             ]
 
         # Prevent the fit limits from going out of bounds
-        # of the calibration_histogram arrays
-        first_fitting_idx = round(
-            max(
-                0,
-                spsi_output[0][0] - \
-                    points_to_fit_around_peaks
-            )
-        )
+        # of the calibration_histogram array
+        k_sigma = 4.0  # cover ±4σ
 
-        last_fitting_idx = round(
-            min(
-                len(calibration_histogram.edges) - 1,
-                spsi_output[0][peaks_n_to_fit - 1] + \
-                    points_to_fit_around_peaks
-            )
-        )
+        def _sigma_bins(i):
+            w = _widths_bins[i] if i < len(_widths_bins) else _widths_bins[-1]
+            return max(1.0, w / 2.355)
 
-        fit_x = (calibration_histogram.edges[
-            first_fitting_idx:last_fitting_idx
-            ] + calibration_histogram.edges[
-            first_fitting_idx + 1:last_fitting_idx + 1
-            ]) / 2.
+        left_span_bins  = int(math.ceil(k_sigma * _sigma_bins(0)))
+        right_span_bins = int(math.ceil(k_sigma * _sigma_bins(peaks_n_to_fit - 1)))
 
-        fit_y = calibration_histogram.counts[
-            first_fitting_idx:last_fitting_idx
-        ]
+        first_fitting_idx = max(0, spsi_output[0][0] - left_span_bins)
+        last_fitting_idx  = min(len(calibration_histogram.edges) - 1,
+                                spsi_output[0][peaks_n_to_fit - 1] + right_span_bins)
+
+        fit_x = 0.5*(calibration_histogram.edges[first_fitting_idx:last_fitting_idx] +
+             calibration_histogram.edges[first_fitting_idx + 1:last_fitting_idx + 1])
+        fit_y = calibration_histogram.counts[first_fitting_idx:last_fitting_idx]
         
-        try:
-            aux_optimal_parameters, aux_covariance_matrix = spopt.curve_fit(
+        
+        sigma_w = np.sqrt(np.maximum(1.0, fit_y))
+
+        if peaks_n_to_fit >= 2:
+            # params: [mean_0, mean_increment, std_0, std_increment, *scales]
+            lower = [-np.inf, 0.0, 0.0, 0.0] + [0.0]*peaks_n_to_fit
+            upper = [ np.inf, np.inf, np.inf, np.inf] + [np.inf]*peaks_n_to_fit
+        else:
+            # params: [mean_0, std_0, scale_0]
+            lower = [-np.inf, 0.0, 0.0]
+            upper = [ np.inf, np.inf, np.inf]
+
+        def _try_fit(p0):
+            return spopt.curve_fit(
                 fitting_function,
                 fit_x,
                 fit_y,
-                p0=aux_seeds
+                p0=p0,
+                sigma=sigma_w,
+                absolute_sigma=True,
+                bounds=(lower, upper),
+                maxfev=20000,
             )
+
+        entered_retry = False
             
         # Happens if scipy.optimize.curve_fit()
         # could not converge to a solution
+        try:
+
+            aux_optimal_parameters, aux_covariance_matrix = _try_fit(aux_seeds)
         except RuntimeError:
+        # 2) one cautious retry with perturbed seeds
+            entered_retry = True
+            rng = np.random.default_rng()
+            jiggle = lambda v: v * (1.0 + rng.uniform(-0.15, 0.15))
+            aux_seeds_j = [jiggle(v) for v in aux_seeds]
+            try:
+                aux_optimal_parameters, aux_covariance_matrix = _try_fit(aux_seeds_j)
+            except RuntimeError:
+                # 3) both attempts failed → drop last peak and loop again
+                fFitAll = False
+                peaks_n_to_fit -= 1
+                if peaks_n_to_fit == 0:
+                    fTryAgain = False
+                continue  # next while-iteration
 
-            # In this case, we will skip the last
-            # peak so, in case fFitAll was True,
-            # it should be set to False
-            fFitAll = False
-
-            peaks_n_to_fit -= 1
-
-            if peaks_n_to_fit == 0:
-                fTryAgain = False
-    
-            continue
-
-        # If no exception was raised, then the fit was successful,
-        # so we can stop trying to fit the peaks
+        # success path (either first try or retry)
+        if entered_retry:
+            fFitAll = False  # not successful at the *first* attempt
         fTryAgain = False
-
-        aux_errors = np.sqrt(np.diag(aux_covariance_matrix))
+        aux_errors = np.sqrt(np.diag(aux_covariance_matrix))           
         
         if peaks_n_to_fit >= 2:
 
@@ -692,3 +715,5 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 )
 
     return fFitAll
+
+
