@@ -1,0 +1,165 @@
+
+# ------- General parameters -------
+
+# Path to the folder containing the data
+input_path: 'data'
+
+# Path to the output
+output_path: 'output'
+
+# VGAIN-batch number
+#batches: [3192, 2926, 2793, 2660, 2527, 2394, 2261, 2128, 1995, 1862, 1729, 1596, 1463, 1330, 1197, 1064, 931]
+batches: [2926]
+
+# APA number
+apas: [1, 2, 3, 4] # 1, 2, 3, 4
+
+# Photon detection efficiency
+pdes: [0.4, 0.45, 0.5] # 0.40, 0.45, 0.50
+
+# Path to a CSV file which lists the channels
+# which should be calibrated for each run
+channels_per_run_filepath: './configs/vgain_scans_formated.csv'
+
+# Path to a CSV file which lists the channels
+# which should be excluded from the calibration
+excluded_channels_filepath: './configs/vgain_scan_excluded_channels_database.csv'
+
+# Whether to show the produced figures
+show_figures: false
+
+# Whether to print verbose messages
+verbose: true
+
+## Parameters for the baseline analysis
+baseline_analysis_label: 'baseliner'
+null_baseline_analysis_label: 'null_baseliner'
+
+baseline_limits:
+    1:
+        - 0
+        - 100
+        - 900
+        - 1000
+    2: 
+        - 0
+        - 100
+        - 900
+        - 1000
+    3: 
+        - 0
+        - 100
+        - 900
+        - 1000
+    4: 
+        - 0
+        - 100
+        - 900
+        - 1000
+
+baseliner_std_cut: 3.
+baseliner_type: 'mean'
+
+## Parameters for the coarse selection cut
+lower_limit_wrt_baseline: -200.
+upper_limit_wrt_baseline: 40.
+
+## Parameters for the fine selection cut
+baseline_i_up:
+    1:
+        575
+    2:
+        120
+    3:
+        120
+    4:
+        120
+signal_i_up:
+    1:
+        650
+    2:
+        165
+    3:
+        165
+    4:
+        165
+
+baseline_allowed_dev: 4.
+signal_allowed_dev: 10.
+
+## Parameters for the computation of the integration window
+deviation_from_baseline: 0.3
+lower_limit_correction: 0
+upper_limit_correction: 0
+
+## Parameters for the integration analysis
+integration_analysis_label: 'integrator'
+
+## Parameters for the calibration histogram
+# Number of bins in the calibration histogram for each PDE
+calib_histo_bins_number: 
+    0.4:
+        125
+    0.45:
+        105
+    0.50:
+        90
+
+# Lower and upper limits for the calibration histogram
+calib_histo_lower_limit: -10000.
+calib_histo_upper_limit: 50000.
+
+## Parameters for peak fitting
+# Maximum number of peaks to fit
+max_peaks: 2
+
+# Minimal prominence, as a fraction
+# of the y-range, for a peak to be detected
+prominence: 0.15 # [0.10 - 0.2]
+
+# These parameters have to do with the peak
+# detection in the calibration histogram. For
+# more information check the documentation of
+# the 'initial_percentage' and 'percentage_step'
+# parameters of the
+# __spot_first_peaks_in_CalibrationHistogram
+# function defined in 
+# utils/fit_peaks/fit_peaks_utils.py
+initial_percentage: 0.15
+percentage_step: 0.05
+
+# It can be either 'correlated_gaussians'
+# or 'independent_gaussians'
+fit_type: 'correlated_gaussians'
+
+# Only used if fit_type is set to 'independent_gaussians'.
+# The number of points to fit on either side
+# of the peak maximum. P.e. setting this to 
+# 2 will fit 5 points in total: the maximum
+# and 2 points on either side.
+half_points_to_fit: 2 # [2 - 3] 
+
+# Only used if fit_type is set to 'correlated_gaussians'.
+# It is used when the peak finder predicts that the
+# standard deviation of the second peak is less than
+# the standard deviation of the first peak, which is
+# incompatible with our fitting function. In this case,
+# the seed for the standard deviation increment is set
+# to this value.
+std_increment_seed_fallback: 100.
+
+# Only used if fit_type is set to 'correlated_gaussians'.
+# It determines the limits of the subrange of the
+# calibration histogram which is considered for the fit.
+# The lower (resp. upper) limit is computed as the
+# maximum of the first (resp. last) peak position minus
+# (resp. plus) this fraction of the full range of the
+# calibration histogram. For 50% (resp. 40%) PDE, this value
+# should not be greater than 0.05 (resp. 0.04).
+ch_span_fraction_around_peaks: 0.03
+
+# Whether to save the persistence heatmaps of the
+# integrated waveforms or not
+save_persistence_heatmaps: true
+
+output_dataframe_filename: 'calibration_results.csv'

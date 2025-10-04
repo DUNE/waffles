@@ -1,6 +1,6 @@
 from waffles.np04_analysis.vgain_analysis.imports import *
 
-class Analysis1(WafflesAnalysis):
+class Analysis2(WafflesAnalysis):
 
     def __init__(self):
         pass
@@ -43,6 +43,12 @@ class Analysis1(WafflesAnalysis):
                 example=[0.4]
             )
 
+            channel_to_analyze: int = Field(
+                ...,
+                description="Single channel to analyze",
+                example=10413
+            )
+
             channels_per_run_filepath: str = Field(
                 ...,
                 description="Path to a CSV file which lists "
@@ -63,6 +69,28 @@ class Analysis1(WafflesAnalysis):
                 example='./configs/excluded_channels_database.csv'
             )
 
+            hpf_filter_coefficients: str = Field(
+                ...,
+                description="Path to a JSON file which contains "
+                "the high-pass filter coefficients to be applied "
+                "after the baseline subtraction.",
+                example='./configs/hpf_filter_coefficients.json'
+            )
+
+            boxcar_lower_limit: int = Field(
+                ...,
+                description="Lower limit of the boxcar filter "
+                "length to be scanned",
+                example=10
+            )
+
+            boxcar_upper_limit: int = Field(
+                ...,
+                description="Upper limit of the boxcar filter "
+                "length to be scanned",
+                example=40
+            )
+
             show_figures: bool = Field(
                 default=False,
                 description="Whether to show the produced "
@@ -78,6 +106,11 @@ class Analysis1(WafflesAnalysis):
             baseline_analysis_label: str = Field(
                 default='baseliner',
                 description="Label for the baseline analysis",
+            )
+
+            hpf_analysis_label: str = Field(
+                default='hpf_filter',
+                description="Label for the high-pass filter analysis",
             )
 
             null_baseline_analysis_label: str = Field(
@@ -311,9 +344,20 @@ class Analysis1(WafflesAnalysis):
         self.grid_apa = None
         self.output_data = None
 
-        self.read_input_loop_1 = self.params.batches
-        self.read_input_loop_2 = self.params.apas
-        self.read_input_loop_3 = self.params.pdes
+        self.filter_type = None
+        self.filter_cutoff = None
+
+        # Auxiliar waveformsets
+        self.grid_apa_zero_baselined = None
+        self.grid_apa_hpf_filtered = None
+
+        self.hpf_coefficients_dict = json.load(
+            open(self.params.hpf_filter_coefficients, 'r')
+        )
+
+        self.read_input_loop_1 = list(self.hpf_coefficients_dict.keys())
+        self.read_input_loop_2 = list(self.hpf_coefficients_dict['Bessel'].keys())
+        self.read_input_loop_3 = range(self.params.boxcar_lower_limit, self.params.boxcar_upper_limit, 1) 
 
         # columns: run, batch, acquired_apas, aimed_channels, pde
         self.channels_per_run = pd.read_csv(
@@ -344,9 +388,13 @@ class Analysis1(WafflesAnalysis):
             True if the method ends execution normally
         """
 
-        self.batch = self.read_input_itr_1
-        self.apa = self.read_input_itr_2
-        self.pde = self.read_input_itr_3
+        self.filter_type = self.read_input_itr_1
+        self.filter_cutoff = self.read_input_itr_2
+        self.boxcar_window_size = self.read_input_itr_3
+        
+        self.batch = self.params.batches[0]
+        self.apa = self.params.apas[0]
+        self.pde = self.params.pdes[0]
 
         if self.params.verbose:
             print(
@@ -410,6 +458,8 @@ class Analysis1(WafflesAnalysis):
                     self.channels_per_run['run'] == run
                 ]['aimed_channels'].values[0]
             )
+
+            channels = [ch for ch in channels if ch == self.params.channel_to_analyze]
                 
             if self.params.verbose:
                 print(
@@ -558,13 +608,13 @@ class Analysis1(WafflesAnalysis):
 
         len_before_coarse_selection = len(self.wfset.waveforms)
 
-        self.wfset = WaveformSet.from_filtered_WaveformSet(
-            self.wfset,
-            coarse_selection_for_led_calibration,
-            self.params.baseline_analysis_label,
-            self.params.lower_limit_wrt_baseline,
-            self.params.upper_limit_wrt_baseline
-        )
+        # self.wfset = WaveformSet.from_filtered_WaveformSet(
+        #     self.wfset,
+        #     coarse_selection_for_led_calibration,
+        #     self.params.baseline_analysis_label,
+        #     self.params.lower_limit_wrt_baseline,
+        #     self.params.upper_limit_wrt_baseline
+        # )
 
         len_after_coarse_selection = len(self.wfset.waveforms)
 
@@ -578,6 +628,18 @@ class Analysis1(WafflesAnalysis):
         # so that each WaveformSet contains all of the waveforms
         # which come from the same channel
         self.grid_apa = ChannelWsGrid(   
+            APA_map[self.apa],
+            self.wfset,
+            compute_calib_histo=False,
+        )
+
+        self.grid_apa_zero_baselined = ChannelWsGrid(   
+            APA_map[self.apa],
+            self.wfset,
+            compute_calib_histo=False,
+        )
+
+        self.grid_apa_hpf_filtered = ChannelWsGrid(   
             APA_map[self.apa],
             self.wfset,
             compute_calib_histo=False,
@@ -657,6 +719,21 @@ class Analysis1(WafflesAnalysis):
                     show_progress=False
                 )
 
+                self.grid_apa_zero_baselined.ch_wf_sets[endpoint][channel] = self.grid_apa.ch_wf_sets[endpoint][channel]
+
+                #Here after the baseline subtraction I should put the HPF filter.
+                coefficients = self.hpf_coefficients_dict[self.filter_type][self.filter_cutoff]
+                self.grid_apa.ch_wf_sets[endpoint][channel].apply(
+                    filter_waveform,
+                    self.params.baseline_analysis_label,
+                    filterType = 'IIR',
+                    numerator = coefficients[0],
+                    denominator = coefficients[1],
+                    show_progress=True
+                )
+
+                self.grid_apa_hpf_filtered.ch_wf_sets[endpoint][channel] = self.grid_apa.ch_wf_sets[endpoint][channel]
+
                 if self.params.verbose:
                     print("Finished.")
                     print(
@@ -699,6 +776,28 @@ class Analysis1(WafflesAnalysis):
                     'amp_ul': limits[1]
                 })
 
+                mean_filtered_wf = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform()
+                boxcar_mean_wf = applyDiscreteFilter(
+                    -1.0*mean_filtered_wf.adcs,
+                    filterType = 'Boxcar',
+                    boxcarFilterLength = self.boxcar_window_size
+                )
+
+                max_pos = np.argmax(boxcar_mean_wf)
+                max_vale_avg = np.max(boxcar_mean_wf)
+
+                integrator_input_parameters_boxcar = IPDict({
+                    'inversion': True,
+                    'window_length': self.boxcar_window_size,
+                    'avg_window_length': 1,
+                    'max_value_avg': max_vale_avg,
+                    'max_pos': max_pos,
+                    'int_ll': limits[0],
+                    'int_ul': limits[1],
+                    'amp_ll': limits[0],
+                    'amp_ul': limits[1]
+                })
+
                 checks_kwargs = IPDict({
                     'points_no': self.grid_apa.ch_wf_sets[endpoint][channel].\
                         points_per_wf
@@ -706,8 +805,8 @@ class Analysis1(WafflesAnalysis):
 
                 _ = self.grid_apa.ch_wf_sets[endpoint][channel].analyse(
                     self.params.integration_analysis_label,
-                    WindowIntegrator,
-                    integrator_input_parameters,
+                    BoxcarIntegrator,
+                    integrator_input_parameters_boxcar,
                     checks_kwargs=checks_kwargs,
                     overwrite=True
                 )
@@ -796,7 +895,7 @@ class Analysis1(WafflesAnalysis):
         """
 
         base_file_path = f"{self.params.output_path}"\
-            f"/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}"
+            f"/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_filter_{self.filter_type}_{self.filter_cutoff}_boxcar_{self.boxcar_window_size}"\
 
         # Save the charge histogram plot
         figure = plot_ChannelWsGrid(
@@ -817,8 +916,8 @@ class Analysis1(WafflesAnalysis):
         title = f"Batch {self.batch}, APA {self.apa}, "
         title += f"PDE {self.pde} - Runs {list(self.wfset.runs)}"
         title_fontsize = 22
-        figure_width = 1100
-        figure_height = 1200
+        figure_width = 4000
+        figure_height = 4000
 
         figure.update_layout(
             title={
@@ -846,6 +945,67 @@ class Analysis1(WafflesAnalysis):
         figure.write_image(f"{fig_path}")
         if self.params.verbose:
             print("Finished.")
+
+         # Save each subplot individually
+        rows = self.grid_apa.ch_map.rows
+        cols = self.grid_apa.ch_map.columns
+
+        for i in range(rows):
+            for j in range(cols):
+                channel_ws = self.grid_apa.get_channel_ws_by_ij_position_in_map(i,j)
+                if channel_ws is None:
+                    continue
+                subplot_fig = pgo.Figure()
+                # Add traces for this subplot (row/col are 1-based)
+                for trace in figure.select_traces(row=i+1, col=j+1):
+                    subplot_fig.add_trace(trace)
+                # Optionally, set a simple title or axis labels
+                subplot_fig.update_layout(
+                    title=f"Channel ({i+1},{j+1})",
+                    xaxis_title="ADU",
+                    yaxis_title="GAIN"
+                )
+                subplot_path = f"{base_file_path}_subplot_calibration_{i+1}_{j+1}.png"
+                subplot_fig.write_image(subplot_path)
+                if self.params.verbose:
+                    print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
+        
+        figure = plot_ChannelWsGrid(
+            self.grid_apa_hpf_filtered,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="average",
+            wfs_per_axes=None,
+            analysis_label=None,
+            plot_analysis_markers=True,
+            detailed_label=True,
+            verbose=self.params.verbose
+        )
+
+        # Save each subplot individually
+        rows = self.grid_apa_hpf_filtered.ch_map.rows
+        cols = self.grid_apa_hpf_filtered.ch_map.columns
+
+        for i in range(rows):
+            for j in range(cols):
+                channel_ws = self.grid_apa_hpf_filtered.get_channel_ws_by_ij_position_in_map(i,j)
+                if channel_ws is None:
+                    continue
+                subplot_fig = pgo.Figure()
+                # Add traces for this subplot (row/col are 1-based)
+                for trace in figure.select_traces(row=i+1, col=j+1):
+                    subplot_fig.add_trace(trace)
+                # Optionally, set a simple title or axis labels
+                subplot_fig.update_layout(
+                    title=f"Channel ({i+1},{j+1})",
+                    xaxis_title="Sample",
+                    yaxis_title="ADC"
+                )
+                subplot_path = f"{base_file_path}_subplot_{i+1}_{j+1}.png"
+                subplot_fig.write_image(subplot_path)
+                if self.params.verbose:
+                    print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
 
         # Save the persistence heatmaps
         if self.params.save_persistence_heatmaps:
@@ -907,10 +1067,13 @@ class Analysis1(WafflesAnalysis):
                 self.params.output_dataframe_filename
         )
         
-        led_utils.save_data_to_dataframe(
+        led_utils.save_data_to_dataframe_hpf(
             self.batch,
             self.apa,
             self.pde,
+            self.filter_type,
+            self.filter_cutoff,
+            self.boxcar_window_size,
             self.output_data, 
             dataframe_output_path
         )

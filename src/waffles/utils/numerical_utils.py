@@ -4,7 +4,7 @@ from scipy.signal import lfilter
 from typing import List, Tuple
 
 from waffles.Exceptions import GenerateExceptionMessage
-
+from waffles.data_classes.WaveformAdcs import WaveformAdcs
 
 def gaussian(
         x: float,
@@ -602,6 +602,49 @@ def applyDiscreteFilter(
             numerator = np.ones(boxcarFilterLength)/boxcarFilterLength
             filtered_signal = lfilter(numerator, np.ones(1), signal)
             return filtered_signal
+    else:
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'Filter type not found'))
+    
+def filter_waveform(
+    waveform: WaveformAdcs,
+    baseline_analysis_label: str,
+    filterType: str = 'Boxcar',
+    numerator: np.ndarray = np.ones(1),
+    denominator: np.ndarray = np.ones(1),
+    boxcarFilterLength: int = 15,
+) -> None:
+
+    if(filterType == 'IIR'):
+        if(len(numerator) > len(denominator)):
+            raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'Length of numerator cannot be larger than the length of the denominator.'))
+        else:
+            waveform._WaveformAdcs__set_adcs(lfilter(numerator, denominator, waveform.adcs))
+            return
+    elif(filterType == 'FIR'):
+        if(len(numerator) == 0):
+            raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'The numerator must constain at least one value.'))
+        else:
+            waveform._WaveformAdcs__set_adcs(lfilter(numerator, np.ones(1), waveform.adcs))
+            return
+    elif(filterType == 'Boxcar'):
+         if(boxcarFilterLength <= 0):
+            raise Exception(GenerateExceptionMessage(
+            1,
+            'applyDiscreteFilter()',
+            'Boxcar filter size connot be zero or negative.'))
+         else:
+            numerator = np.ones(boxcarFilterLength)/boxcarFilterLength
+            waveform._WaveformAdcs__set_adcs(lfilter(numerator, np.ones(1), waveform.adcs))
+            return
     else:
         raise Exception(GenerateExceptionMessage(
             1,
