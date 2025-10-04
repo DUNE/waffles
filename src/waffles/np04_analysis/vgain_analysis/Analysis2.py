@@ -1,6 +1,6 @@
 from waffles.np04_analysis.vgain_analysis.imports import *
 
-class Analysis3(WafflesAnalysis):
+class Analysis2(WafflesAnalysis):
 
     def __init__(self):
         pass
