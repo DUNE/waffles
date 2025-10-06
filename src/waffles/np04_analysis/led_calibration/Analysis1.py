@@ -635,17 +635,16 @@ class Analysis1(WafflesAnalysis):
         for endpoint in self.grid_apa.ch_wf_sets.keys():
             for channel in self.grid_apa.ch_wf_sets[endpoint].keys():
 
-                if self.params.verbose:
-                    print(
-                        "In function Analysis1.analyze(): "
-                        "Computing the average baseline STD "
-                        f"of channel {endpoint}-{channel} "
-                        f"(batch {self.batch}, APA {self.apa},"
-                        f" PDE {self.pde}) ... ",
-                        end=''
-                    )
-
                 if self.params.baseline_std_from_noise_results:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Retrieving the average baseline STD "
+                            f"of channel {endpoint}-{channel} "
+                            f"(batch {self.batch}, APA {self.apa},"
+                            f" PDE {self.pde}) ... "
+                        )
+
                     average_baseline_std = get_average_baseline_std_from_file(
                         self.wfset.waveforms[0].run_number,
                         endpoint=endpoint,
@@ -660,6 +659,16 @@ class Analysis1(WafflesAnalysis):
                             else ""
                     )
                 else:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Computing the average baseline STD "
+                            f"of channel {endpoint}-{channel} "
+                            f"(batch {self.batch}, APA {self.apa},"
+                            f" PDE {self.pde}) ... ",
+                            end=''
+                        )
+
                     average_baseline_std = led_utils.compute_average_baseline_std(
                         self.grid_apa.ch_wf_sets[endpoint][channel],
                         self.params.baseline_analysis_label
