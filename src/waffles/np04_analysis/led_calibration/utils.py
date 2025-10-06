@@ -304,14 +304,6 @@ def get_gain_and_snr(
                     "since it was not found in data."
                 )
                 continue
- 
-            # Handle a KeyError the first time we access a certain endpoint
-            try:
-                aux = data[endpoint]
-
-            except KeyError:
-                data[endpoint] = {}
-                aux = data[endpoint]
 
             # Compute the gain
             try:
@@ -325,19 +317,37 @@ def get_gain_and_snr(
                     "data was not found. Skipping this channel."
                 )
                 continue
-            
-            # Handle a KeyError the first time we access a certain channel
+
             try:
-                aux_2 = aux[channel]
-            except KeyError:
-                aux[channel] = {}
-                aux_2 = aux[channel]
+                # Compute the signal to noise ratio
+                aux_snr = aux_gain / \
+                    np.sqrt(fit_params['std'][0][0]**2 + fit_params['std'][1][0]**2)
+            
+            except IndexError:
+                print(
+                    "In function get_gain_and_snr(): "
+                    "Could not compute the SNR for channel "
+                    f"{endpoint}-{channel} since two-peaks "
+                    "data was not found. Skipping this channel."
+                )
+                continue
 
-            aux_2['gain'] = aux_gain
+            if endpoint not in data.keys():
+                data[endpoint] = {}
 
-            # Compute the signal to noise ratio
-            aux_2['snr'] = aux_gain / \
-                np.sqrt(fit_params['std'][0][0]**2 + fit_params['std'][1][0]**2)
+            if channel in data[endpoint].keys():
+                raise Exception(
+                    "In function get_gain_and_snr(): "
+                    f"An entry for channel {endpoint}-{channel} "
+                    f"was already found when trying to save "
+                    "the gain and SNR for this channel. Something "
+                    "went wrong."
+                )
+
+            data[endpoint][channel] = {
+                'gain': aux_gain,
+                'snr': aux_snr
+            }
 
     return data
 
