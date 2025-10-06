@@ -1045,7 +1045,8 @@ class Analysis1(WafflesAnalysis):
             self.batch,
             self.apa,
             self.pde,
-            self.output_data, 
+            self.output_data,
+            self.integration_limits,
             dataframe_output_path,
             sipm_vendor_filepath=\
                 self.params.sipm_vendor_filepath,
