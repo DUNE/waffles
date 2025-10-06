@@ -346,6 +346,27 @@ class Analysis1(WafflesAnalysis):
                 "where the calibration results will be saved"
             )
 
+            sipm_vendor_filepath: str | None = Field(
+                default=None,
+                description="If None, the 'vendor' column of the " 
+                "output CSV file will be filled with strings which "
+                "match 'unavailable'. If it is defined, then it is the "
+                "path to a CSV file which must contain the columns "
+                "'endpoint', 'daphne_ch', and 'sipm', from which the "
+                "endpoint, the channel and the vendor associated to "
+                "each channel can be retrieved, respectively. In this "
+                "case, the 'vendor' column of the output CSV file will "
+                "be filled with the vendor information retrieved from "
+                "this file.",
+                example='../../np04_utils/PDHD_PDS_NewChannelMap.csv'
+            ) 
+
+            overwrite_output_dataframe: bool = Field(
+                default=False,
+                description="Whether to potentially overwrite existing "
+                "rows in the output dataframe"
+            )
+
         return InputParams
 
     def initialize(
@@ -1025,7 +1046,10 @@ class Analysis1(WafflesAnalysis):
             self.apa,
             self.pde,
             self.output_data, 
-            dataframe_output_path
+            dataframe_output_path,
+            sipm_vendor_filepath=\
+                self.params.sipm_vendor_filepath,
+            overwrite=self.params.overwrite_output_dataframe
         )
 
         if self.params.verbose:

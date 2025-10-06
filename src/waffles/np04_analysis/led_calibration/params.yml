@@ -211,4 +211,21 @@ ch_span_fraction_around_peaks: 0.06
 # integrated waveforms or not
 save_persistence_heatmaps: true
 
+# Name of the output CSV file where
+# the calibration results will be saved
 output_dataframe_filename: 'calibration_results.csv'
+
+# If None, the 'vendor' column of the output CSV file
+# will be filled with strings which match 'unavailable'.
+# If it is defined, then it is the path to a CSV file
+# which must contain the columns 'endpoint', 'daphne_ch',
+# and 'sipm', from which the endpoint, the channel and
+# the vendor associated to each channel can be retrieved,
+# respectively. In this case, the 'vendor' column of the
+# output CSV file will be filled with the vendor
+# information retrieved from this file.
+sipm_vendor_filepath: '../../np04_utils/PDHD_PDS_NewChannelMap.csv'
+
+# Whether to potentially overwrite existing rows in the
+# output dataframe
+overwrite_output_dataframe: true
