@@ -369,6 +369,7 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
         self.wfset = None
         self.grid_apa = None
+        self.integration_limits = None
         self.output_data = None
 
         self.read_input_loop_1 = self.params.batches
@@ -632,6 +633,10 @@ class Analysis1(WafflesAnalysis):
             compute_calib_histo=False,
         )
 
+        # Initialize the dictionary of integration limits to an
+        # empty dictionary before looping over the channels
+        self.integration_limits = {}
+
         for endpoint in self.grid_apa.ch_wf_sets.keys():
             for channel in self.grid_apa.ch_wf_sets[endpoint].keys():
 
@@ -744,7 +749,7 @@ class Analysis1(WafflesAnalysis):
                 mean_wf = self.grid_apa.ch_wf_sets[endpoint][channel].\
                     compute_mean_waveform()
 
-                limits = get_pulse_window_limits(
+                aux_limits = get_pulse_window_limits(
                     mean_wf.adcs,
                     0,
                     self.params.deviation_from_baseline,
@@ -753,7 +758,7 @@ class Analysis1(WafflesAnalysis):
                 )
 
                 if self.params.verbose:
-                    print(f"Found limits {limits[0]}-{limits[1]}.")
+                    print(f"Found limits {aux_limits[0]}-{aux_limits[1]}.")
                     print(
                         "In function Analysis1.analyze(): "
                         "Integrating the waveforms for channel "
@@ -766,10 +771,10 @@ class Analysis1(WafflesAnalysis):
                 integrator_input_parameters = IPDict({
                     'baseline_analysis': self.params.null_baseline_analysis_label,
                     'inversion': True,
-                    'int_ll': limits[0],
-                    'int_ul': limits[1],
-                    'amp_ll': limits[0],
-                    'amp_ul': limits[1]
+                    'int_ll': aux_limits[0],
+                    'int_ul': aux_limits[1],
+                    'amp_ll': aux_limits[0],
+                    'amp_ul': aux_limits[1]
                 })
 
                 checks_kwargs = IPDict({
@@ -784,6 +789,11 @@ class Analysis1(WafflesAnalysis):
                     checks_kwargs=checks_kwargs,
                     overwrite=True
                 )
+
+                if endpoint not in self.integration_limits.keys():
+                    self.integration_limits[endpoint] = {}
+
+                self.integration_limits[endpoint][channel] = aux_limits
 
                 if self.params.verbose:
                     print("Finished.")
