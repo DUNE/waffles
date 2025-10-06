@@ -352,8 +352,8 @@ def save_data_to_dataframe(
     # PDE-to-OV mapping for HPK sipms
     hpk_ov = {
         0.4: 2.0,
-        0.45: 3.5,
-        0.50: 4.0
+        0.45: 2.5,
+        0.50: 3.0
     }
 
     # PDE-to-OV mapping for FBK sipms
