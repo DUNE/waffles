@@ -2,6 +2,7 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+from typing import Optional
 
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -356,9 +357,95 @@ def save_data_to_dataframe(
     apa: int,
     pde: float,
     data: list,
+    path_to_output_file: str,
+    sipm_vendor_filepath: Optional[str] = None,
+    actually_save: bool = True,
+    overwrite: bool = False
+) -> None:
+    """This function saves the given data to a CSV file
+    located at path_to_output_file. If the file does not
+    exist, it is created. If it exists, the new data is
+    appended to it. The output CSV file will contain the
+    following columns:
+
+        - batch
+        - APA
+        - PDE
+        - endpoint
+        - channel
+        - channel_iterator
+        - vendor
+        - OV#
+        - OV_V
+        - gain
+        - snr
+
+    Parameters
+    ----------
+    batch: int
+        The batch with which the data was obtained. This
+        batch value will appear in every row of the 'batch'
+        column of the output dataframe.
+    apa: int
+        The APA with which the data was obtained. This
+        APA value will appear in every row of the 'APA'
+        column of the output dataframe.
+    pde: float
+        The PDE with which the data was obtained. This
+        PDE value will appear in every row of the 'PDE'
+        column of the output dataframe.
+    data: dict
+        It is expected to have the following form:
+            {
+                endpoint1: {
+                    channel1: {
+                        'gain': gain_value11,
+                        'snr': snr_value11
+                    },
+                    channel2: {
+                        'gain': gain_value12,
+                        'snr': snr_value12
+                    },
+                    ...
+                },
+                endpoint2: {
+                    channel1: {
+                        'gain': gain_value21,
+                        'snr': snr_value21
+                    },
+                    channel2: {
+                        'gain': gain_value22,
+                        'snr': snr_value22
+                    },
+                    ...
+                },
+                ...
+            }
+        where the endpoint and channel values are integers.
     path_to_output_file: str
-):
-    
+        The path to the output CSV file
+    sipm_vendor_filepath: str, optional
+        If None, the 'vendor' column of the output CSV file will
+        be filled with strings which match 'unavailable'. If it
+        is defined, then it is the path to a CSV file which must
+        contain the columns 'endpoint', 'daphne_ch', and 'sipm',
+        from which the endpoint, the channel and the vendor
+        associated to each channel can be retrieved, respectively.
+        In this case, the 'vendor' column of the output CSV file
+        will be filled with the vendor information retrieved from
+        this file.
+    actually_save: bool
+        If True, the data will actually be saved to the output
+        CSV file. If False, the function will run as usual, but
+        the data will not be saved to the output CSV file. It is
+        useful for testing cases where one does not want to
+        potentially include spurious data to a running dataframe
+        by mistake.
+    overwrite: bool
+        Whether to potentially overwrite existing rows in the
+        output dataframe
+    """
+
     # PDE-to-OV mapping for HPK sipms
     hpk_ov = {
         0.4: 2.0,
@@ -384,27 +471,48 @@ def save_data_to_dataframe(
     fbk_ov = fbk_ov[pde]
     ov_no = ov_no[pde]
 
-    # Warning: Settings this variable to True will save
-    # changes to the output dataframe, potentially introducing
-    # spurious data. Only set it to True if you are sure of what
-    # you are saving.
-    actually_save = True   
+    fVendorAvailable = False
+    if sipm_vendor_filepath is not None:
+        try:
+            vendor_df = pd.read_csv(sipm_vendor_filepath)
 
-    # Do you want to potentially overwrite existing rows of the dataframe?
-    overwrite = False
+            if all(
+                [
+                    col in vendor_df.columns for col in ['endpoint', 'daphne_ch', 'sipm']
+                ]
+            ):
+                fVendorAvailable = True
+
+            else:
+                print(
+                    "In function save_data_to_dataframe(): "
+                    f"The file {sipm_vendor_filepath} does not "
+                    "contain the required columns: 'endpoint', "
+                    "'daphne_ch' and 'sipm'. The vendor column "
+                    "in the output dataframe will be filled with "
+                    "'unavailable'."
+                )
+
+        except FileNotFoundError:
+            print(
+                "In function save_data_to_dataframe(): "
+                f"The file {sipm_vendor_filepath} was not found. "
+                "The vendor column in the output dataframe will "
+                "be filled with 'unavailable'."
+            )
 
     expected_columns = {
         "batch": [],
         "APA": [],
+        "PDE": [],
         "endpoint": [],
         "channel": [],
         "channel_iterator": [],
-        "PDE": [],
+        "vendor": [],
+        "OV#": [],
+        "OV_V": [],
         "gain": [],
         "snr": [],
-        "OV#": [],
-        "HPK_OV_V": [],
-        "FBK_OV_V": [],
     }
 
     # If the file does not exist, create it
@@ -414,15 +522,15 @@ def save_data_to_dataframe(
         # Force column-wise types
         df['batch'] = df['batch'].astype(int)
         df['APA'] = df['APA'].astype(int)
+        df['PDE'] = df['PDE'].astype(float)
         df['endpoint'] = df['endpoint'].astype(int)
         df['channel'] = df['channel'].astype(int)
         df['channel_iterator'] = df['channel_iterator'].astype(int)
-        df['PDE'] = df['PDE'].astype(float)
+        df['vendor'] = df['vendor'].astype(str)
+        df['OV#'] = df['OV#'].astype(int)
+        df['OV_V'] = df['OV_V'].astype(float)
         df['gain'] = df['gain'].astype(float)
         df['snr'] = df['snr'].astype(float)
-        df['OV#'] = df['OV#'].astype(int)
-        df['HPK_OV_V'] = df['HPK_OV_V'].astype(float)
-        df['FBK_OV_V'] = df['FBK_OV_V'].astype(float)
 
         df.to_csv(
             path_to_output_file,
@@ -448,10 +556,46 @@ def save_data_to_dataframe(
     else:
         for endpoint in data.keys():
             for channel in data[endpoint]:
+
+                if fVendorAvailable:
+                    try:
+                        vendor = vendor_df[
+                            (vendor_df['endpoint'] == endpoint) &
+                            (vendor_df['daphne_ch'] == channel)
+                        ]['sipm'].values[0]
+
+                        if vendor not in ('HPK', 'FBK'):
+                            print(
+                                "In function save_data_to_dataframe(): "
+                                f"Channel {endpoint}-{channel} has an "
+                                f"unrecognized vendor '{vendor}' in the "
+                                "vendor dataframe read from "
+                                f"{sipm_vendor_filepath}. The vendor "
+                                "column in the output dataframe will be "
+                                "filled with 'unavailable'."
+                            )
+                            vendor = 'unavailable'
+
+                    # Happens if the current endpoint-channel
+                    # pair is not found in the vendor_df dataframe
+                    except IndexError:
+                        print(
+                            "In function save_data_to_dataframe(): "
+                            f"Channel {endpoint}-{channel} was not "
+                            "found in the vendor dataframe read from "
+                            f"{sipm_vendor_filepath}. The vendor "
+                            "column in the output dataframe will be "
+                            "filled with 'unavailable'."
+                        )
+                        vendor = 'unavailable'
+                else:
+                    vendor = 'unavailable'
+
                 # Assemble the new row
                 new_row = {
                     "batch": [int(batch)],
                     "APA": [int(apa)],
+                    "PDE": [pde],
                     "endpoint": [endpoint],
                     "channel": [channel],
                     "channel_iterator": [get_channel_iterator(
@@ -459,12 +603,19 @@ def save_data_to_dataframe(
                         endpoint,
                         channel
                     )],
-                    "PDE": [pde],
+                    "vendor": [vendor],
+                    "OV#": [ov_no],
+                    # We've made sure that vendor is either
+                    # 'HPK', 'FBK' or 'unavailable'
+                    "OV_V": [
+                        {
+                            'HPK': hpk_ov,
+                            'FBK': fbk_ov,
+                            'unavailable': np.nan
+                        }[vendor]
+                    ],
                     "gain": [data[endpoint][channel]["gain"]],
                     "snr": [data[endpoint][channel]["snr"]],
-                    "OV#": [ov_no],
-                    "HPK_OV_V": [hpk_ov],
-                    "FBK_OV_V": [fbk_ov],
                 }
 
                 # Check if there is already an entry for the
@@ -516,6 +667,8 @@ def save_data_to_dataframe(
             path_to_output_file,
             index=False
         )
+
+    return
 
 def dump_object_to_pickle(
     object, 
