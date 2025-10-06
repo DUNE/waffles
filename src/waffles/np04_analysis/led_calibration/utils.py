@@ -356,7 +356,8 @@ def save_data_to_dataframe(
     batch: int,
     apa: int,
     pde: float,
-    data: list,
+    packed_gain_and_snr: dict,
+    packed_integration_limits: dict,
     path_to_output_file: str,
     sipm_vendor_filepath: Optional[str] = None,
     actually_save: bool = True,
@@ -379,6 +380,8 @@ def save_data_to_dataframe(
         - OV_V
         - gain
         - snr
+        - integration_lower_limit
+        - integration_upper_limit
 
     Parameters
     ----------
@@ -394,7 +397,7 @@ def save_data_to_dataframe(
         The PDE with which the data was obtained. This
         PDE value will appear in every row of the 'PDE'
         column of the output dataframe.
-    data: dict
+    packed_gain_and_snr: dict
         It is expected to have the following form:
             {
                 endpoint1: {
@@ -422,6 +425,35 @@ def save_data_to_dataframe(
                 ...
             }
         where the endpoint and channel values are integers.
+    packed_integration_limits: dict
+        It is expected to have the following form:
+            {
+                endpoint1: {
+                    channel1: (
+                        integration_lower_limit11,
+                        integration_upper_limit11
+                    ),
+                    channel2: (
+                        integration_lower_limit12,
+                        integration_upper_limit12
+                    ),
+                    ...
+                },
+                endpoint2: {
+                    channel1: (
+                        integration_lower_limit21,
+                        integration_upper_limit21
+                    ),
+                    channel2: (
+                        integration_lower_limit22,
+                        integration_upper_limit22
+                    ),
+                    ...
+                },
+                ...
+            }
+        where the endpoint, channel and integration limit
+        values are integers.
     path_to_output_file: str
         The path to the output CSV file
     sipm_vendor_filepath: str, optional
@@ -513,6 +545,8 @@ def save_data_to_dataframe(
         "OV_V": [],
         "gain": [],
         "snr": [],
+        "integration_lower_limit": [],
+        "integration_upper_limit": []
     }
 
     # If the file does not exist, create it
@@ -531,6 +565,8 @@ def save_data_to_dataframe(
         df['OV_V'] = df['OV_V'].astype(float)
         df['gain'] = df['gain'].astype(float)
         df['snr'] = df['snr'].astype(float)
+        df['integration_lower_limit'] = df['integration_lower_limit'].astype(int)
+        df['integration_upper_limit'] = df['integration_upper_limit'].astype(int)
 
         df.to_csv(
             path_to_output_file,
@@ -539,23 +575,15 @@ def save_data_to_dataframe(
 
     df = pd.read_csv(path_to_output_file)
 
-    if len(df.columns) != len(expected_columns):
+    if set(df.columns) != expected_columns.keys():
         raise Exception(
             "In function save_data_to_dataframe(): "
             "The columns of the found dataframe do not "
             "match the expected ones. Something went wrong."
         )
-
-    elif not bool(np.prod(df.columns == pd.Index(data = expected_columns))):
-        raise Exception(
-            "In function save_data_to_dataframe(): "
-            "The columns of the found dataframe do not "
-            "match the expected ones. Something went wrong."
-        )
-
     else:
-        for endpoint in data.keys():
-            for channel in data[endpoint]:
+        for endpoint in packed_gain_and_snr.keys():
+            for channel in packed_gain_and_snr[endpoint]:
 
                 if fVendorAvailable:
                     try:
@@ -591,6 +619,20 @@ def save_data_to_dataframe(
                 else:
                     vendor = 'unavailable'
 
+                try:
+                    integration_limits = \
+                        packed_integration_limits[endpoint][channel]
+
+                except KeyError:
+                    print(
+                        "In function save_data_to_dataframe(): "
+                        "Integration limits for channel "
+                        f"{endpoint}-{channel} were not found. "
+                        "Setting them to NaN."
+                    )
+                    
+                    integration_limits = (np.nan, np.nan)
+
                 # Assemble the new row
                 new_row = {
                     "batch": [int(batch)],
@@ -614,8 +656,10 @@ def save_data_to_dataframe(
                             'unavailable': np.nan
                         }[vendor]
                     ],
-                    "gain": [data[endpoint][channel]["gain"]],
-                    "snr": [data[endpoint][channel]["snr"]],
+                    "gain": [packed_gain_and_snr[endpoint][channel]["gain"]],
+                    "snr": [packed_gain_and_snr[endpoint][channel]["snr"]],
+                    "integration_lower_limit": [integration_limits[0]],
+                    "integration_upper_limit": [integration_limits[1]]
                 }
 
                 # Check if there is already an entry for the
