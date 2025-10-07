@@ -25,12 +25,11 @@ if __name__ == "__main__":
     calibration_file = user_config.get("calibration_file")
     file_folder = user_config.get("file_folder")
     SiPM_channel = user_config.get("SiPM_channel")
-    perform_selection = user_config.get("perform_selection", True)
     files_in_folder = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
     
     df_runs = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
-    out_root_file = TFile(ana_folder+f"Jitter_Ch_{SiPM_channel}_Selection_{perform_selection}.root", "RECREATE")
+    out_root_file = TFile(ana_folder+f"Jitter_Ch_{SiPM_channel}.root", "RECREATE")
     out_root_file.cd()
 
     calibration_df = pd.read_csv(ana_folder+calibration_file, sep=",")
@@ -86,8 +85,7 @@ if __name__ == "__main__":
                                       snr=snr)
         st.create_wfs()
         
-        if perform_selection:
-            st.select_waveforms()
+        st.select_waveforms()
 
         dict_hSTdisrt = st.trigger_distr_per_nspe()
         del wfset
@@ -112,5 +110,5 @@ if __name__ == "__main__":
             })
 
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(ana_folder+f"Jitter_Ch_{SiPM_channel}_Selection_{perform_selection}.csv", index=False)
+    out_df.to_csv(ana_folder+f"Jitter_Ch_{SiPM_channel}.csv", index=False)
     out_root_file.Close()
