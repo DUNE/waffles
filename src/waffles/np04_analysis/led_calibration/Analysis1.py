@@ -59,7 +59,10 @@ class Analysis1(WafflesAnalysis):
                 description="Path to a CSV file which lists "
                 "the channels which should be excluded from "
                 "the calibration for each combination of "
-                "batch number, APA number and PDE",
+                "the batch number, the APA number and the PDE, "
+                "given the integration deviation-from-baseline. "
+                " I.e. it must have the columns 'integration_dfb', "
+                "'batch', 'apa', 'pde' and 'excluded_channels'.",
                 example='./configs/excluded_channels_database.csv'
             )
 
@@ -402,10 +405,29 @@ class Analysis1(WafflesAnalysis):
             self.params.channels_per_run_filepath
         )
 
-        # columns: batch, apa, pde, excluded_channels
+        # columns: integration_dfb, batch, apa, pde, excluded_channels
         self.excluded_channels = pd.read_csv(
             self.params.excluded_channels_filepath
         )
+
+        self.excluded_channels = self.excluded_channels[
+            # Avoid problems due to floating-point precision
+            # Differences in the integration deviation-from-baseline
+            # below 1% are irrelevant anyways
+            self.excluded_channels['integration_dfb'] == round(
+                self.params.deviation_from_baseline,
+                2
+            )
+        ]
+
+        if len(self.excluded_channels) == 0:
+            print(
+                "In function Analysis1.initialize(): "
+                "WARNING: No excluded channels found for "
+                "deviation_from_baseline = "
+                f"{self.params.deviation_from_baseline}. ",
+                end=''
+            )
 
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
