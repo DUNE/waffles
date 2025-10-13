@@ -22,7 +22,7 @@ channels_per_run_filepath: './configs/channels_per_run_database.csv'
 
 # Path to a CSV file which lists the channels
 # which should be excluded from the calibration
-excluded_channels_filepath: './configs/excluded_channels_database_dfb_30p.csv'
+excluded_channels_filepath: './configs/excluded_channels_database.csv'
 
 # Whether to show the produced figures
 show_figures: false
