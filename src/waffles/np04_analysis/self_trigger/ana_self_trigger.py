@@ -46,7 +46,7 @@ if __name__ == "__main__":
     SiPM = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
 
 
-    out_root_file = TFile(ana_folder+"AnaST_Ch_{SiPM_channel}.root", "RECREATE")
+    out_root_file = TFile(ana_folder+f"AnaST_Ch_{SiPM_channel}.root", "RECREATE")
     ch_folder = ana_folder+f"Ch_{SiPM_channel}/"
     if not os.path.exists(ch_folder):
         os.makedirs(ch_folder)
@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
         st.select_waveforms()
         h_st = st.create_self_trigger_distribution()
-        h_st = st.fit_self_trigger_distribution()
+        st.find_acceptance_window()
         
         if save_pngs:
             fig = plt.figure(figsize=(10, 8))
@@ -101,9 +101,6 @@ if __name__ == "__main__":
         
         efficiency_fit_ok = st.fit_efficiency()
 
-        st.get_trigger_rate()
-
-        accuracy, accuracy_thr = self_trigger.get_max_accuracy(st.h_total, st.h_passed)
 
         out_df_rows.append({
             "Run": run,
@@ -120,17 +117,6 @@ if __name__ == "__main__":
             "ErrBkgTrgRate": unc_bkg_trg_rate,
             "BkgTrgRatePreLED": bkg_trg_rate_preLED,
             "ErrBkgTrgRatePreLED": unc_bkg_trg_rate_preLED,
-            "MaxAccuracy": accuracy,
-            "MaxAccuracyThr": accuracy_thr,
-            "FalsePositiveRateMaxAcc": self_trigger.get_false_positive_rate(st.h_total, st.h_passed, accuracy_thr),
-            "TruePositiveRateMaxAcc": self_trigger.get_true_positive_rate(st.h_total, st.h_passed, accuracy_thr),
-            "AccuracyThresholdFit": self_trigger.get_accuracy(st.h_total, st.h_passed, st.f_sigmoid.GetParameter(0)),
-            "FalsePositiveRate": self_trigger.get_false_positive_rate(st.h_total, st.h_passed, st.f_sigmoid.GetParameter(0)),
-            "TruePositiveRate": self_trigger.get_true_positive_rate(st.h_total, st.h_passed, st.f_sigmoid.GetParameter(0)),
-            "MeanTrgPos": st.f_STpeak.GetParameter(1),
-            "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
-            "SigmaTrg": st.f_STpeak.GetParameter(2),
-            "ErrSigmaTrg": st.f_STpeak.GetParError(2),
             "ThresholdFit": st.f_sigmoid.GetParameter(0) if efficiency_fit_ok else np.nan,
             "ErrThresholdFit": st.f_sigmoid.GetParError(0) if efficiency_fit_ok else np.nan,
             "TauFit": st.f_sigmoid.GetParameter(1) if efficiency_fit_ok else np.nan,
