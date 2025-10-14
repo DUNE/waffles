@@ -1014,10 +1014,10 @@ class Analysis1(WafflesAnalysis):
         if self.params.save_persistence_heatmaps:
 
             aux_time_increment = {
-                1: 80,
-                2: 40,
-                3: 40,
-                4: 40
+                1: 110,
+                2: 70,
+                3: 70,
+                4: 70
             }
 
             aux_adc_range_above_baseline = 10
