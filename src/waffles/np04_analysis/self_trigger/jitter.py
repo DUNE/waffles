@@ -1,12 +1,8 @@
 # --- IMPORTS -------------------------------------------------------
-from re import split
 import waffles.np04_analysis.self_trigger.self_trigger as self_trigger
 from waffles.np04_utils.utils import get_np04_channel_mapping
 import waffles.input_output.hdf5_structured as reader
-import matplotlib.pyplot as plt
 from ROOT import TFile, TF1
-import mplhep
-import numpy as np
 import os
 import pandas as pd
 import yaml
@@ -51,6 +47,7 @@ if __name__ == "__main__":
 
 
     for threshold in thresholds_set:
+        print(f"Processing threshold {int(threshold,16)} ({list(thresholds_set).index(threshold)+1}/{len(thresholds_set)})")
         run_with_threshold = df_runs.loc[df_runs['Threshold'] == str(threshold), 'Run'].values
         
         run_files = [f for f in files_in_folder if any(str(run) in f for run in run_with_threshold)]
@@ -95,6 +92,9 @@ if __name__ == "__main__":
             st.h_st = h_STdisrt
             h_st = st.fit_self_trigger_distribution()
             h_st.Write()
+            h_st2, fit_ok = st.fit_self_trigger_distribution2(fit_second_peak=True)
+            h_st2.SetName(f"h_STdisrt_BkgSub_nspe_{nspe}")
+            h_st2.Write()
 
             out_df_rows.append({
                                "Run": run_with_threshold[0],
@@ -104,6 +104,11 @@ if __name__ == "__main__":
                                "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
                                "SigmaTrg": st.f_STpeak.GetParameter(2),
                                "ErrSigmaTrg": st.f_STpeak.GetParError(2),
+                               "MeanTrgPos2": st.f_STpeak2.GetParameter(1),
+                               "ErrMeanTrgPos2": st.f_STpeak2.GetParError(1),
+                               "SigmaTrg2": st.f_STpeak2.GetParameter(2),
+                               "ErrSigmaTrg2": st.f_STpeak2.GetParError(2),
+                               "FitOK": fit_ok,
                                "IntegralTrg": st.f_STpeak.Integral(st.f_STpeak.GetParameter(1) - 3 * st.f_STpeak.GetParameter(2),
                                                                    st.f_STpeak.GetParameter(1) + 3 * st.f_STpeak.GetParameter(2),
                                                                    1e-4),
