@@ -1020,6 +1020,9 @@ class Analysis1(WafflesAnalysis):
                 4: 40
             }
 
+            aux_adc_range_above_baseline = 10
+            aux_adc_range_below_baseline = 80
+
             persistence_figure = plot_ChannelWsGrid(
                 self.grid_apa,
                 figure=None,
@@ -1032,8 +1035,8 @@ class Analysis1(WafflesAnalysis):
                 adc_bins=30,
                 time_range_lower_limit=self.params.baseline_i_up[self.apa],
                 time_range_upper_limit=self.params.baseline_i_up[self.apa] + aux_time_increment[self.apa],
-                adc_range_above_baseline=10,
-                adc_range_below_baseline=80,
+                adc_range_above_baseline=aux_adc_range_above_baseline,
+                adc_range_below_baseline=aux_adc_range_below_baseline,
                 detailed_label=True,
                 verbose=self.params.verbose
             )
