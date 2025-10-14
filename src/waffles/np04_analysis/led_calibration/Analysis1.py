@@ -196,9 +196,23 @@ class Analysis1(WafflesAnalysis):
                 example=10.0
             )
 
+            integrate_entire_pulse: bool = Field(
+                default=True,
+                description="Whether to integrate the entire "
+                "pulse or to adjust the integration limits "
+                "based on the deviation_from_baseline parameter."
+                "If set to True, the lower integration limit is "
+                "computed as if deviation_from_baseline = 0.1 and "
+                "lower_limit_correction = -1 were set, but the "
+                "upper limit is calculated as the point which "
+                "returns to the baseline after the pulse peak."
+            )
+
             deviation_from_baseline: float = Field(
                 ...,
-                description="It is interpreted as a fraction of "
+                description="This parameter makes a difference "
+                "only if integrate_entire_pulse is set to False. "
+                "In such case, it is interpreted as a fraction of "
                 "the signal amplitude, as measured from the "
                 "baseline. The integration limits are adjusted "
                 "so that only the part of the signal which "
@@ -410,24 +424,44 @@ class Analysis1(WafflesAnalysis):
             self.params.excluded_channels_filepath
         )
 
-        self.excluded_channels = self.excluded_channels[
-            # Avoid problems due to floating-point precision
-            # Differences in the integration deviation-from-baseline
-            # below 1% are irrelevant anyways
-            self.excluded_channels['integration_dfb'] == round(
-                self.params.deviation_from_baseline,
-                2
-            )
-        ]
+        if self.params.integrate_entire_pulse:
+            aux = min(self.excluded_channels['integration_dfb'])
 
-        if len(self.excluded_channels) == 0:
-            print(
-                "In function Analysis1.initialize(): "
-                "WARNING: No excluded channels found for "
-                "deviation_from_baseline = "
-                f"{self.params.deviation_from_baseline}. ",
-                end=''
-            )
+            self.excluded_channels = self.excluded_channels[
+                # Get the list of excluded channels which is
+                # the closest to the full-pulse integration,
+                # i.e. the one with the smallest integration_dfb
+                self.excluded_channels['integration_dfb'] == aux
+            ]
+
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.initialize(): "
+                    "Since entire pulse integration was "
+                    "enabled, the excluded channels list for "
+                    f"integration_dfb = {aux} was chosen."
+                )
+        else:
+            self.excluded_channels = self.excluded_channels[
+                # Avoid problems due to floating-point precision
+                # Differences in the integration deviation-from-baseline
+                # below 1% are irrelevant anyways
+                self.excluded_channels['integration_dfb'] == round(
+                    self.params.deviation_from_baseline,
+                    2
+                )
+            ]
+
+            if len(self.excluded_channels) == 0:
+                print(
+                    "In function Analysis1.initialize(): "
+                    "WARNING: No excluded channels found for "
+                    "deviation_from_baseline = "
+                    f"{self.params.deviation_from_baseline}. "
+                    "No channels will be excluded from the "
+                    "calibration.",
+                    end=''
+                )
 
         self.current_excluded_channels = None
 
@@ -794,13 +828,24 @@ class Analysis1(WafflesAnalysis):
                 mean_wf = self.grid_apa.ch_wf_sets[endpoint][channel].\
                     compute_mean_waveform()
 
-                aux_limits = get_pulse_window_limits(
-                    mean_wf.adcs,
-                    0,
-                    self.params.deviation_from_baseline,
-                    self.params.lower_limit_correction,
-                    self.params.upper_limit_correction
-                )
+                if self.params.integrate_entire_pulse:
+                    aux_limits = get_pulse_window_limits(
+                        mean_wf.adcs,
+                        0,
+                        0.1,
+                        lower_limit_correction=-1,
+                        upper_limit_correction=0,
+                        get_zero_crossing_upper_limit=True
+                    )
+                else:
+                    aux_limits = get_pulse_window_limits(
+                        mean_wf.adcs,
+                        0,
+                        self.params.deviation_from_baseline,
+                        lower_limit_correction=self.params.lower_limit_correction,
+                        upper_limit_correction=self.params.upper_limit_correction,
+                        get_zero_crossing_upper_limit=False
+                    )
 
                 if self.params.verbose:
                     print(f"Found limits {aux_limits[0]}-{aux_limits[1]}.")
