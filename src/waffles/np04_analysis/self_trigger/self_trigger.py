@@ -3,82 +3,24 @@ import waffles
 import numpy as np
 from waffles.np04_analysis.time_resolution.utils import create_float_waveforms, sub_baseline_to_wfs
 from hist import Hist
-from iminuit import Minuit, cost
-from ROOT import TH1D, TEfficiency, TF1
+from ROOT import TH1D, TEfficiency, TF1, TSpectrum
 
 
 def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
     return waveform.endpoint == (channel//100) and waveform.channel == (channel%100)
 
 
-def gaussian(x, amp, mean, sigma):
-    """Gaussian function."""
-    return amp * np.exp(-0.5 * (((x - mean) / sigma) ** 2) )
-
-def persistence_plot(wfs):
-    wvfs = np.array([wf.adcs_float for wf in wfs])
-    times = np.linspace(0, len(wfs[0].adcs), len(wfs[0].adcs), endpoint=False)
-    times = np.tile(times, (len(wfs), 1))
-    nbinsx = len(wfs[0].adcs)
-    h, yedges, xedges = np.histogram2d(wvfs.flatten(), times.flatten(),
-                                       bins=(200, nbinsx),
-                                       range=[[-30,50], [0, nbinsx]])
-    h[h==0] = np.nan
-    return h, xedges, yedges
-
-def get_max_accuracy(h_total: TH1D, h_passed: TH1D):
+def get_xmax_in_range(h: TH1D, low: int, up: int) -> int:
     """
-    Calculate the accuracy of the self-triggering based on the total and passed histograms.
-    Def: accuracy = true_positive + true_negative / (true_positive + true_negative + false_positive + false_negative)
-    Returns the accuracy and the threshold at which it is achieved.
-    NOTE: in computing "acc" we omitted the terms that cancel out.
+    Get the x value of the maximum bin in a given range.
     """
-    accuracy = -1e6
-    accuracy_thr = -1e6
-    nbins = h_total.GetNbinsX()
-    itera = 0
-    for i in range(3,nbins-1):
-        if h_total.GetBinContent(i+1) == 0:
-            continue
-        acc = ( h_passed.Integral(i,nbins) + h_total.Integral(1,i-1)-h_passed.Integral(1,i-1) ) / \
-                ( h_total.Integral(1,nbins) )
-        if acc > accuracy:
-            accuracy = acc
-            accuracy_thr = h_total.GetBinCenter(i+1)
-            itera = i
-
-    print(f"Max accuracy: {accuracy} at threshold {accuracy_thr} (bin {itera})")
-    return accuracy, accuracy_thr
-    
-def get_true_positive_rate(h_total: TH1D, h_passed: TH1D, threshold: float):
-    """
-
-    """
-    thr_bin = h_total.FindBin(threshold)
-    true_positive_rate = h_passed.Integral(thr_bin, h_passed.GetNbinsX()) / h_total.Integral(thr_bin, h_total.GetNbinsX())
-    
-    return true_positive_rate
-
-def get_false_positive_rate(h_total: TH1D, h_passed: TH1D, threshold: float):
-    """
-
-    """
-    thr_bin = h_total.FindBin(threshold)
-    false_positive_rate = h_passed.Integral(1, thr_bin) / h_total.Integral(thr_bin, h_total.GetNbinsX())
-
-    return false_positive_rate
-
-def get_accuracy(h_total: TH1D, h_passed: TH1D, threshold: float):
-    """
-
-    """
-    thr_bin = h_total.FindBin(threshold)    
-    nbins = h_total.GetNbinsX()
-    acc = ( h_passed.Integral(thr_bin,nbins) + h_total.Integral(1,thr_bin)-h_passed.Integral(1,thr_bin) ) / \
-                ( h_total.Integral(1,nbins) )
-
-    return acc
-
+    y_max = -np.inf
+    max_bin = -1
+    for i in range(low, up+1):
+        if h.GetBinContent(i) > y_max:
+            y_max = h.GetBinContent(i)
+            max_bin = i
+    return max_bin
     
 
 
@@ -180,6 +122,37 @@ class SelfTrigger:
         unc_bkg_trg_rate_preLED = unc_n_bkg_triggers_preLED * norm_factor
         return bkg_trg_rate_preLED, unc_bkg_trg_rate_preLED
 
+    def find_acceptance_window(self) -> None:
+        """
+        """
+        x_hST_max = self.h_st.GetMaximumBin()
+
+        f_constant = TF1("f_constant", "pol0", 2, self.prep)
+        f_constant.SetParameter(0, self.h_st.GetBinContent(5))
+        f_constant.SetNpx(1000)
+        self.h_st.Fit(f_constant, "R")
+        
+        thr_counts = f_constant.GetParameter(0)+sqrt(f_constant.GetParameter(0))
+        pretrg = x_hST_max
+        i = x_hST_max
+
+        while i > 1:
+            pretrg = i
+            if self.h_st.GetBinContent(i - 1) < thr_counts:
+                break
+            i -= 1
+
+        afttrg = x_hST_max
+        i = x_hST_max
+        while i < self.wfs_st[0].adcs.size - 1:
+            afttrg = i
+            if self.h_st.GetBinContent(i + 1) < thr_counts:
+                break
+            i += 1 
+
+        self.window_low = int(pretrg)
+        self.window_up  = int(afttrg)
+        return self.h_st
 
     def fit_self_trigger_distribution(self) -> TH1D:
         """
@@ -221,11 +194,108 @@ class SelfTrigger:
         self.h_st.Fit(f_STpeak, "R")
 
         self.f_STpeak = f_STpeak
-        # if (self.window_low==0): self.window_low = int(pretrg)
-        # if (self.window_up==0):  self.window_up  = int(afttrg)
         self.window_low = int(pretrg)
         self.window_up  = int(afttrg)
         return self.h_st
+
+    def fit_self_trigger_distribution2(self, fit_second_peak: bool=False) -> tuple:
+        """
+        Now use ROOT::TSpectrum
+        """
+        self.h_st2 = self.h_st.Clone("h_selftrigger_bkgsub")
+        h_bkg = TSpectrum()
+        # h_bkg.Background(self.h_st2, 15)
+        background = h_bkg.Background(self.h_st2, 15)
+        for i in range(1, self.h_st2.GetNbinsX() + 1):
+            self.h_st2.SetBinContent(i, self.h_st2.GetBinContent(i) - background[i - 1])
+
+        # Starting from the maximum, go left and right until we find the first bin with content larger than the previous one
+        x_hST_max = self.h_st2.GetMaximumBin()
+        y_hST_max = self.h_st2.GetBinContent(x_hST_max)
+        left_peak_candidate = False
+        x_second_peak = np.nan
+        # Left scan
+        self.window_low2 = x_hST_max
+        for i in range(2, x_hST_max):
+            if self.h_st2.GetBinContent(x_hST_max - i) > self.h_st2.GetBinContent(x_hST_max - (i - 1)) \
+                    or self.h_st2.GetBinContent(x_hST_max - i) < y_hST_max * 0.005:
+                self.window_low2 = x_hST_max - i
+                break
+
+        if fit_second_peak:
+            x_second_peak = get_xmax_in_range(self.h_st2, max(1, self.window_low2 - 10), self.window_low2)
+            y_second_peak = self.h_st2.GetBinContent(x_second_peak)
+            if y_second_peak > 0.03 * y_hST_max:
+                left_peak_candidate = True
+                for i in range (1, x_second_peak):
+                    if self.h_st2.GetBinContent(x_second_peak - i) > self.h_st2.GetBinContent(x_second_peak - (i - 1)) \
+                            or self.h_st2.GetBinContent(x_second_peak - i) < y_hST_max * 0.02:
+                        self.window_low2 = x_second_peak - i
+                        break
+
+
+        right_peak_candidate = False
+        # Right scan
+        self.window_up2 = x_hST_max
+        for i in range(x_hST_max+1, self.h_st2.GetNbinsX()):
+            if self.h_st2.GetBinContent(i + 1) > self.h_st2.GetBinContent(i) \
+                    or self.h_st2.GetBinContent(i) < y_hST_max * 0.005:
+                self.window_up2 = i
+                break
+
+        if not left_peak_candidate and fit_second_peak:
+            x_second_peak = get_xmax_in_range(self.h_st2, self.window_up2, min(self.h_st2.GetNbinsX(), self.window_up2 + 10))
+            y_second_peak = self.h_st2.GetBinContent(x_second_peak)
+            if y_second_peak > 0.03 * y_hST_max:
+                right_peak_candidate = True
+                for i in range(x_second_peak, self.h_st2.GetNbinsX()):
+                    if self.h_st2.GetBinContent(i + 1) > self.h_st2.GetBinContent(i) \
+                            or self.h_st2.GetBinContent(i) < y_hST_max * 0.02:
+                        self.window_up2 = i
+                        break
+
+        found_second_peak = left_peak_candidate or right_peak_candidate
+        if found_second_peak:
+            print(f"\n\nFound second peak at {x_second_peak} with {self.h_st2.GetBinContent(x_second_peak)} counts\n\n")
+        
+
+        f_STpeak = TF1("f_STpeak2", "gaus", self.window_low2, self.window_up2)
+        if not found_second_peak:
+            estimated_gaus_amp = self.h_st2.GetBinContent(x_hST_max)
+            f_STpeak.SetParameters(estimated_gaus_amp, x_hST_max, 1.0)
+            f_STpeak.SetParLimits(0, estimated_gaus_amp * 0.5, estimated_gaus_amp * 1.5)
+            f_STpeak.SetParLimits(1, self.window_low2, self.window_up2)
+            f_STpeak.SetParLimits(2, 0.05, 5.0)
+            f_STpeak.SetNpx(1000)
+            print(f"Fitting range: {self.window_low2} - {self.window_up2}")
+            fit_result = self.h_st2.Fit(f_STpeak, "RS")
+        
+        else:
+            f_STpeak = TF1("f_STpeak2", "gaus(0)+gaus(3)", self.window_low2, self.window_up2)
+            estimated_gaus_amp1 = self.h_st2.GetBinContent(x_hST_max)
+            estimated_gaus_amp2 = self.h_st2.GetBinContent(x_second_peak)
+            # Print initial parameters
+            print(f"Initial parameters: amp1={estimated_gaus_amp1}, mean1={x_hST_max}, sigma1=1.0, amp2={estimated_gaus_amp2}, mean2={x_second_peak}, sigma2=1.0")
+            f_STpeak.SetParameters(estimated_gaus_amp1, x_hST_max, 0.5,
+                                   estimated_gaus_amp2, x_second_peak, 0.5)
+            f_STpeak.SetParLimits(0, estimated_gaus_amp1 * 0.5, estimated_gaus_amp1 * 1.5)
+            f_STpeak.SetParLimits(1, x_hST_max-3, x_hST_max+3)
+            f_STpeak.SetParLimits(2, 0.05, 5.0)
+            f_STpeak.SetParLimits(3, estimated_gaus_amp2 * 0.5, estimated_gaus_amp2 * 1.5)
+            f_STpeak.SetParLimits(4, x_second_peak-3, x_second_peak+3)
+            f_STpeak.SetParLimits(5, 0.05, 5.0)
+            f_STpeak.SetNpx(1000)
+            print(f"Fitting range: {self.window_low2} - {self.window_up2} with second peak")
+            fit_result = self.h_st2.Fit(f_STpeak, "RS")
+
+        
+        #Check fit convergence
+        fit_ok = bool(fit_result.Get() and fit_result.Get().IsValid())
+        self.f_STpeak2 = f_STpeak
+
+        return (self.h_st2, fit_ok)
+
+
 
 
     def create_efficiency_histos(self, he_name: str) -> tuple:
@@ -307,8 +377,7 @@ class SelfTrigger:
         print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
         bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
         populated_bins = np.where(bin_contents > 10)
-        print(populated_bins)
-        print(populated_bins[0][0], populated_bins[-1][-1])
+        
         self.f_sigmoid.SetRange(h_total.GetBinCenter(int(populated_bins[0][0])), h_total.GetBinCenter(int(populated_bins[-1][-1])))
         self.f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
         self.f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
