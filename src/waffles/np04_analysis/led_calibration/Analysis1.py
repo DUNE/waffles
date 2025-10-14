@@ -429,6 +429,8 @@ class Analysis1(WafflesAnalysis):
                 end=''
             )
 
+        self.current_excluded_channels = None
+
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
         method. It loads a WaveformSet object into the self.wfset
@@ -922,17 +924,22 @@ class Analysis1(WafflesAnalysis):
 
         # Filter the excluded_channels DataFrame to get only
         # the excluded channels for the current batch, APA and PDE
-        filtered_excluded_channels = self.excluded_channels[
+        self.current_excluded_channels = self.excluded_channels[
             (self.excluded_channels['batch'] == self.batch) &
             (self.excluded_channels['apa'] == self.apa) &
             (self.excluded_channels['pde'] == self.pde)
         ]
 
+        # self.current_excluded_channels is now a
+        # list of integers (or an empty list)
+        self.current_excluded_channels = \
+            led_utils.parse_numeric_list(
+                self.current_excluded_channels['excluded_channels'].values[0]
+            ) if not self.current_excluded_channels.empty else []
+
         self.output_data = led_utils.get_gain_and_snr(
             self.grid_apa,
-            led_utils.parse_numeric_list(
-                filtered_excluded_channels['excluded_channels'].values[0]
-            ) if not filtered_excluded_channels.empty else [],
+            self.current_excluded_channels,
             reset_excluded_channels=True
         )
 
