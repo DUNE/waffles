@@ -1023,8 +1023,8 @@ class Analysis1(WafflesAnalysis):
             persistence_figure = plot_ChannelWsGrid(
                 self.grid_apa,
                 figure=None,
-                share_x_scale=True,
-                share_y_scale=True,
+                share_x_scale=False,
+                share_y_scale=False,
                 mode='heatmap',
                 wfs_per_axes=None,
                 analysis_label=self.params.null_baseline_analysis_label,
