@@ -33,6 +33,7 @@ if __name__ == "__main__":
     out_df_rows = []
 
     calibration_df = pd.read_csv(ana_folder+calibration_file, sep=",")
+    print(calibration_df.head(5))
     int_low = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntLow'].values[0])
     int_up = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntUp'].values[0])
     prepulse_ticks = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'PrepulseTicks'].values[0])
@@ -85,12 +86,12 @@ if __name__ == "__main__":
 
             
         h_st_full = st.create_self_trigger_distribution("h_st_full")
+        st.find_acceptance_window()
         bkg_trg_rate, unc_bkg_trg_rate = st.get_bkg_trg_rate(h_st_full)
         bkg_trg_rate_preLED, unc_bkg_trg_rate_preLED = st.get_bkg_trg_rate_preLED(h_st_full)
 
         st.select_waveforms()
         h_st = st.create_self_trigger_distribution()
-        st.find_acceptance_window()
         
         if save_pngs:
             fig = plt.figure(figsize=(10, 8))
