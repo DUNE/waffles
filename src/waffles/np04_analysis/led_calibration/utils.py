@@ -1226,3 +1226,176 @@ def add_integration_limits_to_persistence_heatmaps(
             )
     
     return
+
+def add_SPE_info_to_output_dictionary(
+    grid_apa: ChannelWsGrid,
+    excluded_channels: list,
+    output_data: Dict[int, Dict[int, ...]],
+    half_width_around_peak_in_stds: float = 1.0
+) -> Dict[int, Dict[int, ...]]:
+    """This function processes each channel in the given
+    ChannelWsGrid to extract information about the Single
+    Photo-Electron (SPE, 1-PE) peak from the fitted calibration
+    histograms. For each channel, it identifies waveforms that
+    contribute to the SPE peak based on their integrated charge
+    values and computes the mean SPE waveform. The mean SPE
+    adcs, as well as the mean SPE amplitude (it is assumed
+    that the pulse is negative) and the indices of the waveforms
+    which contribute to the mean SPE (relative to the waveforms
+    attribute of each ChannelWs object) are added to the output
+    dictionary.
+    
+    To this end, the function identifies the SPE peak as the
+    second peak (index 1) in the fitted Gaussian parameters,
+    then selects waveforms whose integrated charge falls within
+    a specified range around this peak.
+    
+    Parameters
+    ----------
+    grid_apa: ChannelWsGrid
+        The ChannelWsGrid object containing the channel-waveform
+        sets with fitted calibration histograms and Gaussian
+        fit parameters
+    excluded_channels: list of int
+        A list of joint channel numbers (as returned by
+        join_channel_number()) which should be excluded from SPE
+        processing
+    output_data: Dict[int, Dict[int, ...]]
+        Dictionary where the keys are endpoint numbers and values
+        are dictionaries where the keys are channel numbers and
+        values contain channel data, p.e. the gain and the S/N.
+        This dictionary will be modified in-place to include SPE
+        information.
+    half_width_around_peak_in_stds: float, default 1.0
+        The half-width around the SPE peak mean, expressed in
+        units of the peak's standard deviation, used to select
+        waveforms for SPE characterization. Waveforms with
+        integrated charge in the range [mean - half_width*std, 
+        mean + half_width*std] are included in the SPE computation.
+        
+    Returns
+    -------
+    Dict[int, Dict[int, ...]]
+        The modified output_data dictionary with added SPE
+        information for each processed channel. For each channel,
+        the following keys are added:
+        - 'SPE_mean_amplitude': float or 'unavailable'
+            The minimum ADC value of the mean SPE waveform (peak amplitude)
+        - 'SPE_mean_adcs': list of float or 'unavailable'
+            The complete mean SPE waveform as a list of ADC values
+        - 'SPE_idcs': list of int or 'unavailable'
+            Indices of the waveforms that contributed to the SPE
+            characterization (relative to the waveforms attribute
+            of each ChannelWs object)
+    """
+
+    # The 1-PE (SPE) peak is that of index equal to 1
+    targeted_peak_idx = 1
+
+    for endpoint in grid_apa.ch_wf_sets.keys():
+        for channel in grid_apa.ch_wf_sets[endpoint].keys():
+
+            if join_channel_number(
+                endpoint,
+                channel
+            ) in excluded_channels:
+                print(
+                    "In function add_SPE_info_to_output_dictionary(): "
+                    f"Excluding channel {endpoint}-{channel} ..."
+                )
+                continue
+
+            try:
+                _ = output_data[endpoint][channel]
+            except KeyError:
+                print(
+                    "In function add_SPE_info_to_output_dictionary(): "
+                    f"WARNING: Although channel {endpoint}-{channel} "
+                    "is not excluded, it was not found in the given "
+                    "output data dictionary. The SPE information for "
+                    "this channel will not be computed."
+                )
+                continue
+            
+            # Some convenient definitions
+            current_ChannelWs = grid_apa.ch_wf_sets[endpoint][channel]
+            current_CalibrationHistogram = current_ChannelWs.calib_histo
+            aux = current_CalibrationHistogram.gaussian_fits_parameters
+            
+            try:
+                SPE_peak_mean = aux['mean'][targeted_peak_idx][0]
+                SPE_peak_std = aux['std'][targeted_peak_idx][0]
+
+            except IndexError:
+                print(
+                    "In function add_SPE_info_to_output_dictionary(): "
+                    "The information of the 1-PE peak was not found "
+                    f"for channel {endpoint}-{channel}. The SPE "
+                    "information for this channel won't be computed."
+                )
+
+                output_data[endpoint][channel]['SPE_mean_amplitude'] = 'unavailable'
+                output_data[endpoint][channel]['SPE_mean_adcs'] = 'unavailable'
+                output_data[endpoint][channel]['SPE_idcs'] = 'unavailable'
+                
+                continue
+
+            # Find the lowest bin whose entries will contribute to the mean SPE
+            for i in range(len(current_CalibrationHistogram.edges)):
+                if current_CalibrationHistogram.edges[i] > \
+                    SPE_peak_mean - (half_width_around_peak_in_stds * SPE_peak_std):
+
+                    inclusive_lower_limit_idx = i
+                    break
+
+            # Find the highest bin whose entries will contribute to the mean SPE
+            for i in range(
+                inclusive_lower_limit_idx + 1,
+                len(current_CalibrationHistogram.edges)
+            ):
+                if current_CalibrationHistogram.edges[i] > \
+                    SPE_peak_mean + (half_width_around_peak_in_stds * SPE_peak_std):
+                    
+                    inclusive_upper_limit_idx = i - 1
+                    break
+
+            if not (0 < inclusive_lower_limit_idx <= \
+                    inclusive_upper_limit_idx < \
+                        len(current_CalibrationHistogram.edges)):
+                print(
+                    "In function add_SPE_info_to_output_dictionary(): "
+                    f"WARNING: For channel {endpoint}-{channel}, "
+                    "the resulting limits for the SPE characterization "
+                    "are not valid. They must comply with 0 < "
+                    f"inclusive_lower_limit_idx ({inclusive_lower_limit_idx}) "
+                    f"<= inclusive_upper_limit_idx ({inclusive_upper_limit_idx})"
+                    f" < {len(current_CalibrationHistogram.edges)}. The SPE "
+                    "information for this channel won't be computed."
+                )
+
+                output_data[endpoint][channel]['SPE_mean_amplitude'] = 'unavailable'
+                output_data[endpoint][channel]['SPE_mean_adcs'] = 'unavailable'
+                output_data[endpoint][channel]['SPE_idcs'] = 'unavailable'
+                
+                continue
+
+            contributing_Waveform_idcs = [
+                j
+                for i in range(inclusive_lower_limit_idx, inclusive_upper_limit_idx + 1)
+                for j in current_CalibrationHistogram.indices[i]
+            ]
+
+            mean_SPE_adcs = current_ChannelWs.waveforms[
+                contributing_Waveform_idcs[0]
+                ].adcs
+
+            for i in contributing_Waveform_idcs[1:]:
+                mean_SPE_adcs += current_ChannelWs.waveforms[i].adcs
+
+            mean_SPE_adcs *= 1. / len(contributing_Waveform_idcs)
+
+            output_data[endpoint][channel]['SPE_mean_amplitude'] = mean_SPE_adcs.min()
+            output_data[endpoint][channel]['SPE_mean_adcs'] = list(mean_SPE_adcs)
+            output_data[endpoint][channel]['SPE_idcs'] = contributing_Waveform_idcs
+
+    return output_data
