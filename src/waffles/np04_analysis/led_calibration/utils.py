@@ -13,6 +13,113 @@ from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.np04_utils.utils import get_channel_iterator
 import waffles.Exceptions as we
 
+def get_check_and_filter_excluded_channels(
+    excluded_channels_filepath: str,
+    integrate_entire_pulse: bool,
+    deviation_from_baseline: float,
+    verbose: bool = True
+) -> pd.DataFrame:
+    """This function reads a CSV file containing excluded
+    channels for different integration configurations and
+    filters it based on the specified integration parameters.
+    The excluded channels are organized by integration
+    deviation-from-baseline (integration_dfb), batch, APA,
+    and PDE values.
+    
+    Parameters
+    ----------
+    excluded_channels_filepath: str
+        Path to the CSV file containing the excluded channels
+        database. The file must contain at least the columns
+        'integration_dfb', 'batch', 'apa', 'pde' and
+        'excluded_channels'
+    integrate_entire_pulse: bool
+        If True, selects excluded channels for the configuration
+        closest to full-pulse integration (smallest
+        integration_dfb). If False, filters for the exact
+        deviation_from_baseline value.
+    deviation_from_baseline: float
+        The specific deviation-from-baseline value to filter
+        for when integrate_entire_pulse is False. Values are
+        rounded to 2 decimal places to avoid floating-point
+        precision issues.
+    verbose: bool, default True
+        Whether to print informational messages about the
+        filtering process.
+        
+    Returns
+    -------
+    excluded_channels: pd.DataFrame
+        Filtered dataframe containing only the excluded
+        channels entries that match the specified integration
+        configuration. Contains the same columns as the input
+        file but filtered to the relevant rows.
+    """
+
+    excluded_channels = pd.read_csv(
+        excluded_channels_filepath
+    )
+
+    if not set([
+        'integration_dfb',
+        'batch',
+        'apa',
+        'pde',
+        'excluded_channels'
+    ]).issubset(excluded_channels.columns):
+
+        raise we.MissingColumnsInDataFrame(
+            we.GenerateExceptionMessage(
+                1,
+                'get_check_and_filter_excluded_channels()',
+                f"The file {excluded_channels_filepath} is missing "
+                "some of the required columns. It must contain at least "
+                "'integration_dfb', 'batch', 'apa', 'pde' and "
+                "'excluded_channels'."
+            )
+        )
+
+    if integrate_entire_pulse:
+        aux = min(excluded_channels['integration_dfb'])
+
+        excluded_channels = excluded_channels[
+            # Get the list of excluded channels which is
+            # the closest to the full-pulse integration,
+            # i.e. the one with the smallest integration_dfb
+            excluded_channels['integration_dfb'] == aux
+        ]
+
+        if verbose:
+            print(
+                "In function get_check_and_filter_excluded_channels(): "
+                "Since entire pulse integration was "
+                "enabled, the excluded channels list for "
+                f"integration_dfb = {aux} was chosen."
+            )
+    else:
+        excluded_channels = excluded_channels[
+            # Avoid problems due to floating-point precision
+            # Differences in the integration deviation-from-baseline
+            # below 1% are irrelevant anyways
+            excluded_channels['integration_dfb'] == round(
+                deviation_from_baseline,
+                2
+            )
+        ]
+
+        if len(excluded_channels) == 0:
+            print(
+                "In function get_check_and_filter_excluded_channels(): "
+                "WARNING: No excluded channels found for "
+                "deviation_from_baseline = "
+                f"{deviation_from_baseline}. "
+                "No channels will be excluded from the "
+                "calibration.",
+                end=''
+            )
+
+    return excluded_channels
+
 def get_input_filepaths_for_run(
         base_folderpath: str,
         batch: int,
