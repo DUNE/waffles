@@ -13,6 +13,42 @@ from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_file
 from waffles.np04_utils.utils import get_channel_iterator
 import waffles.Exceptions as we
 
+def get_and_check_channels_per_run(
+    channels_per_run_filepath: str
+) -> pd.DataFrame:
+    """This function reads a CSV file containing the
+    channels-per-run database and checks that it contains
+    the required columns, i.e. 'run', 'batch',
+    'acquired_apas', 'aimed_channels' and 'pde'. It raises
+    a we.MissingColumnsInDataFrame exception if any of
+    these columns is missing.
+    """
+
+    channels_per_run = pd.read_csv(
+        channels_per_run_filepath
+    )
+
+    if not set([
+        'run',
+        'batch',
+        'acquired_apas',
+        'aimed_channels',
+        'pde'
+    ]).issubset(channels_per_run.columns):
+
+        raise we.MissingColumnsInDataFrame(
+            we.GenerateExceptionMessage(
+                1,
+                'get_and_check_channels_per_run()',
+                f"The file {channels_per_run_filepath} is missing "
+                "some of the required columns. It must contain at least "
+                "'run', 'batch', 'acquired_apas', 'aimed_channels' "
+                "and 'pde'."
+            )
+        )
+
+    return channels_per_run
+
 def get_check_and_filter_excluded_channels(
     excluded_channels_filepath: str,
     integrate_entire_pulse: bool,

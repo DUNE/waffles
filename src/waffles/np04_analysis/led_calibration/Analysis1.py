@@ -414,9 +414,9 @@ class Analysis1(WafflesAnalysis):
         self.read_input_loop_2 = self.params.apas
         self.read_input_loop_3 = self.params.pdes
 
-        # columns: run, batch, acquired_apas, aimed_channels, pde
-        self.channels_per_run = pd.read_csv(
-            self.params.channels_per_run_filepath
+        self.channels_per_run = \
+            led_utils.get_and_check_channels_per_run(
+                self.params.channels_per_run_filepath
         )
         
         self.excluded_channels = \
