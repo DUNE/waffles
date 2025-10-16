@@ -157,11 +157,11 @@ def get_check_and_filter_excluded_channels(
     return excluded_channels
 
 def get_input_filepaths_for_run(
-        base_folderpath: str,
-        batch: int,
-        pde: float,
-        run: int
-    ) -> list[str]:
+    base_folderpath: str,
+    batch: int,
+    pde: float,
+    run: int
+) -> list[str]:
     """Get the list of input file paths for a specific run
     within a batch and PDE setting.
 
@@ -241,9 +241,9 @@ def get_input_filepaths_for_run(
     return input_filepaths
 
 def join_channel_number(
-        endpoint: int,
-        channel: int,
-    ) -> int:
+    endpoint: int,
+    channel: int,
+) -> int:
     """This function concatenates the given endpoint and
     channel value. The second one is assumed to be a
     two-digit number. For example, if the endpoint is
@@ -253,8 +253,8 @@ def join_channel_number(
     return (endpoint * 100) + int(channel)
 
 def split_channel_number(
-        joint_channel: int,
-    ) -> tuple:
+    joint_channel: int,
+) -> tuple:
     """This function splits the given joint channel number
     into its constituent endpoint and channel values.
     For example, if the joint channel is 11307, the
@@ -267,7 +267,7 @@ def split_channel_number(
 
 def arrange_dictionary_of_endpoints_and_channels(
     list_of_joint_channels: list[int]
-    ) -> dict[int, list[int]]:
+) -> dict[int, list[int]]:
     """This function takes a list of joint channel numbers
     and arranges them into a dictionary where the keys are
     endpoint numbers and the values are lists of channel
@@ -298,9 +298,9 @@ def arrange_dictionary_of_endpoints_and_channels(
     return result
 
 def comes_from_channel( 
-        waveform: Waveform, 
-        channels: list,
-    ) -> bool:
+    waveform: Waveform, 
+    channels: list,
+) -> bool:
     """The channels list should contain integers which
     are the concatenation of the endpoint and a channel
     number, as returned by the join_channel_number()
@@ -403,10 +403,10 @@ def compute_average_baseline_std(
     return np.mean(np.array(samples))
 
 def get_gain_and_snr(
-        grid_apa: ChannelWsGrid,
-        excluded_channels: list,
-        reset_excluded_channels: bool = False
-    ) -> dict:
+    grid_apa: ChannelWsGrid,
+    excluded_channels: list,
+    reset_excluded_channels: bool = False
+) -> dict:
 
     data = {}
 
