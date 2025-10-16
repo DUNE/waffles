@@ -2,10 +2,12 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
-from typing import Optional
+from plotly import graph_objects as pgo
+from typing import Tuple, Dict, Optional
 
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
 from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
@@ -1102,3 +1104,125 @@ def get_nbins_and_channel_wise_domain(
     )
 
     return nbins, domain
+
+def add_integration_limits_to_persistence_heatmaps(
+    persistence_figure: pgo.Figure,
+    grid_apa: ChannelWsGrid,
+    current_excluded_channels: list,
+    integration_limits: Dict[int, Dict[int, Tuple[int, int]]]
+) -> None:
+    """This function adds the integration limits to the
+    persistence heatmaps, channel by channel. The style
+    parameters of the lines used to draw the limits
+    are hardcoded in the body of this function.
+
+    Parameters
+    ----------
+    persistence_figure: plotly.graph_objects.Figure
+        The figure containing the persistence heatmaps
+    grid_apa: ChannelWsGrid
+        The ChannelWsGrid object containing the
+        channel-waveform sets
+    current_excluded_channels: list of int
+        A list of joint channel numbers (as returned
+        by the join_channel_number() function) which
+        should be excluded from having their integration
+        limits drawn in the persistence heatmaps
+    integration_limits: Dict[int, Dict[int, Tuple[int, int]]]
+        A dictionary where the keys are endpoint numbers
+        and the values are dictionaries where the keys
+        are channel numbers and the values are tuples
+        containing the (lower_limit, upper_limit) for
+        each channel
+
+    Returns
+    -------
+    None
+    """
+
+    # Add the integration limits to the
+    # persistence heatmaps, channel by channel
+    for endpoint in grid_apa.ch_wf_sets.keys():
+        for channel in grid_apa.ch_wf_sets[endpoint].keys():
+
+            if join_channel_number(
+                endpoint,
+                channel,
+            ) in current_excluded_channels:
+                continue
+
+            found_it, channel_position = grid_apa.ch_map.find_channel(
+                UniqueChannel(
+                    endpoint,
+                    channel
+                )
+            )
+
+            if not found_it:
+                print(
+                    "In function add_integration_limits_to_persistence_heatmaps(): "
+                    "WARNING: Something went wrong. Channel "
+                    f"{endpoint}-{channel} retrieved from the "
+                    "ch_wf_sets attribute of the current "
+                    "ChannelWsGrid object, was not found in "
+                    "its own ch_map attribute. Skipping this "
+                    "channel."
+                )
+                continue
+
+            try:
+                aux_integration_limits = \
+                    integration_limits[endpoint][channel]
+
+            except KeyError:
+                print(
+                    "In function add_integration_limits_to_persistence_heatmaps(): "
+                    "Could not find the integration limits "
+                    f"for channel {endpoint}-{channel}. They "
+                    "will not be drawn in the persistence "
+                    "heatmap."
+                )
+                continue
+
+            # Unpack the channel position
+            i, j = channel_position
+
+            aux_ncols = grid_apa.ch_map.columns
+
+            # Lower limit
+            persistence_figure.add_shape(
+                type="line",
+                x0=aux_integration_limits[0],
+                x1=aux_integration_limits[0],
+                y0=0,
+                y1=1,
+                line=dict(
+                    color="red",
+                    width=2,
+                    dash="dash"
+                ),
+                xref='x',
+                yref='y domain',
+                row=i + 1,
+                col=j + 1,
+            )
+
+            # Upper limit
+            persistence_figure.add_shape(
+                type="line",
+                x0=aux_integration_limits[1],
+                x1=aux_integration_limits[1],
+                y0=0,
+                y1=1,
+                line=dict(
+                    color="red",
+                    width=2,
+                    dash="dash"
+                ),
+                xref='x',
+                yref='y domain',
+                row=i + 1,
+                col=j + 1,
+            )
+    
+    return

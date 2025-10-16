@@ -642,7 +642,7 @@ class Analysis1(WafflesAnalysis):
         if self.params.verbose:
             print(
                 "In function Analysis1.analyze(): "
-                "Applying the coarse selection cut on  "
+                "Applying the coarse selection cut on "
                 "the merged WaveformSet for batch "
                 f"{self.batch}, APA {self.apa}, and PDE "
                 f"{self.pde} ... ",
@@ -752,7 +752,6 @@ class Analysis1(WafflesAnalysis):
 
                 self.grid_apa.ch_wf_sets[endpoint][channel] = \
                     ChannelWs(*aux.waveforms)
-
 
                 len_after_fine_selection = len(
                     self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
@@ -1048,6 +1047,13 @@ class Analysis1(WafflesAnalysis):
                 adc_range_below_baseline=aux_adc_range_below_baseline,
                 detailed_label=True,
                 verbose=self.params.verbose
+            )
+
+            led_utils.add_integration_limits_to_persistence_heatmaps(
+                persistence_figure,
+                self.grid_apa,
+                self.current_excluded_channels,
+                self.integration_limits
             )
 
             persistence_figure.update_layout(
