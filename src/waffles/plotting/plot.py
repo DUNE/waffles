@@ -1439,17 +1439,14 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
-                    wpu.__add_no_data_annotation(   
-                        figure_,
-                        i + 1,
-                        j + 1)
-                    
+                if not channel_ws:
                     continue
 
                 if fPlotAll:
@@ -1503,17 +1500,14 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
-                    wpu.__add_no_data_annotation(   
-                        figure_,
-                        i + 1,
-                        j + 1)
-                    
+                if not channel_ws:
                     continue
 
                 if fPlotAll:
@@ -1587,17 +1581,14 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
-                    wpu.__add_no_data_annotation(
-                        figure_,
-                        i + 1,
-                        j + 1)
-                    
+                if not channel_ws:
                     continue
 
                 if fPlotAll:
@@ -1680,17 +1671,14 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
-                    wpu.__add_no_data_annotation(
-                        figure_,
-                        i + 1,
-                        j + 1)
-                    
+                if not channel_ws:
                     continue
 
                 if channel_ws.calib_histo is None:

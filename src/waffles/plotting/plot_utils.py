@@ -1,8 +1,9 @@
 import numpy as np
 from plotly import graph_objects as pgo
-from typing import List, Optional
+from typing import Tuple, List, Optional
 
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
 import waffles.utils.numerical_utils as wun
@@ -535,3 +536,62 @@ def __add_unique_channels_top_annotations(
                     row=i + 1,
                     col=j + 1)
     return figure
+
+def __get_ChannelWs_or_indicate_no_data(
+    channel_ws_grid: ChannelWsGrid,
+    figure: pgo.Figure,
+    i: int,
+    j: int,
+) -> Tuple[pgo.Figure,  Optional[ChannelWs]]:
+    """This function is not intended for user usage. It is
+    meant to be called uniquely by the plot_ChannelWSGrid()
+    function, where the well-formedness of the input
+    parameters has been checked. This function tries to
+    get the ChannelWs object located at the (i,j) position
+    of the given ChannelWsGrid object. If such object
+    exists, then it is returned along with the given figure.
+    If such object does not exist, then an annotation
+    indicating 'No data' is added to the given figure
+    at the (i,j) position, and None is returned as the
+    ChannelWs object.
+
+    Parameters
+    ----------
+    channel_ws_grid: ChannelWsGrid
+        The ChannelWsGrid object from which the ChannelWs
+        object at position (i,j) will be retrieved.
+    figure: plotly.graph_objects.Figure
+        The figure where the 'No data' annotation will be
+        added if there is no ChannelWs object at position
+        (i,j) of the given ChannelWsGrid object.
+    i (resp. j): int
+        The row (resp. column) index of the ChannelWsGrid
+        object where the ChannelWs object will be retrieved
+        from. These values are expected to be 0-indexed.
+
+    Returns
+    ----------
+    figure: plotly.graph_objects.Figure
+        The given figure, possibly with the 'No data'
+        annotation added at position (i+1, j+1).
+    channel_ws: ChannelWs or None
+        The ChannelWs object located at position (i,j)
+        of the given ChannelWsGrid object, if it exists.
+        If it does not exist, then None is returned.
+    """
+
+    try:
+        channel_ws = channel_ws_grid.ch_wf_sets\
+            [channel_ws_grid.ch_map.data[i][j].endpoint]\
+                [channel_ws_grid.ch_map.data[i][j].channel]
+
+    except KeyError:
+        __add_no_data_annotation(   
+            figure,
+            i + 1,
+            j + 1
+        )
+        
+        channel_ws = None
+
+    return figure, channel_ws
