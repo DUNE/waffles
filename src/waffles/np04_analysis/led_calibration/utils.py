@@ -8,10 +8,12 @@ from typing import Tuple, Dict, Optional
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.UniqueChannel import UniqueChannel
+from waffles.data_classes.Map import Map
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
 from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
 from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
+from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.np04_utils.utils import get_channel_iterator
 import waffles.Exceptions as we
 
@@ -1389,3 +1391,184 @@ def add_SPE_info_to_output_dictionary(
             output_data[endpoint][channel]['SPE_idcs'] = contributing_Waveform_idcs
 
     return output_data
+
+def get_SPE_grid_plot(
+    grid_apa: ChannelWsGrid,
+    output_data: Dict[int, Dict[int, ...]],
+    null_baseline_analysis_label: str,
+    time_bins: int = 512,
+    adc_bins: int = 50,
+    verbose: bool = True
+) -> pgo.Figure:
+    """This function creates a comprehensive visualization of
+    SPE characteristics across all channels in a ChannelWsGrid.
+    For each channel, it displays a persistence heatmap of all
+    waveforms identified as contributing to the SPE peak,
+    overlaid with the computed mean SPE waveform as a black line
+    trace.
+    
+    The function first creates a map matching the physical
+    arrangement of the ChannelWsGrid, populated with the indices
+    of waveforms that contribute to each channel's SPE
+    characterization. It then generates persistence heatmaps using
+    these waveform indices and overlays the mean SPE waveform for
+    visual comparison and validation.
+    
+    Parameters
+    ----------
+    grid_apa: ChannelWsGrid
+        The ChannelWsGrid object containing the waveforms that
+        will be potentially plotted
+    output_data: Dict[int, Dict[int, ...]]
+        Dictionary containing SPE analysis results where keys
+        are endpoint numbers and values are dictionaries with
+        channel numbers as keys. Each channel entry must contain:
+        - 'SPE_idcs': list of int
+            Indices of waveforms contributing to SPE characterization
+        - 'SPE_mean_adcs': list of float
+            The mean SPE waveform as ADC values
+        - 'SPE_mean_amplitude': float or
+            Peak amplitude of the mean SPE waveform
+    null_baseline_analysis_label: str
+        Label for the baseline analysis used in heatmap generation.
+        This should correspond to a baseline analysis where the
+        baseline has been artificially set to zero (note that the
+        baseline should have been subtracted).
+    time_bins: int, default 512
+        Number of time bins for the persistence heatmap. Controls
+        the temporal resolution of the heatmap visualization.
+    adc_bins: int, default 50
+        Number of ADC bins for the persistence heatmap. Controls
+        the amplitude resolution of the heatmap visualization.
+    verbose: bool, default True
+        Whether to print informational messages during processing,
+        including warnings about missing channels or data.
+        
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        A plotly Figure object containing the grid of SPE heatmaps
+        with mean SPE overlays. The figure layout matches the physical
+        arrangement of channels in the ChannelWsGrid.
+        
+    Notes
+    -----
+    - The ADC range for heatmaps is automatically scaled based on the
+    maximum SPE amplitude found across all channels
+    - The function uses the same Map structure as the ChannelWsGrid
+    for consistent spatial representation
+    
+    See Also
+    --------
+    add_SPE_info_to_output_dictionary: Function that computes the SPE
+    data used as input
+    plot_ChannelWsGrid: Underlying plotting function used for heatmap
+    generation
+    """
+
+    # Create a map with the shape of the current
+    # ChannelWsGrid which only contains empty lists
+    map_of_SPEs_indices = Map.from_unique_value(
+        grid_apa.ch_map.rows,
+        grid_apa.ch_map.columns,
+        list,
+        [],
+        independent_copies=False
+    )
+
+    running_max_SPE_amplitude = 0.
+
+    # Fill the map, using the physical arrangement of
+    # the current ChannelWsGrid, with the indices of
+    # the waveforms which are SPEs
+    for i in range(grid_apa.ch_map.rows):
+        for j in range(grid_apa.ch_map.columns):
+
+            endpoint = grid_apa.ch_map.data[i][j].endpoint
+            channel = grid_apa.ch_map.data[i][j].channel
+
+            try:
+                aux_SPE_idcs = \
+                    output_data[endpoint][channel]['SPE_idcs']
+                aux_SPE_amplitude = \
+                    output_data[endpoint][channel]['SPE_mean_amplitude']
+
+            except KeyError:
+                print(
+                    "In function get_SPE_grid_plot(): "
+                    f"WARNING: Channel {endpoint}-{channel}, "
+                    "listed in the map of the current ChannelWsGrid "
+                    "object, was not found in the given dictionary "
+                    "containing the indices of the SPE waveforms. "
+                    "No waveforms will be plotted for such channel."
+                )
+
+                aux_SPE_idcs = []
+                aux_SPE_amplitude = 0.
+
+            map_of_SPEs_indices.data[i][j] = aux_SPE_idcs
+
+            if abs(aux_SPE_amplitude) > running_max_SPE_amplitude:
+                running_max_SPE_amplitude = abs(aux_SPE_amplitude)
+
+    persistence_figure = plot_ChannelWsGrid(
+        grid_apa,
+        figure=None,
+        share_x_scale=False,
+        share_y_scale=False,
+        mode='heatmap',
+        wfs_per_axes=map_of_SPEs_indices,
+        analysis_label=null_baseline_analysis_label,
+        time_bins=time_bins,
+        adc_bins=adc_bins,
+        time_range_lower_limit=None,
+        time_range_upper_limit=None,
+        adc_range_above_baseline=1.5*running_max_SPE_amplitude,
+        adc_range_below_baseline=1.5*running_max_SPE_amplitude,
+        detailed_label=True,
+        verbose=verbose,
+    )
+
+    # Now add, channel by channel, the mean SPE adcs
+    # on top of the heatmap of all of the SPEs
+    for i in range(grid_apa.ch_map.rows):
+        for j in range(grid_apa.ch_map.columns):
+
+            endpoint = grid_apa.ch_map.data[i][j].endpoint
+            channel = grid_apa.ch_map.data[i][j].channel
+
+            try:
+                aux_SPE_adcs = \
+                    output_data[endpoint][channel]['SPE_mean_adcs']
+
+            except KeyError:
+                print(
+                    "In function get_SPE_grid_plot(): "
+                    f"WARNING: Channel {endpoint}-{channel}, "
+                    "listed in the map of the current ChannelWsGrid "
+                    "object, was not found in the given dictionary "
+                    "containing the indices of the SPE waveforms. "
+                    "The mean SPE will not be plotted for such channel."
+                )
+                continue
+
+            persistence_figure.add_trace(
+                pgo.Scatter(
+                    x=np.arange(  
+                        len(grid_apa.ch_wf_sets[endpoint][channel].waveforms[0].adcs),
+                        dtype=np.float32
+                    ),
+                    y=aux_SPE_adcs,
+                    mode='lines',
+                    line=dict(
+                        # Good contrast with the (positive) extremal color of the
+                        # default color palette of plotly.graph_objects.Heatmap()
+                        color='mediumseagreen', 
+                        width=1.0
+                    ),
+                    name=f"Channel {endpoint}-{channel} mean SPE"),
+                row=i + 1,
+                col=j + 1
+            )
+
+    return persistence_figure
