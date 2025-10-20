@@ -1279,11 +1279,11 @@ def add_SPE_info_to_output_dictionary(
         The modified output_data dictionary with added SPE
         information for each processed channel. For each channel,
         the following keys are added:
-        - 'SPE_mean_amplitude': float or 'unavailable'
+        - 'SPE_mean_amplitude': float
             The minimum ADC value of the mean SPE waveform (peak amplitude)
-        - 'SPE_mean_adcs': list of float or 'unavailable'
+        - 'SPE_mean_adcs': list of float
             The complete mean SPE waveform as a list of ADC values
-        - 'SPE_idcs': list of int or 'unavailable'
+        - 'SPE_idcs': list of int
             Indices of the waveforms that contributed to the SPE
             characterization (relative to the waveforms attribute
             of each ChannelWs object)
@@ -1333,11 +1333,6 @@ def add_SPE_info_to_output_dictionary(
                     f"for channel {endpoint}-{channel}. The SPE "
                     "information for this channel won't be computed."
                 )
-
-                output_data[endpoint][channel]['SPE_mean_amplitude'] = 'unavailable'
-                output_data[endpoint][channel]['SPE_mean_adcs'] = 'unavailable'
-                output_data[endpoint][channel]['SPE_idcs'] = 'unavailable'
-                
                 continue
 
             # Find the lowest bin whose entries will contribute to the mean SPE
@@ -1372,11 +1367,6 @@ def add_SPE_info_to_output_dictionary(
                     f" < {len(current_CalibrationHistogram.edges)}. The SPE "
                     "information for this channel won't be computed."
                 )
-
-                output_data[endpoint][channel]['SPE_mean_amplitude'] = 'unavailable'
-                output_data[endpoint][channel]['SPE_mean_adcs'] = 'unavailable'
-                output_data[endpoint][channel]['SPE_idcs'] = 'unavailable'
-                
                 continue
 
             contributing_Waveform_idcs = [
