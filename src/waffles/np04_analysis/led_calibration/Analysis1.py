@@ -351,6 +351,17 @@ class Analysis1(WafflesAnalysis):
                 "consider for the calibration histogram fit."
             )
 
+            half_width_around_peak_in_stds_for_SPE_filtering: float = Field(
+                default=1.,
+                description="The half-width around the SPE peak "
+                "mean, expressed in units of the peak's standard "
+                "deviation, used to select waveforms for SPE "
+                "characterization. Waveforms with integrated "
+                "charge in the range [mean - half_width*std, "
+                "mean + half_width*std] are included in the "
+                "SPE computation."
+            )
+
             save_persistence_heatmaps: bool = Field(
                 default=False,
                 description="Whether to save the persistence "
@@ -950,6 +961,15 @@ class Analysis1(WafflesAnalysis):
             self.current_excluded_channels,
             reset_excluded_channels=True
         )
+
+        self.output_data = led_utils.add_SPE_info_to_output_dictionary(
+            self.grid_apa,
+            self.current_excluded_channels,
+            self.output_data,
+            half_width_around_peak_in_stds=\
+                self.params.half_width_around_peak_in_stds_for_SPE_filtering
+        )
+
 
         return True
 

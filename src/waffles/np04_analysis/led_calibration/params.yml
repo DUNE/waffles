@@ -207,6 +207,13 @@ std_increment_seed_fallback: 100.
 # should not be greater than 0.05 (resp. 0.04).
 ch_span_fraction_around_peaks: 0.06
 
+# The half-width around the SPE peak mean, expressed in
+# units of the peak's standard deviation, used to select
+# waveforms for SPE characterization. Waveforms with
+# integrated charge in the range [mean - half_width*std, 
+# mean + half_width*std] are included in the SPE computation.
+half_width_around_peak_in_stds_for_SPE_filtering: 1.0
+
 # Whether to save the persistence heatmaps of the
 # integrated waveforms or not
 save_persistence_heatmaps: true
