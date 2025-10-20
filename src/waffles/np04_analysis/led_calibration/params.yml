@@ -218,6 +218,10 @@ half_width_around_peak_in_stds_for_SPE_filtering: 1.0
 # integrated waveforms or not
 save_persistence_heatmaps: true
 
+# Whether to save the heatmaps of the waveforms
+# identified as SPEs
+save_SPE_heatmaps: true
+
 # Name of the output CSV file where
 # the calibration results will be saved
 output_dataframe_filename: 'calibration_results.csv'

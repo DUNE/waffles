@@ -368,6 +368,12 @@ class Analysis1(WafflesAnalysis):
                 "heatmaps of the integrated waveforms or not"
             )
 
+            save_SPE_heatmaps: bool = Field(
+                default=False,
+                description="Whether to save the heatmaps of "
+                "the waveforms identified as SPEs"
+            )
+
             output_dataframe_filename: str = Field(
                 default='calibration_results.csv',
                 description="Name of the output CSV file "
@@ -1100,6 +1106,44 @@ class Analysis1(WafflesAnalysis):
                 )
         
             persistence_figure.write_image(f"{fig_path}")
+            if self.params.verbose:
+                print("Finished.")
+
+        if self.params.save_SPE_heatmaps:
+
+            SPEs_figure = led_utils.get_SPE_grid_plot(
+                self.grid_apa,
+                self.output_data,
+                self.params.null_baseline_analysis_label,
+                time_bins=512,
+                adc_bins=50,
+                verbose=self.params.verbose
+            )
+
+            SPEs_figure.update_layout(
+                title = {
+                    'text': title,
+                    'font': {'size': title_fontsize}
+                },
+                width=figure_width,
+                height=figure_height,
+                showlegend=True
+            )
+
+            if self.params.show_figures:
+                SPEs_figure.show()
+
+            fig_path = f"{base_file_path}_SPE_heatmaps.png"
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.write_output(): "
+                    "Writing the SPE heatmaps "
+                    f"for batch {self.batch}, APA {self.apa}, "
+                    f"and PDE {self.pde} to {fig_path} ... ",
+                    end=''
+                )
+        
+            SPEs_figure.write_image(f"{fig_path}")
             if self.params.verbose:
                 print("Finished.")
 
