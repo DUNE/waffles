@@ -1,10 +1,11 @@
 import numpy as np
 from plotly import graph_objects as pgo
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
+from waffles.data_classes.Map import Map
 
 import waffles.utils.numerical_utils as wun
 
@@ -595,3 +596,87 @@ def __get_ChannelWs_or_indicate_no_data(
         channel_ws = None
 
     return figure, channel_ws
+
+def __get_idcs_of_wvfs_to_plot(
+    mode: int,
+    channel_ws: ChannelWs,
+    wfs_per_axes: Union[None, int, Map],
+    i: Optional[int] = None,
+    j: Optional[int] = None
+) -> List[int]:
+    """This function is not intended for user usage. It is
+    meant to be called uniquely by the plot_ChannelWSGrid()
+    function, where the well-formedness of the input
+    parameters has been checked. This function receives
+    a mode parameter which indicates how to get the
+    indices of the waveforms to be plotted from the
+    given ChannelWs object. If mode is 1, then all the
+    waveform indices are returned. If mode is 2, then
+    the first wfs_per_axes indices are returned. If
+    mode is 3, then the waveform indices located at
+    position (i,j) of the given wfs_per_axes Map object
+    are returned. Finally, the list of waveform indices
+    to be plotted is returned.
+
+    Parameters
+    ----------
+    mode: int
+        It must be either 1, 2 or 3.
+    channel_ws: ChannelWs
+        The ChannelWs object from which the waveform
+        indices will be retrieved.
+    wfs_per_axes: int or Map or None
+        If mode is 2, then it must be an integer
+        indicating the number of waveforms to be
+        plotted. If mode is 3, then it must be a Map
+        object indicating the waveform indices to
+        be plotted at each position of the grid.
+        If mode is 1, then it is not used and can
+        be set to None.
+    i (resp. j): int or None
+        If mode is 3, then it must be the row (resp.
+        column) index indicating the position in
+        the wfs_per_axes Map object where the
+        waveform indices to be plotted are located.
+        If mode is 1 or 2, then it is not used and
+        can be set to None.
+
+    Returns
+    ----------
+    wvf_idcs: list of int
+        The list of waveform indices to be plotted.
+    """
+
+    if mode == 1:
+        wvf_idcs = list(
+            range(
+                len(
+                    channel_ws.waveforms
+                )
+            )
+        )
+
+    elif mode == 2:
+        wvf_idcs = list(
+            range(
+                min(
+                    wfs_per_axes, 
+                    len(channel_ws.waveforms)
+                )
+            )
+        )
+
+    elif mode == 3:
+        wvf_idcs = wfs_per_axes.data[i][j]
+
+    else:
+        raise Exception(
+            GenerateExceptionMessage( 
+                1,
+                '__get_idcs_of_wvfs_to_plot()',
+                f"The given mode ({mode}) must be either "
+                "1, 2 or 3."
+            )
+        )
+
+    return wvf_idcs
