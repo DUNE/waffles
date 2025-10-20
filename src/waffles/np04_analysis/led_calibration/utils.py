@@ -503,7 +503,7 @@ def save_data_to_dataframe(
     batch: int,
     apa: int,
     pde: float,
-    packed_gain_and_snr: dict,
+    packed_gain_snr_and_SPE_info: dict,
     packed_integration_limits: dict,
     path_to_output_file: str,
     sipm_vendor_filepath: Optional[str] = None,
@@ -527,6 +527,8 @@ def save_data_to_dataframe(
         - OV_V
         - gain
         - snr
+        - SPE_mean_amplitude
+        - SPE_mean_adcs
         - integration_lower_limit
         - integration_upper_limit
 
@@ -544,28 +546,36 @@ def save_data_to_dataframe(
         The PDE with which the data was obtained. This
         PDE value will appear in every row of the 'PDE'
         column of the output dataframe.
-    packed_gain_and_snr: dict
+    packed_gain_snr_and_SPE_info: dict
         It is expected to have the following form:
             {
                 endpoint1: {
                     channel1: {
                         'gain': gain_value11,
-                        'snr': snr_value11
+                        'snr': snr_value11,
+                        'SPE_mean_amplitude': SPE_mean_amplitude_value11
+                        'SPE_mean_adcs': SPE_mean_adcs_value_11
                     },
                     channel2: {
                         'gain': gain_value12,
-                        'snr': snr_value12
+                        'snr': snr_value12,
+                        'SPE_mean_amplitude': SPE_mean_amplitude_value12
+                        'SPE_mean_adcs': SPE_mean_adcs_value_12
                     },
                     ...
                 },
                 endpoint2: {
                     channel1: {
                         'gain': gain_value21,
-                        'snr': snr_value21
+                        'snr': snr_value21,
+                        'SPE_mean_amplitude': SPE_mean_amplitude_value21
+                        'SPE_mean_adcs': SPE_mean_adcs_value_21
                     },
                     channel2: {
                         'gain': gain_value22,
-                        'snr': snr_value22
+                        'snr': snr_value22,
+                        'SPE_mean_amplitude': SPE_mean_amplitude_value22
+                        'SPE_mean_adcs': SPE_mean_adcs_value_22
                     },
                     ...
                 },
@@ -692,6 +702,8 @@ def save_data_to_dataframe(
         "OV_V": [],
         "gain": [],
         "snr": [],
+        "SPE_mean_amplitude": [],
+        "SPE_mean_adcs": [],
         "integration_lower_limit": [],
         "integration_upper_limit": []
     }
@@ -712,6 +724,8 @@ def save_data_to_dataframe(
         df['OV_V'] = df['OV_V'].astype(float)
         df['gain'] = df['gain'].astype(float)
         df['snr'] = df['snr'].astype(float)
+        df['SPE_mean_amplitude'] = df['SPE_mean_amplitude'].astype(float)
+        df['SPE_mean_adcs'] = df['SPE_mean_adcs'].astype(object) # cannot specify list[float] or np.ndarray
         df['integration_lower_limit'] = df['integration_lower_limit'].astype(int)
         df['integration_upper_limit'] = df['integration_upper_limit'].astype(int)
 
@@ -729,8 +743,8 @@ def save_data_to_dataframe(
             "match the expected ones. Something went wrong."
         )
     else:
-        for endpoint in packed_gain_and_snr.keys():
-            for channel in packed_gain_and_snr[endpoint]:
+        for endpoint in packed_gain_snr_and_SPE_info.keys():
+            for channel in packed_gain_snr_and_SPE_info[endpoint]:
 
                 if fVendorAvailable:
                     try:
@@ -803,8 +817,13 @@ def save_data_to_dataframe(
                             'unavailable': np.nan
                         }[vendor]
                     ],
-                    "gain": [packed_gain_and_snr[endpoint][channel]["gain"]],
-                    "snr": [packed_gain_and_snr[endpoint][channel]["snr"]],
+                    "gain": [packed_gain_snr_and_SPE_info[endpoint][channel]["gain"]],
+                    "snr": [packed_gain_snr_and_SPE_info[endpoint][channel]["snr"]],
+                    "SPE_mean_amplitude": [abs(packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_amplitude"])],
+                    "SPE_mean_adcs": [
+                        [round(float(x), 4) for x in \
+                        packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_adcs"]]
+                    ],
                     "integration_lower_limit": [integration_limits[0]],
                     "integration_upper_limit": [integration_limits[1]]
                 }
