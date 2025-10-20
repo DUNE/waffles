@@ -109,6 +109,7 @@ baseline_allowed_dev: 4.
 signal_allowed_dev: 10.
 
 ## Parameters for the computation of the integration window
+integrate_entire_pulse: false
 deviation_from_baseline: 0.3
 lower_limit_correction: 0
 upper_limit_correction: 0
