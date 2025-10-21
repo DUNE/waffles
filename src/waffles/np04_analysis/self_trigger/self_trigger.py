@@ -52,24 +52,6 @@ def find_50efficiency(he_STEfficiency: TEfficiency) -> float:
 
     return np.nan
 
-    # thr_x = np.nan
-    # found = False
-    # for i in range(len(effs)-4):
-    #     effs_short = effs[i:i+5]
-    #     if effs_short[-1] < 0.5:
-    #         continue
-    #     grad = np.gradient(effs_short)
-    #     if np.all(grad > 0):
-    #         thr_x = h_total.GetBinCenter(i+3)
-    #         found = True
-    #         break
-    # if not found:
-    #     for i in range(len(effs)-1):
-    #         if effs[i] < 0.5 and effs[i+1] >= 0.5:
-    #             thr_x = h_total.GetBinCenter(i+1)
-    #             found = True
-    #             break
-    # return thr_x
 
 def fit_thrPE_vs_thrSet(out_df: pd.DataFrame) -> tuple[TGraphErrors, float, float]:
     """
@@ -580,36 +562,6 @@ class SelfTrigger:
         self.st_selection = np.array([self.st_selector(wf) for wf in self.wfs_sipm], dtype=bool)
         self.wfs_sipm = np.array(self.wfs_sipm[self.st_selection])
         self.wfs_st = np.array(self.wfs_st[self.st_selection])
-
-
-    # def outlier_selector(self, wf_sipm, wf_st, spe_norm, outlier_threshold) -> bool:
-    #     """
-    #
-    #     """
-    #     nspe = wf_sipm.adcs_float[self.int_low:self.int_up].sum() * spe_norm
-    #     if nspe < outlier_threshold:
-    #         return False
-    #     # elif (len(np.flatnonzero(wf_st.adcs[self.window_low:self.window_up+1])) == 0):
-    #     elif (len(np.flatnonzero(wf_st.adcs)) == 0):
-    #         return True
-    #     else:
-    #         return False
-
-
-    # def select_outliers(self, f_sigmoid) -> None:
-    #     """
-    #
-    #     """
-    #     self.create_wfs()
-    #     self.select_waveforms()
-    #     spe_norm = 1./self.spe_charge
-    #     # outlier_threshold = f_sigmoid.GetParameter(0) + 4 * f_sigmoid.GetParameter(1)
-    #     outlier_threshold = 3.
-    #     print(f"Outlier threshold: {outlier_threshold}")
-    #     self.outlier_selection = np.array([self.outlier_selector(wf_sipm, wf_st, spe_norm, outlier_threshold)
-    #                                        for wf_sipm, wf_st in zip(self.wfs_sipm, self.wfs_st)], dtype=bool)
-    #     self.wfs_sipm = np.array(self.wfs_sipm[self.outlier_selection])
-    #     self.wfs_st = np.array(self.wfs_st[self.outlier_selection])
 
 
     def trigger_distr_per_nspe(self) -> dict:
