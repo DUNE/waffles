@@ -1,9 +1,10 @@
 from math import sqrt
 import waffles
 import numpy as np
+import pandas as pd
 from waffles.np04_analysis.time_resolution.utils import create_float_waveforms, sub_baseline_to_wfs
 from hist import Hist
-from ROOT import TH1D, TEfficiency, TF1, TSpectrum
+from ROOT import TH1D, TEfficiency, TF1, TSpectrum, TGraphErrors
 
 
 def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
@@ -22,7 +23,76 @@ def get_xmax_in_range(h: TH1D, low: int, up: int) -> int:
             max_bin = i
     return max_bin
     
+def find_50efficiency(he_STEfficiency: TEfficiency) -> float:
+    """
 
+    """
+    h_total = he_STEfficiency.GetTotalHistogram()
+    effs = np.array([he_STEfficiency.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
+    n_bins = h_total.GetNbinsX()
+
+    bin_centers = np.array([h_total.GetBinCenter(i + 1) for i in range(n_bins)])
+
+    # Find first window of 5 bins where values are monotonic increasing and cross 0.5
+    above_half = effs >= 0.5
+    cross_indices = np.flatnonzero(np.diff(above_half.astype(int)) == 1)
+
+    # Check if a clean monotonic region exists
+    for i in cross_indices:
+        j0 = max(0, i - 2)
+        j1 = min(len(effs), i + 3)
+        window = effs[j0:j1]
+        if len(window) >= 5:
+            if np.all(np.diff(window) > 0):
+                return float(bin_centers[i + 1])  # use center after crossing
+
+    # Fallback: if no smooth crossing, use first simple crossing
+    if cross_indices.size > 0:
+        return float(bin_centers[cross_indices[0] + 1])
+
+    return np.nan
+
+    # thr_x = np.nan
+    # found = False
+    # for i in range(len(effs)-4):
+    #     effs_short = effs[i:i+5]
+    #     if effs_short[-1] < 0.5:
+    #         continue
+    #     grad = np.gradient(effs_short)
+    #     if np.all(grad > 0):
+    #         thr_x = h_total.GetBinCenter(i+3)
+    #         found = True
+    #         break
+    # if not found:
+    #     for i in range(len(effs)-1):
+    #         if effs[i] < 0.5 and effs[i+1] >= 0.5:
+    #             thr_x = h_total.GetBinCenter(i+1)
+    #             found = True
+    #             break
+    # return thr_x
+
+def fit_thrPE_vs_thrSet(out_df: pd.DataFrame) -> tuple[TGraphErrors, float, float]:
+    """
+    Fit the threshold in PE vs the set threshold.
+    """
+    
+    # Drop lines where ThresholdFit is NaN
+    df = out_df.dropna(subset=['ThresholdFit'])
+    # from the df take the ThresholdSet, ThresholdFit and ErrThresholdFit
+    thr_set = np.array(df['ThresholdSet'].values).astype(float)
+    err_thr_set = np.zeros_like(thr_set)
+    thr_fit = np.array(df['ThresholdFit'].values).astype(float)
+    err_thr_fit = np.array(df['ErrThresholdFit'].values).astype(float)
+    # Create a ROOT TGraphErrors
+    gr = TGraphErrors(len(thr_set), thr_set, thr_fit, err_thr_set, err_thr_fit)
+    gr.SetName("gr_fit_thrPE_vs_thrSet")
+    # Fit with a linear function
+    f_lin = TF1("f_lin", "pol1", min(thr_set), max(thr_set))
+    gr.Fit(f_lin, "R")
+    offset = f_lin.GetParameter(0)
+    slope = f_lin.GetParameter(1)
+
+    return gr, offset, slope
 
 class SelfTrigger:
     def __init__(self,
@@ -337,6 +407,9 @@ class SelfTrigger:
         self.he_STEfficiency = TEfficiency(h_passed, h_total)
         self.he_STEfficiency.SetName(he_name)
         self.he_STEfficiency.SetTitle(he_name)
+        self.he_STEfficiency2 = TEfficiency(h_passed, h_total)
+        self.he_STEfficiency2.SetName(he_name+"2")
+        self.he_STEfficiency2.SetTitle(he_name+"2")
 
         main_ax_artists, sublot_ax_arists = hpassed.plot_ratio(
             htotal,
@@ -360,34 +433,42 @@ class SelfTrigger:
 
         effs = np.array([self.he_STEfficiency.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
 
-        if len(effs[np.where(effs < 0.03)]) < 10 or len(effs[np.where(effs > 0.9*max_efficiency)]) < 10:
+        if len(effs[np.where(effs < 0.05)]) < 15 or len(effs[np.where(effs > 0.95*max_efficiency)]) < 15:
             print("No low or high efficiency points found.")
+            self.he_STEfficiency.SetTitle("Not ok: no low or high efficiency points found.")
             return False
 
-        thr_x = 0
-        for i in range(len(effs)-4):
-            effs_short = effs[i:i+5]
-            if effs_short[-1] < 0.5 * max_efficiency:
-                continue
-            grad = np.gradient(effs_short)
-            if np.all(grad > 0):
-                thr_x = h_total.GetBinCenter(i+3)
-                break
+        thr_x = find_50efficiency(self.he_STEfficiency)
+        if np.isnan(thr_x):
+            print("No 50% efficiency point found.")
+            self.he_STEfficiency.SetTitle("Not ok: no 50% efficiency point found.")
+            return False
         
         print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
         bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
         populated_bins = np.where(bin_contents > 10)
-        
-        self.f_sigmoid.SetRange(h_total.GetBinCenter(int(populated_bins[0][0])), h_total.GetBinCenter(int(populated_bins[-1][-1])))
+       
+        xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
+        xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
+        self.f_sigmoid.SetRange(xlow, xup)
         self.f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
         self.f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
-        self.f_sigmoid.SetParLimits(1, 0.001, 1)
+        self.f_sigmoid.SetParLimits(1, 0.01, 1)
         self.f_sigmoid.SetParLimits(2, 0.7 * max_efficiency, max_efficiency)
         self.f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
         self.f_sigmoid.SetNpx(3000)
 
         self.he_STEfficiency.Fit(self.f_sigmoid, "R")
 
+        tau = self.f_sigmoid.GetParameter(1)
+        thr = self.f_sigmoid.GetParameter(0)
+
+        if xlow > thr - 5*tau or xup < thr + 5*tau:
+            print(f"The fit is not well constrained: fit range [{xlow}, {xup}], thr={thr}, tau={tau}")
+            self.he_STEfficiency.SetTitle("Not ok: fit not well constrained.")
+            return False
+
+        self.he_STEfficiency.SetTitle("Fit ok")
         return True
 
     def get_10to90_range(self) -> float:
@@ -398,17 +479,82 @@ class SelfTrigger:
         thr_10 = np.nan
         thr_90 = np.nan
 
-        for i in range(h_total.GetNbinsX()-2):
+        for i in range(2,h_total.GetNbinsX()-2):
             if self.he_STEfficiency.GetEfficiency(i+1) >= 0.1 \
                 and self.he_STEfficiency.GetEfficiency(i) < 0.1 \
-                and self.he_STEfficiency.GetEfficiency(i+2) > 0.1:
+                and self.he_STEfficiency.GetEfficiency(i-1) < 0.1 \
+                and self.he_STEfficiency.GetEfficiency(i+2) > 0.1 \
+                and self.he_STEfficiency.GetEfficiency(i+3) > 0.1:
                 thr_10 = h_total.GetBinCenter(i+1)
                 break
         
-        for i in range(h_total.GetNbinsX()-2):
+        for i in range(2,h_total.GetNbinsX()-2):
             if self.he_STEfficiency.GetEfficiency(i+1) >= 0.9 \
                 and self.he_STEfficiency.GetEfficiency(i) < 0.9 \
-                and self.he_STEfficiency.GetEfficiency(i+2) > 0.9:
+                and self.he_STEfficiency.GetEfficiency(i-1) < 0.9 \
+                and self.he_STEfficiency.GetEfficiency(i+2) > 0.9 \
+                and self.he_STEfficiency.GetEfficiency(i+3) > 0.9:
+                thr_90 = h_total.GetBinCenter(i+1)
+                break
+
+        return thr_90 - thr_10
+
+    def get_10to90_range_fit(self) -> float:
+        """
+        Get the 10% to 90% range from a custom fit function
+        """
+        thr_10 = np.nan
+        thr_90 = np.nan
+        self.fifty = np.nan
+        print(self.fifty, type(self.fifty))
+        h_total = self.he_STEfficiency2.GetTotalHistogram()
+        bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
+        populated_bins = np.where(bin_contents > 10)
+        
+        effs = np.array([self.he_STEfficiency2.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
+        max_efficiency = np.max(effs)
+        if len(effs[np.where(effs < 0.05)]) < 10 or len(effs[np.where(effs > 0.95*max_efficiency)]) < 10:
+            print("No low or high efficiency points found.")
+            self.he_STEfficiency.SetTitle("Not ok: no low or high efficiency points found.")
+            return np.nan
+
+        thr_x = find_50efficiency(self.he_STEfficiency)
+        if np.isnan(thr_x):
+            print("No 50% efficiency point found.")
+            return np.nan
+       
+        xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
+        xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
+        f_custom = TF1("f_sigmoidss", "[2]/(1+exp(([0]-x)/[1]))+[5]/(1+exp(([3]-x)/[4]))", xlow, xup)
+        f_custom.SetParameters(thr_x, 0.15, 1.0, thr_x+1, 0.15, 0.01)
+        f_custom.SetParLimits(0, max([xlow,thr_x-2]), thr_x+2)
+        f_custom.SetParLimits(1, 0.03, 1)
+        f_custom.SetParLimits(2, 0.7, 1)
+        f_custom.SetParLimits(3, thr_x, thr_x+5)
+        f_custom.SetParLimits(4, 0.03, 3)
+        f_custom.SetParLimits(5, 0.0, 0.4)
+        f_custom.SetParNames("x0", "#tau", "A", "x0_{2}", "#tau_{2}", "A_{2}")
+        f_custom.SetNpx(3000)
+        
+        self.he_STEfficiency2.Fit(f_custom, "R")
+        self.f_sigmoid2 = f_custom
+
+        print("After fit:")
+        print(self.fifty, type(self.fifty))
+        x_fifty = f_custom.GetX(0.5, xlow, xup)
+        print(x_fifty, type(x_fifty))
+        if not np.isnan(x_fifty):
+            self.fifty = x_fifty
+        print(self.fifty, type(self.fifty))
+
+        # Find 10% and 90%
+        for i in range(h_total.GetNbinsX()-2):
+            if f_custom.Eval(h_total.GetBinCenter(i+1)) >= 0.1:
+                thr_10 = h_total.GetBinCenter(i+1)
+                break
+
+        for i in range(h_total.GetNbinsX()-2):
+            if f_custom.Eval(h_total.GetBinCenter(i+1)) >= 0.9:
                 thr_90 = h_total.GetBinCenter(i+1)
                 break
 
@@ -436,34 +582,34 @@ class SelfTrigger:
         self.wfs_st = np.array(self.wfs_st[self.st_selection])
 
 
-    def outlier_selector(self, wf_sipm, wf_st, spe_norm, outlier_threshold) -> bool:
-        """
+    # def outlier_selector(self, wf_sipm, wf_st, spe_norm, outlier_threshold) -> bool:
+    #     """
+    #
+    #     """
+    #     nspe = wf_sipm.adcs_float[self.int_low:self.int_up].sum() * spe_norm
+    #     if nspe < outlier_threshold:
+    #         return False
+    #     # elif (len(np.flatnonzero(wf_st.adcs[self.window_low:self.window_up+1])) == 0):
+    #     elif (len(np.flatnonzero(wf_st.adcs)) == 0):
+    #         return True
+    #     else:
+    #         return False
 
-        """
-        nspe = wf_sipm.adcs_float[self.int_low:self.int_up].sum() * spe_norm
-        if nspe < outlier_threshold:
-            return False
-        # elif (len(np.flatnonzero(wf_st.adcs[self.window_low:self.window_up+1])) == 0):
-        elif (len(np.flatnonzero(wf_st.adcs)) == 0):
-            return True
-        else:
-            return False
 
-
-    def select_outliers(self, f_sigmoid) -> None:
-        """
-
-        """
-        self.create_wfs()
-        self.select_waveforms()
-        spe_norm = 1./self.spe_charge
-        # outlier_threshold = f_sigmoid.GetParameter(0) + 4 * f_sigmoid.GetParameter(1)
-        outlier_threshold = 3.
-        print(f"Outlier threshold: {outlier_threshold}")
-        self.outlier_selection = np.array([self.outlier_selector(wf_sipm, wf_st, spe_norm, outlier_threshold)
-                                           for wf_sipm, wf_st in zip(self.wfs_sipm, self.wfs_st)], dtype=bool)
-        self.wfs_sipm = np.array(self.wfs_sipm[self.outlier_selection])
-        self.wfs_st = np.array(self.wfs_st[self.outlier_selection])
+    # def select_outliers(self, f_sigmoid) -> None:
+    #     """
+    #
+    #     """
+    #     self.create_wfs()
+    #     self.select_waveforms()
+    #     spe_norm = 1./self.spe_charge
+    #     # outlier_threshold = f_sigmoid.GetParameter(0) + 4 * f_sigmoid.GetParameter(1)
+    #     outlier_threshold = 3.
+    #     print(f"Outlier threshold: {outlier_threshold}")
+    #     self.outlier_selection = np.array([self.outlier_selector(wf_sipm, wf_st, spe_norm, outlier_threshold)
+    #                                        for wf_sipm, wf_st in zip(self.wfs_sipm, self.wfs_st)], dtype=bool)
+    #     self.wfs_sipm = np.array(self.wfs_sipm[self.outlier_selection])
+    #     self.wfs_st = np.array(self.wfs_st[self.outlier_selection])
 
 
     def trigger_distr_per_nspe(self) -> dict:
@@ -475,6 +621,8 @@ class SelfTrigger:
 
         nspe_arr = np.array([wf.nspe for wf in self.wfs_sipm])
         nspe_arr.sort()
+        if len(nspe_arr) == 0:
+            return {}
         nspe_min = nspe_arr[int(0.005 * len(nspe_arr))]
         nspe_max = nspe_arr[int(0.995 * len(nspe_arr))]
 
