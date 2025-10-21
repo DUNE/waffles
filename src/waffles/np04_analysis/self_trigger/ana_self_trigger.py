@@ -17,11 +17,11 @@ if __name__ == "__main__":
     with open("steering.yml", 'r') as stream:
         steering_config = yaml.safe_load(stream)
     params_file_name = steering_config.get("params_file", "params.yml")
+    ana_folder  = steering_config.get("ana_folder")
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
 
     run_info_file = user_config.get("run_info_file")
-    ana_folder  = user_config.get("ana_folder")
     calibration_file = user_config.get("calibration_file")
     file_folder = user_config.get("file_folder")
     SiPM_channel = user_config.get("SiPM_channel")
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     df_runs = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
 
-    calibration_df = pd.read_csv(ana_folder+calibration_file, sep=",")
+    calibration_df = pd.read_csv(calibration_file, sep=",")
     print(calibration_df.head(5))
     int_low = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntLow'].values[0])
     int_up = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntUp'].values[0])
@@ -124,12 +124,23 @@ if __name__ == "__main__":
             "ErrTauFit": st.f_sigmoid.GetParError(1) if efficiency_fit_ok else np.nan,
             "MaxEffFit": st.f_sigmoid.GetParameter(2) if efficiency_fit_ok else np.nan,
             "ErrMaxEffFit": st.f_sigmoid.GetParError(2) if efficiency_fit_ok else np.nan,
-            "10to90": st.get_10to90_range()
+            "10to90": st.get_10to90_range(),
+            "10to90Fit": st.get_10to90_range_fit(),
+            "fifty": st.fifty
         })
+        print(f"\n\n\nfifty: {st.fifty}\n\n")
         h_st.Write()
+        st.h_total.Write()
+        st.h_passed.Write()
         st.he_STEfficiency.Write()
+        st.he_STEfficiency2.Write()
           
 
+    g_st_calib, offset, slope = self_trigger.fit_thrPE_vs_thrSet(pd.DataFrame(out_df_rows))
+    out_root_file.cd()
+    g_st_calib.SetTitle(f"Self-Trigger Calibration Ch {SiPM_channel};Threshold Set;Threshold Fit (PE)")
+    g_st_calib.Write()
     out_root_file.Close()
     out_df = pd.DataFrame(out_df_rows)
+    out_df['ThresholdFitCalibrated'] = slope*out_df['ThresholdSet'] + offset
     out_df.to_csv(ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}.csv", index=False)
