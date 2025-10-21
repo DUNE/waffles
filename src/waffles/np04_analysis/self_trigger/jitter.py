@@ -13,11 +13,14 @@ import yaml
 if __name__ == "__main__":
 
     # --- SETUP -----------------------------------------------------
-    with open("params.yml", 'r') as stream:
+    with open("steering.yml", 'r') as stream:
+        steering_config = yaml.safe_load(stream)
+    params_file_name = steering_config.get("params_file", "params.yml")
+    ana_folder  = steering_config.get("ana_folder")
+    with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
 
     run_info_file = user_config.get("run_info_file")
-    ana_folder  = user_config.get("ana_folder")
     calibration_file = user_config.get("calibration_file")
     file_folder = user_config.get("file_folder")
     SiPM_channel = user_config.get("SiPM_channel")
@@ -28,7 +31,7 @@ if __name__ == "__main__":
     out_root_file = TFile(ana_folder+f"Jitter_Ch_{SiPM_channel}.root", "RECREATE")
     out_root_file.cd()
 
-    calibration_df = pd.read_csv(ana_folder+calibration_file, sep=",")
+    calibration_df = pd.read_csv(calibration_file, sep=",")
     int_low = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntLow'].values[0])
     int_up = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntUp'].values[0])
     prepulse_ticks = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'PrepulseTicks'].values[0])
@@ -85,6 +88,9 @@ if __name__ == "__main__":
         st.select_waveforms()
 
         dict_hSTdisrt = st.trigger_distr_per_nspe()
+        if dict_hSTdisrt == {}:
+            print(f"No triggers found for threshold {int(threshold,16)}")
+            continue
         del wfset
 
         for nspe, h_STdisrt in dict_hSTdisrt.items():
