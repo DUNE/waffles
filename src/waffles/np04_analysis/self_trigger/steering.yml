@@ -1,1 +1,4 @@
-params_file : "./params_custom.yml"
+params_file : "./params_ch10945.yml"
+
+# Where to store the output files
+ana_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/bins90/"

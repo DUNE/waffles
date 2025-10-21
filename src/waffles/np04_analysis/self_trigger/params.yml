@@ -5,10 +5,7 @@
 # LED: LED intensity
 run_info_file: "./configs/SelfTrigger_RunInfo.csv"
 
-# Where to store the output files
-ana_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/"
-
-# File.csv stored in ana_folder containing (at least) the columns:
+# File.csv containing (at least) the columns:
 # SiPMChannel, IntLow, IntUp, PrepulseTicks, BaselineRMS, SpeCharge, SNR, SpeAmpl
 # SiPMChannel: SiPM channel number (e.g. 11121)
 # IntLow: lower integration limit (in ticks)
@@ -17,7 +14,7 @@ ana_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/"
 # BaselineRMS: baseline RMS (in ADC counts)
 # SpeCharge: SPE charge (in ADC x ticks)
 # SpeAmpl: SPE amplitude (in ADC counts)
-calibration_file: "SelfTrigger_Calibration.csv"
+calibration_file: "./configs/SelfTrigger_Calibration.csv"
 
 # Path to the hdf5 files with name:
 # Run_XXXXXX_ChSiPM_YYYYY_ChST_ZZZZZ_structured.hdf5 
