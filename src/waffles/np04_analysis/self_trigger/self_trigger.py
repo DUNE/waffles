@@ -107,7 +107,7 @@ class SelfTrigger:
         
         self.h_low = -1.5
         self.h_up = 10
-        self.h_bins = 140
+        self.h_bins = 140 # Only for pngs 
         self.bkg_trg_win_low = 800
         self.trigger_rate = 0.0
 
@@ -364,9 +364,10 @@ class SelfTrigger:
 
         nspe_min = sorted_nspes[int(0.001 * len(sorted_nspes))]
         nspe_max = sorted_nspes[int(0.96 * len(sorted_nspes))]
+        n_bins   = (nspe_max - nspe_min) * 20
 
-        h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  self.h_bins, nspe_min, nspe_max)
-        h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", self.h_bins, nspe_min, nspe_max)
+        h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  n_bins, nspe_min, nspe_max)
+        h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", n_bins, nspe_min, nspe_max)
 
         for wf_sipm, wf_st, nspe in zip(self.wfs_sipm, self.wfs_st, nspes):
             if (wf_sipm.timestamp != wf_st.timestamp):
