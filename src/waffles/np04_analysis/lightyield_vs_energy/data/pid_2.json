@@ -1,0 +1,172 @@
+{
+    "1": {
+        "e": {
+            "tof": {
+                "min": 0,
+                "max": 105
+            },
+            "c0": 1,
+            "c1": null
+        },
+        "mu_pi": {
+            "tof": {
+                "min": 0,
+                "max": 110
+            },
+            "c0": 0,
+            "c1": null
+        },
+        "K": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": null,
+            "c1": null
+        },
+        "p": {
+            "tof": {
+                "min": 110,
+                "max": 160
+            },
+            "c0": 0,
+            "c1": null
+        }
+    },
+    "2": {
+        "e": {
+            "tof": {
+                "min": 0,
+                "max": 105
+            },
+            "c0": 1,
+            "c1": null
+        },
+        "mu_pi": {
+            "tof": {
+                "min": 0,
+                "max": 103
+            },
+            "c0": 0,
+            "c1": null
+        },
+        "K": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": null,
+            "c1": null
+        },
+        "p": {
+            "tof": {
+                "min": 103,
+                "max": 160
+            },
+            "c0": 0,
+            "c1": null
+        }
+    },
+    "3": {
+        "e": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 1,
+            "c1": 1
+        },
+        "mu_pi": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 0,
+            "c1": 1
+        },
+        "K": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 0,
+            "c1": 0
+        },
+        "p": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 0,
+            "c1": 0
+        }
+    },
+    "5": {
+        "e": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": null,
+            "c1": null
+        },
+        "mu_pi": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": null,
+            "c1": null
+        },
+        "K": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": null,
+            "c1": null
+        },
+        "p": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": null,
+            "c1": null
+        }
+    },
+    "7": {
+        "e": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 1,
+            "c1": 1
+        },
+        "mu_pi": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 1,
+            "c1": 1
+        },
+        "K": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 0,
+            "c1": 1
+        },
+        "p": {
+            "tof": {
+                "min": null,
+                "max": null
+            },
+            "c0": 0,
+            "c1": 0
+        }
+    }
+}
