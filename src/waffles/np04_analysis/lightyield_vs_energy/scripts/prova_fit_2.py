@@ -7,7 +7,11 @@ with open(f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analys
     
 
 print('\nReading analysis results...')
-with open(f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/set_A_self_beam_end109_data250514_all_100725_lightyield.json", "r") as file:
+
+# with open(f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/merged_data_prova_040925_lightyield.json", "r") as file: # new+old merge at 04/09/2025
+# with open(f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/set_A_self_beam_ALL_beam_pkl_lightyield.json", "r") as file: # all old files
+# with open(f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/set_A_self_beam_end109_data250514_all_100725_lightyield.json", "r") as file: # part of old files
+with open("/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/merged_data_ALL_ALL_140925_lightyield.json", "r") as file: 
     result_info = json.load(file)
     print('done\n')
     
@@ -87,19 +91,19 @@ for apa, apa_dic in result_info.items():
                                         if hist_type == 'centered':
                                             continue
                                         
-                                        counts, bins, _ = ax[i].hist(data_array, bins=N_bin, range=(np.min(data_array), np.max(data_array)), density=False, alpha=hist_dic['alpha'], color=hist_dic['color'], label=hist_dic['label'](energy, data_array, N_bin))
+                                        counts, bins, _ = ax[i].hist(data_array, bins=N_bin, range=(np.min(data_array), np.max(data_array)), density=False, alpha=hist_dic['alpha'], color=hist_dic['color'], label=hist_dic['label'](energy, len(data_array), N_bin))
                                         
                                         bin_centers = 0.5 * (bins[:-1] + bins[1:])
-                                        ax[i].set_xlabel("Integrated Charge")
-                                        ax[i].set_ylabel("Counts")
+                                        ax[i].set_xlabel("Integrated signal", fontsize=15)  
+                                        ax[i].set_ylabel("Counts", fontsize=15)  
                                         ax[i].set_title(f"Energy: {energy} GeV")
                                         
-                                        fig_plotly.add_trace(go.Histogram(x=data_array, xbins=dict(start=np.min(data_array), end=np.max(data_array), size=(np.max(data_array)-np.min(data_array))/N_bin), nbinsx=N_bin, histnorm='', marker_color=hist_dic['color'], opacity=hist_dic['alpha'], name=hist_dic['label'](energy, data_array, N_bin).replace('\n','<br>')), row=row, col=col)
-                                        fig_plotly.update_xaxes(title_text="Integrated Charge", range=[mu - 3*sigma, mu + 3*sigma], row=row, col=col)
+                                        fig_plotly.add_trace(go.Histogram(x=data_array, xbins=dict(start=np.min(data_array), end=np.max(data_array), size=(np.max(data_array)-np.min(data_array))/N_bin), nbinsx=N_bin, histnorm='', marker_color=hist_dic['color'], opacity=hist_dic['alpha'], name=hist_dic['label'](energy, len(data_array), N_bin).replace('\n','<br>')), row=row, col=col)
+                                        fig_plotly.update_xaxes(title_text="Integrated signal", range=[mu - 3*sigma, mu + 3*sigma], row=row, col=col)
                                         fig_plotly.update_yaxes(title_text="Counts", row=row, col=col)
 
                                         #Selected region for central histogram
-                                        if hist_type == 'global':
+                                        if hist_type == 'global' and (centered_gaussian_fit or centered_langau_fit or centered_bi_gaussian_fit):
                                             ax[i].axvline(mu - N_sigma*sigma, color='black', linestyle='--', linewidth=1, label=f"μ-{N_sigma}σ")
                                             ax[i].axvline(mu + N_sigma*sigma, color='black', linestyle='--', linewidth=1, label=f"μ+{N_sigma}σ")
                                             
@@ -110,7 +114,7 @@ for apa, apa_dic in result_info.items():
                                         if global_mean:
                                             label = f"Global mean: {to_scientific_notation(mu,sigma)}"
                                             color = 'blue'
-                                            ax[i].axvline(mu, color=color, linestyle='--', linewidth=1, label=label)
+                                            ax[i].axvline(mu, color=color, linestyle='--', linewidth=2, label=label)
                                             fig_plotly.add_trace(go.Scatter(x=[mu, mu], y=[0, max(counts)*1.2], mode='lines', name=label, line=dict(color=color, dash='dash'), showlegend = (hist_type == 'global')), row=row, col=col)
 
                                         
@@ -118,7 +122,7 @@ for apa, apa_dic in result_info.items():
                                         if centered_mean:
                                             label = f"Centered mean: {to_scientific_notation(mu_centered,sigma_centered)}"
                                             color = 'red'
-                                            ax[i].axvline(mu_centered, color=color, linestyle='--', linewidth=1, label=label)
+                                            ax[i].axvline(mu_centered, color=color, linestyle='--', linewidth=2, label=label)
                                             #fig_plotly.add_trace(go.Scatter(x=[mu_centered, mu_centered], y=[0, max(counts)*1.2], mode='lines', name=label, line=dict(color=color, dash='dash'), showlegend = (hist_type == 'global')), row=row, col=col)
                                             fig_plotly.add_trace(go.Bar(x=(bin_edges[:-1]+bin_edges[1:])/2, y=counts, width=(bin_edges[1]-bin_edges[0])*0.9, marker_color=hist_dic['color'], opacity=hist_dic['alpha'], name=hist_dic['label'](energy, data_array, N_bin).replace('\n','<br>'), error_y=dict(type='data', array=np.sqrt(counts), visible=True, symmetric=True, thickness=1.5, width=0)), row=row, col=col)
 
@@ -142,7 +146,7 @@ for apa, apa_dic in result_info.items():
                                                 x_fit = np.linspace(min(data_array), max(data_array), 1000)
                                                 
                                                 if fit_name != "global_langau_peak_fit":
-                                                    ax[i].plot(x_fit, fit_dic['fit function'](x_fit, *popt), color=fit_dic['color'], lw=1, label=fit_dic['label'](chi, popt, perr))
+                                                    ax[i].plot(x_fit, fit_dic['fit function'](x_fit, *popt), color=fit_dic['color'], lw=3, label=fit_dic['label'](chi, popt, perr))
                                                     fig_plotly.add_trace(go.Scatter(x=x_fit, y=fit_dic['fit function'](x_fit, *popt), mode='lines', name=fit_dic['label'](chi, popt, perr).replace('\n','<br>'), line=dict(color=fit_dic['color']), showlegend=True ), row=row, col=col)
 
                                             except Exception as e:
@@ -156,31 +160,36 @@ for apa, apa_dic in result_info.items():
                                                 NEW_result[fit_name]['energy'] = np.append(NEW_result[fit_name]['energy'],int(energy))
                                                 NEW_result[fit_name]['peak value'] = np.append(NEW_result[fit_name]['peak value'],peak)
                                                 NEW_result[fit_name]['peak error'] = np.append(NEW_result[fit_name]['peak error'],error_peak) 
-                                                analysis_results[integral_label][apa][end][ch][N_bin][energy][fit_name] = {'parameters': peak, 'error': error_peak, 'chi2rid': None}
+                                                analysis_results[integral_label][apa][end][ch][N_bin][energy][fit_name] = {'parameters': peak, 'error': error_peak, 'chi2rid': None, 'hist data': {'counts': counts, 'bins': bins}}
                                             else:   
                                                 NEW_result[fit_name]['energy'] = np.append(NEW_result[fit_name]['energy'],int(energy))
                                                 NEW_result[fit_name]['peak value'] = np.append(NEW_result[fit_name]['peak value'],popt[fit_dic['linear plot']])
                                                 NEW_result[fit_name]['peak error'] = np.append(NEW_result[fit_name]['peak error'],perr[fit_dic['linear plot']]) 
-                                                analysis_results[integral_label][apa][end][ch][N_bin][energy][fit_name] = {'parameters': popt, 'error': perr, 'chi2rid': chi}
+                                                analysis_results[integral_label][apa][end][ch][N_bin][energy][fit_name] = {'parameters': popt, 'error': perr, 'chi2rid': chi, 'hist data': {'counts': counts, 'bins': bins}}
                                             
                                             if (popt[0] != 0) and (fit_name != "global_langau_peak_fit"): #just to draw it
                                                 peak, error_peak = propagate_error(find_peak, popt, perr)
                                                 label = f'Langau peak = {to_scientific_notation(peak, error_peak)}'
                                                 color = 'gold'
-                                                ax[i].axvline(peak, color=color, linestyle='--', linewidth=1, label=label)
+                                                ax[i].axvline(peak, color=color, linestyle='--', linewidth=2, label=label)
                                                 fig_plotly.add_trace(go.Scatter(x=[peak, peak], y=[0, max(counts)*1.2], mode='lines', name=label, line=dict(color=color, dash='dash')), row=row, col=col)
                                                 #fig_plotly.add_trace(go.Scatter(x=[popt[0], popt[0]], y=[0, max(counts)*1.2], mode='lines', name='mpv', line=dict(color='orange', dash='dash')), row=row, col=col)
                                                 
                                             
                                             
-                                                
-                            
-                                ax[i].legend(fontsize=5, ncol=2)
+                                ax[i].text(min(x_fit)*0.9, max(counts)+5, r"$\bf{ProtoDUNE\text{-}HD}$"+"\nPreliminary", fontsize=10, color="black", va="top", ha="left", zorder=10)
+                
+                                ax[i].legend(fontsize=9, ncol=1)
                                 i+=1
                             
                             # LINEAR FIT
                             analysis_results[integral_label][apa][end][ch][N_bin]['linear fit'] ={}
                             for fit_name, fit_result in NEW_result.items():
+
+                                # DON'T SHOW THE PEAK FITTING FOR THE MOMENT
+                                if fit_name == "global_langau_peak_fit":
+                                    continue
+
                                 if len(fit_result['energy']) > 2:
                                     popt, pcov = curve_fit(linear_fit, fit_result['energy'], fit_result['peak value'],sigma=fit_result['peak error'])
                                     perr = np.sqrt(np.diag(pcov))
@@ -188,12 +197,21 @@ for apa, apa_dic in result_info.items():
                                     
                                     label = f"y=ax+b (χ²={'{:.2e}'.format(chi) if chi>100 else '{:.2f}'.format(chi)})\na = {to_scientific_notation(popt[0], perr[0])} \nb = {to_scientific_notation(popt[1], perr[1])}"
                                     
-                                    ax[i].errorbar(fit_result['energy'], fit_result['peak value'], yerr=fit_result['peak error'], color = color_dict[fit_name], fmt='o', label=fit_name.replace('_', ' ').title())
-                                    ax[i].plot(fit_result['energy'], linear_fit(fit_result['energy'], popt[0], popt[1]),linestyle='-', color= color_dict[fit_name], label=label) 
-                                    ax[i].legend(fontsize=4, ncol=3, loc='upper left')
+                                    ax[i].errorbar(fit_result['energy'], fit_result['peak value'], yerr=fit_result['peak error'], color=color_dict[fit_name], fmt='o', label=fit_name.replace('_', ' ').title(), markersize=6, elinewidth=2, capsize=2)  
+                                    ax[i].plot(fit_result['energy'], linear_fit(fit_result['energy'], popt[0], popt[1]), linestyle='-', color=color_dict[fit_name], label=label, linewidth=3)  
+                                    ax[i].legend(fontsize=12, ncol=3, loc='upper left')  
+                                    ax[i].set_xlabel("Energy (GeV)", fontsize=15)  
+                                    ax[i].set_ylabel("Integrated signal", fontsize=15)  
+                                    ax[i].tick_params(axis='both', which='major', labelsize=12)
+                                    ax[i].text(fit_result['energy'][-2], fit_result['peak value'][2], r"$\bf{ProtoDUNE\text{-}HD}$ Preliminary", fontsize=10, color="black", va="top", ha="left", zorder=10)
+
+
                                     
                                     fig_plotly.add_trace( go.Scatter(x=fit_result['energy'], y=fit_result['peak value'], error_y=dict(type='data', array=fit_result['peak error'], visible=True), mode='markers', name=fit_name.replace('_', ' ').title(), marker=dict(color=color_dict[fit_name]), showlegend=True), row=3, col=3)
                                     fig_plotly.add_trace( go.Scatter(x=fit_result['energy'], y=linear_fit(fit_result['energy'], popt[0], popt[1]), mode='lines', name=label.replace('\n','<br>'), line=dict(color=color_dict[fit_name]), showlegend=True ), row=3, col=3)
+                                    fig_plotly.update_xaxes(title_text="Energy (GeV)", row=3, col=3)
+                                    fig_plotly.update_yaxes(title_text="Integrated signal", row=3, col=3)
+
 
                                     analysis_results[integral_label][apa][end][ch][N_bin]['linear fit'][fit_name] = {'x': fit_result['energy'], 'y': fit_result['peak value'], 'ey': fit_result['peak error'], 'parameters': popt, 'error': perr, 'chi2rid': chi}
 
@@ -208,10 +226,6 @@ for apa, apa_dic in result_info.items():
 
 print()
 
-#Saving analysis info
-with open(f"{output_folder}/output.pkl", 'wb') as f:
-    pickle.dump(analysis_results, f)
-
 
 # one pdf per channel with binning study
 if bin_study:
@@ -219,7 +233,10 @@ if bin_study:
         for apa, apa_dic in analysis_results[key].items():
             for end, end_dic in apa_dic.items():
                 for ch, bin_dic in end_dic.items():
-                    CH_pdf_file = PdfPages(f"{output_folder}/{key}/{key}_apa{apa}_ch{ch}_bins{bin_start}-{bin_stop}.pdf")
+                    filename_output = f"{output_folder}/{key}/{key}_apa{apa}_ch{ch}_bins{bin_start}-{bin_stop}"
+                    with open(f"{filename_output}.pkl", 'wb') as f:
+                        pickle.dump(analysis_results, f)
+                    CH_pdf_file = PdfPages(f"{filename_output}.pdf")
                     for N_bin, info in bin_dic.items():
                         CH_pdf_file.savefig(info['fig'])
                         plt.close(info['fig'])
@@ -229,7 +246,10 @@ if bin_study:
 elif channel_study:                         
     for key in find_analysis_keys(result_info):
         for apa, apa_dic in analysis_results[key].items():
-            APA_pdf_file = PdfPages(f"{output_folder}/{key}/{key}_apa{apa}_channels{ch_start}-{ch_end}.pdf")
+            filename_output = f"{output_folder}/{key}/{key}_apa{apa}_channels{ch_start}-{ch_end}"
+            APA_pdf_file = PdfPages(f"{filename_output}.pdf")
+            with open(f"{filename_output}.pkl", 'wb') as f:
+                        pickle.dump(analysis_results, f)
             for end, end_dic in apa_dic.items():
                 for ch, bin_dic in end_dic.items():
                     for N_bin, info in bin_dic.items():

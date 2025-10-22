@@ -4,10 +4,11 @@ nota: riesco ad accedere a /eos solo se non sono connesso a rucio (tramite FNAL)
 
 ▫️ moving_rucio_hdf5_eos.sh (lightyield_vs_energy/scripts)
 serve per spostare su EOS i file HDF5 originali scaricati con Rucio, ma solo se esiste già il corrispondente file processato (quindi se dal file originale sono già state estratte le informazioni del PDS).
+Ricordare di inserire il numero di run quando si esegue: ./moving_rucio_hdf5_eos.sh 01234
 Come funziona:
 -- legge i file presenti nella cartella Rucio su AFS (.../hd-protodune)
 -- per ciascun file cerca nella cartella locale run0<run> se esiste un file processed_<filename>_structured.hdf5
--- se il processato esiste → sposta il file originale in EOS (.../run0<run>)
+-- se il processato esiste → sposta il file originale in EOS (.../run0<run>/original_hdf5)
 -- se non esiste → lo salta e lo lascia su AFS
 
 ▫️ ruciodownload.sh (public/reading_beam_NEW)
@@ -16,20 +17,20 @@ Da eseguire dal terminale dove si accede a Rucio (non serve python)
 Ricordare di inserire il numero di run quando si esegue: ./ruciodownload.sh 01234
 Funzionamento:
 -- Si seleziona un run da leggere (es. 27343).
--- Nella stessa cartella deve esistere una directory run0<run> (es. run027343) dove verranno salvati i file scaricati da Rucio.
--- lo script carica i file HDF5 tramite rucio download, solo se non sono già presenti o processati, e prima del download controlla che lo spazio libero su disco sia > 6 GB.
+-- Nella stessa cartella deve esistere una directory hd-protodune dove verranno salvati i file scaricati da Rucio.
+-- lo script carica i file HDF5 tramite rucio download, solo se non sono già presenti in hd-protodune o processati in run27343, e prima del download controlla che lo spazio libero su disco sia > 6 GB.
 File generati:
 -- backup_27343_copyrucio.txt → backup del file originale con la lista completa dei filepath Rucio 
 -- 27343_rucio.txt → file temporaneo contenente i soli filename in formato hd-protodune:<filename> 
 -- 27343.txt → file finale richiesto, sovrascritto ad ogni esecuzione, che contiene solo i path locali assoluti dei file HDF5 effettivamente scaricati o trovati 
 
-▫️ save_structured_from_config.py (waffles/script/MY_07_save_structured_from_config.py)
+▫️ MY_07_save_structured_from_config.py (waffles/script/MY_07_save_structured_from_config.py)
 Script per processare i file HDF5 scaricati da Rucio e salvarli in formato strutturato e compresso, a partire da un file di configurazione JSON.
 Come funziona:
 -- legge la configurazione (runs, rucio_dir, output_dir, detector, canali, trigger, ecc.)
--- per ogni run apre il file <run>.txt che contiene la lista dei file HDF5 originali da processare
+-- per ogni run apre il file <run>.txt che contiene la lista dei  path ai file HDF5 originali da processare (salvati in locale)
 -- scarta i file già processati, per non ricrearli
--- legge i waveform dai file HDF5 tramite le funzioni di waffles, applica eventuali filtri (es. selezione beam) e salva i risultati in output
+-- legge i waveform dai file HDF5 tramite le funzioni di waffles, applica eventuali filtri (es. selezione beam di default) e salva i risultati in output
 Output generato:
 -- se save_single_file=True → un unico file processed_merged_run<run>_structured[_suffix].hdf5
 -- altrimenti → tanti file processed_<inputfilename>_structured[_suffix].hdf5 salvati in output_dir/run<run>[_suffix]/

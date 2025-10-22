@@ -86,9 +86,9 @@ class Analysis2(WafflesAnalysis):
             # ------------- Analyse the waveform set -------------
 
             b_ll = 0
-            b_ul = 100
-            int_ll = 135
-            int_ul = 165
+            b_ul = 50
+            int_ll = 55
+            int_ul = 115
             
             # baseline limits
             bl = [b_ll, b_ul, 900, 1000]
@@ -97,9 +97,17 @@ class Analysis2(WafflesAnalysis):
             ip = IPDict(baseline_limits=bl,
                         int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,
                         points_no=10,
-                        peak_finding_kwargs=peak_finding_kwargs)
+                        peak_finding_kwargs=peak_finding_kwargs,
+                        baseline_method='EasyMedian'
+                        )
             analysis_kwargs = dict(  return_peaks_properties = False)
             checks_kwargs   = dict( points_no = e.wfset.points_per_wf)
+            
+        # ip = IPDict(baseline_limits=bl, int_ll=int_ll, int_ul=int_ul, amp_ll=ampl_ll, amp_ul=ampl_up, points_no=10, peak_finding_kwargs=peak_finding_kwargs, baseline_method=baseline_method, baseliner =  baseliner)
+        # a = self.beam_wfset.analyse(label=analysis_label ,analysis_class=analysis_class, input_parameters=ip, checks_kwargs = checks_kwargs, overwrite=True)
+          
+          
+          
             #if wset.waveforms[0].has_analysis('standard') == False:
             
             # analyse the waveforms (copute baseline, amplitude and integral)

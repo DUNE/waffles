@@ -71,3 +71,4 @@ for set, run_set in run_set_dic.items():
         print(f"HDF5 files read: {len(hdf5_read_file_path_list)}")
         print(f"Old pkl files read: {len(pkl_read_file_index_list)}")
         print(f"Rucio files not read: {len(rucio_not_read_dic)}")
+        print(f"Rucio files read: {len(rucio_file_index_list)-len(rucio_not_read_dic)}")

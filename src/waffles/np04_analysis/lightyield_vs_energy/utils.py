@@ -489,7 +489,6 @@ def propagate_error(find_peak_func, params, errors, epsilon=1e-3):
     return peak, total_error
 
 
-import numpy as np
 
 def prepare_histogram_curve_fit_inputs(counts, bin_centers, histogram_bin_zero_extremes, histogram_bin_error):
     counts = np.asarray(counts)

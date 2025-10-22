@@ -5,22 +5,22 @@ input_path: 'data'
 set_name: 'A'
 
 # APA list to analyze (1, 2, 3, 4 or all)
-apa_list: 'all'
+apa_list: [2]
 
 # Endpoint list to analyze (104, 105, 107, 109, 111, 112, 113 or all)
 endpoint_list: [109]
 
 # Filename of input file (no folder path)
-input_pickles_wf_filename: 'set_A_self_15files109.pkl'
+input_pickles_wf_filename: 'merged_data_ALL.pkl' #'set_A_self_beam_ALL_beam_pkl.pkl'
 
 # Path to folder containing pickles files (input)
-pickles_folder: '/afs/cern.ch/work/a/anbalbon/public/np04_beam_pickles'
+pickles_folder: '/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data' #'/eos/user/a/anbalbon/' #'/afs/cern.ch/work/a/anbalbon/public/np04_beam_pickles'
 
 # Path to folder where output files are saved (output)
 output_folder: 'output'
 
 # Additional string to add to the output filename 
-additional_output_filename: ''
+additional_output_filename: 'ALL_140925'
 
 # Path to the json file with beam run information
 beam_run_dic_info_filename: 'beam_run_info.json'
@@ -29,7 +29,7 @@ beam_run_dic_info_filename: 'beam_run_info.json'
 full_streaming: False
 
 # Are input data selected beam data (true o false) ? 
-beam_data: False
+beam_data: True
 
 # Do you want to search for beam timeoffset range? (true o false) ? 
 searching_beam_timeoffset: False
@@ -45,3 +45,6 @@ save_file: True
 
 # LED calibration pickles file 
 LED_calibration_file: 'batch_1_LED_calibration_data.pkl'
+
+# To perform waveform deconvolution (true o false) ?
+deconvolution: True

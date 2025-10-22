@@ -10,14 +10,6 @@ run_number=$1
 
 rucio_folder="/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW/hd-protodune"
 hd5f_folder="/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW/run0${run_number}"
-eos_folder="/eos/user/a/anbalbon/reading_beamrun_NEW/run0${run_number}/original_hdf5"
-
-# Check access to EOS folder
-if ! cd "$eos_folder" 2>/dev/null; then
-    echo "❌ Error: cannot access $eos_folder"
-    exit 1
-fi
-cd - >/dev/null
 
 for f in "$rucio_folder"/np04hd_raw_run*.hdf5; do
     filename=$(basename "$f")
@@ -28,9 +20,8 @@ for f in "$rucio_folder"/np04hd_raw_run*.hdf5; do
 
     if [[ -f "$match" ]]; then
         echo "➡️  Found: $filename"
-        echo "   Copying to $eos_folder ..."
-        rsync -ah --progress "$f" "$eos_folder/" && rm -f "$f"
-        echo "✅ Copied: $filename"
+        echo "   Deleting $f ..."
+        rm -f "$f" && echo "🗑️ Deleted: $filename"
     else
         echo "⏭️  Skipped: $filename (no match found in $hd5f_folder)"
     fi

@@ -24,8 +24,8 @@ analysis_list = [name for name, flag in zip(['integral_before', 'integral_deconv
 
 # Channels to analyze
 
-ch_start = 35
-ch_end = 35
+ch_start = 0
+ch_end = 47
 ch_range = range(ch_start, ch_end + 1)  # Inclusive range for channels
 
 ch_range_wholeAPA = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47]
@@ -34,8 +34,8 @@ ch_range_wholeAPA = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20,
 
 # Parameters for the bin study 
 
-bin_start = 20 
-bin_stop = 20 
+bin_start = 44 
+bin_stop = 44
 
 bin_list = range(bin_start, bin_stop + 1)
 
@@ -48,14 +48,14 @@ histogram_bin_error = True
 
 global_hist_dic = {
     'N_bin': 20, #tipical
-    'label': lambda energy, data_array, N_bin: f"E={energy}GeV - all data ({N_bin} bins, {len(data_array)} counts)",
+    'label': lambda energy, counts, N_bin: f"E={energy}GeV - all data ({N_bin} bins, {counts} counts)",
     'color': 'green',
     'alpha': 0.6,
     'color errorbar' : 'green'}
 
 centered_hist_dic = {
     'N_bin': 20,
-    'label': lambda energy, data_array, N_bin: f"E={energy}GeV - centered data ({N_bin} bins, {len(data_array)} counts)",
+    'label': lambda energy, counts, N_bin: f"E={energy}GeV - centered data ({N_bin} bins, {counts} counts)",
     'color': 'orange',
     'alpha': 0.6,
     'color errorbar' : 'red'}
@@ -68,7 +68,7 @@ N_sigma = 0.8 # To select the central region
 
 output_folder = "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/fit_analysis" # Where to save output
 
-plotly_show = True
+plotly_show = False
 
 ###########################
 
@@ -106,10 +106,10 @@ global_gaussian_fit_dic = {
 global_langau_fit_dic = {
     'fit function': langau,
     'area': 'global',
-    'p0': lambda mu, sigma, counts: [mu, 0.3*sigma, sigma*0.6, max(counts)], #mpv (most probable value), eta (% of sigma), sigma, amplitude
+    'p0': lambda mu, sigma, counts: [mu, 0.3*sigma, sigma*0.4, max(counts)], #mpv (most probable value), eta (% of sigma), sigma, amplitude
     'bounds': lambda mu, sigma, counts: (
-        [mu - 0.7*sigma, sigma*0.1, sigma*0.5, max(counts)*0.85], 
-        [mu + 0.7*sigma, sigma*0.7, sigma*0.8, max(counts)*1.15]),
+        [mu - 0.7*sigma, sigma*0.1, sigma*0.3, max(counts)*0.85], 
+        [mu + 0.7*sigma, sigma*0.7, sigma*0.7, max(counts)*1.15]),
     'color': 'skyblue',
     'label' : lambda chi, popt, perr: f"Global langau fit (χ²={'{:.2e}'.format(chi) if chi>100 else '{:.2f}'.format(chi)}): \nmpv = {to_scientific_notation(popt[0], float(perr[0]))} \neta = {to_scientific_notation(popt[1], perr[1])} \nσ = {to_scientific_notation(popt[2], perr[2])} \nA = {to_scientific_notation(popt[3], perr[3])}",
     'linear plot': 0 #indice del parametro di popt da usare come y per fare il plot lineare

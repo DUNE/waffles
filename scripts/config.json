@@ -1,12 +1,12 @@
 {
-    "runs": [27343],
-    "rucio_dir": "/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW",
-    "output_dir": "/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW",
+    "runs": [27367],
+    "rucio_dir": "/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW/single_rucio_reading",
+    "output_dir": "/afs/cern.ch/work/a/anbalbon/public/reading_beamrun_NEW/single_rucio_reading",
     "ch": {
     },
     "save_single_file": false,
     "max_files": 1,
     "det": "HD_PDS",
-    "trigger": "self_trigger",
+    "trigger": "full_streaming",
     "truncate_wfs_method": "choose" 
 }

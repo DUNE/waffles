@@ -389,6 +389,9 @@ class Analysis1(WafflesAnalysis):
                                 print(f"No beam events --> Skipped channel")
                             else:
                                 print(f"Error: {e} --> Skipped channel")    
+                        
+                        if channel == 35:
+                            print(dic_info)
                     
                     ch_info['Analysis'] = {}
                     for key,items in dic_info.items():

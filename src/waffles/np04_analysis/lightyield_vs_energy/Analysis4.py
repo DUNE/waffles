@@ -1,8 +1,11 @@
+# Versione nuova di Analysis 1 
+# 01/07/2025 ancora nessuna modifica
+
 # import all necessary files and classes
 from waffles.np04_analysis.lightyield_vs_energy.imports import *
 from waffles.np04_analysis.lightyield_vs_energy.utils import *
 
-class Analysis1(WafflesAnalysis):
+class Analysis4(WafflesAnalysis):
 
     def __init__(self):
         pass        
