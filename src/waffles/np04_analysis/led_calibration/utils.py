@@ -940,7 +940,8 @@ def save_data_to_dataframe(
                     (df['batch'] == batch) &
                     (df['endpoint'] == endpoint) &       
                     (df['channel'] == channel) &
-                    (df['OV#'] == ov_no)].index          
+                    (df['OV#'] == ov_no)
+                ].index          
 
                 if len(matching_rows_indices) > 1:
                     raise Exception(
@@ -1691,7 +1692,8 @@ def get_SPE_grid_plot(
                         color='mediumseagreen', 
                         width=1.0
                     ),
-                    name=f"Channel {endpoint}-{channel} mean SPE"),
+                    name=f"Channel {endpoint}-{channel} mean SPE"
+                ),
                 row=i + 1,
                 col=j + 1
             )
