@@ -232,6 +232,17 @@ class Analysis1(WafflesAnalysis):
                 "upper limit of the integration window",
             )
 
+            filepath_to_batches_dates_csv: str = Field(
+                ...,
+                description="Path to a CSV file which contains "
+                "the mapping between batch numbers and the dates "
+                "when the data for each batch was obtained. The "
+                "CSV file must contain the columns 'batch', "
+                "'date_day', 'date_month', 'date_year'.",
+                example='./configs/batches_dates.csv'
+            )
+
+
             integration_analysis_label: str = Field(
                 default='integrator',
                 description="Label for the integration analysis",
@@ -445,6 +456,11 @@ class Analysis1(WafflesAnalysis):
             )
 
         self.current_excluded_channels = None
+
+        self.batches_dates = led_utils.get_batches_dates_mapping(
+            self.params.filepath_to_batches_dates_csv
+        )
+
 
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
@@ -1153,6 +1169,7 @@ class Analysis1(WafflesAnalysis):
         )
         
         led_utils.save_data_to_dataframe(
+            self.batches_dates[self.batch],
             self.batch,
             self.apa,
             self.pde,

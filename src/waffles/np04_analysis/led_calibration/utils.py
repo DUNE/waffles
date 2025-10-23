@@ -160,6 +160,75 @@ def get_check_and_filter_excluded_channels(
 
     return excluded_channels
 
+def get_batches_dates_mapping(
+    filepath_to_batches_dates_csv: str
+) -> dict[int, str]:
+    """
+    Create a mapping from batch identifiers to date strings by
+    reading a CSV file.
+
+    Parameters
+    ----------
+    filepath_to_batches_dates_csv: str
+        Path to a CSV file that must contain the columns:
+        'batch', 'date_day', 'date_month', 'date_year'. Each row
+        represents one batch and its associated day, month and year
+        components.
+
+    Returns
+    -------
+    dict[int, str]
+        A dictionary mapping each batch (int) to a date string in
+        the format "YYYY/MM/DD" (year/month/day).
+    """
+
+    try:
+        df = pd.read_csv(filepath_to_batches_dates_csv)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            "In function get_batches_dates_mapping(): "
+            f"The file {filepath_to_batches_dates_csv} was not found."
+        )
+
+    required_cols = {'batch', 'date_day', 'date_month', 'date_year'}
+    if not required_cols.issubset(df.columns):
+        raise we.MissingColumnsInDataFrame(
+            we.GenerateExceptionMessage(
+                1,
+                'get_batches_dates_mapping()',
+                f"The file {filepath_to_batches_dates_csv} is missing "
+                "some of the required columns. It must contain at least "
+                "'batch', 'date_day', 'date_month' and 'date_year'."
+            )
+        )
+
+    mapping = {}
+
+    for _, row in df.iterrows():
+        try:
+            batch = int(row['batch'])
+            day = int(row['date_day'])
+            month = int(row['date_month'])
+            year = int(row['date_year'])
+        except Exception as e:
+            raise ValueError(
+                "In function get_batches_dates_mapping(): "
+                "Could not parse numeric values for batch/date in the "
+                f"file {filepath_to_batches_dates_csv}: {e}"
+            )
+
+        if batch in mapping:
+            raise Exception(
+                "In function get_batches_dates_mapping(): "
+                f"Duplicate entry for batch {batch} found in "
+                f"{filepath_to_batches_dates_csv}. Each batch must "
+                "appear only once."
+            )
+
+        mapping[batch] = f"{year:04d}-{month:02d}-{day:02d}"
+
+    return mapping
+    
 def get_input_filepaths_for_run(
     base_folderpath: str,
     batch: int,
@@ -500,6 +569,7 @@ def get_gain_and_snr(
     return data
 
 def save_data_to_dataframe(
+    date: str,
     batch: int,
     apa: int,
     pde: float,
@@ -516,6 +586,7 @@ def save_data_to_dataframe(
     appended to it. The output CSV file will contain the
     following columns:
 
+        - date
         - batch
         - APA
         - PDE
@@ -534,6 +605,10 @@ def save_data_to_dataframe(
 
     Parameters
     ----------
+    date: str
+        The date when the data for the specified batch was
+        obtained. This date value will appear in every
+        row of the 'date' column of the output dataframe.
     batch: int
         The batch with which the data was obtained. This
         batch value will appear in every row of the 'batch'
@@ -691,6 +766,7 @@ def save_data_to_dataframe(
             )
 
     expected_columns = {
+        "date": [],
         "batch": [],
         "APA": [],
         "PDE": [],
@@ -713,6 +789,7 @@ def save_data_to_dataframe(
         df = pd.DataFrame(expected_columns)
 
         # Force column-wise types
+        df['date'] = df['date'].astype(str)
         df['batch'] = df['batch'].astype(int)
         df['APA'] = df['APA'].astype(int)
         df['PDE'] = df['PDE'].astype(float)
@@ -796,6 +873,7 @@ def save_data_to_dataframe(
 
                 # Assemble the new row
                 new_row = {
+                    "date": [date],
                     "batch": [int(batch)],
                     "APA": [int(apa)],
                     "PDE": [pde],

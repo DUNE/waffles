@@ -114,6 +114,12 @@ deviation_from_baseline: 0.3
 lower_limit_correction: 0
 upper_limit_correction: 0
 
+# Path to a CSV file which contains the mapping between
+# batch numbers and the dates when the data for each
+# batch was obtained. The CSV file must contain the columns
+# 'batch', 'date_day', 'date_month', 'date_year'.
+filepath_to_batches_dates_csv: './configs/batches_dates.csv'
+
 ## Parameters for the integration analysis
 integration_analysis_label: 'integrator'
 
