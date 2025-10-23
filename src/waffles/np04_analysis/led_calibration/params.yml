@@ -120,6 +120,10 @@ upper_limit_correction: 0
 # 'batch', 'date_day', 'date_month', 'date_year'.
 filepath_to_batches_dates_csv: './configs/batches_dates.csv'
 
+# Whether to save a copy of the input parameters into a
+# YAML file in the output folder
+backup_input_parameters_to_output_folder: true
+
 ## Parameters for the integration analysis
 integration_analysis_label: 'integrator'
 

@@ -1,10 +1,12 @@
 import os
 import pickle
+import yaml
 import numpy as np
 import pandas as pd
 from plotly import graph_objects as pgo
 from typing import Tuple, Dict, Optional
 
+from waffles.data_classes.WafflesAnalysis import BaseInputParams
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.UniqueChannel import UniqueChannel
@@ -229,6 +231,32 @@ def get_batches_dates_mapping(
 
     return mapping
     
+def backup_input_parameters(
+    params: BaseInputParams,
+    output_folderpath: str
+) -> None:
+    """Backup the input parameters to a YAML file
+    in the given output folder.
+
+    Parameters
+    ----------
+    params: BaseInputParams
+        The input parameters to backup.
+    output_folderpath: str
+        The path to the output folder.
+    """
+    with open(
+        os.path.join(
+            output_folderpath,
+            'input_parameters_backup.yml'
+        ),
+        'w'
+
+    ) as f:
+        yaml.dump(params.dict(), f)
+
+    return
+
 def get_input_filepaths_for_run(
     base_folderpath: str,
     batch: int,

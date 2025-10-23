@@ -242,6 +242,12 @@ class Analysis1(WafflesAnalysis):
                 example='./configs/batches_dates.csv'
             )
 
+            backup_input_parameters_to_output_folder: bool = Field(
+                default=True,
+                description="Whether to save a copy of the "
+                "input parameters into a YAML file in the "
+                "output folder"
+            )
 
             integration_analysis_label: str = Field(
                 default='integrator',
@@ -461,6 +467,11 @@ class Analysis1(WafflesAnalysis):
             self.params.filepath_to_batches_dates_csv
         )
 
+        if self.params.backup_input_parameters_to_output_folder:
+            led_utils.backup_input_parameters(
+                self.params,
+                self.params.output_path
+            )
 
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
