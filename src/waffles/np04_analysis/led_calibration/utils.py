@@ -503,7 +503,41 @@ def compute_average_baseline_std(
     
     return np.mean(np.array(samples))
 
-def get_gain_and_snr(
+def get_number_of_fitted_peaks(
+    a_CalibrationHistogram: CalibrationHistogram
+) -> int:
+    """This function retrieves the number of fitted peaks
+    from the given CalibrationHistogram object.
+
+    Parameters
+    ----------
+    a_CalibrationHistogram: CalibrationHistogram
+        The CalibrationHistogram object from which to
+        retrieve the number of fitted peaks.
+
+    Returns
+    -------
+    int
+        The number of fitted peaks in the given
+        CalibrationHistogram.
+    """
+    
+    fit_parameters = a_CalibrationHistogram.gaussian_fits_parameters
+
+    n_peaks = len(fit_parameters['scale'])
+
+    if n_peaks != len(fit_parameters['mean']) or \
+        n_peaks != len(fit_parameters['std']):
+
+        raise Exception(
+            "In function get_number_of_fitted_peaks(): "
+            "Inconsistent number of fitted peaks found "
+            "in the given CalibrationHistogram."
+        )
+
+    return n_peaks
+
+def get_gain_snr_and_fit_parameters(
     grid_apa: ChannelWsGrid,
     excluded_channels: list,
     reset_excluded_channels: bool = False
@@ -523,7 +557,7 @@ def get_gain_and_snr(
             ) in excluded_channels:
 
                 print(
-                    "In function get_gain_and_snr(): "
+                    "In function get_gain_snr_and_fit_parameters(): "
                     f"Excluding channel {endpoint}-{channel} ..."
                 )
                 if reset_excluded_channels:
@@ -544,55 +578,94 @@ def get_gain_and_snr(
 
             except KeyError:
                 print(
-                    "In function get_gain_and_snr(): "
+                    "In function get_gain_snr_and_fit_parameters(): "
                     f"Skipping channel {endpoint}-{channel} "
                     "since it was not found in data."
                 )
                 continue
 
-            # Compute the gain
-            try:
+            fitted_peaks = get_number_of_fitted_peaks(
+                grid_apa.ch_wf_sets[endpoint][channel].calib_histo
+            )
+
+            if fitted_peaks == 0:
+                print(
+                    "In function get_gain_snr_and_fit_parameters(): "
+                    "No fitted peaks found for channel "
+                    f"{endpoint}-{channel}. All of the "
+                    "output entries (namely 'gain', 'snr', "
+                    "'center_0', 'center_0_error', "
+                    "'center_1', 'center_1_error', 'std_0', "
+                    "'std_0_error', 'std_1', 'std_1_error') "
+                    "will be set to NaN."
+                )
+                
+                aux = {
+                    'gain': np.nan,
+                    'snr': np.nan,
+                    'center_0': np.nan,
+                    'center_0_error': np.nan,
+                    'center_1': np.nan,
+                    'center_1_error': np.nan,
+                    'std_0': np.nan,
+                    'std_0_error': np.nan,
+                    'std_1': np.nan,
+                    'std_1_error': np.nan
+                }
+
+            elif fitted_peaks == 1:
+                print(
+                    "In function get_gain_snr_and_fit_parameters(): "
+                    "Only one fitted peak found for channel "
+                    f"{endpoint}-{channel}. Since the gain and "
+                    "the SNR cannot be computed, some of the "
+                    "entries (namely 'gain', 'snr', 'center_1', "
+                    "'center_1_error', 'std_1', 'std_1_error') "
+                    "will be set to NaN."
+                )
+
+                aux = {
+                    'gain': np.nan,
+                    'snr': np.nan,
+                    'center_0': fit_params['mean'][0][0],
+                    'center_0_error': fit_params['mean'][0][1],
+                    'center_1': np.nan,
+                    'center_1_error': np.nan,
+                    'std_0': fit_params['std'][0][0],
+                    'std_0_error': fit_params['std'][0][1],
+                    'std_1': np.nan,
+                    'std_1_error': np.nan
+                }
+
+            else: # fitted_peaks >= 2:
+
                 aux_gain = fit_params['mean'][1][0] - fit_params['mean'][0][0]
-
-            except IndexError:
-                print(
-                    "In function get_gain_and_snr(): "
-                    "Could not compute the gain for channel "
-                    f"{endpoint}-{channel} since two-peaks "
-                    "data was not found. Skipping this channel."
-                )
-                continue
-
-            try:
-                # Compute the signal to noise ratio
-                aux_snr = aux_gain / \
-                    np.sqrt(fit_params['std'][0][0]**2 + fit_params['std'][1][0]**2)
-            
-            except IndexError:
-                print(
-                    "In function get_gain_and_snr(): "
-                    "Could not compute the SNR for channel "
-                    f"{endpoint}-{channel} since two-peaks "
-                    "data was not found. Skipping this channel."
-                )
-                continue
+                aux = {
+                    'gain': aux_gain,
+                    'snr': aux_gain / fit_params['std'][0][0],
+                    'center_0': fit_params['mean'][0][0],
+                    'center_0_error': fit_params['mean'][0][1],
+                    'center_1': fit_params['mean'][1][0],
+                    'center_1_error': fit_params['mean'][1][1],
+                    'std_0': fit_params['std'][0][0],
+                    'std_0_error': fit_params['std'][0][1],
+                    'std_1': fit_params['std'][1][0],
+                    'std_1_error': fit_params['std'][1][1]
+                }
 
             if endpoint not in data.keys():
                 data[endpoint] = {}
 
-            if channel in data[endpoint].keys():
+            elif channel in data[endpoint].keys():
                 raise Exception(
-                    "In function get_gain_and_snr(): "
+                    "In function get_gain_snr_and_fit_parameters(): "
                     f"An entry for channel {endpoint}-{channel} "
                     f"was already found when trying to save "
                     "the gain and SNR for this channel. Something "
                     "went wrong."
                 )
 
-            data[endpoint][channel] = {
-                'gain': aux_gain,
-                'snr': aux_snr
-            }
+            data[endpoint][channel] = aux
 
     return data
 
@@ -626,6 +699,14 @@ def save_data_to_dataframe(
         - OV_V
         - gain
         - snr
+        - center_0
+        - center_0_error
+        - center_1
+        - center_1_error
+        - std_0
+        - std_0_error
+        - std_1
+        - std_1_error
         - SPE_mean_amplitude
         - SPE_mean_adcs
         - integration_lower_limit
@@ -654,30 +735,62 @@ def save_data_to_dataframe(
             {
                 endpoint1: {
                     channel1: {
-                        'gain': gain_value11,
-                        'snr': snr_value11,
-                        'SPE_mean_amplitude': SPE_mean_amplitude_value11
+                        'gain': gain_value_11,
+                        'snr': ...,
+                        'center_0': ...,
+                        'center_0_error': ...,
+                        'center_1': ...,
+                        'center_1_error': ...,
+                        'std_0': ...,
+                        'std_0_error': ...,
+                        'std_1': ...,
+                        'std_1_error': ...,
+                        'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_11
                     },
                     channel2: {
-                        'gain': gain_value12,
-                        'snr': snr_value12,
-                        'SPE_mean_amplitude': SPE_mean_amplitude_value12
+                        'gain': gain_value_12,
+                        'snr': ...,
+                        'center_0': ...,
+                        'center_0_error': ...,
+                        'center_1': ...,
+                        'center_1_error': ...,
+                        'std_0': ...,
+                        'std_0_error': ...,
+                        'std_1': ...,
+                        'std_1_error': ...,
+                        'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_12
                     },
                     ...
                 },
                 endpoint2: {
                     channel1: {
-                        'gain': gain_value21,
-                        'snr': snr_value21,
-                        'SPE_mean_amplitude': SPE_mean_amplitude_value21
+                        'gain': gain_value_21,
+                        'snr': ...,
+                        'center_0': ...,
+                        'center_0_error': ...,
+                        'center_1': ...,
+                        'center_1_error': ...,
+                        'std_0': ...,
+                        'std_0_error': ...,
+                        'std_1': ...,
+                        'std_1_error': ...,
+                        'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_21
                     },
                     channel2: {
-                        'gain': gain_value22,
-                        'snr': snr_value22,
-                        'SPE_mean_amplitude': SPE_mean_amplitude_value22
+                        'gain': gain_value_22,
+                        'snr': ...,
+                        'center_0': ...,
+                        'center_0_error': ...,
+                        'center_1': ...,
+                        'center_1_error': ...,
+                        'std_0': ...,
+                        'std_0_error': ...,
+                        'std_1': ...,
+                        'std_1_error': ...,
+                        'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_22
                     },
                     ...
@@ -806,6 +919,14 @@ def save_data_to_dataframe(
         "OV_V": [],
         "gain": [],
         "snr": [],
+        "center_0": [],
+        "center_0_error": [],
+        "center_1": [],
+        "center_1_error": [],
+        "std_0": [],
+        "std_0_error": [],
+        "std_1": [],
+        "std_1_error": [],
         "SPE_mean_amplitude": [],
         "SPE_mean_adcs": [],
         "integration_lower_limit": [],
@@ -829,6 +950,14 @@ def save_data_to_dataframe(
         df['OV_V'] = df['OV_V'].astype(float)
         df['gain'] = df['gain'].astype(float)
         df['snr'] = df['snr'].astype(float)
+        df['center_0'] = df['center_0'].astype(float)
+        df['center_0_error'] = df['center_0_error'].astype(float)
+        df['center_1'] = df['center_1'].astype(float)
+        df['center_1_error'] = df['center_1_error'].astype(float)
+        df['std_0'] = df['std_0'].astype(float)
+        df['std_0_error'] = df['std_0_error'].astype(float)
+        df['std_1'] = df['std_1'].astype(float)
+        df['std_1_error'] = df['std_1_error'].astype(float)
         df['SPE_mean_amplitude'] = df['SPE_mean_amplitude'].astype(float)
         df['SPE_mean_adcs'] = df['SPE_mean_adcs'].astype(object) # cannot specify list[float] or np.ndarray
         df['integration_lower_limit'] = df['integration_lower_limit'].astype(int)
@@ -925,6 +1054,14 @@ def save_data_to_dataframe(
                     ],
                     "gain": [packed_gain_snr_and_SPE_info[endpoint][channel]["gain"]],
                     "snr": [packed_gain_snr_and_SPE_info[endpoint][channel]["snr"]],
+                    "center_0": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_0"]],
+                    "center_0_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_0_error"]],
+                    "center_1": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_1"]],
+                    "center_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_1_error"]],
+                    "std_0": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_0"]],
+                    "std_0_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_0_error"]],
+                    "std_1": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1"]],
+                    "std_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1_error"]],
                     "SPE_mean_amplitude": [abs(packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_amplitude"])],
                     "SPE_mean_adcs": [
                         [round(float(x), 4) for x in \

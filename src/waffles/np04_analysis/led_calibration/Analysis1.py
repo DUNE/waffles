@@ -989,7 +989,7 @@ class Analysis1(WafflesAnalysis):
                 self.current_excluded_channels['excluded_channels'].values[0]
             ) if not self.current_excluded_channels.empty else []
 
-        self.output_data = led_utils.get_gain_and_snr(
+        self.output_data = led_utils.get_gain_snr_and_fit_parameters(
             self.grid_apa,
             self.current_excluded_channels,
             reset_excluded_channels=True
