@@ -1119,7 +1119,8 @@ def save_data_to_dataframe(
                         df.reset_index()
         df.to_csv(
             path_to_output_file,
-            index=False
+            index=False,
+            na_rep="nan"
         )
 
     return
