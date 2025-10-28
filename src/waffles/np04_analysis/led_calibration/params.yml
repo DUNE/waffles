@@ -246,7 +246,7 @@ output_dataframe_filename: 'calibration_results.csv'
 # respectively. In this case, the 'vendor' column of the
 # output CSV file will be filled with the vendor
 # information retrieved from this file.
-sipm_vendor_filepath: '../../np04_utils/PDHD_PDS_NewChannelMap.csv'
+sipm_vendor_filepath: '../../np04_utils/PDHD_PDS_ChannelMap.csv'
 
 # Whether to potentially overwrite existing rows in the
 # output dataframe
