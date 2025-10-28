@@ -467,8 +467,8 @@ def parse_numeric_list(input_string: str) -> list:
     return [cast(item) for item in items]
 
 def compute_average_baseline_std(
-        waveform_set: WaveformSet,
-        baseline_analysis_label: str
+    waveform_set: WaveformSet,
+    baseline_analysis_label: str
 ) -> float:
     """For the waveforms in a given WaveformSet, this function computes
     the average of the signal standard deviation in the baseline region.
