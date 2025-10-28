@@ -1,9 +1,6 @@
 import waffles.np04_analysis.self_trigger.self_trigger as self_trigger
 from waffles.np04_utils.utils import get_np04_channel_mapping
-import waffles.input_output.hdf5_structured as reader
-import matplotlib.pyplot as plt
 from ROOT import TFile, TF1
-import mplhep
 import numpy as np
 import os
 import pandas as pd
@@ -18,16 +15,17 @@ if __name__ == "__main__":
         steering_config = yaml.safe_load(stream)
     params_file_name = steering_config.get("params_file", "params.yml")
     ana_folder  = steering_config.get("ana_folder")
+    metadata_folder = ana_folder + "metadata/"
+
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
 
     run_info_file = user_config.get("run_info_file")
     calibration_file = user_config.get("calibration_file")
-    file_folder = user_config.get("file_folder")
     SiPM_channel = user_config.get("SiPM_channel")
     save_pngs = user_config.get("save_pngs", True)
     runs = user_config.get("runs", [])
-    files_in_folder = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
+    files_in_folder = [metadata_folder+f for f in os.listdir(metadata_folder) if f.endswith(".root")]
 
     df_runs = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
@@ -43,7 +41,6 @@ if __name__ == "__main__":
     spe_ampl = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'SpeAmpl'].values[0])
 
     df_mapping = get_np04_channel_mapping(version="new")
-    print(df_mapping.head(5))
     SiPM = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
 
 
@@ -53,7 +50,6 @@ if __name__ == "__main__":
         os.makedirs(ch_folder)
 
     for run in runs:
-        # print the run number and the run index in runs
         print(f"Processing run {run} ({runs.index(run)+1}/{len(runs)})")
         # Load run information ------------------------------------------------
         led  = int(df_runs.loc[df_runs['Run'] == run, 'LED'].values[0])
@@ -69,20 +65,21 @@ if __name__ == "__main__":
         filename = filename[0]
         print("Reading file ", filename)
 
-        wfset = reader.load_structured_waveformset(filename)
         ch_sipm = SiPM_channel
-        ch_st = filename.split("ChST_")[-1].split("_")[0]
+        ch_st = filename.split("ChST_")[-1].split(".root")[0]
         st = self_trigger.SelfTrigger(ch_sipm=int(ch_sipm),
                                       ch_st=int(ch_st),
-                                      wf_set=wfset,
+                                      wf_set=None,
                                       prepulse_ticks=prepulse_ticks,
                                       int_low=int_low,
                                       int_up=int_up,
                                       bsl_rms=bsl_rms,
                                       spe_charge=spe_charge,
                                       spe_ampl=spe_ampl,
-                                      snr=snr)
-        st.create_wfs()
+                                      snr=snr,
+                                      metadata_file=filename
+        )
+        st.upload_metadata()
 
             
         h_st_full = st.create_self_trigger_distribution("h_st_full")
@@ -90,16 +87,10 @@ if __name__ == "__main__":
         bkg_trg_rate, unc_bkg_trg_rate = st.get_bkg_trg_rate(h_st_full)
         bkg_trg_rate_preLED, unc_bkg_trg_rate_preLED = st.get_bkg_trg_rate_preLED(h_st_full)
 
-        st.select_waveforms()
+        st.select_events()
         h_st = st.create_self_trigger_distribution()
         
-        if save_pngs:
-            fig = plt.figure(figsize=(10, 8))
-        htotal, hpassed = st.create_efficiency_histos("he_efficiency")
-        if save_pngs:
-            plt.savefig(ch_folder+f"Efficiency_Run_{run}_LED_{led}_Thr_{threshold}.png")
-            plt.close(fig)
-        
+        st.create_efficiency_histos("he_efficiency")
         efficiency_fit_ok = st.fit_efficiency()
 
 
@@ -126,9 +117,9 @@ if __name__ == "__main__":
             "ErrMaxEffFit": st.f_sigmoid.GetParError(2) if efficiency_fit_ok else np.nan,
             "10to90": st.get_10to90_range(),
             "10to90Fit": st.get_10to90_range_fit(),
-            "fifty": st.fifty
+            "fifty": st.fifty,
+            "Errfifty": 0.01
         })
-        print(f"\n\n\nfifty: {st.fifty}\n\n")
         h_st.Write()
         st.h_total.Write()
         st.h_passed.Write()
@@ -137,10 +128,14 @@ if __name__ == "__main__":
           
 
     g_st_calib, offset, slope = self_trigger.fit_thrPE_vs_thrSet(pd.DataFrame(out_df_rows))
-    out_root_file.cd()
     g_st_calib.SetTitle(f"Self-Trigger Calibration Ch {SiPM_channel};Threshold Set;Threshold Fit (PE)")
+    g_st_calib2, offset2, slope2 = self_trigger.fit_thrPE_vs_thrSet(pd.DataFrame(out_df_rows), "fifty")
+    g_st_calib2.SetTitle(f"Self-Trigger Calibration Ch {SiPM_channel};Threshold Set;Threshold Fifty (PE)")
+    out_root_file.cd()
     g_st_calib.Write()
+    g_st_calib2.Write()
     out_root_file.Close()
     out_df = pd.DataFrame(out_df_rows)
     out_df['ThresholdFitCalibrated'] = slope*out_df['ThresholdSet'] + offset
+    out_df['FiftyCalibrated'] = slope2*out_df['ThresholdSet'] + offset2
     out_df.to_csv(ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}.csv", index=False)

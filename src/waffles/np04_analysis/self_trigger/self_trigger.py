@@ -5,6 +5,7 @@ import pandas as pd
 from waffles.np04_analysis.time_resolution.utils import create_float_waveforms, sub_baseline_to_wfs
 from hist import Hist
 from ROOT import TH1D, TEfficiency, TF1, TSpectrum, TGraphErrors
+import ROOT
 
 
 def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
@@ -53,21 +54,25 @@ def find_50efficiency(he_STEfficiency: TEfficiency) -> float:
     return np.nan
 
 
-def fit_thrPE_vs_thrSet(out_df: pd.DataFrame) -> tuple[TGraphErrors, float, float]:
+def fit_thrPE_vs_thrSet(out_df: pd.DataFrame, thrPE_column: str="") -> tuple[TGraphErrors, float, float]:
     """
     Fit the threshold in PE vs the set threshold.
     """
-    
+    gr_name = "gr_fit_thrPE2_vs_thrSet"
+    if thrPE_column == "":
+        gr_name = "gr_fit_thrPE_vs_thrSet"
+        thrPE_column = "ThresholdFit" 
+    err_thrPE_column = "Err"+thrPE_column
     # Drop lines where ThresholdFit is NaN
-    df = out_df.dropna(subset=['ThresholdFit'])
+    df = out_df.dropna(subset=[thrPE_column])
     # from the df take the ThresholdSet, ThresholdFit and ErrThresholdFit
     thr_set = np.array(df['ThresholdSet'].values).astype(float)
     err_thr_set = np.zeros_like(thr_set)
-    thr_fit = np.array(df['ThresholdFit'].values).astype(float)
-    err_thr_fit = np.array(df['ErrThresholdFit'].values).astype(float)
+    thr_fit = np.array(df[thrPE_column].values).astype(float)
+    err_thr_fit = np.array(df[err_thrPE_column].values).astype(float)
     # Create a ROOT TGraphErrors
     gr = TGraphErrors(len(thr_set), thr_set, thr_fit, err_thr_set, err_thr_fit)
-    gr.SetName("gr_fit_thrPE_vs_thrSet")
+    gr.SetName(gr_name)
     # Fit with a linear function
     f_lin = TF1("f_lin", "pol1", min(thr_set), max(thr_set))
     gr.Fit(f_lin, "R")
@@ -80,7 +85,7 @@ class SelfTrigger:
     def __init__(self,
                  ch_sipm: int,
                  ch_st: int,
-                 wf_set: waffles.WaveformSet,
+                 wf_set,
                  prepulse_ticks: int,
                  int_low: int,
                  int_up: int,
@@ -88,6 +93,7 @@ class SelfTrigger:
                  spe_charge: float,
                  spe_ampl: float,
                  snr: float,
+                 metadata_file: str="",
                  ) -> None:
 
         """
@@ -104,6 +110,7 @@ class SelfTrigger:
         self.spe_ampl = spe_ampl
         self.snr = snr
         self.bsl_rms = bsl_rms
+        self.metadata_file = metadata_file
         
         self.h_low = -1.5
         self.h_up = 10
@@ -134,6 +141,16 @@ class SelfTrigger:
 
         del t_wfset
 
+    def upload_metadata(self) -> None:
+        """
+
+        """
+        df = ROOT.RDataFrame("SelfTriggerTree", self.metadata_file)
+        arrays = df.AsNumpy()
+
+        self.selection = arrays["selection"].astype(bool)
+        self.pe = arrays["pe"].astype(float)
+        self.trigger_times_list = list(arrays["trigger_times"])
 
     def create_self_trigger_distribution(self, name="") -> TH1D:
         """
@@ -141,12 +158,10 @@ class SelfTrigger:
         """
         if name == "":
             name = "h_selftrigger"
+        
+        flat = np.fromiter((trg_time for trg_times in self.trigger_times_list for trg_time in trg_times), dtype=np.double)
         h_selftrigger = TH1D(name, f"{name};Ticks;Counts", 1024, -0.5, 1023.5)
-
-        for wf in self.wfs_st:
-            st_positions = np.flatnonzero(wf.adcs)
-            for st in st_positions:
-                h_selftrigger.Fill(st)
+        h_selftrigger.FillN(len(flat), flat, np.ones_like(flat))
        
         self.h_st = h_selftrigger
         return h_selftrigger
@@ -157,7 +172,7 @@ class SelfTrigger:
         """
         n_bkg_triggers = h_selftrigger.Integral(self.bkg_trg_win_low, h_selftrigger.GetNbinsX())
         unc_n_bkg_triggers = sqrt(n_bkg_triggers)
-        norm_factor = 10**9 / (len(self.wfs_st) * (len(self.wfs_st[0].adcs)-self.bkg_trg_win_low) * 16.)
+        norm_factor = 10**9 / (len(self.pe) * (1024-self.bkg_trg_win_low) * 16.)
         bkg_trg_rate = n_bkg_triggers * norm_factor
         unc_bkg_trg_rate = unc_n_bkg_triggers * norm_factor
 
@@ -169,9 +184,10 @@ class SelfTrigger:
         """
         n_bkg_triggers_preLED = h_selftrigger.Integral(1, self.int_low)
         unc_n_bkg_triggers_preLED = sqrt(n_bkg_triggers_preLED)
-        norm_factor = 10**9 / (len(self.wfs_st) * (self.int_low-1) * 16.)
+        norm_factor = 10**9 / (len(self.pe) * (self.int_low-1) * 16.)
         bkg_trg_rate_preLED = n_bkg_triggers_preLED * norm_factor
         unc_bkg_trg_rate_preLED = unc_n_bkg_triggers_preLED * norm_factor
+
         return bkg_trg_rate_preLED, unc_bkg_trg_rate_preLED
 
     def find_acceptance_window(self) -> None:
@@ -196,7 +212,7 @@ class SelfTrigger:
 
         afttrg = x_hST_max
         i = x_hST_max
-        while i < self.wfs_st[0].adcs.size - 1:
+        while i < 1023:
             afttrg = i
             if self.h_st.GetBinContent(i + 1) < thr_counts:
                 break
@@ -230,7 +246,7 @@ class SelfTrigger:
 
         afttrg = x_hST_max
         i = x_hST_max
-        while i < self.wfs_st[0].adcs.size - 1:
+        while i < 1023:
             afttrg = i
             if self.h_st.GetBinContent(i + 1) < thr_counts:
                 break
@@ -350,35 +366,25 @@ class SelfTrigger:
 
 
 
-    def create_efficiency_histos(self, he_name: str) -> tuple:
+    def create_efficiency_histos(self, he_name: str) -> None:
         """
         Create efficiency histograms for the self-triggering.
         """
-        htotal   = Hist.new.Reg(self.h_bins, self.h_low, self.h_up, label="#P.E.").Double()
-        hpassed  = Hist.new.Reg(self.h_bins, self.h_low, self.h_up, label="#P.E.").Double()
-        spe_norm = 1./self.spe_charge
-
-        nspes = np.array([wf.adcs_float[self.int_low:self.int_up+1].sum() * spe_norm for wf in self.wfs_sipm])
-        sorted_nspes = nspes.copy()
+        sorted_nspes = self.pe.copy()
         sorted_nspes.sort()
 
         nspe_min = sorted_nspes[int(0.001 * len(sorted_nspes))]
         nspe_max = sorted_nspes[int(0.96 * len(sorted_nspes))]
-        n_bins   = (nspe_max - nspe_min) * 20
+        n_bins   = int((nspe_max - nspe_min) * 16)
 
         h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  n_bins, nspe_min, nspe_max)
         h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", n_bins, nspe_min, nspe_max)
 
-        for wf_sipm, wf_st, nspe in zip(self.wfs_sipm, self.wfs_st, nspes):
-            if (wf_sipm.timestamp != wf_st.timestamp):
-                print(f"Timestamp mismatch: SiPM {wf_sipm.timestamp}, ST {wf_st.timestamp}")
-                continue
-            htotal.fill(nspe)
-            h_total.Fill(nspe)
-            triggers = np.flatnonzero(wf_st.adcs[self.window_low:self.window_up+1])
+        for pe, trig_times in zip(self.pe, self.trigger_times_list):
+            h_total.Fill(pe)
+            triggers = [t for t in trig_times if t >= self.window_low and t <= self.window_up]
             if len(triggers) > 0:
-                hpassed.fill(nspe)
-                h_passed.Fill(nspe)
+                h_passed.Fill(pe)
 
         for i in range(1, h_total.GetNbinsX()):
             if h_total.GetBinContent(i) < 5:
@@ -394,14 +400,7 @@ class SelfTrigger:
         self.he_STEfficiency2.SetName(he_name+"2")
         self.he_STEfficiency2.SetTitle(he_name+"2")
 
-        main_ax_artists, sublot_ax_arists = hpassed.plot_ratio(
-            htotal,
-            rp_num_label="passed",
-            rp_denom_label="total",
-            rp_uncert_draw_type="line",
-            rp_uncertainty_type="efficiency",
-        )
-        return main_ax_artists, sublot_ax_arists
+        return None
 
 
     def fit_efficiency(self) -> bool:
@@ -414,9 +413,14 @@ class SelfTrigger:
             if self.he_STEfficiency.GetEfficiency(i+1) > max_efficiency:
                 max_efficiency = self.he_STEfficiency.GetEfficiency(i+1)
 
-        effs = np.array([self.he_STEfficiency.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
-
-        if len(effs[np.where(effs < 0.05)]) < 15 or len(effs[np.where(effs > 0.95*max_efficiency)]) < 15:
+        bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
+        effs = np.array([self.he_STEfficiency2.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
+        meaningful_mask = bin_contents > 10
+        effs = effs[meaningful_mask]
+        max_efficiency = np.max(effs)
+        
+        if len(effs[effs<0.05]) < 10 \
+                or len(effs[effs>0.95*max_efficiency]) < 10:
             print("No low or high efficiency points found.")
             self.he_STEfficiency.SetTitle("Not ok: no low or high efficiency points found.")
             return False
@@ -428,11 +432,10 @@ class SelfTrigger:
             return False
         
         print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
-        bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
         populated_bins = np.where(bin_contents > 10)
-       
         xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
         xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
+       
         self.f_sigmoid.SetRange(xlow, xup)
         self.f_sigmoid.SetParameters(thr_x, 0.15, max_efficiency)
         self.f_sigmoid.SetParLimits(0, thr_x-2, thr_x+2)
@@ -491,12 +494,15 @@ class SelfTrigger:
         self.fifty = np.nan
         print(self.fifty, type(self.fifty))
         h_total = self.he_STEfficiency2.GetTotalHistogram()
-        bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
-        populated_bins = np.where(bin_contents > 10)
         
+        bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
         effs = np.array([self.he_STEfficiency2.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
+        meaningful_mask = bin_contents > 10
+        effs = effs[meaningful_mask]
         max_efficiency = np.max(effs)
-        if len(effs[np.where(effs < 0.05)]) < 10 or len(effs[np.where(effs > 0.95*max_efficiency)]) < 10:
+        
+        if len(effs[effs<0.05]) < 10 \
+                or len(effs[effs>0.95*max_efficiency]) < 10:
             print("No low or high efficiency points found.")
             self.he_STEfficiency.SetTitle("Not ok: no low or high efficiency points found.")
             return np.nan
@@ -506,17 +512,18 @@ class SelfTrigger:
             print("No 50% efficiency point found.")
             return np.nan
        
+        populated_bins = np.where(bin_contents > 10)
         xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
         xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
         f_custom = TF1("f_sigmoidss", "[2]/(1+exp(([0]-x)/[1]))+[5]/(1+exp(([3]-x)/[4]))", xlow, xup)
-        f_custom.SetParameters(thr_x, 0.15, 1.0, thr_x+1, 0.15, 0.01)
+        f_custom.SetParNames("x0", "#tau", "A", "x0_{2}", "#tau_{2}", "A_{2}")
+        f_custom.SetParameters(thr_x, 0.15, .9, thr_x+1, 0.15, 0.1)
         f_custom.SetParLimits(0, max([xlow,thr_x-2]), thr_x+2)
         f_custom.SetParLimits(1, 0.03, 1)
-        f_custom.SetParLimits(2, 0.7, 1)
+        f_custom.SetParLimits(2, 0.01, 1)
         f_custom.SetParLimits(3, thr_x, thr_x+5)
         f_custom.SetParLimits(4, 0.03, 3)
-        f_custom.SetParLimits(5, 0.0, 0.4)
-        f_custom.SetParNames("x0", "#tau", "A", "x0_{2}", "#tau_{2}", "A_{2}")
+        f_custom.SetParLimits(5, 0.01, 1)
         f_custom.SetNpx(3000)
         
         self.he_STEfficiency2.Fit(f_custom, "R")
@@ -542,6 +549,72 @@ class SelfTrigger:
                 break
 
         return thr_90 - thr_10
+    # def get_10to90_range_fit(self, fix_maxEff: bool=False) -> float:
+    #     """
+    #     Get the 10% to 90% range from a custom fit function
+    #     """
+    #     thr_10 = np.nan
+    #     thr_90 = np.nan
+    #     self.fifty = np.nan
+    #     print(self.fifty, type(self.fifty))
+    #     h_total = self.he_STEfficiency2.GetTotalHistogram()
+    #     
+    #     bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
+    #     effs = np.array([self.he_STEfficiency2.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
+    #     meaningful_mask = bin_contents > 10
+    #     effs = effs[meaningful_mask]
+    #     max_efficiency = np.max(effs)
+    #     
+    #     if len(effs[effs<0.05]) < 10 \
+    #             or len(effs[effs>0.95*max_efficiency]) < 10:
+    #         print("No low or high efficiency points found.")
+    #         self.he_STEfficiency.SetTitle("Not ok: no low or high efficiency points found.")
+    #         return np.nan
+    #
+    #     thr_x = find_50efficiency(self.he_STEfficiency)
+    #     if np.isnan(thr_x):
+    #         print("No 50% efficiency point found.")
+    #         return np.nan
+    #    
+    #     populated_bins = np.where(bin_contents > 10)
+    #     xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
+    #     xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
+    #     f_custom = TF1("f_sigmoidss", "[0]*([1]/(1+exp(([2]-x)/[3]))+(1-[1])/(1+exp(([4]-x)/[5])))", xlow, xup)
+    #     f_custom.SetParNames("Max_{eff}", "a", "x0_{1}", "#tau_{1}", "x0_{2}", "#tau_{2}")
+    #     f_custom.SetParameters(1, 0.5, thr_x, 0.15, thr_x+1, 0.15)
+    #     f_custom.SetParLimits(0, 0.7, 1)
+    #     if fix_maxEff:
+    #         f_custom.FixParameter(0, 1)
+    #     f_custom.SetParLimits(1, 0.05, 1)
+    #     f_custom.SetParLimits(2, max([xlow,thr_x-2]), thr_x+2)
+    #     f_custom.SetParLimits(3, 0.03, 1)
+    #     f_custom.SetParLimits(4, thr_x, thr_x+5)
+    #     f_custom.SetParLimits(5, 0.0, 0.4)
+    #     f_custom.SetNpx(3000)
+    #     
+    #     self.he_STEfficiency2.Fit(f_custom, "R")
+    #     self.f_sigmoid2 = f_custom
+    #
+    #     print("After fit:")
+    #     print(self.fifty, type(self.fifty))
+    #     x_fifty = f_custom.GetX(0.5, xlow, xup)
+    #     print(x_fifty, type(x_fifty))
+    #     if not np.isnan(x_fifty):
+    #         self.fifty = x_fifty
+    #     print(self.fifty, type(self.fifty))
+    #
+    #     # Find 10% and 90%
+    #     for i in range(h_total.GetNbinsX()-2):
+    #         if f_custom.Eval(h_total.GetBinCenter(i+1)) >= 0.1:
+    #             thr_10 = h_total.GetBinCenter(i+1)
+        #         break
+        #
+        # for i in range(h_total.GetNbinsX()-2):
+        #     if f_custom.Eval(h_total.GetBinCenter(i+1)) >= 0.9:
+        #         thr_90 = h_total.GetBinCenter(i+1)
+        #         break
+        #
+        # return thr_90 - thr_10
 
 
     def st_selector(self, wf) -> bool:
@@ -556,23 +629,45 @@ class SelfTrigger:
         return True
 
 
-    def select_waveforms(self) -> None:
+    def select_events(self) -> None:
         """
-        Select waveforms based on the self-triggering criteria.
+        Select events based on the self-triggering criteria.
         """
-        self.st_selection = np.array([self.st_selector(wf) for wf in self.wfs_sipm], dtype=bool)
-        self.wfs_sipm = np.array(self.wfs_sipm[self.st_selection])
-        self.wfs_st = np.array(self.wfs_st[self.st_selection])
+        self.pe = np.array(self.pe[self.selection])
+        self.trigger_times_list = [self.trigger_times_list[i] for i in range(len(self.trigger_times_list)) if self.selection[i]]
 
+    def from_raw_to_metadata(self):
+        """
+        From raw waveforms to metadata.
+        Prepare metadata arrays ready to be stored in a ROOT TTree. Each entry corresponds to a waveform.
+        """
+        # Exclude waveform with different timestamps
+        timestamp_array = np.array([wf.timestamp for wf in self.wfs_sipm])
+        st_timestamp_array = np.array([wf.timestamp for wf in self.wfs_st])
+        print(f"\n\nNumber of waveforms before timestamp selection: {len(self.wfs_sipm)}")
+        selection_array = timestamp_array == st_timestamp_array
+        self.wfs_sipm = np.array(self.wfs_sipm[selection_array])
+        self.wfs_st = np.array(self.wfs_st[selection_array])
+        print(f"Number of waveforms after timestamp selection: {len(self.wfs_sipm)}\n\n")
+
+        # prepare arrays
+        self.selection = np.array([self.st_selector(wf) for wf in self.wfs_sipm], dtype=bool)
+        spe_norm = 1./self.spe_charge
+        self.pe = np.array([wf.adcs_float[self.int_low:self.int_up+1].sum() * spe_norm for wf in self.wfs_sipm])
+        trigger_times = []
+        for wf_st in self.wfs_st:
+            st_positions = np.flatnonzero(wf_st.adcs)
+            trigger_times.append(st_positions.astype(np.int16))
+
+        self.trigger_times = trigger_times
+
+        return
 
     def trigger_distr_per_nspe(self) -> dict:
         """
 
         """
-        for wf in self.wfs_sipm:
-            wf.nspe = wf.adcs_float[self.int_low:self.int_up].sum() * (1./self.spe_charge)
-
-        nspe_arr = np.array([wf.nspe for wf in self.wfs_sipm])
+        nspe_arr = self.pe.copy()
         nspe_arr.sort()
         if len(nspe_arr) == 0:
             return {}
@@ -584,14 +679,13 @@ class SelfTrigger:
         for spe in range(int(nspe_min), int(nspe_max)+1):
             dict_hists[spe] = TH1D(f"h_st_{spe}", f"h_st_{spe};Ticks;Counts", 1024, -0.5, 1023.5)
 
-        for wf_sipm, wf_st in zip(self.wfs_sipm, self.wfs_st):
-            if wf_sipm.nspe < nspe_min or wf_sipm.nspe > nspe_max:
+        for npe, trigger_times in zip(self.pe, self.trigger_times_list):
+            if npe < nspe_min or npe > nspe_max:
                 continue
-            spe = int(wf_sipm.nspe+0.5)
+            spe = int(npe+0.5)
             if spe not in dict_hists:
                 continue
-            st_arr = np.flatnonzero(wf_st.adcs)
-            for st in st_arr:
-                dict_hists[spe].Fill(st)
+            for trig_time in trigger_times:
+                dict_hists[spe].Fill(trig_time)
         
         return dict_hists
