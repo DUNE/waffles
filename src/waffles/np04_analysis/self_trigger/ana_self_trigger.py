@@ -125,6 +125,9 @@ if __name__ == "__main__":
         st.h_passed.Write()
         st.he_STEfficiency.Write()
         st.he_STEfficiency2.Write()
+        st.h_total_quantized.Write()
+        st.h_passed_quantized.Write()
+        st.he_STEfficiency_quantized.Write()
           
 
     g_st_calib, offset, slope = self_trigger.fit_thrPE_vs_thrSet(pd.DataFrame(out_df_rows))

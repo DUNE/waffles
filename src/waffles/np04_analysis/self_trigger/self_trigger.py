@@ -152,6 +152,8 @@ class SelfTrigger:
         self.pe = arrays["pe"].astype(float)
         self.trigger_times_list = list(arrays["trigger_times"])
 
+        return None
+
     def create_self_trigger_distribution(self, name="") -> TH1D:
         """
         Take the st waveforms indec where adcs==1
@@ -370,21 +372,23 @@ class SelfTrigger:
         """
         Create efficiency histograms for the self-triggering.
         """
-        sorted_nspes = self.pe.copy()
-        sorted_nspes.sort()
+        n_bins   = int((self.nspe_max - self.nspe_min) * 16)
+        n_bins_quantized = int(self.nspe_max) - int(self.nspe_min) + 1
 
-        nspe_min = sorted_nspes[int(0.001 * len(sorted_nspes))]
-        nspe_max = sorted_nspes[int(0.96 * len(sorted_nspes))]
-        n_bins   = int((nspe_max - nspe_min) * 16)
-
-        h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  n_bins, nspe_min, nspe_max)
-        h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", n_bins, nspe_min, nspe_max)
+        h_total  = TH1D("h_total",  "h_total;#P.E.;Counts",  n_bins, self.nspe_min, self.nspe_max)
+        h_passed = TH1D("h_passed", "h_passed;#P.E.;Counts", n_bins, self.nspe_min, self.nspe_max)
+        h_total_quantized  = TH1D("h_total_quantized",  "h_total_quantized;#P.E.;Counts",
+                                  n_bins_quantized, int(self.nspe_min)-0.5, int(self.nspe_max)+0.5)
+        h_passed_quantized = TH1D("h_passed_quantized", "h_passed_quantized;#P.E.;Counts",
+                                  n_bins_quantized, int(self.nspe_min)-0.5, int(self.nspe_max)+0.5)
 
         for pe, trig_times in zip(self.pe, self.trigger_times_list):
             h_total.Fill(pe)
+            h_total_quantized.Fill(pe)
             triggers = [t for t in trig_times if t >= self.window_low and t <= self.window_up]
             if len(triggers) > 0:
                 h_passed.Fill(pe)
+                h_passed_quantized.Fill(pe)
 
         for i in range(1, h_total.GetNbinsX()):
             if h_total.GetBinContent(i) < 5:
@@ -400,8 +404,23 @@ class SelfTrigger:
         self.he_STEfficiency2.SetName(he_name+"2")
         self.he_STEfficiency2.SetTitle(he_name+"2")
 
+        self.h_total_quantized = h_total_quantized
+        self.h_passed_quantized = h_passed_quantized
+        self.he_STEfficiency_quantized = TEfficiency(h_passed_quantized, h_total_quantized)
+        self.he_STEfficiency_quantized.SetName(he_name+"_quantized")
+        self.he_STEfficiency_quantized.SetTitle(he_name+"_quantized")
+
         return None
 
+    def get_efficiency_at(self, pe: int) -> tuple[float, float]:
+        """
+        Get the efficiency at a given PE value.
+        """
+        bin_x = self.he_STEfficiency_quantized.GetTotalHistogram().FindBin(pe)
+        eff = self.he_STEfficiency_quantized.GetEfficiency(bin_x)
+        err_eff = self.he_STEfficiency_quantized.GetEfficiencyErrorUp(bin_x)
+
+        return eff, err_eff
 
     def fit_efficiency(self) -> bool:
         """
@@ -635,6 +654,13 @@ class SelfTrigger:
         """
         self.pe = np.array(self.pe[self.selection])
         self.trigger_times_list = [self.trigger_times_list[i] for i in range(len(self.trigger_times_list)) if self.selection[i]]
+        
+        sorted_nspes = self.pe.copy()
+        sorted_nspes.sort()
+        self.nspe_min = sorted_nspes[int(0.001 * len(sorted_nspes))]
+        self.nspe_max = sorted_nspes[int(0.96 * len(sorted_nspes))]
+
+        return None
 
     def from_raw_to_metadata(self):
         """
