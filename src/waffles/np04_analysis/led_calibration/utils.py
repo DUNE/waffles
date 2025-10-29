@@ -1509,6 +1509,81 @@ def add_integration_limits_to_persistence_heatmaps(
     
     return
 
+def __infer_SPE_peak_index(
+    gaussian_fits_parameters: dict,
+    gain: float
+) -> int:
+    """This helper function should only be called from
+    add_SPE_info_to_output_dictionary(), where the proper
+    well-formedness checks have already been done. It
+    infers the index of the Single Photo-Electron (SPE,
+    1-PE) peak from the fitted Gaussian parameters of
+    a calibration histogram, using the provided gain
+    value.
+
+    Parameters
+    ----------
+    gaussian_fits_parameters: dict
+        A dictionary containing the fitted Gaussian
+        parameters of a calibration histogram.
+    gain: float
+        The gain value used to infer the number of
+        photo-electrons corresponding to each peak
+        in the fitted Gaussian parameters.
+
+    Returns
+    -------
+    int
+        The index of the SPE (1-PE) peak in the
+        fitted Gaussian parameters.
+
+    Raises
+    ------
+    Exception
+        If the closest peak to 1-PE found in the
+        fitted Gaussian parameters is more compatible
+        with 0-PE or 2-PE than it is with 1-PE.
+    """
+
+    # inferred_number_of_PEs[i] gives the (inferred) number
+    # of photo-electrons corresponding to the i-th peak
+    # in the fitted Gaussian parameters
+    inferred_number_of_PEs = []
+
+    for center_pack in gaussian_fits_parameters['mean']:
+        inferred_number_of_PEs.append(
+            # center_pack[1] gives the error
+            # on the center, not the center itself
+            center_pack[0] / gain
+        )
+
+    # Find the peak whose inferred number of PEs
+    # is closest to 1
+    targeted_peak_idx = int(
+        np.argmin(
+            np.abs(
+                np.array(inferred_number_of_PEs) - 1.0
+            )
+        )
+    )
+
+    if inferred_number_of_PEs[targeted_peak_idx] < 0.5:
+        raise Exception(
+            "In function __infer_SPE_peak_index(): "
+            "The closest peak to 1-PE found in the fitted "
+            "Gaussian parameters is more compatible with "
+            f"0-PE than it is with 1-PE."
+        )
+    elif inferred_number_of_PEs[targeted_peak_idx] > 1.5:
+        raise Exception(
+            "In function __infer_SPE_peak_index(): "
+            "The closest peak to 1-PE found in the fitted "
+            "Gaussian parameters is more compatible with "
+            f"2-PE than it is with 1-PE."
+        )
+
+    return targeted_peak_idx
+
 def add_SPE_info_to_output_dictionary(
     grid_apa: ChannelWsGrid,
     excluded_channels: list,
