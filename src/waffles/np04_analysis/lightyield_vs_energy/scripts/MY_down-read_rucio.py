@@ -5,7 +5,7 @@
 ## In another terminal:
 # 1. source waffles/scripts/setup_rucio_a9.sh
 ## Turn back to the previous one and:
-# python3.10 MY_down-read_rucio.py --run 27355
+# python3.10 MY_down-read_rucio.py --run 27355 --run_filename 027355.txt
 
 '''
 Configuration parameters (from JSON):
@@ -95,7 +95,7 @@ class MY_hdf5_processor:
 
         # inizialized later
         self.output_filepath_exists = None
-        self.download_filepath = None
+        self.download_filepath = ''
 
 
         # print_colored(f"Loaded configuration: {config}", color="INFO")
@@ -187,11 +187,11 @@ class MY_hdf5_processor:
                 return True
             else: 
                 print(f"❌ Download disabled")
-                self.download_filepath = None
+                self.download_filepath = ''
                 return False
         except subprocess.CalledProcessError as e:
             print_colored(f"❌ Rucio download failed: {e}", color="ERROR")
-            self.download_filepath = None
+            self.download_filepath = ''
             return False
 
     def wfset_reading_and_save(self, mode: str):
@@ -257,7 +257,8 @@ class MY_hdf5_processor:
 @click.command(help="\033[34mProcess and save structured waveform data from JSON config.\033[0m")
 @click.option("--config", default='MY_config.json', help="Path to JSON configuration file.", type=str)
 @click.option("--run", required=True, help="Run you want to analyze (example 27355)", type=int)
-def main(config, run):
+@click.option("--run_filename", default=None, help="Filename of rucio file you want to analyze with .txt extension (by default 0{run}.txt)", type=str)
+def main(config, run, run_filename):
     try:
         import multiprocessing as mp
         mp.set_start_method('spawn')
@@ -273,7 +274,11 @@ def main(config, run):
         output_path = config_data.get("output_dir", ".")
         original_ch = parse_ch_dict(config_data.get("ch", {}))
         
-        input_file = os.path.join(rucio_paths_directory, f"{run:06d}.txt")
+        if run_filename is None:
+            input_file = os.path.join(rucio_paths_directory, f"{run:06d}.txt")
+        else:
+            input_file = os.path.join(rucio_paths_directory, run_filename)
+
         if not os.path.isfile(input_file):
             print(f"❌ Input file not found: {input_file}")
             return
@@ -294,13 +299,13 @@ def main(config, run):
 
                     if processor.check_mode_ch_empty(original_ch, mode):
                         print_colored(f"❌ No channels to process for mode {mode}. Skipping.", color="ERROR")
-                        return 
+                        continue 
                     else:
                         print_colored(f"✅ Channels available for mode {mode} (Endpoint: {list(processor.ch.keys())}). Proceeding.", color="INFO")
 
                     if processor.check_not_processed(mode) or processor.existing_reprocessing:
                         print(f"❎ Not processed yet and/or reprocessing enabled ({mode})")
-
+                        
                         if processor.check_not_eos():
                             print(f"🌐 Not found on EOS ruciopath - download required")
 
@@ -309,24 +314,26 @@ def main(config, run):
                                 processor.wfset_reading_and_save(mode)
                             else:
                                 print(f"❌ Download failed or not enabled, cannot proceed with analysis.")
-                                
+                                continue 
                             
                         else:
                             print(f"🌐 Found on EOS ruciopath - no download required")
                             print(f"✅ Starting analysis on eos file: {processor.download_filepath}") 
                             processor.wfset_reading_and_save(mode)
+                            continue
 
                     
                     else:
                         print(f"✅ Already processed ({mode})")
+                        continue
                         
 
-            if (processor.deleating_downloaded_rucio) and (processor.saving_results) and processor.check_not_eos() and processor.rucio_download() and (os.path.exists(processor.download_filepath)):
+            if (processor.deleating_downloaded_rucio) and (processor.saving_results) and (processor.check_not_eos()) and (os.path.exists(processor.download_filepath)):
                 print(f"🗑️ Deleting downloaded file: {processor.download_filepath}")
                 os.remove(processor.download_filepath)
                 print(f"✅  Deleted downloaded file.")
             else:
-                print(f"ℹ️  Not deleting downloaded file: {processor.download_filepath}")
+                print(f"ℹ️  Not deleting downloaded file")
         
     except Exception as e:
         print_colored(f"An error occurred: {e}", color="ERROR")
