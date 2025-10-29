@@ -1028,6 +1028,25 @@ def save_data_to_dataframe(
                     
                     integration_limits = (np.nan, np.nan)
 
+                try:
+                    aux_SPE_mean_amplitude = \
+                        abs(packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_amplitude"])
+                    
+                    aux_SPE_mean_adcs = [
+                        round(float(x), 4) for x in \
+                        packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_adcs"]
+                    ]
+                
+                except KeyError:
+                    print(
+                        "In function save_data_to_dataframe(): "
+                        "SPE mean amplitude or SPE mean adcs for "
+                        f"channel {endpoint}-{channel} were not found. "
+                        "Setting them to NaN."
+                    )
+                    aux_SPE_mean_amplitude = np.nan
+                    aux_SPE_mean_adcs = np.nan
+
                 # Assemble the new row
                 new_row = {
                     "date": [date],
@@ -1062,11 +1081,8 @@ def save_data_to_dataframe(
                     "std_0_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_0_error"]],
                     "std_1": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1"]],
                     "std_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1_error"]],
-                    "SPE_mean_amplitude": [abs(packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_amplitude"])],
-                    "SPE_mean_adcs": [
-                        [round(float(x), 4) for x in \
-                        packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_adcs"]]
-                    ],
+                    "SPE_mean_amplitude": [aux_SPE_mean_amplitude],
+                    "SPE_mean_adcs": [aux_SPE_mean_adcs],
                     "integration_lower_limit": [integration_limits[0]],
                     "integration_upper_limit": [integration_limits[1]]
                 }
