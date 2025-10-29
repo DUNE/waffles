@@ -1646,9 +1646,6 @@ def add_SPE_info_to_output_dictionary(
             of each ChannelWs object)
     """
 
-    # The 1-PE (SPE) peak is that of index equal to 1
-    targeted_peak_idx = 1
-
     for endpoint in grid_apa.ch_wf_sets.keys():
         for channel in grid_apa.ch_wf_sets[endpoint].keys():
 
@@ -1663,7 +1660,7 @@ def add_SPE_info_to_output_dictionary(
                 continue
 
             try:
-                _ = output_data[endpoint][channel]
+                current_channel_output_data = output_data[endpoint][channel]
             except KeyError:
                 print(
                     "In function add_SPE_info_to_output_dictionary(): "
@@ -1677,11 +1674,39 @@ def add_SPE_info_to_output_dictionary(
             # Some convenient definitions
             current_ChannelWs = grid_apa.ch_wf_sets[endpoint][channel]
             current_CalibrationHistogram = current_ChannelWs.calib_histo
-            aux = current_CalibrationHistogram.gaussian_fits_parameters
-            
+            aux_fit_params = current_CalibrationHistogram.gaussian_fits_parameters
+
+            aux_gain = current_channel_output_data['gain']
+            if np.isnan(aux_gain):
+                print(
+                    "In function add_SPE_info_to_output_dictionary(): "
+                    f"WARNING: The gain for channel {endpoint}-{channel} "
+                    "is NaN, meaning that two Gaussian peaks were not "
+                    "successfully fitted to its calibration histogram. "
+                    "The SPE information for this channel won't be computed."
+                )
+                continue
+
+            # If the 'gain' entry is available, it means that
+            # get_gain_snr_and_fit_parameters() made sure that the number
+            # of fitted peaks is at least 2
             try:
-                SPE_peak_mean = aux['mean'][targeted_peak_idx][0]
-                SPE_peak_std = aux['std'][targeted_peak_idx][0]
+                targeted_peak_idx = __infer_SPE_peak_index(
+                    aux_fit_params,
+                    aux_gain
+                )
+            except Exception as e:
+                print(
+                    "In function add_SPE_info_to_output_dictionary(): "
+                    "WARNING: Could not infer the SPE peak index for "
+                    f"channel {endpoint}-{channel}. The SPE information "
+                    f"for this channel won't be computed. Details: {e}"
+                )
+                continue
+
+            try:
+                SPE_peak_mean = aux_fit_params['mean'][targeted_peak_idx][0]
+                SPE_peak_std = aux_fit_params['std'][targeted_peak_idx][0]
 
             except IndexError:
                 print(
