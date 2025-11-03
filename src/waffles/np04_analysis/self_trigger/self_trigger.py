@@ -3,97 +3,35 @@ import waffles
 import numpy as np
 import pandas as pd
 from waffles.np04_analysis.time_resolution.utils import create_float_waveforms, sub_baseline_to_wfs
-from hist import Hist
 from ROOT import TH1D, TEfficiency, TF1, TSpectrum, TGraphErrors
 import ROOT
+import waffles.utils.numerical_utils as wun
+import waffles.data_classes.CalibrationHistogram as cls
+from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
+from waffles.np04_analysis.self_trigger.utils import *
 
 
-def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
-    return waveform.endpoint == (channel//100) and waveform.channel == (channel%100)
 
-
-def get_xmax_in_range(h: TH1D, low: int, up: int) -> int:
-    """
-    Get the x value of the maximum bin in a given range.
-    """
-    y_max = -np.inf
-    max_bin = -1
-    for i in range(low, up+1):
-        if h.GetBinContent(i) > y_max:
-            y_max = h.GetBinContent(i)
-            max_bin = i
-    return max_bin
-    
-def find_50efficiency(he_STEfficiency: TEfficiency) -> float:
-    """
-
-    """
-    h_total = he_STEfficiency.GetTotalHistogram()
-    effs = np.array([he_STEfficiency.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
-    n_bins = h_total.GetNbinsX()
-
-    bin_centers = np.array([h_total.GetBinCenter(i + 1) for i in range(n_bins)])
-
-    # Find first window of 5 bins where values are monotonic increasing and cross 0.5
-    above_half = effs >= 0.5
-    cross_indices = np.flatnonzero(np.diff(above_half.astype(int)) == 1)
-
-    # Check if a clean monotonic region exists
-    for i in cross_indices:
-        j0 = max(0, i - 2)
-        j1 = min(len(effs), i + 3)
-        window = effs[j0:j1]
-        if len(window) >= 5:
-            if np.all(np.diff(window) > 0):
-                return float(bin_centers[i + 1])  # use center after crossing
-
-    # Fallback: if no smooth crossing, use first simple crossing
-    if cross_indices.size > 0:
-        return float(bin_centers[cross_indices[0] + 1])
-
-    return np.nan
-
-
-def fit_thrPE_vs_thrSet(out_df: pd.DataFrame, thrPE_column: str="") -> tuple[TGraphErrors, float, float]:
-    """
-    Fit the threshold in PE vs the set threshold.
-    """
-    gr_name = "gr_fit_thrPE2_vs_thrSet"
-    if thrPE_column == "":
-        gr_name = "gr_fit_thrPE_vs_thrSet"
-        thrPE_column = "ThresholdFit" 
-    err_thrPE_column = "Err"+thrPE_column
-    # Drop lines where ThresholdFit is NaN
-    df = out_df.dropna(subset=[thrPE_column])
-    # from the df take the ThresholdSet, ThresholdFit and ErrThresholdFit
-    thr_set = np.array(df['ThresholdSet'].values).astype(float)
-    err_thr_set = np.zeros_like(thr_set)
-    thr_fit = np.array(df[thrPE_column].values).astype(float)
-    err_thr_fit = np.array(df[err_thrPE_column].values).astype(float)
-    # Create a ROOT TGraphErrors
-    gr = TGraphErrors(len(thr_set), thr_set, thr_fit, err_thr_set, err_thr_fit)
-    gr.SetName(gr_name)
-    # Fit with a linear function
-    f_lin = TF1("f_lin", "pol1", min(thr_set), max(thr_set))
-    gr.Fit(f_lin, "R")
-    offset = f_lin.GetParameter(0)
-    slope = f_lin.GetParameter(1)
-
-    return gr, offset, slope
 
 class SelfTrigger:
     def __init__(self,
-                 ch_sipm: int,
-                 ch_st: int,
-                 wf_set,
-                 prepulse_ticks: int,
-                 int_low: int,
-                 int_up: int,
-                 bsl_rms: float,
-                 spe_charge: float,
-                 spe_ampl: float,
-                 snr: float,
+                 ch_sipm: int=0,
+                 ch_st: int=0,
+                 wf_set = None,
+                 prepulse_ticks: int=0,
+                 int_low: int=0,
+                 int_up: int=0,
+                 bsl_rms: float=0.0,
+                 spe_charge: float=0.0,
+                 spe_ampl: float=0.0,
+                 snr: float=0.0,
                  metadata_file: str="",
+                 run: int=0,
+                 led: int=0,
+                 ana_folder: str="",
+                 fit_type: str="multigauss_iminuit",
+                 leds_to_plot: list[int]=[],
+                 verbose: bool=False
                  ) -> None:
 
         """
@@ -114,19 +52,28 @@ class SelfTrigger:
         
         self.h_low = -1.5
         self.h_up = 10
-        self.h_bins = 140 # Only for pngs 
-        self.bkg_trg_win_low = 800
         self.trigger_rate = 0.0
 
         self.window_low = 0
         self.window_up = 0
-        # self.st_selection = np.zeros(len(self.wfset_st.waveforms), dtype=bool)
+        self.run = run
+        self.led = led
+        self.ana_folder = ana_folder
+        self.fit_type = fit_type
+        self.leds_to_plot = leds_to_plot
+        self.verbose = verbose
+
+        self.nticks = 1024
         
         self.f_sigmoid = TF1("f_sigmoid", "[2]/(1+exp(([0]-x)/[1]))", -2, 7)
 
 
     
     def create_wfs(self) -> None:
+        """
+        Create the waveforms for the SiPM and ST channels. Subtract the baseline for SiPM waveforms.
+        Check that the number of waveforms in both channels is the same.
+        """
         t_wfset = waffles.WaveformSet.from_filtered_WaveformSet(self.wf_set, allow_channel_wfs, self.ch_sipm)
         self.wfs_sipm = np.array(t_wfset.waveforms)
         create_float_waveforms(self.wfs_sipm)
@@ -143,7 +90,7 @@ class SelfTrigger:
 
     def upload_metadata(self) -> None:
         """
-
+        Upload the metadata from the ROOT file created using dump_raw_to_meta.py
         """
         df = ROOT.RDataFrame("SelfTriggerTree", self.metadata_file)
         arrays = df.AsNumpy()
@@ -156,51 +103,58 @@ class SelfTrigger:
 
     def create_self_trigger_distribution(self, name="") -> TH1D:
         """
-        Take the st waveforms indec where adcs==1
+        Create the self-trigger time-distribution histogram.
         """
         if name == "":
             name = "h_selftrigger"
         
         flat = np.fromiter((trg_time for trg_times in self.trigger_times_list for trg_time in trg_times), dtype=np.double)
-        h_selftrigger = TH1D(name, f"{name};Ticks;Counts", 1024, -0.5, 1023.5)
+        h_selftrigger = TH1D(name, f"{name};Ticks;Counts", self.nticks, -0.5, self.nticks-0.5)
         h_selftrigger.FillN(len(flat), flat, np.ones_like(flat))
        
         self.h_st = h_selftrigger
         return h_selftrigger
 
-    def get_bkg_trg_rate(self, h_selftrigger : TH1D) -> tuple:
+    def get_bkg_trg_rate(self, window_low: int=1, window_up: int=1) -> tuple:
         """
-        Get the background trigger rate.
+        Get the background trigger rate from the self-trigger time-distribution.
+        Consider a window where the distribution is flat and not affected by the LED pulse.
+        Typically before the LED pulse (in NP04 data we saw that the background rate
+        estimated after the LED peak depended on the LED intensity).
+        Parameters:
+        window_low: int
+            Lower bound of the integration window.
+        window_up: int
+            Upper bound of the integration window.
+        Returns:
+        bkg_trg_rate: float
+            Background trigger rate in Hz.
         """
-        n_bkg_triggers = h_selftrigger.Integral(self.bkg_trg_win_low, h_selftrigger.GetNbinsX())
-        unc_n_bkg_triggers = sqrt(n_bkg_triggers)
-        norm_factor = 10**9 / (len(self.pe) * (1024-self.bkg_trg_win_low) * 16.)
-        bkg_trg_rate = n_bkg_triggers * norm_factor
-        unc_bkg_trg_rate = unc_n_bkg_triggers * norm_factor
+        if window_up == 1:
+            window_up = self.int_low
+        n_bkg_triggers = self.h_st.Integral(int(window_low), int(window_up))
+        unc_n_bkg_triggers= sqrt(n_bkg_triggers)
+        norm_factor = 10**9 / (len(self.pe) * (window_up-window_low) * 16.)
+        bkg_trg_rate= n_bkg_triggers* norm_factor
+        unc_bkg_trg_rate= unc_n_bkg_triggers* norm_factor
 
-        return (bkg_trg_rate, unc_bkg_trg_rate)
-
-    def get_bkg_trg_rate_preLED(self, h_selftrigger : TH1D) -> tuple:
-        """
-        Get the background trigger rate before the LED pulse.
-        """
-        n_bkg_triggers_preLED = h_selftrigger.Integral(1, self.int_low)
-        unc_n_bkg_triggers_preLED = sqrt(n_bkg_triggers_preLED)
-        norm_factor = 10**9 / (len(self.pe) * (self.int_low-1) * 16.)
-        bkg_trg_rate_preLED = n_bkg_triggers_preLED * norm_factor
-        unc_bkg_trg_rate_preLED = unc_n_bkg_triggers_preLED * norm_factor
-
-        return bkg_trg_rate_preLED, unc_bkg_trg_rate_preLED
+        return bkg_trg_rate, unc_bkg_trg_rate
 
     def find_acceptance_window(self) -> None:
         """
+        Find the acceptance window, namely the region where the self-trigger distribution
+        is above the background level. This region is the one corresponding to the LED pulse.
         """
         x_hST_max = self.h_st.GetMaximumBin()
 
         f_constant = TF1("f_constant", "pol0", 2, self.prep)
         f_constant.SetParameter(0, self.h_st.GetBinContent(5))
         f_constant.SetNpx(1000)
-        self.h_st.Fit(f_constant, "R")
+        fit_option = "QR"
+        if self.verbose:
+            fit_option = "R"
+            print(f"Fitting range for acceptance window: 2 - {self.prep}")
+        self.h_st.Fit(f_constant, fit_option)
         
         thr_counts = f_constant.GetParameter(0)+sqrt(f_constant.GetParameter(0))
         pretrg = x_hST_max
@@ -214,7 +168,7 @@ class SelfTrigger:
 
         afttrg = x_hST_max
         i = x_hST_max
-        while i < 1023:
+        while i < self.nticks - 1:
             afttrg = i
             if self.h_st.GetBinContent(i + 1) < thr_counts:
                 break
@@ -233,8 +187,11 @@ class SelfTrigger:
 
         f_constant = TF1("f_constant", "pol0", 2, self.prep)
         f_constant.SetParameter(0, self.h_st.GetBinContent(5))
-        f_constant.SetNpx(1000)
-        self.h_st.Fit(f_constant, "R")
+        f_constant.SetNpx(2000)
+        fit_option = "QR"
+        if self.verbose:
+            fit_option = "R"
+        self.h_st.Fit(f_constant, fit_option)
         
         thr_counts = f_constant.GetParameter(0)+sqrt(f_constant.GetParameter(0))
         pretrg = x_hST_max
@@ -248,7 +205,7 @@ class SelfTrigger:
 
         afttrg = x_hST_max
         i = x_hST_max
-        while i < 1023:
+        while i < self.nticks - 1:
             afttrg = i
             if self.h_st.GetBinContent(i + 1) < thr_counts:
                 break
@@ -261,7 +218,7 @@ class SelfTrigger:
         f_STpeak.SetParLimits(1, pretrg, afttrg)
         f_STpeak.SetParLimits(2, 0.05, 5.0)
         f_STpeak.SetNpx(1000)
-        self.h_st.Fit(f_STpeak, "R")
+        self.h_st.Fit(f_STpeak, fit_option)
 
         self.f_STpeak = f_STpeak
         self.window_low = int(pretrg)
@@ -274,7 +231,6 @@ class SelfTrigger:
         """
         self.h_st2 = self.h_st.Clone("h_selftrigger_bkgsub")
         h_bkg = TSpectrum()
-        # h_bkg.Background(self.h_st2, 15)
         background = h_bkg.Background(self.h_st2, 15)
         for i in range(1, self.h_st2.GetNbinsX() + 1):
             self.h_st2.SetBinContent(i, self.h_st2.GetBinContent(i) - background[i - 1])
@@ -325,7 +281,7 @@ class SelfTrigger:
                         break
 
         found_second_peak = left_peak_candidate or right_peak_candidate
-        if found_second_peak:
+        if found_second_peak and self.verbose:
             print(f"\n\nFound second peak at {x_second_peak} with {self.h_st2.GetBinContent(x_second_peak)} counts\n\n")
         
 
@@ -337,15 +293,17 @@ class SelfTrigger:
             f_STpeak.SetParLimits(1, self.window_low2, self.window_up2)
             f_STpeak.SetParLimits(2, 0.05, 5.0)
             f_STpeak.SetNpx(1000)
-            print(f"Fitting range: {self.window_low2} - {self.window_up2}")
-            fit_result = self.h_st2.Fit(f_STpeak, "RS")
+            fit_option = "QRS"
+            if self.verbose:
+                print(f"Fitting range: {self.window_low2} - {self.window_up2}")
+                fit_option = "RS"
+            fit_result = self.h_st2.Fit(f_STpeak, fit_option)
         
         else:
             f_STpeak = TF1("f_STpeak2", "gaus(0)+gaus(3)", self.window_low2, self.window_up2)
             estimated_gaus_amp1 = self.h_st2.GetBinContent(x_hST_max)
             estimated_gaus_amp2 = self.h_st2.GetBinContent(x_second_peak)
             # Print initial parameters
-            print(f"Initial parameters: amp1={estimated_gaus_amp1}, mean1={x_hST_max}, sigma1=1.0, amp2={estimated_gaus_amp2}, mean2={x_second_peak}, sigma2=1.0")
             f_STpeak.SetParameters(estimated_gaus_amp1, x_hST_max, 0.5,
                                    estimated_gaus_amp2, x_second_peak, 0.5)
             f_STpeak.SetParLimits(0, estimated_gaus_amp1 * 0.5, estimated_gaus_amp1 * 1.5)
@@ -354,9 +312,13 @@ class SelfTrigger:
             f_STpeak.SetParLimits(3, estimated_gaus_amp2 * 0.5, estimated_gaus_amp2 * 1.5)
             f_STpeak.SetParLimits(4, x_second_peak-3, x_second_peak+3)
             f_STpeak.SetParLimits(5, 0.05, 5.0)
-            f_STpeak.SetNpx(1000)
-            print(f"Fitting range: {self.window_low2} - {self.window_up2} with second peak")
-            fit_result = self.h_st2.Fit(f_STpeak, "RS")
+            f_STpeak.SetNpx(2000)
+            fit_option = "QRS"
+            if self.verbose:
+                print(f"Initial parameters: amp1={estimated_gaus_amp1}, mean1={x_hST_max}, sigma1=1.0, amp2={estimated_gaus_amp2}, mean2={x_second_peak}, sigma2=1.0")
+                print(f"Fitting range: {self.window_low2} - {self.window_up2} with second peak")
+                fit_option = "RS"
+            fit_result = self.h_st2.Fit(f_STpeak, fit_option)
 
         
         #Check fit convergence
@@ -368,9 +330,12 @@ class SelfTrigger:
 
 
 
-    def create_efficiency_histos(self, he_name: str) -> None:
+    def create_efficiency_histos(self) -> None:
         """
-        Create efficiency histograms for the self-triggering.
+        Create external-trigger (h_total) and self-trigger (h_passed) histograms,
+        and the efficiency histogram (he_STEfficiency).
+        h_passed is filled with the PE values of the waveforms that have at least one self-trigger
+        in the acceptance window [window_low, window_up].
         """
         n_bins   = int((self.nspe_max - self.nspe_min) * 16)
         n_bins_quantized = int(self.nspe_max) - int(self.nspe_min) + 1
@@ -397,12 +362,16 @@ class SelfTrigger:
 
         self.h_total = h_total
         self.h_passed = h_passed
+        he_name = "he_efficiency"
         self.he_STEfficiency = TEfficiency(h_passed, h_total)
         self.he_STEfficiency.SetName(he_name)
         self.he_STEfficiency.SetTitle(he_name)
         self.he_STEfficiency2 = TEfficiency(h_passed, h_total)
         self.he_STEfficiency2.SetName(he_name+"2")
         self.he_STEfficiency2.SetTitle(he_name+"2")
+        self.he_STEfficiency_nofit = TEfficiency(h_passed, h_total)
+        self.he_STEfficiency_nofit.SetName(he_name+"_nofit")
+        self.he_STEfficiency_nofit.SetTitle(he_name+"_nofit")
 
         self.h_total_quantized = h_total_quantized
         self.h_passed_quantized = h_passed_quantized
@@ -412,20 +381,78 @@ class SelfTrigger:
 
         return None
 
-    def get_efficiency_at(self, pe: int) -> tuple[float, float]:
+
+    def get_efficiency_at_fit(self, pe: int) -> tuple[float, float, float, float]:
         """
         Get the efficiency at a given PE value.
         """
-        bin_x = self.he_STEfficiency_quantized.GetTotalHistogram().FindBin(pe)
-        eff = self.he_STEfficiency_quantized.GetEfficiency(bin_x)
-        err_eff = self.he_STEfficiency_quantized.GetEfficiencyErrorUp(bin_x)
+        bins_number = self.h_total.GetNbinsX()
+        domain = np.array([self.nspe_min, self.nspe_max])
+        edges = np.linspace(domain[0],
+                            domain[1],
+                            num=bins_number + 1,
+                            endpoint=True)
+        counts, indices = wun.histogram1d(self.pe, bins_number, domain, True)
+        
+        charge_histo = cls.CalibrationHistogram(
+            bins_number,
+            edges,
+            counts,
+            indices,
+        )
 
-        return eff, err_eff
+        output = True
+        
+        output *= fit_peaks_of_CalibrationHistogram(
+                    charge_histo,
+                    int(self.nspe_max-1),
+                    std_increment_seed_fallback=0.3,
+                    prominence=0.1,
+                    fit_type=self.fit_type,
+        )
+        if len(charge_histo.gaussian_fits_parameters["mean"]) > 1:
+            self.wafflesSNR = (charge_histo.gaussian_fits_parameters["mean"][1][0] - charge_histo.gaussian_fits_parameters["mean"][0][0]) / \
+                                charge_histo.gaussian_fits_parameters["std"][0][0]
+        else:
+            self.wafflesSNR = np.nan
 
-    def fit_efficiency(self) -> bool:
+        if self.led in self.leds_to_plot:
+            plot_charge_histo_fit(self, charge_histo)
+
+        if len(charge_histo.gaussian_fits_parameters["mean"]) < pe + 1:
+            print(f"Not enough peaks found to get efficiency at {pe} PE.")
+            self.wafflesMean = np.nan
+            return np.nan, np.nan, np.nan, np.nan
+
+        scale     = charge_histo.gaussian_fits_parameters["scale"][pe][0]
+        err_scale = charge_histo.gaussian_fits_parameters["scale"][pe][1]
+        mean      = charge_histo.gaussian_fits_parameters["mean"][pe][0]
+        err_mean  = charge_histo.gaussian_fits_parameters["mean"][pe][1]
+        std       = charge_histo.gaussian_fits_parameters["std"][pe][0]
+        err_std   = charge_histo.gaussian_fits_parameters["std"][pe][1]
+
+        bin_centers = np.array([self.h_total.GetBinCenter(i+1) for i in range(self.h_total.GetNbinsX())])
+        effs = np.array([self.he_STEfficiency.GetEfficiency(i+1) for i in range(self.h_total.GetNbinsX())])
+        sum   = float(0)
+        total = float(0)
+        for eff, bin_center in zip(effs,bin_centers):
+            sum +=  eff * wun.gaussian(bin_center, scale, mean, std)
+            total += wun.gaussian(bin_center, scale, mean, std)
+
+        eff = sum / total
+        up_boundary  = TEfficiency.ClopperPearson(total, sum, 0.68, True)
+        low_boundary = TEfficiency.ClopperPearson(total, sum, 0.68, False)
+        err_eff = 0.5 * (up_boundary - low_boundary)
+
+        self.wafflesMean = mean
+
+        return eff, err_eff, up_boundary-eff, eff-low_boundary
+    
+    def fit_efficiency(self) -> None:
         """
-        Fit the efficiency histogram.
+        Fit the efficiency histogram with a sigmoid function.
         """
+        self.efficiency_fit_ok = False
         h_total = self.he_STEfficiency.GetTotalHistogram()
         max_efficiency = 0
         for i in range(h_total.GetNbinsX()):
@@ -442,15 +469,14 @@ class SelfTrigger:
                 or len(effs[effs>0.95*max_efficiency]) < 10:
             print("No low or high efficiency points found.")
             self.he_STEfficiency.SetTitle("Not ok: no low or high efficiency points found.")
-            return False
+            return
 
         thr_x = find_50efficiency(self.he_STEfficiency)
         if np.isnan(thr_x):
             print("No 50% efficiency point found.")
             self.he_STEfficiency.SetTitle("Not ok: no 50% efficiency point found.")
-            return False
+            return
         
-        print(f"\n--------------------\nThreshold x: {thr_x}, Max efficiency: {max_efficiency}\n--------------------\n")
         populated_bins = np.where(bin_contents > 10)
         xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
         xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
@@ -463,7 +489,10 @@ class SelfTrigger:
         self.f_sigmoid.SetParNames("threshold", "#tau", "Max_{eff}")
         self.f_sigmoid.SetNpx(3000)
 
-        self.he_STEfficiency.Fit(self.f_sigmoid, "R")
+        fit_option = "QR"
+        if self.verbose:
+            fit_option = "R"
+        self.he_STEfficiency.Fit(self.f_sigmoid, fit_option)
 
         tau = self.f_sigmoid.GetParameter(1)
         thr = self.f_sigmoid.GetParameter(0)
@@ -471,10 +500,11 @@ class SelfTrigger:
         if xlow > thr - 5*tau or xup < thr + 5*tau:
             print(f"The fit is not well constrained: fit range [{xlow}, {xup}], thr={thr}, tau={tau}")
             self.he_STEfficiency.SetTitle("Not ok: fit not well constrained.")
-            return False
+            return
 
         self.he_STEfficiency.SetTitle("Fit ok")
-        return True
+        self.efficiency_fit_ok = True
+        return
 
     def get_10to90_range(self) -> float:
         """
@@ -511,7 +541,6 @@ class SelfTrigger:
         thr_10 = np.nan
         thr_90 = np.nan
         self.fifty = np.nan
-        print(self.fifty, type(self.fifty))
         h_total = self.he_STEfficiency2.GetTotalHistogram()
         
         bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
@@ -534,27 +563,50 @@ class SelfTrigger:
         populated_bins = np.where(bin_contents > 10)
         xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
         xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
-        f_custom = TF1("f_sigmoidss", "[2]/(1+exp(([0]-x)/[1]))+[5]/(1+exp(([3]-x)/[4]))", xlow, xup)
-        f_custom.SetParNames("x0", "#tau", "A", "x0_{2}", "#tau_{2}", "A_{2}")
-        f_custom.SetParameters(thr_x, 0.15, .9, thr_x+1, 0.15, 0.1)
-        f_custom.SetParLimits(0, max([xlow,thr_x-2]), thr_x+2)
-        f_custom.SetParLimits(1, 0.03, 1)
-        f_custom.SetParLimits(2, 0.01, 1)
-        f_custom.SetParLimits(3, thr_x, thr_x+5)
-        f_custom.SetParLimits(4, 0.03, 3)
+        f_custom = TF1("f_sigmoidss", "[2]/(1+exp(([0]-x)/[1]))+[5]/(1+exp(([0]+[3]-x)/[4]))", xlow, xup)
+        f_custom.SetParNames("x0", "#tau", "A", "#Delta", "#tau_{2}", "A_{2}")
+        f_custom.SetParLimits(0, max([xlow,thr_x-0.6]), thr_x+0.6)
+        f_custom.SetParLimits(1, 0.03, 0.3)
+        f_custom.SetParLimits(2, 0.1, 1)
+        f_custom.SetParLimits(3, 0.1, 6)
+        f_custom.SetParLimits(4, 0.03, 0.3)
         f_custom.SetParLimits(5, 0.01, 1)
+        if self.efficiency_fit_ok:
+            x0  = self.f_sigmoid.GetParameter(0)
+            tau = self.f_sigmoid.GetParameter(1)
+            g, _, _, = get_efficiency_at(self.he_STEfficiency, x0+2*tau)
+            g = 1-g
+            print("\n\n\n\ng:", g)
+            f_custom.SetParameters(x0,
+                                   tau,
+                                   self.f_sigmoid.GetParameter(2)-g,
+                                   1,
+                                   0.08,
+                                   g)
+            f_custom.SetParLimits(0,
+                                  self.f_sigmoid.GetParameter(0)-0.2,
+                                  self.f_sigmoid.GetParameter(0)+0.2)
+        else:
+            f_custom.SetParameters(thr_x, 0.08, .9, 3, 0.08, 0.1)
+
         f_custom.SetNpx(3000)
-        
+       
+        fit_option = "QR"
+        if self.verbose:
+            fit_option = "R"
         self.he_STEfficiency2.Fit(f_custom, "R")
+
+        if f_custom.GetParameter(2)+f_custom.GetParameter(5) < np.max(effs)-0.1:
+            f_custom.SetParameter(2, np.max(effs))
+            f_custom.SetParameter(5, 0.01)
+            print("\n\n\nRefitting due to low max efficiency")
+            self.he_STEfficiency2.Fit(f_custom, "R")
+
         self.f_sigmoid2 = f_custom
 
-        print("After fit:")
-        print(self.fifty, type(self.fifty))
         x_fifty = f_custom.GetX(0.5, xlow, xup)
-        print(x_fifty, type(x_fifty))
         if not np.isnan(x_fifty):
             self.fifty = x_fifty
-        print(self.fifty, type(self.fifty))
 
         # Find 10% and 90%
         for i in range(h_total.GetNbinsX()-2):
@@ -568,77 +620,19 @@ class SelfTrigger:
                 break
 
         return thr_90 - thr_10
-    # def get_10to90_range_fit(self, fix_maxEff: bool=False) -> float:
-    #     """
-    #     Get the 10% to 90% range from a custom fit function
-    #     """
-    #     thr_10 = np.nan
-    #     thr_90 = np.nan
-    #     self.fifty = np.nan
-    #     print(self.fifty, type(self.fifty))
-    #     h_total = self.he_STEfficiency2.GetTotalHistogram()
-    #     
-    #     bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
-    #     effs = np.array([self.he_STEfficiency2.GetEfficiency(i+1) for i in range(h_total.GetNbinsX())])
-    #     meaningful_mask = bin_contents > 10
-    #     effs = effs[meaningful_mask]
-    #     max_efficiency = np.max(effs)
-    #     
-    #     if len(effs[effs<0.05]) < 10 \
-    #             or len(effs[effs>0.95*max_efficiency]) < 10:
-    #         print("No low or high efficiency points found.")
-    #         self.he_STEfficiency.SetTitle("Not ok: no low or high efficiency points found.")
-    #         return np.nan
-    #
-    #     thr_x = find_50efficiency(self.he_STEfficiency)
-    #     if np.isnan(thr_x):
-    #         print("No 50% efficiency point found.")
-    #         return np.nan
-    #    
-    #     populated_bins = np.where(bin_contents > 10)
-    #     xlow = h_total.GetBinCenter(int(populated_bins[0][0]))
-    #     xup  = h_total.GetBinCenter(int(populated_bins[-1][-1]))
-    #     f_custom = TF1("f_sigmoidss", "[0]*([1]/(1+exp(([2]-x)/[3]))+(1-[1])/(1+exp(([4]-x)/[5])))", xlow, xup)
-    #     f_custom.SetParNames("Max_{eff}", "a", "x0_{1}", "#tau_{1}", "x0_{2}", "#tau_{2}")
-    #     f_custom.SetParameters(1, 0.5, thr_x, 0.15, thr_x+1, 0.15)
-    #     f_custom.SetParLimits(0, 0.7, 1)
-    #     if fix_maxEff:
-    #         f_custom.FixParameter(0, 1)
-    #     f_custom.SetParLimits(1, 0.05, 1)
-    #     f_custom.SetParLimits(2, max([xlow,thr_x-2]), thr_x+2)
-    #     f_custom.SetParLimits(3, 0.03, 1)
-    #     f_custom.SetParLimits(4, thr_x, thr_x+5)
-    #     f_custom.SetParLimits(5, 0.0, 0.4)
-    #     f_custom.SetNpx(3000)
-    #     
-    #     self.he_STEfficiency2.Fit(f_custom, "R")
-    #     self.f_sigmoid2 = f_custom
-    #
-    #     print("After fit:")
-    #     print(self.fifty, type(self.fifty))
-    #     x_fifty = f_custom.GetX(0.5, xlow, xup)
-    #     print(x_fifty, type(x_fifty))
-    #     if not np.isnan(x_fifty):
-    #         self.fifty = x_fifty
-    #     print(self.fifty, type(self.fifty))
-    #
-    #     # Find 10% and 90%
-    #     for i in range(h_total.GetNbinsX()-2):
-    #         if f_custom.Eval(h_total.GetBinCenter(i+1)) >= 0.1:
-    #             thr_10 = h_total.GetBinCenter(i+1)
-        #         break
-        #
-        # for i in range(h_total.GetNbinsX()-2):
-        #     if f_custom.Eval(h_total.GetBinCenter(i+1)) >= 0.9:
-        #         thr_90 = h_total.GetBinCenter(i+1)
-        #         break
-        #
-        # return thr_90 - thr_10
 
 
     def st_selector(self, wf) -> bool:
         """
-        
+        Selection criteria for self-triggering events:
+        - Baseline: max and min ADC values in the pre-trigger region
+          must be within 3*bsl_rms.
+        Parameters:
+        wf: Waveform
+            The waveform to be evaluated. Note that wf.adcs_float is used.
+        Returns:
+        bool
+            True if the waveform passes the selection, False otherwise.
         """
         max_pre = np.max(wf.adcs_float[:self.prep])
         min_pre = np.min(wf.adcs_float[:self.prep])
@@ -650,7 +644,10 @@ class SelfTrigger:
 
     def select_events(self) -> None:
         """
-        Select events based on the self-triggering criteria.
+        Select events based on the self-triggering criteria and store the
+        number of photoelectrons and trigger-times for the selected events.
+        In addition, compute the nspe_min and nspe_max values that are used
+        to create the efficiency histograms.
         """
         self.pe = np.array(self.pe[self.selection])
         self.trigger_times_list = [self.trigger_times_list[i] for i in range(len(self.trigger_times_list)) if self.selection[i]]
@@ -691,7 +688,12 @@ class SelfTrigger:
 
     def trigger_distr_per_nspe(self) -> dict:
         """
-
+        Create a dictionary of self-trigger time-distribution histograms,
+        one for each integer number of photoelectrons (nspe).
+        Returns:
+        dict_hists: dict
+            Dictionary where keys are integer nspe values and values are
+            corresponding TH1D histograms of self-trigger time-distributions.
         """
         nspe_arr = self.pe.copy()
         nspe_arr.sort()
@@ -703,7 +705,7 @@ class SelfTrigger:
         dict_hists = {}
 
         for spe in range(int(nspe_min), int(nspe_max)+1):
-            dict_hists[spe] = TH1D(f"h_st_{spe}", f"h_st_{spe};Ticks;Counts", 1024, -0.5, 1023.5)
+            dict_hists[spe] = TH1D(f"h_st_{spe}", f"h_st_{spe};Ticks;Counts", self.nticks, -0.5, self.nticks-0.5)
 
         for npe, trigger_times in zip(self.pe, self.trigger_times_list):
             if npe < nspe_min or npe > nspe_max:
