@@ -1,0 +1,195 @@
+"""
+Lightweight helpers to pull DAPHNE Ethernet waveforms out of raw HDF5 files.
+
+The implementation is intentionally minimal: it opens the file with
+`hdf5libs.HDF5RawDataFile`, walks through the Trigger Records, and converts the
+decoded waveforms into the Waffles `Waveform`/`WaveformSet` primitives so that
+downstream analysis code can stay unchanged.
+
+Example
+-------
+>>> from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
+>>> wfset = load_daphne_eth_waveforms("/path/to/file.hdf5")
+>>> len(wfset.waveforms)
+42
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Iterable, Optional
+
+import numpy as np
+
+import detdataformats
+from daqdataformats import FragmentType, fragment_type_to_string
+from hdf5libs import HDF5RawDataFile
+
+from rawdatautils.unpack.utils import DAPHNEEthUnpacker
+
+from waffles.Exceptions import GenerateExceptionMessage
+from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WaveformSet import WaveformSet
+
+
+def _ensure_logger(logger: Optional[logging.Logger]) -> logging.Logger:
+    """Provide a logger with a sensible default formatting if the caller passed None."""
+    if logger is not None:
+        return logger
+
+    logger = logging.getLogger(__name__)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(
+            fmt='[%(levelname)s] %(asctime)s - %(name)s: %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+        ))
+        logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    return logger
+
+
+def _looks_like_daphne_eth(fragment_type: int) -> bool:
+    """
+    Try to decide whether `fragment_type` is the numeric code for DAPHNE Ethernet data.
+
+    Newer DAQ releases define explicit enum members and string representations that contain
+    the substring "DAPHNE" and "ETH". The helper is defensive so that older files simply
+    fail the check instead of raising.
+    """
+    try:
+        enum_value = FragmentType(fragment_type)
+    except ValueError:
+        return False
+
+    enum_name = enum_value.name.lower()
+    if "daphne" in enum_name and "eth" in enum_name:
+        return True
+
+    try:
+        enum_string = fragment_type_to_string(enum_value).lower()
+    except Exception:  # pragma: no cover - extremely unlikely but cheap to protect
+        return False
+
+    return "daphne" in enum_string and "eth" in enum_string
+
+
+def _select_records(records: Iterable, skip: int, limit: Optional[int]) -> Iterable:
+    """Slice the sequence of Trigger Records according to the caller request."""
+    if skip < 0:
+        raise ValueError("skip_records must be non-negative")
+    start = min(skip, len(records))
+    if limit is None:
+        return records[start:]
+    if limit < 0:
+        raise ValueError("max_records must be non-negative when provided")
+    return records[start:start + limit]
+
+
+def load_daphne_eth_waveforms(
+    filepath: str,
+    *,
+    detector: str = "HD_PDS",
+    channel_map: Optional[str] = None,
+    max_waveforms: Optional[int] = None,
+    max_records: Optional[int] = None,
+    skip_records: int = 0,
+    time_step_ns: float = 16.0,
+    logger: Optional[logging.Logger] = None,
+) -> Optional[WaveformSet]:
+    """
+    Decode DAPHNE Ethernet fragments from a raw HDF5 file and return them as a WaveformSet.
+
+    Parameters
+    ----------
+    filepath:
+        Path to the input HDF5 file.
+    detector:
+        Name understood by `detdataformats.DetID.string_to_subdetector` (defaults to "HD_PDS").
+    channel_map:
+        Optional channel map name forwarded to `DAPHNEEthUnpacker`.
+    max_waveforms:
+        If set, stop once this many waveforms have been produced.
+    max_records:
+        If set, only inspect the first `max_records` Trigger Records (after skipping).
+    skip_records:
+        Number of Trigger Records to skip from the start of the file.
+    time_step_ns:
+        Sampling period passed to the Waffles `Waveform` ctor (defaults to 16 ns).
+    logger:
+        Optional logger; if omitted a module-level logger is configured automatically.
+
+    Returns
+    -------
+    Optional[WaveformSet]
+        A WaveformSet populated with the decoded DAPHNE Ethernet waveforms, or ``None`` if
+        the file does not contain any matching fragments.
+    """
+    log = _ensure_logger(logger)
+
+    try:
+        det_enum = detdataformats.DetID.string_to_subdetector(detector)
+    except Exception as err:
+        raise Exception(GenerateExceptionMessage(
+            1,
+            "load_daphne_eth_waveforms()",
+            f"Failed to parse detector '{detector}': {err}",
+        )) from err
+
+    h5_file = HDF5RawDataFile(filepath)
+    records = list(h5_file.get_all_record_ids())
+    selected_records = _select_records(records, skip_records, max_records)
+
+    unpacker = DAPHNEEthUnpacker(channel_map=channel_map, ana_data_prescale=1, wvfm_data_prescale=1)
+
+    waveforms = []
+    for record in selected_records:
+        try:
+            geo_ids = list(h5_file.get_geo_ids_for_subdetector(record, det_enum))
+        except Exception as err:
+            log.warning("Skipping record %s: unable to resolve geo IDs (%s)", record, err)
+            continue
+
+        for geo_id in geo_ids:
+            try:
+                fragment = h5_file.get_frag(record, geo_id)
+            except Exception as err:
+                log.warning("Skipping fragment (record=%s, geo_id=%s): %s", record, geo_id, err)
+                continue
+
+            if fragment.get_data_size() == 0:
+                continue
+            if not _looks_like_daphne_eth(fragment.get_fragment_type()):
+                continue
+
+            _, det_waveforms = unpacker.get_det_data_all(fragment)
+            if not det_waveforms:
+                continue
+
+            header = fragment.get_header()
+            run_number = int(header.run_number)
+            record_number = int(record[0]) if isinstance(record, (tuple, list)) else int(record)
+            daq_timestamp = int(fragment.get_trigger_timestamp())
+
+            for wfdata in det_waveforms:
+                wf = Waveform(
+                    timestamp=int(wfdata.timestamp_dts),
+                    time_step_ns=time_step_ns,
+                    daq_window_timestamp=daq_timestamp,
+                    adcs=np.array(wfdata.adcs, copy=True),
+                    run_number=run_number,
+                    record_number=record_number,
+                    endpoint=int(wfdata.src_id),
+                    channel=int(wfdata.channel),
+                )
+                waveforms.append(wf)
+
+                if max_waveforms is not None and len(waveforms) >= max_waveforms:
+                    log.info("Reached max_waveforms=%s; returning early", max_waveforms)
+                    return WaveformSet(*waveforms)
+
+    if not waveforms:
+        log.warning("No DAPHNE Ethernet waveforms found in %s", filepath)
+        return None
+
+    return WaveformSet(*waveforms)
