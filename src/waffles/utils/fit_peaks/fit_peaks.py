@@ -19,6 +19,7 @@ def fit_peaks_of_CalibrationHistogram(
     percentage_step: float = 0.1,
     return_last_addition_if_fail: bool = False,
     fit_type: str = 'independent_gaussians',
+    weigh_fit_by_poisson_sigmas: bool = False,
     half_points_to_fit: int = 2,
     std_increment_seed_fallback: float = 1e+2,
     ch_span_fraction_around_peaks: float = 0.05
@@ -118,6 +119,16 @@ def fit_peaks_of_CalibrationHistogram(
         fit, check the documentation of the
         wuff.__fit_correlated_gaussians_to_calibration_histogram()
         function.
+    weigh_fit_by_poisson_sigmas: bool
+        If it is set to True, and fit_type is set to
+        'independent_gaussians' or 'correlated_gaussians',
+        then the gaussian least squares fit will be weighed
+        by the Poisson standard deviation of each bin. If
+        fit_type is set to 'multigauss_iminuit', this
+        parameter only affects the initial seed values
+        which are calculated using the
+        wuff.__fit_independent_gaussians_to_calibration_histogram()
+        function.
     half_points_to_fit: int
         This parameter is only used if the fit_type
         parameter is set to 'independent_gaussians'.
@@ -198,13 +209,15 @@ def fit_peaks_of_CalibrationHistogram(
             spsi_output,
             calibration_histogram,
             std_increment_seed_fallback=std_increment_seed_fallback,
-            ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
+            ch_span_fraction_around_peaks=ch_span_fraction_around_peaks,
+            weigh_fit_by_poisson_sigmas=weigh_fit_by_poisson_sigmas
         )
     else:
         fFitAll = wuff.__fit_independent_gaussians_to_calibration_histogram(
             spsi_output,
             calibration_histogram,
-            half_points_to_fit
+            half_points_to_fit,
+            weigh_fit_by_poisson_sigmas=weigh_fit_by_poisson_sigmas
         )
 
     if fit_type != 'multigauss_iminuit':
@@ -317,6 +330,7 @@ def fit_peaks_of_ChannelWsGrid(
     percentage_step: float = 0.1,
     return_last_addition_if_fail: bool = False,
     fit_type: str = 'independent_gaussians',
+    weigh_fit_by_poisson_sigmas: bool = False,
     half_points_to_fit: int = 2,
     std_increment_seed_fallback: float = 1e+2,
     ch_span_fraction_around_peaks: float = 0.05,
@@ -386,6 +400,11 @@ def fit_peaks_of_ChannelWsGrid(
         'fit_type' parameter of the fit_peaks_of_CalibrationHistogram()
         function for each calibration histogram. For more 
         information, check the documentation of such function.
+    weigh_fit_by_poisson_sigmas: bool
+        It is given to the 'weigh_fit_by_poisson_sigmas'
+        parameter of the fit_peaks_of_CalibrationHistogram()
+        function for each calibration histogram. For more 
+        information, check the documentation of such function.
     half_points_to_fit: int
         This parameter is only used if the fit_type
         parameter is set to 'independent_gaussians'.
@@ -442,6 +461,7 @@ def fit_peaks_of_ChannelWsGrid(
                     percentage_step=percentage_step,
                     return_last_addition_if_fail=return_last_addition_if_fail,
                     fit_type=fit_type,
+                    weigh_fit_by_poisson_sigmas=weigh_fit_by_poisson_sigmas,
                     half_points_to_fit=half_points_to_fit,
                     std_increment_seed_fallback=std_increment_seed_fallback,
                     ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
