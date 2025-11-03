@@ -60,10 +60,15 @@ def _looks_like_daphne_eth(fragment_type: int) -> bool:
     try:
         enum_value = FragmentType(fragment_type)
     except ValueError:
+        if fragment_type in LEGACY_DAPHNE_ETH_TYPES:
+            return True
         return False
 
     enum_name = enum_value.name.lower()
     if "daphne" in enum_name and "eth" in enum_name:
+        return True
+
+    if fragment_type in LEGACY_DAPHNE_ETH_TYPES:
         return True
 
     try:
@@ -193,3 +198,6 @@ def load_daphne_eth_waveforms(
         return None
 
     return WaveformSet(*waveforms)
+LEGACY_DAPHNE_ETH_TYPES = {
+    18,  # kVD_CathodePDS in fddaq-v5.4.x still carries DAPHNE Ethernet payloads
+}
