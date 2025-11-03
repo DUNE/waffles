@@ -341,6 +341,13 @@ class Analysis1(WafflesAnalysis):
                 "'correlated_gaussians' or 'independent_gaussians'."
             )
 
+            weigh_fit_by_poisson_sigmas: bool = Field(
+                default=False,
+                description="Whether to weigh the least squares "
+                "fit by the Poisson standard deviation of each "
+                "bin in the charge histogram."
+            )
+
             half_points_to_fit: int = Field(
                 default=2,
                 description="Only used if fit_type is set "
@@ -953,10 +960,11 @@ class Analysis1(WafflesAnalysis):
             self.grid_apa,
             self.params.max_peaks,
             self.params.prominence,
-            self.params.initial_percentage,
-            self.params.percentage_step,
+            initial_percentage=self.params.initial_percentage,
+            percentage_step=self.params.percentage_step,
             return_last_addition_if_fail=True,
             fit_type=self.params.fit_type,
+            weigh_fit_by_poisson_sigmas=self.params.weigh_fit_by_poisson_sigmas,
             half_points_to_fit=self.params.half_points_to_fit,
             std_increment_seed_fallback=self.params.std_increment_seed_fallback,
             ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,

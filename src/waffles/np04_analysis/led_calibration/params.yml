@@ -192,6 +192,11 @@ percentage_step: 0.05
 # or 'independent_gaussians'
 fit_type: 'correlated_gaussians'
 
+# Whether to weigh the least squares fit by
+# the Poisson standard deviation of each bin
+# in the charge histogram
+weigh_fit_by_poisson_sigmas: false
+
 # Only used if fit_type is set to 'independent_gaussians'.
 # The number of points to fit on either side
 # of the peak maximum. P.e. setting this to 
