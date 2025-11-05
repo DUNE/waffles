@@ -3,7 +3,7 @@ import waffles
 import numpy as np
 import pandas as pd
 from waffles.np04_analysis.time_resolution.utils import create_float_waveforms, sub_baseline_to_wfs
-from ROOT import TH1D, TEfficiency, TF1, TSpectrum, TGraphErrors
+from ROOT import TH1D, TEfficiency, TF1, TSpectrum, TGraphErrors, TFitResultPtr
 import ROOT
 import waffles.utils.numerical_utils as wun
 import waffles.data_classes.CalibrationHistogram as cls
@@ -534,13 +534,15 @@ class SelfTrigger:
 
         return thr_90 - thr_10
 
-    def get_10to90_range_fit(self) -> float:
+    def np04_get_10to90_range_fit(self) -> float:
         """
         Get the 10% to 90% range from a custom fit function
         """
         thr_10 = np.nan
         thr_90 = np.nan
         self.fifty = np.nan
+        self.twenty = np.nan
+        self.chi2ndf = np.nan
         h_total = self.he_STEfficiency2.GetTotalHistogram()
         
         bin_contents = np.array([h_total.GetBinContent(i+1) for i in range(h_total.GetNbinsX())])
@@ -569,44 +571,88 @@ class SelfTrigger:
         f_custom.SetParLimits(1, 0.03, 0.3)
         f_custom.SetParLimits(2, 0.1, 1)
         f_custom.SetParLimits(3, 0.1, 6)
-        f_custom.SetParLimits(4, 0.03, 0.3)
+        f_custom.SetParLimits(4, 0.03, 0.6)
         f_custom.SetParLimits(5, 0.01, 1)
+
+        par_init_dict_list = []
+        par_init_dict = {"x0": None, "tau": None, "A": None, "Delta": None, "tau2": None, "A2": None, "x0_low": None, "x0_up": None}
         if self.efficiency_fit_ok:
             x0  = self.f_sigmoid.GetParameter(0)
             tau = self.f_sigmoid.GetParameter(1)
-            g, _, _, = get_efficiency_at(self.he_STEfficiency, x0+2*tau)
-            g = 1-g
-            print("\n\n\n\ng:", g)
-            f_custom.SetParameters(x0,
-                                   tau,
-                                   self.f_sigmoid.GetParameter(2)-g,
-                                   1,
-                                   0.08,
-                                   g)
-            f_custom.SetParLimits(0,
-                                  self.f_sigmoid.GetParameter(0)-0.2,
-                                  self.f_sigmoid.GetParameter(0)+0.2)
+            eff_x02tau, _, _, = get_efficiency_at(self.he_STEfficiency, x0+2*tau)
+            gap = 1-eff_x02tau
+            a1 = self.f_sigmoid.GetParameter(2)-gap
+            par_init_dict = {"x0": x0, "tau": tau, "A": a1, "Delta": 3, "tau2": 0.08, "A2": gap, "x0_low": x0-0.2, "x0_up": x0+0.2}
+            par_init_dict_list.append(par_init_dict)
+            par_init_dict = {"x0": x0, "tau": tau, "A": a1, "Delta": 4, "tau2": 0.3, "A2": gap, "x0_low": x0-0.2, "x0_up": x0+0.2}
+            par_init_dict_list.append(par_init_dict)
+            eff_x0, _, _, = get_efficiency_at(self.he_STEfficiency, x0)
+            par_init_dict = {"x0": x0-tau, "tau": tau/2., "A": eff_x0, "Delta": 2*tau, "tau2": 0.08, "A2": 1-eff_x0, "x0_low": x0-2*tau, "x0_up": x0+2*tau}
+            par_init_dict_list.append(par_init_dict)
+            par_init_dict = {"x0": x0-2*tau, "tau": tau/2., "A": eff_x0, "Delta": 4*tau, "tau2": 0.08, "A2": 1-eff_x0, "x0_low": x0-4*tau, "x0_up": x0}
+            par_init_dict_list.append(par_init_dict)
+            par_init_dict = {"x0": x0-0.5, "tau": tau/2., "A": eff_x0, "Delta": 1., "tau2": 0.08, "A2": 1-eff_x0, "x0_low": x0-1., "x0_up": x0}
+            par_init_dict_list.append(par_init_dict)
         else:
-            f_custom.SetParameters(thr_x, 0.08, .9, 3, 0.08, 0.1)
-
-        f_custom.SetNpx(3000)
+            par_init_dict = {"x0": thr_x, "tau": 0.08, "A": 0.9, "Delta": 3, "tau2": 0.08, "A2": 0.1, "x0_low": max([xlow,thr_x-0.6]), "x0_up": thr_x+0.6}
+            par_init_dict_list.append(par_init_dict)
+            par_init_dict = {"x0": thr_x-0.5, "tau": 0.08, "A": 0.7, "Delta": 1, "tau2": 0.08, "A2": 0.3, "x0_low": max([xlow,thr_x-0.6]), "x0_up": thr_x+0.6}
+            par_init_dict_list.append(par_init_dict)
        
-        fit_option = "QR"
+        fit_option = "QRS"
         if self.verbose:
-            fit_option = "R"
-        self.he_STEfficiency2.Fit(f_custom, "R")
+            fit_option = "RS"
+        f_custom.SetNpx(3000)
+        
+        chi2_list = []
+        for par_init_dict in par_init_dict_list:
+            f_custom.SetParameter(0, par_init_dict["x0"])
+            f_custom.SetParameter(1, par_init_dict["tau"])
+            f_custom.SetParameter(2, par_init_dict["A"])
+            f_custom.SetParameter(3, par_init_dict["Delta"])
+            f_custom.SetParameter(4, par_init_dict["tau2"])
+            f_custom.SetParameter(5, par_init_dict["A2"])
+            f_custom.SetParLimits(0, par_init_dict["x0_low"], par_init_dict["x0_up"])
+            fit_result = TFitResultPtr(self.he_STEfficiency2.Fit(f_custom, fit_option))
+            fit_status = int(fit_result)
+            if fit_status == 0:
+                chi2 = f_custom.GetChisquare() / f_custom.GetNDF()
+                chi2_list.append((chi2, par_init_dict.copy()))
+
+        if len(chi2_list) == 0:
+            par_init_dict = {"x0": thr_x, "tau": 0.08, "A": 0.9, "Delta": 3, "tau2": 0.08, "A2": 0.1, "x0_low": max([xlow,thr_x-0.6]), "x0_up": thr_x+0.6}
+            par_init_dict_list.append(par_init_dict)
+            chi2 = f_custom.GetChisquare() / f_custom.GetNDF()
+            chi2_list.append((chi2, par_init_dict.copy()))
+        else:
+            print("\n\n\nSuccessful fits with different initial parameters:\n\n\n")
+        chi2_list.sort(key=lambda x: x[0])
+        best_pars = chi2_list[0][1]
+        f_custom.SetParameter(0, best_pars["x0"])
+        f_custom.SetParameter(1, best_pars["tau"])
+        f_custom.SetParameter(2, best_pars["A"])
+        f_custom.SetParameter(3, best_pars["Delta"])
+        f_custom.SetParameter(4, best_pars["tau2"])
+        f_custom.SetParameter(5, best_pars["A2"])
+        f_custom.SetParLimits(0, best_pars["x0_low"], best_pars["x0_up"])
+        self.he_STEfficiency2.Fit(f_custom, fit_option)
+        self.chi2ndf = f_custom.GetChisquare() / f_custom.GetNDF()
 
         if f_custom.GetParameter(2)+f_custom.GetParameter(5) < np.max(effs)-0.1:
             f_custom.SetParameter(2, np.max(effs))
             f_custom.SetParameter(5, 0.01)
             print("\n\n\nRefitting due to low max efficiency")
-            self.he_STEfficiency2.Fit(f_custom, "R")
+            self.he_STEfficiency2.Fit(f_custom, fit_option)
+            self.chi2ndf = f_custom.GetChisquare() / f_custom.GetNDF()
 
         self.f_sigmoid2 = f_custom
 
         x_fifty = f_custom.GetX(0.5, xlow, xup)
         if not np.isnan(x_fifty):
             self.fifty = x_fifty
+        x_twenty = f_custom.GetX(0.2, xlow, xup)
+        if not np.isnan(x_twenty):
+            self.twenty = x_twenty
 
         # Find 10% and 90%
         for i in range(h_total.GetNbinsX()-2):

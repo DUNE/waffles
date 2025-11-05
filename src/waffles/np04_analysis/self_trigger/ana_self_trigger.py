@@ -1,5 +1,5 @@
 import waffles.np04_analysis.self_trigger.self_trigger as self_trigger
-from waffles.np04_analysis.self_trigger.utils import get_efficiency_at
+from waffles.np04_analysis.self_trigger.utils import get_efficiency_at, fit_thrPE_vs_thrSet
 from waffles.np04_utils.utils import get_np04_channel_mapping
 from ROOT import TFile
 import ROOT
@@ -11,10 +11,7 @@ import yaml
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
-    # Set ROOT in batch mode
     ROOT.gROOT.SetBatch(True)
-    # Set default minimizer to "Minuit"
-    # ROOT.Math.MinimizerOptions.SetDefaultMinimizer("Minuit")
 
     # --- SETUP -----------------------------------------------------
     with open("steering.yml", 'r') as stream:
@@ -150,9 +147,12 @@ if __name__ == "__main__":
             "MaxEffFit": st.f_sigmoid.GetParameter(2) if st.efficiency_fit_ok else np.nan,
             "ErrMaxEffFit": st.f_sigmoid.GetParError(2) if st.efficiency_fit_ok else np.nan,
             "10to90": st.get_10to90_range(),
-            "10to90Fit": st.get_10to90_range_fit(),
+            "10to90Fit": st.np04_get_10to90_range_fit(),
             "FiftyEffPoint": st.fifty,
             "ErrFiftyEffPoint": 0.01,
+            "TwentyEffPoint": st.twenty,
+            "ErrTwentyEffPoint": 0.01,
+            "Chi2NDF": st.chi2ndf,
             f"EffAt{npe_of_interest}PE": effnpe,
             f"ErrEffAt{npe_of_interest}PE": (errup_eff_npe + errlow_eff_npe)/2,
             f"UpErrEffAt{npe_of_interest}PE": errup_eff_npe,
@@ -184,13 +184,21 @@ if __name__ == "__main__":
         st.he_STEfficiency_quantized.Write()
           
 
-    g_st_calib, offset, slope = self_trigger.fit_thrPE_vs_thrSet(pd.DataFrame(out_df_rows))
-    g_st_calib.SetTitle(f"Self-Trigger Calibration Ch {SiPM_channel};Threshold Set;Threshold Fit (PE)")
-    g_st_calib2, offset2, slope2 = self_trigger.fit_thrPE_vs_thrSet(pd.DataFrame(out_df_rows), "FiftyEffPoint")
-    g_st_calib2.SetTitle(f"Self-Trigger Calibration Ch {SiPM_channel};Threshold Set;Threshold Fifty (PE)")
+    temp_df = pd.DataFrame(out_df_rows)
+    g_st_calib, offset, slope = fit_thrPE_vs_thrSet(temp_df, "ThresholdFit", "g_fit_thrPE_vs_thrSet")
+    temp_df = pd.DataFrame(temp_df[temp_df['Chi2NDF'] <= 1.5])
+    # Check if there are more than 5 points left after chi2 cut
+    chi2cut = True
+    if len(temp_df) < 5:
+        print("\n\nWarning: Less than 5 points left after Chi2NDF cut. Using all points for calibration.\n\n")
+        chi2cut = False
+        temp_df = pd.DataFrame(out_df_rows)
+    g_st_calib2, offset2, slope2 = fit_thrPE_vs_thrSet(temp_df, "FiftyEffPoint", "g_fifty_thrPE_vs_thrSet")
+    g_st_calib3, offset3, slope3 = fit_thrPE_vs_thrSet(temp_df, "TwentyEffPoint", "g_twenty_thrPE_vs_thrSet")
     out_root_file.cd()
     g_st_calib.Write()
     g_st_calib2.Write()
+    g_st_calib3.Write()
     out_root_file.Close()
     out_df = pd.DataFrame(out_df_rows)
     out_df['ThresholdFitCalibrated'] = slope*out_df['ThresholdSet'] + offset
@@ -198,4 +206,8 @@ if __name__ == "__main__":
     out_df_filename = ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}"
     if not run_by_run:
         out_df_filename += "_merged"
+    if not chi2cut:
+        print("\n\nWarning: Less than 5 points left after Chi2NDF cut. Using all points for calibration.\n\n")
+        out_df_filename += "_NoChi2cut"
+        os.rename(out_root_file_name+".root", out_root_file_name+"_NoChi2cut.root")
     out_df.to_csv(out_df_filename+".csv", index=False)
