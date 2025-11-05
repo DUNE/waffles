@@ -194,12 +194,17 @@ class SelfTrigger:
         self.h_st.Fit(f_constant, fit_option)
         
         thr_counts = f_constant.GetParameter(0)+sqrt(f_constant.GetParameter(0))
+        if thr_counts < 1.0:
+            thr_counts = 1.0
         pretrg = x_hST_max
         i = x_hST_max
 
         while i > 1:
             pretrg = i
-            if self.h_st.GetBinContent(i - 1) < thr_counts:
+            print(i)
+            if self.h_st.GetBinContent(i) < thr_counts \
+                or self.h_st.GetBinContent(i - 1) > self.h_st.GetBinContent(i):
+                pretrg = i-1
                 break
             i -= 1
 
@@ -207,7 +212,8 @@ class SelfTrigger:
         i = x_hST_max
         while i < self.nticks - 1:
             afttrg = i
-            if self.h_st.GetBinContent(i + 1) < thr_counts:
+            if self.h_st.GetBinContent(i + 1) < thr_counts \
+                or self.h_st.GetBinContent(i + 1) > self.h_st.GetBinContent(i):
                 break
             i += 1 
 
@@ -732,7 +738,7 @@ class SelfTrigger:
 
         return
 
-    def trigger_distr_per_nspe(self) -> dict:
+    def trigger_distr_per_nspe(self, calibrated_threshold: float) -> dict:
         """
         Create a dictionary of self-trigger time-distribution histograms,
         one for each integer number of photoelectrons (nspe).
@@ -741,25 +747,28 @@ class SelfTrigger:
             Dictionary where keys are integer nspe values and values are
             corresponding TH1D histograms of self-trigger time-distributions.
         """
-        nspe_arr = self.pe.copy()
-        nspe_arr.sort()
-        if len(nspe_arr) == 0:
-            return {}
-        nspe_min = nspe_arr[int(0.005 * len(nspe_arr))]
-        nspe_max = nspe_arr[int(0.995 * len(nspe_arr))]
+        npe_arr = self.pe.copy()
+        npe_arr.sort()
+        if len(npe_arr) == 0:
+           return {}
+        npe_min = int(max(npe_arr[int(0.005 * len(npe_arr))], calibrated_threshold))
+        npe_max = int(npe_arr[int(0.995 * len(npe_arr))]+1)
 
         dict_hists = {}
 
-        for spe in range(int(nspe_min), int(nspe_max)+1):
-            dict_hists[spe] = TH1D(f"h_st_{spe}", f"h_st_{spe};Ticks;Counts", self.nticks, -0.5, self.nticks-0.5)
+        if npe_min > npe_max:
+            return dict_hists
+
+        for pe in range(npe_min, npe_max):
+            dict_hists[pe] = TH1D(f"h_st_{pe}", f"h_st_{pe};Ticks;Counts", self.nticks, -0.5, self.nticks-0.5)
 
         for npe, trigger_times in zip(self.pe, self.trigger_times_list):
-            if npe < nspe_min or npe > nspe_max:
+            if npe < npe_min or npe > npe_max:
                 continue
-            spe = int(npe+0.5)
-            if spe not in dict_hists:
+            pe = int(npe+0.5)
+            if pe not in dict_hists:
                 continue
             for trig_time in trigger_times:
-                dict_hists[spe].Fill(trig_time)
+                dict_hists[pe].Fill(trig_time)
         
         return dict_hists
