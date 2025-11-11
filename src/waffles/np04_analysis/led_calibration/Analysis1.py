@@ -125,6 +125,60 @@ class Analysis1(WafflesAnalysis):
                 example=40.
             )
 
+            apply_correlation_alignment: bool = Field(
+                default=True,
+                description="Whether to apply the correlation "
+                "alignment. For more information, see the "
+                "align_waveforms_by_correlation() "
+                "function docstring."
+            )
+
+            alignment_seeds_filepath: str | None = Field(
+                default=None,
+                description="If apply_correlation_alignment is set to "
+                "True, this parameter must be defined. It is the path "
+                "to a CSV file which contains the seed gain and the "
+                "SPE templates used for the correlation alignment. "
+                "The CSV file must contain the columns 'batch', 'APA', "
+                "'PDE', 'endpoint', 'channel', 'center_0', 'center_1' "
+                "and 'SPE_mean_adcs'.",
+                example='./configs/alignment_seeds_filepath.csv'
+            )
+
+            SPE_template_lower_limit_wrt_pulse: int = Field(
+                default=-50,
+                description="This parameter makes a difference only "
+                "if apply_correlation_alignment is set to True. In that "
+                "case, its absolute value gives the number of points to "
+                "the left of the SPE pulse which are considered for the "
+                "correlation alignment. For more information, check the "
+                "align_waveforms_by_correlation() function "
+                "docstring.",
+            )
+
+            SPE_template_upper_limit_wrt_pulse: int = Field(
+                default=300,
+                description="This parameter makes a difference only "
+                "if apply_correlation_alignment is set to True. In that "
+                "case, its absolute value gives the number of points to "
+                "the right of the SPE pulse which are considered for the "
+                "correlation alignment. For more information, check the "
+                "align_waveforms_by_correlation() function "
+                "docstring.",
+            )
+
+            maximum_allowed_shift: int = Field(
+                ...,
+                description="This parameter makes a difference only "
+                "if apply_correlation_alignment is set to True. In that "
+                "case, it gives the maximum allowed shift (in number of "
+                "ADC samples) for the correlation alignment. For more "
+                "information, check the "
+                "align_waveforms_by_correlation() function "
+                "docstring.",
+                example=15
+            )
+
             baseline_std_from_noise_results: bool = Field(
                 default=False,
                 description="If True, the baseline std is retrieved "
@@ -473,6 +527,12 @@ class Analysis1(WafflesAnalysis):
         self.batches_dates = led_utils.get_batches_dates_mapping(
             self.params.filepath_to_batches_dates_csv
         )
+
+        self.alignment_seeds_dataframe = None
+        if self.params.apply_correlation_alignment:
+            self.alignment_seeds_dataframe = led_utils.get_alignment_seeds_dataframe(
+                self.params.alignment_seeds_filepath
+            )
 
         if self.params.backup_input_parameters_to_output_folder:
             led_utils.backup_input_parameters(
@@ -830,6 +890,51 @@ class Analysis1(WafflesAnalysis):
 
                 if self.params.verbose:
                     print("Finished.")
+
+                # Apply the correlation aligment once all of the cuts have
+                # been applied to the waveforms, so that we avoid aligning
+                # waveforms which will be discarded later on
+                if self.params.apply_correlation_alignment:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Applying the correlation alignment to channel "
+                            f"{endpoint}-{channel} (batch {self.batch}, APA "
+                            f"{self.apa}, PDE {self.pde})"
+                            " ... ",
+                            end=''
+                        )
+
+                    aux = led_utils.get_alignment_seeds(
+                        self.alignment_seeds_dataframe,
+                        self.batch,
+                        self.apa,
+                        self.pde,
+                        endpoint,
+                        channel,
+                        same_endpoint_fallback=True,
+                        same_batch_apa_and_pde_fallback=True
+                    )
+
+                    led_utils.align_waveforms_by_correlation(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        aux['center_0'],
+                        aux['center_1'],
+                        aux['SPE_mean_adcs'],
+                        aux['integration_lower_limit'],
+                        aux['integration_upper_limit'],
+                        # Assuming that the baseline has already been
+                        # subtracted
+                        self.params.null_baseline_analysis_label,
+                        self.params.SPE_template_lower_limit_wrt_pulse,
+                        self.params.SPE_template_upper_limit_wrt_pulse,
+                        self.params.maximum_allowed_shift,
+                    )
+
+                    if self.params.verbose:
+                        print("Finished.")
+
+                if self.params.verbose:
                     print(
                         "In function Analysis1.analyze(): "
                         "Computing the integration window for "
@@ -1089,6 +1194,13 @@ class Analysis1(WafflesAnalysis):
                 4: 70
             }
 
+            time_range_lower_limit = 0 if self.params.apply_correlation_alignment \
+                else self.params.baseline_i_up[self.apa]
+            
+            time_range_upper_limit = aux_time_increment[self.apa]
+            if not self.params.apply_correlation_alignment:
+                time_range_upper_limit += self.params.baseline_i_up[self.apa]
+            
             aux_adc_range_above_baseline = 10
             aux_adc_range_below_baseline = 80
 
@@ -1102,8 +1214,8 @@ class Analysis1(WafflesAnalysis):
                 analysis_label=self.params.null_baseline_analysis_label,
                 time_bins=aux_time_increment[self.apa],
                 adc_bins=30,
-                time_range_lower_limit=self.params.baseline_i_up[self.apa],
-                time_range_upper_limit=self.params.baseline_i_up[self.apa] + aux_time_increment[self.apa],
+                time_range_lower_limit=time_range_lower_limit,
+                time_range_upper_limit=time_range_upper_limit,
                 adc_range_above_baseline=aux_adc_range_above_baseline,
                 adc_range_below_baseline=aux_adc_range_below_baseline,
                 detailed_label=True,
@@ -1145,12 +1257,15 @@ class Analysis1(WafflesAnalysis):
                 print("Finished.")
 
         if self.params.save_SPE_heatmaps:
+            time_bins = 512 if not self.params.apply_correlation_alignment \
+                else round((abs(self.params.SPE_template_lower_limit_wrt_pulse) + \
+                    abs(self.params.SPE_template_upper_limit_wrt_pulse))/2.)
 
             SPEs_figure = led_utils.get_SPE_grid_plot(
                 self.grid_apa,
                 self.output_data,
                 self.params.null_baseline_analysis_label,
-                time_bins=512,
+                time_bins=time_bins,
                 adc_bins=50,
                 verbose=self.params.verbose
             )

@@ -70,6 +70,50 @@ baseliner_type: 'mean'
 lower_limit_wrt_baseline: -200.
 upper_limit_wrt_baseline: 40.
 
+## Parameters for the correlation alignment
+# Whether to apply the correlation alignment. For more
+# information, see the
+# align_waveforms_by_correlation() function
+# docstring.
+apply_correlation_alignment: false
+
+# If apply_correlation_alignment is set to True, this
+# parameter must be defined. It is the path to a CSV
+# file which contains the seed gain and the SPE
+# templates used for the correlation alignment. The
+# CSV file must contain the columns 'batch', 'APA',
+# 'PDE', 'endpoint', 'channel', 'center_0', 'center_1'
+# and 'SPE_mean_adcs'.
+alignment_seeds_filepath: './configs/optimal_seeds_dfb_30p.csv'
+
+
+# This parameter makes a difference only 
+# if apply_correlation_alignment is set to True. In that 
+# case, its absolute value gives the number of points to 
+# the left of the SPE pulse which are considered for the 
+# correlation alignment. For more information, check the 
+# align_waveforms_by_correlation() function 
+# docstring.
+SPE_template_lower_limit_wrt_pulse: -50
+
+# This parameter makes a difference only 
+# if apply_correlation_alignment is set to True. In that 
+# case, its absolute value gives the number of points to 
+# the right of the SPE pulse which are considered for the 
+# correlation alignment. For more information, check the 
+# align_waveforms_by_correlation() function 
+# docstring.
+SPE_template_upper_limit_wrt_pulse: 300
+
+# This parameter makes a difference only if
+# apply_correlation_alignment is set to True. In that
+# case, it gives the maximum allowed shift (in number
+# of ADC samples) for the correlation alignment. For
+# more information, check the
+# align_waveforms_by_correlation() function
+# docstring.
+maximum_allowed_shift: 30
+
 ## Parameters for the average-baseline-std computation
 
 # If True, the baseline std is retrieved 
@@ -169,7 +213,7 @@ calib_histo_upper_limit: 50000.
 # 'endpoint', 'channel' and 'gain'. The channel-wise gain
 # read from such file is used to compute a channel-wise domain
 # for the charge calibration histograms.
-gain_seeds_filepath: './configs/gain_seeds_dfb_30p.csv'
+gain_seeds_filepath: './configs/optimal_seeds_dfb_30p.csv'
 
 # Used only if the gain_seeds_filepath parameter is defined.
 # In that case, the calibration histogram (CH) domain is
