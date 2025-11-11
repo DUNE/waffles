@@ -230,7 +230,69 @@ def get_batches_dates_mapping(
         mapping[batch] = f"{year:04d}-{month:02d}-{day:02d}"
 
     return mapping
-    
+
+def get_alignment_seeds_dataframe(
+    filepath: str | None
+    ) -> pd.DataFrame:
+    """This function reads the given CSV file and
+    checks that it contains the required columns
+    ('batch', 'APA', 'PDE', 'endpoint', 'channel',
+    'center_0', 'center_1', 'SPE_mean_adcs', 
+    'integration_lower_limit' and 
+    'integration_upper_limit'). If filepath is None,
+    a we.IncompatibleInput exception is raised.
+
+    Parameters
+    ----------
+    filepath: str | None
+        Path to the CSV file containing the seeds
+        required for correlation-based alignment
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame containing the required information
+    """
+
+    if filepath is None:
+        raise we.IncompatibleInput(
+            we.GenerateExceptionMessage(
+                1,
+                'get_alignment_seeds_dataframe()',
+                'The filepath parameter must be provided.'
+            )
+        )
+
+    alignment_seeds_df = pd.read_csv(filepath)
+
+    required_cols = {
+        'batch',
+        'APA',
+        'PDE',
+        'endpoint',
+        'channel',
+        'center_0',
+        'center_1',
+        'SPE_mean_adcs',
+        'integration_lower_limit',
+        'integration_upper_limit'
+    }
+
+    if not required_cols.issubset(alignment_seeds_df.columns):
+        raise we.MissingColumnsInDataFrame(
+            we.GenerateExceptionMessage(
+                2,
+                'get_alignment_seeds_dataframe()',
+                f"The file {filepath} is missing some of the required "
+                "columns. It must contain at least 'batch', 'APA', "
+                "'PDE', 'endpoint', 'channel', 'center_0', 'center_1', "
+                "'SPE_mean_adcs', 'integration_lower_limit' and "
+                "'integration_upper_limit'."
+            )
+        )
+
+    return alignment_seeds_df
+
 def backup_input_parameters(
     params: BaseInputParams,
     output_folderpath: str
