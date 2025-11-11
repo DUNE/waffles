@@ -201,8 +201,8 @@ calib_histo_bin_width:
 
 # Used if gain_seeds_filepath is None
 # Lower and upper limits for the calibration histogram
-calib_histo_lower_limit: -10000.
-calib_histo_upper_limit: 50000.
+calib_histo_lower_limit: -5000.
+calib_histo_upper_limit: 15000.
 
 # If None, the number of bins and the domain of the charge
 # calibration histogram are computed out of the
@@ -256,7 +256,7 @@ fit_type: 'correlated_gaussians'
 # Whether to weigh the least squares fit by
 # the Poisson standard deviation of each bin
 # in the charge histogram
-weigh_fit_by_poisson_sigmas: false
+weigh_fit_by_poisson_sigmas: true
 
 # Only used if fit_type is set to 'independent_gaussians'.
 # The number of points to fit on either side
