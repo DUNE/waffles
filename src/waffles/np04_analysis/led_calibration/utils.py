@@ -293,6 +293,140 @@ def get_alignment_seeds_dataframe(
 
     return alignment_seeds_df
 
+def get_alignment_seeds(
+    alignment_seeds_dataframe: pd.DataFrame,
+    batch: int,
+    apa: int,
+    pde: float,
+    endpoint: int,
+    channel: int,
+    same_endpoint_fallback: bool = True,
+    same_batch_apa_and_pde_fallback: bool = True
+) -> np.ndarray:
+    """This function retrieves the following entries: 'center_0', 
+    'center_1', 'SPE_mean_adcs', 'integration_lower_limit' and 
+    'integration_upper_limit'; from the given dataframe, based
+    on the specified batch, APA, PDE, endpoint and channel
+    values. If no exact match is found, it can optionally fall
+    back to searching for such information from another channel
+    at the same endpoint, or from another channel at the same
+    batch, APA and PDE (regardless of the endpoint).
+
+    Parameters
+    ----------
+    alignment_seeds_dataframe: pandas.DataFrame
+        DataFrame containing, at least, the following columns:
+            - 'batch',
+            - 'APA',
+            - 'PDE',
+            - 'endpoint',
+            - 'channel',
+            - 'center_0',
+            - 'center_1',
+            - 'SPE_mean_adcs',
+            - 'integration_lower_limit' and
+            - 'integration_upper_limit'.
+    batch: int
+        The batch number to look for
+    apa: int
+        The APA number to look for
+    pde: float
+        The PDE value to look for
+    endpoint: int
+        The endpoint number to look for
+    channel: int
+        The channel number to look for
+    same_endpoint_fallback: bool, default True
+        If True, and no exact match is found, the function
+        will search for the required information from the
+        same endpoint, regardless of channel.
+    same_batch_apa_and_pde_fallback: bool, default True
+        If True, and no match is found even after applying
+        the same_endpoint_fallback, the function will
+        search for the required information from the
+        same batch, APA and PDE, regardless of endpoint
+        and channel.
+
+    Returns
+    -------
+    dict
+        The returned dictionary has the following structure:
+        {
+            'center_0': float,
+            'center_1': float,
+            'SPE_mean_adcs': np.ndarray,
+            'integration_lower_limit': int,
+            'integration_upper_limit': int
+        }
+    """
+
+    filtered_df = alignment_seeds_dataframe[
+        (alignment_seeds_dataframe['batch'] == batch) &
+        (alignment_seeds_dataframe['APA'] == apa) &
+        (alignment_seeds_dataframe['PDE'] == pde) &
+        (alignment_seeds_dataframe['endpoint'] == endpoint) &
+        (alignment_seeds_dataframe['channel'] == channel)
+    ]
+
+    if len(filtered_df) == 0:
+        if not same_endpoint_fallback:
+            raise Exception(
+                "In function get_alignment_seeds(): "
+                "Could not find the required information for "
+                f"batch {batch}, APA {apa}, PDE {pde}, endpoint "
+                f"{endpoint} and channel {channel}, and "
+                "same_endpoint_fallback is set to False."
+            )
+
+        filtered_df = alignment_seeds_dataframe[
+            (alignment_seeds_dataframe['batch'] == batch) &
+            (alignment_seeds_dataframe['APA'] == apa) &
+            (alignment_seeds_dataframe['PDE'] == pde) &
+            (alignment_seeds_dataframe['endpoint'] == endpoint)
+        ]
+
+        if len(filtered_df) == 0:
+            if not same_batch_apa_and_pde_fallback:
+                raise Exception(
+                    "In function get_alignment_seeds(): "
+                    "Even after extending the search to the whole "
+                    "endpoint, could not find the required information "
+                    f"for batch {batch}, APA {apa}, PDE {pde} and "
+                    f"endpoint {endpoint}. Enable same_batch_apa_and_pde_fallback "
+                    "to True to allow fallback to other endpoints "
+                    "within the same batch, APA and PDE."
+                )
+            
+            filtered_df = alignment_seeds_dataframe[
+                (alignment_seeds_dataframe['batch'] == batch) &
+                (alignment_seeds_dataframe['APA'] == apa) &
+                (alignment_seeds_dataframe['PDE'] == pde)
+            ]
+
+            if len(filtered_df) == 0:
+                raise Exception(
+                    "In function get_alignment_seeds(): "
+                    "Even after extending the search to the whole "
+                    f"(batch {batch}, APA {apa}, PDE {pde}) set, could "
+                    "not retrieve the required information."
+                )
+            
+    # At this point, filtered_df must contain at least one entry
+    SPE_template_str = filtered_df.iloc[0]['SPE_mean_adcs']
+    SPE_template_str = SPE_template_str.strip()[1:-1]
+    
+    SPE_template = np.array(
+        [float(x.strip()) for x in SPE_template_str.split(',')]
+    )
+
+    return {
+            'center_0': float(filtered_df.iloc[0]['center_0']),
+            'center_1': float(filtered_df.iloc[0]['center_1']),
+            'SPE_mean_adcs': SPE_template,
+            'integration_lower_limit': int(filtered_df.iloc[0]['integration_lower_limit']),
+            'integration_upper_limit': int(filtered_df.iloc[0]['integration_upper_limit'])
+        }
+
 def backup_input_parameters(
     params: BaseInputParams,
     output_folderpath: str
