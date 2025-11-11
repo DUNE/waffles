@@ -56,7 +56,14 @@ baseline_limits:
         - 900
         - 1000
 
+# Number of allowed standard deviations from a
+# preliminary baseline estimate. The ADC samples
+# that fall into the given range are considered
+# in the definitive baseline computation
 baseliner_std_cut: 3.
+
+# How to compute the baseline out of the selected
+# ADC samples
 baseliner_type: 'mean'
 
 ## Parameters for the coarse selection cut
@@ -105,8 +112,18 @@ signal_i_up:
     4:
         165
 
+# Number of allowed baseline-STDs in the baseline
+# region. I.e. the waveforms for which at least one
+# ADC sample in the baseline region deviates from
+# the baseline by more than this value times the
+# baseline STD will be excluded.
 baseline_allowed_dev: 4.
 signal_allowed_dev: 10.
+# Number of allowed baseline-STDs in the signal
+# region. I.e. the waveforms for which at least
+# one ADC sample in the signal region deviates
+# from the signal by more than this value times
+# the baseline STD will be excluded
 
 ## Parameters for the computation of the integration window
 integrate_entire_pulse: false
