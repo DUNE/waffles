@@ -17,6 +17,7 @@ Example
 from __future__ import annotations
 
 import logging
+import importlib
 from typing import Iterable, Optional
 
 import numpy as np
@@ -30,6 +31,47 @@ from rawdatautils.unpack.utils import DAPHNEEthUnpacker
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
+
+
+def _alias_method(target: object, alias_name: str, source_name: str) -> bool:
+    """Try to add ``alias_name`` to ``target`` by pointing it to ``source_name``."""
+    if target is None or hasattr(target, alias_name):
+        return False if target is None else True
+
+    original = getattr(target, source_name, None)
+    if original is None:
+        return False
+
+    try:
+        setattr(target, alias_name, original)
+    except Exception:
+        return False
+    return True
+
+
+def _ensure_daphne_header_compat() -> None:
+    """
+    Older rawdatautils versions expect DAPHNEEt.get_header(), newer
+    fddetdataformats builds renamed it to get_daqheader(). Patch in an alias.
+    """
+    for module_name in ("fddetdataformats",):
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            continue
+
+        candidates = [module]
+        submodule = getattr(module, "_daq_fddetdataformats_py", None)
+        if submodule is not None:
+            candidates.append(submodule)
+
+        for candidate in candidates:
+            for type_name in ("DAPHNEEt", "DAPHNEEthFrame"):
+                target = getattr(candidate, type_name, None)
+                _alias_method(target, "get_header", "get_daqheader")
+
+
+_ensure_daphne_header_compat()
 
 
 def _ensure_logger(logger: Optional[logging.Logger]) -> logging.Logger:
@@ -57,10 +99,12 @@ def _looks_like_daphne_eth(fragment_type: int) -> bool:
     the substring "DAPHNE" and "ETH". The helper is defensive so that older files simply
     fail the check instead of raising.
     """
+    raw_value = int(fragment_type)
+
     try:
-        enum_value = FragmentType(fragment_type)
+        enum_value = FragmentType(raw_value)
     except ValueError:
-        if fragment_type in LEGACY_DAPHNE_ETH_TYPES:
+        if raw_value in LEGACY_DAPHNE_ETH_TYPES:
             return True
         return False
 
@@ -68,7 +112,7 @@ def _looks_like_daphne_eth(fragment_type: int) -> bool:
     if "daphne" in enum_name and "eth" in enum_name:
         return True
 
-    if fragment_type in LEGACY_DAPHNE_ETH_TYPES:
+    if raw_value in LEGACY_DAPHNE_ETH_TYPES:
         return True
 
     try:
