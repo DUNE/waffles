@@ -7,8 +7,11 @@ from plotly import graph_objects as pgo
 from typing import Tuple, Dict, Optional
 
 from waffles.data_classes.WafflesAnalysis import BaseInputParams
+from waffles.data_classes.IPDict import IPDict
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.ChannelWs import ChannelWs
+from waffles.utils.integral.WindowIntegrator import WindowIntegrator
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.Map import Map
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -427,6 +430,246 @@ def get_alignment_seeds(
             'integration_lower_limit': int(filtered_df.iloc[0]['integration_lower_limit']),
             'integration_upper_limit': int(filtered_df.iloc[0]['integration_upper_limit'])
         }
+
+def align_waveforms_by_correlation(
+    input_ChannelWs: ChannelWs,
+    center_0: float,
+    center_1: float,
+    SPE_template_array: np.ndarray,
+    integration_lower_limit: int,
+    integration_upper_limit: int,
+    baseline_analysis_label: str,
+    SPE_template_lower_limit_wrt_pulse: int, 
+    SPE_template_upper_limit_wrt_pulse: int,
+    maximum_allowed_shift: int,
+) -> None:
+    """This function aligns the waveforms in the given
+    ChannelWs object based on their correlation with a
+    provided SPE template. The waveforms whose integral
+    evaluates to less than (center_0 + center_1)/2 are
+    considered as baselines and are not aligned. The
+    waveforms which are aligned are also trimmed to
+    some limits which are defined by the input parameters.
+    The changes are done in place.
+
+    Parameters
+    ----------
+    input_ChannelWs: ChannelWs
+        The ChannelWs object containing the waveforms
+        to be aligned.
+    center_0 (resp. center_1): float
+        The estimated mean of the baselines (resp. SPE)
+        integrals, used to decide if a waveform is a
+        baseline or not.
+    SPE_template_array: np.ndarray
+        The SPE template array used for correlation
+    integration_lower_limit (resp. integration_upper_limit): int
+        For each waveform, wvf, it gives the lower (resp.
+        upper limit) for the iterator of the wvf.adcs
+        array which gives the samples used to compute the
+        integral of the waveform. These parameters are
+        given to the WindowIntegrator analysis class,
+        which is in charge of computing the waveform
+        integrals. If the result is less than
+        (center_0 + center_1)/2, then the waveform is
+        considered as a baseline and is not aligned.
+        This cut is meant to avoid biasing the
+        pedestal position upwards: aligning baseline
+        samples to the SPE template would find noisy
+        regions which are systematically positive,
+        artificially increasing its integral on average.
+    baseline_analysis_label: str
+        The WindowIntegrator analysis needs a baseline
+        value to compute the waveform integrals. This
+        parameter gives the label for the WfAna object
+        which contains such baseline value. Namely, it is
+        the key for the analyses attribute dictionary
+        of each Waveform object within the input
+        ChannelWs.
+    SPE_template_lower_limit_wrt_pulse (resp. SPE_template_upper_limit_wrt_pulse): int
+        The length of the slice of the SPE template
+        which is used for the correlation computation
+        is defined by these two parameters. Namely, 
+        they give the lower and upper limits (in
+        number of time ticks) with respect to the
+        pulse position (minimum of the SPE template).
+    maximum_allowed_shift: int
+        For each waveform in the input ChannelWs,
+        the length of the slice which is used
+        for the correlation computation is defined
+        by this parameter. Namely, the lower (resp.
+        upper) limit of such slice is computed as
+        the lower (resp. upper) limit of the SPE
+        template slice minus (resp. plus) the
+        absolute value of this parameter. Since
+        the correlation coefficient is computed
+        using numpy.correlate() with mode='valid'
+        (i.e. only positions where the two input
+        arrays fully overlap are considered), this
+        parameter sets a maximum (absolute) allowed
+        shift for each waveform when aligning it to
+        the SPE template, and also matches the number
+        of correlation coefficients computed per
+        waveform, i.e. the length of the array
+        returned by numpy.correlate().
+
+    Returns
+    -------
+    None
+    """
+
+    # Find the pulse in the template
+    idx_pulse = np.argmin(SPE_template_array)
+
+    # Find the slicing indices for the template
+    template_slice_i_low = max(
+        0,
+        idx_pulse - abs(int(SPE_template_lower_limit_wrt_pulse))
+    )
+
+    template_slice_i_up = min(
+        len(SPE_template_array),
+        idx_pulse + abs(int(SPE_template_upper_limit_wrt_pulse))
+    )
+
+    # Number of points in the sliced template, which match
+    # the number of points in the waveforms for the resulting
+    # aligned and filtered WaveformSet
+    template_n_points = template_slice_i_up - template_slice_i_low
+
+    # Find the slicing indices for the waveforms
+    wfs_slice_i_low = max(
+        0, 
+        template_slice_i_low - abs(maximum_allowed_shift)
+    )
+
+    if input_ChannelWs.points_per_wf < len(SPE_template_array):
+        raise ValueError(
+            "In function align_waveforms_by_correlation(): "
+            "The length of the sample waveforms ("
+            f"{input_ChannelWs.points_per_wf}) in the input ChannelWs "
+            "must be at least as big as the length of the SPE template "
+            f"({len(SPE_template_array)}), otherwise the computed "
+            "wfs_slice_i_up may be smaller than template_slice_i_up."
+        )
+
+    wfs_slice_i_up = min(
+        input_ChannelWs.points_per_wf,
+        template_slice_i_up + abs(maximum_allowed_shift)
+    )
+
+    # By construction we have that:
+    #
+    #   1) wfs_slice_i_low <= template_slice_i_low
+    #   2) wfs_slice_i_up >= template_slice_i_up
+    #
+    # This means that the number of points in the sliced waveforms
+    # will always be bigger or equal to the number of points in the
+    # sliced template. Hence, when we call np.correlate() specifying
+    # mode='valid', we will always get an output which contains at
+    # least one value for which a complete overlap with the full
+    # SPE template was considered.
+
+    # Use the same normalization for the SPE template
+    # and for the sample waveforms later on
+    normalizer = lambda input_array: \
+        input_array / np.max(np.abs(input_array))
+
+    # Slice and normalize the template only once
+    sliced_template_array = SPE_template_array[
+        template_slice_i_low: template_slice_i_up
+    ]
+
+    normalized_sliced_template_array = normalizer(
+        sliced_template_array
+    )
+    
+    # Integrate the waveforms to decide which ones
+    # are baselines and which ones are not
+    label = 'integration_for_baseline_identification'
+
+    integrator_input_parameters = IPDict({
+        'baseline_analysis': baseline_analysis_label,
+        'inversion': True,
+        'int_ll': integration_lower_limit,
+        'int_ul': integration_upper_limit,
+        'amp_ll': integration_lower_limit,
+        'amp_ul': integration_upper_limit
+    })
+
+    checks_kwargs = IPDict({
+        'points_no': input_ChannelWs.points_per_wf
+    })
+
+    _ = input_ChannelWs.analyse(
+        label,
+        WindowIntegrator,
+        integrator_input_parameters,
+        checks_kwargs=checks_kwargs,
+        overwrite=True
+    )
+    
+    is_baseline = []
+    optimal_shift_in_time_ticks = []
+
+    # Compute the baseline charge threshold only once
+    baseline_charge_threshold = (center_0 + center_1) / 2.
+
+    for waveform in input_ChannelWs.waveforms:
+
+        # Do not align baselines (i.e. do not bias
+        # the pedestal position upwards)
+        if waveform.analyses[label].result['integral'] < \
+            baseline_charge_threshold:
+
+            is_baseline.append(True)
+            optimal_shift_in_time_ticks.append(None)
+
+        else:
+            sliced_waveform_adcs = waveform.adcs[
+                wfs_slice_i_low: wfs_slice_i_up
+            ]
+
+            correlation_coefficients = np.correlate(
+                normalizer(sliced_waveform_adcs),
+                normalized_sliced_template_array,
+                mode='valid'
+            )
+
+            is_baseline.append(False)
+            optimal_shift_in_time_ticks.append(
+                np.argmax(correlation_coefficients)
+            )
+
+    # In this loop, we truncate the waveforms (in place) to the
+    # template limits, applying the optimal shift when needed
+    for i in range(len(input_ChannelWs.waveforms)):
+
+        if is_baseline[i]:
+            # If this waveform has been identified as a baseline,
+            # we just slice the waveform to the template limits
+            # without applying any shift.
+            input_ChannelWs.waveforms[i]._Waveform__slice_adcs(
+                template_slice_i_low,
+                # Matches template_slice_i_low + template_n_points, by definition
+                template_slice_i_up
+            )
+
+        else:
+            input_ChannelWs.waveforms[i]._Waveform__slice_adcs(
+                # Note that the lag index (the shifts) returned by
+                # np.correlate() are relative to the start of the
+                # longest input signal, which in this case is the
+                # sliced sample (not the template)
+                wfs_slice_i_low + optimal_shift_in_time_ticks[i],
+                wfs_slice_i_low + optimal_shift_in_time_ticks[i] + template_n_points
+            )
+
+    # Update the points_per_wf attribute
+    input_ChannelWs._WaveformSet__points_per_wf = template_n_points
+    input_ChannelWs.reset_mean_waveform()
+
+    return
 
 def backup_input_parameters(
     params: BaseInputParams,
