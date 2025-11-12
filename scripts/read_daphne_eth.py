@@ -18,6 +18,7 @@ import sys
 from typing import Optional
 
 from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
+from waffles.input_output.hdf5_structured import save_structured_waveformset
 
 
 def _build_argparser() -> argparse.ArgumentParser:
@@ -66,6 +67,11 @@ def _build_argparser() -> argparse.ArgumentParser:
         help="Print up to this many example waveforms (default: %(default)s).",
     )
     parser.add_argument(
+        "--structured-out",
+        default=None,
+        help="If set, write the decoded WaveformSet to this HDF5 (structured) file.",
+    )
+    parser.add_argument(
         "--quiet",
         action="store_true",
         help="Suppress info-level logging; only warnings/errors will be shown.",
@@ -111,15 +117,19 @@ def main(argv: Optional[list[str]] = None) -> int:
     if to_show > 0:
         print(f"\nDisplaying the first {to_show} waveforms:")
         for wf in wfset.waveforms[:to_show]:
-            print(
-                f"  run={wf.run_number} record={wf.record_number} "
-                f"endpoint={wf.endpoint} channel={wf.channel} "
-                f"timestamp={wf.timestamp} nsamples={len(wf.adcs)}"
-            )
+        print(
+            f"  run={wf.run_number} record={wf.record_number} "
+            f"endpoint={wf.endpoint} channel={wf.channel} "
+            f"timestamp={wf.timestamp} nsamples={len(wf.adcs)}"
+        )
+    if args.structured_out:
+        save_structured_waveformset(
+            wfset,
+            args.structured_out,
+        )
 
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

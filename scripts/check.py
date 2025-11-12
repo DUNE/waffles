@@ -141,7 +141,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     print(f"  Trigger timestamp   : {fragment.get_trigger_timestamp()}")
     print(f"  Data size           : {fragment.get_data_size()} bytes")
 
-    payload = bytes(fragment.get_data())
+    payload = fragment.get_data_bytes()
     preview_len = len(payload) if args.payload_preview < 0 else args.payload_preview
     print(f"\n=== Payload preview ({min(len(payload), preview_len)} bytes) ===")
     print(_hexdump(payload, limit=preview_len))
