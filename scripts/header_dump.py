@@ -3,10 +3,10 @@
 Quickly dump the header of the first fragment in a raw DAQ HDF5 file.
 
 Unlike ``check.py`` this helper makes no assumptions about the detector: it
-opens the file, grabs the first Trigger Record, scans every GeoID system, and
-prints the richest header summary it can assemble for the first fragment that
-shows up. Optional flags let you override the record, system, or GeoID index
-if needed.
+opens the file, grabs the first Trigger Record, scans every available
+subdetector, and prints the richest header summary it can assemble for the
+first fragment that shows up. Optional flags let you override the record,
+detector (if you happen to know it), or GeoID index if needed.
 """
 
 from __future__ import annotations
@@ -16,14 +16,11 @@ import os
 from typing import Iterable, Optional, Sequence, Tuple
 
 import detdataformats
-import daqdataformats
 from daqdataformats import FragmentType, fragment_type_to_string
 from hdf5libs import HDF5RawDataFile
 
 
 def _parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
-    system_choices = [system.name for system in daqdataformats.GeoID.SystemType]
-
     parser = argparse.ArgumentParser(
         description="Inspect the very first fragment header in a raw HDF5 file."
     )
@@ -35,15 +32,14 @@ def _parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
         help="Zero-based index inside the Trigger Record list (default: %(default)s).",
     )
     parser.add_argument(
-        "--system",
-        choices=system_choices,
-        help="Optional GeoID SystemType to restrict the search (default: first non-empty system).",
+        "--detector",
+        help="Optional detector string understood by detdataformats (default: scan all).",
     )
     parser.add_argument(
         "--geo-index",
         type=int,
         default=0,
-        help="Zero-based index inside the GeoID list for the chosen system (default: %(default)s).",
+        help="Zero-based index inside the GeoID list for the chosen detector (default: %(default)s).",
     )
     return parser.parse_args(argv)
 
@@ -57,16 +53,16 @@ def _select(items: Sequence, index: int, label: str):
 
 
 def _gather_geo_ids(
-    h5_file: HDF5RawDataFile, record, systems: Sequence[daqdataformats.GeoID.SystemType]
-) -> list[Tuple[daqdataformats.GeoID.SystemType, Sequence]]:
-    summary: list[Tuple[daqdataformats.GeoID.SystemType, Sequence]] = []
-    for system in systems:
+    h5_file: HDF5RawDataFile, record, detectors: Sequence[detdataformats.DetID.Subdetector]
+) -> list[Tuple[detdataformats.DetID.Subdetector, Sequence]]:
+    summary: list[Tuple[detdataformats.DetID.Subdetector, Sequence]] = []
+    for detector in detectors:
         try:
-            geo_ids = list(h5_file.get_geo_ids(record, system))
+            geo_ids = list(h5_file.get_geo_ids_for_subdetector(record, detector))
         except RuntimeError:
             continue
         if geo_ids:
-            summary.append((system, geo_ids))
+            summary.append((detector, geo_ids))
     return summary
 
 
@@ -93,23 +89,25 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     record = _select(records, args.record_index, "record")
     print(f"Selected record #{args.record_index}: {record}")
 
-    systems: Sequence[daqdataformats.GeoID.SystemType]
-    if args.system:
-        systems = [daqdataformats.GeoID.SystemType[args.system]]
+    if args.detector:
+        try:
+            detectors = [detdataformats.DetID.string_to_subdetector(args.detector)]
+        except Exception as exc:  # detdataformats raises RuntimeError on bad input
+            raise ValueError(f"Unknown detector string '{args.detector}'") from exc
     else:
-        systems = [system for system in daqdataformats.GeoID.SystemType]
+        detectors = list(detdataformats.DetID.Subdetector)
 
-    geo_summary = _gather_geo_ids(h5_file, record, systems)
+    geo_summary = _gather_geo_ids(h5_file, record, detectors)
     if not geo_summary:
         raise RuntimeError("No fragments found in the selected record.")
 
     print("\nGeoID inventory for this record:")
-    for system, geo_ids in geo_summary:
-        print(f"  {system.name:<12} : {len(geo_ids)} entries")
+    for detector, geo_ids in geo_summary:
+        print(f"  {detector.name:<16} : {len(geo_ids)} entries")
 
-    system, geo_ids = geo_summary[0]
-    geo_id = _select(geo_ids, args.geo_index, f"GeoID in system {system.name}")
-    print(f"\nInspecting GeoID #{args.geo_index} for system {system.name}: {geo_id}")
+    detector, geo_ids = geo_summary[0]
+    geo_id = _select(geo_ids, args.geo_index, f"GeoID for detector {detector.name}")
+    print(f"\nInspecting GeoID #{args.geo_index} for detector {detector.name}: {geo_id}")
 
     fragment = h5_file.get_frag(record, geo_id)
     header = fragment.get_header()
@@ -131,7 +129,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     print(f"  Fragment type         : {fragment_type.name} ({fragment_label})")
     print(f"  Source subsystem / id : {source_repr}")
     print(f"  Error bits            : 0x{header.error_bits:08x}")
-    print(f"  GeoID selection       : {system.name} / {geo_id}")
+    print(f"  GeoID selection       : {detector.name} / {geo_id}")
 
     return 0
 
