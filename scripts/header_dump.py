@@ -16,12 +16,13 @@ import os
 from typing import Iterable, Optional, Sequence, Tuple
 
 import detdataformats
-from daqdataformats import FragmentType, GeoID, fragment_type_to_string
+import daqdataformats
+from daqdataformats import FragmentType, fragment_type_to_string
 from hdf5libs import HDF5RawDataFile
 
 
 def _parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
-    system_choices = [system.name for system in GeoID.SystemType]
+    system_choices = [system.name for system in daqdataformats.GeoID.SystemType]
 
     parser = argparse.ArgumentParser(
         description="Inspect the very first fragment header in a raw HDF5 file."
@@ -56,9 +57,9 @@ def _select(items: Sequence, index: int, label: str):
 
 
 def _gather_geo_ids(
-    h5_file: HDF5RawDataFile, record, systems: Sequence[GeoID.SystemType]
-) -> list[Tuple[GeoID.SystemType, Sequence]]:
-    summary: list[Tuple[GeoID.SystemType, Sequence]] = []
+    h5_file: HDF5RawDataFile, record, systems: Sequence[daqdataformats.GeoID.SystemType]
+) -> list[Tuple[daqdataformats.GeoID.SystemType, Sequence]]:
+    summary: list[Tuple[daqdataformats.GeoID.SystemType, Sequence]] = []
     for system in systems:
         try:
             geo_ids = list(h5_file.get_geo_ids(record, system))
@@ -92,11 +93,11 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     record = _select(records, args.record_index, "record")
     print(f"Selected record #{args.record_index}: {record}")
 
-    systems: Sequence[GeoID.SystemType]
+    systems: Sequence[daqdataformats.GeoID.SystemType]
     if args.system:
-        systems = [GeoID.SystemType[args.system]]
+        systems = [daqdataformats.GeoID.SystemType[args.system]]
     else:
-        systems = [system for system in GeoID.SystemType]
+        systems = [system for system in daqdataformats.GeoID.SystemType]
 
     geo_summary = _gather_geo_ids(h5_file, record, systems)
     if not geo_summary:
