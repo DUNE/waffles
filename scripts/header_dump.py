@@ -73,6 +73,23 @@ def _format_subdetector(detector_id: int) -> str:
         return f"{detector_id} (unknown)"
     return f"{detector_id} ({subdet.name})"
 
+def _all_subdetectors() -> list[detdataformats.DetID.Subdetector]:
+    enum_cls = detdataformats.DetID.Subdetector
+    members = getattr(enum_cls, "__members__", None)
+    if isinstance(members, dict) and members:
+        return list(members.values())
+
+    # Fallback: try sequential values until the enum constructor rejects them.
+    discovered = []
+    for value in range(0, 256):
+        try:
+            discovered.append(enum_cls(value))
+        except ValueError:
+            continue
+    if not discovered:
+        raise RuntimeError("Unable to enumerate DetID.Subdetector values.")
+    return discovered
+
 
 def main(argv: Optional[Iterable[str]] = None) -> int:
     args = _parse_args(argv)
@@ -95,7 +112,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         except Exception as exc:  # detdataformats raises RuntimeError on bad input
             raise ValueError(f"Unknown detector string '{args.detector}'") from exc
     else:
-        detectors = list(detdataformats.DetID.Subdetector)
+        detectors = _all_subdetectors()
 
     geo_summary = _gather_geo_ids(h5_file, record, detectors)
     if not geo_summary:
