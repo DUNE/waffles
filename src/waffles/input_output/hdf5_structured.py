@@ -36,7 +36,7 @@ def save_structured_waveformset(
     daq_timestamps = np.zeros(n_waveforms, dtype=np.uint64)
     run_numbers = np.zeros(n_waveforms, dtype=np.int32)
     record_numbers = np.zeros(n_waveforms, dtype=np.int32)
-    channels = np.zeros(n_waveforms, dtype=np.uint8)
+    channels = np.zeros(n_waveforms, dtype=np.int32)
     endpoints = np.zeros(n_waveforms, dtype=np.int32)
     trigger_types = np.zeros(n_waveforms, dtype=np.uint64)
 
