@@ -49,7 +49,8 @@ def save_structured_waveformset(
         record_numbers[i] = wf.record_number
         channels[i] = wf.channel
         endpoints[i] = wf.endpoint
-        trigger_types[i] = getattr(wf, "trigger_type", 0)
+        trigger = getattr(wf, "trigger_type", 0)
+        trigger_types[i] = 0 if trigger is None else int(trigger)
 
     print(f"✅ Saving {n_waveforms} waveforms to {filepath}")
     print(f"   Sample type: {type(waveforms[0])}, ADC shape: {waveforms[0].adcs.shape}")
