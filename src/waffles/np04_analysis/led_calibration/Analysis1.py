@@ -751,6 +751,23 @@ class Analysis1(WafflesAnalysis):
 
         if self.params.verbose:
             print("Finished.")
+            print(
+                "In function Analysis1.analyze(): "
+                "Subtracting the baseline from each waveform "
+                "in the merged WaveformSet of batch "
+                f"{self.batch}, APA {self.apa} and PDE "
+                f"{self.pde} ... ",
+                end=''
+            )
+
+        self.wfset.apply(
+            subtract_baseline,
+            self.params.baseline_analysis_label,
+            show_progress=False
+        )
+
+        if self.params.verbose:
+            print("Finished.")
 
         # Add a dummy baseline analysis to the merged WaveformSet
         # We will use this for the integration stage after having
@@ -777,7 +794,8 @@ class Analysis1(WafflesAnalysis):
         self.wfset = WaveformSet.from_filtered_WaveformSet(
             self.wfset,
             coarse_selection_for_led_calibration,
-            self.params.baseline_analysis_label,
+            # The baseline has already been subtracted in-place
+            self.params.null_baseline_analysis_label,
             self.params.lower_limit_wrt_baseline,
             self.params.upper_limit_wrt_baseline
         )
@@ -842,6 +860,9 @@ class Analysis1(WafflesAnalysis):
 
                     average_baseline_std = led_utils.compute_average_baseline_std(
                         self.grid_apa.ch_wf_sets[endpoint][channel],
+                        # What is taken from the baseline analysis here is
+                        # the baseline STD (which is the same after baseline
+                        # subtraction), not the baseline value itself
                         self.params.baseline_analysis_label
                     )
 
@@ -865,7 +886,8 @@ class Analysis1(WafflesAnalysis):
                 aux = WaveformSet.from_filtered_WaveformSet(
                     self.grid_apa.ch_wf_sets[endpoint][channel],
                     fine_selection_for_led_calibration,
-                    self.params.baseline_analysis_label,
+                    # The baseline has already been subtracted in-place
+                    self.params.null_baseline_analysis_label,
                     self.params.baseline_i_up[self.apa],
                     self.params.signal_i_up[self.apa],
                     average_baseline_std,
@@ -886,23 +908,6 @@ class Analysis1(WafflesAnalysis):
                         f"Kept {100.*(len_after_fine_selection/len_before_fine_selection):.2f}%"
                         " of the waveforms"
                     )
-                    print(
-                        "In function Analysis1.analyze(): "
-                        "Subtracting the baseline from each waveform "
-                        f"of channel {endpoint}-{channel} "
-                        f"(batch {self.batch}, APA {self.apa},"
-                        f" PDE {self.pde}) ... ",
-                        end=''
-                    )
-
-                self.grid_apa.ch_wf_sets[endpoint][channel].apply(
-                    subtract_baseline,
-                    self.params.baseline_analysis_label,
-                    show_progress=False
-                )
-
-                if self.params.verbose:
-                    print("Finished.")
 
                 # Apply the correlation aligment once all of the cuts have
                 # been applied to the waveforms, so that we avoid aligning
