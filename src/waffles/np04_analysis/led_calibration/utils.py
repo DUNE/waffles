@@ -414,9 +414,19 @@ def get_alignment_seeds(
                     f"(batch {batch}, APA {apa}, PDE {pde}) set, could "
                     "not retrieve the required information."
                 )
+        
+    used_row = filtered_df.iloc[0]
+    print(
+        "In function get_alignment_seeds(): "
+        f"For batch {batch}, APA {apa}, PDE {pde}, endpoint "
+        f"{endpoint}, channel {channel}, using alignment seeds"
+        f" from batch {used_row['batch']}, APA {used_row['APA']}, "
+        f"PDE {used_row['PDE']}, endpoint {used_row['endpoint']} "
+        f"and channel {used_row['channel']}"
+    )
             
     # At this point, filtered_df must contain at least one entry
-    SPE_template_str = filtered_df.iloc[0]['SPE_mean_adcs']
+    SPE_template_str = used_row['SPE_mean_adcs']
     SPE_template_str = SPE_template_str.strip()[1:-1]
     
     SPE_template = np.array(
@@ -424,11 +434,11 @@ def get_alignment_seeds(
     )
 
     return {
-            'center_0': float(filtered_df.iloc[0]['center_0']),
-            'center_1': float(filtered_df.iloc[0]['center_1']),
+            'center_0': float(used_row['center_0']),
+            'center_1': float(used_row['center_1']),
             'SPE_mean_adcs': SPE_template,
-            'integration_lower_limit': int(filtered_df.iloc[0]['integration_lower_limit']),
-            'integration_upper_limit': int(filtered_df.iloc[0]['integration_upper_limit'])
+            'integration_lower_limit': int(used_row['integration_lower_limit']),
+            'integration_upper_limit': int(used_row['integration_upper_limit'])
         }
 
 def align_waveforms_by_correlation(
