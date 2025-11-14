@@ -15,10 +15,26 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from typing import Optional
+from collections import Counter, defaultdict
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Tuple
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import LogNorm
+
+from waffles.data_classes.Waveform import Waveform
+from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
 from waffles.input_output.hdf5_structured import save_structured_waveformset
+from waffles.utils.daphne_stats import (
+    collect_link_inventory,
+    compute_waveform_stats,
+    map_waveforms_to_links,
+)
 
 
 def _build_argparser() -> argparse.ArgumentParser:
@@ -72,11 +88,217 @@ def _build_argparser() -> argparse.ArgumentParser:
         help="If set, write the decoded WaveformSet to this HDF5 (structured) file.",
     )
     parser.add_argument(
+        "--plots-dir",
+        default=None,
+        help="If set, produce per-channel persistence/FFT plots into this directory.",
+    )
+    parser.add_argument(
+        "--plots-max-waveforms",
+        type=int,
+        default=2000,
+        help="Maximum number of waveforms per channel to use for plots (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--plots-time-bins",
+        type=int,
+        default=256,
+        help="Number of time bins for persistence histograms (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--plots-amp-bins",
+        type=int,
+        default=256,
+        help="Number of amplitude bins for persistence histograms (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--print-stats",
+        action="store_true",
+        help="Print endpoint/channel/link percentage tables after decoding.",
+    )
+    parser.add_argument(
+        "--stats-top",
+        type=int,
+        default=10,
+        help="Maximum number of rows per table when --print-stats is enabled (default: %(default)s).",
+    )
+    parser.add_argument(
         "--quiet",
         action="store_true",
         help="Suppress info-level logging; only warnings/errors will be shown.",
     )
     return parser
+
+
+def _collect_channel_samples(
+    waveforms: List[Waveform],
+    limit: Optional[int],
+) -> Dict[Tuple[int, int], List[Waveform]]:
+    if limit is not None and limit <= 0:
+        limit = None
+    grouped: Dict[Tuple[int, int], List[Waveform]] = defaultdict(list)
+    for wf in waveforms:
+        key = (wf.endpoint, wf.channel)
+        bucket = grouped[key]
+        if limit is not None and len(bucket) >= limit:
+            continue
+        bucket.append(wf)
+    return grouped
+
+
+def _stack_waveforms(waveforms: List[Waveform]) -> Tuple[np.ndarray, float]:
+    min_samples = min(len(wf.adcs) for wf in waveforms)
+    data = np.stack([wf.adcs[:min_samples] for wf in waveforms]).astype(np.float32)
+    return data, waveforms[0].time_step_ns
+
+
+def _save_channel_plots(
+    key: Tuple[int, int],
+    waveforms: List[Waveform],
+    out_dir: Path,
+    time_bins: int,
+    amp_bins: int,
+) -> None:
+    data, time_step_ns = _stack_waveforms(waveforms)
+    n_waveforms, n_samples = data.shape
+
+    amp_min = float(data.min())
+    amp_max = float(data.max())
+    if amp_min == amp_max:
+        amp_max = amp_min + 1.0
+
+    times = np.tile(np.arange(n_samples), n_waveforms)
+    adc_vals = data.reshape(-1)
+    time_bin_count = max(1, min(time_bins, n_samples))
+    amp_bin_count = max(1, amp_bins)
+    hist, xedges, yedges = np.histogram2d(
+        times,
+        adc_vals,
+        bins=[time_bin_count, amp_bin_count],
+        range=[[0, n_samples], [amp_min, amp_max]],
+    )
+
+    window = np.hanning(n_samples)
+    windowed = data * window
+    fft_vals = np.fft.rfft(windowed, axis=1)
+    freqs = np.fft.rfftfreq(n_samples, d=time_step_ns * 1e-9)
+    power = np.abs(fft_vals) ** 2
+    mean_power = np.maximum(power.mean(axis=0), 1e-18)
+
+    fig, (ax_persist, ax_fft) = plt.subplots(1, 2, figsize=(12, 5))
+    im = ax_persist.imshow(
+        hist.T + 1e-9,
+        origin="lower",
+        aspect="auto",
+        extent=[0, n_samples, amp_min, amp_max],
+        norm=LogNorm(),
+        cmap="viridis",
+    )
+    ax_persist.set_title("Persistence")
+    ax_persist.set_xlabel("Sample")
+    ax_persist.set_ylabel("ADC")
+    cbar = fig.colorbar(im, ax=ax_persist)
+    cbar.set_label("Counts")
+
+    ax_fft.plot(freqs / 1e6, mean_power + 1e-12)
+    ax_fft.set_yscale("log")
+    ax_fft.set_xlim(left=0)
+    ax_fft.set_xlabel("Frequency [MHz]")
+    ax_fft.set_ylabel("Mean power")
+    ax_fft.set_title("Average FFT magnitude")
+
+    endpoint, channel = key
+    fig.suptitle(
+        f"Endpoint {endpoint} / Channel {channel} "
+        f"({n_waveforms} waveforms, {n_samples} samples)"
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"endpoint{endpoint}_channel{channel}.png"
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
+def _format_percent(count: int, total: int) -> str:
+    if total <= 0:
+        return "  n/a "
+    return f"{100.0 * count / total:6.2f}%"
+
+
+def _print_counter_table(
+    title: str,
+    counter: Counter,
+    total: int,
+    limit: int,
+    formatter: Callable[[object], str],
+) -> None:
+    print(f"\n{title}:")
+    if not counter:
+        print("  (no entries)")
+        return
+
+    header = "  Count   Share   Entry"
+    print(header)
+    print("  " + "-" * (len(header) - 2))
+
+    rows_printed = 0
+    for key, count in counter.most_common():
+        if limit is not None and rows_printed >= max(limit, 0):
+            remaining = len(counter) - rows_printed
+            if remaining > 0:
+                print(f"  ... ({remaining} additional entries truncated)")
+            break
+        print(f"  {count:6d}  {_format_percent(count, total)}  {formatter(key)}")
+        rows_printed += 1
+
+
+def _format_source(key: int) -> str:
+    return f"source_id={key}"
+
+
+def _format_channel(key: tuple[int, int]) -> str:
+    endpoint, channel = key
+    return f"endpoint={endpoint} channel={channel}"
+
+
+def _print_stats(args: argparse.Namespace, wfset: WaveformSet) -> None:
+    stats = compute_waveform_stats(wfset.waveforms)
+    inventory = collect_link_inventory(
+        filepath=args.hdf5_file,
+        detector=args.detector,
+        channel_map=args.channel_map,
+        skip_records=args.skip_records,
+        max_records=args.max_records,
+    )
+    link_waveform_counts, missing_endpoints = map_waveforms_to_links(stats, inventory)
+
+    print(
+        f"\nStatistics: {stats.total_waveforms} waveforms, "
+        f"{len(stats.endpoint_counts)} source IDs, {len(stats.channel_counts)} channels."
+    )
+    _print_counter_table(
+        "Source ID distribution",
+        stats.endpoint_counts,
+        stats.total_waveforms,
+        args.stats_top,
+        _format_source,
+    )
+    _print_counter_table(
+        "Channel distribution",
+        stats.channel_counts,
+        stats.total_waveforms,
+        args.stats_top,
+        _format_channel,
+    )
+    _print_counter_table(
+        "Link distribution (by waveform count)",
+        link_waveform_counts,
+        stats.total_waveforms,
+        args.stats_top,
+        lambda link: str(link),
+    )
+    if missing_endpoints:
+        missing_str = ", ".join(str(eid) for eid in sorted(missing_endpoints))
+        print(f"\nWarning: no link metadata found for endpoint(s): {missing_str}")
 
 
 def _configure_logger(quiet: bool) -> logging.Logger:
@@ -117,16 +339,36 @@ def main(argv: Optional[list[str]] = None) -> int:
     if to_show > 0:
         print(f"\nDisplaying the first {to_show} waveforms:")
         for wf in wfset.waveforms[:to_show]:
-        print(
-            f"  run={wf.run_number} record={wf.record_number} "
-            f"endpoint={wf.endpoint} channel={wf.channel} "
-            f"timestamp={wf.timestamp} nsamples={len(wf.adcs)}"
-        )
+            print(
+                f"  run={wf.run_number} record={wf.record_number} "
+                f"endpoint={wf.endpoint} channel={wf.channel} "
+                f"timestamp={wf.timestamp} nsamples={len(wf.adcs)}"
+            )
+
+    if args.print_stats:
+        _print_stats(args, wfset)
     if args.structured_out:
         save_structured_waveformset(
             wfset,
             args.structured_out,
         )
+    if args.plots_dir:
+        channel_samples = _collect_channel_samples(
+            wfset.waveforms,
+            args.plots_max_waveforms,
+        )
+        out_dir = Path(args.plots_dir)
+        for key, samples in channel_samples.items():
+            if not samples:
+                continue
+            _save_channel_plots(
+                key,
+                samples,
+                out_dir,
+                args.plots_time_bins,
+                args.plots_amp_bins,
+            )
+        logger.info("Saved per-channel persistence/FFT plots to %s", out_dir)
 
     return 0
 

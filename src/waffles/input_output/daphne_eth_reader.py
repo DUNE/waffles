@@ -23,7 +23,6 @@ from typing import Iterable, Optional
 import numpy as np
 
 import detdataformats
-from daqdataformats import FragmentType, fragment_type_to_string
 from hdf5libs import HDF5RawDataFile
 
 from rawdatautils.unpack.utils import DAPHNEEthUnpacker
@@ -31,6 +30,7 @@ from rawdatautils.unpack.utils import DAPHNEEthUnpacker
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.utils.daphne_helpers import looks_like_daphne_eth, select_records
 
 
 def _alias_method(target: object, alias_name: str, source_name: str) -> bool:
@@ -91,50 +91,6 @@ def _ensure_logger(logger: Optional[logging.Logger]) -> logging.Logger:
     return logger
 
 
-def _looks_like_daphne_eth(fragment_type: int) -> bool:
-    """
-    Try to decide whether `fragment_type` is the numeric code for DAPHNE Ethernet data.
-
-    Newer DAQ releases define explicit enum members and string representations that contain
-    the substring "DAPHNE" and "ETH". The helper is defensive so that older files simply
-    fail the check instead of raising.
-    """
-    raw_value = int(fragment_type)
-
-    try:
-        enum_value = FragmentType(raw_value)
-    except ValueError:
-        if raw_value in LEGACY_DAPHNE_ETH_TYPES:
-            return True
-        return False
-
-    enum_name = enum_value.name.lower()
-    if "daphne" in enum_name and "eth" in enum_name:
-        return True
-
-    if raw_value in LEGACY_DAPHNE_ETH_TYPES:
-        return True
-
-    try:
-        enum_string = fragment_type_to_string(enum_value).lower()
-    except Exception:  # pragma: no cover - extremely unlikely but cheap to protect
-        return False
-
-    return "daphne" in enum_string and "eth" in enum_string
-
-
-def _select_records(records: Iterable, skip: int, limit: Optional[int]) -> Iterable:
-    """Slice the sequence of Trigger Records according to the caller request."""
-    if skip < 0:
-        raise ValueError("skip_records must be non-negative")
-    start = min(skip, len(records))
-    if limit is None:
-        return records[start:]
-    if limit < 0:
-        raise ValueError("max_records must be non-negative when provided")
-    return records[start:start + limit]
-
-
 def load_daphne_eth_waveforms(
     filepath: str,
     *,
@@ -187,7 +143,7 @@ def load_daphne_eth_waveforms(
 
     h5_file = HDF5RawDataFile(filepath)
     records = list(h5_file.get_all_record_ids())
-    selected_records = _select_records(records, skip_records, max_records)
+    selected_records = select_records(records, skip_records, max_records)
 
     unpacker = DAPHNEEthUnpacker(channel_map=channel_map, ana_data_prescale=1, wvfm_data_prescale=1)
 
@@ -208,7 +164,7 @@ def load_daphne_eth_waveforms(
 
             if fragment.get_data_size() == 0:
                 continue
-            if not _looks_like_daphne_eth(fragment.get_fragment_type()):
+            if not looks_like_daphne_eth(fragment.get_fragment_type()):
                 continue
 
             _, det_waveforms = unpacker.get_det_data_all(fragment)
@@ -242,6 +198,3 @@ def load_daphne_eth_waveforms(
         return None
 
     return WaveformSet(*waveforms)
-LEGACY_DAPHNE_ETH_TYPES = {
-    18,  # kVD_CathodePDS in fddaq-v5.4.x still carries DAPHNE Ethernet payloads
-}
