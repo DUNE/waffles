@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from plotly import graph_objects as pgo
 from typing import Tuple, Dict, Optional
+from numbers import Number
 
 from waffles.data_classes.WafflesAnalysis import BaseInputParams
 from waffles.data_classes.IPDict import IPDict
@@ -297,6 +298,48 @@ def get_alignment_seeds_dataframe(
 
     return alignment_seeds_df
 
+def __got_well_formed_alignment_seeds(
+    filtered_df: pd.DataFrame
+) -> bool:
+    """This is a helper function which should only be called by
+    get_alignment_seeds(). It checks whether the given
+    filtered_df contains well-formed data for the correlation-based
+    alignment. It returns False if any of the following conditions
+    are met:
+
+        - filtered_df is empty
+        - the first entry of the 'center_0' column is not a float
+        - the first entry of the 'center_1' column is not a float
+        - the first entry of the 'SPE_mean_adcs' column is not a str
+        - the first entry of the 'integration_lower_limit' column is not an int
+        - the first entry of the 'integration_upper_limit' column is not an int
+
+    It returns True if else.
+
+    Parameters
+    ----------
+    filtered_df: pandas.DataFrame
+        DataFrame to check
+
+    Returns
+    -------
+    bool
+        True if the data is well-formed, False otherwise
+    """
+
+    # isinstance(..., Number) don't distinguish
+    # between int, np.int, float, np.float etc.
+    if len(filtered_df) == 0 or \
+        not isinstance(filtered_df.iloc[0]['center_0'], Number) or \
+        not isinstance(filtered_df.iloc[0]['center_1'], Number) or \
+        not isinstance(filtered_df.iloc[0]['SPE_mean_adcs'], str) or \
+        not isinstance(filtered_df.iloc[0]['integration_lower_limit'], Number) or \
+        not isinstance(filtered_df.iloc[0]['integration_upper_limit'], Number):
+
+        return False
+
+    return True
+
 def get_alignment_seeds(
     alignment_seeds_dataframe: pd.DataFrame,
     batch: int,
@@ -371,12 +414,14 @@ def get_alignment_seeds(
         (alignment_seeds_dataframe['endpoint'] == endpoint) &
         (alignment_seeds_dataframe['channel'] == channel)
     ]
+    fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
 
-    if len(filtered_df) == 0:
+    if not fGotWellFormedData:
         if not same_endpoint_fallback:
             raise Exception(
                 "In function get_alignment_seeds(): "
-                "Could not find the required information for "
+                "Could not find the required information (or it "
+                "was found but its type is not as expected) for "
                 f"batch {batch}, APA {apa}, PDE {pde}, endpoint "
                 f"{endpoint} and channel {channel}, and "
                 "same_endpoint_fallback is set to False."
@@ -388,13 +433,15 @@ def get_alignment_seeds(
             (alignment_seeds_dataframe['PDE'] == pde) &
             (alignment_seeds_dataframe['endpoint'] == endpoint)
         ]
+        fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
 
-        if len(filtered_df) == 0:
+        if not fGotWellFormedData:
             if not same_batch_apa_and_pde_fallback:
                 raise Exception(
                     "In function get_alignment_seeds(): "
                     "Even after extending the search to the whole "
                     "endpoint, could not find the required information "
+                    "(or it was found but its type is not as expected) "
                     f"for batch {batch}, APA {apa}, PDE {pde} and "
                     f"endpoint {endpoint}. Enable same_batch_apa_and_pde_fallback "
                     "to True to allow fallback to other endpoints "
@@ -406,13 +453,15 @@ def get_alignment_seeds(
                 (alignment_seeds_dataframe['APA'] == apa) &
                 (alignment_seeds_dataframe['PDE'] == pde)
             ]
+            fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
 
-            if len(filtered_df) == 0:
+            if not fGotWellFormedData:
                 raise Exception(
                     "In function get_alignment_seeds(): "
                     "Even after extending the search to the whole "
                     f"(batch {batch}, APA {apa}, PDE {pde}) set, could "
-                    "not retrieve the required information."
+                    "not retrieve the required information (or it was "
+                    "retrieved but its type is not as expected)."
                 )
         
     used_row = filtered_df.iloc[0]
