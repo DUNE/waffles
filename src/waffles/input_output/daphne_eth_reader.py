@@ -177,6 +177,9 @@ def load_daphne_eth_waveforms(
             daq_timestamp = int(fragment.get_trigger_timestamp())
 
             for wfdata in det_waveforms:
+                hardware_channel = getattr(wfdata, "daphne_chan", None)
+                if hardware_channel is None:
+                    hardware_channel = getattr(wfdata, "channel", None)
                 wf = Waveform(
                     timestamp=int(wfdata.timestamp_dts),
                     time_step_ns=time_step_ns,
@@ -185,7 +188,7 @@ def load_daphne_eth_waveforms(
                     run_number=run_number,
                     record_number=record_number,
                     endpoint=int(wfdata.src_id),
-                    channel=int(wfdata.channel),
+                    channel=int(hardware_channel) if hardware_channel is not None else int(wfdata.channel),
                 )
                 waveforms.append(wf)
 
