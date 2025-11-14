@@ -22,6 +22,7 @@ import plotly.graph_objects as go
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
+from waffles.input_output.hdf5_structured import load_structured_waveformset
 
 
 def _build_argparser() -> argparse.ArgumentParser:
@@ -85,6 +86,11 @@ def _build_argparser() -> argparse.ArgumentParser:
         type=int,
         default=12345,
         help="Random seed used when sampling waveforms per channel (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--structured-input",
+        action="store_true",
+        help="Treat the input file as a structured waveform HDF5 (produced by save_structured_waveformset).",
     )
     parser.add_argument(
         "--quiet",
@@ -201,16 +207,25 @@ def main(argv: Optional[List[str]] = None) -> int:
     logger = _configure_logger(args.quiet)
     random.seed(args.seed)
 
-    wfset = load_daphne_eth_waveforms(
-        filepath=args.hdf5_file,
-        detector=args.detector,
-        channel_map=args.channel_map,
-        max_waveforms=args.max_waveforms,
-        max_records=args.max_records,
-        skip_records=args.skip_records,
-        time_step_ns=args.time_step_ns,
-        logger=logger,
-    )
+    if args.structured_input:
+        wfset = load_structured_waveformset(
+            args.hdf5_file,
+            max_waveforms=args.max_waveforms,
+            max_to_load=args.max_waveforms,
+            onlymetadata=False,
+            verbose=not args.quiet,
+        )
+    else:
+        wfset = load_daphne_eth_waveforms(
+            filepath=args.hdf5_file,
+            detector=args.detector,
+            channel_map=args.channel_map,
+            max_waveforms=args.max_waveforms,
+            max_records=args.max_records,
+            skip_records=args.skip_records,
+            time_step_ns=args.time_step_ns,
+            logger=logger,
+        )
     if wfset is None:
         logger.error("No DAPHNE Ethernet waveforms found in %s", args.hdf5_file)
         return 1
