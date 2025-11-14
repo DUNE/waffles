@@ -206,6 +206,18 @@ class Analysis1(WafflesAnalysis):
                 example='../../np04_data/OfflineCh_RMS_Config_all.csv'
             )
 
+            baseline_i_low: dict[int, int] = Field(
+                ...,
+                description="A dictionary whose keys refer to "
+                "the APA number, and its values are the "
+                "ADCs-array iterator value for the lower limit "
+                "of the window which is considered to be the "
+                "baseline region. If the waveform deviates from "
+                "the baseline by more than a certain amount in "
+                "this region, it will be excluded from the analysis.",
+                example={1: 455, 2: 0, 3: 0, 4: 0}
+            )
+
             baseline_i_up: dict[int, int] = Field(
                 ...,
                 description="A dictionary whose keys refer to "
@@ -858,7 +870,8 @@ class Analysis1(WafflesAnalysis):
                     self.params.signal_i_up[self.apa],
                     average_baseline_std,
                     self.params.baseline_allowed_dev,
-                    self.params.signal_allowed_dev
+                    self.params.signal_allowed_dev,
+                    baseline_i_low=self.params.baseline_i_low[self.apa]
                 )
 
                 self.grid_apa.ch_wf_sets[endpoint][channel] = \
@@ -1187,17 +1200,12 @@ class Analysis1(WafflesAnalysis):
         # Save the persistence heatmaps
         if self.params.save_persistence_heatmaps:
 
-            aux_time_increment = {
-                1: 110,
-                2: 70,
-                3: 70,
-                4: 70
-            }
+            aux_time_increment = 100
 
             time_range_lower_limit = 0 if self.params.apply_correlation_alignment \
-                else self.params.baseline_i_up[self.apa]
+                else self.params.baseline_i_low[self.apa]
             
-            time_range_upper_limit = aux_time_increment[self.apa]
+            time_range_upper_limit = aux_time_increment
             if not self.params.apply_correlation_alignment:
                 time_range_upper_limit += self.params.baseline_i_up[self.apa]
             
@@ -1212,7 +1220,8 @@ class Analysis1(WafflesAnalysis):
                 mode='heatmap',
                 wfs_per_axes=None,
                 analysis_label=self.params.null_baseline_analysis_label,
-                time_bins=aux_time_increment[self.apa],
+                time_bins=aux_time_increment if self.params.apply_correlation_alignment else \
+                    self.params.baseline_i_up[self.apa] + aux_time_increment - self.params.baseline_i_low[self.apa],
                 adc_bins=30,
                 time_range_lower_limit=time_range_lower_limit,
                 time_range_upper_limit=time_range_upper_limit,

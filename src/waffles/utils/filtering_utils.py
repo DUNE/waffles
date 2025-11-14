@@ -320,6 +320,7 @@ def fine_selection_for_led_calibration(
     baseline_std: float,
     baseline_allowed_dev: float,
     signal_allowed_dev: float,
+    baseline_i_low: int = 0
 ) -> bool:
     """This function returns True if the following two
     conditions are met simultaneously:
@@ -359,12 +360,15 @@ def fine_selection_for_led_calibration(
         Its absolute value is assumed to be the maximum multiple
         of baseline_std which the signal can deviate from the
         baseline in the baseline region, i.e. in the
-        waveform.adcs[0:baseline_i_up] region
+        waveform.adcs[baseline_i_low:baseline_i_up] region
     signal_allowed_dev: float
         Its absolute value is assumed to be the maximum multiple
         of baseline_std which the signal can deviate, negatively,
         from the baseline in the signal region, i.e. in the
         waveform.adcs[baseline_i_up:signal_i_up] region.
+    baseline_i_low: int
+        Iterator value for the waveform.adcs array which gives
+        the lower limit of the baseline region
 
     Returns
     ----------
@@ -372,7 +376,7 @@ def fine_selection_for_led_calibration(
     """
 
     try:
-        baseline_samples = waveform.adcs[:baseline_i_up] - \
+        baseline_samples = waveform.adcs[baseline_i_low:baseline_i_up] - \
             waveform.analyses[baseline_analysis_label].result['baseline']
 
     except KeyError:

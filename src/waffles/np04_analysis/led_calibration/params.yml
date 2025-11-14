@@ -117,7 +117,7 @@ maximum_allowed_shift: 30
 ## Parameters for the average-baseline-std computation
 
 # If True, the baseline std is retrieved 
-# from external files whose paths are given by th 
+# from external files whose paths are given by the
 # daphne_configuration_database_filepath and the 
 # noise_results_dataframe_filepath input parameters. 
 # If False, the baseline std is computed from the data.
@@ -137,6 +137,15 @@ daphne_configuration_database_filepath: '../../np04_utils/DaphneConfigs.json'
 noise_results_dataframe_filepath: '../../np04_data/OfflineCh_RMS_Config_all.csv'
 
 ## Parameters for the fine selection cut
+baseline_i_low:
+    1:
+        455
+    2:
+        0
+    3:
+        0
+    4:
+        0
 baseline_i_up:
     1:
         575
