@@ -1271,6 +1271,76 @@ def get_gain_snr_and_fit_parameters(
 
     return data
 
+def get_vendor(
+    endpoint: int,
+    channel: int,
+    sipm_vendor_df: Optional[pd.DataFrame] = None
+) -> str:
+    """This function retrieves the vendor name (which
+    must match either 'HPK' or 'FBK') for the specified
+    endpoint and channel from the given sipm_vendor_df
+    DataFrame.
+
+    Parameters
+    ----------
+    endpoint: int
+    channel: int
+    sipm_vendor_df: pd.DataFrame | None
+        If defined, it must be a DataFrame containing
+        the vendor information for SiPMs, with columns
+        'endpoint', 'daphne_ch' and 'sipm'. This check
+        is not done here.
+
+    Returns
+    -------
+    str
+        The vendor name (either 'HPK' or 'FBK') for the
+        specified endpoint and channel. If the dataframe
+        is not given, if the vendor is not recognized or
+        if the endpoint-channel pair is not found in the
+        DataFrame, the function returns 'unavailable'.
+    """
+
+    if sipm_vendor_df is None:
+        vendor = 'unavailable'
+        print(
+            "In function get_vendor(): "
+            "The vendor dataframe was not provided. "
+            "The vendor returned by this function "
+            "will be set to 'unavailable'."
+        )
+    else:
+        try:
+            vendor = sipm_vendor_df[
+                (sipm_vendor_df['endpoint'] == endpoint) &
+                (sipm_vendor_df['daphne_ch'] == channel)
+            ]['sipm'].values[0]
+
+            if vendor not in ('HPK', 'FBK'):
+                print(
+                    "In function get_vendor(): "
+                    f"Channel {endpoint}-{channel} has an "
+                    f"unrecognized vendor '{vendor}' in the "
+                    "given vendor dataframe. The vendor "
+                    "returned by this function will be "
+                    "set to 'unavailable'."
+                )
+                vendor = 'unavailable'
+
+        # Happens if the current endpoint-channel
+        # pair is not found in the vendor_df dataframe
+        except IndexError:
+            print(
+                "In function get_vendor(): "
+                f"Channel {endpoint}-{channel} was not "
+                "found in the given vendor dataframe. "
+                "The vendor returned by this function "
+                "will be set to 'unavailable'."
+            )
+            vendor = 'unavailable'
+
+    return vendor
+
 def save_data_to_dataframe(
     date: str,
     batch: int,
