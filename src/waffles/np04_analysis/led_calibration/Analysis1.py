@@ -552,6 +552,12 @@ class Analysis1(WafflesAnalysis):
                 self.params.output_path
             )
 
+        self.sipm_vendor_dataframe = None
+        if self.params.sipm_vendor_filepath is not None:
+            self.sipm_vendor_dataframe = led_utils.get_sipm_vendor_dataframe(
+                self.params.sipm_vendor_filepath
+            )
+
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
         method. It loads a WaveformSet object into the self.wfset
@@ -930,6 +936,7 @@ class Analysis1(WafflesAnalysis):
                         self.pde,
                         endpoint,
                         channel,
+                        sipm_vendor_df=self.sipm_vendor_dataframe,
                         same_endpoint_fallback=True,
                         same_batch_apa_and_pde_fallback=True
                     )
@@ -1323,8 +1330,8 @@ class Analysis1(WafflesAnalysis):
             self.output_data,
             self.integration_limits,
             dataframe_output_path,
-            sipm_vendor_filepath=\
-                self.params.sipm_vendor_filepath,
+            sipm_vendor_df=\
+                self.sipm_vendor_dataframe,
             overwrite=self.params.overwrite_output_dataframe
         )
 
