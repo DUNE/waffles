@@ -1349,7 +1349,7 @@ def save_data_to_dataframe(
     packed_gain_snr_and_SPE_info: dict,
     packed_integration_limits: dict,
     path_to_output_file: str,
-    sipm_vendor_filepath: Optional[str] = None,
+    sipm_vendor_df: Optional[pd.DataFrame] = None,
     actually_save: bool = True,
     overwrite: bool = False
 ) -> None:
@@ -1501,16 +1501,16 @@ def save_data_to_dataframe(
         values are integers.
     path_to_output_file: str
         The path to the output CSV file
-    sipm_vendor_filepath: str, optional
+    sipm_vendor_df: pd.DataFrame, optional
         If None, the 'vendor' column of the output CSV file will
         be filled with strings which match 'unavailable'. If it
-        is defined, then it is the path to a CSV file which must
+        is defined, then it is a pandas.DataFrame which should
         contain the columns 'endpoint', 'daphne_ch', and 'sipm',
         from which the endpoint, the channel and the vendor
         associated to each channel can be retrieved, respectively.
         In this case, the 'vendor' column of the output CSV file
         will be filled with the vendor information retrieved from
-        this file.
+        this DataFrame.
     actually_save: bool
         If True, the data will actually be saved to the output
         CSV file. If False, the function will run as usual, but
@@ -1547,36 +1547,6 @@ def save_data_to_dataframe(
     hpk_ov = hpk_ov[pde]
     fbk_ov = fbk_ov[pde]
     ov_no = ov_no[pde]
-
-    fVendorAvailable = False
-    if sipm_vendor_filepath is not None:
-        try:
-            vendor_df = pd.read_csv(sipm_vendor_filepath)
-
-            if all(
-                [
-                    col in vendor_df.columns for col in ['endpoint', 'daphne_ch', 'sipm']
-                ]
-            ):
-                fVendorAvailable = True
-
-            else:
-                print(
-                    "In function save_data_to_dataframe(): "
-                    f"The file {sipm_vendor_filepath} does not "
-                    "contain the required columns: 'endpoint', "
-                    "'daphne_ch' and 'sipm'. The vendor column "
-                    "in the output dataframe will be filled with "
-                    "'unavailable'."
-                )
-
-        except FileNotFoundError:
-            print(
-                "In function save_data_to_dataframe(): "
-                f"The file {sipm_vendor_filepath} was not found. "
-                "The vendor column in the output dataframe will "
-                "be filled with 'unavailable'."
-            )
 
     expected_columns = {
         "date": [],
@@ -1652,39 +1622,11 @@ def save_data_to_dataframe(
         for endpoint in packed_gain_snr_and_SPE_info.keys():
             for channel in packed_gain_snr_and_SPE_info[endpoint]:
 
-                if fVendorAvailable:
-                    try:
-                        vendor = vendor_df[
-                            (vendor_df['endpoint'] == endpoint) &
-                            (vendor_df['daphne_ch'] == channel)
-                        ]['sipm'].values[0]
-
-                        if vendor not in ('HPK', 'FBK'):
-                            print(
-                                "In function save_data_to_dataframe(): "
-                                f"Channel {endpoint}-{channel} has an "
-                                f"unrecognized vendor '{vendor}' in the "
-                                "vendor dataframe read from "
-                                f"{sipm_vendor_filepath}. The vendor "
-                                "column in the output dataframe will be "
-                                "filled with 'unavailable'."
-                            )
-                            vendor = 'unavailable'
-
-                    # Happens if the current endpoint-channel
-                    # pair is not found in the vendor_df dataframe
-                    except IndexError:
-                        print(
-                            "In function save_data_to_dataframe(): "
-                            f"Channel {endpoint}-{channel} was not "
-                            "found in the vendor dataframe read from "
-                            f"{sipm_vendor_filepath}. The vendor "
-                            "column in the output dataframe will be "
-                            "filled with 'unavailable'."
-                        )
-                        vendor = 'unavailable'
-                else:
-                    vendor = 'unavailable'
+                vendor = get_vendor(
+                    endpoint,
+                    channel,
+                    sipm_vendor_df=sipm_vendor_df
+                )
 
                 try:
                     integration_limits = \
