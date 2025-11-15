@@ -1181,7 +1181,7 @@ class Analysis1(WafflesAnalysis):
             },
             width=figure_width,
             height=figure_height,
-            showlegend=True
+            showlegend=False
         )
 
         if self.params.show_figures:
@@ -1249,7 +1249,7 @@ class Analysis1(WafflesAnalysis):
                 },
                 width=figure_width,
                 height=figure_height,
-                showlegend=True
+                showlegend=False,
             )
 
             if self.params.show_figures:
@@ -1290,7 +1290,7 @@ class Analysis1(WafflesAnalysis):
                 },
                 width=figure_width,
                 height=figure_height,
-                showlegend=True
+                showlegend=False
             )
 
             if self.params.show_figures:
