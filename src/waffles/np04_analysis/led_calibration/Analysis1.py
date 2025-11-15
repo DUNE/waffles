@@ -140,8 +140,8 @@ class Analysis1(WafflesAnalysis):
                 "to a CSV file which contains the seed gain and the "
                 "SPE templates used for the correlation alignment. "
                 "The CSV file must contain the columns 'batch', 'APA', "
-                "'PDE', 'endpoint', 'channel', 'center_0', 'center_1' "
-                "and 'SPE_mean_adcs'.",
+                "'PDE', 'endpoint', 'channel', 'vendor', 'center_0', "
+                "'center_1' and 'SPE_mean_adcs'.",
                 example='./configs/alignment_seeds_filepath.csv'
             )
 

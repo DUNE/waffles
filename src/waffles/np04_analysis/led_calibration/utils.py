@@ -291,9 +291,9 @@ def get_alignment_seeds_dataframe(
     """This function reads the given CSV file and
     checks that it contains the required columns
     ('batch', 'APA', 'PDE', 'endpoint', 'channel',
-    'center_0', 'center_1' and 'SPE_mean_adcs'.
-    If filepath is None, a we.IncompatibleInput
-    exception is raised.
+    'vendor', 'center_0', 'center_1' and
+    'SPE_mean_adcs'). If filepath is None,
+    a we.IncompatibleInput exception is raised.
 
     Parameters
     ----------
@@ -324,6 +324,7 @@ def get_alignment_seeds_dataframe(
         'PDE',
         'endpoint',
         'channel',
+        'vendor',
         'center_0',
         'center_1',
         'SPE_mean_adcs'
@@ -336,8 +337,8 @@ def get_alignment_seeds_dataframe(
                 'get_alignment_seeds_dataframe()',
                 f"The file {filepath} is missing some of the required "
                 "columns. It must contain at least 'batch', 'APA', "
-                "'PDE', 'endpoint', 'channel', 'center_0', 'center_1' "
-                "and 'SPE_mean_adcs'."
+                "'PDE', 'endpoint', 'channel', 'vendor', 'center_0', "
+                "'center_1' and 'SPE_mean_adcs'."
             )
         )
 
