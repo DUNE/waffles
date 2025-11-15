@@ -490,12 +490,25 @@ def align_waveforms_by_correlation(
 ) -> None:
     """This function aligns the waveforms in the given
     ChannelWs object based on their correlation with a
-    provided SPE template. The waveforms whose integral
-    evaluates to less than (center_0 + center_1)/2 are
-    considered as baselines and are not aligned. The
-    waveforms which are aligned are also trimmed to
-    some limits which are defined by the input parameters.
-    The changes are done in place.
+    provided SPE template. To do so, the function first
+    computes the average waveform across all waveforms
+    in the input ChannelWs, and uses it to determine
+    the average pulse position and the integration limits
+    around the pulse. The function then integrates each
+    waveform using the inferred limits and ignores or
+    aligns them based on their integral values. Namely,
+    waveforms whose integral evaluates to less than
+    (center_0 + center_1)/2 are considered as baselines
+    and are not aligned. This cut is meant to avoid
+    biasing the pedestal position upwards: aligning
+    baseline samples to the SPE template would find
+    noisy regions which are systematically positive,
+    artificially increasing its integral on average. The
+    waveforms are finally trimmed, so that they are
+    aligned amongst each other, according to some limits
+    which are defined by the input parameters. These
+    changes to the input ChannelWs object are done in
+    place.
 
     Parameters
     ----------
@@ -508,21 +521,20 @@ def align_waveforms_by_correlation(
         baseline or not.
     SPE_template_array: np.ndarray
         The SPE template array used for correlation
-    integration_lower_limit (resp. integration_upper_limit): int
-        For each waveform, wvf, it gives the lower (resp.
-        upper limit) for the iterator of the wvf.adcs
-        array which gives the samples used to compute the
-        integral of the waveform. These parameters are
-        given to the WindowIntegrator analysis class,
-        which is in charge of computing the waveform
-        integrals. If the result is less than
-        (center_0 + center_1)/2, then the waveform is
-        considered as a baseline and is not aligned.
-        This cut is meant to avoid biasing the
-        pedestal position upwards: aligning baseline
-        samples to the SPE template would find noisy
-        regions which are systematically positive,
-        artificially increasing its integral on average.
+    deviation_from_baseline: float
+        It is given to the deviation_from_baseline parameter
+        of the get_pulse_window_limits() function. It must be
+        greater than 0.0 and smaller than 1.0. It controls the
+        width of the integration window around the pulse. For
+        more information, check the get_pulse_window_limits()
+        function docstring.
+    lower_limit_correction (resp. upper_limit_correction): int
+        It is given to the lower_limit_correction (resp.
+        upper_limit_correction) parameter of the
+        get_pulse_window_limits() function. It applies a
+        correction to the lower (resp. upper) limit of the pulse
+        window. For more information, check the
+        get_pulse_window_limits() function docstring.
     baseline_analysis_label: str
         The WindowIntegrator analysis needs a baseline
         value to compute the waveform integrals. This
@@ -542,21 +554,30 @@ def align_waveforms_by_correlation(
         For each waveform in the input ChannelWs,
         the length of the slice which is used
         for the correlation computation is defined
-        by this parameter. Namely, the lower (resp.
-        upper) limit of such slice is computed as
-        the lower (resp. upper) limit of the SPE
-        template slice minus (resp. plus) the
-        absolute value of this parameter. Since
-        the correlation coefficient is computed
-        using numpy.correlate() with mode='valid'
+        by this parameter. Given the average pulse
+        position (inferred from the average waveform
+        across all waveforms in the input ChannelWs),
+        the lower (resp. upper) slicing index for
+        each waveform are defined as
+
+            1)  average_pulse_position
+                - SPE_template_lower_limit_wrt_pulse
+                - maximum_allowed_shift
+
+            2)  average_pulse_position
+                + SPE_template_upper_limit_wrt_pulse
+                + maximum_allowed_shift
+        
+        The body of this function makes sure that
+        the number of points in the sliced waveform
+        is bigger or equal to the number of points
+        in the sliced SPE template. Hence, when
+        calling numpy.correlate() with mode='valid'
         (i.e. only positions where the two input
-        arrays fully overlap are considered), this
-        parameter sets a maximum (absolute) allowed
-        shift for each waveform when aligning it to
-        the SPE template, and also matches the number
-        of correlation coefficients computed per
-        waveform, i.e. the length of the array
-        returned by numpy.correlate().
+        arrays fully overlap are considered),
+        it is ensured that there is at least one
+        output value for which a complete overlap
+        with the full SPE template was considered.
 
     Returns
     -------
