@@ -580,35 +580,49 @@ def align_waveforms_by_correlation(
     # aligned and filtered WaveformSet
     template_n_points = template_slice_i_up - template_slice_i_low
 
+    # Compute the average waveform of the input ChannelWs
+    mean_WaveformAdcs = input_ChannelWs.compute_mean_waveform()
+
+    # Find the average pulse position in the input ChannelWs
+    average_idx_pulse = np.argmin(mean_WaveformAdcs.adcs)
+
     # Find the slicing indices for the waveforms
     wfs_slice_i_low = max(
         0, 
-        template_slice_i_low - abs(maximum_allowed_shift)
+        average_idx_pulse \
+            - abs(int(SPE_template_lower_limit_wrt_pulse)) \
+                - abs(maximum_allowed_shift)
     )
-
-    if input_ChannelWs.points_per_wf < len(SPE_template_array):
-        raise ValueError(
-            "In function align_waveforms_by_correlation(): "
-            "The length of the sample waveforms ("
-            f"{input_ChannelWs.points_per_wf}) in the input ChannelWs "
-            "must be at least as big as the length of the SPE template "
-            f"({len(SPE_template_array)}), otherwise the computed "
-            "wfs_slice_i_up may be smaller than template_slice_i_up."
-        )
 
     wfs_slice_i_up = min(
         input_ChannelWs.points_per_wf,
-        template_slice_i_up + abs(maximum_allowed_shift)
+        average_idx_pulse \
+            + abs(int(SPE_template_upper_limit_wrt_pulse)) \
+                + abs(maximum_allowed_shift)
     )
 
-    # By construction we have that:
-    #
-    #   1) wfs_slice_i_low <= template_slice_i_low
-    #   2) wfs_slice_i_up >= template_slice_i_up
-    #
-    # This means that the number of points in the sliced waveforms
-    # will always be bigger or equal to the number of points in the
-    # sliced template. Hence, when we call np.correlate() specifying
+    waveforms_n_points = wfs_slice_i_up - wfs_slice_i_low
+
+    if waveforms_n_points < template_n_points:
+        raise Exception(
+            "In function align_waveforms_by_correlation(): "
+            "The given SPE template peaks at time tick "
+            f"{template_pulse_idx}, resulting in the following "
+            f"slicing indices: [{template_slice_i_low}, "
+            f"{template_slice_i_up}). The data for the current "
+            "ChannelWs object peaks, on average, at time tick "
+            f"{average_idx_pulse}, resulting in the following "
+            f"slicing indices: [{wfs_slice_i_low}, "
+            f"{wfs_slice_i_up}). This interval contains "
+            f"{waveforms_n_points} points for the waveform "
+            "samples, which is smaller than the number of "
+            f"points ({template_n_points}) for the template "
+            "slice. Please review this case separatedly."
+        )
+
+    # As of here, the number of points in the sliced waveforms
+    # is bigger or equal to the number of points in the sliced
+    # template. Hence, when we call np.correlate() specifying
     # mode='valid', we will always get an output which contains at
     # least one value for which a complete overlap with the full
     # SPE template was considered.
