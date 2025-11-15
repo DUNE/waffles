@@ -389,6 +389,7 @@ def get_alignment_seeds(
     pde: float,
     endpoint: int,
     channel: int,
+    sipm_vendor_df: Optional[pd.DataFrame] = None,
     same_endpoint_fallback: bool = True,
     same_batch_apa_and_pde_fallback: bool = True
 ) -> np.ndarray:
@@ -396,9 +397,17 @@ def get_alignment_seeds(
     'center_1' and 'SPE_mean_adcs'; from the given dataframe,
     based on the specified batch, APA, PDE, endpoint and channel
     values. If no exact match is found, it can optionally fall
-    back to searching for such information from another channel
-    at the same endpoint, or from another channel at the same
-    batch, APA and PDE (regardless of the endpoint).
+    back to searching for such information
+    
+        1) from another channel at the same endpoint or
+        2) from another channel within the same APA (regardless of the endpoint)
+
+    In any fallback case, the batch, APA and PDE values are
+    always kept fixed. Additionally, if sipm_vendor_df is provided,
+    in the standard case and in any fallback case, the function
+    only considers rows whose 'vendor' column matches the
+    vendor retrieved from sipm_vendor_df for the given
+    endpoint and channel.
 
     Parameters
     ----------
@@ -409,6 +418,7 @@ def get_alignment_seeds(
             - 'PDE',
             - 'endpoint',
             - 'channel',
+            - 'vendor',
             - 'center_0',
             - 'center_1' and
             - 'SPE_mean_adcs'.
@@ -422,6 +432,15 @@ def get_alignment_seeds(
         The endpoint number to look for
     channel: int
         The channel number to look for
+    sipm_vendor_df: pd.DataFrame | None
+        If it is defined, it must be a DataFrame
+        containing the SiPM vendor information for each
+        endpoint-channel pair. In that case, it must
+        contain at least the columns 'endpoint',
+        'daphne_ch' and 'sipm', and the seeds returned
+        by this function come from a row whose 'vendor'
+        column matches that of the given endpoint and
+        channel.
     same_endpoint_fallback: bool, default True
         If True, and no exact match is found, the function
         will search for the required information from the
@@ -444,13 +463,22 @@ def get_alignment_seeds(
         }
     """
 
-    filtered_df = alignment_seeds_dataframe[
-        (alignment_seeds_dataframe['batch'] == batch) &
-        (alignment_seeds_dataframe['APA'] == apa) &
-        (alignment_seeds_dataframe['PDE'] == pde) &
-        (alignment_seeds_dataframe['endpoint'] == endpoint) &
+    aux = (alignment_seeds_dataframe['batch'] == batch) & \
+        (alignment_seeds_dataframe['APA'] == apa) & \
+        (alignment_seeds_dataframe['PDE'] == pde) & \
+        (alignment_seeds_dataframe['endpoint'] == endpoint) & \
         (alignment_seeds_dataframe['channel'] == channel)
-    ]
+    
+    vendor = get_vendor(
+        endpoint,
+        channel,
+        sipm_vendor_df=sipm_vendor_df
+    )
+
+    if vendor != 'unavailable':
+        aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
+    
+    filtered_df = alignment_seeds_dataframe[aux]
     fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
 
     if not fGotWellFormedData:
@@ -460,16 +488,20 @@ def get_alignment_seeds(
                 "Could not find the required information (or it "
                 "was found but its type is not as expected) for "
                 f"batch {batch}, APA {apa}, PDE {pde}, endpoint "
-                f"{endpoint} and channel {channel}, and "
-                "same_endpoint_fallback is set to False."
+                f"{endpoint}, channel {channel} and vendor "
+                f"{vendor}, and same_endpoint_fallback is set to "
+                "False."
             )
 
-        filtered_df = alignment_seeds_dataframe[
-            (alignment_seeds_dataframe['batch'] == batch) &
-            (alignment_seeds_dataframe['APA'] == apa) &
-            (alignment_seeds_dataframe['PDE'] == pde) &
+        aux = (alignment_seeds_dataframe['batch'] == batch) & \
+            (alignment_seeds_dataframe['APA'] == apa) & \
+            (alignment_seeds_dataframe['PDE'] == pde) & \
             (alignment_seeds_dataframe['endpoint'] == endpoint)
-        ]
+        
+        if vendor != 'unavailable':
+            aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
+
+        filtered_df = alignment_seeds_dataframe[aux]
         fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
 
         if not fGotWellFormedData:
@@ -479,26 +511,31 @@ def get_alignment_seeds(
                     "Even after extending the search to the whole "
                     "endpoint, could not find the required information "
                     "(or it was found but its type is not as expected) "
-                    f"for batch {batch}, APA {apa}, PDE {pde} and "
-                    f"endpoint {endpoint}. Enable same_batch_apa_and_pde_fallback "
-                    "to True to allow fallback to other endpoints "
-                    "within the same batch, APA and PDE."
+                    f"for batch {batch}, APA {apa}, PDE {pde}, "
+                    f"endpoint {endpoint} and vendor {vendor}. Enable "
+                    "same_batch_apa_and_pde_fallback to True to allow "
+                    "fallback to other endpoints within the same batch, "
+                    "APA, PDE and vendor."
                 )
             
-            filtered_df = alignment_seeds_dataframe[
-                (alignment_seeds_dataframe['batch'] == batch) &
-                (alignment_seeds_dataframe['APA'] == apa) &
+            aux = (alignment_seeds_dataframe['batch'] == batch) & \
+                (alignment_seeds_dataframe['APA'] == apa) & \
                 (alignment_seeds_dataframe['PDE'] == pde)
-            ]
+            
+            if vendor != 'unavailable':
+                aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
+
+            filtered_df = alignment_seeds_dataframe[aux]
             fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
 
             if not fGotWellFormedData:
                 raise Exception(
                     "In function get_alignment_seeds(): "
                     "Even after extending the search to the whole "
-                    f"(batch {batch}, APA {apa}, PDE {pde}) set, could "
-                    "not retrieve the required information (or it was "
-                    "retrieved but its type is not as expected)."
+                    f"(batch {batch}, APA {apa}, PDE {pde}, vendor "
+                    f"{vendor}) set, could not retrieve the required "
+                    "information (or it was retrieved but its type "
+                    "is not as expected)."
                 )
         
     used_row = filtered_df.iloc[0]
