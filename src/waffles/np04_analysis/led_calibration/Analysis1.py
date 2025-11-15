@@ -966,24 +966,21 @@ class Analysis1(WafflesAnalysis):
                 mean_wf = self.grid_apa.ch_wf_sets[endpoint][channel].\
                     compute_mean_waveform()
 
-                if self.params.integrate_entire_pulse:
-                    aux_limits = get_pulse_window_limits(
-                        mean_wf.adcs,
-                        0,
-                        0.1,
-                        lower_limit_correction=-1,
-                        upper_limit_correction=0,
-                        get_zero_crossing_upper_limit=True
-                    )
-                else:
-                    aux_limits = get_pulse_window_limits(
-                        mean_wf.adcs,
-                        0,
+                aux_limits = get_pulse_window_limits(
+                    mean_wf.adcs,
+                    0,
+                    0.1 if self.params.integrate_entire_pulse else \
                         self.params.deviation_from_baseline,
-                        lower_limit_correction=self.params.lower_limit_correction,
-                        upper_limit_correction=self.params.upper_limit_correction,
-                        get_zero_crossing_upper_limit=False
-                    )
+                    lower_limit_correction=-1 if \
+                        self.params.integrate_entire_pulse else \
+                        self.params.lower_limit_correction,
+                    upper_limit_correction=0 if \
+                        self.params.integrate_entire_pulse else \
+                        self.params.upper_limit_correction,
+                    get_zero_crossing_upper_limit=True if \
+                        self.params.integrate_entire_pulse else \
+                        False
+                )
 
                 if self.params.verbose:
                     print(f"Found limits {aux_limits[0]}-{aux_limits[1]}.")
