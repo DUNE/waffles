@@ -480,13 +480,14 @@ def align_waveforms_by_correlation(
     center_0: float,
     center_1: float,
     SPE_template_array: np.ndarray,
-    deviation_from_baseline: float,
-    lower_limit_correction: int,
-    upper_limit_correction: int,
+    integrate_entire_pulse: bool,
     baseline_analysis_label: str,
     SPE_template_lower_limit_wrt_pulse: int, 
     SPE_template_upper_limit_wrt_pulse: int,
     maximum_allowed_shift: int,
+    deviation_from_baseline: float = 0.3,
+    lower_limit_correction: int = 0,
+    upper_limit_correction: int = 0,
 ) -> None:
     """This function aligns the waveforms in the given
     ChannelWs object based on their correlation with a
@@ -521,20 +522,17 @@ def align_waveforms_by_correlation(
         baseline or not.
     SPE_template_array: np.ndarray
         The SPE template array used for correlation
-    deviation_from_baseline: float
-        It is given to the deviation_from_baseline parameter
-        of the get_pulse_window_limits() function. It must be
-        greater than 0.0 and smaller than 1.0. It controls the
-        width of the integration window around the pulse. For
-        more information, check the get_pulse_window_limits()
-        function docstring.
-    lower_limit_correction (resp. upper_limit_correction): int
-        It is given to the lower_limit_correction (resp.
-        upper_limit_correction) parameter of the
-        get_pulse_window_limits() function. It applies a
-        correction to the lower (resp. upper) limit of the pulse
-        window. For more information, check the
-        get_pulse_window_limits() function docstring.
+    integrate_entire_pulse: bool
+        Whether the integration to asess if a waveform
+        is a baseline or not should consider the
+        entire pulse (True) or only a window around
+        the pulse (False). If True, the
+        deviation_from_baseline, lower_limit_correction
+        and upper_limit_correction parameters are
+        ignored for this integration, and the entire
+        pulse is considered. If False, these
+        parameters are used to define the integration
+        window around the pulse.
     baseline_analysis_label: str
         The WindowIntegrator analysis needs a baseline
         value to compute the waveform integrals. This
@@ -578,6 +576,24 @@ def align_waveforms_by_correlation(
         it is ensured that there is at least one
         output value for which a complete overlap
         with the full SPE template was considered.
+    deviation_from_baseline: float
+        It is only used if integrate_entire_pulse is
+        False. In that case, it is given to the
+        deviation_from_baseline parameter of the
+        get_pulse_window_limits() function. It must be
+        greater than 0.0 and smaller than 1.0. It controls
+        the width of the integration window around the
+        pulse. For more information, check
+        the get_pulse_window_limits() function docstring.
+    lower_limit_correction (resp. upper_limit_correction): int
+        It is only used if integrate_entire_pulse is
+        False. In that case, it is given to the
+        lower_limit_correction (resp.
+        upper_limit_correction) parameter of the
+        get_pulse_window_limits() function. It applies
+        a correction to the lower (resp. upper) limit
+        of the pulse window. For more information, check
+        the get_pulse_window_limits() function docstring.
 
     Returns
     -------
@@ -671,10 +687,16 @@ def align_waveforms_by_correlation(
     aux_limits = get_pulse_window_limits(
         mean_WaveformAdcs.adcs,
         0,
-        deviation_from_baseline,
-        lower_limit_correction=lower_limit_correction,
-        upper_limit_correction=upper_limit_correction,
-        get_zero_crossing_upper_limit=False
+        0.1 if integrate_entire_pulse else \
+            deviation_from_baseline,
+        lower_limit_correction=-1 if \
+            integrate_entire_pulse else \
+            lower_limit_correction,
+        upper_limit_correction=0 if \
+            integrate_entire_pulse else \
+            upper_limit_correction,
+        get_zero_crossing_upper_limit=True if \
+            integrate_entire_pulse else False
     )
 
     integrator_input_parameters = IPDict({

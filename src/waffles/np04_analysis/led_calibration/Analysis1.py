@@ -939,15 +939,16 @@ class Analysis1(WafflesAnalysis):
                         aux['center_0'],
                         aux['center_1'],
                         aux['SPE_mean_adcs'],
-                        self.params.deviation_from_baseline,
-                        self.params.lower_limit_correction,
-                        self.params.upper_limit_correction,
+                        self.params.integrate_entire_pulse,
                         # Assuming that the baseline has already been
                         # subtracted
                         self.params.null_baseline_analysis_label,
                         self.params.SPE_template_lower_limit_wrt_pulse,
                         self.params.SPE_template_upper_limit_wrt_pulse,
                         self.params.maximum_allowed_shift,
+                        deviation_from_baseline=self.params.deviation_from_baseline,
+                        lower_limit_correction=self.params.lower_limit_correction,
+                        upper_limit_correction=self.params.upper_limit_correction,
                     )
 
                     if self.params.verbose:
