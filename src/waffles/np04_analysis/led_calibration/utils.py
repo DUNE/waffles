@@ -450,14 +450,15 @@ def get_alignment_seeds(
                 )
         
     used_row = filtered_df.iloc[0]
-    print(
-        "In function get_alignment_seeds(): "
-        f"For batch {batch}, APA {apa}, PDE {pde}, endpoint "
-        f"{endpoint}, channel {channel}, using alignment seeds"
-        f" from batch {used_row['batch']}, APA {used_row['APA']}, "
-        f"PDE {used_row['PDE']}, endpoint {used_row['endpoint']} "
-        f"and channel {used_row['channel']}"
-    )
+    if endpoint != used_row['endpoint'] or \
+        channel != used_row['channel']:
+        print(
+            "In function get_alignment_seeds(): "
+            f"WARNING: For batch {batch}, APA {apa}, PDE {pde}, "
+            f"channel {endpoint}-{channel}, using alignment seeds"
+            f" from a different channel ({used_row['endpoint']}-"
+            f"{used_row['channel']})"
+        )
             
     # At this point, filtered_df must contain at least one entry
     SPE_template_str = used_row['SPE_mean_adcs']
