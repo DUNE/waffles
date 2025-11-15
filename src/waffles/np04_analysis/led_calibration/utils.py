@@ -562,17 +562,17 @@ def align_waveforms_by_correlation(
     """
 
     # Find the pulse in the template
-    idx_pulse = np.argmin(SPE_template_array)
+    template_pulse_idx = np.argmin(SPE_template_array)
 
     # Find the slicing indices for the template
     template_slice_i_low = max(
         0,
-        idx_pulse - abs(int(SPE_template_lower_limit_wrt_pulse))
+        template_pulse_idx - abs(int(SPE_template_lower_limit_wrt_pulse))
     )
 
     template_slice_i_up = min(
         len(SPE_template_array),
-        idx_pulse + abs(int(SPE_template_upper_limit_wrt_pulse))
+        template_pulse_idx + abs(int(SPE_template_upper_limit_wrt_pulse))
     )
 
     # Number of points in the sliced template, which match
