@@ -235,6 +235,56 @@ def get_batches_dates_mapping(
 
     return mapping
 
+def get_sipm_vendor_dataframe(
+    filepath: str | None
+    ) -> pd.DataFrame:
+    """This function reads the given CSV file and
+    checks that it contains the required columns:
+    'endpoint', 'daphne_ch', and 'sipm'. If filepath
+    is None, a we.IncompatibleInput exception is raised.
+
+    Parameters
+    ----------
+    filepath: str | None
+        Path to the CSV file containing the channel-wise
+        SiPM vendor information
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame containing the required information
+    """
+
+    if filepath is None:
+        raise we.IncompatibleInput(
+            we.GenerateExceptionMessage(
+                1,
+                'get_sipm_vendor_dataframe()',
+                'The filepath parameter must be provided.'
+            )
+        )
+
+    sipm_vendor_df = pd.read_csv(filepath)
+
+    required_cols = {
+        'endpoint',
+        'daphne_ch',
+        'sipm'
+    }
+
+    if not required_cols.issubset(sipm_vendor_df.columns):
+        raise we.MissingColumnsInDataFrame(
+            we.GenerateExceptionMessage(
+                2,
+                'get_sipm_vendor_dataframe()',
+                f"The file {filepath} is missing some of the required "
+                "columns. It must contain at least 'endpoint', "
+                "'daphne_ch', and 'sipm'."
+            )
+        )
+
+    return sipm_vendor_df
+
 def get_alignment_seeds_dataframe(
     filepath: str | None
     ) -> pd.DataFrame:
