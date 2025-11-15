@@ -939,8 +939,9 @@ class Analysis1(WafflesAnalysis):
                         aux['center_0'],
                         aux['center_1'],
                         aux['SPE_mean_adcs'],
-                        aux['integration_lower_limit'],
-                        aux['integration_upper_limit'],
+                        self.params.deviation_from_baseline,
+                        self.params.lower_limit_correction,
+                        self.params.upper_limit_correction,
                         # Assuming that the baseline has already been
                         # subtracted
                         self.params.null_baseline_analysis_label,
