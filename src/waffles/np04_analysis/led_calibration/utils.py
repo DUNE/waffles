@@ -18,8 +18,6 @@ from waffles.data_classes.Map import Map
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 
-from waffles.input_output.raw_root_reader import WaveformSet_from_root_files
-from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
 from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.np04_utils.utils import get_channel_iterator
 import waffles.Exceptions as we
