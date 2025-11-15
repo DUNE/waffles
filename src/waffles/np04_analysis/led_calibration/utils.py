@@ -18,6 +18,7 @@ from waffles.data_classes.Map import Map
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.CalibrationHistogram import CalibrationHistogram
 
+from waffles.utils.integral.integral_utils import get_pulse_window_limits
 from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.np04_utils.utils import get_channel_iterator
 import waffles.Exceptions as we
@@ -479,8 +480,9 @@ def align_waveforms_by_correlation(
     center_0: float,
     center_1: float,
     SPE_template_array: np.ndarray,
-    integration_lower_limit: int,
-    integration_upper_limit: int,
+    deviation_from_baseline: float,
+    lower_limit_correction: int,
+    upper_limit_correction: int,
     baseline_analysis_label: str,
     SPE_template_lower_limit_wrt_pulse: int, 
     SPE_template_upper_limit_wrt_pulse: int,
@@ -645,13 +647,22 @@ def align_waveforms_by_correlation(
     # are baselines and which ones are not
     label = 'integration_for_baseline_identification'
 
+    aux_limits = get_pulse_window_limits(
+        mean_WaveformAdcs.adcs,
+        0,
+        deviation_from_baseline,
+        lower_limit_correction=lower_limit_correction,
+        upper_limit_correction=upper_limit_correction,
+        get_zero_crossing_upper_limit=False
+    )
+
     integrator_input_parameters = IPDict({
         'baseline_analysis': baseline_analysis_label,
         'inversion': True,
-        'int_ll': integration_lower_limit,
-        'int_ul': integration_upper_limit,
-        'amp_ll': integration_lower_limit,
-        'amp_ul': integration_upper_limit
+        'int_ll': aux_limits[0],
+        'int_ul': aux_limits[1],
+        'amp_ll': aux_limits[0],
+        'amp_ul': aux_limits[1]
     })
 
     checks_kwargs = IPDict({
