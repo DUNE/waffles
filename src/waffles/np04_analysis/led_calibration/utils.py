@@ -240,10 +240,9 @@ def get_alignment_seeds_dataframe(
     """This function reads the given CSV file and
     checks that it contains the required columns
     ('batch', 'APA', 'PDE', 'endpoint', 'channel',
-    'center_0', 'center_1', 'SPE_mean_adcs', 
-    'integration_lower_limit' and 
-    'integration_upper_limit'). If filepath is None,
-    a we.IncompatibleInput exception is raised.
+    'center_0', 'center_1' and 'SPE_mean_adcs'.
+    If filepath is None, a we.IncompatibleInput
+    exception is raised.
 
     Parameters
     ----------
@@ -276,9 +275,7 @@ def get_alignment_seeds_dataframe(
         'channel',
         'center_0',
         'center_1',
-        'SPE_mean_adcs',
-        'integration_lower_limit',
-        'integration_upper_limit'
+        'SPE_mean_adcs'
     }
 
     if not required_cols.issubset(alignment_seeds_df.columns):
@@ -288,9 +285,8 @@ def get_alignment_seeds_dataframe(
                 'get_alignment_seeds_dataframe()',
                 f"The file {filepath} is missing some of the required "
                 "columns. It must contain at least 'batch', 'APA', "
-                "'PDE', 'endpoint', 'channel', 'center_0', 'center_1', "
-                "'SPE_mean_adcs', 'integration_lower_limit' and "
-                "'integration_upper_limit'."
+                "'PDE', 'endpoint', 'channel', 'center_0', 'center_1' "
+                "and 'SPE_mean_adcs'."
             )
         )
 
@@ -309,8 +305,6 @@ def __got_well_formed_alignment_seeds(
         - the first entry of the 'center_0' column is not a float
         - the first entry of the 'center_1' column is not a float
         - the first entry of the 'SPE_mean_adcs' column is not a str
-        - the first entry of the 'integration_lower_limit' column is not an int
-        - the first entry of the 'integration_upper_limit' column is not an int
 
     It returns True if else.
 
@@ -330,9 +324,7 @@ def __got_well_formed_alignment_seeds(
     if len(filtered_df) == 0 or \
         not isinstance(filtered_df.iloc[0]['center_0'], Number) or \
         not isinstance(filtered_df.iloc[0]['center_1'], Number) or \
-        not isinstance(filtered_df.iloc[0]['SPE_mean_adcs'], str) or \
-        not isinstance(filtered_df.iloc[0]['integration_lower_limit'], Number) or \
-        not isinstance(filtered_df.iloc[0]['integration_upper_limit'], Number):
+        not isinstance(filtered_df.iloc[0]['SPE_mean_adcs'], str):
 
         return False
 
@@ -349,9 +341,8 @@ def get_alignment_seeds(
     same_batch_apa_and_pde_fallback: bool = True
 ) -> np.ndarray:
     """This function retrieves the following entries: 'center_0', 
-    'center_1', 'SPE_mean_adcs', 'integration_lower_limit' and 
-    'integration_upper_limit'; from the given dataframe, based
-    on the specified batch, APA, PDE, endpoint and channel
+    'center_1' and 'SPE_mean_adcs'; from the given dataframe,
+    based on the specified batch, APA, PDE, endpoint and channel
     values. If no exact match is found, it can optionally fall
     back to searching for such information from another channel
     at the same endpoint, or from another channel at the same
@@ -367,10 +358,8 @@ def get_alignment_seeds(
             - 'endpoint',
             - 'channel',
             - 'center_0',
-            - 'center_1',
-            - 'SPE_mean_adcs',
-            - 'integration_lower_limit' and
-            - 'integration_upper_limit'.
+            - 'center_1' and
+            - 'SPE_mean_adcs'.
     batch: int
         The batch number to look for
     apa: int
@@ -399,9 +388,7 @@ def get_alignment_seeds(
         {
             'center_0': float,
             'center_1': float,
-            'SPE_mean_adcs': np.ndarray,
-            'integration_lower_limit': int,
-            'integration_upper_limit': int
+            'SPE_mean_adcs': np.ndarray
         }
     """
 
@@ -483,9 +470,7 @@ def get_alignment_seeds(
     return {
             'center_0': float(used_row['center_0']),
             'center_1': float(used_row['center_1']),
-            'SPE_mean_adcs': SPE_template,
-            'integration_lower_limit': int(used_row['integration_lower_limit']),
-            'integration_upper_limit': int(used_row['integration_upper_limit'])
+            'SPE_mean_adcs': SPE_template
         }
 
 def align_waveforms_by_correlation(
