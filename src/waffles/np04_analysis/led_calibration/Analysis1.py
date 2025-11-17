@@ -841,7 +841,7 @@ class Analysis1(WafflesAnalysis):
                         )
 
                     average_baseline_std = get_average_baseline_std_from_file(
-                        self.wfset.waveforms[0].run_number,
+                        self.grid_apa.ch_wf_sets[endpoint][channel].waveforms[0].run_number,
                         endpoint=endpoint,
                         channel=channel,
                         daphne_configuration_database_filepath=\
