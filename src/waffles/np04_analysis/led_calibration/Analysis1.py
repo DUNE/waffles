@@ -59,7 +59,10 @@ class Analysis1(WafflesAnalysis):
                 description="Path to a CSV file which lists "
                 "the channels which should be excluded from "
                 "the calibration for each combination of "
-                "batch number, APA number and PDE",
+                "the batch number, the APA number and the PDE, "
+                "given the integration deviation-from-baseline. "
+                " I.e. it must have the columns 'integration_dfb', "
+                "'batch', 'apa', 'pde' and 'excluded_channels'.",
                 example='./configs/excluded_channels_database.csv'
             )
 
@@ -122,6 +125,99 @@ class Analysis1(WafflesAnalysis):
                 example=40.
             )
 
+            apply_correlation_alignment: bool = Field(
+                default=True,
+                description="Whether to apply the correlation "
+                "alignment. For more information, see the "
+                "align_waveforms_by_correlation() "
+                "function docstring."
+            )
+
+            alignment_seeds_filepath: str | None = Field(
+                default=None,
+                description="If apply_correlation_alignment is set to "
+                "True, this parameter must be defined. It is the path "
+                "to a CSV file which contains the seed gain and the "
+                "SPE templates used for the correlation alignment. "
+                "The CSV file must contain the columns 'batch', 'APA', "
+                "'PDE', 'endpoint', 'channel', 'vendor', 'center_0', "
+                "'center_1' and 'SPE_mean_adcs'.",
+                example='./configs/alignment_seeds_filepath.csv'
+            )
+
+            SPE_template_lower_limit_wrt_pulse: int = Field(
+                default=-50,
+                description="This parameter makes a difference only "
+                "if apply_correlation_alignment is set to True. In that "
+                "case, its absolute value gives the number of points to "
+                "the left of the SPE pulse which are considered for the "
+                "correlation alignment. For more information, check the "
+                "align_waveforms_by_correlation() function "
+                "docstring.",
+            )
+
+            SPE_template_upper_limit_wrt_pulse: int = Field(
+                default=300,
+                description="This parameter makes a difference only "
+                "if apply_correlation_alignment is set to True. In that "
+                "case, its absolute value gives the number of points to "
+                "the right of the SPE pulse which are considered for the "
+                "correlation alignment. For more information, check the "
+                "align_waveforms_by_correlation() function "
+                "docstring.",
+            )
+
+            maximum_allowed_shift: int = Field(
+                ...,
+                description="This parameter makes a difference only "
+                "if apply_correlation_alignment is set to True. In that "
+                "case, it gives the maximum allowed shift (in number of "
+                "ADC samples) for the correlation alignment. For more "
+                "information, check the "
+                "align_waveforms_by_correlation() function "
+                "docstring.",
+                example=15
+            )
+
+            baseline_std_from_noise_results: bool = Field(
+                default=False,
+                description="If True, the baseline std is retrieved "
+                "from external files whose paths are given by the "
+                "daphne_configuration_database_filepath and the "
+                "noise_results_dataframe_filepath input parameters. "
+                "If False, the baseline std is computed from the data."
+            )
+
+            daphne_configuration_database_filepath: str | None = Field(
+                default=None,
+                description="Only used if the "
+                "baseline_std_from_noise_results parameter is set to "
+                "True. It is the path to the Daphne configuration JSON file.",
+                example='../../np04_utils/DaphneConfigs.json'
+            )
+
+            noise_results_dataframe_filepath: str | None = Field(
+                default=None,
+                description="Only used if the "
+                "baseline_std_from_noise_results parameter is set to "
+                "True. It is the path to the noise results CSV file, "
+                "which must contain the columns 'ConfigNumber', "
+                "'OfflineCh' and 'RMS'.",
+                example='../../np04_data/OfflineCh_RMS_Config_all.csv'
+            )
+
+            baseline_i_low: dict[int, int] = Field(
+                ...,
+                description="A dictionary whose keys refer to "
+                "the APA number, and its values are the "
+                "ADCs-array iterator value for the lower limit "
+                "of the window which is considered to be the "
+                "baseline region. If the waveform deviates from "
+                "the baseline by more than a certain amount in "
+                "this region, it will be excluded from the analysis.",
+                example={1: 455, 2: 0, 3: 0, 4: 0}
+            )
+
             baseline_i_up: dict[int, int] = Field(
                 ...,
                 description="A dictionary whose keys refer to "
@@ -166,9 +262,23 @@ class Analysis1(WafflesAnalysis):
                 example=10.0
             )
 
+            integrate_entire_pulse: bool = Field(
+                default=True,
+                description="Whether to integrate the entire "
+                "pulse or to adjust the integration limits "
+                "based on the deviation_from_baseline parameter."
+                "If set to True, the lower integration limit is "
+                "computed as if deviation_from_baseline = 0.1 and "
+                "lower_limit_correction = -1 were set, but the "
+                "upper limit is calculated as the point which "
+                "returns to the baseline after the pulse peak."
+            )
+
             deviation_from_baseline: float = Field(
                 ...,
-                description="It is interpreted as a fraction of "
+                description="This parameter makes a difference "
+                "only if integrate_entire_pulse is set to False. "
+                "In such case, it is interpreted as a fraction of "
                 "the signal amplitude, as measured from the "
                 "baseline. The integration limits are adjusted "
                 "so that only the part of the signal which "
@@ -188,16 +298,33 @@ class Analysis1(WafflesAnalysis):
                 "upper limit of the integration window",
             )
 
+            filepath_to_batches_dates_csv: str = Field(
+                ...,
+                description="Path to a CSV file which contains "
+                "the mapping between batch numbers and the dates "
+                "when the data for each batch was obtained. The "
+                "CSV file must contain the columns 'batch', "
+                "'date_day', 'date_month', 'date_year'.",
+                example='./configs/batches_dates.csv'
+            )
+
+            backup_input_parameters_to_output_folder: bool = Field(
+                default=True,
+                description="Whether to save a copy of the "
+                "input parameters into a YAML file in the "
+                "output folder"
+            )
+
             integration_analysis_label: str = Field(
                 default='integrator',
                 description="Label for the integration analysis",
             )
 
-            calib_histo_bins_number: dict[float, int] = Field(
+            calib_histo_bin_width: dict[float, float] = Field(
                 ...,
-                description="Number of bins in the calibration "
+                description="Bin width in the calibration "
                 "histogram for each PDE. The keys are the "
-                "PDEs, and the values are the number of bins "
+                "PDEs, and the values are the bins width "
                 "in the calibration histogram."
             )
 
@@ -211,6 +338,39 @@ class Analysis1(WafflesAnalysis):
                 default=50000.,
                 description="Upper limit for the calibration "
                 "histogram",
+            )
+
+            gain_seeds_filepath: str | None = Field(
+                default=None,
+                description="If None, the number of bins and the "
+                "domain of the charge calibration histogram are computed "
+                "out of the calib_histo_bin_width, calib_histo_lower_limit "
+                "and calib_histo_upper_limit input parameters. If it is "
+                "defined, then it should give the path to a CSV file which "
+                "contains, at least, the following columns: 'batch', 'APA', "
+                "'PDE', 'endpoint', 'channel' and 'gain'. The channel-wise "
+                "gain read from such file is used to compute a channel-wise "
+                "domain for the charge calibration histograms.",
+                example='./configs/gain_seeds.csv'
+            )
+
+            bins_per_charge_peak: int = Field(
+                default=7,
+                description="Used only if the gain_seeds_filepath parameter "
+                "is defined. In that case, the calibration histogram (CH) "
+                "domain is automatically set to [-1.*gain_seed, 5.*gain_seed], "
+                "and the number of bins in the CH is computed as the domain "
+                "width (i.e. 6.*gain_seed) multiplied by this parameter."
+            )
+
+            average_fallback: bool = Field(
+                default=True,
+                description="Used only if the gain_seeds_filepath parameter "
+                "is defined. In that case, and if the given CSV lacks the "
+                "gain-seed information for one or more of the required "
+                "channels, then the domain (for the calibration histogram) "
+                "for the lacking channels is set to the average domain of "
+                "all of the other channels."
             )
 
             max_peaks: int = Field(
@@ -247,6 +407,13 @@ class Analysis1(WafflesAnalysis):
                 "'correlated_gaussians' or 'independent_gaussians'."
             )
 
+            weigh_fit_by_poisson_sigmas: bool = Field(
+                default=False,
+                description="Whether to weigh the least squares "
+                "fit by the Poisson standard deviation of each "
+                "bin in the charge histogram."
+            )
+
             half_points_to_fit: int = Field(
                 default=2,
                 description="Only used if fit_type is set "
@@ -274,16 +441,54 @@ class Analysis1(WafflesAnalysis):
                 "consider for the calibration histogram fit."
             )
 
+            half_width_around_peak_in_stds_for_SPE_filtering: float = Field(
+                default=1.,
+                description="The half-width around the SPE peak "
+                "mean, expressed in units of the peak's standard "
+                "deviation, used to select waveforms for SPE "
+                "characterization. Waveforms with integrated "
+                "charge in the range [mean - half_width*std, "
+                "mean + half_width*std] are included in the "
+                "SPE computation."
+            )
+
             save_persistence_heatmaps: bool = Field(
                 default=False,
                 description="Whether to save the persistence "
                 "heatmaps of the integrated waveforms or not"
             )
 
+            save_SPE_heatmaps: bool = Field(
+                default=False,
+                description="Whether to save the heatmaps of "
+                "the waveforms identified as SPEs"
+            )
+
             output_dataframe_filename: str = Field(
                 default='calibration_results.csv',
                 description="Name of the output CSV file "
                 "where the calibration results will be saved"
+            )
+
+            sipm_vendor_filepath: str | None = Field(
+                default=None,
+                description="If None, the 'vendor' column of the " 
+                "output CSV file will be filled with strings which "
+                "match 'unavailable'. If it is defined, then it is the "
+                "path to a CSV file which must contain the columns "
+                "'endpoint', 'daphne_ch', and 'sipm', from which the "
+                "endpoint, the channel and the vendor associated to "
+                "each channel can be retrieved, respectively. In this "
+                "case, the 'vendor' column of the output CSV file will "
+                "be filled with the vendor information retrieved from "
+                "this file.",
+                example='../../np04_utils/PDHD_PDS_NewChannelMap.csv'
+            ) 
+
+            overwrite_output_dataframe: bool = Field(
+                default=False,
+                description="Whether to potentially overwrite existing "
+                "rows in the output dataframe"
             )
 
         return InputParams
@@ -309,21 +514,49 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
         self.wfset = None
         self.grid_apa = None
+        self.integration_limits = None
         self.output_data = None
 
         self.read_input_loop_1 = self.params.batches
         self.read_input_loop_2 = self.params.apas
         self.read_input_loop_3 = self.params.pdes
 
-        # columns: run, batch, acquired_apas, aimed_channels, pde
-        self.channels_per_run = pd.read_csv(
-            self.params.channels_per_run_filepath
+        self.channels_per_run = \
+            led_utils.get_and_check_channels_per_run(
+                self.params.channels_per_run_filepath
+        )
+        
+        self.excluded_channels = \
+            led_utils.get_check_and_filter_excluded_channels(
+                self.params.excluded_channels_filepath,
+                self.params.integrate_entire_pulse,
+                self.params.deviation_from_baseline,
+                verbose=self.params.verbose
+            )
+
+        self.current_excluded_channels = None
+
+        self.batches_dates = led_utils.get_batches_dates_mapping(
+            self.params.filepath_to_batches_dates_csv
         )
 
-        # columns: batch, apa, pde, excluded_channels
-        self.excluded_channels = pd.read_csv(
-            self.params.excluded_channels_filepath
-        )
+        self.alignment_seeds_dataframe = None
+        if self.params.apply_correlation_alignment:
+            self.alignment_seeds_dataframe = led_utils.get_alignment_seeds_dataframe(
+                self.params.alignment_seeds_filepath
+            )
+
+        if self.params.backup_input_parameters_to_output_folder:
+            led_utils.backup_input_parameters(
+                self.params,
+                self.params.output_path
+            )
+
+        self.sipm_vendor_dataframe = None
+        if self.params.sipm_vendor_filepath is not None:
+            self.sipm_vendor_dataframe = led_utils.get_sipm_vendor_dataframe(
+                self.params.sipm_vendor_filepath
+            )
 
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
@@ -524,6 +757,23 @@ class Analysis1(WafflesAnalysis):
 
         if self.params.verbose:
             print("Finished.")
+            print(
+                "In function Analysis1.analyze(): "
+                "Subtracting the baseline from each waveform "
+                "in the merged WaveformSet of batch "
+                f"{self.batch}, APA {self.apa} and PDE "
+                f"{self.pde} ... ",
+                end=''
+            )
+
+        self.wfset.apply(
+            subtract_baseline,
+            self.params.baseline_analysis_label,
+            show_progress=False
+        )
+
+        if self.params.verbose:
+            print("Finished.")
 
         # Add a dummy baseline analysis to the merged WaveformSet
         # We will use this for the integration stage after having
@@ -538,7 +788,7 @@ class Analysis1(WafflesAnalysis):
         if self.params.verbose:
             print(
                 "In function Analysis1.analyze(): "
-                "Applying the coarse selection cut on  "
+                "Applying the coarse selection cut on "
                 "the merged WaveformSet for batch "
                 f"{self.batch}, APA {self.apa}, and PDE "
                 f"{self.pde} ... ",
@@ -550,7 +800,8 @@ class Analysis1(WafflesAnalysis):
         self.wfset = WaveformSet.from_filtered_WaveformSet(
             self.wfset,
             coarse_selection_for_led_calibration,
-            self.params.baseline_analysis_label,
+            # The baseline has already been subtracted in-place
+            self.params.null_baseline_analysis_label,
             self.params.lower_limit_wrt_baseline,
             self.params.upper_limit_wrt_baseline
         )
@@ -572,23 +823,54 @@ class Analysis1(WafflesAnalysis):
             compute_calib_histo=False,
         )
 
+        # Initialize the dictionary of integration limits to an
+        # empty dictionary before looping over the channels
+        self.integration_limits = {}
+
         for endpoint in self.grid_apa.ch_wf_sets.keys():
             for channel in self.grid_apa.ch_wf_sets[endpoint].keys():
 
-                if self.params.verbose:
-                    print(
-                        "In function Analysis1.analyze(): "
-                        "Computing the average baseline STD "
-                        f"of channel {endpoint}-{channel} "
-                        f"(batch {self.batch}, APA {self.apa},"
-                        f" PDE {self.pde}) ... ",
-                        end=''
-                    )
+                if self.params.baseline_std_from_noise_results:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Retrieving the average baseline STD "
+                            f"of channel {endpoint}-{channel} "
+                            f"(batch {self.batch}, APA {self.apa},"
+                            f" PDE {self.pde}) ... "
+                        )
 
-                average_baseline_std = led_utils.compute_average_baseline_std(
-                    self.grid_apa.ch_wf_sets[endpoint][channel],
-                    self.params.baseline_analysis_label
-                )
+                    average_baseline_std = get_average_baseline_std_from_file(
+                        self.wfset.waveforms[0].run_number,
+                        endpoint=endpoint,
+                        channel=channel,
+                        daphne_configuration_database_filepath=\
+                            self.params.daphne_configuration_database_filepath
+                            if self.params.daphne_configuration_database_filepath is not None
+                            else "",
+                        noise_results_dataframe_filepath=\
+                            self.params.noise_results_dataframe_filepath
+                            if self.params.noise_results_dataframe_filepath is not None
+                            else ""
+                    )
+                else:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Computing the average baseline STD "
+                            f"of channel {endpoint}-{channel} "
+                            f"(batch {self.batch}, APA {self.apa},"
+                            f" PDE {self.pde}) ... ",
+                            end=''
+                        )
+
+                    average_baseline_std = led_utils.compute_average_baseline_std(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        # What is taken from the baseline analysis here is
+                        # the baseline STD (which is the same after baseline
+                        # subtraction), not the baseline value itself
+                        self.params.baseline_analysis_label
+                    )
 
                 if self.params.verbose:
                     print(f"Found {average_baseline_std:.2f} ADCs.")
@@ -610,17 +892,18 @@ class Analysis1(WafflesAnalysis):
                 aux = WaveformSet.from_filtered_WaveformSet(
                     self.grid_apa.ch_wf_sets[endpoint][channel],
                     fine_selection_for_led_calibration,
-                    self.params.baseline_analysis_label,
+                    # The baseline has already been subtracted in-place
+                    self.params.null_baseline_analysis_label,
                     self.params.baseline_i_up[self.apa],
                     self.params.signal_i_up[self.apa],
                     average_baseline_std,
                     self.params.baseline_allowed_dev,
-                    self.params.signal_allowed_dev
+                    self.params.signal_allowed_dev,
+                    baseline_i_low=self.params.baseline_i_low[self.apa]
                 )
 
                 self.grid_apa.ch_wf_sets[endpoint][channel] = \
                     ChannelWs(*aux.waveforms)
-
 
                 len_after_fine_selection = len(
                     self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
@@ -631,23 +914,54 @@ class Analysis1(WafflesAnalysis):
                         f"Kept {100.*(len_after_fine_selection/len_before_fine_selection):.2f}%"
                         " of the waveforms"
                     )
-                    print(
-                        "In function Analysis1.analyze(): "
-                        "Subtracting the baseline from each waveform "
-                        f"of channel {endpoint}-{channel} "
-                        f"(batch {self.batch}, APA {self.apa},"
-                        f" PDE {self.pde}) ... ",
-                        end=''
+
+                # Apply the correlation aligment once all of the cuts have
+                # been applied to the waveforms, so that we avoid aligning
+                # waveforms which will be discarded later on
+                if self.params.apply_correlation_alignment:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Applying the correlation alignment to channel "
+                            f"{endpoint}-{channel} (batch {self.batch}, APA "
+                            f"{self.apa}, PDE {self.pde})"
+                            " ... ",
+                            end=''
+                        )
+
+                    aux = led_utils.get_alignment_seeds(
+                        self.alignment_seeds_dataframe,
+                        self.batch,
+                        self.apa,
+                        self.pde,
+                        endpoint,
+                        channel,
+                        sipm_vendor_df=self.sipm_vendor_dataframe,
+                        same_endpoint_fallback=True,
+                        same_batch_apa_and_pde_fallback=True
                     )
 
-                self.grid_apa.ch_wf_sets[endpoint][channel].apply(
-                    subtract_baseline,
-                    self.params.baseline_analysis_label,
-                    show_progress=False
-                )
+                    led_utils.align_waveforms_by_correlation(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        aux['center_0'],
+                        aux['center_1'],
+                        aux['SPE_mean_adcs'],
+                        self.params.integrate_entire_pulse,
+                        # Assuming that the baseline has already been
+                        # subtracted
+                        self.params.null_baseline_analysis_label,
+                        self.params.SPE_template_lower_limit_wrt_pulse,
+                        self.params.SPE_template_upper_limit_wrt_pulse,
+                        self.params.maximum_allowed_shift,
+                        deviation_from_baseline=self.params.deviation_from_baseline,
+                        lower_limit_correction=self.params.lower_limit_correction,
+                        upper_limit_correction=self.params.upper_limit_correction,
+                    )
+
+                    if self.params.verbose:
+                        print("Finished.")
 
                 if self.params.verbose:
-                    print("Finished.")
                     print(
                         "In function Analysis1.analyze(): "
                         "Computing the integration window for "
@@ -660,16 +974,24 @@ class Analysis1(WafflesAnalysis):
                 mean_wf = self.grid_apa.ch_wf_sets[endpoint][channel].\
                     compute_mean_waveform()
 
-                limits = get_pulse_window_limits(
+                aux_limits = get_pulse_window_limits(
                     mean_wf.adcs,
                     0,
-                    self.params.deviation_from_baseline,
-                    self.params.lower_limit_correction,
-                    self.params.upper_limit_correction
+                    0.1 if self.params.integrate_entire_pulse else \
+                        self.params.deviation_from_baseline,
+                    lower_limit_correction=-1 if \
+                        self.params.integrate_entire_pulse else \
+                        self.params.lower_limit_correction,
+                    upper_limit_correction=0 if \
+                        self.params.integrate_entire_pulse else \
+                        self.params.upper_limit_correction,
+                    get_zero_crossing_upper_limit=True if \
+                        self.params.integrate_entire_pulse else \
+                        False
                 )
 
                 if self.params.verbose:
-                    print(f"Found limits {limits[0]}-{limits[1]}.")
+                    print(f"Found limits {aux_limits[0]}-{aux_limits[1]}.")
                     print(
                         "In function Analysis1.analyze(): "
                         "Integrating the waveforms for channel "
@@ -682,10 +1004,10 @@ class Analysis1(WafflesAnalysis):
                 integrator_input_parameters = IPDict({
                     'baseline_analysis': self.params.null_baseline_analysis_label,
                     'inversion': True,
-                    'int_ll': limits[0],
-                    'int_ul': limits[1],
-                    'amp_ll': limits[0],
-                    'amp_ul': limits[1]
+                    'int_ll': aux_limits[0],
+                    'int_ul': aux_limits[1],
+                    'amp_ll': aux_limits[0],
+                    'amp_ul': aux_limits[1]
                 })
 
                 checks_kwargs = IPDict({
@@ -701,8 +1023,48 @@ class Analysis1(WafflesAnalysis):
                     overwrite=True
                 )
 
+                if endpoint not in self.integration_limits.keys():
+                    self.integration_limits[endpoint] = {}
+
+                self.integration_limits[endpoint][channel] = aux_limits
+
                 if self.params.verbose:
                     print("Finished.")
+
+        if self.params.gain_seeds_filepath is None:
+            bins_number = round(
+                (
+                    self.params.calib_histo_upper_limit - \
+                    self.params.calib_histo_lower_limit
+                ) / self.params.calib_histo_bin_width[self.pde]
+            )
+
+            domain = np.array(
+                (
+                    self.params.calib_histo_lower_limit,
+                    self.params.calib_histo_upper_limit
+                )
+            )
+        else:
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.analyze(): "
+                    "Computing channel-wise number of bins "
+                    "and domain (for the calibration histograms)"
+                    " out of the gain seeds in file "
+                    f"{self.params.gain_seeds_filepath}"
+                )
+
+            bins_number, domain = led_utils.get_nbins_and_channel_wise_domain(
+                self.batch,
+                self.apa,
+                self.pde,
+                self.params.gain_seeds_filepath,
+                self.params.bins_per_charge_peak,
+                -1.,
+                5.,
+                verbose=self.params.verbose
+            )
 
         if self.params.verbose:
             print(
@@ -715,15 +1077,11 @@ class Analysis1(WafflesAnalysis):
             )
 
         self.grid_apa.compute_calib_histos(
-            self.params.calib_histo_bins_number[self.pde],
-            domain=np.array(
-                (
-                    self.params.calib_histo_lower_limit,
-                    self.params.calib_histo_upper_limit
-                )
-            ),
+            bins_number=bins_number,
+            domain=domain,
             variable='integral',
             analysis_label=self.params.integration_analysis_label,
+            average_fallback=self.params.average_fallback,
             verbose=self.params.verbose
         )
 
@@ -731,10 +1089,11 @@ class Analysis1(WafflesAnalysis):
             self.grid_apa,
             self.params.max_peaks,
             self.params.prominence,
-            self.params.initial_percentage,
-            self.params.percentage_step,
+            initial_percentage=self.params.initial_percentage,
+            percentage_step=self.params.percentage_step,
             return_last_addition_if_fail=True,
             fit_type=self.params.fit_type,
+            weigh_fit_by_poisson_sigmas=self.params.weigh_fit_by_poisson_sigmas,
             half_points_to_fit=self.params.half_points_to_fit,
             std_increment_seed_fallback=self.params.std_increment_seed_fallback,
             ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
@@ -743,7 +1102,6 @@ class Analysis1(WafflesAnalysis):
 
         if self.params.verbose:
             print("Finished.")
-
 
         if self.params.verbose:
             print(
@@ -755,19 +1113,33 @@ class Analysis1(WafflesAnalysis):
 
         # Filter the excluded_channels DataFrame to get only
         # the excluded channels for the current batch, APA and PDE
-        filtered_excluded_channels = self.excluded_channels[
+        self.current_excluded_channels = self.excluded_channels[
             (self.excluded_channels['batch'] == self.batch) &
             (self.excluded_channels['apa'] == self.apa) &
             (self.excluded_channels['pde'] == self.pde)
         ]
 
-        self.output_data = led_utils.get_gain_and_snr(
-            self.grid_apa,
+        # self.current_excluded_channels is now a
+        # list of integers (or an empty list)
+        self.current_excluded_channels = \
             led_utils.parse_numeric_list(
-                filtered_excluded_channels['excluded_channels'].values[0]
-            ) if not filtered_excluded_channels.empty else [],
+                self.current_excluded_channels['excluded_channels'].values[0]
+            ) if not self.current_excluded_channels.empty else []
+
+        self.output_data = led_utils.get_gain_snr_and_fit_parameters(
+            self.grid_apa,
+            self.current_excluded_channels,
             reset_excluded_channels=True
         )
+
+        self.output_data = led_utils.add_SPE_info_to_output_dictionary(
+            self.grid_apa,
+            self.current_excluded_channels,
+            self.output_data,
+            half_width_around_peak_in_stds=\
+                self.params.half_width_around_peak_in_stds_for_SPE_filtering
+        )
+
 
         return True
 
@@ -816,7 +1188,7 @@ class Analysis1(WafflesAnalysis):
             },
             width=figure_width,
             height=figure_height,
-            showlegend=True
+            showlegend=False
         )
 
         if self.params.show_figures:
@@ -839,29 +1211,42 @@ class Analysis1(WafflesAnalysis):
         # Save the persistence heatmaps
         if self.params.save_persistence_heatmaps:
 
-            aux_time_increment = {
-                1: 80,
-                2: 40,
-                3: 40,
-                4: 40
-            }
+            aux_time_increment = 100
+
+            time_range_lower_limit = 0 if self.params.apply_correlation_alignment \
+                else self.params.baseline_i_low[self.apa]
+            
+            time_range_upper_limit = aux_time_increment
+            if not self.params.apply_correlation_alignment:
+                time_range_upper_limit += self.params.baseline_i_up[self.apa]
+            
+            aux_adc_range_above_baseline = 10
+            aux_adc_range_below_baseline = 80
 
             persistence_figure = plot_ChannelWsGrid(
                 self.grid_apa,
                 figure=None,
-                share_x_scale=True,
-                share_y_scale=True,
+                share_x_scale=False,
+                share_y_scale=False,
                 mode='heatmap',
                 wfs_per_axes=None,
                 analysis_label=self.params.null_baseline_analysis_label,
-                time_bins=aux_time_increment[self.apa],
+                time_bins=aux_time_increment if self.params.apply_correlation_alignment else \
+                    self.params.baseline_i_up[self.apa] + aux_time_increment - self.params.baseline_i_low[self.apa],
                 adc_bins=30,
-                time_range_lower_limit=self.params.baseline_i_up[self.apa],
-                time_range_upper_limit=self.params.baseline_i_up[self.apa] + aux_time_increment[self.apa],
-                adc_range_above_baseline=10,
-                adc_range_below_baseline=80,
+                time_range_lower_limit=time_range_lower_limit,
+                time_range_upper_limit=time_range_upper_limit,
+                adc_range_above_baseline=aux_adc_range_above_baseline,
+                adc_range_below_baseline=aux_adc_range_below_baseline,
                 detailed_label=True,
                 verbose=self.params.verbose
+            )
+
+            led_utils.add_integration_limits_to_persistence_heatmaps(
+                persistence_figure,
+                self.grid_apa,
+                self.current_excluded_channels,
+                self.integration_limits
             )
 
             persistence_figure.update_layout(
@@ -871,7 +1256,7 @@ class Analysis1(WafflesAnalysis):
                 },
                 width=figure_width,
                 height=figure_height,
-                showlegend=True
+                showlegend=False,
             )
 
             if self.params.show_figures:
@@ -891,17 +1276,63 @@ class Analysis1(WafflesAnalysis):
             if self.params.verbose:
                 print("Finished.")
 
+        if self.params.save_SPE_heatmaps:
+            time_bins = 512 if not self.params.apply_correlation_alignment \
+                else round((abs(self.params.SPE_template_lower_limit_wrt_pulse) + \
+                    abs(self.params.SPE_template_upper_limit_wrt_pulse))/2.)
+
+            SPEs_figure = led_utils.get_SPE_grid_plot(
+                self.grid_apa,
+                self.output_data,
+                self.params.null_baseline_analysis_label,
+                time_bins=time_bins,
+                adc_bins=50,
+                verbose=self.params.verbose
+            )
+
+            SPEs_figure.update_layout(
+                title = {
+                    'text': title,
+                    'font': {'size': title_fontsize}
+                },
+                width=figure_width,
+                height=figure_height,
+                showlegend=False
+            )
+
+            if self.params.show_figures:
+                SPEs_figure.show()
+
+            fig_path = f"{base_file_path}_SPE_heatmaps.png"
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.write_output(): "
+                    "Writing the SPE heatmaps "
+                    f"for batch {self.batch}, APA {self.apa}, "
+                    f"and PDE {self.pde} to {fig_path} ... ",
+                    end=''
+                )
+        
+            SPEs_figure.write_image(f"{fig_path}")
+            if self.params.verbose:
+                print("Finished.")
+
         dataframe_output_path = os.path.join(
                 self.params.output_path,
                 self.params.output_dataframe_filename
         )
         
         led_utils.save_data_to_dataframe(
+            self.batches_dates[self.batch],
             self.batch,
             self.apa,
             self.pde,
-            self.output_data, 
-            dataframe_output_path
+            self.output_data,
+            self.integration_limits,
+            dataframe_output_path,
+            sipm_vendor_df=\
+                self.sipm_vendor_dataframe,
+            overwrite=self.params.overwrite_output_dataframe
         )
 
         if self.params.verbose:
