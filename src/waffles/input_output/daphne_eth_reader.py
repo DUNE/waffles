@@ -177,9 +177,16 @@ def load_daphne_eth_waveforms(
             daq_timestamp = int(fragment.get_trigger_timestamp())
 
             for wfdata in det_waveforms:
-                hardware_channel = getattr(wfdata, "daphne_chan", None)
-                if hardware_channel is None:
-                    hardware_channel = getattr(wfdata, "channel", None)
+                offline_channel = getattr(wfdata, "channel", None)
+                if offline_channel is None:
+                    offline_channel = getattr(wfdata, "daphne_chan", None)
+                if offline_channel is None:
+                    log.warning(
+                        "Skipping waveform with missing channel information (record=%s, endpoint=%s)",
+                        record,
+                        getattr(wfdata, "src_id", "unknown"),
+                    )
+                    continue
                 wf = Waveform(
                     timestamp=int(wfdata.timestamp_dts),
                     time_step_ns=time_step_ns,
@@ -188,7 +195,7 @@ def load_daphne_eth_waveforms(
                     run_number=run_number,
                     record_number=record_number,
                     endpoint=int(wfdata.src_id),
-                    channel=int(hardware_channel) if hardware_channel is not None else int(wfdata.channel),
+                    channel=int(offline_channel),
                 )
                 waveforms.append(wf)
 
