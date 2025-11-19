@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LogNorm
 
+import detchannelmaps
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
@@ -33,7 +34,6 @@ from waffles.input_output.hdf5_structured import save_structured_waveformset
 from waffles.utils.daphne_stats import (
     collect_link_inventory,
     collect_slot_channel_usage,
-    collect_offline_channel_usage,
     compute_waveform_stats,
     map_waveforms_to_links,
 )
@@ -52,7 +52,7 @@ def _build_argparser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--channel-map",
         default=None,
-        help="Optional channel map name forwarded to rawdatautils.",
+        help="Optional channel map plugin forwarded to rawdatautils (default: SimplePDSChannelMap).",
     )
     parser.add_argument(
         "--max-waveforms",
@@ -262,16 +262,13 @@ def _format_channel(key: tuple[int, int]) -> str:
     return f"slot={slot} channel={channel}"
 
 
-def _print_stats(args: argparse.Namespace, wfset: WaveformSet, inventory=None) -> None:
+def _print_stats(
+    args: argparse.Namespace,
+    wfset: WaveformSet,
+    inventory,
+    offline_counts: Counter,
+) -> None:
     stats = compute_waveform_stats(wfset.waveforms)
-    if inventory is None:
-        inventory = collect_link_inventory(
-            filepath=args.hdf5_file,
-            detector=args.detector,
-            channel_map=args.channel_map,
-            skip_records=args.skip_records,
-            max_records=args.max_records,
-        )
     link_waveform_counts, missing_endpoints = map_waveforms_to_links(stats, inventory)
 
     slot_channel_counts = collect_slot_channel_usage(
@@ -301,13 +298,6 @@ def _print_stats(args: argparse.Namespace, wfset: WaveformSet, inventory=None) -
         _format_channel,
     )
 
-    offline_counts = collect_offline_channel_usage(
-        filepath=args.hdf5_file,
-        detector=args.detector,
-        channel_map=args.channel_map,
-        skip_records=args.skip_records,
-        max_records=args.max_records,
-    )
     offline_total = sum(offline_counts.values())
     if offline_total:
         print("\nOffline channel distribution")
@@ -316,7 +306,7 @@ def _print_stats(args: argparse.Namespace, wfset: WaveformSet, inventory=None) -
             offline_counts,
             offline_total,
             args.stats_top,
-            lambda key: f"endpoint={key[0]} offline_channel={key[1]}",
+            lambda key: f"slot={key[0]} offline_channel={key[1]}",
         )
     _print_counter_table(
         "Link distribution (by waveform count)",
@@ -343,11 +333,12 @@ def _configure_logger(quiet: bool) -> logging.Logger:
 def main(argv: Optional[list[str]] = None) -> int:
     args = _build_argparser().parse_args(argv)
     logger = _configure_logger(args.quiet)
+    channel_map_name = args.channel_map or "SimplePDSChannelMap"
 
     wfset = load_daphne_eth_waveforms(
         filepath=args.hdf5_file,
         detector=args.detector,
-        channel_map=args.channel_map,
+        channel_map=channel_map_name,
         max_waveforms=args.max_waveforms,
         max_records=args.max_records,
         skip_records=args.skip_records,
@@ -364,21 +355,35 @@ def main(argv: Optional[list[str]] = None) -> int:
     inventory = collect_link_inventory(
         filepath=args.hdf5_file,
         detector=args.detector,
-        channel_map=args.channel_map,
+        channel_map=channel_map_name,
         skip_records=args.skip_records,
         max_records=args.max_records,
     )
     endpoint_to_slot = {eid: link.slot_id for eid, link in inventory.source_to_link.items()}
+    try:
+        channel_map = detchannelmaps.make_pds_map(channel_map_name)
+    except Exception as err:
+        logger.warning("Unable to load channel map %s: %s", channel_map_name, err)
+        channel_map = None
 
-    unique_channels = sorted(
-        {
-            (
-                endpoint_to_slot.get(int(wf.endpoint), int(wf.endpoint)),
-                getattr(wf, "offline_channel", int(wf.channel)),
+    offline_counts: Counter = Counter()
+    for wf in wfset.waveforms:
+        raw_channel = getattr(wf, "raw_channel", None)
+        link = inventory.source_to_link.get(int(wf.endpoint))
+        if link is None:
+            continue
+        slot = link.slot_id
+        if channel_map is not None and raw_channel is not None:
+            offline_channel = channel_map.get_offline_channel_from_det_crate_slot_stream_chan(
+                link.det_id, link.crate_id, link.slot_id, link.stream_id, int(raw_channel)
             )
-            for wf in wfset.waveforms
-        }
-    )
+        else:
+            offline_channel = getattr(wf, "channel", None)
+        if offline_channel is None:
+            continue
+        offline_counts[(slot, int(offline_channel))] += 1
+
+    unique_channels = sorted(offline_counts.keys())
     print(f"Observed {len(unique_channels)} unique (slot, offline_channel) pairs.")
 
     to_show = min(args.show, len(wfset.waveforms))
@@ -386,7 +391,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"\nDisplaying the first {to_show} waveforms:")
         for wf in wfset.waveforms[:to_show]:
             slot = endpoint_to_slot.get(int(wf.endpoint), wf.endpoint)
-            offline_channel = getattr(wf, "offline_channel", wf.channel)
+            raw_channel = getattr(wf, "raw_channel", None)
+            link = inventory.source_to_link.get(int(wf.endpoint))
+            if channel_map is not None and raw_channel is not None and link is not None:
+                offline_channel = channel_map.get_offline_channel_from_det_crate_slot_stream_chan(
+                    link.det_id, link.crate_id, link.slot_id, link.stream_id, int(raw_channel)
+                )
+            else:
+                offline_channel = getattr(wf, "channel", None)
             print(
                 f"  run={wf.run_number} record={wf.record_number} "
                 f"slot={slot} offline_channel={offline_channel} "
@@ -394,7 +406,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             )
 
     if args.print_stats:
-        _print_stats(args, wfset, inventory=inventory)
+        _print_stats(args, wfset, inventory, offline_counts)
     if args.structured_out:
         save_structured_waveformset(
             wfset,
