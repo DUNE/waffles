@@ -267,4 +267,15 @@ def load_daphne_eth_waveforms(
         log.warning("No DAPHNE Ethernet waveforms found in %s", filepath)
         return None
 
+    lengths = {len(wf.adcs) for wf in waveforms}
+    if len(lengths) > 1:
+        min_len = min(lengths)
+        log.warning(
+            "Waveforms have non-uniform lengths %s; truncating all to %d samples",
+            sorted(lengths),
+            min_len,
+        )
+        for wf in waveforms:
+            wf._WaveformAdcs__slice_adcs(0, min_len)
+
     return WaveformSet(*waveforms)
