@@ -6,6 +6,7 @@ Scan a DAQ HDF5 file and print the set of raw DAPHNEEthStream channels observed.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from typing import Set
 
 from daqdataformats import FragmentType
@@ -68,16 +69,23 @@ def main() -> int:
     args = _build_argparser().parse_args()
     h5file = HDF5RawDataFile(args.hdf5_file)
 
-    channels: Set[int] = set()
+    channel_counts: Counter = Counter()
 
     for record, path, fragment in _iter_daphne_fragments(h5file, args.max_records):
+        channels: Set[int] = set()
         _collect_channels(fragment, args.frames_per_fragment, channels)
+        for channel in channels:
+            channel_counts[channel] += 1
 
-    sorted_channels = sorted(channels)
+    total_entries = sum(channel_counts.values())
+    sorted_channels = sorted(channel_counts.items())
 
     print(f"File           : {args.hdf5_file}")
     print(f"Unique channels: {len(sorted_channels)}")
-    print("Channels       :", sorted_channels)
+    print("Channel usage (fraction of fragments examined):")
+    for channel, count in sorted_channels:
+        share = 100.0 * count / total_entries if total_entries > 0 else 0.0
+        print(f"  channel={channel:2d}  count={count:4d}  share={share:6.2f}%")
 
     return 0
 
