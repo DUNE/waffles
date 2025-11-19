@@ -181,6 +181,7 @@ def compute_slot_channel_counts(
         link = inventory.source_to_link.get(int(wf.endpoint))
         if link is None:
             continue
-        slot_channel_counts[(int(link.slot_id), int(raw_channel))] += 1
+        local_channel = int(raw_channel) % 16
+        slot_channel_counts[(int(link.slot_id), local_channel)] += 1
 
     return slot_channel_counts
