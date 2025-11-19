@@ -9,13 +9,16 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Sequence, Tuple, Set
 
 import detdataformats
+from daqdataformats import FragmentType
 from hdf5libs import HDF5RawDataFile
 
-from fddetdataformats import DAPHNEEthStreamFrame
-from rawdatautils.unpack.utils import DAPHNEEthStreamUnpacker
-
 from waffles.data_classes.Waveform import Waveform
-from waffles.utils.daphne_helpers import looks_like_daphne_eth, select_records
+from waffles.utils.daphne_decoders import (
+    extract_daq_link,
+    get_fragment_decoder,
+    iter_raw_channels,
+)
+from waffles.utils.daphne_helpers import select_records
 
 
 @dataclass(frozen=True)
@@ -92,12 +95,6 @@ def collect_link_inventory(
     records = list(h5_file.get_all_record_ids())
     selected_records = select_records(records, skip_records, max_records)
 
-    unpacker = DAPHNEEthStreamUnpacker(
-        channel_map=channel_map,
-        ana_data_prescale=1,
-        wvfm_data_prescale=1,
-    )
-
     source_to_link: Dict[int, LinkKey] = {}
     fragment_counts: Counter = Counter()
     fragments_considered = 0
@@ -115,11 +112,18 @@ def collect_link_inventory(
                 continue
             if fragment.get_data_size() == 0:
                 continue
-            if not looks_like_daphne_eth(fragment.get_fragment_type()):
+
+            try:
+                fragment_type = FragmentType(fragment.get_fragment_type())
+            except ValueError:
+                continue
+
+            decoder = get_fragment_decoder(fragment_type)
+            if decoder is None:
                 continue
 
             try:
-                det_id, crate_id, slot_id, stream_id = unpacker.get_det_crate_slot_stream(fragment)
+                det_id, crate_id, slot_id, stream_id = extract_daq_link(fragment, decoder)
             except Exception:
                 continue
 
@@ -183,8 +187,6 @@ def collect_slot_channel_usage(
     selected_records = select_records(records, skip_records, max_records)
 
     channel_counts: Counter = Counter()
-    frame_size = DAPHNEEthStreamFrame.sizeof()
-    stream_counts: Counter = Counter()
 
     for record in selected_records:
         try:
@@ -199,25 +201,31 @@ def collect_slot_channel_usage(
                 continue
             if fragment.get_data_size() == 0:
                 continue
-            if not looks_like_daphne_eth(fragment.get_fragment_type()):
+
+            try:
+                fragment_type = FragmentType(fragment.get_fragment_type())
+            except ValueError:
                 continue
 
-            payload = fragment.get_data_bytes()
-            n_frames = len(payload) // frame_size
-            limit = n_frames if frames_per_fragment is None else min(frames_per_fragment, n_frames)
-            channels_seen: Set[Tuple[int, int]] = set()
+            decoder = get_fragment_decoder(fragment_type)
+            if decoder is None:
+                continue
 
-            for idx in range(limit):
-                start = idx * frame_size
-                frame = DAPHNEEthStreamFrame(payload[start : start + frame_size])
-                slot_id = int(frame.get_daqheader().slot_id)
-                header = frame.get_daphneheader()
-                for word in header.channel_words:
-                    channels_seen.add((slot_id, int(word.channel)))
+            try:
+                det_id, crate_id, slot_id, stream_id = extract_daq_link(fragment, decoder)
+            except Exception:
+                continue
 
-            for key in channels_seen:
-                channel_counts[key] += 1
-            stream_counts[record] += limit
+            raw_channels = iter_raw_channels(
+                fragment,
+                decoder,
+                frames_per_fragment=frames_per_fragment,
+            )
+            channels_seen: Set[int] = {
+                int(channel) for channel in raw_channels if channel is not None
+            }
+
+            for raw_channel in channels_seen:
+                channel_counts[(int(slot_id), raw_channel)] += 1
 
     return channel_counts
-

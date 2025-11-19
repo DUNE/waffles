@@ -23,14 +23,19 @@ from typing import Iterable, Optional
 import numpy as np
 
 import detdataformats
+import detchannelmaps
+from daqdataformats import FragmentType
 from hdf5libs import HDF5RawDataFile
-
-from rawdatautils.unpack.utils import DAPHNEEthUnpacker
 
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.utils.daphne_helpers import looks_like_daphne_eth, select_records
+from waffles.utils.daphne_decoders import (
+    decode_fragment_arrays,
+    extract_daq_link,
+    get_fragment_decoder,
+)
+from waffles.utils.daphne_helpers import select_records
 
 
 def _alias_method(target: object, alias_name: str, source_name: str) -> bool:
@@ -112,7 +117,8 @@ def load_daphne_eth_waveforms(
     detector:
         Name understood by `detdataformats.DetID.string_to_subdetector` (defaults to "HD_PDS").
     channel_map:
-        Optional channel map name forwarded to `DAPHNEEthUnpacker`.
+        Optional detchannelmaps plugin used to translate raw channels into offline IDs.
+        Defaults to ``SimplePDSChannelMap`` when omitted.
     max_waveforms:
         If set, stop once this many waveforms have been produced.
     max_records:
@@ -145,7 +151,18 @@ def load_daphne_eth_waveforms(
     records = list(h5_file.get_all_record_ids())
     selected_records = select_records(records, skip_records, max_records)
 
-    unpacker = DAPHNEEthUnpacker(channel_map=channel_map, ana_data_prescale=1, wvfm_data_prescale=1)
+    channel_map_plugin = channel_map or "SimplePDSChannelMap"
+    channel_mapper = None
+    if channel_map_plugin:
+        try:
+            channel_mapper = detchannelmaps.make_pds_map(channel_map_plugin)
+        except Exception as err:
+            log.warning(
+                "Unable to load channel map '%s': %s (raw channels will be used)",
+                channel_map_plugin,
+                err,
+            )
+            channel_mapper = None
 
     waveforms = []
     for record in selected_records:
@@ -164,44 +181,82 @@ def load_daphne_eth_waveforms(
 
             if fragment.get_data_size() == 0:
                 continue
-            if not looks_like_daphne_eth(fragment.get_fragment_type()):
+
+            try:
+                fragment_type = FragmentType(fragment.get_fragment_type())
+            except ValueError:
                 continue
 
-            _, det_waveforms = unpacker.get_det_data_all(fragment)
-            if not det_waveforms:
+            decoder = get_fragment_decoder(fragment_type)
+            if decoder is None:
+                continue
+
+            try:
+                raw_channels, adcs_matrix, timestamps = decode_fragment_arrays(
+                    fragment, decoder
+                )
+            except Exception as err:
+                log.warning(
+                    "Skipping fragment (record=%s, geo_id=%s): failed to decode (%s)",
+                    record,
+                    geo_id,
+                    err,
+                )
+                continue
+
+            if raw_channels.size == 0 or adcs_matrix.size == 0:
+                continue
+
+            try:
+                det_id, crate_id, slot_id, stream_id = extract_daq_link(fragment, decoder)
+            except Exception as err:
+                log.warning(
+                    "Skipping fragment (record=%s, geo_id=%s): unable to parse DAQ header (%s)",
+                    record,
+                    geo_id,
+                    err,
+                )
                 continue
 
             header = fragment.get_header()
+            endpoint = int(header.element_id.id)
             run_number = int(header.run_number)
-            record_number = int(record[0]) if isinstance(record, (tuple, list)) else int(record)
+            record_number = (
+                int(record[0]) if isinstance(record, (tuple, list)) else int(record)
+            )
             daq_timestamp = int(fragment.get_trigger_timestamp())
 
-            for wfdata in det_waveforms:
-                raw_channel = getattr(wfdata, "daphne_chan", None)
-                offline_channel = getattr(wfdata, "channel", None)
-                if offline_channel is None:
-                    offline_channel = raw_channel
-                if offline_channel is None:
-                    log.warning(
-                        "Skipping waveform with missing channel information (record=%s, endpoint=%s)",
-                        record,
-                        getattr(wfdata, "src_id", "unknown"),
-                    )
-                    continue
-                if raw_channel is None:
-                    raw_channel = offline_channel
+            for idx, raw_channel in enumerate(raw_channels):
+                if idx >= adcs_matrix.shape[0]:
+                    break
+                offline_channel = int(raw_channel)
+                if channel_mapper is not None:
+                    try:
+                        offline_channel = channel_mapper.get_offline_channel_from_det_crate_slot_stream_chan(
+                            det_id, crate_id, slot_id, stream_id, int(raw_channel)
+                        )
+                    except Exception:
+                        offline_channel = int(raw_channel)
+
+                timestamp_value = (
+                    int(timestamps[idx]) if idx < len(timestamps) else daq_timestamp
+                )
                 wf = Waveform(
-                    timestamp=int(wfdata.timestamp_dts),
+                    timestamp=timestamp_value,
                     time_step_ns=time_step_ns,
                     daq_window_timestamp=daq_timestamp,
-                    adcs=np.array(wfdata.adcs, copy=True),
+                    adcs=np.array(adcs_matrix[idx], copy=True),
                     run_number=run_number,
                     record_number=record_number,
-                    endpoint=int(wfdata.src_id),
+                    endpoint=endpoint,
                     channel=int(offline_channel),
                 )
                 wf.offline_channel = int(offline_channel)
-                wf.raw_channel = int(raw_channel) if raw_channel is not None else None
+                wf.raw_channel = int(raw_channel)
+                wf.slot = int(slot_id)
+                wf.stream_id = int(stream_id)
+                wf.detector_id = int(det_id)
+                wf.crate_id = int(crate_id)
                 waveforms.append(wf)
 
                 if max_waveforms is not None and len(waveforms) >= max_waveforms:

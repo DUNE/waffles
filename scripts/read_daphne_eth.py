@@ -386,8 +386,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         offline_counts[(slot, int(offline_channel))] += 1
         unique_channels.add((slot, int(offline_channel)))
 
-    unique_channels = sorted(unique_channels)
-    print(f"Observed {len(unique_channels)} unique (slot, offline_channel) pairs.")
+    unique_channels_list = sorted(unique_channels)
+    print(f"Observed {len(unique_channels_list)} unique (slot, offline_channel) pairs.")
 
     to_show = min(args.show, len(wfset.waveforms))
     if to_show > 0:
