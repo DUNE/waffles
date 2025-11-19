@@ -379,7 +379,6 @@ def main(argv: Optional[list[str]] = None) -> int:
                 link.det_id, link.crate_id, link.slot_id, link.stream_id, int(raw_channel)
             )
             wf.offline_channel = int(offline_channel)
-            wf.channel = int(offline_channel)
         else:
             offline_channel = getattr(wf, "offline_channel", getattr(wf, "channel", None))
         if offline_channel is None:
