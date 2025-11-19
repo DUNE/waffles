@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from typing import Set
+from typing import Set, Tuple, Optional
 
 from daqdataformats import FragmentType
 from fddetdataformats import DAPHNEEthStreamFrame
@@ -31,18 +31,25 @@ def _iter_daphne_fragments(h5file: HDF5RawDataFile, max_records: int | None = No
             yield record, path, fragment
 
 
-def _collect_channels(fragment, limit: int | None, out_channels: Set[int]) -> None:
+def _collect_channels(fragment, limit: Optional[int]) -> Tuple[Set[int], Optional[int]]:
     payload = fragment.get_data_bytes()
     frame_size = DAPHNEEthStreamFrame.sizeof()
     n_frames = len(payload) // frame_size
     max_frames = n_frames if limit is None else min(limit, n_frames)
 
+    channels: Set[int] = set()
+    slot_id: Optional[int] = None
+
     for idx in range(max_frames):
         start = idx * frame_size
         frame = DAPHNEEthStreamFrame(payload[start : start + frame_size])
+        if slot_id is None:
+            slot_id = int(frame.get_daqheader().slot_id)
         header = frame.get_daphneheader()
         for slot in header.channel_words:
-            out_channels.add(int(slot.channel))
+            channels.add(int(slot.channel))
+
+    return channels, slot_id
 
 
 def _build_argparser() -> argparse.ArgumentParser:
@@ -70,10 +77,12 @@ def main() -> int:
     h5file = HDF5RawDataFile(args.hdf5_file)
 
     channel_counts: Counter = Counter()
+    slots: Set[int] = set()
 
     for record, path, fragment in _iter_daphne_fragments(h5file, args.max_records):
-        channels: Set[int] = set()
-        _collect_channels(fragment, args.frames_per_fragment, channels)
+        channels, slot_id = _collect_channels(fragment, args.frames_per_fragment)
+        if slot_id is not None:
+            slots.add(slot_id)
         for channel in channels:
             channel_counts[channel] += 1
 
@@ -82,6 +91,7 @@ def main() -> int:
 
     print(f"File           : {args.hdf5_file}")
     print(f"Unique channels: {len(sorted_channels)}")
+    print(f"Slots          : {sorted(slots) if slots else 'n/a'}")
     print("Channel usage (fraction of fragments examined):")
     for channel, count in sorted_channels:
         share = 100.0 * count / total_entries if total_entries > 0 else 0.0
