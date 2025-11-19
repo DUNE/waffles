@@ -1,4 +1,5 @@
 import numba
+import math
 import numpy as np
 from typing import List, Tuple
 
@@ -233,6 +234,133 @@ def correlated_sum_of_gaussians(
 
     return result
 
+
+def CX_function(x, *par):
+    """
+    Function to be used in the cross-talk (CX) fit.
+    It relies on the Vinogradov et al. method described
+    in Henrique's thesis arXiv:2112.02967v1 page 108.
+    Parameters
+    ----------
+    x : float
+        The input data point (peak number).
+    par : tuple
+        The parameters of the CX function:
+        par[0] : float
+            Average number of photons detected (L).
+        par[1] : float
+            Cross-talk probability (p).
+    Returns
+    -------
+    float
+        The evaluated CX function at point x.
+    """
+    k=int(x)
+    L = par[0]
+    p = par[1]
+
+    # Special case: k == 0
+    if k == 0:
+        return math.exp(-L)
+
+    eL = math.exp(-L)
+    L1p = L * (1.0 - p)
+
+    result = 0.0
+
+    # Precompute factorials up to k
+    # (small overhead, huge speed win for large k)
+    fact = [1.0] * (k + 1)
+    for i in range(1, k + 1):
+        fact[i] = fact[i-1] * i
+
+    # main loop
+    for i in range(k + 1):
+
+        # Compute fB(i,k)
+        if i == 0:
+            fb = 0.0     # fB(0,k>0)=0
+        else:
+            # fB(i,k) = comb(k-1, i-1)/i!
+            # comb(n,r) = n!/(r!(n-r)!)
+            comb = fact[k-1] / (fact[i-1] * fact[(k-1)-(i-1)])
+            fb = comb / fact[i]
+
+        # term = e^{-L} * fB(i,k) * (L*(1-p))^i * p^(k-i)
+        # use iterative pow for speed
+        term = fb * (L1p ** i) * (p ** (k - i))
+        result += term
+    return eL * result
+
+
+def CX_fit_function(
+        x,
+        *par,
+) -> float:
+    """
+    Function to be used in the cross-talk (CX) fit.
+    The core is the CX_function defined above. Here
+    we just multiply it by a normalization factor and
+    handle the case in which x is/is not a numpy array.
+    """
+    if isinstance(x, (float, int, np.integer)): 
+        return par[2]*CX_function(x, *par)
+    output = np.zeros_like(x)
+    for i, v in enumerate(x):
+        output[i] = par[2]*CX_function(v, *par)
+
+    return output
+
+
+def error_propagation(p1: float, e1: float, p2: float, e2: float, operation: str) -> float:
+    """Error propagation given two parameters and their errors
+    (no covariance).
+
+    Parameters
+    ----------
+    p1: float
+        The first parameter
+    e1: float
+        The error associated to the first parameter
+    p2: float
+        The second parameter
+    e2: float
+        The error associated to the second parameter
+    operation: str
+        The operation to be performed. It must be one of the 
+        following strings: 'sum', 'sub', 'mul', 'div', 
+        'sqrt_sum' or 'sqrt_sub'.
+
+    Returns
+    -------
+    float
+        The propagated error
+    """
+
+    result = 0.
+
+    if operation   == "sum":
+        result = math.sqrt(e1 * e1 + e2 * e2)
+    elif operation == "sub":
+        result = math.sqrt(e1 * e1 + e2 * e2)
+    elif operation == "mul":
+        result = math.sqrt((e1 * e1) * (p2 * p2) + (e2 * e2) * (p1 * p1))
+    elif operation == "div":
+        result = math.sqrt((e1 * e1) / (p2 * p2) + (e2 * e2) * (p1 * p1) / (p2 * p2 * p2 * p2))
+    elif operation == "sqrt_sum":
+        f2 = p1*p1 + p2*p2
+        result = math.sqrt( (e1*e1 * p1*p1)/f2 + (e2*e2 * p2*p2)/f2 )
+    elif operation == "sqrt_sub":
+        f2 = p1*p1 - p2*p2
+        result = math.sqrt( (e1*e1 * p1*p1)/f2 + (e2*e2 * p2*p2)/f2 )
+    else:
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'error_propagation()',
+            "Invalid operation: must be 'sum', 'sub', 'mul',"
+            " 'div', 'sqrt_sum' or 'sqrt_sub'."))
+
+    return result
 
 @numba.njit(nogil=True, parallel=False)
 def __histogram1d(
