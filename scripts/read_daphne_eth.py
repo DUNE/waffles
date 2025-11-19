@@ -367,6 +367,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         channel_map = None
 
     offline_counts: Counter = Counter()
+    unique_channels = set()
     for wf in wfset.waveforms:
         raw_channel = getattr(wf, "raw_channel", None)
         link = inventory.source_to_link.get(int(wf.endpoint))
@@ -377,13 +378,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             offline_channel = channel_map.get_offline_channel_from_det_crate_slot_stream_chan(
                 link.det_id, link.crate_id, link.slot_id, link.stream_id, int(raw_channel)
             )
+            wf.offline_channel = int(offline_channel)
+            wf.channel = int(offline_channel)
         else:
-            offline_channel = getattr(wf, "channel", None)
+            offline_channel = getattr(wf, "offline_channel", getattr(wf, "channel", None))
         if offline_channel is None:
             continue
         offline_counts[(slot, int(offline_channel))] += 1
+        unique_channels.add((slot, int(offline_channel)))
 
-    unique_channels = sorted(offline_counts.keys())
+    unique_channels = sorted(unique_channels)
     print(f"Observed {len(unique_channels)} unique (slot, offline_channel) pairs.")
 
     to_show = min(args.show, len(wfset.waveforms))
