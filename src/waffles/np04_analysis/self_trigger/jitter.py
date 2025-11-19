@@ -43,6 +43,7 @@ if __name__ == "__main__":
         if not os.path.exists(in_df_filename):
             raise FileNotFoundError(f"Input dataframe file not found for channel {SiPM_channel}")
     threshold_calibration_df = pd.read_csv(in_df_filename, sep=",")
+    print(threshold_calibration_df.head(5))
     
     df_mapping = get_np04_channel_mapping(version="new")
     SiPM = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
@@ -56,8 +57,11 @@ if __name__ == "__main__":
 
     for exa_threshold in thresholds_set:
         threshold = int(exa_threshold, 16)
-        calibrated_threshold = threshold_calibration_df.loc[threshold_calibration_df['ThresholdSet'] == threshold, 'FiftyCalibrated'].values[0]
-
+        try:
+            calibrated_threshold = threshold_calibration_df.loc[threshold_calibration_df['ThresholdSet'] == threshold, 'FiftyCalibrated'].values[0]
+        except IndexError:
+            print(f"Calibrated threshold not found for threshold set {threshold}, skipping...")
+            continue
         print(f"Processing threshold {threshold} ({list(thresholds_set).index(exa_threshold)+1}/{len(thresholds_set)})")
         
         filenames = [f for f in channel_files if str(exa_threshold) in f]
@@ -88,10 +92,8 @@ if __name__ == "__main__":
         for nspe, h_STdisrt in dict_hSTdisrt.items():
             h_STdisrt.SetName(f"h_STdisrt_nspe_{nspe}")
             st.h_st = h_STdisrt
-            print(f"Fitting self-trigger distribution for {nspe} PE")
             h_st = st.fit_self_trigger_distribution()
             h_st.Write()
-            print(f"Fitting distribution for {nspe} PE")
             h_st2, fit_ok = st.fit_self_trigger_distribution2(fit_second_peak=True)
             h_st2.SetName(f"h_STdisrt_BkgSub_nspe_{nspe}")
             h_st2.Write()

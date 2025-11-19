@@ -201,7 +201,6 @@ class SelfTrigger:
 
         while i > 1:
             pretrg = i
-            print(i)
             if self.h_st.GetBinContent(i) < thr_counts \
                 or self.h_st.GetBinContent(i - 1) > self.h_st.GetBinContent(i):
                 pretrg = i-1

@@ -140,8 +140,6 @@ if __name__ == "__main__":
             "ErrBkgTrgRate": unc_bkg_trg_rate,
             "ThresholdFit": st.f_sigmoid.GetParameter(0) if st.efficiency_fit_ok else np.nan,
             "ErrThresholdFit": st.f_sigmoid.GetParError(0) if st.efficiency_fit_ok else np.nan,
-            # "ThresholdFit": st.f_sigmoid.GetX(0.1, st.nspe_min, st.nspe_max) if st.efficiency_fit_ok else np.nan,
-            # "ErrThresholdFit": 0.01 if st.efficiency_fit_ok else np.nan,
             "TauFit": st.f_sigmoid.GetParameter(1) if st.efficiency_fit_ok else np.nan,
             "ErrTauFit": st.f_sigmoid.GetParError(1) if st.efficiency_fit_ok else np.nan,
             "MaxEffFit": st.f_sigmoid.GetParameter(2) if st.efficiency_fit_ok else np.nan,
@@ -187,7 +185,6 @@ if __name__ == "__main__":
     temp_df = pd.DataFrame(out_df_rows)
     g_st_calib, offset, slope = fit_thrPE_vs_thrSet(temp_df, "ThresholdFit", "g_fit_thrPE_vs_thrSet")
     temp_df = pd.DataFrame(temp_df[temp_df['Chi2NDF'] <= 1.5])
-    # Check if there are more than 5 points left after chi2 cut
     chi2cut = True
     if len(temp_df) < 5:
         print("\n\nWarning: Less than 5 points left after Chi2NDF cut. Using all points for calibration.\n\n")

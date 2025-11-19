@@ -1,11 +1,4 @@
 # File.csv containing (at least) the columns:
-# Run, Threshold, LED
-# Run: run number
-# Threshold: threshold in exadecimal
-# LED: LED intensity
-run_info_file: "./configs/SelfTrigger_RunInfo.csv"
-
-# File.csv containing (at least) the columns:
 # SiPMChannel, IntLow, IntUp, PrepulseTicks, BaselineRMS, SpeCharge, SNR, SpeAmpl
 # SiPMChannel: SiPM channel number (e.g. 11121)
 # IntLow: lower integration limit (in ticks)
@@ -23,8 +16,9 @@ file_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/files/"
 # SiPM channel to analyze
 SiPM_channel: 11121
 
-# Do you want to save all the png of the Total/Passed histograms?
-save_pngs: False
+# Specify for which LED intensity you want to plot the fits
+# Plots are stored if save_fit_pngs is True in the steering file
+led_to_plot: 1800
 
 # List of runs to analyze
 runs : []
