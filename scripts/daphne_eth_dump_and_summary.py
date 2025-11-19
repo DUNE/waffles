@@ -21,6 +21,7 @@ from hdf5libs import HDF5RawDataFile
 from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
 from waffles.utils.daphne_stats import (
     collect_link_inventory,
+    collect_slot_channel_usage,
     compute_waveform_stats,
     map_waveforms_to_links,
     LinkKey,
@@ -121,8 +122,9 @@ def _print_counter_table(
         shown += 1
 
 
-def _channel_formatter(channel: int) -> str:
-    return f"channel={channel}"
+def _channel_formatter(entry: Tuple[int, int]) -> str:
+    slot, channel = entry
+    return f"slot={slot} channel={channel}"
 
 
 def _link_formatter(entry: LinkKey) -> str:
@@ -177,6 +179,12 @@ def _build_argparser() -> argparse.ArgumentParser:
         type=float,
         default=16.0,
         help="Sampling period passed to the Waveform objects (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--frames-per-fragment",
+        type=int,
+        default=None,
+        help="Limit the number of frames inspected per fragment when computing channel stats.",
     )
     parser.add_argument(
         "--quiet",
@@ -242,9 +250,14 @@ def main() -> int:
         f"{inventory.records_considered} record(s) / {inventory.fragments_considered} fragment(s)."
     )
 
-    channel_totals: Counter = Counter()
-    for (_, channel), count in stats.channel_counts.items():
-        channel_totals[int(channel)] += count
+    slot_channel_counts = collect_slot_channel_usage(
+        filepath=args.hdf5_file,
+        detector=args.detector,
+        skip_records=args.skip_records,
+        max_records=args.max_records,
+        frames_per_fragment=args.frames_per_fragment,
+    )
+    print(f"Observed {len(stats.endpoint_counts)} source IDs and {len(slot_channel_counts)} unique channels.")
 
     _print_counter_table(
         "Source ID distribution",
@@ -253,10 +266,11 @@ def main() -> int:
         args.top,
         _source_formatter,
     )
+    channel_total = sum(slot_channel_counts.values())
     _print_counter_table(
-        "Channel distribution (offline IDs)",
-        channel_totals,
-        stats.total_waveforms,
+        "Channel distribution (slot, raw channel)",
+        slot_channel_counts,
+        channel_total,
         args.top,
         _channel_formatter,
     )
