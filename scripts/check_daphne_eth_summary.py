@@ -19,7 +19,7 @@ from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
 from waffles.input_output.hdf5_structured import save_structured_waveformset
 from waffles.utils.daphne_stats import (
     collect_link_inventory,
-    compute_slot_channel_counts,
+    collect_slot_channel_usage,
     compute_waveform_stats,
     map_waveforms_to_links,
     LinkKey,
@@ -173,7 +173,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         f"Processed {inventory.records_considered} record(s) "
         f"and {inventory.fragments_considered} DAPHNE fragment(s)."
     )
-    slot_channel_counts = compute_slot_channel_counts(wfset.waveforms, inventory)
+    slot_channel_counts = collect_slot_channel_usage(
+        filepath=args.hdf5_file,
+        detector=args.detector,
+        skip_records=args.skip_records,
+        max_records=args.max_records,
+    )
 
     print(
         f"Observed {len(stats.endpoint_counts)} source IDs and {len(slot_channel_counts)} unique channels."
@@ -186,10 +191,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         args.top,
         _source_formatter,
     )
+    channel_total = sum(slot_channel_counts.values())
     _print_counter_table(
         "Channel distribution",
         slot_channel_counts,
-        stats.total_waveforms,
+        channel_total,
         args.top,
         _channel_formatter,
     )
