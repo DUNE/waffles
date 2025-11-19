@@ -33,6 +33,7 @@ from waffles.input_output.hdf5_structured import save_structured_waveformset
 from waffles.utils.daphne_stats import (
     collect_link_inventory,
     collect_slot_channel_usage,
+    collect_offline_channel_usage,
     compute_waveform_stats,
     map_waveforms_to_links,
 )
@@ -298,6 +299,24 @@ def _print_stats(args: argparse.Namespace, wfset: WaveformSet) -> None:
         args.stats_top,
         _format_channel,
     )
+
+    offline_counts = collect_offline_channel_usage(
+        filepath=args.hdf5_file,
+        detector=args.detector,
+        channel_map=args.channel_map,
+        skip_records=args.skip_records,
+        max_records=args.max_records,
+    )
+    offline_total = sum(offline_counts.values())
+    if offline_total:
+        print("\nOffline channel distribution")
+        _print_counter_table(
+            "Offline channels",
+            offline_counts,
+            offline_total,
+            args.stats_top,
+            lambda key: f"endpoint={key[0]} offline_channel={key[1]}",
+        )
     _print_counter_table(
         "Link distribution (by waveform count)",
         link_waveform_counts,

@@ -184,6 +184,7 @@ def collect_slot_channel_usage(
 
     channel_counts: Counter = Counter()
     frame_size = DAPHNEEthStreamFrame.sizeof()
+    stream_counts: Counter = Counter()
 
     for record in selected_records:
         try:
@@ -216,5 +217,36 @@ def collect_slot_channel_usage(
 
             for key in channels_seen:
                 channel_counts[key] += 1
+            stream_counts[record] += limit
 
     return channel_counts
+
+
+def collect_offline_channel_usage(
+    filepath: str,
+    detector: str,
+    *,
+    channel_map: Optional[str] = None,
+    skip_records: int = 0,
+    max_records: Optional[int] = None,
+) -> Counter:
+    """
+    Count waveforms per offline channel by decoding fragments via rawdatautils.
+    """
+    wfset = load_daphne_eth_waveforms(
+        filepath=filepath,
+        detector=detector,
+        channel_map=channel_map,
+        skip_records=skip_records,
+        max_records=max_records,
+    )
+    if wfset is None:
+        return Counter()
+
+    counter: Counter = Counter()
+    for wf in wfset.waveforms:
+        endpoint = int(wf.endpoint)
+        channel = int(getattr(wf, "offline_channel", getattr(wf, "channel", 0)))
+        counter[(endpoint, channel)] += 1
+
+    return counter
