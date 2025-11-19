@@ -16,14 +16,11 @@ import numpy as np
 
 from daqdataformats import FragmentType
 from hdf5libs import HDF5RawDataFile
-from rawdatautils.unpack.daphne import (
-    np_array_timestamp,
-    np_array_adc,
-    np_array_channels,
-    np_array_timestamp_stream,
-    np_array_adc_stream,
-    np_array_channels_stream
-)
+from rawdatautils.unpack import daphne as daphne_unpack
+try:
+    from rawdatautils.unpack import daphneeth as daphneeth_unpack
+except ImportError:  # pragma: no cover - optional dependency
+    daphneeth_unpack = None
 from rawdatautils.unpack.utils import *
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.Waveform import Waveform
@@ -63,6 +60,42 @@ REMOTE_PREFIXES = ("root://", "davs://", "https://", "http://")
 def is_remote_path(fp: str) -> bool:
     """Return True for any URL that points outside the local filesystem."""
     return fp.startswith(REMOTE_PREFIXES)
+
+_FRAGMENT_UNPACKERS = {
+    FragmentType.kDAPHNE: (daphne_unpack, False),
+    FragmentType.kDAPHNEStream: (daphne_unpack, True),
+}
+if daphneeth_unpack is not None:
+    _FRAGMENT_UNPACKERS.update(
+        {
+            FragmentType.kDAPHNEEth: (daphneeth_unpack, False),
+            FragmentType.kDAPHNEEthStream: (daphneeth_unpack, True),
+        }
+    )
+
+
+def _decode_daphne_fragment(frag, fragment_type: Optional[FragmentType]):
+    if fragment_type not in _FRAGMENT_UNPACKERS:
+        if fragment_type in (FragmentType.kDAPHNEEth, FragmentType.kDAPHNEEthStream):
+            raise RuntimeError(
+                "Support for DAPHNE Ethernet fragments requires the rawdatautils.unpack.daphneeth module"
+            )
+        return None
+
+    module, is_stream = _FRAGMENT_UNPACKERS[fragment_type]
+    if is_stream:
+        timestamps = module.np_array_timestamp_stream(frag)
+        adcs = module.np_array_adc_stream(frag)
+        channels_arr = np.asarray(module.np_array_channels_stream(frag))
+        channels = channels_arr[0] if channels_arr.size and channels_arr.ndim > 1 else channels_arr
+        trigger = "full_stream"
+    else:
+        timestamps = module.np_array_timestamp(frag)
+        adcs = module.np_array_adc(frag)
+        channels = module.np_array_channels(frag)
+        trigger = "self_trigger"
+
+    return trigger, np.asarray(channels), adcs, timestamps
 
 
 def xrdcp_if_not_exists(filepath: str,
@@ -157,16 +190,14 @@ def extract_fragment_info(frag, trig):
     trigger = 'unknown'
     trigger_ts = frag.get_trigger_timestamp()
 
-    if fragType == FragmentType.kDAPHNE.value:
-        trigger = 'self_trigger'
-        timestamps = np_array_timestamp(frag)
-        adcs = np_array_adc(frag)
-        channels = np_array_channels(frag)
-    elif fragType == FragmentType.kDAPHNEStream.value:
-        trigger = 'full_stream'
-        timestamps = np_array_timestamp_stream(frag)
-        adcs = np_array_adc_stream(frag)
-        channels = np_array_channels_stream(frag)[0]
+    try:
+        frag_enum = FragmentType(fragType)
+    except ValueError:
+        frag_enum = None
+
+    decoded = _decode_daphne_fragment(frag, frag_enum)
+    if decoded is not None:
+        trigger, channels, adcs, timestamps = decoded
 
     return run_number, trigger, scr_id, channels, adcs, timestamps, trigger_ts
 

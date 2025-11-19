@@ -2,7 +2,11 @@ from hdf5libs import HDF5RawDataFile
 
 # import daqdataformats
 from daqdataformats import FragmentType
-from rawdatautils.unpack.daphne import *
+from rawdatautils.unpack import daphne as daphne_unpack
+try:
+    from rawdatautils.unpack import daphneeth as daphneeth_unpack
+except ImportError:  # pragma: no cover
+    daphneeth_unpack = None
 from rawdatautils.unpack.utils  import *
 
 import detdataformats
@@ -17,6 +21,18 @@ from ROOT import TFile, TTree, std
 from multiprocessing import Pool, current_process, cpu_count
 
 map_id     = {'104': [1, 2, 3, 4], '105': [5, 6, 7, 9], '107': [10, 8], '109': [11], '111': [12], '112': [13], '113': [14]}
+
+FRAGMENT_CONFIG = {
+    FragmentType.kDAPHNE: (daphne_unpack, False, fddetdataformats.DAPHNEFrame),
+    FragmentType.kDAPHNEStream: (daphne_unpack, True, None),
+}
+if daphneeth_unpack is not None:
+    FRAGMENT_CONFIG.update(
+        {
+            FragmentType.kDAPHNEEth: (daphneeth_unpack, False, fddetdataformats.DAPHNEEthFrame),
+            FragmentType.kDAPHNEEthStream: (daphneeth_unpack, True, None),
+        }
+    )
 def find_endpoint(map_id, target_value):
     for key, value_list in map_id.items():
         if target_value in value_list:
@@ -43,40 +59,64 @@ def check_PDS(raw_file):
         output = True
     return output
 
+def _stream_channels(channels):
+    arr = np.asarray(channels)
+    if arr.size and arr.ndim > 1:
+        return arr[0]
+    return arr
+
+
 def extract_fragment_info(frag, trig):
     frag_id = str(frag).split(' ')[3][:-1]
-    frh     = frag.get_header()
-    trh     = trig.get_header()
-    
-    scr_id           = frh.element_id.id
-    fragType         = frh.fragment_type
-    window_begin_dts = frh.window_begin
-    
-    trigger_timestamp = trh.trigger_timestamp
-    daq_pretrigger    = window_begin_dts - trigger_timestamp
-    
-    threshold = -1
-    baseline  = -1
-    trigger_sample_value = -1
-    
-    if fragType == FragmentType.kDAPHNE.value:  # For self trigger
-        trigger              = 'self_trigger'
-        frame_obj            = fddetdataformats.DAPHNEFrame
-        daphne_headers       = [frame_obj(frag.get_data(iframe*frame_obj.sizeof())).get_header() for iframe in range(get_n_frames(frag))]
-        threshold            = daphne_headers[0].threshold  #[header.threshold for header in daphne_headers]
-        baseline             = [header.baseline for header in daphne_headers]
-        trigger_sample_value = [header.trigger_sample_value for header in daphne_headers]
+    frh = frag.get_header()
+    trh = trig.get_header()
 
-        timestamps = np_array_timestamp(frag)
-        adcs       = np_array_adc(frag)
-        channels   = np_array_channels(frag)
-        
-    elif fragType == 13:  # For full_stream
-        trigger    = 'full_stream'
-        timestamps = np_array_timestamp_stream(frag)
-        adcs       = np_array_adc_stream(frag)
-        channels   = np_array_channels_stream(frag)[0]
-       
+    scr_id = frh.element_id.id
+    frag_type_value = frh.fragment_type
+    window_begin_dts = frh.window_begin
+
+    trigger_timestamp = trh.trigger_timestamp
+    daq_pretrigger = window_begin_dts - trigger_timestamp
+
+    try:
+        frag_enum = FragmentType(frag_type_value)
+    except ValueError:
+        frag_enum = None
+
+    config = FRAGMENT_CONFIG.get(frag_enum)
+    if config is None:
+        if frag_enum in (FragmentType.kDAPHNEEth, FragmentType.kDAPHNEEthStream):
+            raise RuntimeError(
+                "Support for DAPHNE Ethernet fragments requires the rawdatautils.unpack.daphneeth module"
+            )
+        return 'unknown', frag_id, scr_id, np.array([]), np.array([]), np.array([]), -1, [], -1, daq_pretrigger
+
+    module, is_stream, frame_cls = config
+    if is_stream:
+        trigger = 'full_stream'
+        timestamps = module.np_array_timestamp_stream(frag)
+        adcs = module.np_array_adc_stream(frag)
+        channels = _stream_channels(module.np_array_channels_stream(frag))
+        baseline = [-1] * len(channels)
+        trigger_sample_value = [-1] * len(channels)
+        threshold = -1
+    else:
+        trigger = 'self_trigger'
+        timestamps = module.np_array_timestamp(frag)
+        adcs = module.np_array_adc(frag)
+        channels = module.np_array_channels(frag)
+        headers = [
+            frame_cls(frag.get_data(iframe * frame_cls.sizeof())).get_header()
+            for iframe in range(module.get_n_frames(frag))
+        ]
+        threshold = headers[0].threshold
+        baseline = [header.baseline for header in headers]
+        if frag_enum == FragmentType.kDAPHNE:
+            trigger_sample_value = [header.trigger_sample_value for header in headers]
+        else:
+            trigger_sample_value = [header.trig_sample for header in headers]
+
+    channels = np.asarray(channels)
     return trigger, frag_id, scr_id, channels, adcs, timestamps, threshold, baseline, trigger_sample_value, daq_pretrigger
 
 def root_creator(inputs):
@@ -278,4 +318,3 @@ def main(path, run, debug, overwrite):
         
 if __name__ == "__main__":
     main()
-
