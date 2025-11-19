@@ -6,11 +6,12 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple, Set
 
 import detdataformats
 from hdf5libs import HDF5RawDataFile
 
+from fddetdataformats import DAPHNEEthStreamFrame
 from rawdatautils.unpack.utils import DAPHNEEthStreamUnpacker
 
 from waffles.data_classes.Waveform import Waveform
@@ -165,23 +166,55 @@ def map_waveforms_to_links(
     return link_counts, missing
 
 
-def compute_slot_channel_counts(
-    waveforms: Sequence[Waveform],
-    inventory: LinkInventory,
+def collect_slot_channel_usage(
+    filepath: str,
+    detector: str,
+    *,
+    skip_records: int = 0,
+    max_records: Optional[int] = None,
+    frames_per_fragment: Optional[int] = None,
 ) -> Counter:
     """
-    Combine slot information from ``inventory`` with the raw channel stored on each waveform.
+    Re-scan the HDF5 file and count how often each (slot, raw channel) pair appears.
     """
-    slot_channel_counts: Counter = Counter()
+    det_enum = detdataformats.DetID.string_to_subdetector(detector)
+    h5_file = HDF5RawDataFile(filepath)
+    records = list(h5_file.get_all_record_ids())
+    selected_records = select_records(records, skip_records, max_records)
 
-    for wf in waveforms:
-        raw_channel = getattr(wf, "raw_channel", None)
-        if raw_channel is None:
-            continue
-        link = inventory.source_to_link.get(int(wf.endpoint))
-        if link is None:
-            continue
-        local_channel = int(raw_channel) % 16
-        slot_channel_counts[(int(link.slot_id), local_channel)] += 1
+    channel_counts: Counter = Counter()
+    frame_size = DAPHNEEthStreamFrame.sizeof()
 
-    return slot_channel_counts
+    for record in selected_records:
+        try:
+            geo_ids = list(h5_file.get_geo_ids_for_subdetector(record, det_enum))
+        except Exception:
+            continue
+
+        for geo_id in geo_ids:
+            try:
+                fragment = h5_file.get_frag(record, geo_id)
+            except Exception:
+                continue
+            if fragment.get_data_size() == 0:
+                continue
+            if not looks_like_daphne_eth(fragment.get_fragment_type()):
+                continue
+
+            payload = fragment.get_data_bytes()
+            n_frames = len(payload) // frame_size
+            limit = n_frames if frames_per_fragment is None else min(frames_per_fragment, n_frames)
+            channels_seen: Set[Tuple[int, int]] = set()
+
+            for idx in range(limit):
+                start = idx * frame_size
+                frame = DAPHNEEthStreamFrame(payload[start : start + frame_size])
+                slot_id = int(frame.get_daqheader().slot_id)
+                header = frame.get_daphneheader()
+                for word in header.channel_words:
+                    channels_seen.add((slot_id, int(word.channel)))
+
+            for key in channels_seen:
+                channel_counts[key] += 1
+
+    return channel_counts
