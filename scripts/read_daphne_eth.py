@@ -262,15 +262,16 @@ def _format_channel(key: tuple[int, int]) -> str:
     return f"slot={slot} channel={channel}"
 
 
-def _print_stats(args: argparse.Namespace, wfset: WaveformSet) -> None:
+def _print_stats(args: argparse.Namespace, wfset: WaveformSet, inventory=None) -> None:
     stats = compute_waveform_stats(wfset.waveforms)
-    inventory = collect_link_inventory(
-        filepath=args.hdf5_file,
-        detector=args.detector,
-        channel_map=args.channel_map,
-        skip_records=args.skip_records,
-        max_records=args.max_records,
-    )
+    if inventory is None:
+        inventory = collect_link_inventory(
+            filepath=args.hdf5_file,
+            detector=args.detector,
+            channel_map=args.channel_map,
+            skip_records=args.skip_records,
+            max_records=args.max_records,
+        )
     link_waveform_counts, missing_endpoints = map_waveforms_to_links(stats, inventory)
 
     slot_channel_counts = collect_slot_channel_usage(
@@ -360,21 +361,40 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     print(f"Decoded {len(wfset.waveforms)} waveforms from {args.hdf5_file}")
 
-    unique_channels = sorted({(wf.endpoint, wf.channel) for wf in wfset.waveforms})
-    print(f"Observed {len(unique_channels)} unique (endpoint, channel) pairs.")
+    inventory = collect_link_inventory(
+        filepath=args.hdf5_file,
+        detector=args.detector,
+        channel_map=args.channel_map,
+        skip_records=args.skip_records,
+        max_records=args.max_records,
+    )
+    endpoint_to_slot = {eid: link.slot_id for eid, link in inventory.source_to_link.items()}
+
+    unique_channels = sorted(
+        {
+            (
+                endpoint_to_slot.get(int(wf.endpoint), int(wf.endpoint)),
+                getattr(wf, "offline_channel", int(wf.channel)),
+            )
+            for wf in wfset.waveforms
+        }
+    )
+    print(f"Observed {len(unique_channels)} unique (slot, offline_channel) pairs.")
 
     to_show = min(args.show, len(wfset.waveforms))
     if to_show > 0:
         print(f"\nDisplaying the first {to_show} waveforms:")
         for wf in wfset.waveforms[:to_show]:
+            slot = endpoint_to_slot.get(int(wf.endpoint), wf.endpoint)
+            offline_channel = getattr(wf, "offline_channel", wf.channel)
             print(
                 f"  run={wf.run_number} record={wf.record_number} "
-                f"endpoint={wf.endpoint} channel={wf.channel} "
+                f"slot={slot} offline_channel={offline_channel} "
                 f"timestamp={wf.timestamp} nsamples={len(wf.adcs)}"
             )
 
     if args.print_stats:
-        _print_stats(args, wfset)
+        _print_stats(args, wfset, inventory=inventory)
     if args.structured_out:
         save_structured_waveformset(
             wfset,
