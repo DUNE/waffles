@@ -36,7 +36,6 @@ from waffles.input_output.hdf5_structured import (
 )
 from waffles.utils.daphne_stats import (
     collect_link_inventory,
-    collect_slot_channel_usage,
     compute_waveform_stats,
     map_waveforms_to_links,
 )
@@ -270,6 +269,27 @@ def _format_channel(key: tuple[int, int]) -> str:
     return f"slot={slot} channel={channel}"
 
 
+def _slot_channel_counts_from_waveforms(
+    wfset: WaveformSet,
+    inventory: LinkInventory,
+) -> Counter:
+    counts: Counter = Counter()
+    for wf in wfset.waveforms:
+        raw_channel = getattr(wf, "raw_channel", None)
+        if raw_channel is None:
+            continue
+
+        slot = getattr(wf, "slot", None)
+        if slot is None:
+            link = inventory.source_to_link.get(int(wf.endpoint))
+            if link is None:
+                continue
+            slot = link.slot_id
+
+        counts[(int(slot), int(raw_channel))] += 1
+    return counts
+
+
 def _print_stats(
     args: argparse.Namespace,
     wfset: WaveformSet,
@@ -279,12 +299,7 @@ def _print_stats(
     stats = compute_waveform_stats(wfset.waveforms)
     link_waveform_counts, missing_endpoints = map_waveforms_to_links(stats, inventory)
 
-    slot_channel_counts = collect_slot_channel_usage(
-        filepath=args.hdf5_file,
-        detector=args.detector,
-        skip_records=args.skip_records,
-        max_records=args.max_records,
-    )
+    slot_channel_counts = _slot_channel_counts_from_waveforms(wfset, inventory)
 
     print(
         f"\nStatistics: {stats.total_waveforms} waveforms, "
