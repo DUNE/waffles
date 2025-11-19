@@ -172,7 +172,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         f"Processed {inventory.records_considered} record(s) "
         f"and {inventory.fragments_considered} DAPHNE fragment(s)."
     )
-    print(f"Observed {len(stats.endpoint_counts)} source IDs and {len(stats.channel_counts)} unique channels.")
+    channel_totals: Counter = Counter()
+    for (_, channel), count in stats.channel_counts.items():
+        channel_totals[int(channel)] += count
+
+    print(f"Observed {len(stats.endpoint_counts)} source IDs and {len(channel_totals)} unique channels.")
 
     _print_counter_table(
         "Source ID distribution",
@@ -183,7 +187,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     _print_counter_table(
         "Channel distribution",
-        stats.channel_counts,
+        channel_totals,
         stats.total_waveforms,
         args.top,
         _channel_formatter,
