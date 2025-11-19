@@ -108,6 +108,17 @@ class TrackedHistogram:
                 self.__bins_number] - self.__edges[0]) / self.__bins_number
         self.__counts = counts
         self.__indices = indices
+        
+        mean = 0.0
+        for i in range(bins_number):
+            bin_center = 0.5 * (edges[i] + edges[i + 1])
+            mean += bin_center * counts[i]
+        mean /= np.sum(counts) if np.sum(counts) > 0 else 1.0
+        self.__mean = mean
+        # Total number of entries
+        # NB: different from ROOT TH1's GetEntries() because 
+        # it does not count underflows and overflows
+        self.__nentries = np.sum(counts)
 
     # Getters
     @property
@@ -117,6 +128,14 @@ class TrackedHistogram:
     @property
     def edges(self):
         return self.__edges
+
+    @property
+    def mean(self):
+        return self.__mean
+
+    @property
+    def nentries(self):
+        return self.__nentries
 
     @property
     def mean_bin_width(self):
