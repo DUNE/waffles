@@ -65,10 +65,11 @@ def decode_fragment_arrays(
     decoder: FragmentDecoder,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Convert ``fragment`` into (raw_channels, adcs_matrix, timestamps).
+    Convert ``fragment`` into (raw_channels, adcs, timestamps).
 
-    ``adcs_matrix`` always has shape ``(n_waveforms, n_samples)`` so each row can
-    be passed to :class:`waffles.data_classes.Waveform`.
+    The returned arrays mirror the rawdatautils helpers:
+    stream fragments keep the native samples × channels layout, and
+    self-triggered fragments yield one row per waveform.
     """
     module = decoder.module
 
@@ -84,24 +85,14 @@ def decode_fragment_arrays(
         raw_channels = (
             channels[0].reshape(-1) if channels.ndim > 1 else channels.reshape(-1)
         )
-        adcs = np.asarray(module.np_array_adc_stream(fragment)).transpose()
+        adcs = np.asarray(module.np_array_adc_stream(fragment))
         timestamps = np.asarray(module.np_array_timestamp_stream(fragment))
-        first_ts = (
-            int(timestamps[0]) if timestamps.size > 0 else int(fragment.get_trigger_timestamp())
-        )
-        per_waveform_ts = np.full(len(raw_channels), first_ts, dtype=np.int64)
-        return raw_channels, adcs, per_waveform_ts
+        return raw_channels, adcs, timestamps
 
     raw_channels = np.asarray(module.np_array_channels(fragment)).reshape(-1)
     adcs = np.asarray(module.np_array_adc(fragment))
     timestamps = np.asarray(module.np_array_timestamp(fragment)).reshape(-1)
-    if timestamps.size == raw_channels.size:
-        per_waveform_ts = timestamps.astype(np.int64, copy=False)
-    else:
-        per_waveform_ts = np.full(
-            len(raw_channels), int(fragment.get_trigger_timestamp()), dtype=np.int64
-        )
-    return raw_channels, adcs, per_waveform_ts
+    return raw_channels, adcs, timestamps
 
 
 def extract_daq_link(fragment, decoder: FragmentDecoder) -> Tuple[int, int, int, int]:

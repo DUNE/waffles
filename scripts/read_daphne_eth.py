@@ -30,7 +30,10 @@ import detchannelmaps
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
-from waffles.input_output.hdf5_structured import save_structured_waveformset
+from waffles.input_output.hdf5_structured import (
+    load_structured_waveformset,
+    save_structured_waveformset,
+)
 from waffles.utils.daphne_stats import (
     collect_link_inventory,
     collect_slot_channel_usage,
@@ -88,6 +91,11 @@ def _build_argparser() -> argparse.ArgumentParser:
         "--structured-out",
         default=None,
         help="If set, write the decoded WaveformSet to this HDF5 (structured) file.",
+    )
+    parser.add_argument(
+        "--verify-structured",
+        action="store_true",
+        help="When combined with --structured-out, reload the file and compare waveforms.",
     )
     parser.add_argument(
         "--plots-dir",
@@ -320,6 +328,36 @@ def _print_stats(
         print(f"\nWarning: no link metadata found for endpoint(s): {missing_str}")
 
 
+def _verify_structured_roundtrip(
+    wfset: WaveformSet,
+    structured_path: str,
+    logger: logging.Logger,
+) -> None:
+    try:
+        loaded = load_structured_waveformset(structured_path)
+    except Exception as err:
+        logger.error("Failed to reload structured file %s: %s", structured_path, err)
+        return
+
+    if len(loaded.waveforms) != len(wfset.waveforms):
+        logger.error(
+            "Structured roundtrip mismatch: %d waveforms saved, %d loaded",
+            len(wfset.waveforms),
+            len(loaded.waveforms),
+        )
+        return
+
+    for idx, (original, clone) in enumerate(zip(wfset.waveforms, loaded.waveforms)):
+        if original.timestamp != clone.timestamp or original.channel != clone.channel:
+            logger.error("Waveform %d metadata mismatch after reload", idx)
+            return
+        if not np.array_equal(original.adcs, clone.adcs):
+            logger.error("Waveform %d ADC samples differ after reload", idx)
+            return
+
+    logger.info("Structured file %s passed the roundtrip integrity check.", structured_path)
+
+
 def _configure_logger(quiet: bool) -> logging.Logger:
     logger = logging.getLogger("daphne_eth_reader")
     if not logger.handlers:
@@ -415,6 +453,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             wfset,
             args.structured_out,
         )
+        if args.verify_structured:
+            _verify_structured_roundtrip(wfset, args.structured_out, logger)
+    elif args.verify_structured:
+        logger.warning("--verify-structured requested without --structured-out; skipping integrity check.")
     if args.plots_dir:
         channel_samples = _collect_channel_samples(
             wfset.waveforms,

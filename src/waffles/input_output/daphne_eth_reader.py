@@ -207,6 +207,18 @@ def load_daphne_eth_waveforms(
             if raw_channels.size == 0 or adcs_matrix.size == 0:
                 continue
 
+            if decoder.is_stream:
+                adcs_matrix = np.asarray(adcs_matrix).transpose()
+                first_ts = (
+                    int(timestamps[0])
+                    if np.size(timestamps) > 0
+                    else int(fragment.get_trigger_timestamp())
+                )
+                per_waveform_ts = np.full(len(raw_channels), first_ts, dtype=np.int64)
+            else:
+                per_waveform_ts = np.asarray(timestamps).astype(np.int64, copy=False)
+            per_waveform_ts = per_waveform_ts.reshape(-1)
+
             try:
                 det_id, crate_id, slot_id, stream_id = extract_daq_link(fragment, decoder)
             except Exception as err:
@@ -239,7 +251,9 @@ def load_daphne_eth_waveforms(
                         offline_channel = int(raw_channel)
 
                 timestamp_value = (
-                    int(timestamps[idx]) if idx < len(timestamps) else daq_timestamp
+                    int(per_waveform_ts[idx])
+                    if idx < len(per_waveform_ts)
+                    else daq_timestamp
                 )
                 wf = Waveform(
                     timestamp=timestamp_value,
