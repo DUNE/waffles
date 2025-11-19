@@ -163,3 +163,24 @@ def map_waveforms_to_links(
         link_counts[link] += count
 
     return link_counts, missing
+
+
+def compute_slot_channel_counts(
+    waveforms: Sequence[Waveform],
+    inventory: LinkInventory,
+) -> Counter:
+    """
+    Combine slot information from ``inventory`` with the raw channel stored on each waveform.
+    """
+    slot_channel_counts: Counter = Counter()
+
+    for wf in waveforms:
+        raw_channel = getattr(wf, "raw_channel", None)
+        if raw_channel is None:
+            continue
+        link = inventory.source_to_link.get(int(wf.endpoint))
+        if link is None:
+            continue
+        slot_channel_counts[(int(link.slot_id), int(raw_channel))] += 1
+
+    return slot_channel_counts
