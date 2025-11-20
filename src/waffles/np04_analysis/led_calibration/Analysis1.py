@@ -1242,6 +1242,20 @@ class Analysis1(WafflesAnalysis):
                 verbose=self.params.verbose
             )
 
+            # Overlay the average waveform on top of the persistence heatmaps
+            persistence_figure = plot_ChannelWsGrid( 
+                self.grid_apa,
+                figure=persistence_figure,
+                share_x_scale=True,
+                share_y_scale=True,
+                mode='average',
+                # Consider all waveforms for the average
+                wfs_per_axes=None,
+                detailed_label=False,
+                yannotation=0.,
+                verbose=self.params.verbose
+            )
+
             led_utils.add_integration_limits_to_persistence_heatmaps(
                 persistence_figure,
                 self.grid_apa,
@@ -1257,6 +1271,20 @@ class Analysis1(WafflesAnalysis):
                 width=figure_width,
                 height=figure_height,
                 showlegend=False,
+                # Re-adjust x-axis range after
+                # plotting average waveform
+                xaxis=dict(
+                    range=[
+                        time_range_lower_limit,
+                        time_range_upper_limit
+                    ]
+                ),
+                yaxis=dict(
+                    range=[
+                        -aux_adc_range_below_baseline,
+                        aux_adc_range_above_baseline
+                    ]
+                )
             )
 
             if self.params.show_figures:
