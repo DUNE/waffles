@@ -84,32 +84,33 @@ class TimeResolution:
         n_selected = 0
 
         for wf in waveforms:
-            max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
-            min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
-
-            # Check if the baseline condition is satisfied
-            if max_el_pre < 4*self.baseline_rms and min_el_pre > -(4*self.baseline_rms):
-                # Calculate max and min in the signal region (after the pre region)
-                max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
-                ampl_post = wf.adcs_float[self.postpulse_ticks]
-
-                # Check if the signal is within saturation limits
-                if (max_el_signal < self.max_amplitude and
-                    max_el_signal > self.min_amplitude and
-                    ampl_post < 0.8*max_el_signal):
-                    wf.time_resolution_selection = True
-                    n_selected += 1
-
-                else:
-                    wf.time_resolution_selection = False
-
-            else:
-                wf.time_resolution_selection = False
-        
-        if tag == "ref":
-            self.ref_n_select_wfs = n_selected
-        if tag == "com":
-            self.com_n_select_wfs = n_selected
+            wf.time_resolution_selection = True
+        #     max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
+        #     min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
+        #
+        #     # Check if the baseline condition is satisfied
+        #     if max_el_pre < 4*self.baseline_rms and min_el_pre > -(4*self.baseline_rms):
+        #         # Calculate max and min in the signal region (after the pre region)
+        #         max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
+        #         ampl_post = wf.adcs_float[self.postpulse_ticks]
+        #
+        #         # Check if the signal is within saturation limits
+        #         if (max_el_signal < self.max_amplitude and
+        #             max_el_signal > self.min_amplitude and
+        #             ampl_post < 0.8*max_el_signal):
+        #             wf.time_resolution_selection = True
+        #             n_selected += 1
+        #
+        #         else:
+        #             wf.time_resolution_selection = False
+        #
+        #     else:
+        #         wf.time_resolution_selection = False
+        # 
+        # if tag == "ref":
+        #     self.ref_n_select_wfs = n_selected
+        # if tag == "com":
+        #     self.com_n_select_wfs = n_selected
 
     def set_wfs_t0(self,
                    tag: Literal["ref","com"],

@@ -128,32 +128,34 @@ class TimeResolution:
         self.debug_counter['nwfs'] = len(waveforms) 
 
         for wf in waveforms:
-            max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
-            min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
-
-            # Check if the baseline condition is satisfied
-            if max_el_pre < self.rms_times_thoreshold*self.baseline_rms and min_el_pre > -(self.rms_times_thoreshold*self.baseline_rms):
-                # Calculate max and min in the signal region (after the pre region)
-                max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
-                ampl_post = wf.adcs_float[self.postpulse_ticks]
-                wf.pe = wf.adcs_float[self.int_low:self.int_up].sum()*self.ticks_to_ns/self.spe_charge
-
-                # Check if the signal is within saturation limits
-                if (ampl_post < 0.8*max_el_signal
-                    and wf.pe > self.min_pes):
-                    wf.time_resolution_selection = True; n_selected += 1
-                    self.debug_counter['selected'] = self.debug_counter.get('selected', 0) + 1 
-
-                else:
-                    wf.time_resolution_selection = False
-                    if wf.pe <= self.min_pes:
-                        self.debug_counter['excluded_pe'] = self.debug_counter.get('excluded_pe', 0) + 1
-                    else:
-                        self.debug_counter['excluded_ampl_post'] = self.debug_counter.get('excluded_ampl_post', 0) + 1 
-
-            else:
-                wf.time_resolution_selection = False
-                self.debug_counter['excluded_rms'] = self.debug_counter.get('excluded_rms', 0) + 1 
+            wf.time_resolution_selection = True
+            wf.pe = 1
+            # max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
+            # min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
+            #
+            # # Check if the baseline condition is satisfied
+            # if max_el_pre < self.rms_times_thoreshold*self.baseline_rms and min_el_pre > -(self.rms_times_thoreshold*self.baseline_rms):
+            #     # Calculate max and min in the signal region (after the pre region)
+            #     max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
+            #     ampl_post = wf.adcs_float[self.postpulse_ticks]
+            #     wf.pe = wf.adcs_float[self.int_low:self.int_up].sum()*self.ticks_to_ns/self.spe_charge
+            #
+            #     # Check if the signal is within saturation limits
+            #     if (ampl_post < 0.8*max_el_signal
+            #         and wf.pe > self.min_pes):
+            #         wf.time_resolution_selection = True; n_selected += 1
+            #         self.debug_counter['selected'] = self.debug_counter.get('selected', 0) + 1 
+            #
+            #     else:
+            #         wf.time_resolution_selection = False
+            #         if wf.pe <= self.min_pes:
+            #             self.debug_counter['excluded_pe'] = self.debug_counter.get('excluded_pe', 0) + 1
+            #         else:
+            #             self.debug_counter['excluded_ampl_post'] = self.debug_counter.get('excluded_ampl_post', 0) + 1 
+            #
+            # else:
+            #     wf.time_resolution_selection = False
+            #     self.debug_counter['excluded_rms'] = self.debug_counter.get('excluded_rms', 0) + 1 
         
         self.n_select_wfs = n_selected
 

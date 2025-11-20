@@ -49,7 +49,6 @@ if __name__ == "__main__":
         pdes = set(run_info_df["PDE"].values )
 
         out_root_file_name = out_folder+f"DaphneCh_{ref_ch}_vs_{com_ch}_time_alignment.root"
-        print("opening ", out_root_file_name)
         out_root_file = TFile(out_root_file_name, "RECREATE")
 
         # create as many tgraphs as there are PDEs
@@ -98,7 +97,6 @@ if __name__ == "__main__":
                 out_root_file.cd(subdir_name)
 
                 t0_diff = time_alligner.ref_ch.t0s - time_alligner.com_ch.t0s
-                print("Histogram of t0 differences")
 
                 # --- PLOTTING ---------------------------------------------------
                 # t0 differences distribution ------------------------------------
@@ -108,6 +106,8 @@ if __name__ == "__main__":
                                  200, x_min, x_max)
                 for diff in t0_diff:
                     h_t0_diff.Fill(diff)
+
+                print("com_ch:", com_ch, h_t0_diff.GetMean()*16)
 
                 # Com vs Ref pes -------------------------------------------------
                 x_min = np.percentile(time_alligner.ref_ch.pes, 0.5)
