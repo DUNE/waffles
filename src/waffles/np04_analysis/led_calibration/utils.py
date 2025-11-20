@@ -576,6 +576,7 @@ def align_waveforms_by_correlation(
     deviation_from_baseline: float = 0.3,
     lower_limit_correction: int = 0,
     upper_limit_correction: int = 0,
+    minimum_sliced_template_points: int = 10
 ) -> None:
     """This function aligns the waveforms in the given
     ChannelWs object based on their correlation with a
@@ -625,8 +626,8 @@ def align_waveforms_by_correlation(
         The WindowIntegrator analysis needs a baseline
         value to compute the waveform integrals. This
         parameter gives the label for the WfAna object
-        which contains such baseline value. Namely, it is
-        the key for the analyses attribute dictionary
+        which contains such baseline value. Namely, it
+        is the key for the analyses attribute dictionary
         of each Waveform object within the input
         ChannelWs.
     SPE_template_lower_limit_wrt_pulse (resp. SPE_template_upper_limit_wrt_pulse): int
@@ -682,6 +683,17 @@ def align_waveforms_by_correlation(
         a correction to the lower (resp. upper) limit
         of the pulse window. For more information, check
         the get_pulse_window_limits() function docstring.
+    minimum_sliced_template_points: int
+        This parameter makes a difference only if the
+        sliced waveforms end up having less points than
+        the sliced SPE template. In that case, the
+        function trims the sliced SPE template further,
+        so that its number of points is smaller than the
+        number of points in the sliced waveforms by
+        2 * maximum_allowed_shift points. If, after this
+        reduction, the number of points in the sliced
+        SPE template is less than minimum_sliced_template_points,
+        the function raises an Exception.
 
     Returns
     -------
@@ -731,9 +743,9 @@ def align_waveforms_by_correlation(
     waveforms_n_points = wfs_slice_i_up - wfs_slice_i_low
 
     if waveforms_n_points < template_n_points:
-        raise Exception(
+        print(
             "In function align_waveforms_by_correlation(): "
-            "The given SPE template peaks at time tick "
+            "WARNING: The given SPE template peaks at time tick "
             f"{template_pulse_idx}, resulting in the following "
             f"slicing indices: [{template_slice_i_low}, "
             f"{template_slice_i_up}). The data for the current "
@@ -744,8 +756,42 @@ def align_waveforms_by_correlation(
             f"{waveforms_n_points} points for the waveform "
             "samples, which is smaller than the number of "
             f"points ({template_n_points}) for the template "
-            "slice. Please review this case separatedly."
+            "slice. The number of points in the SPE template "
+            f"will be reduced from {template_n_points} to "
+            f"waveforms_n_points - (2 * {maximum_allowed_shift}) = ",
+            end=''
         )
+
+        # Compute left_fraction before updating template_n_points
+        left_fraction = round(
+            (template_pulse_idx - template_slice_i_low) / template_n_points
+        )
+
+        # Consider an smaller template slice, so
+        # that shifts of maximum_allowed_shift
+        # time ticks can still be considered
+        template_n_points = waveforms_n_points - (2 * maximum_allowed_shift)
+        print(f"{template_n_points} points.")
+
+        if minimum_sliced_template_points <= 0:
+            raise Exception(
+                "In function align_waveforms_by_correlation(): "
+                "The minimum_sliced_template_points parameter must "
+                "be greater than 0."
+            )
+
+        elif template_n_points <= minimum_sliced_template_points:
+            raise Exception(
+                "In function align_waveforms_by_correlation(): "
+                "After reducing the number of points in the template, "
+                "they fell below the minimum allowed value."
+            )
+
+        template_slice_i_low = \
+            template_pulse_idx - round(left_fraction * template_n_points)
+        
+        template_slice_i_up = \
+            template_slice_i_low + template_n_points
 
     # As of here, the number of points in the sliced waveforms
     # is bigger or equal to the number of points in the sliced
