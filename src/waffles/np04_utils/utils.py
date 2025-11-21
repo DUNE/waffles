@@ -1,6 +1,6 @@
 
 import waffles
-from waffles.np04_data.ProtoDUNE_HD_APA_maps import flat_APA_map
+from waffles.np04_data.ProtoDUNE_HD_APA_VGAIN_SCAN_map import flat_APA_map
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.Exceptions import GenerateExceptionMessage
 from pathlib import Path
@@ -35,7 +35,7 @@ def get_channel_iterator(
 
     try:
         flat_map = flat_APA_map[apa_no]
-
+        
     except KeyError:
         raise Exception(GenerateExceptionMessage( 
             1,
@@ -46,7 +46,7 @@ def get_channel_iterator(
     
     if flat_map.rows == 1:
         for j in range(flat_map.columns):
-
+            print(f"Comparing to: {flat_map.data[0][j].endpoint}-{flat_map.data[0][j].channel}")
             if flat_map.data[0][j].endpoint == endpoint and \
                 flat_map.data[0][j].channel == channel:
                     
@@ -56,7 +56,7 @@ def get_channel_iterator(
 
     elif flat_map.columns == 1:
          for i in range(flat_map.rows):
-
+            print(f"Comparing to: {flat_map.data[i][0].endpoint}-{flat_map.data[i][0].channel}")
             if flat_map.data[i][0].endpoint == endpoint and \
                 flat_map.data[i][0].channel == channel:
                     

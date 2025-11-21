@@ -1,9 +1,10 @@
+from dataclasses import Field
 from waffles.np04_analysis.vgain_analysis.imports import *
 
 def list_defaultdict():
     return defaultdict(list)
 
-class Analysis2(WafflesAnalysis):
+class Analysis3(WafflesAnalysis):
 
     def __init__(self):
         pass
@@ -44,12 +45,6 @@ class Analysis2(WafflesAnalysis):
                 description="Photon detection efficiencies to "
                 "consider",
                 example=[0.4]
-            )
-
-            channel_to_analyze: int = Field(
-                ...,
-                description="Single channel to analyze",
-                example=10413
             )
 
             filter_type: list[str] = Field(
@@ -95,18 +90,10 @@ class Analysis2(WafflesAnalysis):
                 example='./configs/hpf_filter_coefficients.json'
             )
 
-            boxcar_lower_limit: int = Field(
+            boxcar_window_size: int = Field(
                 ...,
-                description="Lower limit of the boxcar filter "
-                "length to be scanned",
-                example=10
-            )
-
-            boxcar_upper_limit: int = Field(
-                ...,
-                description="Upper limit of the boxcar filter "
-                "length to be scanned",
-                example=40
+                description="Boxcar filter window size to be applied after the HPF filter.",
+                example=23
             )
 
             show_figures: bool = Field(
@@ -378,9 +365,9 @@ class Analysis2(WafflesAnalysis):
             open(self.params.hpf_filter_coefficients, 'r')
         )
 
-        self.read_input_loop_1 = self.params.filter_type
-        self.read_input_loop_2 = self.params.hpf_cutoff_frequency
-        self.read_input_loop_3 = range(self.params.boxcar_lower_limit, self.params.boxcar_upper_limit, 1) 
+        self.read_input_loop_1 = self.params.batches
+        self.read_input_loop_2 = self.params.apas
+        self.read_input_loop_3 = self.params.pdes
 
         # columns: run, batch, acquired_apas, aimed_channels, pde
         self.channels_per_run = pd.read_csv(
@@ -411,13 +398,13 @@ class Analysis2(WafflesAnalysis):
             True if the method ends execution normally
         """
 
-        self.filter_type = self.read_input_itr_1
-        self.filter_cutoff = self.read_input_itr_2
-        self.boxcar_window_size = self.read_input_itr_3
+        self.filter_type = self.params.filter_type[0]
+        self.filter_cutoff = self.params.hpf_cutoff_frequency[0]
+        self.boxcar_window_size = self.params.boxcar_window_size
         
-        self.batch = self.params.batches[0]
-        self.apa = self.params.apas[0]
-        self.pde = self.params.pdes[0]
+        self.batch = self.read_input_itr_1
+        self.apa = self.read_input_itr_2
+        self.pde = self.read_input_itr_3
 
         if self.params.verbose:
             print(
@@ -484,8 +471,6 @@ class Analysis2(WafflesAnalysis):
                     self.channels_per_run['run'] == run
                 ]['aimed_channels'].values[0]
             )
-
-            channels = [ch for ch in channels if ch == self.params.channel_to_analyze]
                 
             if self.params.verbose:
                 print(
@@ -896,14 +881,26 @@ class Analysis2(WafflesAnalysis):
                     integral = wf.get_analysis(self.params.integration_analysis_label).result['integral']
                     if integral < u2 + 2*std2 and integral > u2 - 2*std2:
                         spe_idxs.append(idx)
-                mean_spe = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform(wf_idcs=spe_idxs)
-                self.grid_spe_idxs[endpoint][channel] = spe_idxs
-                self.grid_spe_parameters[endpoint][channel] = {
-                    'min': np.min(mean_spe.adcs),
-                    'max': np.max(mean_spe.adcs),
-                    'amplitude': np.max(mean_spe.adcs) - np.min(mean_spe.adcs),
-                    'dynamic_range': 2**14/(np.max(mean_spe.adcs) - np.min(mean_spe.adcs))
-                }
+                if(len(spe_idxs) != 0):
+                    mean_spe = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform(wf_idcs=spe_idxs)
+                    self.grid_spe_parameters[endpoint][channel] = {
+                        'min': np.min(mean_spe.adcs),
+                        'max': np.max(mean_spe.adcs),
+                        'amplitude': np.max(mean_spe.adcs) - np.min(mean_spe.adcs),
+                        'dynamic_range': 2**14/(np.max(mean_spe.adcs) - np.min(mean_spe.adcs)),
+                        'error_dr': False
+                    }
+                    self.grid_spe_idxs[endpoint][channel] = spe_idxs   
+                else:
+                    mean_spe = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform()
+                    self.grid_spe_parameters[endpoint][channel] = {
+                        'min': np.min(mean_spe.adcs),
+                        'max': np.max(mean_spe.adcs),
+                        'amplitude': np.max(mean_spe.adcs) - np.min(mean_spe.adcs),
+                        'dynamic_range': 2**14/(np.max(mean_spe.adcs) - np.min(mean_spe.adcs)),
+                        'error_dr': True
+                    }
+                    self.grid_spe_idxs[endpoint][channel] = list(range(len(self.grid_apa.ch_wf_sets[endpoint][channel].waveforms)))
         self.io_data_dict["calib_histograms"] = calib_hist_io_dict
         if self.params.verbose:
             print("Finished.")
@@ -997,10 +994,8 @@ class Analysis2(WafflesAnalysis):
         title = f"Batch {self.batch}, APA {self.apa}, "
         title += f"PDE {self.pde} - Runs {list(self.wfset.runs)}"
         title_fontsize = 22
-        figure_width = 1600
-        figure_height = 1600
-        subfigure_width = 1920
-        subfigure_height = 1080
+        figure_width = 4000
+        figure_height = 4000
 
         figure.update_layout(
             title={
@@ -1025,8 +1020,7 @@ class Analysis2(WafflesAnalysis):
                 end=''
             )
     
-        figure.write_image(f"{fig_path}", width=figure_width, height=figure_height)
-        figure.write_html(f"{fig_path}.html")
+        figure.write_image(f"{fig_path}")
         if self.params.verbose:
             print("Finished.")
 
@@ -1044,34 +1038,13 @@ class Analysis2(WafflesAnalysis):
                 for trace in figure.select_traces(row=i+1, col=j+1):
                     subplot_fig.add_trace(trace)
                 # Optionally, set a simple title or axis labels
-                subtitle = (
-                    f"Endpoint: {self.grid_apa.ch_map.data[i][j].endpoint} — "
-                    f"Channel: {self.grid_apa.ch_map.data[i][j].channel} — "
-                    f"APA: {self.apa} — VGAIN: {self.batch} — PDE: {100*self.pde:.0f}%"
-                )
                 subplot_fig.update_layout(
-                    title_text="Histogram of processed waveforms",
-                    title_x=0.5,
-                    title_font=dict(size=24),
-                    margin=dict(t=120)  # room for the subtitle above the plot
+                    title=f"Channel ({i+1},{j+1})",
+                    xaxis_title="ADU",
+                    yaxis_title="Entries"
                 )
-                subplot_fig.add_annotation(
-                    text=subtitle,
-                    xref="paper", yref="paper",
-                    x=0.5, y=1.06,  # just above the main title line
-                    showarrow=False,
-                    xanchor="center",
-                    font=dict(size=20)
-                )
-                subplot_fig.update_layout(
-                    xaxis_title=r"$\mathrm{ADU}$",
-                    yaxis_title=r"$\mathrm{Entries}$"
-                )
-                subplot_fig.update_xaxes(title_standoff=12)
-                subplot_fig.update_yaxes(title_standoff=12)
                 subplot_path = f"{base_file_path_plotcal2}_subplot_calibration_{i+1}_{j+1}.png"
-                subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height)
-                subplot_fig.write_html(f"{subplot_path}.html")
+                subplot_fig.write_image(subplot_path)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
         
@@ -1103,13 +1076,12 @@ class Analysis2(WafflesAnalysis):
                     subplot_fig.add_trace(trace)
                 # Optionally, set a simple title or axis labels
                 subplot_fig.update_layout(
-                    title=f"Endpoint: {self.grid_apa_hpf_filtered.ch_map.data[i][j].endpoint} - Channel: {self.grid_apa_hpf_filtered.ch_map.data[i][j].channel} - APA: {self.apa} - VGAIN: {self.batch} - PDE: {100*self.pde}%",
+                    title=f"Channel ({i+1},{j+1})",
                     xaxis_title="Sample",
                     yaxis_title="ADC"
                 )
                 subplot_path = f"{base_file_path_plotmean1}_subplot_{i+1}_{j+1}.png"
-                subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height)
-                subplot_fig.write_html(f"{subplot_path}.html")
+                subplot_fig.write_image(subplot_path)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
 
@@ -1141,28 +1113,27 @@ class Analysis2(WafflesAnalysis):
                 # Add traces for this subplot (row/col are 1-based)
                 for trace in figure.select_traces(row=i+1, col=j+1):
                     subplot_fig.add_trace(trace)
-                # y_min = self.grid_spe_parameters[channel_ws.endpoint][channel_ws.channel]['min']
-                # y_max = self.grid_spe_parameters[channel_ws.endpoint][channel_ws.channel]['max']    
-                # subplot_fig.add_hline(
-                #                         y=y_min,
-                #                         line_dash="dot",
-                #                         line_color="gray"
-                #                     )
-                # subplot_fig.add_hline(
-                #     y=y_max,
-                #     line_dash="dot",
-                #     line_color="gray"
-                # )
+                y_min = self.grid_spe_parameters[channel_ws.endpoint][channel_ws.channel]['min']
+                y_max = self.grid_spe_parameters[channel_ws.endpoint][channel_ws.channel]['max']    
+                subplot_fig.add_hline(
+                                        y=y_min,
+                                        line_dash="dot",
+                                        line_color="gray"
+                                    )
+                subplot_fig.add_hline(
+                    y=y_max,
+                    line_dash="dot",
+                    line_color="gray"
+                )
                                                     # Optionally, set a simple title or axis labels
                 subplot_fig.update_layout(
-                    title=f"Endpoint: {self.grid_apa_zero_baselined.ch_map.data[i][j].endpoint} - Channel: {self.grid_apa_zero_baselined.ch_map.data[i][j].channel} - APA: {self.apa} - VGAIN: {self.batch} - PDE: {100*self.pde}%",
+                    title=f"Channel ({i+1},{j+1})",
                     xaxis_title="Sample",
                     yaxis_title="ADC"
                 )
                 
                 subplot_path = f"{base_file_path_plotmean2}_subplot_SPE_{i+1}_{j+1}.png"
-                subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height)
-                subplot_fig.write_html(f"{subplot_path}.html")
+                subplot_fig.write_image(subplot_path)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
 

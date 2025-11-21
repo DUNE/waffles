@@ -83,8 +83,8 @@ class BoxcarIntegrator(WfAna):
         self.__max_pos = input_parameters['max_pos']
         self.__max_value_avg = input_parameters['max_value_avg']
         self.__avg_window_length = input_parameters['avg_window_length']
-        self.__int_ll = input_parameters['int_ll']
-        self.__int_ul = input_parameters['int_ul']
+        # self.__int_ll = input_parameters['int_ll']
+        # self.__int_ul = input_parameters['int_ul']
         self.__amp_ll = input_parameters['amp_ll']
         self.__amp_ul = input_parameters['amp_ul']
 
@@ -96,13 +96,13 @@ class BoxcarIntegrator(WfAna):
     def inversion(self):
         return self.__inversion
 
-    @property
-    def int_ll(self):
-        return self.__int_ll
+    # @property
+    # def int_ll(self):
+    #     return self.__int_ll
 
-    @property
-    def int_ul(self):
-        return self.__int_ul
+    # @property
+    # def int_ul(self):
+    #     return self.__int_ul
 
     @property
     def amp_ll(self):
@@ -197,13 +197,13 @@ class BoxcarIntegrator(WfAna):
         amplitude=(
             np.max(
                 filtered_adcs[
-                    self.__amp_ll - waveform.time_offset:
-                    self.__amp_ul + 1 - waveform.time_offset
+                    self.__max_pos - self.__amp_ll:
+                    self.__max_pos + self.__amp_ul
                 ]
             ) - np.min(
                 filtered_adcs[
-                    self.__amp_ll - waveform.time_offset:
-                    self.__amp_ul + 1 - waveform.time_offset
+                    self.__max_pos - self.__amp_ll:
+                    self.__max_pos + self.__amp_ul
                 ]
             )
         )
@@ -252,21 +252,21 @@ class BoxcarIntegrator(WfAna):
         None
         """
 
-        int_ul_ = input_parameters['int_ul']
-        if int_ul_ is None:
-            int_ul_ = points_no - 1
+        # int_ul_ = input_parameters['int_ul']
+        # if int_ul_ is None:
+        #     int_ul_ = points_no - 1
 
-        if not wuc.subinterval_is_well_formed(
-            input_parameters['int_ll'],
-            int_ul_,
-            points_no
-        ):
-            raise Exception(we.GenerateExceptionMessage(
-                1,
-                'WindowIntegrator.check_input_parameters()',
-                f"The integration window ({input_parameters['int_ll']},"
-                f" {int_ul_}) is not well formed. It must be a subset of"
-                f" [0, {points_no})."))
+        # if not wuc.subinterval_is_well_formed(
+        #     input_parameters['int_ll'],
+        #     int_ul_,
+        #     points_no
+        # ):
+        #     raise Exception(we.GenerateExceptionMessage(
+        #         1,
+        #         'WindowIntegrator.check_input_parameters()',
+        #         f"The integration window ({input_parameters['int_ll']},"
+        #         f" {int_ul_}) is not well formed. It must be a subset of"
+        #         f" [0, {points_no})."))
                     
         amp_ul_ = input_parameters['amp_ul']
         if amp_ul_ is None:

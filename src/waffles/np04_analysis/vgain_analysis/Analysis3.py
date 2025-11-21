@@ -1,4 +1,11 @@
+from dataclasses import Field
 from waffles.np04_analysis.vgain_analysis.imports import *
+import gc
+import weakref
+import math
+
+def list_defaultdict():
+    return defaultdict(list)
 
 class Analysis3(WafflesAnalysis):
 
@@ -43,10 +50,19 @@ class Analysis3(WafflesAnalysis):
                 example=[0.4]
             )
 
-            channel_to_analyze: int = Field(
+            filter_type: list[str] = Field(
                 ...,
-                description="Single channel to analyze",
-                example=10413
+                description="Type of high-pass filter to apply "
+                "after the baseline subtraction. The available "
+                "options are: 'Bessel', 'Butter', "
+                "'Cheby_I', 'Cheby_II', 'Elliptic'.",
+                example=['Bessel']
+            )
+
+            hpf_cutoff_frequency: list[str] = Field(
+                ...,
+                description="High-pass filter cutoff frequency",
+                example=['160khz']
             )
 
             channels_per_run_filepath: str = Field(
@@ -77,18 +93,10 @@ class Analysis3(WafflesAnalysis):
                 example='./configs/hpf_filter_coefficients.json'
             )
 
-            boxcar_lower_limit: int = Field(
+            boxcar_window_size: int = Field(
                 ...,
-                description="Lower limit of the boxcar filter "
-                "length to be scanned",
-                example=10
-            )
-
-            boxcar_upper_limit: int = Field(
-                ...,
-                description="Upper limit of the boxcar filter "
-                "length to be scanned",
-                example=40
+                description="Boxcar filter window size to be applied after the HPF filter.",
+                example=23
             )
 
             show_figures: bool = Field(
@@ -319,6 +327,12 @@ class Analysis3(WafflesAnalysis):
                 "where the calibration results will be saved"
             )
 
+            output_log_filename: str = Field(
+                default='vGain_analysis_log.txt',
+                description="Name of the output log file "
+                "where the analysis log will be saved"
+            )
+
         return InputParams
 
     def initialize(
@@ -347,33 +361,58 @@ class Analysis3(WafflesAnalysis):
         self.filter_type = None
         self.filter_cutoff = None
 
-        self.skip_data_loading = False
-
         # Auxiliar waveformsets
         self.grid_apa_zero_baselined = None
         self.grid_apa_hpf_filtered = None
 
-        self.hpf_coefficients_dict = json.load(
-            open(self.params.hpf_filter_coefficients, 'r')
+        self.grid_spe_idxs = defaultdict(list_defaultdict)
+        self.grid_spe_parameters = defaultdict(list_defaultdict)
+
+        self.io_data_dict = IODict()
+
+        self._open_figures = []
+
+        Path(f"{self.params.output_path}").mkdir(parents=True, exist_ok=True)
+
+        self.output_log_file = open(
+            f"{self.params.output_path}/{self.params.output_log_filename}", "a"
         )
 
-        #self.read_input_loop_1 = list(self.hpf_coefficients_dict.keys())
-        #self.read_input_loop_2 = list(self.hpf_coefficients_dict['Bessel'].keys())
-        #self.read_input_loop_3 = range(self.params.boxcar_lower_limit, self.params.boxcar_upper_limit, 1) 
+        try:
+            self.hpf_coefficients_dict = json.load(
+                open(self.params.hpf_filter_coefficients, 'r')
+            )
+        except Exception as e:
+            self.output_log_file.write(
+                f"Error loading HPF coefficients with exception: {e}\n"
+            )
+            exit(1)
 
-        self.read_input_loop_1 = ['Bessel']
-        self.read_input_loop_2 = ['30khz']
-        self.read_input_loop_3 = [5]
+        self.read_input_loop_1 = self.params.batches
+        self.read_input_loop_2 = self.params.apas
+        self.read_input_loop_3 = self.params.pdes
 
         # columns: run, batch, acquired_apas, aimed_channels, pde
-        self.channels_per_run = pd.read_csv(
-            self.params.channels_per_run_filepath
-        )
+        try:
+            self.channels_per_run = pd.read_csv(
+                self.params.channels_per_run_filepath
+            )
+        except Exception as e:
+            self.output_log_file.write(
+                f"Error loading channels per run database with exception: {e}\n"
+            )
+            exit(1)
 
         # columns: batch, apa, pde, excluded_channels
-        self.excluded_channels = pd.read_csv(
-            self.params.excluded_channels_filepath
-        )
+        try:
+            self.excluded_channels = pd.read_csv(
+                self.params.excluded_channels_filepath
+            )
+        except Exception as e:
+            self.output_log_file.write(
+                f"Error loading excluded channels database with exception: {e}\n"
+            )
+            exit(1)
 
     def read_input(self) -> bool:
         """Implements the WafflesAnalysis.read_input() abstract
@@ -394,13 +433,13 @@ class Analysis3(WafflesAnalysis):
             True if the method ends execution normally
         """
 
-        self.filter_type = self.read_input_itr_1
-        self.filter_cutoff = self.read_input_itr_2
-        self.boxcar_window_size = self.read_input_itr_3
+        self.filter_type = self.params.filter_type[0]
+        self.filter_cutoff = self.params.hpf_cutoff_frequency[0]
+        self.boxcar_window_size = self.params.boxcar_window_size
         
-        self.batch = self.params.batches[0]
-        self.apa = self.params.apas[0]
-        self.pde = self.params.pdes[0]
+        self.batch = self.read_input_itr_1
+        self.apa = self.read_input_itr_2
+        self.pde = self.read_input_itr_3
 
         if self.params.verbose:
             print(
@@ -453,57 +492,54 @@ class Analysis3(WafflesAnalysis):
         fFirstRun = True
 
         # Reset the WaveformSet
-        # self.wfset = None # the same waveformset will be used
-                            # for all the runs for the current batch, APA and PDE
+        self.wfset = None
         
 
 
         # Loop over the list of runs for the current
         # batch, APA and PDE
-        if not self.skip_data_loading:
-            for i, run in enumerate(targeted_runs):
+        
+        for i, run in enumerate(targeted_runs):
 
-                channels = led_utils.parse_numeric_list(
-                    self.channels_per_run[
-                        self.channels_per_run['run'] == run
-                    ]['aimed_channels'].values[0]
+            channels = led_utils.parse_numeric_list(
+                self.channels_per_run[
+                    self.channels_per_run['run'] == run
+                ]['aimed_channels'].values[0]
+            )
+                
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.read_input(): "
+                    f"Reading the data for run {run}.",
                 )
 
-                channels = [ch for ch in channels if ch == self.params.channel_to_analyze]
-                    
+            if len(channels) == 0:
                 if self.params.verbose:
                     print(
-                        "In function Analysis1.read_input(): "
-                        f"Reading the data for run {run}.",
+                        "The list of aimed channels is empty"
+                        " for this run. Skipping this run."
                     )
+                continue
+            else:
+                if self.params.verbose:
+                    print(
+                        f"The read channels are: {channels}."
+                    )   
+            
+            # Get the filepaths to the input chunks for this run
+            #input_filepaths = led_utils.get_input_filepaths_for_run(
+            #    self.params.input_path,
+            #    self.batch,
+            #    self.pde,
+            #    run
+            #)
 
-                if len(channels) == 0:
-                    if self.params.verbose:
-                        print(
-                            "The list of aimed channels is empty"
-                            " for this run. Skipping this run."
-                        )
-                    continue
-                else:
-                    if self.params.verbose:
-                        print(
-                            f"The read channels are: {channels}."
-                        )   
-                
-                # Get the filepaths to the input chunks for this run
-                #input_filepaths = led_utils.get_input_filepaths_for_run(
-                #    self.params.input_path,
-                #    self.batch,
-                #    self.pde,
-                #    run
-                #)
-
-                #new_wfset = WaveformSet_from_pickle_files(
-                #        filepath_list=input_filepaths,
-                #        target_extension='.pkl',
-                #        verbose=self.params.verbose
-                #)
-
+            #new_wfset = WaveformSet_from_pickle_files(
+            #        filepath_list=input_filepaths,
+            #        target_extension='.pkl',
+            #        verbose=self.params.verbose
+            #)
+            try:
                 input_filepaths = led_utils.get_input_filepaths_for_vgain_scan_run(
                         self.params.input_path,
                         self.batch,
@@ -514,12 +550,18 @@ class Analysis3(WafflesAnalysis):
                         self.params.input_path,
                         self.batch,
                         input_filepaths)
-
-                # Keep only the waveforms coming from 
-                # the targeted channels for this run.
-                # This step is useless for cases when
-                # the input pickles were already filtered
-                # when copied from the original HDF5 files
+            except Exception as e:
+                print(f"Error in loading run {run} with exception: {e}")
+                self.output_log_file.write(
+                    f"Error in loading run {run} with exception: {e}\n"
+                )
+    
+            # Keep only the waveforms coming from 
+            # the targeted channels for this run.
+            # This step is useless for cases when
+            # the input pickles were already filtered
+            # when copied from the original HDF5 files
+            try:
                 new_wfset = WaveformSet.from_filtered_WaveformSet(
                     new_wfset,
                     led_utils.comes_from_channel,
@@ -531,7 +573,12 @@ class Analysis3(WafflesAnalysis):
                     fFirstRun = False
                 else:
                     self.wfset.merge(new_wfset)
-                self.skip_data_loading = True
+            except Exception as e:
+                print(f"Empty waveformSet in run {run} with exception: {e}")
+                self.output_log_file.write(
+                    f"Empty waveformSet in run {run} with exception: {e}\n"
+                )
+            
         return True
 
     def analyze(self) -> bool:
@@ -560,7 +607,9 @@ class Analysis3(WafflesAnalysis):
         bool
             True if the method ends execution normally
         """
-
+        # (re)create per-iteration containers that previous iterations may have cleaned up
+        if self.io_data_dict is None:
+            self.io_data_dict = IODict()
         # This is the only analysis stage which can be run on the merged WaveformSet,
         # since, for each waveform, it only depends on such waveform, and not on any
         # characteristics of the channel which it comes from
@@ -633,6 +682,10 @@ class Analysis3(WafflesAnalysis):
                 f"Kept {100.*(len_after_coarse_selection/len_before_coarse_selection):.2f}%"
                 " of the waveforms"
             )
+        
+        self.grid_apa = None
+        self.grid_apa_zero_baselined = None
+        self.grid_apa_hpf_filtered = None
 
         # Separate the WaveformSet into a grid of WaveformSets,
         # so that each WaveformSet contains all of the waveforms
@@ -644,17 +697,18 @@ class Analysis3(WafflesAnalysis):
         )
 
         self.grid_apa_zero_baselined = ChannelWsGrid(   
-            APA_map[self.apa],
-            self.wfset,
+            copy.deepcopy(APA_map[self.apa]),
+            copy.deepcopy(self.wfset),
             compute_calib_histo=False,
         )
 
         self.grid_apa_hpf_filtered = ChannelWsGrid(   
-            APA_map[self.apa],
-            self.wfset,
+            copy.deepcopy(APA_map[self.apa]),
+            copy.deepcopy(self.wfset),
             compute_calib_histo=False,
         )
-
+        mean_waveform_zero_baselined_io_dict = IODict()
+        mean_waveform_hpf_filtered_io_dict = IODict()
         for endpoint in self.grid_apa.ch_wf_sets.keys():
             for channel in self.grid_apa.ch_wf_sets[endpoint].keys():
 
@@ -729,7 +783,8 @@ class Analysis3(WafflesAnalysis):
                     show_progress=False
                 )
 
-                self.grid_apa_zero_baselined.ch_wf_sets[endpoint][channel] = self.grid_apa.ch_wf_sets[endpoint][channel]
+                self.grid_apa_zero_baselined.ch_wf_sets[endpoint][channel] = copy.deepcopy(self.grid_apa.ch_wf_sets[endpoint][channel])
+                mean_waveform_zero_baselined_io_dict[endpoint, channel] = self.grid_apa_zero_baselined.ch_wf_sets[endpoint][channel].compute_mean_waveform()
 
                 #Here after the baseline subtraction I should put the HPF filter.
                 coefficients = self.hpf_coefficients_dict[self.filter_type][self.filter_cutoff]
@@ -739,10 +794,11 @@ class Analysis3(WafflesAnalysis):
                     filterType = 'IIR',
                     numerator = coefficients[0],
                     denominator = coefficients[1],
-                    show_progress=True
+                    show_progress=False
                 )
 
-                self.grid_apa_hpf_filtered.ch_wf_sets[endpoint][channel] = self.grid_apa.ch_wf_sets[endpoint][channel]
+                self.grid_apa_hpf_filtered.ch_wf_sets[endpoint][channel] = copy.deepcopy(self.grid_apa.ch_wf_sets[endpoint][channel])
+                mean_waveform_hpf_filtered_io_dict[endpoint, channel] = self.grid_apa_hpf_filtered.ch_wf_sets[endpoint][channel].compute_mean_waveform()
 
                 if self.params.verbose:
                     print("Finished.")
@@ -755,36 +811,36 @@ class Analysis3(WafflesAnalysis):
                         end=''
                     )
 
-                mean_wf = self.grid_apa.ch_wf_sets[endpoint][channel].\
-                    compute_mean_waveform()
+                # mean_wf = self.grid_apa.ch_wf_sets[endpoint][channel].\
+                #     compute_mean_waveform()
 
-                limits = get_pulse_window_limits(
-                    mean_wf.adcs,
-                    0,
-                    self.params.deviation_from_baseline,
-                    self.params.lower_limit_correction,
-                    self.params.upper_limit_correction
-                )
+                # limits = get_pulse_window_limits(
+                #     mean_wf.adcs,
+                #     0,
+                #     self.params.deviation_from_baseline,
+                #     self.params.lower_limit_correction,
+                #     self.params.upper_limit_correction
+                # )
 
-                if self.params.verbose:
-                    print(f"Found limits {limits[0]}-{limits[1]}.")
-                    print(
-                        "In function Analysis1.analyze(): "
-                        "Integrating the waveforms for channel "
-                        f"{endpoint}-{channel} (batch "
-                        f"{self.batch}, APA {self.apa}, PDE "
-                        f"{self.pde}) ... ",
-                        end=''
-                    )
+                # if self.params.verbose:
+                #     print(f"Found limits {limits[0]}-{limits[1]}.")
+                #     print(
+                #         "In function Analysis1.analyze(): "
+                #         "Integrating the waveforms for channel "
+                #         f"{endpoint}-{channel} (batch "
+                #         f"{self.batch}, APA {self.apa}, PDE "
+                #         f"{self.pde}) ... ",
+                #         end=''
+                #     )
                 
-                integrator_input_parameters = IPDict({
-                    'baseline_analysis': self.params.null_baseline_analysis_label,
-                    'inversion': True,
-                    'int_ll': limits[0],
-                    'int_ul': limits[1],
-                    'amp_ll': limits[0],
-                    'amp_ul': limits[1]
-                })
+                # integrator_input_parameters = IPDict({
+                #     'baseline_analysis': self.params.null_baseline_analysis_label,
+                #     'inversion': True,
+                #     'int_ll': limits[0],
+                #     'int_ul': limits[1],
+                #     'amp_ll': limits[0],
+                #     'amp_ul': limits[1]
+                # })
 
                 mean_filtered_wf = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform()
                 boxcar_mean_wf = applyDiscreteFilter(
@@ -802,10 +858,10 @@ class Analysis3(WafflesAnalysis):
                     'avg_window_length': 1,
                     'max_value_avg': max_vale_avg,
                     'max_pos': max_pos,
-                    'int_ll': limits[0],
-                    'int_ul': limits[1],
-                    'amp_ll': limits[0],
-                    'amp_ul': limits[1]
+                    #'int_ll': limits[0],
+                    #'int_ul': limits[1],
+                    'amp_ll': 30,
+                    'amp_ul': 200
                 })
 
                 checks_kwargs = IPDict({
@@ -823,6 +879,9 @@ class Analysis3(WafflesAnalysis):
 
                 if self.params.verbose:
                     print("Finished.")
+
+        self.io_data_dict["mean_waveform_zero_baselined"] = mean_waveform_zero_baselined_io_dict
+        self.io_data_dict["mean_waveform_hpf_filtered"] = mean_waveform_hpf_filtered_io_dict
 
         if self.params.verbose:
             print(
@@ -860,7 +919,50 @@ class Analysis3(WafflesAnalysis):
             ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
             verbose=self.params.verbose
         )
-
+        # Check which waveforms are within 2 std from the mean of the second peak
+        #create a array of empty list with the same shape as the grid
+        
+        calib_hist_io_dict = IODict()
+        for endpoint in self.grid_apa.ch_wf_sets.keys():
+            for channel in self.grid_apa.ch_wf_sets[endpoint].keys():
+                try:
+                    u1 = self.grid_apa.ch_wf_sets[endpoint][channel].calib_histo.gaussian_fits_parameters['mean'][1][0]
+                    std1 = self.grid_apa.ch_wf_sets[endpoint][channel].calib_histo.gaussian_fits_parameters['std'][1][0]
+                except Exception as e:
+                    u1 = 99999
+                    std1 = 99
+                    self.output_log_file.write(
+                        f"Error getting μ₁ and σ₁ in APA:{self.apa} - endpoint: {endpoint} - channel:{channel}. Exception: {e}\n"
+                    )
+                calib_hist_io_dict[endpoint, channel] = self.grid_apa.ch_wf_sets[endpoint][channel].calib_histo
+                print(f"Channel {endpoint}-{channel} has μ₁ = {u1} and σ₁ = {std1}")
+                spe_idxs = []
+                for idx, wf in enumerate(self.grid_apa.ch_wf_sets[endpoint][channel].waveforms):
+                    integral = wf.get_analysis(self.params.integration_analysis_label).result['integral']
+                    if integral < u1 + 2*std1 and integral > u1 - 2*std1:
+                        spe_idxs.append(idx)
+                if(len(spe_idxs) != 0):
+                    mean_spe = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform(wf_idcs=spe_idxs)
+                    self.grid_spe_parameters[endpoint][channel] = {
+                        'min': np.min(mean_spe.adcs),
+                        'max': np.max(mean_spe.adcs),
+                        'amplitude': np.max(mean_spe.adcs) - np.min(mean_spe.adcs),
+                        'dynamic_range': 2**14/(np.max(mean_spe.adcs) - np.min(mean_spe.adcs)),
+                        'error_dr': False
+                    }
+                    self.grid_spe_idxs[endpoint][channel] = spe_idxs   
+                else:
+                    mean_spe = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform()
+                    self.grid_spe_parameters[endpoint][channel] = {
+                        'min': np.min(mean_spe.adcs),
+                        'max': np.max(mean_spe.adcs),
+                        'amplitude': np.max(mean_spe.adcs) - np.min(mean_spe.adcs),
+                        'dynamic_range': 2**14/(np.max(mean_spe.adcs) - np.min(mean_spe.adcs)),
+                        'error_dr': True
+                    }
+                    self.grid_spe_idxs[endpoint][channel] = list(range(len(self.grid_apa.ch_wf_sets[endpoint][channel].waveforms)))
+            
+        self.io_data_dict["calib_histograms"] = calib_hist_io_dict
         if self.params.verbose:
             print("Finished.")
 
@@ -903,9 +1005,36 @@ class Analysis3(WafflesAnalysis):
         bool
             True if the method ends execution
         """
+        output_path_ = f"{self.params.output_path}/vgain_run_{self.batch}/{self.pde}/apa_{self.apa}"
+        Path(f"{output_path_}/data").mkdir(parents=True, exist_ok=True)
+        Path(f"{output_path_}/plotcal1").mkdir(parents=True, exist_ok=True)
+        Path(f"{output_path_}/plotcal2").mkdir(parents=True, exist_ok=True)
+        Path(f"{output_path_}/plotmean1").mkdir(parents=True, exist_ok=True)
+        Path(f"{output_path_}/plotmean2").mkdir(parents=True, exist_ok=True)
 
-        base_file_path = f"{self.params.output_path}"\
-            f"/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_filter_{self.filter_type}_{self.filter_cutoff}_boxcar_{self.boxcar_window_size}"\
+        base_file_path_data = f"{output_path_}/data/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_filter_{self.filter_type}_{self.filter_cutoff}_boxcar_{self.boxcar_window_size}"
+        base_file_path_plotcal1 = f"{output_path_}/plotcal1/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_filter_{self.filter_type}_{self.filter_cutoff}_boxcar_{self.boxcar_window_size}"
+        base_file_path_plotcal2 = f"{output_path_}"\
+            f"/plotcal2/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_filter_{self.filter_type}_{self.filter_cutoff}_boxcar_{self.boxcar_window_size}"
+        base_file_path_plotmean1 = f"{output_path_}"\
+            f"/plotmean1/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_filter_{self.filter_type}_{self.filter_cutoff}_boxcar_{self.boxcar_window_size}"
+        base_file_path_plotmean2 = f"{output_path_}"\
+            f"/plotmean2/batch_{self.batch}_apa_{self.apa}_pde_{self.pde}_filter_{self.filter_type}_{self.filter_cutoff}_boxcar_{self.boxcar_window_size}"
+
+        # Save the results to a pickle file
+        self.io_data_dict["grid_spe_idxs"] = self.grid_spe_idxs
+        self.io_data_dict["grid_spe_parameters"] = self.grid_spe_parameters
+        self.io_data_dict["output_data"] = self.output_data
+        # self.io_data_dict["params"] = self.params
+        self.io_data_dict["batch"] = self.batch
+        self.io_data_dict["apa"] = self.apa
+        self.io_data_dict["pde"] = self.pde
+        self.io_data_dict["filter_type"] = self.filter_type
+        self.io_data_dict["filter_cutoff"] = self.filter_cutoff
+        self.io_data_dict["boxcar_window_size"] = self.boxcar_window_size
+
+        with open(f"{base_file_path_data}_analysis_output.pkl", "wb") as f:
+            pickle.dump(self.io_data_dict, f)
 
         # Save the charge histogram plot
         figure = plot_ChannelWsGrid(
@@ -916,9 +1045,7 @@ class Analysis3(WafflesAnalysis):
             mode="calibration",
             wfs_per_axes=None,
             plot_peaks_fits=True,
-            plot_sum_of_gaussians=True if \
-                self.params.fit_type == 'correlated_gaussians' \
-                    else False,
+            plot_sum_of_gaussians=True,
             detailed_label=False,
             verbose=self.params.verbose
         )
@@ -926,8 +1053,10 @@ class Analysis3(WafflesAnalysis):
         title = f"Batch {self.batch}, APA {self.apa}, "
         title += f"PDE {self.pde} - Runs {list(self.wfset.runs)}"
         title_fontsize = 22
-        figure_width = 4000
-        figure_height = 4000
+        figure_width = 1600
+        figure_height = 1600
+        subfigure_width = 1920
+        subfigure_height = 1080
 
         figure.update_layout(
             title={
@@ -939,10 +1068,12 @@ class Analysis3(WafflesAnalysis):
             showlegend=True
         )
 
+        self._open_figures.append(figure)
+
         if self.params.show_figures:
             figure.show()
 
-        fig_path = f"{base_file_path}_calibration_histograms.png"
+        fig_path = f"{base_file_path_plotcal1}_calibration_histograms.png"
         if self.params.verbose:
             print(
                 "In function Analysis1.write_output(): "
@@ -952,7 +1083,9 @@ class Analysis3(WafflesAnalysis):
                 end=''
             )
     
-        figure.write_image(f"{fig_path}")
+        figure.write_image(f"{fig_path}", width=figure_width, height=figure_height, engine="kaleido")
+        figure.write_html(f"{fig_path}.html")
+
         if self.params.verbose:
             print("Finished.")
 
@@ -970,15 +1103,39 @@ class Analysis3(WafflesAnalysis):
                 for trace in figure.select_traces(row=i+1, col=j+1):
                     subplot_fig.add_trace(trace)
                 # Optionally, set a simple title or axis labels
-                subplot_fig.update_layout(
-                    title=f"Channel ({i+1},{j+1})",
-                    xaxis_title="ADU",
-                    yaxis_title="GAIN"
+                subtitle = (
+                    f"Endpoint: {self.grid_apa.ch_map.data[i][j].endpoint} — "
+                    f"Channel: {self.grid_apa.ch_map.data[i][j].channel} — "
+                    f"APA: {self.apa} — VGAIN: {self.batch} — PDE: {100*self.pde:.0f}%"
                 )
-                subplot_path = f"{base_file_path}_subplot_calibration_{i+1}_{j+1}.png"
-                subplot_fig.write_image(subplot_path)
+                subplot_fig.update_layout(
+                    title_text="Histogram of processed waveforms",
+                    title_x=0.5,
+                    title_font=dict(size=24),
+                    margin=dict(t=120)  # room for the subtitle above the plot
+                )
+                subplot_fig.add_annotation(
+                    text=subtitle,
+                    xref="paper", yref="paper",
+                    x=0.5, y=1.06,  # just above the main title line
+                    showarrow=False,
+                    xanchor="center",
+                    font=dict(size=20)
+                )
+                subplot_fig.update_layout(
+                    xaxis_title=r"$\mathrm{ADU}$",
+                    yaxis_title=r"$\mathrm{Entries}$"
+                )
+                subplot_fig.update_xaxes(title_standoff=12)
+                subplot_fig.update_yaxes(title_standoff=12)
+                subplot_path = f"{base_file_path_plotcal2}_subplot_calibration_{i+1}_{j+1}.png"
+                subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height, engine="kaleido")
+                subplot_fig.write_html(f"{subplot_path}.html")
+                self._clear_plotly_figure(subplot_fig)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
+
+        self._clear_plotly_figure(figure)
         
         figure = plot_ChannelWsGrid(
             self.grid_apa_hpf_filtered,
@@ -992,6 +1149,8 @@ class Analysis3(WafflesAnalysis):
             detailed_label=True,
             verbose=self.params.verbose
         )
+
+        self._open_figures.append(figure)
 
         # Save each subplot individually
         rows = self.grid_apa_hpf_filtered.ch_map.rows
@@ -1007,17 +1166,103 @@ class Analysis3(WafflesAnalysis):
                 for trace in figure.select_traces(row=i+1, col=j+1):
                     subplot_fig.add_trace(trace)
                 # Optionally, set a simple title or axis labels
-                subplot_fig.update_layout(
-                    title=f"Channel ({i+1},{j+1})",
-                    xaxis_title="Sample",
-                    yaxis_title="ADC"
+                subtitle = (
+                    f"Endpoint: {self.grid_apa.ch_map.data[i][j].endpoint} — "
+                    f"Channel: {self.grid_apa.ch_map.data[i][j].channel} — "
+                    f"APA: {self.apa} — VGAIN: {self.batch} — PDE: {100*self.pde:.0f}%"
                 )
-                subplot_path = f"{base_file_path}_subplot_{i+1}_{j+1}.png"
-                subplot_fig.write_image(subplot_path)
+                subplot_fig.update_layout(
+                    title_text="Histogram of processed waveforms",
+                    title_x=0.5,
+                    title_font=dict(size=24),
+                    margin=dict(t=120)  # room for the subtitle above the plot
+                )
+                subplot_fig.add_annotation(
+                    text=subtitle,
+                    xref="paper", yref="paper",
+                    x=0.5, y=1.06,  # just above the main title line
+                    showarrow=False,
+                    xanchor="center",
+                    font=dict(size=20)
+                )
+                subplot_fig.update_layout(
+                    xaxis_title=r"$\mathrm{Sample}$",
+                    yaxis_title=r"$\mathrm{ADU}$"
+                )
+                subplot_fig.update_xaxes(title_standoff=12)
+                subplot_fig.update_yaxes(title_standoff=12)
+                subplot_path = f"{base_file_path_plotmean1}_subplot_{i+1}_{j+1}.png"
+                subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height, engine="kaleido")
+                subplot_fig.write_html(f"{subplot_path}.html")
+                self._clear_plotly_figure(subplot_fig)
+                if self.params.verbose:
+                    print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
+
+        self._clear_plotly_figure(figure)
+        # Single P.E. plots
+        figure = plot_ChannelWsGrid(
+            self.grid_apa_zero_baselined,
+            figure=None,
+            share_x_scale=False,
+            share_y_scale=False,
+            mode="average",
+            wfs_per_axes=None,
+            analysis_label=None,
+            plot_analysis_markers=True,
+            detailed_label=True,
+            wfs_idcs=self.grid_spe_idxs,
+            verbose=self.params.verbose
+        )
+
+        self._open_figures.append(figure)
+
+        # Save each subplot individually
+        rows = self.grid_apa_zero_baselined.ch_map.rows
+        cols = self.grid_apa_zero_baselined.ch_map.columns
+
+        for i in range(rows):
+            for j in range(cols):
+                channel_ws = self.grid_apa_zero_baselined.get_channel_ws_by_ij_position_in_map(i,j)
+                if channel_ws is None:
+                    continue
+                subplot_fig = pgo.Figure()
+                # Add traces for this subplot (row/col are 1-based)
+                for trace in figure.select_traces(row=i+1, col=j+1):
+                    subplot_fig.add_trace(trace)
+                subtitle = (
+                    f"Endpoint: {self.grid_apa.ch_map.data[i][j].endpoint} — "
+                    f"Channel: {self.grid_apa.ch_map.data[i][j].channel} — "
+                    f"APA: {self.apa} — VGAIN: {self.batch} — PDE: {100*self.pde:.0f}%"
+                )
+                subplot_fig.update_layout(
+                    title_text="Histogram of processed waveforms",
+                    title_x=0.5,
+                    title_font=dict(size=24),
+                    margin=dict(t=120)  # room for the subtitle above the plot
+                )
+                subplot_fig.add_annotation(
+                    text=subtitle,
+                    xref="paper", yref="paper",
+                    x=0.5, y=1.06,  # just above the main title line
+                    showarrow=False,
+                    xanchor="center",
+                    font=dict(size=20)
+                )
+                subplot_fig.update_layout(
+                    xaxis_title=r"$\mathrm{Samples}$",
+                    yaxis_title=r"$\mathrm{ADU}$"
+                )
+                subplot_fig.update_xaxes(title_standoff=12)
+                subplot_fig.update_yaxes(title_standoff=12)
+                subplot_path = f"{base_file_path_plotmean2}_subplot_SPE_{i+1}_{j+1}.png"
+                subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height, engine="kaleido")
+                subplot_fig.write_html(f"{subplot_path}.html")
+                self._clear_plotly_figure(subplot_fig)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
 
         # Save the persistence heatmaps
+        self._clear_plotly_figure(figure)
         if self.params.save_persistence_heatmaps:
 
             aux_time_increment = {
@@ -1073,7 +1318,7 @@ class Analysis3(WafflesAnalysis):
                 print("Finished.")
 
         dataframe_output_path = os.path.join(
-                self.params.output_path,
+                output_path_,
                 self.params.output_dataframe_filename
         )
         
@@ -1084,6 +1329,7 @@ class Analysis3(WafflesAnalysis):
             self.filter_type,
             self.filter_cutoff,
             self.boxcar_window_size,
+            self.grid_spe_parameters,
             self.output_data, 
             dataframe_output_path
         )
@@ -1095,4 +1341,41 @@ class Analysis3(WafflesAnalysis):
                 f"to {dataframe_output_path}"
             )
 
+        # Aggressive cleanup to release memory before next iteration
+        self.cleanup()
         return True
+
+    def _clear_plotly_figure(self, fig):
+        try:
+            # Drop data/layout to break ref cycles
+            fig.data = tuple()
+            fig.layout = pgo.Layout()
+        except Exception:
+            pass
+        try:
+            del fig
+        except Exception:
+            pass
+
+    def cleanup(self):
+        """Drop large references and force a garbage collection."""
+        # Clear any still-tracked figures
+        for f in getattr(self, "_open_figures", []):
+            self._clear_plotly_figure(f)
+        self._open_figures = []
+
+        # Drop heavy attributes
+        self.wfset = None
+        self.grid_apa = None
+        self.grid_apa_zero_baselined = None
+        self.grid_apa_hpf_filtered = None
+
+        # Keep only minimal outputs
+        self.io_data_dict = None
+
+        # Reduce temp summaries as well (optional)
+        # self._mean_waveform_zero_baselined_summary = None
+        # self._mean_waveform_hpf_filtered_summary = None
+
+        # Encourage Python to return arenas to the allocator
+        gc.collect()

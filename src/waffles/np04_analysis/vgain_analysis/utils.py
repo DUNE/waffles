@@ -1,6 +1,7 @@
 
 import os
 import pickle
+from typing import Dict
 import numpy as np
 import pandas as pd
 # START:imports for vgain scan analysis.
@@ -519,6 +520,7 @@ def save_data_to_dataframe_hpf(
     hpf_filter: str,
     hpf_filter_cutoff: str,
     boxcar_window_size: int,
+    spe_data: Dict[int, Dict[int, Dict[str, float]]],
     data: list,
     path_to_output_file: str
 ):
@@ -569,6 +571,8 @@ def save_data_to_dataframe_hpf(
         "PDE": [],
         "gain": [],
         "snr": [],
+        "amplitude": [],
+        "dynamic_range": [],
         "OV#": [],
         "HPK_OV_V": [],
         "FBK_OV_V": [],
@@ -590,6 +594,8 @@ def save_data_to_dataframe_hpf(
         df['PDE'] = df['PDE'].astype(float)
         df['gain'] = df['gain'].astype(float)
         df['snr'] = df['snr'].astype(float)
+        df['amplitude'] = df['amplitude'].astype(float)
+        df['dynamic_range'] = df['dynamic_range'].astype(float)
         df['OV#'] = df['OV#'].astype(int)
         df['HPK_OV_V'] = df['HPK_OV_V'].astype(float)
         df['FBK_OV_V'] = df['FBK_OV_V'].astype(float)
@@ -635,6 +641,8 @@ def save_data_to_dataframe_hpf(
                     "PDE": [pde],
                     "gain": [data[endpoint][channel]["gain"]],
                     "snr": [data[endpoint][channel]["snr"]],
+                    "amplitude": [spe_data[endpoint][channel]["amplitude"]],
+                    "dynamic_range": [spe_data[endpoint][channel]["dynamic_range"]],
                     "OV#": [ov_no],
                     "HPK_OV_V": [hpk_ov],
                     "FBK_OV_V": [fbk_ov],
@@ -809,6 +817,40 @@ def load_waveformSet_from_tar_gz(tar_path: str | Path, member_path: str):
                 return WaveformSet(*waveforms)
             else:
                 return None
+
+def iter_waveformsets_streaming(tar_path: str | Path, batch: int, pde: float, run: int):
+    pde_map = {0.4:"40p", 0.45:"45p", 0.5:"50p"}
+    pde_str = pde_map[pde]
+    prefix = f"vgain_{batch}/{pde_str}/run_{run}/data_endpoint_"
+
+    tar_path = Path(tar_path)
+    # streaming read: sequential, no random seeks
+    with tarfile.open(tar_path, mode="r|*") as tar:
+        for ti in tar:
+            if not ti.isfile():
+                continue
+            name = ti.name
+            if not name.startswith(prefix) or not name.endswith(".gz"):
+                # must still "consume" this member to advance the stream
+                # tar.members = []  # prevent growth
+                # tar.fileobj.seek(ti.size, 1)  # fast skip
+                continue
+
+            fobj = tar.extractfile(ti)
+            if fobj is None:
+                continue
+            with gzip.GzipFile(fileobj=fobj, mode="rb") as gz:
+                buf = io.BufferedReader(gz)
+                obj = pickle.load(buf)
+                waveforms = [w for wvs in obj for w in wvs]
+                yield waveforms  # or build your WaveformSet here
+
+def get_vgain_scan_waveformSet_streaming(path: str | Path, batch: int, pde: float, run: int):
+    tar_path = Path(path) / f"vgain_{batch}.tar"
+    all_waves = []
+    for waves in iter_waveformsets_streaming(tar_path, batch, pde, run):
+        all_waves.extend(waves)
+    return WaveformSet(*all_waves) if all_waves else None
 
 def get_input_filepaths_for_vgain_scan_run(path: str | Path, batch: int, pde: float, run: int):
     """

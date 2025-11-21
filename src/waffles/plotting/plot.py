@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Optional, Callable, cast, Union
+from typing import Dict, List, Optional, Callable, cast, Union
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
@@ -1083,6 +1083,7 @@ def plot_ChannelWsGrid(
     share_y_scale: bool = False,
     mode: str = 'overlay',
     wfs_per_axes: Optional[int] = 1,
+    wfs_idcs: Optional[Dict[int, Dict[int, List[int]]]] = None,
     analysis_label: Optional[str] = None,
     plot_analysis_markers: bool = False,
     show_baseline_limits: bool = False, 
@@ -1184,6 +1185,22 @@ def plot_ChannelWsGrid(
         wfs_per_axes is greater than the number of 
         waveforms in a certain ChannelWs object, then 
         all of its waveforms will be considered.
+    wfs_idcs: Optional[List[int]]
+        This parameter indicates the indices of waveform 
+        to be considered for plotting. If it is None,
+        then all waveforms will be considered. If it is
+        not None, then it must be a list of non-negative
+        integers, and only the waveforms whose indices
+        are in this list will be considered. If a certain
+        index in this list is greater than or equal to
+        the number of waveforms in a certain ChannelWs
+        object, then such index will be ignored for that
+        ChannelWs object. If, for a certain ChannelWs
+        object, none of the indices in this list is
+        valid, then no waveform from that ChannelWs
+        object will be considered.
+        Note that if this parameter is not None, then
+        the 'wfs_per_axes' parameter is ignored.
     analysis_label: str
         The meaning of this parameter varies slightly
         depending on the value given to the 'mode'
@@ -1408,6 +1425,73 @@ def plot_ChannelWsGrid(
                 ' per axes must be positive.'))
         
         fPlotAll = False
+    
+    if wfs_idcs is not None:
+        if not isinstance(wfs_idcs, dict):
+            raise Exception(GenerateExceptionMessage(
+                2,
+                'plot_ChannelWsGrid()',
+                "If defined, the 'wfs_idcs' parameter must be "
+                "a dictionary whose keys are endpoint integers "
+                "and whose values are dictionaries whose keys "
+                "are channel integers and whose values are lists "
+                "of non-negative integers."))
+        for ep in wfs_idcs:
+            if not isinstance(ep, int) or ep < 0:
+                raise Exception(GenerateExceptionMessage(
+                    3,
+                    'plot_ChannelWsGrid()',
+                    "If defined, the 'wfs_idcs' parameter must be "
+                    "a dictionary whose keys are endpoint integers "
+                    "and whose values are dictionaries whose keys "
+                    "are channel integers and whose values are lists "
+                    "of non-negative integers."))
+            if not isinstance(wfs_idcs[ep], dict):
+                raise Exception(GenerateExceptionMessage(
+                    4,
+                    'plot_ChannelWsGrid()',
+                    "If defined, the 'wfs_idcs' parameter must be "
+                    "a dictionary whose keys are endpoint integers "
+                    "and whose values are dictionaries whose keys "
+                    "are channel integers and whose values are lists "
+                    "of non-negative integers."))
+            for ch in wfs_idcs[ep]:
+                if not isinstance(ch, int) or ch < 0:
+                    raise Exception(GenerateExceptionMessage(
+                        5,
+                        'plot_ChannelWsGrid()',
+                        "If defined, the 'wfs_idcs' parameter must be "
+                        "a dictionary whose keys are endpoint integers "
+                        "and whose values are dictionaries whose keys "
+                        "are channel integers and whose values are lists "
+                        "of non-negative integers."))
+                if not isinstance(wfs_idcs[ep][ch], list):
+                    raise Exception(GenerateExceptionMessage(
+                        6,
+                        'plot_ChannelWsGrid()',
+                        "If defined, the 'wfs_idcs' parameter must be "
+                        "a dictionary whose keys are endpoint integers "
+                        "and whose values are dictionaries whose keys "
+                        "are channel integers and whose values are lists "
+                        "of non-negative integers."))
+                for idx in wfs_idcs[ep][ch]:
+                    if not isinstance(idx, int) or idx < 0:
+                        raise Exception(GenerateExceptionMessage(
+                            7,
+                            'plot_ChannelWsGrid()',
+                            "If defined, the 'wfs_idcs' parameter must be "
+                            "a dictionary whose keys are endpoint integers "
+                            "and whose values are dictionaries whose keys "
+                            "are channel integers and whose values are lists "
+                            "of non-negative integers."))
+        fPlotAll = False
+
+        # If wfs_idcs is defined and well-formed,
+        # then it is used to filter the waveforms
+        # to be plotted in each ChannelWs object.
+        # The wfs_per_axes parameter is ignored.
+    
+
 
     # If mode is 'heatmap', then
     # there is already a right-aligned
@@ -1515,21 +1599,31 @@ def plot_ChannelWsGrid(
                         j + 1)
                     
                     continue
-
+                print(f"fPlotAll = {fPlotAll}")
                 if fPlotAll:
                     aux_idcs = range(len(channel_ws.waveforms))
                 else:
-                    aux_idcs = range(min(
-                        wfs_per_axes, 
-                        len(channel_ws.waveforms)))
-
+                    if wfs_per_axes is not None:
+                        aux_idcs = range(min(
+                            wfs_per_axes, 
+                            len(channel_ws.waveforms)))
+                    elif wfs_idcs is not None:
+                        try:
+                            aux_idcs = wfs_idcs[
+                                channel_ws_grid.ch_map.data[i][j].endpoint][
+                                    channel_ws_grid.ch_map.data[i][j].channel]
+                        except KeyError:
+                            aux_idcs = []
+                        aux_idcs = [idx for idx in aux_idcs if idx < len(channel_ws.waveforms)]
+                    else:
+                        aux_idcs = range(len(channel_ws.waveforms))  
                 # WaveformSet.compute_mean_waveform()
                 # will raise an exception if
                 # list(aux_idcs) is empty 
 
                 aux = channel_ws.compute_mean_waveform(
                     wf_idcs=list(aux_idcs))
-
+                
                 fAnalyzed = False
                 if analysis_label is not None:
                     

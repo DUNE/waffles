@@ -189,7 +189,7 @@ class WindowIntegrator(WfAna):
                     )
                 )
 
-        integral = np.trapezoid(
+        integral = np.trapz(
             y=(1. if not self.__inversion else -1.) * \
             (-1.*baseline + waveform.adcs[
                 self.__int_ll - waveform.time_offset:
