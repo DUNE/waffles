@@ -1005,6 +1005,37 @@ def get_fine_selection_regions(
         signal_i_up
     )
 
+def regions_limits_are_consistent(
+    baseline_i_low: int,
+    baseline_i_up: int,
+    signal_i_up: int,
+    points_per_wf: int,
+) -> bool:
+    """This function checks that the given baseline
+    and signal region indices are consistent with
+    each other and with the given points_per_wf
+    value. This function returns True if the
+    following conditions are met:
+
+        0 <= baseline_i_low < baseline_i_up < signal_i_up <= points_per_wf
+
+    It returns False otherwise.
+
+    Parameters
+    ----------
+    baseline_i_low: int
+    baseline_i_up: int
+    signal_i_up: int
+    points_per_wf: int
+        The total number of points in each waveform
+
+    Returns
+    -------
+    None
+    """
+
+    return (0 <= baseline_i_low < baseline_i_up < signal_i_up <= points_per_wf)
+
 def backup_input_parameters(
     params: BaseInputParams,
     output_folderpath: str
