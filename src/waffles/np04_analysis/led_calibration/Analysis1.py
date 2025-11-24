@@ -554,7 +554,7 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
         self.wfset = None
         self.grid_apa = None
-        self.integration_limits = None
+        self.output_limits = None
         self.output_data = None
 
         self.read_input_loop_1 = self.params.batches
@@ -863,12 +863,17 @@ class Analysis1(WafflesAnalysis):
             compute_calib_histo=False,
         )
 
-        # Initialize the dictionary of integration limits to an
-        # empty dictionary before looping over the channels
-        self.integration_limits = {}
+        # Initialize the dictionary of integration and fine-selection
+        # limits to an empty dictionary before looping over the channels
+        self.output_limits = {}
 
         for endpoint in self.grid_apa.ch_wf_sets.keys():
+            if endpoint not in self.output_limits.keys():
+                self.output_limits[endpoint] = {}
+
             for channel in self.grid_apa.ch_wf_sets[endpoint].keys():
+                if channel not in self.output_limits[endpoint].keys():
+                    self.output_limits[endpoint][channel] = {}
 
                 if self.params.apply_correlation_alignment:
                     if self.params.verbose:
@@ -1009,6 +1014,14 @@ class Analysis1(WafflesAnalysis):
                         baseline_i_low=baseline_i_low
                     )
 
+                    self.output_limits[endpoint][channel]['fine_selection'] = (
+                        baseline_i_low,
+                        baseline_i_up,
+                        signal_i_up,
+                        abs(self.params.baseline_allowed_dev * average_baseline_std),
+                        -1. * abs(self.params.signal_allowed_dev * average_baseline_std)
+                    )
+
                     self.grid_apa.ch_wf_sets[endpoint][channel] = \
                         ChannelWs(*aux.waveforms)
 
@@ -1022,6 +1035,14 @@ class Analysis1(WafflesAnalysis):
                             " of the waveforms"
                         )
                 else:
+                    self.output_limits[endpoint][channel]['fine_selection'] = (
+                        np.nan,
+                        np.nan,
+                        np.nan,
+                        np.nan,
+                        np.nan
+                    )
+
                     print(
                         "In function Analysis1.analyze(): "
                         f"WARNING: Skipping the fine selection cut for channel "
@@ -1094,10 +1115,7 @@ class Analysis1(WafflesAnalysis):
                     overwrite=True
                 )
 
-                if endpoint not in self.integration_limits.keys():
-                    self.integration_limits[endpoint] = {}
-
-                self.integration_limits[endpoint][channel] = aux_limits
+                self.output_limits[endpoint][channel]['integration'] = aux_limits
 
                 if self.params.verbose:
                     print("Finished.")
@@ -1327,11 +1345,11 @@ class Analysis1(WafflesAnalysis):
                 verbose=self.params.verbose
             )
 
-            led_utils.add_integration_limits_to_persistence_heatmaps(
+            led_utils.add_integration_and_fine_selection_limits_to_persistence_heatmaps(
                 persistence_figure,
                 self.grid_apa,
                 self.current_excluded_channels,
-                self.integration_limits
+                self.output_limits,
             )
 
             persistence_figure.update_layout(
@@ -1427,7 +1445,7 @@ class Analysis1(WafflesAnalysis):
             self.apa,
             self.pde,
             self.output_data,
-            self.integration_limits,
+            self.output_limits,
             dataframe_output_path,
             sipm_vendor_df=\
                 self.sipm_vendor_dataframe,
