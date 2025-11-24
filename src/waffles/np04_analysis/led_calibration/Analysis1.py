@@ -1302,14 +1302,14 @@ class Analysis1(WafflesAnalysis):
 
             aux_time_increment = 100
 
-            time_range_lower_limit = 0 if self.params.apply_correlation_alignment \
-                else self.params.baseline_i_low[self.apa]
-            
+            time_range_lower_limit = 0
             time_range_upper_limit = aux_time_increment
+
             if not self.params.apply_correlation_alignment:
+                time_range_lower_limit += self.params.baseline_i_low[self.apa]
                 time_range_upper_limit += self.params.baseline_i_up[self.apa]
             
-            aux_adc_range_above_baseline = 10
+            aux_adc_range_above_baseline = 20
             aux_adc_range_below_baseline = 80
 
             persistence_figure = plot_ChannelWsGrid(
