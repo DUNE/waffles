@@ -916,6 +916,95 @@ def align_waveforms_by_correlation(
 
     return
 
+def get_fine_selection_regions(
+    input_ChannelWs: ChannelWs,
+    baseline_region_points: int,
+    signal_region_half_points: int
+) -> tuple[int, int, int]:
+    """This function computes the parameters baseline_i_low,
+    baseline_i_up and signal_i_up as required by the
+    fine_selection_for_led_calibration() function. To do so,
+    this function first estimates the iterator value for
+    which a pulse typically happens in the waveform.adcs
+    arrays of the given ChannelWs object.
+
+    Parameters
+    ----------
+    baseline_region_points: int
+        The total number of points in the baseline region.
+        Namely, the baseline region is defined, before the
+        signal region, as the
+            [
+                estimated_pulse_idx - signal_region_half_points - baseline_region_points:
+                estimated_pulse_idx - signal_region_half_points
+            ]
+        interval in the waveform.adcs array.
+    signal_region_half_points: int
+        The total number of points in the signal region
+        equals to (2 * signal_region_half_points) + 1. 
+        I.e. the signal region is defined, around the
+        estimated pulse index, as the
+            [
+                estimated_pulse_idx - signal_region_half_points:
+                estimated_pulse_idx + signal_region_half_points + 1
+            ]
+        interval in the waveform.adcs array.
+
+    Returns
+    -------
+    tuple[int, int, int]
+        A tuple containing the following three integers:
+            - baseline_i_low: int
+                The lower limit index for the baseline region.
+            - baseline_i_up: int
+                The upper limit index for the baseline region,
+                which matches the lower limit index for the
+                signal region.
+            - signal_i_up: int
+                The upper limit index for the signal region.
+    """
+
+    estimated_pulse_idx = np.argmin(
+        input_ChannelWs.compute_mean_waveform().adcs
+    )
+
+    baseline_i_low = max(
+        0,
+        estimated_pulse_idx \
+            - signal_region_half_points \
+                - baseline_region_points
+    )
+
+    baseline_i_up = max(
+        0,
+        estimated_pulse_idx - signal_region_half_points
+    )
+
+    if baseline_i_up == 0: 
+        # Then baseline_i_low is also 0
+        print(
+            "In function get_fine_selection_regions(): "
+            f"WARNING: For channel {input_ChannelWs.endpoint}-"
+            f"{input_ChannelWs.channel}, there are not "
+            "enough points before the estimated pulse "
+            "position to define a baseline region, since "
+            f"estimated_pulse_idx ({estimated_pulse_idx}) - "
+            f"signal_region_half_points ({signal_region_half_points}) "
+            f"< 0. Both baseline_i_low and baseline_i_up "
+            "will be set to 0."
+        )
+    
+    signal_i_up = min(
+        input_ChannelWs.points_per_wf,
+        estimated_pulse_idx + signal_region_half_points + 1
+    )
+
+    return (
+        baseline_i_low,
+        baseline_i_up,
+        signal_i_up
+    )
+
 def backup_input_parameters(
     params: BaseInputParams,
     output_folderpath: str
