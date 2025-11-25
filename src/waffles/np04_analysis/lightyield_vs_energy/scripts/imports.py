@@ -13,4 +13,4 @@ from waffles.utils.baseline.baseline_utils import subtract_baseline # baseline s
 from waffles.data_classes.StoreWfAna import StoreWfAna 
 from waffles.utils.integral.integral_utils import get_pulse_window_limits
 from waffles.utils.baseline.WindowBaseliner import WindowBaseliner
-from waffles.utils.integral.WindowIntegrator import WindowIntegrator # for integration
+from waffles.np04_analysis.lightyield_vs_energy.scripts.MY_WindowIntegrator import MY_WindowIntegrator # for integration
