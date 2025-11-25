@@ -62,8 +62,7 @@ if __name__ == "__main__":
             trefs = tss.copy() 
             iter += 1
         else:
-            print(type(tss[0]), type(trefs), type(t0s[0]))
-            t0s = (tss - trefs).astype(np.int64).astype(np.float64) + np.array(t0s).astype(np.float64)
+            t0s = (tss - trefs).astype(np.float64) + t0s
         print(len(t0s), " selected waveforms for channel ", daphne_ch)
 
         t = TTree("time_resolution", "time_resolution")
