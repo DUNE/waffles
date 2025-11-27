@@ -176,17 +176,14 @@ def searching_for_beam_events(wfset, show : bool = False, save : bool = True, bi
 
 
 # Function to plot waveforms with/without peaks
-def plotting_overlap_wf_PEAK_NEW(wfset, n_wf: int = 50, show : bool = True, save : bool = False, x_min=None, x_max=None, y_min=None, y_max=None, int_ll=None, int_ul=None, baseline=None, output_folder : str = 'output', analysis_label : str = 'test_peak_finding', peak_bool : bool = False, peak_beam_bool : bool = False, input_signal_sign : str = "negative", inversion: bool = False):
+def plotting_overlap_wf_PEAK_NEW(wfset, n_wf: int = 50, show : bool = True, save : bool = False, x_min=None, x_max=None, y_min=None, y_max=None, int_ll=None, int_ul=None, baseline=None, output_folder : str = 'output', analysis_label : str = 'test_peak_finding', peak_bool : bool = False, peak_beam_bool : bool = False):
     fig = go.Figure()
 
     if n_wf > len(wfset.waveforms):
         n_wf = len(wfset.waveforms)
 
     for i in range(n_wf):
-        if inversion:
-            y = - wfset.waveforms[i].adcs 
-        else: 
-            y = wfset.waveforms[i].adcs 
+        y = wfset.waveforms[i].adcs 
         x = np.arange(len(y))
 
             
