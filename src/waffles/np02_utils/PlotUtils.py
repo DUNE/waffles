@@ -23,6 +23,7 @@ from waffles.utils.baseline.baseline import SBaseline
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
+import waffles.Exceptions as we
 
 
 tol_colors = [
@@ -215,7 +216,7 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
 def __update_dict(dictd, dictup, key):
         dictd[key] = dictup.get(key, dictd[key])
 
-def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True):
+def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True, onlyoptimal=True):
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
     if not params:
@@ -249,6 +250,7 @@ def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_pro
                           amp_ll=params[endpoint][channel]['fit'].get('amp_ll', 254),
                           amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
                           show_progress=show_progress,
+                          onlyoptimal=onlyoptimal,
                           configyaml=params
                           )
 
@@ -284,10 +286,12 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         show_progress=show_progress,
         params=params,
         doprocess=doprocess,
+        onlyoptimal=wf_func.get("onlyoptimal", True)
     )
 
     bins_int = params[endpoint][channel]['fit'].get('bins_int', 100)
     domain_int_str = params[endpoint][channel]['fit'].get('domain_int', [-10e3, 100e3])
+    histautorange = wf_func.get('histautorange', False)
 
 
     domain_int = [float(x) for x in domain_int_str]
@@ -302,15 +306,48 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     half_point_to_fit = params[endpoint][channel]['fit'].get('half_point_to_fit', 2)
     initial_percentage = params[endpoint][channel]['fit'].get('initial_percentage', 0.15)
     percentage_step = params[endpoint][channel]['fit'].get('percentage_step', 0.05)
-
-    hInt = CalibrationHistogram.from_WaveformSet(
-        wfset,
-        bins_number=bins_int,
-        domain=domain_int,
-        variable=variable,
-        analysis_label = "std",
-        normalize_histogram=normalize_hist
-    )
+    
+    if histautorange:
+        chargevalues = np.array([wf.analyses["std"].result[variable] for wf in wfset.waveforms if wf.analyses["std"].result[variable] is not np.nan])
+        if chargevalues.size == 0:
+            print(f"No valid charge values for endpoint {endpoint} and channel {channel}. Skipping histogram generation.")
+            return
+        domain_int=np.quantile(chargevalues, [0.02, 0.98])
+        if len(chargevalues) < 5:
+            domain_int = np.array([np.min(chargevalues), np.max(chargevalues)])
+        bins_int = 200
+    try:
+        hInt = CalibrationHistogram.from_WaveformSet(
+            wfset,
+            bins_number=bins_int,
+            domain=domain_int,
+            variable=variable,
+            analysis_label = "std",
+            normalize_histogram=normalize_hist
+        )
+    except we.EmptyCalibrationHistogram as ehe:
+        print(f"EmptyCalibrationHistogram for endpoint {endpoint} and channel {channel}: {ehe}")
+        print("Changing range and binning..")
+        # repating it.... not the best
+        chargevalues = np.array([wf.analyses["std"].result[variable] for wf in wfset.waveforms if wf.analyses["std"].result[variable] is not np.nan])
+        print(chargevalues)
+        if len(chargevalues) == 0:
+            print(f"No valid charge values for endpoint {endpoint} and channel {channel}. Skipping histogram generation.")
+            return
+        domain_int=np.quantile(chargevalues, [0.02, 0.98])
+        if len(chargevalues) < 5:
+            domain_int = np.array([np.min(chargevalues), np.max(chargevalues)])
+        if len(chargevalues[(chargevalues >= domain_int[0]) & (chargevalues <= domain_int[1])]) < 1:
+            print(f"Not enough entries in the charge values for endpoint {endpoint} and channel {channel}. Skipping histogram generation.")
+            return
+        hInt = CalibrationHistogram.from_WaveformSet(
+            wfset,
+            bins_number=200,
+            domain=domain_int,
+            variable=variable,
+            analysis_label = "std",
+            normalize_histogram=normalize_hist
+        )
 
     if not dofit:
         plot_CalibrationHistogram(
@@ -393,6 +430,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             # f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]},",
             f"{endpoint},",
             f"{channel},",
+            f"{dict_uniqch_to_module[strUch(endpoint,channel)]},",
             f"{snr:.2f},",
             f"{gain:.2f},",
             f"{baseline_stddev:.2f},",
