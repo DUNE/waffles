@@ -17,6 +17,9 @@ if __name__ == "__main__":
         steering_config = yaml.safe_load(stream)
     params_file_name = steering_config.get("params_file", "params.yml")
     ana_folder  = steering_config.get("ana_folder")
+    if not os.path.exists(ana_folder):
+        os.makedirs(ana_folder)
+
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
 
