@@ -1,4 +1,33 @@
-params_file : "./params_ch10945.yml"
+params_file : "./params_ch11121.yml"
+# params_file : "./params_CB24_ch10403.yml"
+
+# File.csv containing (at least) the columns:
+# Run, Threshold, LED
+# Run: run number
+# Threshold: threshold in exadecimal
+# LED: LED intensity
+run_info_file: "./configs/SelfTrigger_RunInfo.csv"
+# run_info_file: "./configs/ColdboxDec24_ST_RunInfo.csv"
 
 # Where to store the output files
-ana_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/bins90/"
+ana_folder: "/Users/federico/CERN/PDHD/Self_trigger/analysis/"
+# ana_folder: "/Users/federico/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/"
+
+# Number of photoelectrons of interest (integer)
+# In the analysis, there is special focus on this value.
+# Typically, one should set the values at which we want to
+# trigger in DUNE Far Detectors.
+npe_of_interest: 2
+
+# Fit 
+fit_type: "multigauss_iminuit"
+
+# Save fit pngs of the runs specified with "led"
+save_fit_pngs: False
+
+# Verbose
+verbose: True
+
+# Do the analysis run-by-run according to the run numbers in the params file
+# or used the data merged by threshold
+run_by_run: False

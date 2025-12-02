@@ -1082,7 +1082,7 @@ def plot_ChannelWsGrid(
     share_x_scale: bool = False,
     share_y_scale: bool = False,
     mode: str = 'overlay',
-    wfs_per_axes: Optional[int] = 1,
+    wfs_per_axes: Union[None, int, Map] = 1,
     analysis_label: Optional[str] = None,
     plot_analysis_markers: bool = False,
     show_baseline_limits: bool = False, 
@@ -1176,14 +1176,27 @@ def plot_ChannelWsGrid(
         calib_histo attribute of a ChannelWs object
         is not defined, a no-data annotation will be
         added to the plot.
-    wfs_per_axes: int
+    wfs_per_axes: None, int or Map
         If it is None, then every waveform in each
-        ChannelWs object will be considered. Otherwise,
-        only the first wfs_per_axes waveforms of each
-        ChannelWs object will be considered. If 
+        ChannelWs object will be considered. If it
+        is a (positive) integer, only the first
+        wfs_per_axes waveforms of each ChannelWs
+        object will be considered. In this case, if
         wfs_per_axes is greater than the number of 
         waveforms in a certain ChannelWs object, then 
-        all of its waveforms will be considered.
+        all of its waveforms will be considered. If
+        it is a Map object, then its shape must match
+        that of the channel_ws_grid.ch_map attribute,
+        and its type attribute must be list. Each
+        element of the wfs_per_axes.data attribute
+        must be a list of non-negative integers.
+        In this case, for each subplot at position
+        i,j, only the waveforms whose indices are
+        given in the list at position i,j of the
+        wfs_per_axes.data attribute will be
+        considered. If the list at position i,j
+        is empty, then no waveform will be
+        considered for the subplot at position i,j.
     analysis_label: str
         The meaning of this parameter varies slightly
         depending on the value given to the 'mode'
@@ -1396,18 +1409,51 @@ def plot_ChannelWsGrid(
         figure_ = psu.make_subplots(
             rows=channel_ws_grid.ch_map.rows, 
             cols=channel_ws_grid.ch_map.columns)
-        
-    fPlotAll = True
-    if wfs_per_axes is not None:
 
-        if wfs_per_axes < 1:
-            raise Exception(GenerateExceptionMessage(
-                1,
-                'plot_ChannelWsGrid()',
-                'If defined, the number of waveforms'
-                ' per axes must be positive.'))
-        
-        fPlotAll = False
+    # 1 is for all waveforms, 2 is for a
+    # defined number of waveforms while
+    # 3 is for a Map of waveform indices
+    fConsideredWaveformsMode = 1
+    if wfs_per_axes is not None:
+        if isinstance(wfs_per_axes, int):
+            if wfs_per_axes < 1:
+                raise Exception(
+                    GenerateExceptionMessage(
+                        1,
+                        'plot_ChannelWsGrid()',
+                        'If an integer is given, the wfs_per_axes '
+                        f"parameter ({wfs_per_axes}) must be positive."
+                    )
+                )
+            fConsideredWaveformsMode = 2
+
+        elif isinstance(wfs_per_axes, Map):
+            if wfs_per_axes.rows != channel_ws_grid.ch_map.rows or \
+                wfs_per_axes.columns != channel_ws_grid.ch_map.columns:
+                raise Exception(
+                    GenerateExceptionMessage(
+                        2,
+                        'plot_ChannelWsGrid()',
+                        'If a Map is given, the wfs_per_axes '
+                        'dimensions ('
+                        f"{wfs_per_axes.rows}, {wfs_per_axes.columns}) "
+                        'must match the channel_ws_grid dimensions '
+                        f"({channel_ws_grid.ch_map.rows}, "
+                        f"{channel_ws_grid.ch_map.columns})."
+                    )
+                )
+
+            if wfs_per_axes.type != type([]):
+                raise Exception(
+                    GenerateExceptionMessage(
+                        3,
+                        'plot_ChannelWsGrid()',
+                        'If a Map is given, the wfs_per_axes '
+                        f"type ({wfs_per_axes.type}) must be list."
+                    )
+                )
+
+            fConsideredWaveformsMode = 3
 
     # If mode is 'heatmap', then
     # there is already a right-aligned
@@ -1439,33 +1485,38 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
+                if not channel_ws:
+                    continue
+
+                aux_idcs = wpu.__get_idcs_of_wvfs_to_plot(
+                    fConsideredWaveformsMode,
+                    channel_ws,
+                    wfs_per_axes,
+                    i,
+                    j
+                )
+
+                # For fConsideredWaveformsMode equal to 1 or 2,
+                # this cannot happen, but for the map case (3),
+                # some of the entries in the map may be empty
+                # lists. In that case, add a no-data annotation
+                # and continue to the next channel
+                if len(aux_idcs) == 0:
                     wpu.__add_no_data_annotation(   
                         figure_,
                         i + 1,
-                        j + 1)
-                    
+                        j + 1
+                    )
+
                     continue
 
-                if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
-                else:
-
-                    # If wfs_per_axes is defined, then it has been
-                    # checked to be >=1. If it is not defined, then
-                    # still len(channel_ws.waveforms) is >=1 (which
-                    # is ensured by WaveformSet.__init__), so the 
-                    # minimum is always >=1.
-
-                    aux_idcs = range(min(
-                        wfs_per_axes, 
-                        len(channel_ws.waveforms)))
-                
                 if plot_event:
                     aux_idcs = [event_id]
 
@@ -1503,25 +1554,37 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
+                if not channel_ws:
+                    continue
+
+                aux_idcs = wpu.__get_idcs_of_wvfs_to_plot(
+                    fConsideredWaveformsMode,
+                    channel_ws,
+                    wfs_per_axes,
+                    i,
+                    j
+                )
+
+                # For fConsideredWaveformsMode equal to 1 or 2,
+                # this cannot happen, but for the map case (3),
+                # some of the entries in the map may be empty
+                # lists. In that case, add a no-data annotation
+                # and continue to the next channel
+                if len(aux_idcs) == 0:
                     wpu.__add_no_data_annotation(   
                         figure_,
                         i + 1,
-                        j + 1)
-                    
-                    continue
+                        j + 1
+                    )
 
-                if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
-                else:
-                    aux_idcs = range(min(
-                        wfs_per_axes, 
-                        len(channel_ws.waveforms)))
+                    continue
 
                 # WaveformSet.compute_mean_waveform()
                 # will raise an exception if
@@ -1579,7 +1642,7 @@ def plot_ChannelWsGrid(
         
         if analysis_label is None:
             raise Exception(GenerateExceptionMessage( 
-                2,
+                4,
                 'plot_ChannelWsGrid()',
                 "The 'analysis_label' parameter must be "
                 "defined if the 'mode' parameter is set to 'heatmap'."))
@@ -1587,25 +1650,37 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
-                    wpu.__add_no_data_annotation(
-                        figure_,
-                        i + 1,
-                        j + 1)
-                    
+                if not channel_ws:
                     continue
 
-                if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
-                else:
-                    aux_idcs = range(min(
-                        wfs_per_axes, 
-                        len(channel_ws.waveforms)))
+                aux_idcs = wpu.__get_idcs_of_wvfs_to_plot(
+                    fConsideredWaveformsMode,
+                    channel_ws,
+                    wfs_per_axes,
+                    i,
+                    j
+                )
+
+                # For fConsideredWaveformsMode equal to 1 or 2,
+                # this cannot happen, but for the map case (3),
+                # some of the entries in the map may be empty
+                # lists. In that case, add a no-data annotation
+                # and continue to the next channel
+                if len(aux_idcs) == 0:
+                    wpu.__add_no_data_annotation(   
+                        figure_,
+                        i + 1,
+                        j + 1
+                    )
+
+                    continue
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
@@ -1680,17 +1755,14 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
-                    wpu.__add_no_data_annotation(
-                        figure_,
-                        i + 1,
-                        j + 1)
-                    
+                if not channel_ws:
                     continue
 
                 if channel_ws.calib_histo is None:
@@ -1734,7 +1806,7 @@ def plot_ChannelWsGrid(
                 )
     else:                                                                                                           
         raise Exception(GenerateExceptionMessage( 
-            3,
+            5,
             'plot_ChannelWsGrid()',
             f"The given mode ({mode}) must match "
             "either 'overlay', 'average', 'heatmap'"

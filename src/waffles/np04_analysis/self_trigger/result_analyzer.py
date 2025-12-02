@@ -1,10 +1,22 @@
 import pandas as pd
 import numpy as np
-from ROOT import TFile, TGraphErrors
+from ROOT import TFile, TGraphErrors, TMultiGraph
 
-
-result_file = "~/CERN/PDHD/Self_trigger/analysis/SelfTrigger_Results_Ch_11121_Selection_True.csv"
-out_file_name = "~/PhD/plotter/projects/PosterINSS/SelfTrigger_Results_Ch_11121_Selection_True.root"
+# channel = 10403
+channel = 10441
+# channel = 10903
+# channel = 10945
+# channel = 11121
+# channel = 11221
+merged = True
+if merged:
+    merged = "_merged"
+else:
+    merged = ""
+result_file = f"~/CERN/PDHD/Self_trigger/analysis/Ch_{channel}/SelfTrigger_Results_Ch_{channel}{merged}.csv"
+out_file_name = f"~/PhD/plotter/projects/NP04_PDS_article/SelfTrigger/SelfTrigger_Results_Graphs_Ch_{channel}{merged}.root"
+# result_file   = f"~/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/Ch_10403/SelfTrigger_Results_Ch_{channel}.csv"
+# out_file_name = f"~/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/SelfTrigger_Results_Graphs_Ch_{channel}{merged}.root"
 
 def column_where_to_array(df, column_name, condition_column, condition_value):
     """
@@ -48,6 +60,9 @@ def arrays_to_formatted_graph(x, y, ex=None, ey=None, name_and_title="graph", x_
     y = y[mask]
     ex = ex[mask]
     ey = ey[mask]
+
+    if len(x) == 0 or len(y) == 0:
+        return None
 
     graph = TGraphErrors(len(x), x, y, ex, ey)
     graph.SetName(name_and_title)
@@ -100,6 +115,18 @@ def dataframe_columns_to_tgraph(
     graph = arrays_to_formatted_graph(x, y, ex, ey, name_and_title, x_axis_title, y_axis_title)
     return graph
 
+def g_normalize_trigger_rate_2pe(g_trigger_rate):
+    """
+    
+    """
+    rate_at_2pe = g_trigger_rate.Eval(2.0)
+    for i in range(g_trigger_rate.GetN()):
+        y = g_trigger_rate.GetY()[i]
+        g_trigger_rate.SetPoint(i, g_trigger_rate.GetX()[i], y / rate_at_2pe)
+        g_trigger_rate.SetPointError(i, g_trigger_rate.GetEX()[i], g_trigger_rate.GetEY()[i] / rate_at_2pe)
+
+    return g_trigger_rate
+
 
 if __name__ == "__main__":
 
@@ -108,102 +135,107 @@ if __name__ == "__main__":
     out_root_file.cd()
 
     # Convert "LED" column into numpy array of integers
-    leds = df_result["LED"].to_numpy(dtype=int)
-    leds = np.unique(leds)
+    identifier = "LED"
+    its = df_result[identifier].to_numpy(dtype=int)
+    its = np.unique(its)
+    if merged:
+        identifier = "SiPMChannel"
+        its = df_result[identifier].to_numpy(dtype=int)
+        its = np.unique(its)
 
-    for led in leds:
-        # ThresholdFit vs ThresholdSet
-        g_ThrFit_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "ThresholdFit", None, "ErrThresholdFit", f"g_ThrFit_ThrSet_LED_{led}", "Threshold Set [a.u.]", "Threshold Fit [p.e.]")
-        g_ThrFit_ThrSet.Write()
+    # TMultiGraphs
+    gm_ThrFit_ThrCal = TMultiGraph("gm_ThrFit_ThrCal", "Threshold Fit vs Threshold Set;Threshold Set [a.u.];Threshold Fit [p.e.]")
+    gm_BkgTrgRate_ThrCal = TMultiGraph("gm_BkgTrgRate_ThrCal", "Background Trigger Rate vs Threshold Set;Threshold Set [a.u.];Background Trigger Rate [Hz]")
+    gm_NormBkgTrgRate_ThrCal = TMultiGraph("gm_NormBkgTrgRate_ThrCal", "Normalized Background Trigger Rate vs Threshold Set;Threshold Set [p.e.];Normalized Background Trigger Rate [Hz]")
+    gm_TauFit_ThrCal = TMultiGraph("gm_TauFit_ThrCal", "Tau Fit vs Threshold Set;Threshold Set [a.u.];Tau Fit [p.e.]")
+    gm_10to90_ThrCal = TMultiGraph("gm_10to90_ThrCal", "10 to 90% Window Upper Edge vs Threshold Set;Threshold Set [a.u.];10 to 90% Window Upper Edge [p.e.]")
+    gm_10to90Fit_ThrCal = TMultiGraph("gm_10to90Fit_ThrCal", "10 to 90% Window Upper Edge Fit vs Threshold Set;Threshold Set [a.u.];10 to 90% Window Upper Edge Fit [p.e.]")
+    gm_fifty_ThrCal = TMultiGraph("gm_fifty_ThrCal", "Fifty vs Threshold Set;Threshold Set [a.u.];Fifty [p.e.]")
+    gm_effAt2pe_ThrCal = TMultiGraph("gm_effAt2pe_ThrCal", "Efficiency at 2 PE vs Threshold Set;Threshold Set [a.u.];Efficiency at 2 PE [%]")
+    gm_effAt3pe_ThrCal = TMultiGraph("gm_effAt3pe_ThrCal", "Efficiency at 3 PE vs Threshold Set;Threshold Set [a.u.];Efficiency at 3 PE [%]")
+    gm_effAt2peFit_ThrCal = TMultiGraph("gm_effAt2peFit_ThrCal", "Efficiency at 2 PE Fit vs Threshold Set;Threshold Set [a.u.];Efficiency at 2 PE Fit [%]")
+    gm_effAt3peFit_ThrCal = TMultiGraph("gm_effAt3peFit_ThrCal", "Efficiency at 3 PE Fit vs Threshold Set;Threshold Set [a.u.];Efficiency at 3 PE Fit [%]")
 
-        #BkgTrgRate vs ThresholdFit
-        g_BkgTrgRate_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "BkgTrgRate", "ErrThresholdFit", None, f"g_BkgTrgRate_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "Background Trigger Rate [Hz]")
-        g_BkgTrgRate_ThrFit.Write()
 
-        # BkgTrgRate vs ThresholdSet
-        g_BkgTrgRate_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "BkgTrgRate", None, None, f"g_BkgTrgRate_ThrSet_LED_{led}", "Threshold Set [a.u.]", "Background Trigger Rate [Hz]")
-        g_BkgTrgRate_ThrSet.Write()
+    for it in its:
+        # ThresholdFit vs FiftyCalibrated
+        print("Creating ThresholdFit vs FiftyCalibrated graph for it =", it)
+        g_ThrFit_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "ThresholdFit", None, "ErrThresholdFit", f"g_ThrFit_ThrCal_it_{it}", "Threshold Set [a.u.]", "Threshold Fit [p.e.]")
+        if not g_ThrFit_ThrCal == None:
+            g_ThrFit_ThrCal.Write()
+            gm_ThrFit_ThrCal.Add(g_ThrFit_ThrCal)
+
+        # BkgTrgRate vs FiftyCalibrated
+        g_BkgTrgRate_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "BkgTrgRate", None, "ErrBkgTrgRate", f"g_BkgTrgRate_ThrCal_it_{it}", "Threshold Set [a.u.]", "Background Trigger Rate [Hz]")
+        if not g_BkgTrgRate_ThrCal == None:
+            g_BkgTrgRate_ThrCal.Write()
+            g_NormBkgTrgRate_ThrCal = g_normalize_trigger_rate_2pe(g_BkgTrgRate_ThrCal.Clone(f"g_NormBkgTrgRate_ThrCal_it_{it}"))
+            g_NormBkgTrgRate_ThrCal.Write()
+            gm_NormBkgTrgRate_ThrCal.Add(g_NormBkgTrgRate_ThrCal)
+            gm_BkgTrgRate_ThrCal.Add(g_BkgTrgRate_ThrCal)
         
-        #BkgTrgRatePreLED vs ThresholdFit
-        g_BkgTrgRatePreLED_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "BkgTrgRatePreLED", "ErrThresholdFit", None, f"g_BkgTrgRatePreLED_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "Background Trigger Rate Pre LED [Hz]")
-        g_BkgTrgRatePreLED_ThrFit.Write()
-
-        # BkgTrgRatePreLED vs ThresholdSet
-        g_BkgTrgRatePreLED_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "BkgTrgRatePreLED", None, None, f"g_BkgTrgRatePreLED_ThrSet_LED_{led}", "Threshold Set [a.u.]", "Background Trigger Rate Pre LED [Hz]")
-        g_BkgTrgRatePreLED_ThrSet.Write()
-
-        # MaxAccuracy vs ThresholdFit
-        g_MaxAccuracy_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "MaxAccuracy", "ErrThresholdFit", None, f"g_MaxAccuracy_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "Max Accuracy [%]")
-        g_MaxAccuracy_ThrFit.Write()
+        # TauFit vs FiftyCalibrated
+        g_TauFit_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "TauFit", None, "ErrTauFit", f"g_TauFit_ThrCal_it_{it}", "Threshold Set [a.u.]", "Tau Fit [p.e.]")
+        if not g_TauFit_ThrCal == None:
+            g_TauFit_ThrCal.Write()
+            gm_TauFit_ThrCal.Add(g_TauFit_ThrCal)
         
-        # MaxAccuracy vs ThresholdSet
-        g_MaxAccuracy_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "MaxAccuracy", None, None, f"g_MaxAccuracy_ThrSet_LED_{led}", "Threshold Set [a.u.]", "Max Accuracy [%]")
-        g_MaxAccuracy_ThrSet.Write()
+        # 10to90 vs FiftyCalibrated
+        g_10to90_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "10to90", None, None, f"g_10to90_ThrCal_it_{it}", "Threshold Set [a.u.]", "10 to 90% Window Upper Edge [p.e.]")
+        if not g_10to90_ThrCal == None:
+            g_10to90_ThrCal.Write()
+            gm_10to90_ThrCal.Add(g_10to90_ThrCal)
 
-        # FalsePositiveRate vs ThresholdFit
-        g_FalsePositiveRate_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "FalsePositiveRate", "ErrThresholdFit", None, f"g_FalsePositiveRate_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "False Positive Rate [%]")
-        g_FalsePositiveRate_ThrFit.Write()
+        # 10to90Fit vs FiftyCalibrated
+        g_10to90Fit_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "10to90Fit", None, None, f"g_10to90Fit_ThrCal_it_{it}", "Threshold Set [a.u.]", "10 to 90% Window Upper Edge Fit [p.e.]")
+        if not g_10to90Fit_ThrCal == None:
+            g_10to90Fit_ThrCal.Write()
+            gm_10to90Fit_ThrCal.Add(g_10to90Fit_ThrCal)
 
-        # FalsePositiveRate vs ThresholdSet
-        g_FalsePositiveRate_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "FalsePositiveRate", None, None, f"g_FalsePositiveRate_ThrSet_LED_{led}", "Threshold Set [a.u.]", "False Positive Rate [%]")
-        g_FalsePositiveRate_ThrSet.Write()
+        # Fifty vs FiftyCalibrated
+        g_fifty_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "FiftyEffPoint", None, None, f"g_fifty_ThrCal_it_{it}", "Threshold Set [a.u.]", "Fifty [p.e.]")
+        if not g_fifty_ThrCal == None:
+            g_fifty_ThrCal.Write()
+            gm_fifty_ThrCal.Add(g_fifty_ThrCal)
 
-        # TruePositiveRate vs ThresholdFit
-        g_TruePositiveRate_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "TruePositiveRate", "ErrThresholdFit", None, f"g_TruePositiveRate_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "True Positive Rate [%]")
-        g_TruePositiveRate_ThrFit.Write()
-        
-        # TruePositiveRate vs ThresholdSet
-        g_TruePositiveRate_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "TruePositiveRate", None, None, f"g_TruePositiveRate_ThrSet_LED_{led}", "Threshold Set [a.u.]", "True Positive Rate [%]")
-        g_TruePositiveRate_ThrSet.Write()
+        # Efficiency at 2 PE vs FiftyCalibrated
+        g_effAt2pe_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt2PE", None, "ErrEffAt2PE", f"g_effAt2pe_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 2 PE [%]")
+        if not g_effAt2pe_ThrCal == None:
+            g_effAt2pe_ThrCal.Write()
+            gm_effAt2pe_ThrCal.Add(g_effAt2pe_ThrCal)
 
-        # TauFit vs ThresholdFit
-        g_TauFit_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "TauFit", "ErrThresholdFit", "ErrTauFit", f"g_TauFit_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "Tau Fit [p.e.]")
-        g_TauFit_ThrFit.Write()
-        
-        # TauFit vs ThresholdSet
-        g_TauFit_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "TauFit", None, "ErrTauFit", f"g_TauFit_ThrSet_LED_{led}", "Threshold Set [a.u.]", "Tau Fit [p.e.]")
-        g_TauFit_ThrSet.Write()
+        # Efficiency at 3 PE vs FiftyCalibrated
+        g_effAt3pe_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt3PE", None, "ErrEffAt3PE", f"g_effAt3pe_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 3 PE [%]")
+        if not g_effAt3pe_ThrCal == None:
+            g_effAt3pe_ThrCal.Write()
+            gm_effAt3pe_ThrCal.Add(g_effAt3pe_ThrCal)
 
-        # Accuracy vs ThresholdFit
-        # g_Accuracy_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "Accuracy", "ErrThresholdFit", None, f"g_Accuracy_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "Accuracy [%]")
-        # g_Accuracy_ThrFit.Write()
-        
-        # Accuracy vs ThresholdSet
-        # g_Accuracy_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "Accuracy", None, None, f"g_Accuracy_ThrSet_LED_{led}", "Threshold Set [a.u.]", "Accuracy [%]")
-        # g_Accuracy_ThrSet.Write()
-        
-        # MaxAccuracy vs ThresholdFit
-        g_MaxAccuracy_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "MaxAccuracy", "ErrThresholdFit", None, f"g_MaxAccuracy_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "Max Accuracy [%]")
-        g_MaxAccuracy_ThrFit.Write()
-    
-        # MaxAccuracy vs ThresholdSet
-        g_MaxAccuracy_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "MaxAccuracy", None, None, f"g_MaxAccuracy_ThrSet_LED_{led}", "Threshold Set [a.u.]", "Max Accuracy [%]")
-        g_MaxAccuracy_ThrSet.Write()
+        # Efficiency at 2 PE Fit vs FiftyCalibrated
+        g_effAt2peFit_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt2PEFit", None, "ErrEffAt2PEFit", f"g_effAt2peFit_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 2 PE Fit [%]")
+        if not g_effAt2peFit_ThrCal == None:
+            g_effAt2peFit_ThrCal.Write()
+            gm_effAt2peFit_ThrCal.Add(g_effAt2peFit_ThrCal)
 
-        # FalsePositiveRateAcc vs ThresholdFit
-        g_FalsePositiveRateAcc_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "FalsePositiveRateMaxAcc", "ErrThresholdFit", None, f"g_FalsePositiveRateMaxAcc_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "False Positive Rate Acc [%]")
-        g_FalsePositiveRateAcc_ThrFit.Write()
-
-        # FalsePositiveRateAcc vs ThresholdSet
-        g_FalsePositiveRateAcc_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "FalsePositiveRateMaxAcc", None, None, f"g_FalsePositiveRateMaxAcc_ThrSet_LED_{led}", "Threshold Set [a.u.]", "False Positive Rate Acc [%]")
-        g_FalsePositiveRateAcc_ThrSet.Write()
-
-        # TruePositiveRateAcc vs ThresholdFit
-        g_TruePositiveRateAcc_ThrFit = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdFit", "TruePositiveRateMaxAcc", "ErrThresholdFit", None, f"g_TruePositiveRateMaxAcc_ThrFit_LED_{led}", "Threshold Fit [p.e.]", "True Positive Rate Acc [%]")
-        g_TruePositiveRateAcc_ThrFit.Write()
-
-        # TruePositiveRateAcc vs ThresholdSet
-        g_TruePositiveRateAcc_ThrSet = dataframe_columns_to_tgraph(df_result, "LED", led, "ThresholdSet", "TruePositiveRateMaxAcc", None, None, f"g_TruePositiveRateMaxAcc_ThrSet_LED_{led}", "Threshold Set [a.u.]", "True Positive Rate Acc [%]")
-        g_TruePositiveRateAcc_ThrSet.Write()
+        # Efficiency at 3 PE Fit vs FiftyCalibrated
+        g_effAt3peFit_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt3PEFit", None, "ErrEffAt3PEFit", f"g_effAt3peFit_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 3 PE Fit [%]")
+        if not g_effAt3peFit_ThrCal == None:
+            g_effAt3peFit_ThrCal.Write()
+            gm_effAt3peFit_ThrCal.Add(g_effAt3peFit_ThrCal)
 
 
-    thresholds = np.array(df_result["ThresholdSet"], dtype=float)
-    thresholds = np.unique(thresholds)
-
-    for threshold in thresholds:
-        # SigmaTrg vs LED
-        g_SigmaTrg_LED = dataframe_columns_to_tgraph(df_result, "ThresholdSet", threshold, "LED", "SigmaTrg", None, "ErrSigmaTrg", f"g_SigmaTrg_LED_Thr_{threshold}", "LED [a.u.]", "Sigma Trigger [ticks]")
-        g_SigmaTrg_LED.Write()
+    # Write TMultiGraphs
+    if identifier != "SiPMChannel":
+        gm_ThrFit_ThrCal.Write()
+        gm_BkgTrgRate_ThrCal.Write()
+        gm_NormBkgTrgRate_ThrCal.Write()
+        gm_TauFit_ThrCal.Write()
+        gm_10to90_ThrCal.Write()
+        gm_10to90Fit_ThrCal.Write()
+        gm_fifty_ThrCal.Write()
+        gm_effAt2pe_ThrCal.Write()
+        gm_effAt3pe_ThrCal.Write()
+        gm_effAt2peFit_ThrCal.Write()
+        gm_effAt3peFit_ThrCal.Write()
 
 
     print("All graphs written to", out_file_name)

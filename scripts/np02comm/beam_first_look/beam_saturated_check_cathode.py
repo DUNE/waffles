@@ -38,7 +38,7 @@ from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid, plot_detecto
 
 
 
-def main(run):
+def main(run, outputdir):
 
     dettype = "cathode"
 
@@ -306,9 +306,9 @@ def main(run):
     print("order...")
     for daqt, out in output_infos.items():
         print(daqt)
-    fout = open(f"/afs/cern.ch/work/h/hvieirad/public/np02_light_response_data/pe_info_cathode_run{run:06d}.csv", "w")
+    fout = open(f"{outputdir}/pe_info_cathode_run{run:06d}.csv", "w")
     print("\nheader")
-    fout.write("Run,Part,")
+    fout.write("Run,CH,")
 
     for m in module_ordered:
         print(m, end=',')
@@ -357,9 +357,11 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--run", type=int, required=True, help="Run number to process")
+    parser.add_argument("--output-dir", type=str, default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/beam_csv_files/", help="Output folder to save results")
     args = parser.parse_args()
     run = args.run
-    main(run)
+    outputdir = args.output_dir
+    main(run, outputdir)
 
 
 

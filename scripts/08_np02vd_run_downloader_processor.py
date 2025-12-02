@@ -262,7 +262,6 @@ def main() -> None:
             except Exception as e:
                 logging.error("run %d: %s", run, e)
 
-            logging.warning("run %d: skipped", run)
         sftp.close()
         ssh.close()
 

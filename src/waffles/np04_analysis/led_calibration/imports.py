@@ -15,6 +15,7 @@ from waffles.utils.integral.WindowIntegrator import WindowIntegrator
 
 
 from waffles.np04_analysis.led_calibration import utils as led_utils
+from waffles.np04_utils.utils import get_average_baseline_std_from_file
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_ChannelWsGrid
