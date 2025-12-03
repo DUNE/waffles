@@ -1,5 +1,4 @@
 # --- IMPORTS -------------------------------------------------------
-import waffles.input_output.raw_hdf5_reader as reader
 import waffles.Exceptions as exceptions
 import numpy as np
 from pathlib import Path
@@ -20,6 +19,7 @@ def read_waveformset(filepath_folder: str,
     - run: int, run number
     - full_stat: bool, if True, merge all the waveform_set in the run
     """
+    import waffles.input_output.raw_hdf5_reader as reader
     filepath_file = filepath_folder + "0" + str(run) + ".txt"
     # check if the file exists
     if not os.path.isfile(filepath_file):
@@ -69,8 +69,9 @@ def create_float_waveforms(wf_set: waffles.WaveformSet) -> None:
     Parameters:
     - wf_set: waffles.WaveformSet
     """
+    length = wf_set.waveforms[0].adcs.shape[0]
     for wf in wf_set.waveforms:
-        wf.adcs_float = wf.adcs.astype(np.float64)[:1024]
+        wf.adcs_float = wf.adcs.astype(np.float64)[:length]
 
 
 def get_average_rms(wf_set: waffles.WaveformSet) -> np.float64:
@@ -113,14 +114,15 @@ def sub_baseline_to_wfs(wf_set: waffles.WaveformSet, prepulse_ticks: int):
         wf.adcs_float *= -1
 
 def plot_heatmaps(wf_set: waffles.WaveformSet, flag: str, run: int, vgain: int, ch: int, offline_ch: int) -> None:
+    length = wf_set.waveforms[0].adcs.shape[0]
     # Convert waveform data to numpy array
     if (flag == "baseline_removed"):
-        raw_wf_arrays = np.array([wf.adcs_float for wf in wf_set.waveforms[:2000]]).astype(np.float64)
+        raw_wf_arrays = np.array([wf.adcs_float for wf in wf_set.waveforms[:200]]).astype(np.float64)
     else:
-        raw_wf_arrays = np.array([wf.adcs[:1024] for wf in wf_set.waveforms[:2000]])
+        raw_wf_arrays = np.array([wf.adcs for wf in wf_set.waveforms[:200]])
 
     # Create time arrays for plotting
-    time_arrays = np.array([np.arange(1024) for _ in range(len(raw_wf_arrays))])
+    time_arrays = np.array([np.arange(length) for _ in range(len(raw_wf_arrays))])
 
     # Flatten arrays for histogram
     time_flat = time_arrays.flatten()
@@ -130,8 +132,8 @@ def plot_heatmaps(wf_set: waffles.WaveformSet, flag: str, run: int, vgain: int, 
     # Compute histogram
     h, xedges, yedges = np.histogram2d(
         time_flat, adc_flat,
-        bins=(1024, max(1,int(np.max(adc_flat) - np.min(adc_flat)))),
-        range=[[0, 1023], [np.min(adc_flat), np.max(adc_flat)]]
+        bins=(length, max(1,int(np.max(adc_flat) - np.min(adc_flat)))),
+        range=[[0, length-1], [np.min(adc_flat), np.max(adc_flat)]]
     )
 
     del time_flat, adc_flat
