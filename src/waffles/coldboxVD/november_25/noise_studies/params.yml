@@ -1,0 +1,101 @@
+# ---------------------------------------------------------------------
+# --- ANALYSIS 1 PARAMETERS -------------------------------------------
+# ---------------------------------------------------------------------
+# Useful if you have stored raw files somewhere else
+# This overwrite the "filepath_folder" parameter, if not blank
+custom_filepath_folder: ""
+
+# Debug mode? (True/False)
+debug_mode: False
+
+# Append or overwrite the output files? (append="a", overwrite="w")
+out_writing_mode: "w"
+
+# Which runs are you interested in? (e.g. [31920, 31928])
+# Leave it empty if you want to use all the runs []
+user_vgains: []
+
+# Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
+ana_path: "/eos/home-f/fegalizz/ColdBox_VD/November25/SpyBuffer/Noise_Analysis/"
+
+# Number of ticks per waveform
+memorydepth: 2048
+
+# ---------------------------------------------------------------------
+# --- ANALYSIS 2 PARAMETERS -------------------------------------------
+# ---------------------------------------------------------------------
+# The integrators where ON or OFF? 
+integrators: "OFF" # "ON" or "OFF"
+
+# If you want to compute FFTs and noise RMS for a custom configuration of
+# daphne AFEs and vgain, set this to True and fill the dictionary "daphneAFE_vgain_dict"
+# as you want. If False, you can pick-up one of the predefined configurations,
+# the ones used during the data taking. These configurations are stored
+# in waffles/src/waffles/np04_utils/DaphneConfigs.json
+create_custom_config: False
+
+# DAPHNE configuration for which you want to retrieve (or estimate) the noise
+# FFT and RMS. "all" means all the configurations stored in DaphneConfigs.json:
+# use it wisely, it will take a while!
+daphne_config: "3" #"all", "0", "1"...
+
+# Dictionary of daphne AFEs and the vgain set
+# Remember ch [10400->10407] are in Endpoint 104 and AFE 0
+# here we call it AFE 1040
+# At the bottom a template with the AFEs used for most of the runs
+daphneAFE_vgain_dict:
+  "1040": 2394
+  "1041": 2394
+  "1042": 2394
+  "1043": 2394
+  "1044": 2394
+  "1050": 2394
+  "1051": 2394
+  "1052": 2394
+  "1070": 2394
+  "1071": 2394
+  "1090": 2394
+  "1091": 2394
+  "1092": 2394
+  "1093": 2394
+  "1094": 2394
+  "1110": 2394
+  "1111": 2394
+  "1112": 2394
+  "1113": 2394
+  "1114": 2394
+  "1120": 2394
+  "1121": 2394
+  "1122": 2394
+  "1123": 2394
+  "1124": 2394
+  "1130": 2394
+
+# Template for the daphneAFE_vgain_dict
+daphneAFE_vgain_dict_TEMPLATED:
+  "1040": 2318
+  "1041": 2318
+  "1042": 2318
+  "1043": 2318
+  "1044": 2318
+  "1050": 2318
+  "1051": 2318
+  "1052": 2318
+  "1070": 2318
+  "1071": 2318
+  "1090": 2318
+  "1091": 2318
+  "1092": 2318
+  "1093": 2318
+  "1094": 2318
+  "1110": 2318
+  "1111": 2318
+  "1112": 2318
+  "1113": 2318
+  "1114": 2318
+  "1120": 2318
+  "1121": 2318
+  "1122": 2318
+  "1123": 2318
+  "1124": 2318
+  "1130": 2318
