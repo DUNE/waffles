@@ -320,6 +320,7 @@ def fine_selection_for_led_calibration(
     baseline_std: float,
     baseline_allowed_dev: float,
     signal_allowed_dev: float,
+    baseline_i_low: int = 0
 ) -> bool:
     """This function returns True if the following two
     conditions are met simultaneously:
@@ -359,12 +360,15 @@ def fine_selection_for_led_calibration(
         Its absolute value is assumed to be the maximum multiple
         of baseline_std which the signal can deviate from the
         baseline in the baseline region, i.e. in the
-        waveform.adcs[0:baseline_i_up] region
+        waveform.adcs[baseline_i_low:baseline_i_up] region
     signal_allowed_dev: float
         Its absolute value is assumed to be the maximum multiple
         of baseline_std which the signal can deviate, negatively,
         from the baseline in the signal region, i.e. in the
         waveform.adcs[baseline_i_up:signal_i_up] region.
+    baseline_i_low: int
+        Iterator value for the waveform.adcs array which gives
+        the lower limit of the baseline region
 
     Returns
     ----------
@@ -372,7 +376,7 @@ def fine_selection_for_led_calibration(
     """
 
     try:
-        baseline_samples = waveform.adcs[:baseline_i_up] - \
+        baseline_samples = waveform.adcs[baseline_i_low:baseline_i_up] - \
             waveform.analyses[baseline_analysis_label].result['baseline']
 
     except KeyError:
@@ -484,3 +488,83 @@ def coarse_selection_for_led_calibration(
             return False
     
     return True
+
+def band_correlation_filter(
+    waveform: Waveform,
+    template_adcs: np.ndarray,
+    exclusion_band_lower_limit: float,
+    exclusion_band_upper_limit: float,
+    upper_limit_idx: int = -1,
+    L2_normalization: bool = True
+) -> bool:
+    """This function computes the correlation coefficient
+    between the given waveform and a template defined
+    by the template_adcs parameter, up to the given iterator
+    value. If the correlation coefficient is within the
+    exclusion band defined by exclusion_band_lower_limit
+    and exclusion_band_upper_limit, it returns False. If
+    it is outside this band, it returns True.
+
+    Parameters
+    ----------
+    waveform: Waveform
+        The waveform to apply the filter to
+    template_adcs: np.ndarray
+        The template waveform adcs to compute the
+        correlation coefficient with
+    exclusion_band_lower_limit: float
+        The lower limit of the exclusion band for
+        the correlation coefficient
+    exclusion_band_upper_limit: float
+        The upper limit of the exclusion band for
+        the correlation coefficient
+    upper_limit_idx: int
+        Before applying the normalization and computing
+        the correlation coefficient, both waveform
+        and template_adcs are sliced to the
+        [0:upper_limit_idx] interval.
+    L2_normalization: bool
+        If True, L2 normalization is applied to both
+        waveform and template_adcs before computing
+        the correlation coefficient. If False, max
+        absolute value normalization is applied.
+
+    Returns
+    ----------
+    bool
+        True if the computed correlation coefficient
+        is outside the exclusion band, False if it is
+        inside the exclusion band.
+    """
+
+    sliced_waveform_adcs = waveform.adcs[:upper_limit_idx]
+    sliced_template_adcs = template_adcs[:upper_limit_idx]
+
+    if L2_normalization:
+        normalized_waveform_adcs = sliced_waveform_adcs /\
+            np.linalg.norm(sliced_waveform_adcs)
+        
+        normalized_template_adcs = sliced_template_adcs /\
+            np.linalg.norm(sliced_template_adcs)
+    else:
+        normalized_waveform_adcs = sliced_waveform_adcs /\
+            np.max(np.abs(sliced_waveform_adcs))
+
+        normalized_template_adcs = sliced_template_adcs /\
+            np.max(np.abs(sliced_template_adcs))
+
+
+    correlation_coefficient = np.max(
+        np.correlate(
+            normalized_waveform_adcs,
+            normalized_template_adcs,
+            mode='valid'
+        )
+    )
+
+    if correlation_coefficient < exclusion_band_lower_limit:
+        return True
+    elif correlation_coefficient <= exclusion_band_upper_limit:
+        return False
+    else:
+        return True

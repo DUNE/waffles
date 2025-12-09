@@ -229,7 +229,8 @@ def __spot_first_peaks_in_CalibrationHistogram(
 def __fit_independent_gaussians_to_calibration_histogram(
     spsi_output: Tuple[np.ndarray, Dict[str, np.ndarray]], 
     calibration_histogram: CalibrationHistogram,
-    half_points_to_fit: int
+    half_points_to_fit: int,
+    weigh_fit_by_poisson_sigmas: bool = False
 ) -> bool:
     """This function gets the output of a certain call to 
     scipy.signal.find_peaks() and a CalibrationHistogram
@@ -257,6 +258,14 @@ def __fit_independent_gaussians_to_calibration_histogram(
         the i-th peak, then the histogram bins which will
         be considered for the fit are given by the slice
         calibration_histogram.counts[i - half_points_to_fit : i + half_points_to_fit + 1].
+    weigh_fit_by_poisson_sigmas: bool
+        If True, then the sigma parameter of the
+        scipy.optimize.curve_fit() function will be set to
+        the Poisson standard deviation of each bin
+        (i.e. sqrt(counts)). If False, then the sigma
+        parameter is not set, and all residuals are
+        equally weighed in the least squares minimization
+        procedure of scipy.optimize.curve_fit().
 
     Returns
     -------
@@ -322,12 +331,25 @@ def __fit_independent_gaussians_to_calibration_histogram(
         aux_counts = calibration_histogram.counts[
             aux_lower_lim : aux_upper_lim]
 
+        sigma = None
+        if weigh_fit_by_poisson_sigmas:
+            sigma = np.sqrt(aux_counts)
+
+            # Regularize sigmas to avoid arbitrary large
+            # terms in the residuals sum. Weigh null-count
+            # bins as if they had 1 count.
+            for i in range(len(sigma)):
+                if sigma[i] == 0.:
+                    sigma[i] = 1.
+
         try:
             aux_optimal_parameters, aux_covariance_matrix = spopt.curve_fit(
                 wun.gaussian,
                 aux_bin_centers,
                 aux_counts,
-                p0=aux_seeds
+                p0=aux_seeds,
+                sigma=sigma,
+                absolute_sigma=weigh_fit_by_poisson_sigmas
             )
             
         # Happens if scipy.optimize.curve_fit()
@@ -360,7 +382,8 @@ def __fit_correlated_gaussians_to_calibration_histogram(
     # typically gave std_increment optimal values of
     # this order of magnitude
     std_increment_seed_fallback: float = 1e+2,
-    ch_span_fraction_around_peaks: float = 0.05
+    ch_span_fraction_around_peaks: float = 0.05,
+    weigh_fit_by_poisson_sigmas: bool = False
 ) -> bool:
     """This function gets the output of a certain call to 
     scipy.signal.find_peaks() and a CalibrationHistogram
@@ -417,7 +440,15 @@ def __fit_correlated_gaussians_to_calibration_histogram(
         is computed as the index of the first (resp. last)
         considered peak minus (resp. plus) a number
         of bins which is equal to the 10% of the
-        total of bins in the calibration histogram. 
+        total of bins in the calibration histogram.
+    weigh_fit_by_poisson_sigmas: bool
+        If True, then the sigma parameter of the
+        scipy.optimize.curve_fit() function will be set to
+        the Poisson standard deviation of each bin
+        (i.e. sqrt(counts)). If False, then the sigma
+        parameter is not set, and all residuals are
+        equally weighed in the least squares minimization
+        procedure of scipy.optimize.curve_fit().
 
     Returns
     -------
@@ -591,13 +622,26 @@ def __fit_correlated_gaussians_to_calibration_histogram(
         fit_y = calibration_histogram.counts[
             first_fitting_idx:last_fitting_idx
         ]
+
+        sigma = None
+        if weigh_fit_by_poisson_sigmas:
+            sigma = np.sqrt(fit_y)
+
+            # Regularize sigmas to avoid arbitrary large
+            # terms in the residuals sum. Weigh null-count
+            # bins as if they had 1 count.
+            for i in range(len(sigma)):
+                if sigma[i] == 0.:
+                    sigma[i] = 1.
         
         try:
             aux_optimal_parameters, aux_covariance_matrix = spopt.curve_fit(
                 fitting_function,
                 fit_x,
                 fit_y,
-                p0=aux_seeds
+                p0=aux_seeds,
+                sigma=sigma,
+                absolute_sigma=weigh_fit_by_poisson_sigmas
             )
             
         # Happens if scipy.optimize.curve_fit()
