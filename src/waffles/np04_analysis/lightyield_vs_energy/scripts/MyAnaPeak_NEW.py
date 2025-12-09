@@ -15,9 +15,6 @@ from scipy.signal import find_peaks
 class MyAnaPeak_NEW(WfAna):
     def __init__(self, input_parameters: IPDict):
         """BasicWfAna class initializer. 
-        No checks are perfomed here.
-
-        A NEGATIVE signal is assumed!
 
         Parameters
         ----------

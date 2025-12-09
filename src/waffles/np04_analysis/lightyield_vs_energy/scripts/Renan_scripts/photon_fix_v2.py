@@ -86,7 +86,7 @@ def PID(energy, tof, c0, c1):
         else:
             return 'unkonwn'
 
-def photon_counter(wf, template, endpoint, tick, debug = False):
+def photon_counter(wf, template, endpoint, channel, tick, debug = False):
     wf = np.array(wf)
     template = np.array(template)
     template = template - np.median(template)
@@ -118,6 +118,20 @@ def photon_counter(wf, template, endpoint, tick, debug = False):
     wf = wf[100:]
     template = template[100:]
 
+    import matplotlib.pyplot as plt
+    from matplotlib.offsetbox import AnchoredText
+
+    plt.rcParams.update({
+        'font.size': 12,
+        'axes.titlesize': 14,
+        'axes.labelsize': 14,
+        #'xtick.labelsize': 12,
+        #'ytick.labelsize': 12,
+        'legend.fontsize': 12,
+        #'figure.dpi': 300,  # backup if you don't specify dpi in savefig
+    })
+
+
     if endpoint == 109:
         lim = 500
     else:
@@ -128,7 +142,6 @@ def photon_counter(wf, template, endpoint, tick, debug = False):
         
     try:
         params, errors, r_squared = conv_fit_v5(wf, template, 150, lim, factor = 2.5, debug = debug)
-        print(params, errors, r_squared)
         if r_squared < 0.5:
             return -1, -1
         else:
@@ -139,6 +152,45 @@ def photon_counter(wf, template, endpoint, tick, debug = False):
             area   = A_s*tau_s*(1-np.exp(-16*tick/(tau_s))) + (A_t*tau_t*(1-np.exp(-16*tick/(tau_t))))
             e_area = np.sqrt((A_s*etau_s)**2 + (tau_s*eA_s)**2 + (A_t*etau_t)**2 + (tau_t*eA_t)**2)
         
+            # for plot 
+            time = 16*np.arange(0, len(wf))
+            new_time = np.linspace(time[0], time[-1], int(2.5 * len(time)))
+            template_interp = interp1d(time, template, kind='linear')
+            template_upsampled = template_interp(new_time)
+            dt = (new_time[1] - new_time[0])
+
+            lAr  = scintillation(new_time, A_s, A_t, tau_s, tau_t)
+            conv = fft_convolution(new_time, *params, template_upsampled, dt)
+
+            plt.figure()
+            plt.plot(time, wf, 'blue', label = 'Signal')
+            plt.plot(new_time, conv, 'k', label = 'Fit')
+
+            info_text = (
+                f"$A_s$ = {A_s:.2f} ± {eA_s:.2f}\n"
+                f"$\\tau_s$ (ns) = {tau_s:.1f} ± {etau_s:.1f}\n"
+                f"$A_t$ = {A_t:.3f} ± {eA_t:.3f}\n"
+                f"$\\tau_t$ (ns) = {int(tau_t)} ± {int(etau_t)}\n"
+                f"$N_{{PE}}$ = {int(area)} ± {int(e_area)}\n"
+                f"R$^2$ = {r_squared:.3f}"
+            )
+
+            # Add the text box to the plot
+            ax = plt.gca()
+            box = AnchoredText(
+                info_text, loc='upper right',
+                frameon=True, bbox_transform=ax.transAxes, borderpad=0.5
+            )
+            ax.add_artist(box)
+
+            plt.xlim(0, 16*len(time))
+            plt.xlabel('Time(ns)')
+            plt.ylabel('ADCs')
+            plt.legend(loc = 'lower right')
+            plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.6)
+            plt.title(f'Endpoint: {endpoint} - Channel: {channel}')
+            plt.show()
+            
             return area, e_area
     except:
         return -1, -1
@@ -156,7 +208,6 @@ def main(run, energy):
     with gzip.open(f"/afs/cern.ch/work/r/rdeaguia/private/files/Photon_Files/{energy}/{run}/{run}_processed_v2.pkl", "rb") as f:
     #with gzip.open(f"/afs/cern.ch/work/r/rdeaguia/private/files/Photon_Files/1GeV/{run}_bkg.pkl.gz", "rb") as f:
         df = pickle.load(f)
-    print(df.columns)
 
     '''
     try:
@@ -167,7 +218,6 @@ def main(run, energy):
            'channel', 'timestamp', 'ADC', 'PhotonA', 'ePhotonA', 'PhotonB', 'ePhotonB']]
     '''
 
-    print(df.head())
     directory_path = '/afs/cern.ch/work/r/rdeaguia/private/files/Templates/v_27xxx_fix_avg'
     template_files = os.listdir(directory_path)
     
@@ -204,11 +254,10 @@ def main(run, energy):
         'Template_avg': adc_list})
     df_template["endpoint"] = df_template["endpoint"].astype(int)
     df_template["channel"]  = df_template["channel"].astype(int)
-    print(df_template.head())
+
 
     df = pd.merge(df, df_template, 'left', on = ['endpoint', 'channel'])
     df = df.dropna()
-    print(df.head())
     tqdm.pandas()
     df[['PhotonA', 'ePhotonA']] = df.progress_apply(
                     lambda row: photon_counter(row['ADC'], row['Template_avg'], row['endpoint'], 256),

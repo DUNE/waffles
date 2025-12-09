@@ -466,7 +466,7 @@ def conv_fit_v5(signal, template, peak_lim, end_time, factor=2.5, debug=False):
             errors = np.sqrt(np.diag(covariance))
             
             fitted_data = fft_convolution(new_time, *params, template_upsampled, dt)
-            print(list(fitted_data))
+            
             residuals = data_tofit_upsampled - fitted_data
             ss_tot = np.sum((data_tofit_upsampled - np.mean(data_tofit_upsampled)) ** 2)
             ss_res = np.sum(residuals ** 2)
