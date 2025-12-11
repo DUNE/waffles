@@ -22,7 +22,6 @@ if __name__ == "__main__":
 
     filepath_folder  = run_info.get("filepath_folder")
     fft_folder = run_info.get("fft_folder")
-    # ignore_ch_dict = run_info.get("ignore_ch_dict", {})
 
     # Setup variables according to the user_config.yaml file
     with open("params.yml", 'r') as stream:
