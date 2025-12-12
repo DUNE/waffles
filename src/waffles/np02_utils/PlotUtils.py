@@ -133,8 +133,13 @@ def np02_gen_grids(wfset, detector: Union[str, List[str], List[UniqueChannel], L
 
     raise ValueError(f"Could not resolve detector: {detector} or {detectors}")
 
-def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Callable] = None, return_figs: bool = False, **kwargs):
+def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Callable] = None, **kwargs):
     figs = []
+    return_figs = kwargs.get("return_fig", False)
+    if return_figs:
+        kwargs["showplots"] = False
+        kwargs["html"] = kwargs.get("html", None)
+        
     for title, g in np02_gen_grids(wfset, detector, rows=kwargs.pop("rows", 0), cols=kwargs.pop("cols", 0)).items():
         # Keeping standard plotting 
         if title == "nTCO" or title == "TCO":
@@ -142,17 +147,12 @@ def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Ca
                 kwargs["shared_xaxes"] = True
             if "shared_yaxes" not in kwargs:
                 kwargs["shared_yaxes"] = True
-
-
+ 
+        
+        ret = plot_grid(chgrid=g, title=title, html=kwargs.pop("html", None), detector=detector, plot_function=plot_function, **kwargs)
         if return_figs:
-            fig_rows = kwargs.copy()
-            fig_rows.setdefault("showplots", False)
-            fig_rows.setdefault("return_fig", True)
-            fig_rows["html"] = kwargs.get("html", None)
-            fig, rows, cols = plot_grid(chgrid=g, title=title, detector=detector, plot_function=plot_function, **fig_rows)
-            figs.append((fig, rows, cols, title))
-        else:
-            plot_grid(chgrid=g, title=title, html=kwargs.pop("html", None), detector=detector, plot_function=plot_function, **kwargs)
+            fig, rows, cols = ret
+            figs.append((fig, rows, cols, title, g))
 
     if return_figs:
         return figs
