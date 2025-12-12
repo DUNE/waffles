@@ -133,7 +133,8 @@ def np02_gen_grids(wfset, detector: Union[str, List[str], List[UniqueChannel], L
 
     raise ValueError(f"Could not resolve detector: {detector} or {detectors}")
 
-def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Callable] = None, **kwargs):
+def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Callable] = None, return_figs: bool = False, **kwargs):
+    figs = []
     for title, g in np02_gen_grids(wfset, detector, rows=kwargs.pop("rows", 0), cols=kwargs.pop("cols", 0)).items():
         # Keeping standard plotting 
         if title == "nTCO" or title == "TCO":
@@ -142,14 +143,27 @@ def plot_detectors(wfset: WaveformSet, detector:list, plot_function: Optional[Ca
             if "shared_yaxes" not in kwargs:
                 kwargs["shared_yaxes"] = True
 
-        plot_grid(chgrid=g, title=title, html=kwargs.pop("html", None), detector=detector, plot_function=plot_function, **kwargs)
+
+        if return_figs:
+            fig_rows = kwargs.copy()
+            fig_rows.setdefault("showplots", False)
+            fig_rows.setdefault("return_fig", True)
+            fig_rows["html"] = kwargs.get("html", None)
+            fig, rows, cols = plot_grid(chgrid=g, title=title, detector=detector, plot_function=plot_function, **fig_rows)
+            figs.append((fig, rows, cols, title))
+        else:
+            plot_grid(chgrid=g, title=title, html=kwargs.pop("html", None), detector=detector, plot_function=plot_function, **kwargs)
+
+    if return_figs:
+        return figs
+    return None
 
 
-def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = None, detector: Union[str, List[str]] = "", plot_function: Optional[Callable] = None, **kwargs):
+def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = None, detector: Union[str, List[str]] = "", plot_function: Optional[Callable] = None, return_fig: bool = False, **kwargs):
 
     rows, cols= chgrid.ch_map.rows, chgrid.ch_map.columns
 
-    showplots = kwargs.pop("showplots", False)
+    showplots = kwargs.pop("showplots", True)
 
     subtitles = chgrid.titles
 
@@ -188,7 +202,12 @@ def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = N
         if showplots:
             fig.show()
     else:
-        fig.show()
+        if showplots:
+            fig.show()
+
+    if return_fig:
+        return fig, rows, cols
+    return None
 # ╰────────────────────────────────────────────────────────────────────────────╯
 
 
