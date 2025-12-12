@@ -50,6 +50,12 @@ class Analysis3(WafflesAnalysis):
                 example=[0.4]
             )
 
+            channel_to_analyze: int = Field(
+                ...,
+                description="Single channel to analyze",
+                example=10413
+            )
+
             filter_type: list[str] = Field(
                 ...,
                 description="Type of high-pass filter to apply "
@@ -506,6 +512,10 @@ class Analysis3(WafflesAnalysis):
                     self.channels_per_run['run'] == run
                 ]['aimed_channels'].values[0]
             )
+            
+            channel_to_analyze_ = self.params.channel_to_analyze
+            if channel_to_analyze_ != 0:
+                channels = [ch for ch in channels if ch == channel_to_analyze_]
                 
             if self.params.verbose:
                 print(
@@ -667,13 +677,13 @@ class Analysis3(WafflesAnalysis):
 
         len_before_coarse_selection = len(self.wfset.waveforms)
 
-        # self.wfset = WaveformSet.from_filtered_WaveformSet(
-        #     self.wfset,
-        #     coarse_selection_for_led_calibration,
-        #     self.params.baseline_analysis_label,
-        #     self.params.lower_limit_wrt_baseline,
-        #     self.params.upper_limit_wrt_baseline
-        # )
+        self.wfset = WaveformSet.from_filtered_WaveformSet(
+            self.wfset,
+            coarse_selection_for_led_calibration,
+            self.params.baseline_analysis_label,
+            self.params.lower_limit_wrt_baseline,
+            self.params.upper_limit_wrt_baseline
+        )
 
         len_after_coarse_selection = len(self.wfset.waveforms)
 
@@ -788,6 +798,17 @@ class Analysis3(WafflesAnalysis):
 
                 #Here after the baseline subtraction I should put the HPF filter.
                 coefficients = self.hpf_coefficients_dict[self.filter_type][self.filter_cutoff]
+                self.grid_apa.ch_wf_sets[endpoint][channel].apply(
+                    filter_waveform,
+                    self.params.baseline_analysis_label,
+                    filterType = 'IIR',
+                    numerator = coefficients[0],
+                    denominator = coefficients[1],
+                    show_progress=False
+                )
+
+                #Here, Apply a 2MHz 3rd order LPF
+                coefficients = self.hpf_coefficients_dict["LPF"]["2Mhz"]
                 self.grid_apa.ch_wf_sets[endpoint][channel].apply(
                     filter_waveform,
                     self.params.baseline_analysis_label,
