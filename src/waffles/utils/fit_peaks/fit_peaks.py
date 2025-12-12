@@ -342,10 +342,11 @@ def fit_peaks_of_CalibrationHistogram(
     base_params.append(gain_seed)     # gain
     base_params.append(stdprop_seed)  # propstd
 
-    # background seed: low percentile of counts in full histogram
+    # background seed: percentile of counts/bin converted to density (counts/x)
     # (works ok even before windowing)
-    bkg_seed = float(np.percentile(calibration_histogram.counts, 5))
-    base_params.append(max(0.0, bkg_seed))
+    bkg_seed_bin = float(np.percentile(calibration_histogram.counts, 5))
+    bkg_seed_den = max(0.0, bkg_seed_bin / binw)
+    base_params.append(bkg_seed_den)   
 
     # Estimates the number of peaks that should be fitted based on the histogram
     # Starts with a huge number of peaks, and then reduces it
@@ -354,6 +355,29 @@ def fit_peaks_of_CalibrationHistogram(
 
     data_x = (calibration_histogram.edges[:-1] + calibration_histogram.edges[1:]) * 0.5
     data_y = calibration_histogram.counts
+
+
+    def _seed_scale_from_bin(edges_all, y_all, mean, std, eps=1e-12):
+        """Convert bin-count seed -> continuous Gaussian amplitude using exact bin integral."""
+        j = int(np.searchsorted(edges_all, mean, side="right") - 1)
+        if j < 0 or j >= len(y_all):
+            return None
+        eL = float(edges_all[j]); eR = float(edges_all[j + 1])
+        yb = float(y_all[j])
+        # subtract background expectation in that bin (if available)
+        try:
+            bkg_den = float(base_params[5])  # counts/x
+        except Exception:
+            bkg_den = 0.0
+        yb_eff = yb - max(0.0, bkg_den) * (eR - eL)
+        if not np.isfinite(yb_eff):
+            return None
+        yb_eff = max(0.0, yb_eff)
+        fac = float(wun.gaussian_bin_counts(np.array([eL, eR]), 1.0, mean, std)[0])
+        if (not np.isfinite(fac)) or fac <= eps:
+            return None
+        return yb_eff / max(fac, eps)
+
     data_err = np.sqrt(data_y)
     data_err[data_err == 0] = 1  # avoid division by zero
 
@@ -409,6 +433,15 @@ def fit_peaks_of_CalibrationHistogram(
         cost = PoissonDevianceBinned(edges_fit, y_fit, wun.multigaussfit_binned)
         mm = Minuit(cost, *pvals, name=pnames)
 
+        # Positivity limits MUST exist already in Stage A (avoid negative mu tricks)
+        for p in mm.parameters:
+            if p != "mean_baseline":
+                mm.limits[p] = (0.0, None)
+            else:
+                mm.limits[p] = (None, None)
+        if 'bkg' in mm.parameters:
+            mm.limits['bkg'] = (0.0, None)
+
         # Stage A
         mm.fixed['scale_baseline'] = True
         mm.fixed['mean_baseline']  = True
@@ -417,6 +450,9 @@ def fit_peaks_of_CalibrationHistogram(
         mm.fixed['propstd']        = False
         if 'scale_1pe' in mm.parameters:
             mm.fixed['scale_1pe'] = True
+        # Reduce degeneracy at start: keep bkg fixed in Stage A, free in Stage B
+        if 'bkg' in mm.parameters:
+            mm.fixed['bkg'] = True
 
         try:
             mm.migrad()
@@ -439,6 +475,7 @@ def fit_peaks_of_CalibrationHistogram(
         if 'propstd' in mm.parameters:      mm.limits['propstd'] = (0.0, None)
         if 'gain' in mm.parameters:         mm.limits['gain']    = (0.0, None)
         if 'std_baseline' in mm.parameters: mm.limits['std_baseline'] = (0.0, None)
+        if 'bkg' in mm.parameters:          mm.limits['bkg'] = (0.0, None)
 
         try:
             mm.migrad(); mm.migrad()
@@ -475,14 +512,32 @@ def fit_peaks_of_CalibrationHistogram(
         n_scales = max(n_scales, _min_modeled_peaks)
         pnames = list(base_paramnames)   # 5 base names
         pvals  = list(base_params)       # 5 base vals
-        gain_seed = float(base_params[3])
+        edges_all = calibration_histogram.edges
+        y_all     = calibration_histogram.counts
+
         mu0_seed  = float(base_params[1])
+        std0_seed = float(base_params[2])
+        gain_seed = float(base_params[3])
+        prop_seed = float(base_params[4])
+
+        # ---- Fix #1 (binning-invariant amplitude seeds) ----
+        # Renormalize baseline scale seed using the bin containing mu0_seed
+        s0 = _seed_scale_from_bin(edges_all, y_all, mu0_seed, std0_seed)
+        if s0 is not None:
+            pvals[0] = float(s0)
 
         for i in range(1, n_scales):
-            target = mu0_seed + i * gain_seed
-            idx = int(np.argmin(np.abs(data_x - target)))
-            idx = max(0, min(idx, len(data_y) - 1))
-            pvals.append((float(data_y[idx]) * 0.95) / binw)  # counts/bin -> density seed
+            mean_i = mu0_seed + i * gain_seed
+            std_i  = np.sqrt(std0_seed**2 + (prop_seed**2) * i)
+
+            si = _seed_scale_from_bin(edges_all, y_all, mean_i, std_i)
+            if si is None:
+                # fallback to previous heuristic if out-of-range or degenerate
+                idx = int(np.argmin(np.abs(data_x - mean_i)))
+                idx = max(0, min(idx, len(data_y) - 1))
+                si = float(data_y[idx]) * 0.95
+
+            pvals.append(float(si))
             pnames.append(f'scale_{i}pe')
         # Final sanity: lengths must match
         assert len(pnames) == len(pvals), (len(pnames), len(pvals))
@@ -523,7 +578,9 @@ def fit_peaks_of_CalibrationHistogram(
             # positivity constraints for Poisson model
             for p in mmR.parameters:
                 if p != "mean_baseline":
-                    mmR.limits[p] = (0.0, None)            
+                    mmR.limits[p] = (0.0, None)
+            if 'bkg' in mmR.parameters:
+                mmR.limits['bkg'] = (0.0, None)            
             try:
                 mmR.migrad(); mmR.hesse()
                 okA = bool(mmR.fmin.is_valid)
@@ -564,7 +621,7 @@ def fit_peaks_of_CalibrationHistogram(
     bic_tol     = 0.5   # plateau threshold (smaller is stricter)
     # New: require "strong" improvement to accept a larger model (Kass & Raftery)
     bic_improve_min = 15.0
-    patience    = 0     # consecutive non-improvements to stop
+    patience    = 2     # consecutive non-improvements to stop
 
     best_mm, best_gof = None, None
     best_bic = np.inf
@@ -637,26 +694,28 @@ def fit_peaks_of_CalibrationHistogram(
     propstd = float(mm.values['propstd']) if 'propstd' in mm.parameters else 0.0
     peak_names = [p for p in mm.parameters if p.startswith("scale_") and p.endswith("pe")]
     peak_names.sort(key=lambda s: int(s.split('_')[1].replace('pe','')))  # scale_1pe, scale_2pe, ...
-    heights = np.array([mm.values[p] * binw for p in peak_names], dtype=float)
-    # Use "peak strength" in COUNTS PER BIN (integrated), not raw scale.
+    # Use peak "height" in COUNTS PER BIN (expected mu at best bin)
+    # and peak "area" as TOTAL COUNTS (sum of mu_i over bins).
     edges = calibration_histogram.edges
     mu_total = mu
     peak_mu_max = []
     peak_mu_tot_at_max = []
+    peak_area_counts = []
     for k, p in enumerate(peak_names, start=1):
         scale_i = float(mm.values[p])
         mean_i  = float(mm.values['mean_baseline']) + k * float(mm.values['gain'])
         std_i   = float(np.sqrt(std0**2 + (propstd**2) * k))
         mu_i = wun.gaussian_bin_counts(edges, scale_i, mean_i, std_i)
+        peak_area_counts.append(float(np.sum(mu_i)))
         j = int(np.argmax(mu_i))
         peak_mu_max.append(float(mu_i[j]))
         peak_mu_tot_at_max.append(float(mu_total[j]))
     heights = np.array(peak_mu_max, dtype=float)
+    areas_counts = np.array(peak_area_counts, dtype=float)
 
     stds    = np.array([np.sqrt(std0**2 + propstd**2 * i) for i in range(1, 1+len(peak_names))], dtype=float)
-    areas   = heights * np.sqrt(2.0 * np.pi) * stds
-    total_area = np.sum(areas) if areas.size else 1.0
-    rel_area   = areas / max(total_area, 1e-12)
+    total_area = float(np.sum(areas_counts)) if areas_counts.size else 1.0
+    rel_area   = areas_counts / max(total_area, 1e-12)
     # SNR in Poisson units at the peak bin, inflated by extra dispersion (noise_sigma)
     denom = noise_sigma * np.sqrt(np.clip(np.array(peak_mu_tot_at_max), 1.0, None))
     snr        = heights / np.clip(denom, 1e-12, None)
@@ -738,7 +797,16 @@ def fit_peaks_of_CalibrationHistogram(
     n_peaks_found = len(calibration_histogram.gaussian_fits_parameters['mean'])
 
     setattr(calibration_histogram, 'n_peaks_found', n_peaks_found)
-    # Store goodness-of-fit summary on the histogram for downstream logic
+
+    # Store background in a consistent unit for plotting/QA:
+    # - bkg_density: counts per x-unit (matches multigaussfit_binned)
+    # - bkg_counts_per_bin: approximate counts per bin for ~uniform bins
+    try:
+        setattr(calibration_histogram, 'bkg_density', float(mm.values['bkg']))
+        setattr(calibration_histogram, 'bkg_counts_per_bin', float(mm.values['bkg']) * binw)
+    except Exception:
+        pass
+
     try:
         setattr(calibration_histogram, 'gof', best_gof)
         setattr(calibration_histogram, 'best_fit_model', 'multigauss_iminuit')

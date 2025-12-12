@@ -120,7 +120,7 @@ calib_histo_bins_number:
         90
 
 # Lower and upper limits for the calibration histogram
-calib_histo_lower_limit: -10.
+calib_histo_lower_limit: -15.
 calib_histo_upper_limit: 60.
 
 ## Parameters for peak fitting

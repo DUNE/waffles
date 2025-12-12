@@ -2,6 +2,7 @@ import numba
 import numpy as np
 from scipy.special import erf
 from scipy.signal import lfilter
+from typing import Sequence
 from typing import List, Tuple
 
 from waffles.Exceptions import GenerateExceptionMessage
@@ -52,6 +53,8 @@ def multigaussfit_binned(edges, *params):
     Returns expected counts per bin (len = len(edges)-1).
     """
     n_scales = (len(params) - 5)  # total modeled peaks including baseline
+    if n_scales < 1:
+        return np.zeros(len(edges) - 1, dtype=float)
 
     scale0 = params[0]
     mean0  = params[1]
@@ -61,13 +64,15 @@ def multigaussfit_binned(edges, *params):
     bkg    = params[5]
 
     mu = gaussian_bin_counts(edges, scale0, mean0, std0)
-    mu += np.clip(bkg, 0.0, None)
 
     for i in range(1, n_scales):
-        scale_i = params[i + 5]
+        scale_i = params[5 + i]   # scale_1pe at index 6 = 5+1
         mean_i  = mean0 + i * gain
         std_i   = np.sqrt(std0**2 + (stdp**2) * i)
         mu += gaussian_bin_counts(edges, scale_i, mean_i, std_i)
+    
+    bw = np.diff(edges)
+    mu += np.clip(bkg_den, 0.0, None) * bw
 
     # mu are expected counts; must be >=0 for Poisson
     return np.clip(mu, 0.0, None)
@@ -90,7 +95,7 @@ def multigaussfit(x, *params):
     
     output = np.zeros_like(x)
     
-    n_peaks = (len(params)-4)
+    n_peaks = (len(params)-5)
     baseline_amplitude = params[0]
     baseline_mean = params[1]
     baseline_std = params[2]
@@ -98,12 +103,15 @@ def multigaussfit(x, *params):
 
     gain = params[3]
     std_prop = params[4]
+    bkg = params[5]
 
     for i in range(1, n_peaks):
-        gaus_amplitude = abs(params[i + 4])
+        gaus_amplitude = abs(params[i + 5])
         gaus_mean = i*gain + baseline_mean
         gaus_std = np.sqrt( baseline_std ** 2 + std_prop ** 2 * i )
         output += gaussian(x, gaus_amplitude, gaus_mean, gaus_std)
+
+    output += bkg
 
     return output
 
