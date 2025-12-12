@@ -9,6 +9,7 @@ from iminuit import Minuit
 
 import numpy as np
 import waffles.utils.numerical_utils as wun
+from typing import Optional
 
 class PoissonDeviance:
     """Pickle-friendly Poisson deviance for binned counts."""
@@ -291,6 +292,14 @@ def fit_peaks_of_CalibrationHistogram(
     binw = float(np.median(np.diff(calibration_histogram.edges)))
     binw = max(binw, 1e-12)
 
+    def _bin_width_at(edges: np.ndarray, x: float) -> float:
+        """Return width of the bin that contains x (robust for non-uniform binning)."""
+        edges = np.asarray(edges)
+        j = int(np.searchsorted(edges, x, side="right") - 1)
+        j = max(0, min(j, len(edges) - 2))
+        w = float(edges[j + 1] - edges[j])
+        return max(w, 1e-12)
+
     if fit_type != 'multigauss_iminuit':
         _v(1, f"[fit_peaks] Non-iminuit mode → returning {fFoundMax & fFitAll}")
         return fFoundMax & fFitAll
@@ -442,17 +451,25 @@ def fit_peaks_of_CalibrationHistogram(
         if 'bkg' in mm.parameters:
             mm.limits['bkg'] = (0.0, None)
 
-        # Stage A
-        mm.fixed['scale_baseline'] = True
-        mm.fixed['mean_baseline']  = True
-        mm.fixed['std_baseline']   = True
-        mm.fixed['gain']           = True
-        mm.fixed['propstd']        = False
-        if 'scale_1pe' in mm.parameters:
-            mm.fixed['scale_1pe'] = True
-        # Reduce degeneracy at start: keep bkg fixed in Stage A, free in Stage B
+        # ---------------- Stage A (more robust) ----------------
+        # Fix amplitudes and background to reduce degeneracy, but
+        # LET mean_baseline and gain move early to avoid "stuck" misalignment.
+        for p in mm.parameters:
+            if p.startswith("scale_"):
+                mm.fixed[p] = True
         if 'bkg' in mm.parameters:
             mm.fixed['bkg'] = True
+        # Keep correlated-width parameter fixed initially (helps stability)
+        if 'propstd' in mm.parameters:
+            mm.fixed['propstd'] = True
+        # Allow alignment parameters to move
+        if 'mean_baseline' in mm.parameters:
+            mm.fixed['mean_baseline'] = False
+        if 'gain' in mm.parameters:
+            mm.fixed['gain'] = False
+        # Optionally allow baseline width to adjust already in Stage A
+        if 'std_baseline' in mm.parameters:
+            mm.fixed['std_baseline'] = False
 
         try:
             mm.migrad()
@@ -532,10 +549,18 @@ def fit_peaks_of_CalibrationHistogram(
 
             si = _seed_scale_from_bin(edges_all, y_all, mean_i, std_i)
             if si is None:
-                # fallback to previous heuristic if out-of-range or degenerate
+                # Fallback: convert counts/bin -> counts/x (density) consistently
                 idx = int(np.argmin(np.abs(data_x - mean_i)))
-                idx = max(0, min(idx, len(data_y) - 1))
-                si = float(data_y[idx]) * 0.95
+                idx = max(0, min(idx, len(y_all) - 1))
+                eL = float(edges_all[idx]); eR = float(edges_all[idx + 1])
+                bw = max(eR - eL, 1e-12)
+                yb = float(y_all[idx])  # counts/bin
+                try:
+                    bkg_den = float(base_params[5])  # counts/x
+                except Exception:
+                    bkg_den = 0.0
+                yb_eff = max(0.0, yb - max(0.0, bkg_den) * bw)  # counts/bin after bkg subtraction
+                si = 0.95 * (yb_eff / bw)  # -> counts/x
 
             pvals.append(float(si))
             pnames.append(f'scale_{i}pe')
@@ -753,9 +778,11 @@ def fit_peaks_of_CalibrationHistogram(
     # Resize the gaussian_fits_parameters
     calibration_histogram._CalibrationHistogram__reset_gaussian_fit_parameters()
     
-    # Convert fitted density scales back to counts/bin for downstream compatibility
-    sb_val = mm.params[0].value * binw
-    sb_err = mm.params[0].error * binw
+    # Convert fitted density scales back to counts/bin using the LOCAL bin width at each peak mean.
+    # This is robust if edges are not perfectly uniform.
+    bw0 = _bin_width_at(calibration_histogram.edges, float(mm.params[1].value))
+    sb_val = mm.params[0].value * bw0
+    sb_err = mm.params[0].error * bw0
 
     calibration_histogram._CalibrationHistogram__add_gaussian_fit_parameters(
         sb_val, sb_err,
@@ -767,6 +794,7 @@ def fit_peaks_of_CalibrationHistogram(
     errgain = mm.params[3].error
     propstd = mm.params[4].value
     errpropstd = mm.params[4].error
+    mean0 = float(mm.params[1].value)
 
     # Add Gaussian parameters for each detected PE peak actually present in the winning model
     # Determine how many scale_i parameters Minuit ended up with
@@ -774,11 +802,11 @@ def fit_peaks_of_CalibrationHistogram(
     # Peaks modeled = baseline (i=0) + len(scale_param_names)
     for i in range(1, 1 + len(scale_param_names)):
         pname = f"scale_{i}pe"
-        # Access by name to avoid relying on positional indices
-        # density -> counts/bin
-        scale_i_val = mm.values[pname] * binw
-        scale_i_err = mm.errors[pname] * binw
-        mean_i_val  = gain * i + mm.params[1].value
+        # density -> counts/bin (use local bin width at each mean)
+        mean_i_val  = gain * i + mean0
+        bwi = _bin_width_at(calibration_histogram.edges, float(mean_i_val))
+        scale_i_val = mm.values[pname] * bwi
+        scale_i_err = mm.errors[pname] * bwi
         # d(mean_i)^2 = (i * d(gain))^2 + d(mean_baseline)^2
         mean_i_err  = np.sqrt((i**2) * (errgain ** 2) + (mm.params[1].error ** 2))
         std_i_val   = np.sqrt(mm.params[2].value ** 2 + (propstd ** 2) * i)
@@ -798,12 +826,11 @@ def fit_peaks_of_CalibrationHistogram(
 
     setattr(calibration_histogram, 'n_peaks_found', n_peaks_found)
 
-    # Store background in a consistent unit for plotting/QA:
-    # - bkg_density: counts per x-unit (matches multigaussfit_binned)
-    # - bkg_counts_per_bin: approximate counts per bin for ~uniform bins
+    # Store background in consistent unit (density counts/x) and a local counts/bin proxy
     try:
-        setattr(calibration_histogram, 'bkg_density', float(mm.values['bkg']))
-        setattr(calibration_histogram, 'bkg_counts_per_bin', float(mm.values['bkg']) * binw)
+        bkg_den = float(mm.values['bkg'])
+        setattr(calibration_histogram, 'bkg_density', bkg_den)
+        setattr(calibration_histogram, 'bkg_counts_per_bin', bkg_den * bw0)
     except Exception:
         pass
 
