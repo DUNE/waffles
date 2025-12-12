@@ -6,10 +6,37 @@ import waffles.utils.fit_peaks.fit_peaks_utils as wuff
 from waffles.Exceptions import GenerateExceptionMessage
 
 from iminuit import Minuit
-from iminuit.cost import LeastSquares
 
 import numpy as np
 import waffles.utils.numerical_utils as wun
+
+class PoissonDeviance:
+    """Pickle-friendly Poisson deviance for binned counts."""
+    def __init__(self, x, y, model):
+        self.x = np.asarray(x)
+        self.y = np.asarray(y)
+        self.model = model
+
+    def __call__(self, *p):
+        mu = self.model(self.x, *p)
+        mu = np.clip(mu, 1e-12, None)
+        y = self.y
+        term = np.where(y > 0, y * np.log(y / mu), 0.0)
+        return 2.0 * np.sum(mu - y + term)
+    
+class PoissonDevianceBinned:
+    """Pickle-friendly Poisson deviance for histogram bins."""
+    def __init__(self, edges, y, model_binned):
+        self.edges = np.asarray(edges)
+        self.y = np.asarray(y)
+        self.model = model_binned
+
+    def __call__(self, *p):
+        mu = self.model(self.edges, *p)
+        mu = np.clip(mu, 1e-12, None)
+        y  = self.y
+        term = np.where(y > 0, y * np.log(y / mu), 0.0)
+        return 2.0 * np.sum(mu - y + term)
 
 def fit_peaks_of_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
@@ -258,6 +285,11 @@ def fit_peaks_of_CalibrationHistogram(
             if _have_fitted_any_peak(calibration_histogram):
                 _v(2, "[fit_peaks] Recovery fit succeeded.")
                 break  # we recovered
+    # --- Bin width (assume uniform bins; use robust estimator) ---
+    # This is needed because histogram heights are counts/bin but the binned Gaussian
+    # model scale behaves like a density amplitude (counts per x-unit).
+    binw = float(np.median(np.diff(calibration_histogram.edges)))
+    binw = max(binw, 1e-12)
 
     if fit_type != 'multigauss_iminuit':
         _v(1, f"[fit_peaks] Non-iminuit mode → returning {fFoundMax & fFitAll}")
@@ -282,34 +314,38 @@ def fit_peaks_of_CalibrationHistogram(
     # Keep a baseline minimum here; the sweep will override it.
     min_modeled_peaks = 2  # total peaks incl. baseline
     # Enforce equal sigma across peaks (propstd == 0)
-    force_equal_std = True
+    force_equal_std = False
     _v(3, f"[fit_peaks] Policy: force_equal_std={force_equal_std}")
 
     # --- Build immutable BASE seed vector (5 params) ---
-    base_paramnames = ['scale_baseline', 'mean_baseline', 'std_baseline', 'gain', 'propstd']
+    base_paramnames = ['scale_baseline', 'mean_baseline', 'std_baseline', 'gain', 'propstd','bkg']
     base_params = [
-        gfp['scale'][0][0],
-        gfp['mean'][0][0],
-        gfp['std'][0][0],
+        float(gfp['scale'][0][0]) / binw,  # scale_baseline as density seed
+        float(gfp['mean'][0][0]),   # mean_baseline
+        float(gfp['std'][0][0]),    # std_baseline (según tu parametrización)
     ]
 
-    # in case there is no 1pe fitted, still try our best using BASE params
-    # base_params = [scale_baseline, mean_baseline, std_baseline, gain, propstd(seeded later)]
-    onepe_scale = base_params[0]
-    onepe_std   = base_params[2]
-    onepe_mean  = base_params[1] + 2 * onepe_std  # mean_baseline + 2*sigma
+    # Estimar gain como separación entre picos (no como posición absoluta)
+    if n_peaks_found > 1:
+        gain_seed = float(gfp['mean'][1][0] - gfp['mean'][0][0])
+    else:
+        # fallback si no hay 1pe: algo proporcional al ancho
+        gain_seed = 2.0 * float(gfp['std'][0][0])
 
-    if n_peaks_found > 1:  # use measured 1pe if present
-        onepe_scale = gfp['scale'][1][0]
-        onepe_mean  = gfp['mean'][1][0]
-        onepe_std   = gfp['std'][1][0]
-    _v(2, f"[fit_peaks] Seeds: baseline(mean={base_params[1]:.4g}, std={base_params[2]:.4g}), "
-           f"1pe(mean={onepe_mean:.4g}, std={onepe_std:.4g})")
+    # std_prop seed (si lo estás dejando libre)
+    if force_equal_std:
+        stdprop_seed = 0.0
+    else:
+        # una semilla suave, no crítica
+        stdprop_seed = max(0.0, 0.5 * float(gfp['std'][0][0]))
 
-    # std dev of 1, 2, n-th peak is are proportional
-    estimated_stdprop = 0.0 if force_equal_std else np.sqrt(abs(onepe_std**2 - base_params[2]**2))  # abs just in case
-    base_params.append(onepe_mean)
-    base_params.append(estimated_stdprop)
+    base_params.append(gain_seed)     # gain
+    base_params.append(stdprop_seed)  # propstd
+
+    # background seed: low percentile of counts in full histogram
+    # (works ok even before windowing)
+    bkg_seed = float(np.percentile(calibration_histogram.counts, 5))
+    base_params.append(max(0.0, bkg_seed))
 
     # Estimates the number of peaks that should be fitted based on the histogram
     # Starts with a huge number of peaks, and then reduces it
@@ -321,59 +357,112 @@ def fit_peaks_of_CalibrationHistogram(
     data_err = np.sqrt(data_y)
     data_err[data_err == 0] = 1  # avoid division by zero
 
-    def _run_minuit_fit(pnames, pvals):
-        """Runs the two-stage Minuit with bounds and returns (mm, ok)."""
-        # Safety: names and values must match exactly
+    mu0_seed  = float(base_params[1])
+    s0_seed   = float(base_params[2])
+
+    # usa un gain_seed (lo corregimos abajo en 4.2)
+    gain_seed = float(base_params[3])
+
+    # número de picos modelados (baseline + PE)
+    # si estás probando modelos con diferente cantidad, usa el “n_scales” de cada candidato
+    n_scales_seed = max(2, n_peaks_found)  # baseline + al menos 1pe
+
+    # ancho del último pico según el modelo
+    s_last = np.sqrt(s0_seed**2 + (float(base_params[4])**2) * (n_scales_seed - 1))
+
+    L, R = 4.0, 4.0
+    xmin = mu0_seed - L * s0_seed
+    xmax = mu0_seed + (n_scales_seed - 1) * gain_seed + R * s_last
+
+    mask = (data_x >= xmin) & (data_x <= xmax)
+    x_fit = data_x[mask]
+    y_fit = data_y[mask]
+
+    def _select_fit_window(n_scales: int, L: float = 4.0, R: float = 4.0):
+        mu0  = float(base_params[1])
+        s0   = float(base_params[2])
+        gain = float(base_params[3])
+        prop = float(base_params[4])
+
+        s_last = np.sqrt(s0**2 + (prop**2) * max(0, n_scales - 1))
+        xmin = mu0 - L * s0
+        xmax = mu0 + (n_scales - 1) * gain + R * s_last
+
+        edges = calibration_histogram.edges
+        y = calibration_histogram.counts
+
+        i0 = max(0, np.searchsorted(edges, xmin, side="right") - 1)
+        i1 = min(len(y) - 1, np.searchsorted(edges, xmax, side="left") - 1)
+
+        # fallback si quedó muy chico
+        if (i1 - i0 + 1) < 20:
+            return edges, y
+
+        edges_fit = edges[i0:i1+2]   # +2 porque edges = nbins+1
+        y_fit     = y[i0:i1+1]
+        return edges_fit, y_fit
+
+    def _run_minuit_fit(pnames, pvals, edges_fit, y_fit):
         if len(pnames) != len(pvals):
-            raise RuntimeError(f"Parameter name/value length mismatch: {len(pnames)} names vs {len(pvals)} values")
-        chi2 = LeastSquares(data_x, data_y, data_err, wun.multigaussfit)
-        mm = Minuit(chi2, *pvals, name=pnames)
-        _v(3, f"[iminuit] Stage A init: n_params={len(pnames)}")
-        # Stage A: partially constrained
+            raise RuntimeError("Parameter name/value length mismatch")
+
+        cost = PoissonDevianceBinned(edges_fit, y_fit, wun.multigaussfit_binned)
+        mm = Minuit(cost, *pvals, name=pnames)
+
+        # Stage A
         mm.fixed['scale_baseline'] = True
-        mm.fixed['mean_baseline'] = True
-        mm.fixed['std_baseline'] = True
-        mm.fixed['gain'] = True
-        # Equal-sigma policy: keep propstd fixed to 0
-        mm.fixed['propstd'] = True if force_equal_std else False
+        mm.fixed['mean_baseline']  = True
+        mm.fixed['std_baseline']   = True
+        mm.fixed['gain']           = True
+        mm.fixed['propstd']        = False
         if 'scale_1pe' in mm.parameters:
             mm.fixed['scale_1pe'] = True
+
         try:
             mm.migrad()
         except Exception:
-            _v(2, "[iminuit] Stage A failed.")
-            return (mm, False)
-        # Stage B: free with lower bounds on positive params
+            return mm, False
+
+        # Stage B
         for p in mm.parameters:
             mm.fixed[p] = False
             if p != "mean_baseline":
-                mm.limits[p] = (1e-6, None)
-        # Keep propstd fixed if equal-sigma
-        if force_equal_std and 'propstd' in mm.parameters:
-            mm.fixed['propstd'] = True
+                mm.limits[p] = (0.0, None)
+            else:
+                mm.limits[p] = (None, None)
+
+        # keep background non-negative (explicit)
+        if 'bkg' in mm.parameters:
+            mm.limits['bkg'] = (0.0, None)
+
+        # explícitos útiles (por si acaso)
+        if 'propstd' in mm.parameters:      mm.limits['propstd'] = (0.0, None)
+        if 'gain' in mm.parameters:         mm.limits['gain']    = (0.0, None)
+        if 'std_baseline' in mm.parameters: mm.limits['std_baseline'] = (0.0, None)
+
         try:
             mm.migrad(); mm.migrad()
             mm.hesse()
         except Exception:
-            _v(2, "[iminuit] Stage B failed.")
-            return (mm, False)
-        _v(3, f"[iminuit] Converged: fval={mm.fval:.4g}, dof~={len(data_x)-len(mm.parameters)}")
-        return (mm, bool(mm.fmin.is_valid))
+            return mm, False
 
-    def _goodness(mm):
-        # mm.fval is chi2; dof = N - n_free
-        n_data = len(data_x)
-        # Parameters effectively free at the final stage:
+        return mm, bool(mm.fmin.is_valid)
+
+    def _goodness(mm, n_data: int):
         n_free = sum(1 for p in mm.parameters if not mm.fixed[p])
         dof = max(1, n_data - n_free)
-        chi2 = float(mm.fval)
-        redchi2 = chi2 / dof
-        # AIC/BIC with chi2 as deviance proxy
+        # NOTE: with Poisson deviance, fval is a deviance, not a LS chi2
+        dev = float(mm.fval)
+        redchi2 = dev / dof
         k = n_free
-        AIC = chi2 + 2.0 * k
-        BIC = chi2 + k * np.log(max(1, n_data))
-        return dict(chi2=chi2, dof=dof, redchi2=redchi2, AIC=AIC, BIC=BIC)
-
+        AIC = dev + 2.0 * k
+        BIC = dev + k * np.log(max(1, n_data))
+        return dict(chi2=dev, dof=dof, redchi2=redchi2, AIC=AIC, BIC=BIC)
+    
+    def _mu_binned(edges, mm):
+        """Expected counts per bin for current Minuit state."""
+        return wun.multigaussfit_binned(edges, *[mm.values[p] for p in mm.parameters])
+    
     # Build candidate param sets from the immutable base ONLY
     def _build_params_for(n_scales: int, _min_modeled_peaks: int):
         """
@@ -386,12 +475,14 @@ def fit_peaks_of_CalibrationHistogram(
         n_scales = max(n_scales, _min_modeled_peaks)
         pnames = list(base_paramnames)   # 5 base names
         pvals  = list(base_params)       # 5 base vals
-        # Add one scale parameter per additional PE peak (1..n_scales-1)
+        gain_seed = float(base_params[3])
+        mu0_seed  = float(base_params[1])
+
         for i in range(1, n_scales):
-            # Seed amplitude from a nearby histogram location
-            idx = int(np.argmin(np.abs(calibration_histogram.edges - onepe_mean * i)))
-            idx = max(0, min(idx, len(calibration_histogram.counts) - 1))
-            pvals.append(float(calibration_histogram.counts[idx]) * 0.95)
+            target = mu0_seed + i * gain_seed
+            idx = int(np.argmin(np.abs(data_x - target)))
+            idx = max(0, min(idx, len(data_y) - 1))
+            pvals.append((float(data_y[idx]) * 0.95) / binw)  # counts/bin -> density seed
             pnames.append(f'scale_{i}pe')
         # Final sanity: lengths must match
         assert len(pnames) == len(pvals), (len(pnames), len(pvals))
@@ -403,36 +494,44 @@ def fit_peaks_of_CalibrationHistogram(
         # Candidate A: heuristic upper size
         _v(2, f"[sweep] Try min_modeled_peaks={_min_pe}")
         pA_names, pA_vals = _build_params_for(n_peaks_to_fit_iminuit, _min_pe)
-        mmA, okA = _run_minuit_fit(pA_names, pA_vals)
-        gofA = _goodness(mmA) if okA else None
+        nA = max(_min_pe, n_peaks_to_fit_iminuit)
+        edgesA, yA = _select_fit_window(nA)
+        mmA, okA = _run_minuit_fit(pA_names, pA_vals, edgesA, yA)
+        gofA = _goodness(mmA, len(yA)) if okA else None
         if okA and verbosity >= 2:
             _v(2, f"[sweep]  CandA(n={len(pA_names)}): BIC={gofA['BIC']:.4g}")
         # Candidate B: truncated to measured peaks
         trunc_n = max(_min_pe, n_peaks_found)
         pB_names, pB_vals = _build_params_for(trunc_n, _min_pe)
-        mmB, okB = _run_minuit_fit(pB_names, pB_vals)
-        gofB = _goodness(mmB) if okB else None
+        nB = max(_min_pe, n_peaks_found)
+        edgesB, yB = _select_fit_window(nB)
+        mmB, okB = _run_minuit_fit(pB_names, pB_vals, edgesB, yB)
+        gofB = _goodness(mmB, len(yB)) if okB else None
         if okB and verbosity >= 2:
             _v(2, f"[sweep]  CandB(n={len(pB_names)}): BIC={gofB['BIC']:.4g}")
 
         # If neither converged, try relaxed pass on A: free gain/scale_1pe
         if not (okA or okB):
-            chi2 = LeastSquares(data_x, data_y, data_err, wun.multigaussfit)
-            mm = Minuit(chi2, *pA_vals, name=pA_names)
-            for p in mm.parameters:
-                mm.fixed[p] = False
+            edgesR, yR = _select_fit_window(nA)
+            costR = PoissonDevianceBinned(edgesR, yR, wun.multigaussfit_binned)
+            mmR = Minuit(costR, *pA_vals, name=pA_names)
+
+            # fully relax (do NOT fix gain or scale_1pe here)
+            for p in mmR.parameters:
+                mmR.fixed[p] = False
+
+            # positivity constraints for Poisson model
+            for p in mmR.parameters:
                 if p != "mean_baseline":
-                    mm.limits[p] = (1e-6, None)
-            if force_equal_std and 'propstd' in mm.parameters:
-                mm.fixed['propstd'] = True
+                    mmR.limits[p] = (0.0, None)            
             try:
-                mm.migrad(); mm.hesse()
-                okA = bool(mm.fmin.is_valid)
-                mmA = mm
-                gofA = _goodness(mmA) if okA else None
+                mmR.migrad(); mmR.hesse()
+                okA = bool(mmR.fmin.is_valid)
+                mmA = mmR
+                gofA = _goodness(mmA, len(yR)) if okA else None
             except Exception:
                 okA = False
-                mmA = mm
+                mmA = mmR
                 gofA = None
         # Verbose: print relaxed pass result with safe BIC formatting
         if verbosity >= 2:
@@ -501,8 +600,9 @@ def fit_peaks_of_CalibrationHistogram(
     # Compute present scale_i parameters BEFORE checking for scale_1pe
     scale_param_names = [p for p in mm.parameters if p.startswith("scale_") and p.endswith("pe")]
     if "scale_1pe" not in scale_param_names:
-        p2_names, p2_vals = _build_params_for(2)
-        mm2, ok2 = _run_minuit_fit(p2_names, p2_vals)
+        p2_names, p2_vals = _build_params_for(2, 2)
+        edges2, y2 = _select_fit_window(2)
+        mm2, ok2 = _run_minuit_fit(p2_names, p2_vals, edges2, y2)
         if ok2:
             mm = mm2
             scale_param_names = [p for p in mm.parameters if p.startswith("scale_") and p.endswith("pe")]       
@@ -521,12 +621,12 @@ def fit_peaks_of_CalibrationHistogram(
     gain_tolerance_frac = 0.25  # |μ_i - (μ0+i*gain)| <= frac * σ0
 
     # Build model prediction to compute residuals
-    data_x = (calibration_histogram.edges[:-1] + calibration_histogram.edges[1:]) * 0.5
     data_y = calibration_histogram.counts
-    chi2 = LeastSquares(data_x, data_y, np.maximum(1.0, np.sqrt(np.clip(data_y, 0, None))), wun.multigaussfit)
-    y_fit = wun.multigaussfit(data_x, *[mm.values[p] for p in mm.parameters])
-    resid = data_y - y_fit
-    # Robust noise estimate via MAD
+    # Consistent residuals: Poisson (Pearson) residuals on binned expected counts
+    mu = _mu_binned(calibration_histogram.edges, mm)   # expected counts per bin
+    resid = (data_y - mu) / np.sqrt(np.clip(mu, 1.0, None))  # Pearson residuals
+
+    # Robust noise estimate via MAD (on Pearson residuals)
     med = np.median(resid)
     mad = np.median(np.abs(resid - med))
     noise_sigma = max(1e-12, 1.4826 * mad)  # ~= std for normal
@@ -537,28 +637,36 @@ def fit_peaks_of_CalibrationHistogram(
     propstd = float(mm.values['propstd']) if 'propstd' in mm.parameters else 0.0
     peak_names = [p for p in mm.parameters if p.startswith("scale_") and p.endswith("pe")]
     peak_names.sort(key=lambda s: int(s.split('_')[1].replace('pe','')))  # scale_1pe, scale_2pe, ...
-    heights = np.array([mm.values[p] for p in peak_names], dtype=float)
+    heights = np.array([mm.values[p] * binw for p in peak_names], dtype=float)
+    # Use "peak strength" in COUNTS PER BIN (integrated), not raw scale.
+    edges = calibration_histogram.edges
+    mu_total = mu
+    peak_mu_max = []
+    peak_mu_tot_at_max = []
+    for k, p in enumerate(peak_names, start=1):
+        scale_i = float(mm.values[p])
+        mean_i  = float(mm.values['mean_baseline']) + k * float(mm.values['gain'])
+        std_i   = float(np.sqrt(std0**2 + (propstd**2) * k))
+        mu_i = wun.gaussian_bin_counts(edges, scale_i, mean_i, std_i)
+        j = int(np.argmax(mu_i))
+        peak_mu_max.append(float(mu_i[j]))
+        peak_mu_tot_at_max.append(float(mu_total[j]))
+    heights = np.array(peak_mu_max, dtype=float)
+
     stds    = np.array([np.sqrt(std0**2 + propstd**2 * i) for i in range(1, 1+len(peak_names))], dtype=float)
     areas   = heights * np.sqrt(2.0 * np.pi) * stds
     total_area = np.sum(areas) if areas.size else 1.0
     rel_area   = areas / max(total_area, 1e-12)
-    snr        = heights / noise_sigma
+    # SNR in Poisson units at the peak bin, inflated by extra dispersion (noise_sigma)
+    denom = noise_sigma * np.sqrt(np.clip(np.array(peak_mu_tot_at_max), 1.0, None))
+    snr        = heights / np.clip(denom, 1e-12, None)
     max_h      = np.max(heights) if heights.size else 1.0
     rel_height = heights / max(max_h, 1e-12)
-
-    # Gain alignment (keeps real ladder peaks, cuts misaligned shoulders)
-    mu0   = float(mm.values['mean_baseline'])
-    gainv = float(mm.values['gain'])
-    # expected μ_i for i = 1..N
-    mu_exp = np.array([mu0 + i * gainv for i in range(1, 1+len(peak_names))], dtype=float)
-    mu_fit = mu_exp.copy()  # means are derived (equal-σ model); use expectation directly
-    align_tol = gain_tolerance_frac * std0
-    aligned = np.abs(mu_fit - mu_exp) <= align_tol
 
     # Significance: require BOTH a strong statistic (SNR or area) AND reasonable height,
     # OR pass the gain-alignment test (for faint but well-aligned right-tail peaks).
     strong_stat = ((snr >= min_peak_snr) | (rel_area >= min_rel_area)) & (rel_height >= rel_height_min)
-    significant = strong_stat | aligned
+    significant = strong_stat
     if significant.any():
         last_sig_idx = np.where(significant)[0].max()  # 0-based among scales (1pe -> idx 0)
     else:
@@ -571,7 +679,8 @@ def fit_peaks_of_CalibrationHistogram(
         _v(1, f"[prune] Pruning from {current_n_scales} to {desired_n_scales} modeled peaks "
                f"(min_peak_snr={min_peak_snr}, min_rel_area={min_rel_area}).")
         p_names, p_vals = _build_params_for(desired_n_scales, desired_n_scales)  # force the count as the minimum
-        mm_pruned, ok_pruned = _run_minuit_fit(p_names, p_vals)
+        edgesP, yP = _select_fit_window(desired_n_scales)
+        mm_pruned, ok_pruned = _run_minuit_fit(p_names, p_vals, edgesP, yP)
         if ok_pruned:
             mm = mm_pruned
             scale_param_names = [p for p in mm.parameters if p.startswith("scale_") and p.endswith("pe")]
@@ -584,9 +693,13 @@ def fit_peaks_of_CalibrationHistogram(
 
     # Resize the gaussian_fits_parameters
     calibration_histogram._CalibrationHistogram__reset_gaussian_fit_parameters()
+    
+    # Convert fitted density scales back to counts/bin for downstream compatibility
+    sb_val = mm.params[0].value * binw
+    sb_err = mm.params[0].error * binw
 
     calibration_histogram._CalibrationHistogram__add_gaussian_fit_parameters(
-        mm.params[0].value,mm.params[0].error,
+        sb_val, sb_err,
         mm.params[1].value,mm.params[1].error,
         mm.params[2].value,mm.params[2].error,
     )
@@ -603,8 +716,9 @@ def fit_peaks_of_CalibrationHistogram(
     for i in range(1, 1 + len(scale_param_names)):
         pname = f"scale_{i}pe"
         # Access by name to avoid relying on positional indices
-        scale_i_val = mm.values[pname]
-        scale_i_err = mm.errors[pname]
+        # density -> counts/bin
+        scale_i_val = mm.values[pname] * binw
+        scale_i_err = mm.errors[pname] * binw
         mean_i_val  = gain * i + mm.params[1].value
         # d(mean_i)^2 = (i * d(gain))^2 + d(mean_baseline)^2
         mean_i_err  = np.sqrt((i**2) * (errgain ** 2) + (mm.params[1].error ** 2))

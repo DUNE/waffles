@@ -1,10 +1,17 @@
 import numba
 import numpy as np
+from scipy.special import erf
 from scipy.signal import lfilter
 from typing import List, Tuple
 
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
+
+def gaussian_bin_counts(edges, scale, mean, std):
+    """Expected counts per bin integrating: scale * exp(-0.5*((x-mean)/std)**2)."""
+    std = np.clip(std, 1e-12, None)
+    z = (edges - mean) / (np.sqrt(2.0) * std)
+    return scale * std * np.sqrt(np.pi / 2.0) * (erf(z[1:]) - erf(z[:-1]))
 
 def gaussian(
         x: float,
@@ -36,7 +43,34 @@ def gaussian(
         The value of the function at x
     """
 
-    return scale * np.exp(-1. * (np.power((x - mean) / (2 * std), 2)))
+    return scale * np.exp(-0.5 * ((x - mean) / std)**2)
+
+def multigaussfit_binned(edges, *params):
+    """
+    params = [scale0, mean0, std0, gain, std_prop, bkg, scale_1pe, scale_2pe, ...]
+    bkg is constant expected counts per bin.
+    Returns expected counts per bin (len = len(edges)-1).
+    """
+    n_scales = (len(params) - 5)  # total modeled peaks including baseline
+
+    scale0 = params[0]
+    mean0  = params[1]
+    std0   = params[2]
+    gain   = params[3]
+    stdp   = params[4]
+    bkg    = params[5]
+
+    mu = gaussian_bin_counts(edges, scale0, mean0, std0)
+    mu += np.clip(bkg, 0.0, None)
+
+    for i in range(1, n_scales):
+        scale_i = params[i + 5]
+        mean_i  = mean0 + i * gain
+        std_i   = np.sqrt(std0**2 + (stdp**2) * i)
+        mu += gaussian_bin_counts(edges, scale_i, mean_i, std_i)
+
+    # mu are expected counts; must be >=0 for Poisson
+    return np.clip(mu, 0.0, None)
 
 def multigaussfit(x, *params):
     """Multivariate Gaussian function for fitting.
@@ -57,7 +91,7 @@ def multigaussfit(x, *params):
     output = np.zeros_like(x)
     
     n_peaks = (len(params)-4)
-    baseline_amplitude = abs(params[0])
+    baseline_amplitude = params[0]
     baseline_mean = params[1]
     baseline_std = params[2]
     output += gaussian(x, baseline_amplitude, baseline_mean, baseline_std)
