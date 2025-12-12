@@ -250,6 +250,8 @@ def main() -> None:
                                     (databaserucio / f"{run:06d}.txt").read_text())
                                 logging.info("run %d: using existing .txt file", run)
                                 ok_runs.append(run)
+                            else:
+                                logging.error("run %d: no raw data found remotely or locally\n", run)
 
                     continue
                 if cfg.get("max_files", "all") != "all":

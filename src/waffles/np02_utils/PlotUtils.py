@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.BasicWfAna import BasicWfAna
@@ -24,6 +25,7 @@ from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
 import waffles.Exceptions as we
+import matplotlib.pyplot as plt
 
 
 tol_colors = [
@@ -330,7 +332,6 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         print("Changing range and binning..")
         # repating it.... not the best
         chargevalues = np.array([wf.analyses["std"].result[variable] for wf in wfset.waveforms if wf.analyses["std"].result[variable] is not np.nan])
-        print(chargevalues)
         if len(chargevalues) == 0:
             print(f"No valid charge values for endpoint {endpoint} and channel {channel}. Skipping histogram generation.")
             return
@@ -366,8 +367,11 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     # average_hits = np.sum(average_hits)/np.sum(hInt.counts)
 
     # This method in case histogram should not cut average
-    integral_sum = np.nansum( np.array([ wf.analyses["std"].result[variable] for wf in wfset.waveforms ]) )
-    n_integrals = np.sum( [1 if wf.analyses["std"].result[variable] is not np.nan else 0 for wf in wfset.waveforms ] )
+    charnges = np.array([ wf.analyses["std"].result[variable] for wf in wfset.waveforms if wf.analyses["std"].result[variable] is not np.nan ]) 
+    #getting only 96% of the distribution to avoid huge outliers
+    charnges = charnges[(charnges >= np.quantile(charnges, 0.02)) & (charnges <= np.quantile(charnges, 0.98))]
+    integral_sum = np.sum(charnges)
+    n_integrals = len(charnges)
     average_hits = integral_sum / n_integrals if n_integrals > 0 else 0
 
     fit_hist = fit_peaks_of_CalibrationHistogram(
@@ -413,6 +417,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         figure=figure,
         row=row, col=col,
         plot_fits=True,
+        plot_sum_of_gaussians=True,
         name=f"{dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)),'')}; snr={snr:.2f}",
         showfitlabels=False,
     )
@@ -425,12 +430,14 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             wf.analyses["std"].result['normalization'] = hInt.normalization
             wf.analyses["std"].result['gain'] = gain
             wf.analyses["std"].result['errgain'] = errgain
+            wf.analyses["std"].result['spe_charge'] = spe_charge
+            wf.analyses["std"].result['spe_stddev'] = spe_stddev
         print(
             f"{list(wfset.runs)[0]},",
             # f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]},",
             f"{endpoint},",
             f"{channel},",
-            f"{dict_uniqch_to_module[strUch(endpoint,channel)]},",
+            f"{dict_uniqch_to_module.get(strUch(endpoint,channel), 'None')},",
             f"{snr:.2f},",
             f"{gain:.2f},",
             f"{baseline_stddev:.2f},",
@@ -504,4 +511,59 @@ def ch_read_calib(filename: str = 'calibration_results_file.csv') -> dict:
         raise FileNotFoundError(
             f"Could not find the {filename} file in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
         )
+
+def select_spe(waveform:Waveform, pretrigger=200, posttrigger=400, threshold=80) -> bool:
+    if 'spe_charge' not in waveform.analyses['std'].result:
+        return False
+    spe_mean = waveform.analyses['std'].result['spe_charge']
+    spe_std = waveform.analyses['std'].result['spe_stddev']
+    waveform_charge = waveform.analyses['std'].result['integral']
+    baseline = waveform.analyses['std'].result['baseline']
+    
+    if abs(waveform_charge - spe_mean) <= spe_std:
+        if np.all(waveform.adcs[:pretrigger] - baseline < threshold):
+            if np.all(waveform.adcs[posttrigger:] - baseline < threshold):
+                return True
+    return False
+
+def plot_average_spe(wfset: WaveformSet,
+                     pretrigger=200,
+                     posttrigger=400,
+                     threshold=80,
+                     show_progress=True,
+                     maximum_begin = 250,
+                     maximum_end = 300
+                     ):
+
+
+    try:
+        wfset_spe = WaveformSet.from_filtered_WaveformSet(wfset, select_spe, pretrigger=pretrigger, posttrigger=posttrigger, threshold=threshold,  show_progress=show_progress)
+    except:
+        # print(f"No SPE waveforms found for channel module {dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}")
+        print("NaN")
+        return
+
+    spewf = np.array([ wf.adcs - wf.analyses['std'].result['baseline'] for wf in wfset_spe.waveforms ])
+    spewf = np.mean(spewf, axis=0)
+    plt.plot(spewf, label=f"{dict_uniqch_to_module[str(UniqueChannel(wfset_spe.waveforms[0].endpoint, wfset_spe.waveforms[0].channel))]}")
+    plt.xlabel('Time [ticks]')
+    plt.ylabel('Amplitude [ADCs]')
+    plt.legend()
+    maximum = np.max(spewf[maximum_begin:maximum_end])
+    print(f"{maximum:.2f}")
+
+
+def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], plot_function:Callable, func_params:dict, figsize=(16,8)):
+
+    detChMap = generate_ChannelMap(detector)
+    gridWs = ChannelWsGrid(detChMap, wfset)
+
+    fig, axs = plt.subplots(gridWs.ch_map.rows, gridWs.ch_map.columns, figsize=figsize)
+    axs = np.atleast_2d(axs)
+
+    for (i, j), ax in np.ndenumerate(axs):
+        plt.sca(ax)
+        wfs = gridWs.get_channel_ws_by_ij_position_in_map(i,j)
+        if not wfs: continue
+        plot_function(wfs, **func_params)
 
