@@ -18,6 +18,7 @@ class MultiGaussBinnedModel:
     Parameter meaning (consistent with gaussian_bin_counts):
       - scale_* : CONTINUOUS amplitude (counts / x-unit). Model returns counts/bin after integration.
       - bkg     : constant background in counts/bin
+      - bkgG    : gaussian background HEIGHT in counts/bin (converted internally to counts/x)
     """
     def __init__(self, pnames):
         self.pnames = list(pnames)
@@ -26,25 +27,43 @@ class MultiGaussBinnedModel:
         edges = np.asarray(edges)
         vals = {n: float(v) for n, v in zip(self.pnames, p)}
 
-        amp0  = float(vals['scale_baseline'])
+        # Representative bin width (needed to convert counts/bin <-> counts/x)
+        bw = float(np.median(np.diff(edges)))
+        bw = max(bw, 1e-12)
+
+        amp0  = float(vals['scale_baseline'])   # counts/x
         mu0   = float(vals['mean_baseline'])
         s0    = float(vals['std_baseline'])
         gain  = float(vals['gain'])
         prop  = float(vals.get('propstd', 0.0))
-        bkg   = float(vals.get('bkg', 0.0))  # counts/bin
+        # We keep 'bkg' for backward compatibility, but we'll allow disabling it.
+        bkg   = float(vals.get('bkg', 0.0))  # counts/bin (flat)
+
+        # Optional: gaussian background (height in counts/bin)
+        bkgG_h   = float(vals.get('bkgG', 0.0))          # counts/bin (height)
+        bkgG_mu  = float(vals.get('bkgG_mean', mu0))
+        bkgG_std = float(vals.get('bkgG_std', 10.0*s0))
 
         mu = wun.gaussian_bin_counts(edges, amp0, mu0, s0)  # counts/bin
 
         for name in self.pnames:
             if name.startswith("scale_") and name.endswith("pe"):
                 k = int(name.split('_')[1].replace('pe', ''))
-                amp_k  = float(vals[name])   # height (counts/bin)
+                amp_k  = float(vals[name])   # counts/x (density)
                 mu_k   = mu0 + k * gain
                 s_k    = math.sqrt(max(1e-24, s0*s0 + (prop*prop)*k))
                 mu += wun.gaussian_bin_counts(edges, amp_k,  mu_k, s_k)
 
         # always include bkg (limits already enforce >=0)
-        mu = mu + max(0.0, bkg)
+        # Optional flat background (counts/bin)
+        # If gaussian background is enabled, you usually want bkg=0 to avoid the global offset.
+        if bkg > 0.0 and bkgG_h <= 0.0:
+            mu = mu + bkg
+
+        # Gaussian background (counts/bin height -> counts/x density -> integrate)
+        if bkgG_h > 0.0 and bkgG_std > 0.0:
+            bkgG_scale = bkgG_h / bw  # counts/x
+            mu = mu + wun.gaussian_bin_counts(edges, bkgG_scale, bkgG_mu, bkgG_std)
         return np.clip(mu, 1e-12, None)
 
 
@@ -57,10 +76,22 @@ class PoissonDeviance:
 
     def __call__(self, *p):
         mu = self.model(self.x, *p)
-        mu = np.clip(mu, 1e-12, None)
         y = self.y
-        term = np.where(y > 0, y * np.log(y / mu), 0.0)
-        return 2.0 * np.sum(mu - y + term)
+
+        # Hard guards: invalid model output => huge penalty (keep Minuit alive)
+        if (mu is None) or (not np.all(np.isfinite(mu))) or np.any(mu <= 0):
+            return 1e30
+        if (y is None) or (not np.all(np.isfinite(y))) or np.any(y < 0):
+            return 1e30
+
+        # Avoid inf/0 ratios without changing the physical region
+        mu = np.clip(mu, 1e-12, 1e12)
+        ratio = np.where(y > 0, y / mu, 1.0)
+        ratio = np.clip(ratio, 1e-300, 1e300)
+
+        term = np.where(y > 0, y * np.log(ratio), 0.0)
+        dev = 2.0 * np.sum(mu - y + term)
+        return dev if np.isfinite(dev) else 1e30
     
 class PoissonDevianceBinned:
     """Pickle-friendly Poisson deviance for histogram bins."""
@@ -71,10 +102,20 @@ class PoissonDevianceBinned:
 
     def __call__(self, *p):
         mu = self.model(self.edges, *p)
-        mu = np.clip(mu, 1e-12, None)
-        y  = self.y
-        term = np.where(y > 0, y * np.log(y / mu), 0.0)
-        return 2.0 * np.sum(mu - y + term)
+        y = self.y
+
+        if (mu is None) or (not np.all(np.isfinite(mu))) or np.any(mu <= 0):
+            return 1e30
+        if (y is None) or (not np.all(np.isfinite(y))) or np.any(y < 0):
+            return 1e30
+
+        mu = np.clip(mu, 1e-12, 1e12)
+        ratio = np.where(y > 0, y / mu, 1.0)
+        ratio = np.clip(ratio, 1e-300, 1e300)
+
+        term = np.where(y > 0, y * np.log(ratio), 0.0)
+        dev = 2.0 * np.sum(mu - y + term)
+        return dev if np.isfinite(dev) else 1e30
 
 def fit_peaks_of_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
@@ -380,7 +421,12 @@ def fit_peaks_of_CalibrationHistogram(
     # IMPORTANT: In this branch we enforce a consistent physical meaning:
     #   scale_* : area (total expected counts) of each Gaussian component
     #   bkg     : constant background in counts/bin
-    base_paramnames = ['scale_baseline', 'mean_baseline', 'std_baseline', 'gain', 'propstd', 'bkg']
+    base_paramnames = [
+        'scale_baseline', 'mean_baseline', 'std_baseline',
+        'gain', 'propstd',
+        'bkg',               # counts/bin
+        'bkgG', 'bkgG_mean', 'bkgG_std'  # gaussian background (height counts/bin + shape)
+    ]
     base_params = [
         1.0,                        # scale_baseline (area) – will be reseeded robustly below
         float(gfp['mean'][0][0]),   # mean_baseline
@@ -404,10 +450,18 @@ def fit_peaks_of_CalibrationHistogram(
     base_params.append(gain_seed)     # gain
     base_params.append(stdprop_seed)  # propstd
 
-    # background seed: percentile of counts/bin converted to density (counts/x)
-    # (works ok even before windowing)
+    # --- background seeds ---
+    # If you prefer a "non-flat" background, seed the gaussian component and start bkg flat at ~0
     bkg_seed_bin = float(np.percentile(calibration_histogram.counts, 5))
-    base_params.append(max(0.0, bkg_seed_bin))  # counts/bin  
+    bkg_seed_bin = max(0.0, bkg_seed_bin)
+    base_params.append(0.0)  # bkg (flat) starts at 0 to avoid visible offset by default
+
+    # Gaussian background: height ~ low percentile, mean ~ center of domain, std ~ wide fraction of span
+    x0 = float(0.5 * (calibration_histogram.edges[0] + calibration_histogram.edges[-1]))
+    span = float(calibration_histogram.edges[-1] - calibration_histogram.edges[0])
+    base_params.append(bkg_seed_bin)          # bkgG (height counts/bin)
+    base_params.append(x0)                   # bkgG_mean
+    base_params.append(max(1e-6, 0.35*span)) # bkgG_std (wide but finite) 
 
     # Estimates the number of peaks that should be fitted based on the histogram
     # Starts with a huge number of peaks, and then reduces it
@@ -537,6 +591,12 @@ def fit_peaks_of_CalibrationHistogram(
         bw_loc = float(np.median(np.diff(edges_fit)))
         bw_loc = max(bw_loc, 1e-12)
 
+        # Upper bounds for amplitudes/background to prevent mu -> inf (NaNs in deviance).
+        # y_fit is counts/bin, while scale_* are counts/x-unit (density) in this model.
+        max_y = float(np.max(y_fit)) if len(y_fit) else 1.0
+        scale_max = max(1.0, 50.0 * max_y / bw_loc)   # counts/x-unit (very generous)
+        bkg_max   = max(1.0, 2.0 * max_y)             # counts/bin
+
         gain0 = float(base_params[3])
         s0    = float(base_params[2])
         std_min = max(_STD_MIN_BINW_FRAC * bw_loc, _STD_MIN_SEED_FRAC * s0)
@@ -553,11 +613,25 @@ def fit_peaks_of_CalibrationHistogram(
                 mm.limits[p] = (gain_min, gain_max)
             elif p == "propstd":
                 mm.limits[p] = (0.0, std_max)  # keep increments reasonable
+            elif p.startswith("scale_"):
+                # scale_* are amplitudes (density, counts/x). Cap them to avoid mu overflow.
+                mm.limits[p] = (0.0, scale_max)
+            elif p in ("bkg", "bkgG"):
+                # background parameters are counts/bin-like in this codepath
+                mm.limits[p] = (0.0, bkg_max)
             else:
                 mm.limits[p] = (0.0, None)
-        if "bkg" in mm.parameters:
-            mm.limits["bkg"] = (0.0, None)
+        # keep explicit non-negativity (already enforced above), do not overwrite upper bounds
 
+        # Gaussian background limits (if enabled)
+        if "bkgG" in mm.parameters:
+            mm.limits["bkgG"] = (0.0, None)  # height counts/bin
+        if "bkgG_mean" in mm.parameters:
+            mm.limits["bkgG_mean"] = (float(edges_fit[0]), float(edges_fit[-1]))
+        if "bkgG_std" in mm.parameters:
+            xr = float(edges_fit[-1] - edges_fit[0])
+            xr = max(xr, 1e-9)
+            mm.limits["bkgG_std"] = (0.15 * xr, 3.0 * xr)
         # ---------------- Stage A (more robust) ----------------
         # Do NOT fix baseline/1pe scales: when peaks overlap, wrong amplitude seeds
         # force Minuit to "cheat" via sigma. Keep only higher-order peaks fixed.
@@ -568,9 +642,22 @@ def fit_peaks_of_CalibrationHistogram(
                 else:
                     mm.fixed[p] = True
 
-        # Let bkg move already in Stage A (optional but helps when baseline is wide / tails exist)
-        if "bkg" in mm.parameters:
+        # Background policy:
+        # - If gaussian background is present, keep flat bkg disabled (fixed at 0).
+        # - Otherwise allow flat bkg to float (if you still want it).
+        if "bkg" in mm.parameters and "bkgG" in mm.parameters:
+            mm.values["bkg"] = 0.0
+            mm.fixed["bkg"] = True
+        elif "bkg" in mm.parameters:
             mm.fixed["bkg"] = False
+
+        # Stage-A: gaussian background: free only the HEIGHT, keep mean/std fixed (stability)
+        if "bkgG" in mm.parameters:
+            mm.fixed["bkgG"] = False
+        if "bkgG_mean" in mm.parameters:
+            mm.fixed["bkgG_mean"] = True
+        if "bkgG_std" in mm.parameters:
+            mm.fixed["bkgG_std"] = True
 
         # Keep correlated-width parameter fixed initially (helps stability)
         if 'propstd' in mm.parameters:
@@ -601,9 +688,25 @@ def fit_peaks_of_CalibrationHistogram(
             if p == "mean_baseline":
                 mm.limits[p] = (None, None)
 
-        # keep background non-negative (explicit)
+        # Keep the "no flat offset" policy also in Stage B
+        if "bkg" in mm.parameters and "bkgG" in mm.parameters:
+            mm.values["bkg"] = 0.0
+            mm.fixed["bkg"] = True
+
+        # Optional: only now allow bkgG_mean/std to float (if you really want)
+        # If you want max stability, leave them fixed always.
+        if "bkgG_mean" in mm.parameters:
+            mm.fixed["bkgG_mean"] = False
+        if "bkgG_std" in mm.parameters:
+            mm.fixed["bkgG_std"] = False
+
+        # keep background non-negative (explicit) — upper bounds already set above
         if 'bkg' in mm.parameters:
-            mm.limits['bkg'] = (0.0, None)
+            try:
+                if mm.limits['bkg'] is None:
+                    mm.limits['bkg'] = (0.0, bkg_max)
+            except Exception:
+                mm.limits['bkg'] = (0.0,	 bkg_max)
 
         # Keep bounds for propstd/gain/std_baseline as defined above (avoid sigma collapse)
         if 'propstd' in mm.parameters and mm.limits['propstd'] is None:
@@ -1003,14 +1106,42 @@ def fit_peaks_of_CalibrationHistogram(
 
     # NEW: store binned fit prediction for plotting (this is what you want to overlay!)
     try:
-        model_full = MultiGaussBinnedModel(list(mm.parameters))
-        mu_bins_full = model_full(
-            calibration_histogram.edges,
-            *[float(mm.values[p]) for p in mm.parameters]
-        )  # counts/bin
-        x_centers = 0.5 * (calibration_histogram.edges[:-1] + calibration_histogram.edges[1:])
-        setattr(calibration_histogram, 'fit_x_centers', x_centers)
-        setattr(calibration_histogram, 'fit_mu_bins', mu_bins_full)
+        edges_all = np.asarray(calibration_histogram.edges, dtype=float)
+        x_centers = 0.5 * (edges_all[:-1] + edges_all[1:])
+        pnames_ = list(mm.parameters)
+        pvals_  = [float(mm.values[p]) for p in pnames_]
+
+        model_full = MultiGaussBinnedModel(pnames_)
+        mu_total = np.asarray(model_full(edges_all, *pvals_), dtype=float)  # counts/bin
+
+        # Also build "signal-only" = sum of the fitted gaussian peaks (baseline + PE),
+        # i.e. excluding constant bkg and excluding gaussian bkg component.
+        vals = {n: float(v) for n, v in zip(pnames_, pvals_)}
+        bw = float(np.median(np.diff(edges_all)))
+        bw = max(bw, 1e-12)
+
+        mu_sig = wun.gaussian_bin_counts(edges_all,
+                                         float(vals["scale_baseline"]),
+                                         float(vals["mean_baseline"]),
+                                         float(vals["std_baseline"]))
+        mu0 = float(vals["mean_baseline"])
+        gain = float(vals["gain"])
+        prop = float(vals.get("propstd", 0.0))
+        s0   = float(vals["std_baseline"])
+
+        for pname in pnames_:
+            if pname.startswith("scale_") and pname.endswith("pe"):
+                k = int(pname.split("_")[1].replace("pe", ""))
+                mu_k = mu0 + k * gain
+                s_k  = math.sqrt(max(1e-24, s0*s0 + (prop*prop)*k))
+                mu_sig = mu_sig + wun.gaussian_bin_counts(edges_all, float(vals[pname]), mu_k, s_k)
+
+        mu_bkg = mu_total - mu_sig
+
+        setattr(calibration_histogram, "fit_x_centers", x_centers)
+        setattr(calibration_histogram, "fit_mu_bins_total",  mu_total)
+        setattr(calibration_histogram, "fit_mu_bins_signal", mu_sig)
+        setattr(calibration_histogram, "fit_mu_bins_bkg",    mu_bkg)
     except Exception:
         pass
 

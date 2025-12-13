@@ -1002,12 +1002,14 @@ def plot_CalibrationHistogram(
 
         # Prefer the binned curve saved by the Minuit fit (expected counts per bin).
         fit_x_centers = getattr(calibration_histogram, "fit_x_centers", None)
-        fit_mu_bins   = getattr(calibration_histogram, "fit_mu_bins", None)
+        fit_mu_total  = getattr(calibration_histogram, "fit_mu_bins_total", None)
+        fit_mu_signal = getattr(calibration_histogram, "fit_mu_bins_signal", None)
+        fit_mu_bkg    = getattr(calibration_histogram, "fit_mu_bins_bkg", None)
 
         have_binned_curve = (
             fit_x_centers is not None
-            and fit_mu_bins is not None
-            and len(fit_x_centers) == len(fit_mu_bins)
+            and fit_mu_total is not None
+            and len(fit_x_centers) == len(fit_mu_total)
         )
 
         if not have_binned_curve:
@@ -1060,16 +1062,44 @@ def plot_CalibrationHistogram(
             if have_binned_curve:
                 # Plot expected counts/bin as a STEP over the bin edges to avoid ~binw/2 x-offset
                 fPlottedOneFit = True
-                y_step = np.r_[fit_mu_bins, fit_mu_bins[-1]]  # match len(edges)
+                y_step_total = np.r_[fit_mu_total, fit_mu_total[-1]]  # match len(edges)
                 fit_trace = pgo.Scatter(
                     x=calibration_histogram.edges,
-                    y=y_step,
+                    y=y_step_total,
                     mode='lines',
                     line=dict(color='red', width=0.5, shape='hv'),
                     name=f"{name} (MultiFit)",
                     showlegend=showfitlabels
                 )
                 figure.add_trace(fit_trace, row=row, col=col)
+
+                # Optional: also show "signal-only" and "background-only" if available
+                if fit_mu_signal is not None and len(fit_mu_signal) == len(fit_mu_total):
+                    y_step_sig = np.r_[fit_mu_signal, fit_mu_signal[-1]]
+                    figure.add_trace(
+                        pgo.Scatter(
+                            x=calibration_histogram.edges,
+                            y=y_step_sig,
+                            mode='lines',
+                            line=dict(color='red', width=0.5, shape='hv', dash='dot'),
+                            name=f"{name} (Signal)",
+                            showlegend=showfitlabels
+                        ),
+                        row=row, col=col
+                    )
+                if fit_mu_bkg is not None and len(fit_mu_bkg) == len(fit_mu_total):
+                    y_step_bkg = np.r_[fit_mu_bkg, fit_mu_bkg[-1]]
+                    figure.add_trace(
+                        pgo.Scatter(
+                            x=calibration_histogram.edges,
+                            y=y_step_bkg,
+                            mode='lines',
+                            line=dict(color='red', width=0.5, shape='hv', dash='dash'),
+                            name=f"{name} (Background)",
+                            showlegend=showfitlabels
+                        ),
+                        row=row, col=col
+                    )                
             else:
                 fit_y = np.zeros(np.shape(fit_x))
                 for i in range(len(calibration_histogram.gaussian_fits_parameters['scale'])):
