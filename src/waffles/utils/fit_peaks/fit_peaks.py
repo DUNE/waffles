@@ -334,6 +334,48 @@ def fit_peaks_of_CalibrationHistogram(
         )
     _v(1, f"[fit_peaks] initial seed fits done: ok={fFitAll}")
 
+    # --- NEW: if we found some peaks but fewer than requested, try to recover missing peaks ---
+    # This is important for faint right-tail peaks: the initial prominence can miss them.
+    if fit_type == "multigauss_iminuit":
+        try:
+            g = calibration_histogram.gaussian_fits_parameters
+            n_seed = len(g.get("mean", [])) if isinstance(g, dict) else 0
+        except Exception:
+            n_seed = 0
+
+        if 0 < n_seed < max_peaks:
+            _v(1, f"[fit_peaks] Only {n_seed}/{max_peaks} seed peaks found — trying relaxed spotting.")
+            # progressively relax prominence to catch small peaks on the right
+            prom_grid = [
+                max(1e-6, prominence * 0.80),
+                max(1e-6, prominence * 0.60),
+                max(1e-6, prominence * 0.40),
+                max(1e-6, prominence * 0.25),
+            ]
+            for prom_ in prom_grid:
+                calibration_histogram._CalibrationHistogram__reset_gaussian_fit_parameters()
+                fFoundMax, spsi_output = wuff.__spot_first_peaks_in_CalibrationHistogram(
+                    calibration_histogram,
+                    max_peaks,
+                    prom_,
+                    initial_percentage=min(0.05, initial_percentage),
+                    percentage_step=min(0.05, percentage_step),
+                    return_last_addition_if_fail=True
+                )
+                # regenerate seeds with independent fits (stable)
+                _ = wuff.__fit_independent_gaussians_to_calibration_histogram(
+                    spsi_output, calibration_histogram, half_points_to_fit
+                )
+                try:
+                    g2 = calibration_histogram.gaussian_fits_parameters
+                    n2 = len(g2.get("mean", [])) if isinstance(g2, dict) else 0
+                except Exception:
+                    n2 = 0
+                _v(2, f"[fit_peaks]  relaxed prom={prom_:.3g} -> seeds={n2}")
+                if n2 >= max_peaks:
+                    _v(1, "[fit_peaks]  recovered missing peak seeds.")
+                    break
+
     # -------- NEW: Retry strategy if peak spotting / seeding failed --------
     # Defensive: if nothing was fitted yet (no peaks), attempt a few relaxed
     # peak-finding settings before giving up.
@@ -917,6 +959,33 @@ def fit_peaks_of_CalibrationHistogram(
     if best_mm is None:
         _v(1, "[fit_peaks] Sweep failed to produce a valid model.")
         return False
+
+    # --- NEW: if best model has fewer peaks than requested, try forcing max_peaks once ---
+    # Rationale: BIC may prefer a smaller model even when a weak but real PE peak exists.
+    try:
+        best_scale_names = [p for p in best_mm.parameters if p.startswith("scale_") and p.endswith("pe")]
+        best_n_scales = 1 + len(best_scale_names)  # baseline + npe
+    except Exception:
+        best_n_scales = 0
+
+    # allow a small BIC penalty to still accept the forced model
+    FORCE_MAXPEAKS_BIC_DELTA = 15.0
+    if best_n_scales > 0 and best_n_scales < max_peaks:
+        _v(1, f"[fit_peaks] Best model has {best_n_scales} peaks, trying forced {max_peaks}.")
+        pF_names, pF_vals = _build_params_for(max_peaks, max_peaks)
+        edgesF, yF = _select_fit_window(max_peaks)
+        mmF, okF = _run_minuit_fit(pF_names, pF_vals, edgesF, yF)
+        if okF:
+            gofF = _goodness(mmF, len(yF))
+            # Accept if it doesn't worsen "too much"
+            if gofF["BIC"] <= (best_bic + FORCE_MAXPEAKS_BIC_DELTA):
+                best_mm, best_gof = mmF, gofF
+                best_bic = gofF["BIC"]
+                _v(1, f"[fit_peaks] Forced model accepted: BIC={best_bic:.4g}")
+            else:
+                _v(1, f"[fit_peaks] Forced model rejected: BIC={gofF['BIC']:.4g} (best {best_bic:.4g})")
+        else:
+            _v(1, "[fit_peaks] Forced model failed to converge.")
 
     mm = best_mm
     fitstatus = True
