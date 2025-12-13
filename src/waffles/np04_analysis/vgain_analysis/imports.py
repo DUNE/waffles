@@ -27,6 +27,7 @@ from waffles.np04_analysis.vgain_analysis import utils as led_utils
 from waffles.np04_data.ProtoDUNE_HD_APA_VGAIN_SCAN_map import APA_map
 from waffles.input_output.pickle_file_reader import WaveformSet_from_pickle_files
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_ChannelWsGrid
+from waffles.utils.fit_peaks.fit_peaks import auto_domain_from_grid
 from waffles.utils.baseline.baseline_utils import subtract_baseline
 from waffles.utils.filtering_utils import fine_selection_for_led_calibration
 from waffles.utils.filtering_utils import coarse_selection_for_led_calibration

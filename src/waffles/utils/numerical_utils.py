@@ -71,8 +71,7 @@ def multigaussfit_binned(edges, *params):
         std_i   = np.sqrt(std0**2 + (stdp**2) * i)
         mu += gaussian_bin_counts(edges, scale_i, mean_i, std_i)
     
-    bw = np.diff(edges)
-    mu += np.clip(bkg_den, 0.0, None) * bw
+    mu += np.clip(bkg, 0.0, None)
 
     # mu are expected counts; must be >=0 for Poisson
     return np.clip(mu, 0.0, None)

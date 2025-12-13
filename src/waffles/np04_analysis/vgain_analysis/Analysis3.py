@@ -913,6 +913,15 @@ class Analysis3(WafflesAnalysis):
                 f"PDE {self.pde} ... ",
                 end=''
             )
+        
+        calib_histo_lower_limit_, calib_histo_upper_limit_ = auto_domain_from_grid(
+            self.grid_apa,
+            analysis_label=self.params.integration_analysis_label,
+            variable="integral",
+            q_low=0.005,
+            q_high=0.995,
+            pad_frac=0.05,
+        )
 
         self.grid_apa.compute_calib_histos(
             self.params.calib_histo_bins_number[self.pde],

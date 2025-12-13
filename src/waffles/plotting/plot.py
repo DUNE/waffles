@@ -1000,25 +1000,44 @@ def plot_CalibrationHistogram(
 
     if plot_fits:
 
-        fit_x = np.linspace(
-            calibration_histogram.edges[0],
-            calibration_histogram.edges[-1],
-            num=fit_npoints
+        # Prefer the binned curve saved by the Minuit fit (expected counts per bin).
+        fit_x_centers = getattr(calibration_histogram, "fit_x_centers", None)
+        fit_mu_bins   = getattr(calibration_histogram, "fit_mu_bins", None)
+
+        have_binned_curve = (
+            fit_x_centers is not None
+            and fit_mu_bins is not None
+            and len(fit_x_centers) == len(fit_mu_bins)
         )
+
+        if not have_binned_curve:
+            fit_x = np.linspace(
+                calibration_histogram.edges[0],
+                calibration_histogram.edges[-1],
+                num=fit_npoints
+            )
 
         for i in range(len(calibration_histogram.
                         gaussian_fits_parameters['scale'])):
 
             fPlottedOneFit = True
             
-            fit_y = wun.gaussian(   
+            # Individual gaussians are only defined in the continuous plotting space.
+            # If we only have a binned curve, we can still draw individual components
+            # approximately using gaussian(x) on a dense grid.
+            if have_binned_curve:
+                fit_x = np.linspace(
+                    calibration_histogram.edges[0],
+                    calibration_histogram.edges[-1],
+                    num=fit_npoints
+                )
+
+            fit_y = wun.gaussian(
                 fit_x,
-                calibration_histogram.
-                gaussian_fits_parameters['scale'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['mean'][i][0],
-                calibration_histogram.
-                gaussian_fits_parameters['std'][i][0])
+                calibration_histogram.gaussian_fits_parameters['scale'][i][0],
+                calibration_histogram.gaussian_fits_parameters['mean'][i][0],
+                calibration_histogram.gaussian_fits_parameters['std'][i][0]
+            )
             
             fit_trace = pgo.Scatter(
                 x=fit_x,
@@ -1038,40 +1057,41 @@ def plot_CalibrationHistogram(
 
         if plot_sum_of_gaussians:
 
-            fit_y = np.zeros(np.shape(fit_x))
-
-            for i in range(len(calibration_histogram.
-                            gaussian_fits_parameters['scale'])):
-
+            if have_binned_curve:
+                # Plot expected counts/bin as a STEP over the bin edges to avoid ~binw/2 x-offset
                 fPlottedOneFit = True
-
-                fit_y += wun.gaussian(
-                    fit_x,
-                    calibration_histogram.
-                    gaussian_fits_parameters['scale'][i][0],
-                    calibration_histogram.
-                    gaussian_fits_parameters['mean'][i][0],
-                    calibration_histogram.
-                    gaussian_fits_parameters['std'][i][0]
-                )
-
-            if fPlottedOneFit:
-                
+                y_step = np.r_[fit_mu_bins, fit_mu_bins[-1]]  # match len(edges)
                 fit_trace = pgo.Scatter(
-                    x=fit_x,
-                    y=fit_y,
+                    x=calibration_histogram.edges,
+                    y=y_step,
                     mode='lines',
-                    line=dict(
-                        color='red', 
-                        width=0.5),
+                    line=dict(color='red', width=0.5, shape='hv'),
                     name=f"{name} (MultiFit)",
                     showlegend=showfitlabels
                 )
-                
-                figure.add_trace(
-                    fit_trace,
-                    row=row,
-                    col=col)
+                figure.add_trace(fit_trace, row=row, col=col)
+            else:
+                fit_y = np.zeros(np.shape(fit_x))
+                for i in range(len(calibration_histogram.gaussian_fits_parameters['scale'])):
+                    fPlottedOneFit = True
+                    fit_y += wun.gaussian(
+                        fit_x,
+                        calibration_histogram.gaussian_fits_parameters['scale'][i][0],
+                        calibration_histogram.gaussian_fits_parameters['mean'][i][0],
+                        calibration_histogram.gaussian_fits_parameters['std'][i][0]
+                    )
+                # Add constant background if available (counts/bin)
+                fit_y += float(getattr(calibration_histogram, "bkg_counts_per_bin", 0.0))
+                if fPlottedOneFit:
+                    fit_trace = pgo.Scatter(
+                        x=fit_x,
+                        y=fit_y,
+                        mode='lines',
+                        line=dict(color='red', width=0.5),
+                        name=f"{name} (MultiFit)",
+                        showlegend=showfitlabels
+                    )
+                    figure.add_trace(fit_trace, row=row, col=col)
             
     return fPlottedOneFit
 
