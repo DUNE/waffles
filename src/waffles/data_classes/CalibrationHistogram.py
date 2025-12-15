@@ -313,7 +313,7 @@ class CalibrationHistogram(TrackedHistogram):
         )
 
     # @classmethod
-    def compute_cross_talk(self) -> tuple[float, float]:
+    def compute_cross_talk(self) -> None:
         """
         This method computes the cross-talk of the SiPM
         from the fitted gaussian peaks of the calibration
@@ -331,7 +331,9 @@ class CalibrationHistogram(TrackedHistogram):
         """
         if len(self.gaussian_fits_parameters["mean"]) < 3:
             print("Peak fitting failed.")
-            return np.nan, np.nan
+            self.CrossTalk = CrossTalk()
+            return
+
         fraction_events_in_peaks = [] 
         err_fraction_events_in_peaks = []
         peak_numbers = []
@@ -369,18 +371,19 @@ class CalibrationHistogram(TrackedHistogram):
 
         if fitstatus == False:
             print("Cross-talk fit failed.")
-            return np.nan, np.nan
+            self.CrossTalk = CrossTalk()
+            return 
 
-        n_avg_photons     = mm.params[0].value
-        err_n_avg_photons = mm.params[0].error
-        cross_talk        = mm.params[1].value
-        err_cross_talk    = mm.params[1].error
-        norm_factor       = mm.params[2].value
-        err_norm_factor   = mm.params[2].error
+        avg_photons     = mm.params[0].value
+        err_avg_photons = mm.params[0].error
+        cross_talk      = mm.params[1].value
+        err_cross_talk  = mm.params[1].error
+        norm_factor     = mm.params[2].value
+        err_norm_factor = mm.params[2].error
 
         self.CrossTalk = CrossTalk(
-            n_avg_photons,
-            err_n_avg_photons,
+            avg_photons,
+            err_avg_photons,
             cross_talk,
             err_cross_talk,
             norm_factor,
@@ -391,12 +394,12 @@ class CalibrationHistogram(TrackedHistogram):
             err_fraction_events_in_peaks
         )
 
-        return cross_talk, err_cross_talk
+        return
 
     # @property
     def get_cross_talk(self, recompute: bool=True) -> CrossTalk:
         if hasattr(self, 'CrossTalk') and not recompute:
             return self.CrossTalk
         else:
-            _, _ = self.compute_cross_talk()
+            self.compute_cross_talk()
             return self.CrossTalk
