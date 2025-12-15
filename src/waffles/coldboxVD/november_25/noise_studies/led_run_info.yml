@@ -1,0 +1,6 @@
+# Path to the files.txt containing the Rucio's paths
+filepath_folder: "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/November2025run/spy_buffer/LED_scan/11V/"
+
+# Name of the folder where the txt files containing FFTs will be saved
+# No "/" in the name!
+led_folder: "LED_wavefroms_plot"

@@ -1,5 +1,6 @@
 # --- IMPORTS -------------------------------------------------------
 from pandas._libs.hashtable import mode
+import matplotlib.pyplot as plt
 import waffles
 import waffles.Exceptions as exceptions
 import os
@@ -61,7 +62,7 @@ if __name__ == "__main__":
 
     # --- LOOP OVER RUNS ----------------------------------------------
     for vgain, vgain_dir in zip(vgains, vgain_dirs):
-        ch_dir = vgain_dir+"/compressed_channels/"
+        ch_dir = vgain_dir+"/"
         files_in_dir = os.listdir(ch_dir)
         channels = [int (f.replace("channel_", "").replace(".dat", "")) \
                     for f in files_in_dir if f.startswith("channel_") and f.endswith(".dat")]
@@ -91,6 +92,7 @@ if __name__ == "__main__":
             fft2_avg = np.zeros(memorydepth)
             rms = 0.
 
+        
             # Compute the average FFT of the wfs.adcs_float
             for wf in wfset_ch.waveforms:
                 rms += np.std(wf.adcs_float)
@@ -125,4 +127,8 @@ if __name__ == "__main__":
     
     # Save the results in a csv file
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(ana_path+"Noise_Studies_Results.csv", index=False, mode=out_writing_mode)
+    out_df.to_csv(ana_path+"Noise_Studies_Results_vgain_scan_membrane_noise_n5V_below_Vbr_02122025_afternoon.csv", index=False, mode=out_writing_mode)
+
+
+
+    

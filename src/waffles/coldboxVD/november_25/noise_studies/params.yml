@@ -16,7 +16,7 @@ out_writing_mode: "w"
 user_vgains: []
 
 # Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
-ana_path: "/eos/home-f/fegalizz/ColdBox_VD/November25/SpyBuffer/Noise_Analysis/"
+ana_path: "/eos/home-v/vtrabatt/ColdBox_VD/November25/SpyBuffer/Noise_Analysis/"
 
 # Number of ticks per waveform
 memorydepth: 2048

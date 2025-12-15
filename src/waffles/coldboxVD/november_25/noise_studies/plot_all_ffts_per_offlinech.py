@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ana_path = user_config.get("ana_path")
 
     input_path = ana_path + fft_folder + "/"
-    output_path = ana_path + "all_ffts_per_offlinech/"
+    output_path = ana_path + "all_ffts_per_offlinech_vgain_scan_membrane_noise_n5V_below_Vbr_02122025_morning/"
     
 
     # Create the frequencies array to plot x-axis
