@@ -65,18 +65,16 @@ def _summarize_for_detector(
 
             frag_types[str(ftype)] += 1
             hdr = frag.get_header()
-            # handle both get_source_id() and source_id attributes
+            # Prefer element_id.id as exposed by daqdataformats bindings
             src = None
-            if hasattr(hdr, "get_source_id"):
-                try:
-                    src = hdr.get_source_id().id
-                except Exception:
-                    src = None
-            if src is None and hasattr(hdr, "source_id"):
-                try:
-                    src = hdr.source_id.id
-                except Exception:
-                    src = None
+            try:
+                src = hdr.element_id.id  # SourceID
+            except Exception:
+                if hasattr(hdr, "source_id"):
+                    try:
+                        src = hdr.source_id.id
+                    except Exception:
+                        src = None
             if src is not None:
                 source_ids[src] += 1
             geo_ids[getattr(gid, "id", gid)] += 1
