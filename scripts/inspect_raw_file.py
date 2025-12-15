@@ -10,7 +10,7 @@ Examples:
 import argparse
 from collections import Counter
 from pprint import pprint
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple, List
 
 import detchannelmaps
 from daqdataformats import FragmentType
@@ -25,10 +25,13 @@ from waffles.utils.daphne_decoders import (
 from waffles.utils.daphne_helpers import select_records
 
 
-def _summarize_for_detector(h5_file, detector: str, records, debug: bool) -> Tuple[Counter, Counter, Counter]:
+def _summarize_for_detector(
+    h5_file, detector: str, records: List, debug: bool
+) -> Tuple[Counter, Counter, Counter, Counter]:
     frag_types = Counter()
     source_ids = Counter()
     geo_ids = Counter()
+    trigger_timestamps = Counter()
 
     for record in records:
         try:
@@ -51,6 +54,7 @@ def _summarize_for_detector(h5_file, detector: str, records, debug: bool) -> Tup
             frag_types[str(ftype)] += 1
             source_ids[frag.get_header().get_source_id().id] += 1
             geo_ids[gid.id] += 1
+            trigger_timestamps[str(ftype)] += frag.get_trigger_timestamp()
 
             if debug:
                 hdr = frag.get_header()
@@ -67,7 +71,7 @@ def _summarize_for_detector(h5_file, detector: str, records, debug: bool) -> Tup
                     except Exception as err:
                         print(f"        decode failed: {err}")
 
-    return frag_types, source_ids, geo_ids
+    return frag_types, source_ids, geo_ids, trigger_timestamps
 
 
 def summarize_fragments(filepath: str, detector: str, max_records: Optional[int], skip_records: int, debug: bool) -> Dict[str, Counter]:
@@ -81,17 +85,21 @@ def summarize_fragments(filepath: str, detector: str, max_records: Optional[int]
     frag_types = Counter()
     source_ids = Counter()
     geo_ids = Counter()
+    trigger_sums = Counter()
 
     for det in det_list:
-        ft, si, gi = _summarize_for_detector(h5_file, det, records, debug)
-        frag_types.update(ft)
-        source_ids.update(si)
-        geo_ids.update(gi)
+        ft, si, gi, ts = _summarize_for_detector(h5_file, det, records, debug)
+        if ft:
+            frag_types.update(ft)
+            source_ids.update(si)
+            geo_ids.update(gi)
+            trigger_sums.update(ts)
 
     return {
         "fragment_types": frag_types,
         "source_ids": source_ids,
         "geo_ids": geo_ids,
+        "trigger_ts_sum": trigger_sums,
         "records_considered": Counter({"records": len(records)}),
     }
 
@@ -242,6 +250,9 @@ def main() -> int:
     pprint(frag_stats["source_ids"])
     print("Geo IDs:")
     pprint(frag_stats["geo_ids"])
+    if frag_stats["trigger_ts_sum"]:
+        print("Trigger timestamp sums (by fragment type):")
+        pprint(frag_stats["trigger_ts_sum"])
     print(f"Records considered: {frag_stats['records_considered']['records']}\n")
 
     # Waveform-level summary
@@ -255,9 +266,10 @@ def main() -> int:
     )
 
     if args.offline_table:
+        det_for_map = det if det != "AUTO" else "HD_PDS"
         offline_channel_table(
             args.filepath,
-            det if det != "AUTO" else "HD_PDS",
+            det_for_map,
             args.channel_map,
             skip_records=args.skip_records,
             max_records=args.max_records,
