@@ -858,7 +858,7 @@ def align_waveforms_by_correlation(
     optimal_shift_in_time_ticks = []
 
     # Compute the baseline charge threshold only once
-    baseline_charge_threshold = (center_0 + center_1) / 2.
+    baseline_charge_threshold = ((center_0 + center_1) / 2.) - center_0
 
     for waveform in input_ChannelWs.waveforms:
 
