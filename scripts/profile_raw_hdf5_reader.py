@@ -36,6 +36,11 @@ def parse_args() -> argparse.Namespace:
         help="Force the raw reader even if ETH fragments are present.",
     )
     parser.add_argument(
+        "--structured",
+        action="store_true",
+        help="Force structured HDF5 reader (hdf5_structured).",
+    )
+    parser.add_argument(
         "--subsample",
         type=int,
         default=1,
@@ -101,6 +106,7 @@ def main() -> int:
         det=args.det,
         force_eth=args.eth,
         force_raw=args.force_raw,
+        force_structured=args.structured,
         subsample=args.subsample,
         wvfm_count=args.wvfm_count,
         nrecord_start_fraction=args.nrecord_start_fraction,

@@ -13,8 +13,11 @@ from __future__ import annotations
 
 from typing import Optional
 
+import h5py
+
 from waffles.input_output import raw_hdf5_reader
 from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
+from waffles.input_output.hdf5_structured import load_structured_waveformset
 
 
 def normalize_detector(det: str) -> str:
@@ -45,12 +48,22 @@ def _probe_eth(filepath: str, det: str, max_records: int = 5) -> bool:
     return wfset is not None and len(wfset.waveforms) > 0
 
 
+def _is_structured_file(filepath: str) -> bool:
+    """Heuristic check for structured HDF5 (saved via hdf5_structured)."""
+    try:
+        with h5py.File(filepath, "r") as f:
+            return all(key in f for key in ("adcs", "timestamps", "channels", "endpoints"))
+    except Exception:
+        return False
+
+
 def load_waveforms(
     filepath: str,
     *,
     det: str = "HD_PDS",
     force_eth: bool = False,
     force_raw: bool = False,
+    force_structured: bool = False,
     # Raw-reader options
     subsample: int = 1,
     wvfm_count: Optional[int] = None,
@@ -72,11 +85,24 @@ def load_waveforms(
     """
     if force_eth and force_raw:
         raise ValueError("force_eth and force_raw are mutually exclusive")
+    if (force_structured and force_eth) or (force_structured and force_raw):
+        raise ValueError("force_structured cannot be combined with force_eth or force_raw")
 
     det_norm = normalize_detector(det)
     use_eth = force_eth
+    use_structured = force_structured
 
-    if not (force_eth or force_raw):
+    if not (force_eth or force_raw or force_structured):
+        use_structured = _is_structured_file(filepath)
+
+    if use_structured:
+        return load_structured_waveformset(
+            filepath,
+            max_waveforms=wvfm_count,
+            verbose=False,
+        )
+
+    if not (force_eth or force_raw or use_structured):
         use_eth = _probe_eth(filepath, det_norm)
 
     if use_eth:
