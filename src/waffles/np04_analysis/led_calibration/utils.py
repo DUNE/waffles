@@ -576,6 +576,7 @@ def align_waveforms_by_correlation(
     deviation_from_baseline: float = 0.3,
     lower_limit_correction: int = 0,
     upper_limit_correction: int = 0,
+    minimum_sliced_template_points: int = 10
 ) -> None:
     """This function aligns the waveforms in the given
     ChannelWs object based on their correlation with a
@@ -625,8 +626,8 @@ def align_waveforms_by_correlation(
         The WindowIntegrator analysis needs a baseline
         value to compute the waveform integrals. This
         parameter gives the label for the WfAna object
-        which contains such baseline value. Namely, it is
-        the key for the analyses attribute dictionary
+        which contains such baseline value. Namely, it
+        is the key for the analyses attribute dictionary
         of each Waveform object within the input
         ChannelWs.
     SPE_template_lower_limit_wrt_pulse (resp. SPE_template_upper_limit_wrt_pulse): int
@@ -682,6 +683,17 @@ def align_waveforms_by_correlation(
         a correction to the lower (resp. upper) limit
         of the pulse window. For more information, check
         the get_pulse_window_limits() function docstring.
+    minimum_sliced_template_points: int
+        This parameter makes a difference only if the
+        sliced waveforms end up having less points than
+        the sliced SPE template. In that case, the
+        function trims the sliced SPE template further,
+        so that its number of points is smaller than the
+        number of points in the sliced waveforms by
+        2 * maximum_allowed_shift points. If, after this
+        reduction, the number of points in the sliced
+        SPE template is less than minimum_sliced_template_points,
+        the function raises an Exception.
 
     Returns
     -------
@@ -731,9 +743,9 @@ def align_waveforms_by_correlation(
     waveforms_n_points = wfs_slice_i_up - wfs_slice_i_low
 
     if waveforms_n_points < template_n_points:
-        raise Exception(
+        print(
             "In function align_waveforms_by_correlation(): "
-            "The given SPE template peaks at time tick "
+            "WARNING: The given SPE template peaks at time tick "
             f"{template_pulse_idx}, resulting in the following "
             f"slicing indices: [{template_slice_i_low}, "
             f"{template_slice_i_up}). The data for the current "
@@ -744,8 +756,42 @@ def align_waveforms_by_correlation(
             f"{waveforms_n_points} points for the waveform "
             "samples, which is smaller than the number of "
             f"points ({template_n_points}) for the template "
-            "slice. Please review this case separatedly."
+            "slice. The number of points in the SPE template "
+            f"will be reduced from {template_n_points} to "
+            f"waveforms_n_points - (2 * {maximum_allowed_shift}) = ",
+            end=''
         )
+
+        # Compute left_fraction before updating template_n_points
+        left_fraction = round(
+            (template_pulse_idx - template_slice_i_low) / template_n_points
+        )
+
+        # Consider an smaller template slice, so
+        # that shifts of maximum_allowed_shift
+        # time ticks can still be considered
+        template_n_points = waveforms_n_points - (2 * maximum_allowed_shift)
+        print(f"{template_n_points} points.")
+
+        if minimum_sliced_template_points <= 0:
+            raise Exception(
+                "In function align_waveforms_by_correlation(): "
+                "The minimum_sliced_template_points parameter must "
+                "be greater than 0."
+            )
+
+        elif template_n_points <= minimum_sliced_template_points:
+            raise Exception(
+                "In function align_waveforms_by_correlation(): "
+                "After reducing the number of points in the template, "
+                "they fell below the minimum allowed value."
+            )
+
+        template_slice_i_low = \
+            template_pulse_idx - round(left_fraction * template_n_points)
+        
+        template_slice_i_up = \
+            template_slice_i_low + template_n_points
 
     # As of here, the number of points in the sliced waveforms
     # is bigger or equal to the number of points in the sliced
@@ -812,7 +858,7 @@ def align_waveforms_by_correlation(
     optimal_shift_in_time_ticks = []
 
     # Compute the baseline charge threshold only once
-    baseline_charge_threshold = (center_0 + center_1) / 2.
+    baseline_charge_threshold = ((center_0 + center_1) / 2.) - center_0
 
     for waveform in input_ChannelWs.waveforms:
 
@@ -869,6 +915,126 @@ def align_waveforms_by_correlation(
     input_ChannelWs.reset_mean_waveform()
 
     return
+
+def get_fine_selection_regions(
+    input_ChannelWs: ChannelWs,
+    baseline_region_points: int,
+    signal_region_half_points: int
+) -> tuple[int, int, int]:
+    """This function computes the parameters baseline_i_low,
+    baseline_i_up and signal_i_up as required by the
+    fine_selection_for_led_calibration() function. To do so,
+    this function first estimates the iterator value for
+    which a pulse typically happens in the waveform.adcs
+    arrays of the given ChannelWs object.
+
+    Parameters
+    ----------
+    baseline_region_points: int
+        The total number of points in the baseline region.
+        Namely, the baseline region is defined, before the
+        signal region, as the
+            [
+                estimated_pulse_idx - signal_region_half_points - baseline_region_points:
+                estimated_pulse_idx - signal_region_half_points
+            ]
+        interval in the waveform.adcs array.
+    signal_region_half_points: int
+        The total number of points in the signal region
+        equals to (2 * signal_region_half_points) + 1. 
+        I.e. the signal region is defined, around the
+        estimated pulse index, as the
+            [
+                estimated_pulse_idx - signal_region_half_points:
+                estimated_pulse_idx + signal_region_half_points + 1
+            ]
+        interval in the waveform.adcs array.
+
+    Returns
+    -------
+    tuple[int, int, int]
+        A tuple containing the following three integers:
+            - baseline_i_low: int
+                The lower limit index for the baseline region.
+            - baseline_i_up: int
+                The upper limit index for the baseline region,
+                which matches the lower limit index for the
+                signal region.
+            - signal_i_up: int
+                The upper limit index for the signal region.
+    """
+
+    estimated_pulse_idx = np.argmin(
+        input_ChannelWs.compute_mean_waveform().adcs
+    )
+
+    baseline_i_low = max(
+        0,
+        estimated_pulse_idx \
+            - signal_region_half_points \
+                - baseline_region_points
+    )
+
+    baseline_i_up = max(
+        0,
+        estimated_pulse_idx - signal_region_half_points
+    )
+
+    if baseline_i_up == 0: 
+        # Then baseline_i_low is also 0
+        print(
+            "In function get_fine_selection_regions(): "
+            f"WARNING: For channel {input_ChannelWs.endpoint}-"
+            f"{input_ChannelWs.channel}, there are not "
+            "enough points before the estimated pulse "
+            "position to define a baseline region, since "
+            f"estimated_pulse_idx ({estimated_pulse_idx}) - "
+            f"signal_region_half_points ({signal_region_half_points}) "
+            f"< 0. Both baseline_i_low and baseline_i_up "
+            "will be set to 0."
+        )
+    
+    signal_i_up = min(
+        input_ChannelWs.points_per_wf,
+        estimated_pulse_idx + signal_region_half_points + 1
+    )
+
+    return (
+        baseline_i_low,
+        baseline_i_up,
+        signal_i_up
+    )
+
+def regions_limits_are_consistent(
+    baseline_i_low: int,
+    baseline_i_up: int,
+    signal_i_up: int,
+    points_per_wf: int,
+) -> bool:
+    """This function checks that the given baseline
+    and signal region indices are consistent with
+    each other and with the given points_per_wf
+    value. This function returns True if the
+    following conditions are met:
+
+        0 <= baseline_i_low < baseline_i_up < signal_i_up <= points_per_wf
+
+    It returns False otherwise.
+
+    Parameters
+    ----------
+    baseline_i_low: int
+    baseline_i_up: int
+    signal_i_up: int
+    points_per_wf: int
+        The total number of points in each waveform
+
+    Returns
+    -------
+    None
+    """
+
+    return (0 <= baseline_i_low < baseline_i_up < signal_i_up <= points_per_wf)
 
 def backup_input_parameters(
     params: BaseInputParams,
@@ -1384,7 +1550,7 @@ def save_data_to_dataframe(
     apa: int,
     pde: float,
     packed_gain_snr_and_SPE_info: dict,
-    packed_integration_limits: dict,
+    packed_limits: dict,
     path_to_output_file: str,
     sipm_vendor_df: Optional[pd.DataFrame] = None,
     actually_save: bool = True,
@@ -1418,6 +1584,9 @@ def save_data_to_dataframe(
         - std_1_error
         - SPE_mean_amplitude
         - SPE_mean_adcs
+        - fine_selection_baseline_i_low
+        - fine_selection_baseline_i_up
+        - fine_selection_signal_i_up
         - integration_lower_limit
         - integration_upper_limit
 
@@ -1507,35 +1676,67 @@ def save_data_to_dataframe(
                 ...
             }
         where the endpoint and channel values are integers.
-    packed_integration_limits: dict
+    packed_limits: dict
         It is expected to have the following form:
             {
                 endpoint1: {
-                    channel1: (
-                        integration_lower_limit11,
-                        integration_upper_limit11
-                    ),
-                    channel2: (
-                        integration_lower_limit12,
-                        integration_upper_limit12
-                    ),
+                    channel1: {
+                        'fine_selection': (
+                            baseline_i_low11,
+                            baseline_i_up11,
+                            signal_i_up11,
+                            ...
+                        ),
+                        'integration': (
+                            integration_lower_limit11,
+                            integration_upper_limit11
+                        )
+                    },
+                    channel2: {
+                        'fine_selection': (
+                            baseline_i_low12,
+                            baseline_i_up12,
+                            signal_i_up12,
+                            ...
+                        ),
+                        'integration': (
+                            integration_lower_limit12,
+                            integration_upper_limit12
+                        )
+                    },
                     ...
                 },
                 endpoint2: {
-                    channel1: (
-                        integration_lower_limit21,
-                        integration_upper_limit21
-                    ),
-                    channel2: (
-                        integration_lower_limit22,
-                        integration_upper_limit22
-                    ),
+                    channel1: {
+                        'fine_selection': (
+                            baseline_i_low21,
+                            baseline_i_up21,
+                            signal_i_up21,
+                            ...
+                        ),
+                        'integration': (
+                            integration_lower_limit21,
+                            integration_upper_limit21
+                        )
+                    },
+                    channel2: {
+                        'fine_selection': (
+                            baseline_i_low22,
+                            baseline_i_up22,
+                            signal_i_up22,
+                            ...
+                        ),
+                        'integration': (
+                            integration_lower_limit22,
+                            integration_upper_limit22
+                        )
+                    },
                     ...
                 },
                 ...
             }
-        where the endpoint, channel and integration limit
-        values are integers.
+        where the endpoint, channel and deepest values are
+        integers.
     path_to_output_file: str
         The path to the output CSV file
     sipm_vendor_df: pd.DataFrame, optional
@@ -1608,6 +1809,9 @@ def save_data_to_dataframe(
         "std_1_error": [],
         "SPE_mean_amplitude": [],
         "SPE_mean_adcs": [],
+        "fine_selection_baseline_i_low": [],
+        "fine_selection_baseline_i_up": [],
+        "fine_selection_signal_i_up": [],
         "integration_lower_limit": [],
         "integration_upper_limit": []
     }
@@ -1639,6 +1843,9 @@ def save_data_to_dataframe(
         df['std_1_error'] = df['std_1_error'].astype(float)
         df['SPE_mean_amplitude'] = df['SPE_mean_amplitude'].astype(float)
         df['SPE_mean_adcs'] = df['SPE_mean_adcs'].astype(object) # cannot specify list[float] or np.ndarray
+        df['fine_selection_baseline_i_low'] = df['fine_selection_baseline_i_low'].astype(int)
+        df['fine_selection_baseline_i_up'] = df['fine_selection_baseline_i_up'].astype(int)
+        df['fine_selection_signal_i_up'] = df['fine_selection_signal_i_up'].astype(int)
         df['integration_lower_limit'] = df['integration_lower_limit'].astype(int)
         df['integration_upper_limit'] = df['integration_upper_limit'].astype(int)
 
@@ -1666,8 +1873,19 @@ def save_data_to_dataframe(
                 )
 
                 try:
+                    fine_selection_limits = \
+                        packed_limits[endpoint][channel]['fine_selection']
+                except KeyError:
+                    print(
+                        "In function save_data_to_dataframe(): "
+                        f"Fine-selection limits for channel {endpoint}-"
+                        f"{channel} were not found. Setting them to NaN."
+                    )
+                    fine_selection_limits = (np.nan, np.nan, np.nan)
+
+                try:
                     integration_limits = \
-                        packed_integration_limits[endpoint][channel]
+                        packed_limits[endpoint][channel]['integration']
 
                 except KeyError:
                     print(
@@ -1676,7 +1894,6 @@ def save_data_to_dataframe(
                         f"{endpoint}-{channel} were not found. "
                         "Setting them to NaN."
                     )
-                    
                     integration_limits = (np.nan, np.nan)
 
                 try:
@@ -1734,6 +1951,9 @@ def save_data_to_dataframe(
                     "std_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1_error"]],
                     "SPE_mean_amplitude": [aux_SPE_mean_amplitude],
                     "SPE_mean_adcs": [aux_SPE_mean_adcs],
+                    "fine_selection_baseline_i_low": [fine_selection_limits[0]],
+                    "fine_selection_baseline_i_up": [fine_selection_limits[1]],
+                    "fine_selection_signal_i_up": [fine_selection_limits[2]],
                     "integration_lower_limit": [integration_limits[0]],
                     "integration_upper_limit": [integration_limits[1]]
                 }
@@ -2013,6 +2233,15 @@ def get_nbins_and_channel_wise_domain(
         channel = int(row['channel'])
         gain_seed = float(row['gain'])
 
+        if np.isnan(gain_seed):
+            print(
+                "In function get_nbins_and_channel_wise_domain(): "
+                f"WARNING: For channel {endpoint}-{channel}, found a "
+                "NaN gain seed. A domain for this channel will not be "
+                "added to the output dictionary."
+            )
+            continue
+
         if endpoint not in domain.keys():
             domain[endpoint] = {}
 
@@ -2038,16 +2267,17 @@ def get_nbins_and_channel_wise_domain(
 
     return nbins, domain
 
-def add_integration_limits_to_persistence_heatmaps(
+def add_integration_and_fine_selection_limits_to_persistence_heatmaps(
     persistence_figure: pgo.Figure,
     grid_apa: ChannelWsGrid,
     current_excluded_channels: list,
-    integration_limits: Dict[int, Dict[int, Tuple[int, int]]]
+    limits: Dict[int, Dict[int, Dict[str, Tuple[int]]]]
 ) -> None:
-    """This function adds the integration limits to the
-    persistence heatmaps, channel by channel. The style
-    parameters of the lines used to draw the limits
-    are hardcoded in the body of this function.
+    """This function adds the integration limits and
+    the fine-selection thresholds to the persistence
+    heatmaps, channel by channel. The style parameters
+    of the lines used to draw the limits are hardcoded
+    in the body of this function.
 
     Parameters
     ----------
@@ -2061,12 +2291,71 @@ def add_integration_limits_to_persistence_heatmaps(
         by the join_channel_number() function) which
         should be excluded from having their integration
         limits drawn in the persistence heatmaps
-    integration_limits: Dict[int, Dict[int, Tuple[int, int]]]
-        A dictionary where the keys are endpoint numbers
-        and the values are dictionaries where the keys
-        are channel numbers and the values are tuples
-        containing the (lower_limit, upper_limit) for
-        each channel
+    limits: Dict[int, Dict[int, Tuple[int, int]]]
+        A nested dictionary with the following format:
+            {
+                endpoint1: {
+                    channel1: {
+                        'fine_selection': (
+                            baseline_i_low11,
+                            baseline_i_up11,
+                            signal_i_up11,
+                            baseline_threshold11,
+                            signal_threshold11
+                        ),
+                        'integration': (
+                            integration_lower_limit11,
+                            integration_upper_limit11
+                        )
+                    },
+                    channel2: {
+                        'fine_selection': (
+                            baseline_i_low12,
+                            baseline_i_up12,
+                            signal_i_up12,
+                            baseline_threshold12,
+                            signal_threshold12
+                        ),
+                        'integration': (
+                            integration_lower_limit12,
+                            integration_upper_limit12
+                        )
+                    },
+                    ...
+                },
+                endpoint2: {
+                    channel1: {
+                        'fine_selection': (
+                            baseline_i_low21,
+                            baseline_i_up21,
+                            signal_i_up21,
+                            baseline_threshold21,
+                            signal_threshold21
+                        ),
+                        'integration': (
+                            integration_lower_limit21,
+                            integration_upper_limit21
+                        )
+                    },
+                    channel2: {
+                        'fine_selection': (
+                            baseline_i_low22,
+                            baseline_i_up22,
+                            signal_i_up22,
+                            baseline_threshold22,
+                            signal_threshold22
+                        ),
+                        'integration': (
+                            integration_lower_limit22,
+                            integration_upper_limit22
+                        )
+                    },
+                    ...
+                },
+                ...
+            }
+        where the endpoint, channel and deepest values are
+        integers.
 
     Returns
     -------
@@ -2093,7 +2382,8 @@ def add_integration_limits_to_persistence_heatmaps(
 
             if not found_it:
                 print(
-                    "In function add_integration_limits_to_persistence_heatmaps(): "
+                    "In function add_integration_and_fine_selection_"
+                    "limits_to_persistence_heatmaps(): "
                     "WARNING: Something went wrong. Channel "
                     f"{endpoint}-{channel} retrieved from the "
                     "ch_wf_sets attribute of the current "
@@ -2103,60 +2393,145 @@ def add_integration_limits_to_persistence_heatmaps(
                 )
                 continue
 
+            # Unpack the channel position
+            i, j = channel_position
+
             try:
                 aux_integration_limits = \
-                    integration_limits[endpoint][channel]
+                    limits[endpoint][channel]['integration']
 
             except KeyError:
                 print(
-                    "In function add_integration_limits_to_persistence_heatmaps(): "
+                    "In function add_integration_and_fine_selection_"
+                    "limits_to_persistence_heatmaps(): "
                     "Could not find the integration limits "
                     f"for channel {endpoint}-{channel}. They "
                     "will not be drawn in the persistence "
                     "heatmap."
                 )
-                continue
+            else:
+                # Integration lower limit
+                persistence_figure.add_shape(
+                    type="line",
+                    x0=aux_integration_limits[0],
+                    x1=aux_integration_limits[0],
+                    y0=0,
+                    y1=1,
+                    line=dict(
+                        color="red",
+                        width=2,
+                        dash="dash"
+                    ),
+                    xref='x',
+                    yref='y domain',
+                    row=i + 1,
+                    col=j + 1,
+                )
 
-            # Unpack the channel position
-            i, j = channel_position
+                # Integration upper limit
+                persistence_figure.add_shape(
+                    type="line",
+                    x0=aux_integration_limits[1],
+                    x1=aux_integration_limits[1],
+                    y0=0,
+                    y1=1,
+                    line=dict(
+                        color="red",
+                        width=2,
+                        dash="dash"
+                    ),
+                    xref='x',
+                    yref='y domain',
+                    row=i + 1,
+                    col=j + 1,
+                )
 
-            aux_ncols = grid_apa.ch_map.columns
+            try:
+                aux_fine_selection_limits = \
+                    limits[endpoint][channel]['fine_selection']
 
-            # Lower limit
-            persistence_figure.add_shape(
-                type="line",
-                x0=aux_integration_limits[0],
-                x1=aux_integration_limits[0],
-                y0=0,
-                y1=1,
-                line=dict(
-                    color="red",
-                    width=2,
-                    dash="dash"
-                ),
-                xref='x',
-                yref='y domain',
-                row=i + 1,
-                col=j + 1,
-            )
+            except KeyError:
+                print(
+                    "In function add_integration_and_fine_selection_"
+                    "limits_to_persistence_heatmaps(): "
+                    "Could not find the fine-selection limits "
+                    f"for channel {endpoint}-{channel}. They "
+                    "will not be drawn in the persistence "
+                    "heatmap."
+                )
+            else:
+                # Positive baseline threshold
+                persistence_figure.add_shape(
+                    type="line",
+                    x0=aux_fine_selection_limits[0],
+                    x1=aux_fine_selection_limits[1],
+                    y0=aux_fine_selection_limits[3],
+                    y1=aux_fine_selection_limits[3],
+                    line=dict(
+                        color="red",
+                        width=2,
+                        dash="solid"
+                    ),
+                    xref='x',
+                    yref='y',
+                    row=channel_position[0] + 1,
+                    col=channel_position[1] + 1,
+                )
 
-            # Upper limit
-            persistence_figure.add_shape(
-                type="line",
-                x0=aux_integration_limits[1],
-                x1=aux_integration_limits[1],
-                y0=0,
-                y1=1,
-                line=dict(
-                    color="red",
-                    width=2,
-                    dash="dash"
-                ),
-                xref='x',
-                yref='y domain',
-                row=i + 1,
-                col=j + 1,
-            )
+                # Negative baseline threshold
+                persistence_figure.add_shape(
+                    type="line",
+                    x0=aux_fine_selection_limits[0],
+                    x1=aux_fine_selection_limits[1],
+                    y0=-1 * aux_fine_selection_limits[3],
+                    y1=-1 * aux_fine_selection_limits[3],
+                    line=dict(
+                        color="red",
+                        width=2,
+                        dash="solid"
+                    ),
+                    xref='x',
+                    yref='y',
+                    row=channel_position[0] + 1,
+                    col=channel_position[1] + 1,
+                )
+
+                # Artificial vertical line connecting the negative
+                # baseline threshold with the signal threshold
+                persistence_figure.add_shape(
+                    type="line",
+                    x0=aux_fine_selection_limits[1],
+                    x1=aux_fine_selection_limits[1],
+                    y0=-1 * aux_fine_selection_limits[3],
+                    y1=aux_fine_selection_limits[4],
+                    line=dict(
+                        color="red",
+                        width=2,
+                        dash="solid"
+                    ),
+                    xref='x',
+                    yref='y',
+                    row=channel_position[0] + 1,
+                    col=channel_position[1] + 1,
+                )
+
+                # Signal threshold
+                persistence_figure.add_shape(
+                    type="line",
+                    x0=aux_fine_selection_limits[1],
+                    x1=aux_fine_selection_limits[2],
+                    y0=aux_fine_selection_limits[4],
+                    y1=aux_fine_selection_limits[4],
+                    line=dict(
+                        color="red",
+                        width=2,
+                        dash="solid"
+                    ),
+                    xref='x',
+                    yref='y',
+                    row=channel_position[0] + 1,
+                    col=channel_position[1] + 1,
+                )
     
     return
 

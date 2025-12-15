@@ -206,37 +206,77 @@ class Analysis1(WafflesAnalysis):
                 example='../../np04_data/OfflineCh_RMS_Config_all.csv'
             )
 
+            infer_regions_for_fine_selection: bool = Field(
+                ...,
+                description="Whether to infer the baseline and signal "
+                "regions (on a channel basis) for the fine selection cut, "
+                "based on the average waveform of each channel. If set to "
+                "True, then the baseline_region_points and the "
+                "signal_region_half_points parameters must be defined. If "
+                "set to False, then those parameters are ignored, but "
+                "the baseline_i_low, baseline_i_up and signal_i_up "
+                "parameters must be defined instead.",
+            )
+
+            baseline_region_points: int = Field(
+                default=100,
+                description="Number of ADC samples to consider "
+                "for the baseline region in the fine selection cut. "
+                "If the waveform deviates from the baseline by more "
+                "than a certain amount in this region, it will be "
+                "excluded from the analysis. This parameter is "
+                "ignored if infer_regions_for_fine_selection is "
+                "set to False. For more information, check the "
+                "get_fine_selection_regions() function docstring.",
+            )
+
+            signal_region_half_points: int = Field(
+                # Default value motivated from alignment-studies in NP04
+                default=10,
+                description="Number of ADC samples to consider "
+                "on either side of the average pulse peak for the signal "
+                "region in the fine selection cut. This parameter is "
+                "ignored if infer_regions_for_fine_selection is set to "
+                "False. For more information, check the "
+                "get_fine_selection_regions() function docstring.",
+            )
+
             baseline_i_low: dict[int, int] = Field(
                 ...,
-                description="A dictionary whose keys refer to "
-                "the APA number, and its values are the "
-                "ADCs-array iterator value for the lower limit "
-                "of the window which is considered to be the "
-                "baseline region. If the waveform deviates from "
-                "the baseline by more than a certain amount in "
-                "this region, it will be excluded from the analysis.",
+                description="This parameter is only used if "
+                "infer_regions_for_fine_selection is set to False. "
+                "It is a dictionary whose keys refer to the APA "
+                "number, and its values are the ADCs-array iterator "
+                "value for the lower limit of the window which is "
+                "considered to be the baseline region. If the waveform "
+                "deviates from the baseline by more than a certain "
+                "amount in this region, it will be excluded from the "
+                "analysis.",
                 example={1: 455, 2: 0, 3: 0, 4: 0}
             )
 
             baseline_i_up: dict[int, int] = Field(
                 ...,
-                description="A dictionary whose keys refer to "
-                "the APA number, and its values are the "
-                "ADCs-array iterator value for the upper limit "
-                "of the window which is considered to be the "
-                "baseline region. If the waveform deviates from "
-                "the baseline by more than a certain amount in "
-                "this region, it will be excluded from the analysis.",
+                description="This parameter is only used if "
+                "infer_regions_for_fine_selection is set to False. "
+                "It is a dictionary whose keys refer to the APA "
+                "number, and its values are the ADCs-array iterator "
+                "value for the upper limit of the window which is "
+                "considered to be the baseline region. If the waveform "
+                "deviates from the baseline by more than a certain "
+                "amount in this region, it will be excluded from the "
+                "analysis.",
                 example={1: 575, 2: 120, 3: 120, 4: 120}
             )
 
             signal_i_up: dict[int, int] = Field(
                 ...,
-                description="A dictionary whose keys refer to "
-                "the APA number, and its values are the "
-                "ADCs-array iterator value for the upper limit "
-                "of the window where an upper-bound cut to the "
-                "signal is applied",
+                description="This parameter is only used if "
+                "infer_regions_for_fine_selection is set to False. "
+                "It is a dictionary whose keys refer to the APA "
+                "number, and its values are the ADCs-array iterator "
+                "value for the upper limit of the window where an "
+                "upper-bound cut to the signal is applied.",
                 example={1: 650, 2: 165, 3: 165, 4: 165}
             )
 
@@ -514,7 +554,7 @@ class Analysis1(WafflesAnalysis):
         self.params = input_parameters
         self.wfset = None
         self.grid_apa = None
-        self.integration_limits = None
+        self.output_limits = None
         self.output_data = None
 
         self.read_input_loop_1 = self.params.batches
@@ -823,101 +863,18 @@ class Analysis1(WafflesAnalysis):
             compute_calib_histo=False,
         )
 
-        # Initialize the dictionary of integration limits to an
-        # empty dictionary before looping over the channels
-        self.integration_limits = {}
+        # Initialize the dictionary of integration and fine-selection
+        # limits to an empty dictionary before looping over the channels
+        self.output_limits = {}
 
         for endpoint in self.grid_apa.ch_wf_sets.keys():
+            if endpoint not in self.output_limits.keys():
+                self.output_limits[endpoint] = {}
+
             for channel in self.grid_apa.ch_wf_sets[endpoint].keys():
+                if channel not in self.output_limits[endpoint].keys():
+                    self.output_limits[endpoint][channel] = {}
 
-                if self.params.baseline_std_from_noise_results:
-                    if self.params.verbose:
-                        print(
-                            "In function Analysis1.analyze(): "
-                            "Retrieving the average baseline STD "
-                            f"of channel {endpoint}-{channel} "
-                            f"(batch {self.batch}, APA {self.apa},"
-                            f" PDE {self.pde}) ... "
-                        )
-
-                    average_baseline_std = get_average_baseline_std_from_file(
-                        self.wfset.waveforms[0].run_number,
-                        endpoint=endpoint,
-                        channel=channel,
-                        daphne_configuration_database_filepath=\
-                            self.params.daphne_configuration_database_filepath
-                            if self.params.daphne_configuration_database_filepath is not None
-                            else "",
-                        noise_results_dataframe_filepath=\
-                            self.params.noise_results_dataframe_filepath
-                            if self.params.noise_results_dataframe_filepath is not None
-                            else ""
-                    )
-                else:
-                    if self.params.verbose:
-                        print(
-                            "In function Analysis1.analyze(): "
-                            "Computing the average baseline STD "
-                            f"of channel {endpoint}-{channel} "
-                            f"(batch {self.batch}, APA {self.apa},"
-                            f" PDE {self.pde}) ... ",
-                            end=''
-                        )
-
-                    average_baseline_std = led_utils.compute_average_baseline_std(
-                        self.grid_apa.ch_wf_sets[endpoint][channel],
-                        # What is taken from the baseline analysis here is
-                        # the baseline STD (which is the same after baseline
-                        # subtraction), not the baseline value itself
-                        self.params.baseline_analysis_label
-                    )
-
-                if self.params.verbose:
-                    print(f"Found {average_baseline_std:.2f} ADCs.")
-                    print(
-                        "In function Analysis1.analyze(): "
-                        "Applying the selection cut to channel "
-                        f"{endpoint}-{channel} (batch {self.batch}"
-                        f", APA {self.apa}, PDE {self.pde}) ... ",
-                        end=''
-                    )
-
-                len_before_fine_selection = len(
-                    self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
-                )
-
-                # By applying the selection cut at this point, we avoid
-                # integrating waveforms which will not make it through
-                # the selection cut
-                aux = WaveformSet.from_filtered_WaveformSet(
-                    self.grid_apa.ch_wf_sets[endpoint][channel],
-                    fine_selection_for_led_calibration,
-                    # The baseline has already been subtracted in-place
-                    self.params.null_baseline_analysis_label,
-                    self.params.baseline_i_up[self.apa],
-                    self.params.signal_i_up[self.apa],
-                    average_baseline_std,
-                    self.params.baseline_allowed_dev,
-                    self.params.signal_allowed_dev,
-                    baseline_i_low=self.params.baseline_i_low[self.apa]
-                )
-
-                self.grid_apa.ch_wf_sets[endpoint][channel] = \
-                    ChannelWs(*aux.waveforms)
-
-                len_after_fine_selection = len(
-                    self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
-                )
-
-                if self.params.verbose:
-                    print(
-                        f"Kept {100.*(len_after_fine_selection/len_before_fine_selection):.2f}%"
-                        " of the waveforms"
-                    )
-
-                # Apply the correlation aligment once all of the cuts have
-                # been applied to the waveforms, so that we avoid aligning
-                # waveforms which will be discarded later on
                 if self.params.apply_correlation_alignment:
                     if self.params.verbose:
                         print(
@@ -960,6 +917,141 @@ class Analysis1(WafflesAnalysis):
 
                     if self.params.verbose:
                         print("Finished.")
+
+                if self.params.baseline_std_from_noise_results:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Retrieving the average baseline STD "
+                            f"of channel {endpoint}-{channel} "
+                            f"(batch {self.batch}, APA {self.apa},"
+                            f" PDE {self.pde}) ... "
+                        )
+
+                    average_baseline_std = get_average_baseline_std_from_file(
+                        self.grid_apa.ch_wf_sets[endpoint][channel].waveforms[0].run_number,
+                        endpoint=endpoint,
+                        channel=channel,
+                        daphne_configuration_database_filepath=\
+                            self.params.daphne_configuration_database_filepath
+                            if self.params.daphne_configuration_database_filepath is not None
+                            else "",
+                        noise_results_dataframe_filepath=\
+                            self.params.noise_results_dataframe_filepath
+                            if self.params.noise_results_dataframe_filepath is not None
+                            else ""
+                    )
+                else:
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Computing the average baseline STD "
+                            f"of channel {endpoint}-{channel} "
+                            f"(batch {self.batch}, APA {self.apa},"
+                            f" PDE {self.pde}) ... ",
+                            end=''
+                        )
+
+                    average_baseline_std = led_utils.compute_average_baseline_std(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        # What is taken from the baseline analysis here is
+                        # the baseline STD (which is the same after baseline
+                        # subtraction), not the baseline value itself
+                        self.params.baseline_analysis_label
+                    )
+
+                if self.params.verbose:
+                    print(f"Found {average_baseline_std:.2f} ADCs.")
+
+                if self.params.infer_regions_for_fine_selection:
+                    baseline_i_low, \
+                    baseline_i_up, \
+                    signal_i_up = led_utils.get_fine_selection_regions(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        self.params.baseline_region_points,
+                        self.params.signal_region_half_points,
+                    )
+                else:
+                    baseline_i_low = self.params.baseline_i_low[self.apa]
+                    baseline_i_up = self.params.baseline_i_up[self.apa]
+                    signal_i_up = self.params.signal_i_up[self.apa]
+
+                if led_utils.regions_limits_are_consistent(
+                    baseline_i_low,
+                    baseline_i_up,
+                    signal_i_up,
+                    self.grid_apa.ch_wf_sets[endpoint][channel].points_per_wf
+                ):
+                    len_before_fine_selection = len(
+                        self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
+                    )
+
+                    if self.params.verbose:
+                        print(
+                            "In function Analysis1.analyze(): "
+                            "Applying the selection cut to channel "
+                            f"{endpoint}-{channel} (batch {self.batch}"
+                            f", APA {self.apa}, PDE {self.pde}) using "
+                            f"the [{baseline_i_low}, {baseline_i_up}) "
+                            f"baseline region, and the [{baseline_i_up}, "
+                            f"{signal_i_up}) signal region ... ",
+                            end=''
+                        )
+
+                    # By applying the selection cut at this point, we avoid
+                    # integrating waveforms which will not make it through
+                    # the selection cut
+                    aux = WaveformSet.from_filtered_WaveformSet(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        fine_selection_for_led_calibration,
+                        # The baseline has already been subtracted in-place
+                        self.params.null_baseline_analysis_label,
+                        baseline_i_up,
+                        signal_i_up,
+                        average_baseline_std,
+                        self.params.baseline_allowed_dev,
+                        self.params.signal_allowed_dev,
+                        baseline_i_low=baseline_i_low
+                    )
+
+                    self.output_limits[endpoint][channel]['fine_selection'] = (
+                        baseline_i_low,
+                        baseline_i_up,
+                        signal_i_up,
+                        abs(self.params.baseline_allowed_dev * average_baseline_std),
+                        -1. * abs(self.params.signal_allowed_dev * average_baseline_std)
+                    )
+
+                    self.grid_apa.ch_wf_sets[endpoint][channel] = \
+                        ChannelWs(*aux.waveforms)
+
+                    len_after_fine_selection = len(
+                        self.grid_apa.ch_wf_sets[endpoint][channel].waveforms
+                    )
+
+                    if self.params.verbose:
+                        print(
+                            f"Kept {100.*(len_after_fine_selection/len_before_fine_selection):.2f}%"
+                            " of the waveforms"
+                        )
+                else:
+                    self.output_limits[endpoint][channel]['fine_selection'] = (
+                        np.nan,
+                        np.nan,
+                        np.nan,
+                        np.nan,
+                        np.nan
+                    )
+
+                    print(
+                        "In function Analysis1.analyze(): "
+                        f"WARNING: Skipping the fine selection cut for channel "
+                        f"{endpoint}-{channel} (batch {self.batch}, APA "
+                        f"{self.apa}, PDE {self.pde}) because the region "
+                        f"limits (baseline_i_low = {baseline_i_low}, "
+                        f"baseline_i_up = {baseline_i_up}, signal_i_up "
+                        f"= {signal_i_up}) are inconsistent."
+                    )
 
                 if self.params.verbose:
                     print(
@@ -1023,10 +1115,7 @@ class Analysis1(WafflesAnalysis):
                     overwrite=True
                 )
 
-                if endpoint not in self.integration_limits.keys():
-                    self.integration_limits[endpoint] = {}
-
-                self.integration_limits[endpoint][channel] = aux_limits
+                self.output_limits[endpoint][channel]['integration'] = aux_limits
 
                 if self.params.verbose:
                     print("Finished.")
@@ -1213,14 +1302,14 @@ class Analysis1(WafflesAnalysis):
 
             aux_time_increment = 100
 
-            time_range_lower_limit = 0 if self.params.apply_correlation_alignment \
-                else self.params.baseline_i_low[self.apa]
-            
+            time_range_lower_limit = 0
             time_range_upper_limit = aux_time_increment
+
             if not self.params.apply_correlation_alignment:
+                time_range_lower_limit += self.params.baseline_i_low[self.apa]
                 time_range_upper_limit += self.params.baseline_i_up[self.apa]
             
-            aux_adc_range_above_baseline = 10
+            aux_adc_range_above_baseline = 20
             aux_adc_range_below_baseline = 80
 
             persistence_figure = plot_ChannelWsGrid(
@@ -1242,11 +1331,25 @@ class Analysis1(WafflesAnalysis):
                 verbose=self.params.verbose
             )
 
-            led_utils.add_integration_limits_to_persistence_heatmaps(
+            # Overlay the average waveform on top of the persistence heatmaps
+            persistence_figure = plot_ChannelWsGrid( 
+                self.grid_apa,
+                figure=persistence_figure,
+                share_x_scale=True,
+                share_y_scale=True,
+                mode='average',
+                # Consider all waveforms for the average
+                wfs_per_axes=None,
+                detailed_label=False,
+                yannotation=0.,
+                verbose=self.params.verbose
+            )
+
+            led_utils.add_integration_and_fine_selection_limits_to_persistence_heatmaps(
                 persistence_figure,
                 self.grid_apa,
                 self.current_excluded_channels,
-                self.integration_limits
+                self.output_limits,
             )
 
             persistence_figure.update_layout(
@@ -1257,6 +1360,20 @@ class Analysis1(WafflesAnalysis):
                 width=figure_width,
                 height=figure_height,
                 showlegend=False,
+                # Re-adjust x-axis range after
+                # plotting average waveform
+                xaxis=dict(
+                    range=[
+                        time_range_lower_limit,
+                        time_range_upper_limit
+                    ]
+                ),
+                yaxis=dict(
+                    range=[
+                        -aux_adc_range_below_baseline,
+                        aux_adc_range_above_baseline
+                    ]
+                )
             )
 
             if self.params.show_figures:
@@ -1328,7 +1445,7 @@ class Analysis1(WafflesAnalysis):
             self.apa,
             self.pde,
             self.output_data,
-            self.integration_limits,
+            self.output_limits,
             dataframe_output_path,
             sipm_vendor_df=\
                 self.sipm_vendor_dataframe,

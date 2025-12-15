@@ -127,24 +127,24 @@ def get_pulse_window_limits(
                 break
 
     if upper_limit is None:
-        exception_reason = "The upper limit of the pulse window "\
+        warning_message = "The upper limit of the pulse window "\
         "could not be found. I.e. the signal never raised above the "
 
         if not get_zero_crossing_upper_limit:
-            exception_reason += f"threshold ({threshold}) "
+            warning_message += f"threshold ({threshold}) "
         else:
-            exception_reason += f"baseline ({baseline}) "
+            warning_message += f"baseline ({baseline}) "
 
-        exception_reason += f"after reaching its minimum value "\
-        f"({adcs_array[idx_min]})."
+        warning_message += f"after reaching its minimum value "\
+        f"({adcs_array[idx_min]}). The upper limit will be set "\
+        f"to the last point of the array ({len(adcs_array) - 1})."
 
-        raise Exception(
-            GenerateExceptionMessage(
-                3,
-                'get_pulse_window_limits()',
-                exception_reason
-            )
+        print(
+            "In function get_pulse_window_limits(): "
+            f"WARNING: {warning_message}"
         )
+
+        upper_limit = len(adcs_array) - 1
 
     # Apply the corrections to the limits
     lower_limit += lower_limit_correction
@@ -158,14 +158,24 @@ def get_pulse_window_limits(
 
     # Make sure that the corrections did not make the lower limit
     # greater than or equal to the upper limit
-    if lower_limit >= upper_limit:
+    if lower_limit == upper_limit:
+        print(
+            "In function get_pulse_window_limits(): "
+            "WARNING: The corrected lower limit of the pulse window "
+            f"({lower_limit}) is equal to the corrected upper limit "
+            f"({upper_limit}). The upper limit will be set to "
+            f"{upper_limit + 1}."
+        )
+        upper_limit += 1
+
+    elif lower_limit > upper_limit:
         raise Exception(
             GenerateExceptionMessage(
-                4,
+                3,
                 'get_pulse_window_limits()',
                 "The corrected lower limit of the pulse window "
-                f"({lower_limit}) is greater than or equal to the "
-                f"corrected upper limit ({upper_limit})."
+                f"({lower_limit}) is greater than the corrected "
+                f"upper limit ({upper_limit})."
             )
         )
 

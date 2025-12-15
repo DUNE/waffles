@@ -77,13 +77,13 @@ upper_limit_wrt_baseline: 40.
 # docstring.
 apply_correlation_alignment: false
 
-# If apply_correlation_alignment is set to True, this
-# parameter must be defined. It is the path to a CSV
-# file which contains the seed gain and the SPE
-# templates used for the correlation alignment. The
-# CSV file must contain the columns 'batch', 'APA',
-# 'PDE', 'endpoint', 'channel', 'center_0', 'center_1'
-# and 'SPE_mean_adcs'.
+# If apply_correlation_alignment is set to True,
+# this parameter must be defined. It is the path 
+# to a CSV file which contains the seed gain and the 
+# SPE templates used for the correlation alignment. 
+# The CSV file must contain the columns 'batch', 'APA', 
+# 'PDE', 'endpoint', 'channel', 'vendor, 'center_0', 
+# 'center_1' and 'SPE_mean_adcs'
 alignment_seeds_filepath: './configs/optimal_seeds_dfb_30p.csv'
 
 
@@ -112,7 +112,7 @@ SPE_template_upper_limit_wrt_pulse: 300
 # more information, check the
 # align_waveforms_by_correlation() function
 # docstring.
-maximum_allowed_shift: 30
+maximum_allowed_shift: 10
 
 ## Parameters for the average-baseline-std computation
 
@@ -137,7 +137,54 @@ daphne_configuration_database_filepath: '../../np04_utils/DaphneConfigs.json'
 noise_results_dataframe_filepath: '../../np04_data/OfflineCh_RMS_Config_all.csv'
 
 ## Parameters for the fine selection cut
-baseline_i_low:
+# Whether to infer the baseline and signal regions (on
+# a channel basis) for the fine selection cut, based on
+# the average waveform of each channel. If set to True,
+# then the baseline_region_points and the
+# signal_region_half_points parameters must be defined. If 
+# set to False, then those parameters are ignored, but 
+# the baseline_i_low, baseline_i_up and signal_i_up 
+# parameters must be defined instead.
+infer_regions_for_fine_selection: true
+
+# Number of ADC samples to consider for the baseline
+# region in the fine selection cut. If the waveform
+# deviates from the baseline by more than a certain
+# amount in this region, it will be excluded from
+# the analysis. This parameter is ignored if
+# infer_regions_for_fine_selection is set to False.
+# For more information, check the
+# get_fine_selection_regions() function docstring.
+baseline_region_points: 100
+
+# Number of ADC samples to consider on either side of
+# the average pulse peak for the signal region in the
+# fine selection cut. This parameter is ignored if
+# infer_regions_for_fine_selection is set to False.
+# For more information, check the
+# get_fine_selection_regions() function docstring.
+signal_region_half_points: 10
+
+# This parameter is only used if
+# infer_regions_for_fine_selection is set to False. 
+# It is a dictionary whose keys refer to the APA 
+# number, and its values are the ADCs-array iterator 
+# value for the lower limit of the window which is 
+# considered to be the baseline region. If the waveform 
+# deviates from the baseline by more than a certain 
+# amount in this region, it will be excluded from the 
+# analysis.
+# baseline_i_low: # No aligment
+#     1:
+#         455
+#     2:
+#         0
+#     3:
+#         0
+#     4:
+#         0
+
+baseline_i_low: # Typical alignment
     1:
         455
     2:
@@ -146,24 +193,61 @@ baseline_i_low:
         0
     4:
         0
-baseline_i_up:
+
+# This parameter is only used if 
+# infer_regions_for_fine_selection is set to False. 
+# It is a dictionary whose keys refer to the APA 
+# number, and its values are the ADCs-array iterator 
+# value for the upper limit of the window which is 
+# considered to be the baseline region. If the waveform 
+# deviates from the baseline by more than a certain 
+# amount in this region, it will be excluded from the 
+# analysis.
+# baseline_i_up: # No alignment
+#     1:
+#         575
+#     2:
+#         120
+#     3:
+#         120
+#     4:
+#         120
+
+baseline_i_up: # Typical alignment
     1:
-        575
+        40
     2:
-        120
+        40
     3:
-        120
+        40
     4:
-        120
-signal_i_up:
+        40
+
+# This parameter is only used if 
+# infer_regions_for_fine_selection is set to False. 
+# It is a dictionary whose keys refer to the APA 
+# number, and its values are the ADCs-array iterator 
+# value for the upper limit of the window where an 
+# upper-bound cut to the signal is applied
+# signal_i_up: # No alignment
+#     1:
+#         650
+#     2:
+#         165
+#     3:
+#         165
+#     4:
+#         165
+
+signal_i_up: # Typical alignment
     1:
-        650
+        55
     2:
-        165
+        55
     3:
-        165
+        55
     4:
-        165
+        55
 
 # Number of allowed baseline-STDs in the baseline
 # region. I.e. the waveforms for which at least one
@@ -171,12 +255,13 @@ signal_i_up:
 # the baseline by more than this value times the
 # baseline STD will be excluded.
 baseline_allowed_dev: 4.
-signal_allowed_dev: 10.
+
 # Number of allowed baseline-STDs in the signal
 # region. I.e. the waveforms for which at least
 # one ADC sample in the signal region deviates
 # from the signal by more than this value times
 # the baseline STD will be excluded
+signal_allowed_dev: 20.
 
 ## Parameters for the computation of the integration window
 integrate_entire_pulse: false
