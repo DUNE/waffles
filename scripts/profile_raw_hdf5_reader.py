@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--det",
         default="AUTO",
-        help="Detector string or AUTO to auto-detect (HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS, VD_CathodePDS).",
+        help="Detector string or AUTO to auto-detect (HD_PDS, VD_MembranePDS, VD_CathodePDS, NDLAr_PDS).",
     )
     parser.add_argument(
         "--eth",
