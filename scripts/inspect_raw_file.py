@@ -111,7 +111,7 @@ def summarize_fragments(filepath: str, detector: str, max_records: Optional[int]
     records = list(h5_file.get_all_record_ids())
     records = select_records(records, skip_records, max_records)
 
-    det_list = [detector] if detector != "AUTO" else ["HD_PDS", "VD_MembranePDS", "VD_CathodePDS"]
+    det_list = [detector] if detector != "AUTO" else ["HD_PDS", "VD_MembranePDS", "VD_CathodePDS", "NDLAr_PDS"]
 
     frag_types = Counter()
     source_ids = Counter()
