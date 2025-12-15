@@ -4,7 +4,7 @@ import numpy as np
 import time
 import os
 import sys
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 
 
 def save_as_hdf5_comp(obj, filename, compression):

@@ -1,5 +1,5 @@
 # --- IMPORTS -------------------------------------------------------
-import waffles.input.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader
 import numpy as np
 import waffles
 import matplotlib.pyplot as plt
