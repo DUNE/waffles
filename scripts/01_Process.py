@@ -1,8 +1,9 @@
-import click, pickle, inquirer
+import click, inquirer
 
 from waffles.utils.utils import print_colored
 import waffles.input_output.raw_hdf5_reader as reader  # path utilities (rucio)
 from waffles.input_output.waveform_loader import load_waveforms
+from waffles.input_output.persistence_utils import WaveformSet_to_file
 
 @click.command(help=f"\033[34mSave the WaveformSet object in a pickle file for easier loading.\n\033[0m")
 @click.option("--run",   default = None, help="Run number to process", type=str)
@@ -44,12 +45,19 @@ def main(run, debug):
                 wfset.merge(wf)
         # TODO: subsample the data reading (read each 2 entries)
 
-        if debug: 
-            print_colored("Saving the WaveformSet object in a pickle file...", color="DEBUG")
-        with open(f"../data/{str(r).zfill(6)}_full_wfset_raw.pkl", "wb") as f:
-            pickle.dump(wfset, f)
+        if debug:
+            print_colored("Saving the WaveformSet object as structured HDF5...", color="DEBUG")
+        WaveformSet_to_file(
+            waveform_set=wfset,
+            output_filepath=f"../data/{str(r).zfill(6)}_full_wfset_raw.hdf5",
+            overwrite=True,
+            format="hdf5",
+            compression="gzip",
+            compression_opts=5,
+            structured=True,
+        )
         
-        print_colored(f"\nDone! WaveformSet saved in {str(r).zfill(6)}_wfset.pkl\n", color="SUCCESS")
+        print_colored(f"\nDone! WaveformSet saved in {str(r).zfill(6)}_full_wfset_raw.hdf5\n", color="SUCCESS")
         
 
 if __name__ == "__main__":
