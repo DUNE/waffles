@@ -2,38 +2,38 @@ import numpy as np
 
 class CrossTalk:
     def __init__(self,
-                 mean_photons: float,
-                 err_mean_photons: float,
-                 CX: float,
-                 err_CX: float,
-                 norm_factor: float,
-                 err_norm_factor: float,
-                 n_cx_peaks: int,
-                 peak_numbers: np.ndarray,
-                 fraction_events_in_peaks: np.ndarray,
-                 err_fraction_events_in_peaks: np.ndarray
+                 avg_photons: float = np.nan,
+                 avg_photons_error: float = np.nan,
+                 CX: float = np.nan,
+                 CX_error: float = np.nan,
+                 norm_factor: float = np.nan,
+                 norm_factor_error: float = np.nan,
+                 n_cx_peaks: int = 0,
+                 peak_numbers: np.ndarray = np.array([]),
+                 fraction_events_in_peaks: np.ndarray = np.array([]),
+                 err_fraction_events_in_peaks: np.ndarray = np.array([])
     ):
         """
         Class to store cross-talk analysis results.
 
         Args:
-            mean_photons (float): Average number of photons detected.
-            err_mean_photons (float): Uncertainty in the average number of photons.
+            avg_photons (float): Average number of photons detected.
+            avg_photons_error (float): Uncertainty in the average number of photons.
             CX (float): Estimated cross-talk value.
-            err_CX (float): Uncertainty in the cross-talk estimate.
+            CX_error (float): Uncertainty in the cross-talk estimate.
             norm_factor (float): Normalization factor used in the analysis.
-            err_norm_factor (float): Uncertainty in the normalization factor.
+            norm_factor_error (float): Uncertainty in the normalization factor.
             n_cx_peaks (int): Number of photo-electron peaks analyzed.
             peak_numbers (np.ndarray): Array of peak numbers (x-axis).
             fraction_events_in_peaks (np.ndarray): Fraction of events in each peak (y-axis).
             err_fraction_events_in_peaks (np.ndarray): Uncertainty in the fraction of events in each peak.
         """
-        self.n_avg_photons = mean_photons
-        self.err_n_avg_photons = err_mean_photons
+        self.avg_photons = avg_photons
+        self.avg_photons_error = avg_photons_error
         self.CX = CX
-        self.err_CX = err_CX
+        self.CX_error = CX_error
         self.norm_factor = norm_factor
-        self.err_norm_factor = err_norm_factor
+        self.norm_factor_error = norm_factor_error
         self.n_cx_peaks = n_cx_peaks
         self.peak_numbers = peak_numbers
         self.fraction_events_in_peaks = fraction_events_in_peaks
