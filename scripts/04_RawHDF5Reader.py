@@ -3,7 +3,8 @@ import json
 import multiprocessing
 from pathlib import Path
 from waffles.utils.utils import print_colored
-import waffles.input_output.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader  # path utilities (rucio)
+from waffles.input_output.waveform_loader import load_waveforms
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -38,18 +39,14 @@ class WaveformProcessor:
         try:
             print_colored(f"Processing file: {file}", color="INFO")
 
-            wfset = reader.WaveformSet_from_hdf5_files(
-                filepath_list=[file],
-                read_full_streaming_data=False,
-                truncate_wfs_to_minimum=True,
+            wfset = load_waveforms(
+                file,
+                det="HD_PDS",
+                force_raw=True,
+                subsample=1,
+                wvfm_count=int(1e9),
                 nrecord_start_fraction=0.0,
                 nrecord_stop_fraction=1.0,
-                subsample=1,
-                wvfm_count=1e9,
-                ch=self.ch,
-                det='HD_PDS',
-                temporal_copy_directory='/tmp',
-                erase_temporal_copy=False
             )
 
             if wfset:
@@ -113,7 +110,8 @@ class WaveformProcessor:
                 overwrite=True,
                 format="hdf5",
                 compression="gzip",
-                compression_opts=5
+                compression_opts=5,
+                structured=True,
             )
 
             # Reload for verification

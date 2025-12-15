@@ -3,8 +3,8 @@ import json
 import inquirer
 from pathlib import Path
 from waffles.utils.utils import print_colored
-import waffles.input_output.raw_hdf5_reader as reader
-# from waffles.input_output.hdf5_reader import HDF5Reader
+import waffles.input_output.raw_hdf5_reader as reader  # path utilities (rucio)
+from waffles.input_output.waveform_loader import load_waveforms
 
 from waffles.input_output.persistence_utils import WaveformSet_to_file
 # from waffles.input_output.pickle_hdf5_reader import WaveformSet_from_hdf5_pickle
@@ -54,20 +54,25 @@ class WaveformProcessor:
 
             if self.save_single_file:
                 # Read and merge all files into one WaveformSet
-                self.wfset = reader.WaveformSet_from_hdf5_files(
-                    filepath_list=filepaths,
-                    read_full_streaming_data=False,
-                    truncate_wfs_to_minimum=False,
-                    folderpath=None,
-                    nrecord_start_fraction=0.0,
-                    nrecord_stop_fraction=1.0,
-                    subsample=1,
-                    wvfm_count=1e9,
-                    ch=self.ch,
-                    det=self.det,
-                    temporal_copy_directory='/tmp',
-                    erase_temporal_copy=False
-                )
+                # Read and merge all files into one WaveformSet
+                wfsets = []
+                for fp in filepaths:
+                    wf = load_waveforms(
+                        fp,
+                        det=self.det,
+                        force_raw=True,
+                        subsample=1,
+                        wvfm_count=int(1e9),
+                        nrecord_start_fraction=0.0,
+                        nrecord_stop_fraction=1.0,
+                    )
+                    if wf:
+                        wfsets.append(wf)
+
+                if wfsets:
+                    self.wfset = wfsets[0]
+                    for other in wfsets[1:]:
+                        self.wfset.merge(other)
 
                 if self.wfset:
                     # print(len(wfset.waveforms))
@@ -78,18 +83,14 @@ class WaveformProcessor:
                 for file in filepaths:
                     print_colored(f"Processing file: {file}", color="INFO")
 
-                    self.wfset = reader.WaveformSet_from_hdf5_file(
-                        filepath=file,
-                        read_full_streaming_data=False,
-                        truncate_wfs_to_minimum=False,
+                    self.wfset = load_waveforms(
+                        file,
+                        det=self.det,
+                        force_raw=True,
+                        subsample=1,
+                        wvfm_count=int(1e9),
                         nrecord_start_fraction=0.0,
                         nrecord_stop_fraction=1.0,
-                        subsample=1,
-                        wvfm_count=1e9,
-                        ch=self.ch,
-                        det=self.det,
-                        temporal_copy_directory='/tmp',
-                        erase_temporal_copy=False
                     )
 
                     if self.wfset:
