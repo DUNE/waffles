@@ -12,13 +12,12 @@ import pstats
 import sys
 from pathlib import Path
 
-from waffles.input_output import raw_hdf5_reader as reader
-from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
+from waffles.input_output.waveform_loader import load_waveforms
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="cProfile wrapper around raw_hdf5_reader.WaveformSet_from_hdf5_file or the ETH reader.",
+        description="cProfile wrapper around the unified waveform loader (auto ETH/RAW).",
     )
     parser.add_argument("filepath", help="Path to the raw HDF5 file to read.")
     parser.add_argument(
@@ -30,6 +29,11 @@ def parse_args() -> argparse.Namespace:
         "--eth",
         action="store_true",
         help="Use the DAPHNE Ethernet reader (load_daphne_eth_waveforms).",
+    )
+    parser.add_argument(
+        "--force-raw",
+        action="store_true",
+        help="Force the raw reader even if ETH fragments are present.",
     )
     parser.add_argument(
         "--subsample",
@@ -62,6 +66,17 @@ def parse_args() -> argparse.Namespace:
         help="Records per chunk inside the reader (default: 200).",
     )
     parser.add_argument(
+        "--skip-records",
+        type=int,
+        default=0,
+        help="Records to skip from the start (ETH reader only; default: 0).",
+    )
+    parser.add_argument(
+        "--max-records",
+        type=int,
+        help="Limit the number of records to inspect (ETH reader only).",
+    )
+    parser.add_argument(
         "--save-stats",
         type=Path,
         help="Optional path to dump the raw cProfile stats for later inspection.",
@@ -81,24 +96,19 @@ def main() -> int:
     profile = cProfile.Profile()
     profile.enable()
 
-    if args.eth:
-        wfset = load_daphne_eth_waveforms(
-            args.filepath,
-            detector=args.det,
-            max_waveforms=args.wvfm_count,
-            max_records=None,
-            skip_records=0,
-        )
-    else:
-        wfset = reader.WaveformSet_from_hdf5_file(
-            args.filepath,
-            nrecord_start_fraction=args.nrecord_start_fraction,
-            nrecord_stop_fraction=args.nrecord_stop_fraction,
-            subsample=args.subsample,
-            wvfm_count=args.wvfm_count,
-            det=args.det,
-            record_chunk_size=args.record_chunk_size,
-        )
+    wfset = load_waveforms(
+        args.filepath,
+        det=args.det,
+        force_eth=args.eth,
+        force_raw=args.force_raw,
+        subsample=args.subsample,
+        wvfm_count=args.wvfm_count,
+        nrecord_start_fraction=args.nrecord_start_fraction,
+        nrecord_stop_fraction=args.nrecord_stop_fraction,
+        record_chunk_size=args.record_chunk_size,
+        max_records=args.max_records,
+        skip_records=args.skip_records,
+    )
 
     profile.disable()
 
