@@ -25,12 +25,7 @@ from waffles.utils.daphne_decoders import (
 from waffles.utils.daphne_helpers import select_records
 
 
-def summarize_fragments(filepath: str, detector: str, max_records: Optional[int], skip_records: int, debug: bool) -> Dict[str, Counter]:
-    """Collect fragment type/source/geo_id counts from the first records."""
-    h5_file = HDF5RawDataFile(filepath)
-    records = list(h5_file.get_all_record_ids())
-    records = select_records(records, skip_records, max_records)
-
+def _summarize_for_detector(h5_file, detector: str, records, debug: bool) -> Tuple[Counter, Counter, Counter]:
     frag_types = Counter()
     source_ids = Counter()
     geo_ids = Counter()
@@ -71,6 +66,27 @@ def summarize_fragments(filepath: str, detector: str, max_records: Optional[int]
                         print(f"        channels={list(chs[:8])} nsamples={adcs.shape}")
                     except Exception as err:
                         print(f"        decode failed: {err}")
+
+    return frag_types, source_ids, geo_ids
+
+
+def summarize_fragments(filepath: str, detector: str, max_records: Optional[int], skip_records: int, debug: bool) -> Dict[str, Counter]:
+    """Collect fragment type/source/geo_id counts from the first records."""
+    h5_file = HDF5RawDataFile(filepath)
+    records = list(h5_file.get_all_record_ids())
+    records = select_records(records, skip_records, max_records)
+
+    det_list = [detector] if detector != "AUTO" else ["HD_PDS", "VD_MembranePDS", "VD_CathodePDS"]
+
+    frag_types = Counter()
+    source_ids = Counter()
+    geo_ids = Counter()
+
+    for det in det_list:
+        ft, si, gi = _summarize_for_detector(h5_file, det, records, debug)
+        frag_types.update(ft)
+        source_ids.update(si)
+        geo_ids.update(gi)
 
     return {
         "fragment_types": frag_types,
