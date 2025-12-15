@@ -1,7 +1,8 @@
 import click, pickle, inquirer
 
 from waffles.utils.utils import print_colored
-import waffles.input_output.raw_hdf5_reader as reader
+import waffles.input_output.raw_hdf5_reader as reader  # path utilities (rucio)
+from waffles.input_output.waveform_loader import load_waveforms
 
 @click.command(help=f"\033[34mSave the WaveformSet object in a pickle file for easier loading.\n\033[0m")
 @click.option("--run",   default = None, help="Run number to process", type=str)
@@ -33,7 +34,14 @@ def main(run, debug):
         else: 
             file_lim = len(filepaths)
         
-        wfset = reader.WaveformSet_from_hdf5_files( filepaths[:int(file_lim)], read_full_streaming_data = False )                      
+        # Read waveforms using the unified loader and merge
+        wfset = None
+        for fp in filepaths[:int(file_lim)]:
+            wf = load_waveforms(fp, det="HD_PDS", force_raw=True)
+            if wfset is None:
+                wfset = wf
+            elif wf is not None:
+                wfset.merge(wf)
         # TODO: subsample the data reading (read each 2 entries)
 
         if debug: 
