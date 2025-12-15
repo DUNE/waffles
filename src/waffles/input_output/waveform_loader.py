@@ -28,8 +28,6 @@ def normalize_detector(det: str) -> str:
         "VD_Cathode_PDS": "VD_CathodePDS",
         "VD_MembranePDS": "VD_MembranePDS",
         "VD_Membrane_PDS": "VD_MembranePDS",
-        "VD_PMT_PDS": "VD_PMT_PDS",
-        "VD_PMT": "VD_PMT_PDS",
         "HD_PDS": "HD_PDS",
     }
     return mapping.get(det_clean, det_clean)
@@ -118,7 +116,7 @@ def load_waveforms(
     if det in (None, "", "AUTO"):
         det = _auto_detect_detector(
             filepath,
-            candidates=("VD_MembranePDS", "VD_CathodePDS", "HD_PDS", "VD_PMT_PDS"),
+            candidates=("VD_MembranePDS", "VD_CathodePDS", "HD_PDS"),
         )
 
     if force_eth and force_raw:
