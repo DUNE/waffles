@@ -4,6 +4,13 @@ import pandas as pd
 import numpy as np
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
+import warnings
+warnings.warn(
+    "waffles.input_output.waveformset_dataframe_utils is experimental/legacy; "
+    "prefer structured HDF5 or numpy-based paths.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 def waveformset_to_dataframe(wfset: WaveformSet, flatten_adc: bool = False) -> pd.DataFrame:
     rows = []

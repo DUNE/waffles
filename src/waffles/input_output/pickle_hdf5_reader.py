@@ -4,6 +4,13 @@ import _pickle as pickle
 import os
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
+import warnings
+warnings.warn(
+    "waffles.input_output.pickle_hdf5_reader is deprecated; use structured HDF5 "
+    "via waffles.input_output.hdf5_structured instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 def WaveformSet_from_hdf5_pickle(filepath: str) -> WaveformSet:
     """

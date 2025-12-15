@@ -31,6 +31,13 @@ from waffles.data_classes.WaveformSet import WaveformSet
 import detdataformats
 import fddetdataformats
 import waffles.input_output.input_utils as wiu
+import warnings
+warnings.warn(
+    "waffles.input_output.hdf5_reader is deprecated; use waffles.input_output.raw_hdf5_reader "
+    "or waffles.input_output.hdf5_structured instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 from waffles.utils.daphne_decoders import (
     decode_fragment_arrays,
     get_fragment_decoder,
