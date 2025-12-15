@@ -82,8 +82,9 @@ def _summarize_for_detector(
 
             if debug:
                 hdr = frag.get_header()
+                gid_id = getattr(gid, "id", gid)
                 print(
-                    f"[DEBUG] record={record} geo_id={gid.id} "
+                    f"[DEBUG] record={record} geo_id={gid_id} "
                     f"type={ftype.name} size={frag.get_data_size()} "
                     f"run={hdr.run_number} ts={hdr.trigger_timestamp}"
                 )
