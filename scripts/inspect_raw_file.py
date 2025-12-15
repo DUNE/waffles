@@ -64,8 +64,22 @@ def _summarize_for_detector(
                 continue
 
             frag_types[str(ftype)] += 1
-            source_ids[frag.get_header().get_source_id().id] += 1
-            geo_ids[gid.id] += 1
+            hdr = frag.get_header()
+            # handle both get_source_id() and source_id attributes
+            src = None
+            if hasattr(hdr, "get_source_id"):
+                try:
+                    src = hdr.get_source_id().id
+                except Exception:
+                    src = None
+            if src is None and hasattr(hdr, "source_id"):
+                try:
+                    src = hdr.source_id.id
+                except Exception:
+                    src = None
+            if src is not None:
+                source_ids[src] += 1
+            geo_ids[getattr(gid, "id", gid)] += 1
             trigger_timestamps[str(ftype)] += frag.get_trigger_timestamp()
 
             if debug:
