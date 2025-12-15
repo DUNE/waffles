@@ -158,14 +158,24 @@ def get_pulse_window_limits(
 
     # Make sure that the corrections did not make the lower limit
     # greater than or equal to the upper limit
-    if lower_limit >= upper_limit:
+    if lower_limit == upper_limit:
+        print(
+            "In function get_pulse_window_limits(): "
+            "WARNING: The corrected lower limit of the pulse window "
+            f"({lower_limit}) is equal to the corrected upper limit "
+            f"({upper_limit}). The upper limit will be set to "
+            f"{upper_limit + 1}."
+        )
+        upper_limit += 1
+
+    elif lower_limit > upper_limit:
         raise Exception(
             GenerateExceptionMessage(
                 3,
                 'get_pulse_window_limits()',
                 "The corrected lower limit of the pulse window "
-                f"({lower_limit}) is greater than or equal to the "
-                f"corrected upper limit ({upper_limit})."
+                f"({lower_limit}) is greater than the corrected "
+                f"upper limit ({upper_limit})."
             )
         )
 
