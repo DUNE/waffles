@@ -7,7 +7,7 @@ def read_cb_25_spybuffer_file(filename, WFs, length):
         WFs = 100000
 
     try:
-        data = np.fromfile(filename, dtype=">u2")  # big-endian uint16
+        data = np.fromfile(filename, dtype="<u2")
     except OSError:
         print("Error opening file")
         return np.empty((0, length))
