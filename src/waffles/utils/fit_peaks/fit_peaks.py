@@ -319,6 +319,8 @@ def fit_peaks_of_CalibrationHistogram(
 
     setattr(calibration_histogram, 'n_peaks_found', n_peaks_found)
     setattr(calibration_histogram, 'iminuit', mm)
+
+    calibration_histogram.compute_cross_talk()
         
     return fitstatus
 
