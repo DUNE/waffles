@@ -34,10 +34,22 @@ def _summarize_for_detector(
     trigger_timestamps = Counter()
 
     for record in records:
+        geos = []
         try:
             geos = list(h5_file.get_geo_ids_for_subdetector(record, detector))
         except Exception:
-            continue
+            geos = []
+        if not geos:
+            if hasattr(h5_file, "get_all_geo_ids"):
+                try:
+                    geos = list(h5_file.get_all_geo_ids())
+                except Exception:
+                    geos = []
+            elif hasattr(h5_file, "get_geo_ids"):
+                try:
+                    geos = list(h5_file.get_geo_ids(record))
+                except Exception:
+                    geos = []
 
         for gid in geos:
             try:
@@ -153,10 +165,22 @@ def offline_channel_table(
 
     counts = Counter()
     for record in records:
+        geos = []
         try:
             geos = list(h5_file.get_geo_ids_for_subdetector(record, det_norm))
         except Exception:
-            continue
+            geos = []
+        if not geos:
+            if hasattr(h5_file, "get_all_geo_ids"):
+                try:
+                    geos = list(h5_file.get_all_geo_ids())
+                except Exception:
+                    geos = []
+            elif hasattr(h5_file, "get_geo_ids"):
+                try:
+                    geos = list(h5_file.get_geo_ids(record))
+                except Exception:
+                    geos = []
 
         for gid in geos:
             try:
