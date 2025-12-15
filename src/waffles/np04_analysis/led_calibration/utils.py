@@ -2233,6 +2233,15 @@ def get_nbins_and_channel_wise_domain(
         channel = int(row['channel'])
         gain_seed = float(row['gain'])
 
+        if np.isnan(gain_seed):
+            print(
+                "In function get_nbins_and_channel_wise_domain(): "
+                f"WARNING: For channel {endpoint}-{channel}, found a "
+                "NaN gain seed. A domain for this channel will not be "
+                "added to the output dictionary."
+            )
+            continue
+
         if endpoint not in domain.keys():
             domain[endpoint] = {}
 
