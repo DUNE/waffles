@@ -13,17 +13,23 @@ import sys
 from pathlib import Path
 
 from waffles.input_output import raw_hdf5_reader as reader
+from waffles.input_output.daphne_eth_reader import load_daphne_eth_waveforms
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="cProfile wrapper around raw_hdf5_reader.WaveformSet_from_hdf5_file",
+        description="cProfile wrapper around raw_hdf5_reader.WaveformSet_from_hdf5_file or the ETH reader.",
     )
     parser.add_argument("filepath", help="Path to the raw HDF5 file to read.")
     parser.add_argument(
         "--det",
         default="HD_PDS",
-        help="Detector string (passed to the reader; default: HD_PDS).",
+        help="Detector string (e.g. HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS, VD_CathodePDS).",
+    )
+    parser.add_argument(
+        "--eth",
+        action="store_true",
+        help="Use the DAPHNE Ethernet reader (load_daphne_eth_waveforms).",
     )
     parser.add_argument(
         "--subsample",
@@ -75,17 +81,30 @@ def main() -> int:
     profile = cProfile.Profile()
     profile.enable()
 
-    reader.WaveformSet_from_hdf5_file(
-        args.filepath,
-        nrecord_start_fraction=args.nrecord_start_fraction,
-        nrecord_stop_fraction=args.nrecord_stop_fraction,
-        subsample=args.subsample,
-        wvfm_count=args.wvfm_count,
-        det=args.det,
-        record_chunk_size=args.record_chunk_size,
-    )
+    if args.eth:
+        wfset = load_daphne_eth_waveforms(
+            args.filepath,
+            detector=args.det,
+            max_waveforms=args.wvfm_count,
+            max_records=None,
+            skip_records=0,
+        )
+    else:
+        wfset = reader.WaveformSet_from_hdf5_file(
+            args.filepath,
+            nrecord_start_fraction=args.nrecord_start_fraction,
+            nrecord_stop_fraction=args.nrecord_stop_fraction,
+            subsample=args.subsample,
+            wvfm_count=args.wvfm_count,
+            det=args.det,
+            record_chunk_size=args.record_chunk_size,
+        )
 
     profile.disable()
+
+    if wfset is None:
+        print("No waveforms found")
+        return 1
 
     stats = pstats.Stats(profile).strip_dirs().sort_stats("cumulative")
     stats.print_stats(args.print_top)
