@@ -1415,7 +1415,11 @@ def get_gain_snr_and_fit_parameters(
                     'std_0': np.nan,
                     'std_0_error': np.nan,
                     'std_1': np.nan,
-                    'std_1_error': np.nan
+                    'std_1_error': np.nan,
+                    'avg_photons': np.nan,
+                    'avg_photons_error': np.nan,
+                    'cross_talk': np.nan,
+                    'cross_talk_error': np.nan
                 }
 
             elif fitted_peaks == 1:
@@ -1439,10 +1443,15 @@ def get_gain_snr_and_fit_parameters(
                     'std_0': fit_params['std'][0][0],
                     'std_0_error': fit_params['std'][0][1],
                     'std_1': np.nan,
-                    'std_1_error': np.nan
+                    'std_1_error': np.nan,
+                    'avg_photons': np.nan,
+                    'avg_photons_error': np.nan,
+                    'cross_talk': np.nan,
+                    'cross_talk_error': np.nan
                 }
 
             else: # fitted_peaks >= 2:
+                cx = grid_apa.ch_wf_sets[endpoint][channel].calib_histo.CrossTalk
 
                 aux_gain = fit_params['mean'][1][0] - fit_params['mean'][0][0]
                 aux = {
@@ -1455,7 +1464,12 @@ def get_gain_snr_and_fit_parameters(
                     'std_0': fit_params['std'][0][0],
                     'std_0_error': fit_params['std'][0][1],
                     'std_1': fit_params['std'][1][0],
-                    'std_1_error': fit_params['std'][1][1]
+                    'std_1_error': fit_params['std'][1][1],
+                    'avg_photons': cx.avg_photons,
+                    'avg_photons_error': cx.avg_photons_error,
+                    'cross_talk': cx.CX,
+                    'cross_talk_error': cx.CX_error
+
                 }
 
             if endpoint not in data.keys():
