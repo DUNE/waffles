@@ -22,8 +22,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("filepath", help="Path to the raw HDF5 file to read.")
     parser.add_argument(
         "--det",
-        default="HD_PDS",
-        help="Detector string (e.g. HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS, VD_CathodePDS).",
+        default="AUTO",
+        help="Detector string or AUTO to auto-detect (HD_PDS, VD_Membrane_PDS, VD_Cathode_PDS, VD_CathodePDS).",
     )
     parser.add_argument(
         "--eth",
