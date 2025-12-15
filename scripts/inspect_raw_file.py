@@ -61,10 +61,13 @@ def _summarize_for_detector(
             try:
                 ftype = FragmentType(frag.get_fragment_type())
             except ValueError:
-                continue
+                ftype = None
 
-            frag_types[str(ftype)] += 1
             hdr = frag.get_header()
+            gid_id = getattr(gid, "id", gid)
+            frag_key = str(ftype) if ftype else "Unknown"
+
+            frag_types[frag_key] += 1
             # Prefer element_id.id as exposed by daqdataformats bindings
             src = None
             try:
@@ -77,24 +80,27 @@ def _summarize_for_detector(
                         src = None
             if src is not None:
                 source_ids[src] += 1
-            geo_ids[getattr(gid, "id", gid)] += 1
-            trigger_timestamps[str(ftype)] += frag.get_trigger_timestamp()
+            geo_ids[gid_id] += 1
+            try:
+                trigger_timestamps[frag_key] += frag.get_trigger_timestamp()
+            except Exception:
+                pass
 
             if debug:
-                hdr = frag.get_header()
-                gid_id = getattr(gid, "id", gid)
                 print(
                     f"[DEBUG] record={record} geo_id={gid_id} "
-                    f"type={ftype.name} size={frag.get_data_size()} "
-                    f"run={hdr.run_number} ts={hdr.trigger_timestamp}"
+                    f"type={frag_key} size={frag.get_data_size()} "
+                    f"run={hdr.run_number} ts={getattr(hdr,'trigger_timestamp',None)}"
                 )
-                decoder = get_fragment_decoder(ftype)
+                decoder = get_fragment_decoder(ftype) if ftype else None
                 if decoder:
                     try:
                         chs, adcs, ts = decode_fragment_arrays(frag, decoder)
                         print(f"        channels={list(chs[:8])} nsamples={adcs.shape}")
                     except Exception as err:
                         print(f"        decode failed: {err}")
+                else:
+                    print("        decoder unavailable; showing header only")
 
     return frag_types, source_ids, geo_ids, trigger_timestamps
 
