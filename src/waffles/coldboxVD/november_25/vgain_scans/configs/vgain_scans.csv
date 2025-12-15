@@ -1,0 +1,671 @@
+29823,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 3192
+29824,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 3192
+29825,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 3192
+29826,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 3192
+29827,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 3192
+29828,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 3192
+29829,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 3192
+29830,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 3192
+29831,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 3192
+29832,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 3192
+29833,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 3192
+29834,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 3192
+29835,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 3192
+29836,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 3192
+29837,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 3192
+29838,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 3192
+29839,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 3192
+29860,10/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 3192
+31157,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 3192
+31158,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 3192
+31160,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 3192
+31161,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 3192
+31162,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 3192
+31163,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 3192
+31165,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 3192
+31166,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 3192
+31167,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 3192
+31168,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 3192
+31169,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 3192
+31170,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 3192
+31172,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 3192
+31173,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 3192
+31174,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 3192
+31175,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 3192
+31177,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 3192
+31178,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 3192
+29861,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2926
+29862,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2926
+29863,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2926
+29864,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2926
+29865,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2926
+29866,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2926
+29867,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2926
+29868,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2926
+29869,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2926
+29870,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2926
+29871,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2926
+29872,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2926
+29873,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2926
+29874,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2926
+29875,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2926
+29876,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2926
+29877,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2926
+29878,11/10/2024,"111, 112, 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2926
+31179,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2926
+31180,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2926
+31181,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2926
+31183,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2926
+31184,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2926
+31185,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2926
+31186,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2926
+31187,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2926
+31188,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2926
+31189,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2926
+31190,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2926
+31191,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2926
+31192,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2926
+31193,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2926
+31194,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2926
+31195,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2926
+31196,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2926
+31197,21/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2926
+29927,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29928,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29929,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29930,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29931,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29932,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29933,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29934,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29935,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29936,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2793
+29937,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2793
+29938,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2793
+29939,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2793
+29940,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2793
+30214,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2793
+29943,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2793
+29945,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29947,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29949,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29950,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29951,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29952,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29953,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29955,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29958,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29960,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2793
+29962,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2793
+29963,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2793
+29964,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2793
+29965,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2793
+30215,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2793
+29967,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2793
+29968,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29969,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29970,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29971,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29972,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29973,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29974,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29975,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29976,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29977,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2793
+29978,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2793
+29979,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2793
+29980,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2793
+29981,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2793
+30216,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2793
+29983,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2793
+29984,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29985,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29986,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29987,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29988,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29989,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29990,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29991,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29993,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29995,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2660
+29996,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2660
+29997,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2660
+29998,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2660
+29999,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2660
+30217,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2660
+30002,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2660
+30003,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30004,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30005,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30006,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30007,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30008,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30009,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30010,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30011,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30013,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2660
+30014,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2660
+30015,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2660
+30016,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2660
+30017,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2660
+30219,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2660
+30019,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2660
+31101,18/10/2024,"104, 109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30021,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30022,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30023,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30024,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30025,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30026,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30027,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30028,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30029,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2660
+30030,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2660
+30031,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2660
+30032,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2660
+30033,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2660
+30222,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2660
+30035,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2660
+30036,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30037,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30038,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30039,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30040,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30041,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30042,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30043,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30044,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30045,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2527
+30046,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2527
+30047,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2527
+30048,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2527
+30049,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2527
+30223,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2527
+30051,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2527
+30052,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30053,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30054,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30055,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30056,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30057,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30058,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30059,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30060,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30061,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2527
+30062,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2527
+30063,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2527
+30064,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2527
+30065,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2527
+30225,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2527
+30067,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2527
+30068,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30069,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30070,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30071,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30072,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30073,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30074,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30075,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30076,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30077,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2527
+30078,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2527
+30079,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2527
+30080,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2527
+30081,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2527
+30226,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2527
+30083,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2527
+30084,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30085,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30086,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30087,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30088,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30089,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30090,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30091,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30092,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30093,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2394
+30094,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2394
+30095,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2394
+30096,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2394
+30097,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2394
+30227,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2394
+30099,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2394
+30100,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30101,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30102,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30103,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30104,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30105,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30106,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30107,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30108,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30109,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2394
+30110,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2394
+30111,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2394
+30112,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2394
+30113,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2394
+30229,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2394
+30115,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2394
+30116,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30117,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30118,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30119,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30120,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30121,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30122,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30123,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30124,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30125,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2394
+30126,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2394
+30127,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2394
+30128,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2394
+30129,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2394
+30233,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2394
+30131,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2394
+30132,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30133,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30134,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30135,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30136,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30137,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30138,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30139,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30140,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30141,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2261
+30142,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2261
+30143,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2261
+30144,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2261
+30145,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2261
+30234,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2261
+30147,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2261
+30148,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30149,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30150,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30151,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30152,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30153,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30154,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30155,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30156,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30157,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2261
+30158,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2261
+30159,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2261
+30160,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2261
+30161,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2261
+30236,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2261
+30163,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2261
+30164,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30165,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30166,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30167,15/10/2024,104,APA:1; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30168,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30169,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30170,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30171,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30172,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30173,15/10/2024,109,APA:2; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2261
+30174,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2261
+30175,15/10/2024," 111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2261
+30176,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2261
+30177,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2261
+30238,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2261
+30179,15/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2261
+30239,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2128
+30240,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2128
+30241,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2128
+30242,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2128
+30243,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2128
+30245,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 2128
+30248,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2128
+30250,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2128
+30252,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2128
+30254,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2128
+30256,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2128
+30259,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 2128
+30261,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2128
+30263,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2128
+30265,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2128
+30268,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2128
+30270,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2128
+30272,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 2128
+30274,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2128
+30276,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2128
+30279,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2128
+30281,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2128
+30283,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2128
+30285,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 2128
+30288,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2128
+30290,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2128
+30291,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2128
+30292,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2128
+30293,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2128
+30294,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 2128
+30295,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2128
+30296,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2128
+30297,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2128
+30298,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2128
+30299,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2128
+30300,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 2128
+30301,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1995
+30302,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1995
+30303,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1995
+30304,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1995
+30305,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1995
+30306,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1995
+30307,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1995
+30308,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1995
+30309,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1995
+30310,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1995
+30311,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1995
+30312,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1995
+30313,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1995
+30314,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1995
+30315,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1995
+30316,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1995
+30317,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1995
+30318,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1995
+30319,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1995
+30320,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1995
+30321,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1995
+30322,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1995
+30323,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1995
+30324,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1995
+30325,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1995
+30326,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1995
+30327,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1995
+30328,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1995
+30331,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1995
+30333,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1995
+30335,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1995
+30337,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1995
+30339,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1995
+30342,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1995
+30344,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1995
+30346,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1995
+30348,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1862
+30350,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1862
+30352,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1862
+30355,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1862
+30357,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1862
+30359,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1862
+30361,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1862
+30363,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1862
+30366,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1862
+30368,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1862
+30370,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1862
+30372,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1862
+30375,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1862
+30377,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1862
+30379,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1862
+30381,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1862
+30384,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1862
+30386,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1862
+30388,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1862
+30390,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1862
+30392,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1862
+30395,16/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1862
+30397,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1862
+30399,16/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1862
+30401,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1862
+30403,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1862
+30406,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1862
+30408,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1862
+30410,16/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1862
+30412,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1862
+30415,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1862
+30417,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1862
+30419,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1862
+30422,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1862
+30424,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1862
+30427,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1862
+30429,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1729
+30431,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1729
+30433,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1729
+30436,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1729
+30438,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1729
+30440,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1729
+30442,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1729
+30444,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1729
+30447,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1729
+30449,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1729
+30451,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1729
+30453,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1729
+30456,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1729
+30458,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1729
+30460,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1729
+30462,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1729
+30465,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1729
+30467,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1729
+30469,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1729
+30471,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1729
+30473,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1729
+30476,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1729
+30478,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1729
+30480,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1729
+30482,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1729
+30485,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1729
+30487,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1729
+30489,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1729
+30491,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1729
+30493,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1729
+30496,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1729
+30498,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1729
+30500,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1729
+30502,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1729
+30504,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1729
+30508,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1729
+30510,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1596
+30512,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1596
+30514,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1596
+30517,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1596
+30519,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1596
+30521,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1596
+30523,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1596
+30525,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1596
+30528,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1596
+30530,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1596
+30532,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1596
+30534,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1596
+30536,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1596
+30539,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1596
+30541,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1596
+30543,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1596
+30545,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1596
+30547,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1596
+30550,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1596
+30552,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1596
+30554,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1596
+30556,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1596
+30558,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1596
+30561,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1596
+30563,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1596
+30565,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1596
+30567,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1596
+30570,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1596
+30572,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1596
+30574,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1596
+30576,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1596
+30579,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1596
+30582,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1596
+30584,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1596
+30586,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1596
+30588,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1596
+30591,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1463
+30593,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1463
+30595,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1463
+30597,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1463
+30599,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1463
+30602,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1463
+30604,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1463
+30606,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1463
+30608,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1463
+30611,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1463
+30614,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1463
+30616,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1463
+30618,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1463
+30620,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1463
+30623,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1463
+30625,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1463
+30627,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1463
+30629,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1463
+30631,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1463
+30634,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1463
+30636,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1463
+30638,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1463
+30640,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1463
+30642,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1463
+30645,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1463
+30647,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1463
+30649,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1463
+30651,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1463
+30656,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1463
+30658,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1463
+30662,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1463
+30664,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1463
+30666,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1463
+30668,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1463
+30670,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1463
+30673,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1330
+30675,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1330
+30677,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1330
+30379,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1330
+30682,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1330
+30684,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1330
+30686,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1330
+30688,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1330
+30691,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1330
+30694,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1330
+30696,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1330
+30698,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1330
+30700,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1330
+30703,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1330
+30705,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1330
+30707,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1330
+30709,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1330
+30711,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1330
+30714,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1330
+30716,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1330
+30718,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1330
+30720,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1330
+30722,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1330
+30724,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1330
+30727,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1330
+30729,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1330
+30731,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1330
+30733,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1330
+30736,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1330
+30738,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1330
+30740,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1330
+30742,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1330
+30744,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1330
+30747,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1330
+30749,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1330
+30752,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1330
+30754,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1197
+30756,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1197
+30759,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1197
+30761,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1197
+30763,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1197
+30765,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1197
+30758,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1197
+30770,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1197
+30772,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1197
+30774,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1197
+30776,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1197
+30779,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1197
+30781,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1197
+30783,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1197
+30785,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1197
+30787,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1197
+30790,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1197
+30792,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1197
+30794,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1197
+30796,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1197
+30798,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1197
+30801,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1197
+30803,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1197
+30805,17/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1197
+30807,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1197
+30810,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1197
+30812,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1197
+30814,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1197
+30816,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1197
+30818,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1197
+30821,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1197
+30823,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1197
+30825,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1197
+30827,17/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1197
+31040,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1197
+31041,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1197
+30835,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1064
+30837,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1064
+30839,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1064
+30842,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1064
+30844,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1064
+30846,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 1064
+31062,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1064
+31063,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1064
+31064,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1064
+31067,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1064
+31068,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1064
+31069,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 1064
+30862,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1064
+30864,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1064
+30866,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1064
+30868,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1064
+30870,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1064
+30873,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 1064
+31070,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1064
+31071,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1064
+31072,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1064
+31073,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1064
+31074,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1064
+31075,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 1064
+30890,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1064
+30892,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1064
+30895,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1064
+30897,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1064
+30899,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1064
+30901,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 1064
+31076,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1064
+31077,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1064
+31078,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1064
+31079,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1064
+31080,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1064
+31081,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 1064
+30918,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 931
+30919,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 931
+30920,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 40% - VGAIN: 931
+30922,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 40% - VGAIN: 931
+30924,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 40% - VGAIN: 931
+30926,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 40% - VGAIN: 931
+31082,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 40% - VGAIN: 931
+31083,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 40% - VGAIN: 931
+31084,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 40% - VGAIN: 931
+31085,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 40% - VGAIN: 931
+31086,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 40% - VGAIN: 931
+31087,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 40% - VGAIN: 931
+30943,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 931
+30945,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 931
+30948,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 45% - VGAIN: 931
+30950,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 45% - VGAIN: 931
+30952,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 45% - VGAIN: 931
+30954,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 45% - VGAIN: 931
+31088,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 45% - VGAIN: 931
+31089,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 45% - VGAIN: 931
+31090,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 45% - VGAIN: 931
+31091,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 45% - VGAIN: 931
+31092,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 45% - VGAIN: 931
+31093,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 45% - VGAIN: 931
+30970,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 931
+30971,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 931
+30972,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:20,PDE: 50% - VGAIN: 931
+30973,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:2800; pulse1_width_ticks:20,PDE: 50% - VGAIN: 931
+30974,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:3400; pulse1_width_ticks:20,PDE: 50% - VGAIN: 931
+30975,17/10/2024,"104,109",APA:12; channel_mask:50; Pulse_bias_percent_270nm:4000; pulse1_width_ticks:20,PDE: 50% - VGAIN: 931
+31094,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1400; pulse1_width_ticks:1,PDE: 50% - VGAIN: 931
+31095,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1500; pulse1_width_ticks:1,PDE: 50% - VGAIN: 931
+31096,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1600; pulse1_width_ticks:1,PDE: 50% - VGAIN: 931
+31097,18/10/2024,"111, 112 , 113",APA:34; channel_mask:1; Pulse_bias_percent_270nm:1800; pulse1_width_ticks:1,PDE: 50% - VGAIN: 931
+31098,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2000; pulse1_width_ticks:1,PDE: 50% - VGAIN: 931
+31100,18/10/2024,"111, 112 , 113",APA:34; channel_mask:12; Pulse_bias_percent_270nm:2200; pulse1_width_ticks:1,PDE: 50% - VGAIN: 931
