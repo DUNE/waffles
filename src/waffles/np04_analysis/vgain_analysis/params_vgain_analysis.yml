@@ -9,7 +9,7 @@ output_path: 'output/vgain_scan_debug'
 
 # VGAIN-batch number
 #batches: [3192, 2926, 2793, 2660, 2527, 2394, 2261, 2128, 1995, 1862, 1729, 1596, 1463, 1330, 1197, 1064, 931]
-batches: [2128]
+batches: [2793]
 
 # APA number
 apas: [3]
@@ -17,7 +17,7 @@ apas: [3]
 # Photon detection efficiency
 pdes: [0.45]
 
-channel_to_analyze: 11134
+channel_to_analyze: 11105
 
 filter_type: ['Bessel'] # 'Bessel', 'Butter', 'Cheby_I', 'Cheby_II', 'Elliptic'
 #hpf_cutoff_frequency: ['10khz', '20khz', '30khz', '40khz', '50khz', '60khz','70khz', '80khz', '90khz', '100khz', '110khz', '120khz', '130khz', '140khz', '150khz', '160khz', '170khz', '180khz', '190khz', '200khz'] # 10khz:100khz:200khz
@@ -115,13 +115,13 @@ calib_histo_bins_number:
     0.4:
         125
     0.45:
-        120
+        175
     0.50:
-        90
+        120
 
 # Lower and upper limits for the calibration histogram
-calib_histo_lower_limit: -20.
-calib_histo_upper_limit: 80.
+calib_histo_lower_limit: -10.
+calib_histo_upper_limit: 50.
 
 ## Parameters for peak fitting
 # Maximum number of peaks to fit

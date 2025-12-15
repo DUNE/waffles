@@ -2,6 +2,8 @@ import inspect
 import numpy as np
 from typing import List, Tuple, Optional
 
+from typing import Any
+
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.Waveform import Waveform
 
@@ -518,3 +520,125 @@ def coarse_selection_for_led_calibration(
             return False
     
     return True
+
+def selection_by_metric_quantile_band(
+        waveform: Waveform,
+        analysis_label: str,
+        result_key: str,
+        q25_value: float,
+        q75_value: float
+) -> bool:
+    try:
+        v = float(waveform.analyses[analysis_label].result[result_key])
+    except KeyError:
+        raise Exception(GenerateExceptionMessage(
+            1,
+            "selection_by_metric_quantile_band()",
+            f"Missing analysis '{analysis_label}' or key '{result_key}' in result."
+        ))
+    except (TypeError, ValueError):
+        return False
+
+    if not np.isfinite(v):
+        return False
+
+    # A) keep only the inter-quartile range
+    return (v >= q25_value) and (v <= q75_value)
+
+def compute_quantile_band_from_wfset(
+        wfset: Waveform,
+        analysis_label: str,
+        result_key: str,
+        q_low: float = 0.25,
+        q_high: float = 0.75
+):
+    vals = []
+    for wf in wfset.waveforms:
+        try:
+            v = wf.analyses[analysis_label].result[result_key]
+        except KeyError:
+            continue
+        if v is None:
+            continue
+        v = float(v)
+        if not np.isfinite(v):
+            continue
+        vals.append(v)
+
+    if len(vals) < 4:
+        raise Exception(GenerateExceptionMessage(
+            1,
+            "compute_quantile_band_from_wfset()",
+            f"Not enough valid values for '{analysis_label}:{result_key}' (got {len(vals)})."
+        ))
+
+    low_val, high_val = np.quantile(np.asarray(vals), [q_low, q_high])
+    return float(low_val), float(high_val)
+
+def filter_wfset_by_quantile_specs(
+    wfset,
+    analysis_label: str,
+    specs: dict[str, tuple[float, float]],
+):
+    values = {k: [] for k in specs.keys()}
+
+    for wf in wfset.waveforms:
+        for key in specs.keys():
+            try:
+                v = wf.analyses[analysis_label].result[key]
+            except KeyError:
+                continue
+            if v is None:
+                continue
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                continue
+            if not np.isfinite(v):
+                continue
+            values[key].append(v)
+
+    bands: dict[str, tuple[float, float]] = {}
+    for key, (q_low, q_high) in specs.items():
+        if not (0.0 <= q_low < q_high <= 1.0):
+            raise Exception(GenerateExceptionMessage(
+                1,
+                "filter_wfset_by_quantile_specs()",
+                f"Invalid quantiles for '{key}': ({q_low}, {q_high}). Must satisfy 0<=q_low<q_high<=1."
+            ))
+        if len(values[key]) < 4:
+            raise Exception(GenerateExceptionMessage(
+                2,
+                "filter_wfset_by_quantile_specs()",
+                f"Not enough valid values for '{analysis_label}:{key}' (got {len(values[key])})."
+            ))
+
+        lo, hi = np.quantile(np.asarray(values[key]), [q_low, q_high])
+        bands[key] = (float(lo), float(hi))
+
+    # IMPORTANT: waffles requires the first arg to be hinted as WaveformAdcs
+    def _predicate(waveform: WaveformAdcs, _analysis_label: str, _bands: dict) -> bool:
+        try:
+            res = waveform.analyses[_analysis_label].result
+        except KeyError:
+            return False
+
+        for key, (lo, hi) in _bands.items():
+            try:
+                v = float(res[key])
+            except Exception:
+                return False
+            if not np.isfinite(v):
+                return False
+            if v < lo or v > hi:
+                return False
+        return True
+
+    filtered = type(wfset).from_filtered_WaveformSet(
+        wfset,
+        _predicate,
+        analysis_label,
+        bands
+    )
+
+    return filtered, bands

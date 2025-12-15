@@ -8,6 +8,56 @@ from typing import List, Tuple
 from waffles.Exceptions import GenerateExceptionMessage
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 
+SQRT2 = np.sqrt(2.0)
+
+def _norm_cdf(z):
+    """Standard normal CDF, vectorized.
+
+    NOTE: np.erf NO existe en muchas versiones de numpy (ej. 1.24).
+    Usamos scipy.special.erf (ya dependencia del proyecto).
+    """
+    z = np.asarray(z, dtype=float)
+    out = 0.5 * (1.0 + erf(z / SQRT2))
+    # ensure fully finite even if z is extreme
+    return np.nan_to_num(out, nan=0.0, posinf=1.0, neginf=0.0)
+
+def _exgauss_cdf(x, mu, sigma, tau):
+    """
+    CDF of the exponentially-modified Gaussian (exGaussian):
+      X = N(mu, sigma) + Exp(scale=tau), tau>0  (right-tailed)
+    """
+    x = np.asarray(x, dtype=float)
+    mu = float(mu)
+    sigma = max(float(sigma), 1e-12)
+    tau = max(float(tau), 1e-12)
+    z = (x - mu) / sigma
+    lam = sigma / tau
+    # exp(arg) guard for numerical stability
+    arg = -(x - mu) / tau + 0.5 * lam * lam
+    arg = np.clip(arg, -700.0, 700.0)
+    out = _norm_cdf(z) - np.exp(arg) * _norm_cdf(z - lam)
+    return np.nan_to_num(out, nan=0.0, posinf=1.0, neginf=0.0)
+
+def emg_left_bin_counts(edges, area, mu, sigma, tau):
+    """
+    Bin-integrated counts for a LEFT-tailed EMG:
+      Y ~ exGauss(mu, sigma, tau) (right tail)
+      X = -Y  => left tail
+    counts/bin = area * [CDF_X(e_hi) - CDF_X(e_lo)]
+    """
+    edges = np.asarray(edges, dtype=float)
+    area = float(area)
+    if area <= 0.0:
+        return np.zeros(len(edges) - 1, dtype=float)
+    # CDF_X(x) = 1 - CDF_Y(-x)
+    cdf_y_lo = _exgauss_cdf(-edges[:-1], -float(mu), float(sigma), float(tau))
+    cdf_y_hi = _exgauss_cdf(-edges[1:],  -float(mu), float(sigma), float(tau))
+    cdf_x_lo = 1.0 - cdf_y_lo
+    cdf_x_hi = 1.0 - cdf_y_hi
+    out = area * np.clip(cdf_x_hi - cdf_x_lo, 0.0, 1.0)
+    # defensive: never emit NaN/inf to callers (Minuit will die)
+    return np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
+
 def gaussian_bin_counts(edges, scale, mean, std):
     """Expected counts per bin integrating: scale * exp(-0.5*((x-mean)/std)**2)."""
     std = np.clip(std, 1e-12, None)

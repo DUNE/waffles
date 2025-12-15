@@ -19,6 +19,7 @@ from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.StoreWfAna import StoreWfAna
 from waffles.utils.baseline.WindowBaseliner import WindowBaseliner
+from waffles.utils.baseline.RandomWindowPedestalBaseliner import RandomWindowPedestalBaseliner
 from waffles.utils.integral.WindowIntegrator import WindowIntegrator
 from waffles.utils.integral.BoxcarIntegrator import BoxcarIntegrator
 
@@ -31,6 +32,9 @@ from waffles.utils.fit_peaks.fit_peaks import auto_domain_from_grid
 from waffles.utils.baseline.baseline_utils import subtract_baseline
 from waffles.utils.filtering_utils import fine_selection_for_led_calibration
 from waffles.utils.filtering_utils import coarse_selection_for_led_calibration
+from waffles.utils.filtering_utils import selection_by_metric_quantile_band
+from waffles.utils.filtering_utils import filter_wfset_by_quantile_specs
+from waffles.utils.filtering_utils import compute_quantile_band_from_wfset
 from waffles.utils.integral.integral_utils import get_pulse_window_limits
 from waffles.plotting.plot import plot_ChannelWsGrid
 from waffles.utils.numerical_utils import filter_waveform, applyDiscreteFilter

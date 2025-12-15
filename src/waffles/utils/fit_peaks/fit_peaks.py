@@ -16,22 +16,28 @@ class MultiGaussBinnedModel:
     """
     Picklable binned multi-gauss model.
     Parameter meaning (consistent with gaussian_bin_counts):
-      - scale_* : CONTINUOUS amplitude (counts / x-unit). Model returns counts/bin after integration.
+      - scale_* : AREA (total counts) of each Gaussian component.
+                  Internally converted to density (counts/x) before integrating per bin.
       - bkg     : constant background in counts/bin
-      - bkgG    : gaussian background HEIGHT in counts/bin (converted internally to counts/x)
+      - bkgEMG_*: (optional) LEFT-tailed EMG background (area + shape), returns counts/bin by CDF-diff
     """
-    def __init__(self, pnames):
+    def __init__(self, pnames, use_emg: bool = True, use_bkg: bool = False):
         self.pnames = list(pnames)
+        self.use_emg = bool(use_emg)
+        self.use_bkg = bool(use_bkg)
 
     def __call__(self, edges, *p):
         edges = np.asarray(edges)
         vals = {n: float(v) for n, v in zip(self.pnames, p)}
 
+        SQRT_2PI = math.sqrt(2.0 * math.pi)
+
         # Representative bin width (needed to convert counts/bin <-> counts/x)
         bw = float(np.median(np.diff(edges)))
         bw = max(bw, 1e-12)
 
-        amp0  = float(vals['scale_baseline'])   # counts/x
+        # scale_* are AREAS (counts)
+        area0 = float(vals['scale_baseline'])
         mu0   = float(vals['mean_baseline'])
         s0    = float(vals['std_baseline'])
         gain  = float(vals['gain'])
@@ -39,31 +45,60 @@ class MultiGaussBinnedModel:
         # We keep 'bkg' for backward compatibility, but we'll allow disabling it.
         bkg   = float(vals.get('bkg', 0.0))  # counts/bin (flat)
 
-        # Optional: gaussian background (height in counts/bin)
-        bkgG_h   = float(vals.get('bkgG', 0.0))          # counts/bin (height)
-        bkgG_mu  = float(vals.get('bkgG_mean', mu0))
-        bkgG_std = float(vals.get('bkgG_std', 10.0*s0))
+        # EMG is enabled only if:
+        #  - user asked for it (self.use_emg)
+        #  - AND the EMG parameters are actually present in the Minuit parameter list
+        emg_params_present = (
+            ('bkgEMG_area' in vals) or ('bkgEMG_mu' in vals)
+            or ('bkgEMG_sigma' in vals) or ('bkgEMG_tau' in vals)
+        )
+        emg_enabled = self.use_emg and emg_params_present
 
-        mu = wun.gaussian_bin_counts(edges, amp0, mu0, s0)  # counts/bin
+        # Optional: LEFT-tailed EMG background (AREA in counts + shape)
+        if emg_enabled:
+            bkgE_area  = float(vals.get('bkgEMG_area', 0.0))          # counts (area)
+            bkgE_mu    = float(vals.get('bkgEMG_mu', mu0))            # location
+            bkgE_sigma = float(vals.get('bkgEMG_sigma', max(bw, s0))) # width
+            bkgE_tau   = float(vals.get('bkgEMG_tau', 10.0*s0))       # tail scale (>0)
+        else:
+            bkgE_area, bkgE_mu, bkgE_sigma, bkgE_tau = 0.0, mu0, 0.0, 0.0
+
+        def _gauss_area_bin_counts(edges_, area_, mean_, sigma_):
+            sigma_ = max(float(sigma_), 1e-12)
+            # density amplitude (counts/x) such that integral = area
+            amp_density = float(area_) / (SQRT_2PI * sigma_)
+            return wun.gaussian_bin_counts(edges_, amp_density, mean_, sigma_)
+
+        mu = _gauss_area_bin_counts(edges, area0, mu0, s0)  # counts/bin
 
         for name in self.pnames:
             if name.startswith("scale_") and name.endswith("pe"):
                 k = int(name.split('_')[1].replace('pe', ''))
-                amp_k  = float(vals[name])   # counts/x (density)
+                area_k = float(vals[name])   # counts (AREA)
                 mu_k   = mu0 + k * gain
                 s_k    = math.sqrt(max(1e-24, s0*s0 + (prop*prop)*k))
-                mu += wun.gaussian_bin_counts(edges, amp_k,  mu_k, s_k)
+                mu += _gauss_area_bin_counts(edges, area_k, mu_k, s_k)
 
-        # always include bkg (limits already enforce >=0)
-        # Optional flat background (counts/bin)
-        # If gaussian background is enabled, you usually want bkg=0 to avoid the global offset.
-        if bkg > 0.0 and bkgG_h <= 0.0:
+        # Optional flat background (counts/bin).
+        # If EMG is enabled, you usually want bkg=0 to avoid a global offset.
+        if self.use_bkg and (bkg > 0.0) and ((not emg_enabled) or (bkgE_area <= 0.0)):
             mu = mu + bkg
 
-        # Gaussian background (counts/bin height -> counts/x density -> integrate)
-        if bkgG_h > 0.0 and bkgG_std > 0.0:
-            bkgG_scale = bkgG_h / bw  # counts/x
-            mu = mu + wun.gaussian_bin_counts(edges, bkgG_scale, bkgG_mu, bkgG_std)
+        # LEFT-tailed EMG background (only if enabled)
+        if emg_enabled and (bkgE_area > 0.0) and (bkgE_sigma > 0.0) and (bkgE_tau > 0.0):
+            # IMPORTANT: never return NaNs from the model; it kills Minuit (all steps penalized).
+            # If EMG fails numerically for some reason, fall back to "no-EMG for this call"
+            # but keep a finite, positive model so Minuit can still navigate.
+            try:
+                emg = wun.emg_left_bin_counts(edges, bkgE_area, bkgE_mu, bkgE_sigma, bkgE_tau)
+                emg = np.asarray(emg, dtype=float)
+                if emg.shape != mu.shape:
+                    raise ValueError("emg_left_bin_counts returned wrong shape")
+                emg = np.nan_to_num(emg, nan=0.0, posinf=0.0, neginf=0.0)
+                mu = mu + np.clip(emg, 0.0, None)
+            except Exception:
+                # EMG enabled but failed numerically: force penalty (but no NaNs)
+                return -np.ones(len(edges) - 1, dtype=float)
         return np.clip(mu, 1e-12, None)
 
 
@@ -128,7 +163,9 @@ def fit_peaks_of_CalibrationHistogram(
     half_points_to_fit: int = 2,
     std_increment_seed_fallback: float = 1e+2,
     ch_span_fraction_around_peaks: float = 0.05,
-    verbosity: int = 2
+    verbosity: int = 2,
+    use_emg: bool = False,
+    use_bkg: bool = False
 ) -> bool:
     # ---- Robustness knobs (kept internal on purpose) ----
     # Prevent sigma collapse / blow-up (main source of under/overestimation when peaks overlap)
@@ -467,8 +504,12 @@ def fit_peaks_of_CalibrationHistogram(
         'scale_baseline', 'mean_baseline', 'std_baseline',
         'gain', 'propstd',
         'bkg',               # counts/bin
-        'bkgG', 'bkgG_mean', 'bkgG_std'  # gaussian background (height counts/bin + shape)
     ]
+    if use_emg:
+        base_paramnames += [
+            # LEFT-tailed EMG background (AREA counts + shape)
+            'bkgEMG_area', 'bkgEMG_mu', 'bkgEMG_sigma', 'bkgEMG_tau'
+        ]
     base_params = [
         1.0,                        # scale_baseline (area) – will be reseeded robustly below
         float(gfp['mean'][0][0]),   # mean_baseline
@@ -498,12 +539,39 @@ def fit_peaks_of_CalibrationHistogram(
     bkg_seed_bin = max(0.0, bkg_seed_bin)
     base_params.append(0.0)  # bkg (flat) starts at 0 to avoid visible offset by default
 
-    # Gaussian background: height ~ low percentile, mean ~ center of domain, std ~ wide fraction of span
-    x0 = float(0.5 * (calibration_histogram.edges[0] + calibration_histogram.edges[-1]))
-    span = float(calibration_histogram.edges[-1] - calibration_histogram.edges[0])
-    base_params.append(bkg_seed_bin)          # bkgG (height counts/bin)
-    base_params.append(x0)                   # bkgG_mean
-    base_params.append(max(1e-6, 0.35*span)) # bkgG_std (wide but finite) 
+    if use_emg:
+        # LEFT-tailed EMG background seed:
+        #  - area ~ left-side mass (more stable than percentile*nbins)
+        #  - mu near baseline, sigma ~ few*s0, tau ~ fraction of span
+        x0 = float(0.5 * (calibration_histogram.edges[0] + calibration_histogram.edges[-1]))
+        span = float(calibration_histogram.edges[-1] - calibration_histogram.edges[0])
+        nbins = float(len(calibration_histogram.counts))
+        try:
+            edges_all = np.asarray(calibration_histogram.edges, dtype=float)
+            y_all = np.asarray(calibration_histogram.counts, dtype=float)
+            mu0_seed = float(base_params[1])
+            s0_seed  = max(1e-12, float(base_params[2]))
+            # Use a "far-left" cut so we don't absorb the pedestal's left shoulder into the EMG area
+            cut = mu0_seed - 2.5 * s0_seed
+            icut = int(np.searchsorted(edges_all, cut, side="left") - 1)
+            icut = max(0, min(len(y_all), icut))
+            left_mass = float(np.sum(y_all[:icut])) if icut > 0 else float(np.sum(y_all[:max(1, len(y_all)//20)]))
+            tot_mass  = float(np.sum(y_all))
+            # Cap to avoid starting with a background that dominates all peaks.
+            bkgE_area_seed = np.clip(left_mass, 0.0, 0.35 * max(1.0, tot_mass))
+        except Exception:
+            bkgE_area_seed = max(0.0, bkg_seed_bin * nbins)
+        base_params.append(float(bkgE_area_seed))  # bkgEMG_area (counts)
+        # Seed: colocar el EMG en el "valle" pedestal->1pe (suele estar ~0.5*gain)
+        _gain0 = float(base_params[3])
+        _mu0   = float(base_params[1])
+        _s0    = float(base_params[2])
+        base_params.append(float(_mu0 + 0.50*_gain0))  # bkgEMG_mu
+        # Seed: background ancho pero no descomunal
+        base_params.append(max(binw, 1.8*_s0, 0.18*_gain0))  # bkgEMG_sigma
+        base_params.append(max(binw, 2.5*_s0, 0.30*_gain0))  # bkgEMG_tau
+
+    assert len(base_params) == len(base_paramnames), (len(base_paramnames), len(base_params))
 
     # Estimates the number of peaks that should be fitted based on the histogram
     # Starts with a huge number of peaks, and then reduces it
@@ -550,8 +618,12 @@ def fit_peaks_of_CalibrationHistogram(
         y_eff = y_win - max(0.0, bkg_bin)
         y_eff = np.clip(y_eff, 0.0, None)
 
-        # expected counts/bin in each bin for unit AREA (scale=1)
-        mu_unit = wun.gaussian_bin_counts(edges_win, 1.0, mean, std)
+        # expected counts/bin in each bin for UNIT AREA:
+        # gaussian_bin_counts expects "scale" = density amplitude (counts/x),
+        # so for area=1: amp_density = 1/(sqrt(2pi)*std)
+        SQRT_2PI = math.sqrt(2.0 * math.pi)
+        amp_unit_area = 1.0 / max(eps, (SQRT_2PI * float(std)))
+        mu_unit = wun.gaussian_bin_counts(edges_win, amp_unit_area, mean, std)
         mu_unit = np.clip(mu_unit, eps, None)
 
         # solve AREA from total counts in window (robust)
@@ -559,6 +631,8 @@ def fit_peaks_of_CalibrationHistogram(
         den = float(np.sum(mu_unit))
         if not (np.isfinite(num) and np.isfinite(den)) or den <= eps:
             return None
+        # den is the fraction of the unit-area mass captured in the window (<=1)
+        # => area estimate:
         return num / max(den, eps)
 
     data_err = np.sqrt(data_y)
@@ -617,63 +691,105 @@ def fit_peaks_of_CalibrationHistogram(
         y_fit     = y[i0:i1+1]
         return edges_fit, y_fit
 
+    def _set_common_limits(_mm, _edges, _y):
+        """
+        Apply consistent caps/guards to avoid overflow + sigma collapse.
+        Must live at this scope because it's used both by _run_minuit_fit()
+        and by the relaxed sweep pass (mmR) inside _fit_for_min().
+        """
+        bw_loc = float(np.median(np.diff(_edges)))
+        bw_loc = max(bw_loc, 1e-12)
+
+        max_y = float(np.max(_y)) if len(_y) else 1.0
+        sum_y = float(np.sum(_y)) if len(_y) else 1.0
+
+        # Areas (counts). Keep generous but finite to prevent mu overflow.
+        scale_max = max(1.0, 10.0 * sum_y)
+        # Counts/bin
+        bkg_max   = max(1.0, 2.0 * max_y)
+        # EMG area (counts) — cap near total counts in window to prevent background dominance
+        # (si lo dejás enorme, el EMG puede “comerse” el espectro y correrse a la izquierda)
+        area_max  = max(1.0, 1.2 * sum_y)
+
+        gain0 = float(base_params[3])
+        s0    = float(base_params[2])
+        mu0   = float(base_params[1])
+
+        std_min = max(_STD_MIN_BINW_FRAC * bw_loc, _STD_MIN_SEED_FRAC * s0)
+        # Relaxed std_max to avoid excluding the true solution when seeds are off.
+        std_max = max(
+            std_min * 1.05,
+            min(_STD_MAX_SEED_MULT * s0, 1.50 * max(gain0, std_min))
+        )
+
+        # Relaxed gain bounds (tight bounds are a frequent reason for “all ok=False”).
+        gain_min = max(std_min * 1.05, 0.10 * gain0)
+        gain_max = max(gain_min * 1.10, 10.0 * gain0)
+
+        for p in _mm.parameters:
+            if p == "mean_baseline":
+                _mm.limits[p] = (None, None)
+            elif p == "std_baseline":
+                _mm.limits[p] = (std_min, std_max)
+            elif p == "gain":
+                _mm.limits[p] = (gain_min, gain_max)
+            elif p == "propstd":
+                _mm.limits[p] = (0.0, std_max)
+            elif p.startswith("scale_"):
+                _mm.limits[p] = (0.0, scale_max)
+            elif p == "bkg":
+                _mm.limits[p] = (0.0, bkg_max)
+            elif p == "bkgEMG_area":
+                _mm.limits[p] = (0.0, area_max)
+            elif p == "bkgEMG_mu":
+                # Permitir que el EMG modele el shoulder entre pedestal y 1pe:
+                # - no demasiado a la izquierda (evita sesgo)
+                # - no cruzar demasiado hacia el 1pe (evita “pico falso”)
+                lo_mu = max(float(_edges[0]), mu0 - 2.0*s0)
+                hi_mu = min(float(_edges[-1]), mu0 + 0.85*gain0)
+                if hi_mu <= lo_mu:
+                    hi_mu = float(_edges[-1])
+                _mm.limits[p] = (lo_mu, hi_mu)
+            elif p == "bkgEMG_sigma":
+                xr = float(_edges[-1] - _edges[0])
+                xr = max(xr, 1e-9)
+                # sigma EMG mínimo “ancho” (evita fondo puntiagudo) pero sin forzarlo exagerado
+                emg_sig_min = max(std_min, 1.5*s0, 0.15*gain0)
+                emg_sig_max = min(2.0 * xr, 2.0 * gain0)
+                _mm.limits[p] = (emg_sig_min, max(emg_sig_min*1.05, emg_sig_max))
+            elif p == "bkgEMG_tau":
+                xr = float(_edges[-1] - _edges[0])
+                xr = max(xr, 1e-9)
+                # tau mínimo: cola izquierda presente, pero sin “inflar” todo el fondo
+                emg_tau_min = max(bw_loc, 2.0*s0, 0.25*gain0, 0.01*xr)
+                emg_tau_max = min(5.0 * xr, 6.0 * gain0)
+                _mm.limits[p] = (emg_tau_min, max(emg_tau_min*1.05, emg_tau_max))
+            else:
+                _mm.limits[p] = (0.0, None)
+
+        return dict(
+            bw_loc=bw_loc, scale_max=scale_max, bkg_max=bkg_max, area_max=area_max,
+            std_min=std_min, std_max=std_max, gain_min=gain_min, gain_max=gain_max
+        )
+
     def _run_minuit_fit(pnames, pvals, edges_fit, y_fit):
         if len(pnames) != len(pvals):
             raise RuntimeError("Parameter name/value length mismatch")
 
         # Bind local model with consistent units
-        model = MultiGaussBinnedModel(pnames)
+        model = MultiGaussBinnedModel(pnames, use_emg=use_emg, use_bkg=use_bkg)
         cost = PoissonDevianceBinned(edges_fit, y_fit, model)
         mm = Minuit(cost, *pvals, name=pnames)
         mm.strategy = 2  # more robust in correlated / degenerate problems
 
-        # ---- Physical / anti-degeneracy bounds (KEY FIX) ----
-        # Without a lower bound on std, Poisson binned mixtures often collapse sigma->0,
-        # especially when peaks overlap (your 1st figure).
-        bw_loc = float(np.median(np.diff(edges_fit)))
-        bw_loc = max(bw_loc, 1e-12)
 
-        # Upper bounds for amplitudes/background to prevent mu -> inf (NaNs in deviance).
-        # y_fit is counts/bin, while scale_* are counts/x-unit (density) in this model.
-        max_y = float(np.max(y_fit)) if len(y_fit) else 1.0
-        scale_max = max(1.0, 50.0 * max_y / bw_loc)   # counts/x-unit (very generous)
-        bkg_max   = max(1.0, 2.0 * max_y)             # counts/bin
 
-        gain0 = float(base_params[3])
-        s0    = float(base_params[2])
-        std_min = max(_STD_MIN_BINW_FRAC * bw_loc, _STD_MIN_SEED_FRAC * s0)
-        std_max = max(std_min * 1.05, min(_STD_MAX_SEED_MULT * s0, _STD_MAX_GAIN_FRAC * max(gain0, std_min)))
-        gain_min = max(std_min * 1.1, _GAIN_MIN_FRAC * gain0)
-        gain_max = max(gain_min * 1.05, _GAIN_MAX_MULT * gain0)
-
-        for p in mm.parameters:
-            if p == "mean_baseline":
-                mm.limits[p] = (None, None)
-            elif p == "std_baseline":
-                mm.limits[p] = (std_min, std_max)
-            elif p == "gain":
-                mm.limits[p] = (gain_min, gain_max)
-            elif p == "propstd":
-                mm.limits[p] = (0.0, std_max)  # keep increments reasonable
-            elif p.startswith("scale_"):
-                # scale_* are amplitudes (density, counts/x). Cap them to avoid mu overflow.
-                mm.limits[p] = (0.0, scale_max)
-            elif p in ("bkg", "bkgG"):
-                # background parameters are counts/bin-like in this codepath
-                mm.limits[p] = (0.0, bkg_max)
-            else:
-                mm.limits[p] = (0.0, None)
+        liminfo = _set_common_limits(mm, edges_fit, y_fit)
+        bkg_max = liminfo["bkg_max"]
+        std_max = liminfo["std_max"]
         # keep explicit non-negativity (already enforced above), do not overwrite upper bounds
 
-        # Gaussian background limits (if enabled)
-        if "bkgG" in mm.parameters:
-            mm.limits["bkgG"] = (0.0, None)  # height counts/bin
-        if "bkgG_mean" in mm.parameters:
-            mm.limits["bkgG_mean"] = (float(edges_fit[0]), float(edges_fit[-1]))
-        if "bkgG_std" in mm.parameters:
-            xr = float(edges_fit[-1] - edges_fit[0])
-            xr = max(xr, 1e-9)
-            mm.limits["bkgG_std"] = (0.15 * xr, 3.0 * xr)
+        # (no extra block needed: EMG limits set above)
         # ---------------- Stage A (more robust) ----------------
         # Do NOT fix baseline/1pe scales: when peaks overlap, wrong amplitude seeds
         # force Minuit to "cheat" via sigma. Keep only higher-order peaks fixed.
@@ -685,21 +801,25 @@ def fit_peaks_of_CalibrationHistogram(
                     mm.fixed[p] = True
 
         # Background policy:
-        # - If gaussian background is present, keep flat bkg disabled (fixed at 0).
-        # - Otherwise allow flat bkg to float (if you still want it).
-        if "bkg" in mm.parameters and "bkgG" in mm.parameters:
-            mm.values["bkg"] = 0.0
-            mm.fixed["bkg"] = True
-        elif "bkg" in mm.parameters:
-            mm.fixed["bkg"] = False
+        # - If user disables bkg => force bkg=0 always.
+        # - Else if EMG is present => keep bkg disabled (fixed at 0).
+        # - Else allow bkg to float.
+        if "bkg" in mm.parameters:
+            if (not use_bkg) or ("bkgEMG_area" in mm.parameters):
+                mm.values["bkg"] = 0.0
+                mm.fixed["bkg"] = True
+            else:
+                mm.fixed["bkg"] = False
 
-        # Stage-A: gaussian background: free only the HEIGHT, keep mean/std fixed (stability)
-        if "bkgG" in mm.parameters:
-            mm.fixed["bkgG"] = False
-        if "bkgG_mean" in mm.parameters:
-            mm.fixed["bkgG_mean"] = True
-        if "bkgG_std" in mm.parameters:
-            mm.fixed["bkgG_std"] = True
+        # Stage-A: EMG background: free only AREA, keep shape fixed (stability)
+        if "bkgEMG_area" in mm.parameters:
+            mm.fixed["bkgEMG_area"] = False
+        if "bkgEMG_mu" in mm.parameters:
+            mm.fixed["bkgEMG_mu"] = True
+        if "bkgEMG_sigma" in mm.parameters:
+            mm.fixed["bkgEMG_sigma"] = True
+        if "bkgEMG_tau" in mm.parameters:
+            mm.fixed["bkgEMG_tau"] = True
 
         # Keep correlated-width parameter fixed initially (helps stability)
         if 'propstd' in mm.parameters:
@@ -730,29 +850,39 @@ def fit_peaks_of_CalibrationHistogram(
             if p == "mean_baseline":
                 mm.limits[p] = (None, None)
 
-        # Keep the "no flat offset" policy also in Stage B
-        if "bkg" in mm.parameters and "bkgG" in mm.parameters:
-            mm.values["bkg"] = 0.0
-            mm.fixed["bkg"] = True
+        # Keep the background policy also in Stage B
+        if "bkg" in mm.parameters:
+            if (not use_bkg) or ("bkgEMG_area" in mm.parameters):
+                mm.values["bkg"] = 0.0
+                mm.fixed["bkg"] = True
 
-        # Optional: only now allow bkgG_mean/std to float (if you really want)
-        # If you want max stability, leave them fixed always.
-        if "bkgG_mean" in mm.parameters:
-            mm.fixed["bkgG_mean"] = False
-        if "bkgG_std" in mm.parameters:
-            mm.fixed["bkgG_std"] = False
+        # Stage B: permitir que el EMG se “centre” en el shoulder (p.ej. ~0.5*gain),
+        # pero de forma estable: primero mover mu con sigma/tau fijos, luego liberar sigma/tau.
+        if "bkgEMG_mu" in mm.parameters:
+            mm.fixed["bkgEMG_mu"] = False
+            if "bkgEMG_sigma" in mm.parameters:
+                mm.fixed["bkgEMG_sigma"] = True
+            if "bkgEMG_tau" in mm.parameters:
+                mm.fixed["bkgEMG_tau"] = True
+            try:
+                mm.migrad()
+            except Exception:
+                pass
+            if "bkgEMG_sigma" in mm.parameters:
+                mm.fixed["bkgEMG_sigma"] = False
+            if "bkgEMG_tau" in mm.parameters:
+                mm.fixed["bkgEMG_tau"] = False
 
-        # keep background non-negative (explicit) — upper bounds already set above
+         # keep background non-negative — upper bounds already set above
         if 'bkg' in mm.parameters:
             try:
                 if mm.limits['bkg'] is None:
-                    mm.limits['bkg'] = (0.0, bkg_max)
+                    mm.limits['bkg'] = (0.0, liminfo["bkg_max"])
             except Exception:
-                mm.limits['bkg'] = (0.0,	 bkg_max)
+                mm.limits['bkg'] = (0.0, liminfo["bkg_max"])
 
-        # Keep bounds for propstd/gain/std_baseline as defined above (avoid sigma collapse)
         if 'propstd' in mm.parameters and mm.limits['propstd'] is None:
-            mm.limits['propstd'] = (0.0, std_max)
+            mm.limits['propstd'] = (0.0, liminfo["std_max"])
 
         try:
             mm.migrad(); mm.migrad()
@@ -760,7 +890,20 @@ def fit_peaks_of_CalibrationHistogram(
         except Exception:
             return mm, False
 
-        return mm, bool(mm.fmin.is_valid)
+        ok = bool(mm.fmin.is_valid)
+        # extra rescue: sometimes migrad reaches a good region but flags invalid due to EDM/covar;
+        # a simplex+refine often flips it to valid.
+        if not ok:
+            try:
+                mm.simplex()
+                mm.migrad()
+                mm.hesse()
+                ok = bool(mm.fmin.is_valid)
+            except Exception:
+                ok = False
+        if verbosity >= 3 and not ok:
+            _v(3, f"[iminuit] invalid fmin: {mm.fmin}")
+        return mm, ok
 
     def _goodness(mm, n_data: int):
         n_free = sum(1 for p in mm.parameters if not mm.fixed[p])
@@ -805,15 +948,17 @@ def fit_peaks_of_CalibrationHistogram(
 
             si = _seed_scale_from_window(edges_all, y_all, mean_i, std_i)
             if si is None:
-                # Fallback: take central bin count (counts/bin) and convert to amplitude density (counts/x)
+                # Fallback: take central bin count (counts/bin) and convert to AREA (counts)
                 idx = int(np.argmin(np.abs(data_x - mean_i)))
                 idx = max(0, min(idx, len(y_all) - 1))
                 yb = float(y_all[idx])  # counts/bin
                 bkg_bin = float(base_params[5])
                 yb_eff = max(0.0, yb - max(0.0, bkg_bin))
                 bw_i = _bin_width_at(edges_all, mean_i)
-                # amplitude density seed (counts/x)
-                si = max(1e-6, 0.95 * yb_eff / bw_i)
+                # density ~ counts/x
+                dens = max(1e-12, 0.95 * yb_eff / bw_i)
+                # AREA = density * sqrt(2pi) * sigma
+                si = max(1e-6, dens * math.sqrt(2.0 * math.pi) * float(std_i))
 
             pvals.append(float(si))
             pnames.append(f'scale_{i}pe')
@@ -846,7 +991,7 @@ def fit_peaks_of_CalibrationHistogram(
         # If neither converged, try relaxed pass on A: free gain/scale_1pe
         if not (okA or okB):
             edgesR, yR = _select_fit_window(nA)
-            modelR = MultiGaussBinnedModel(pA_names)
+            modelR = MultiGaussBinnedModel(pA_names, use_emg=use_emg, use_bkg=use_bkg)
             costR = PoissonDevianceBinned(edgesR, yR, modelR)
             mmR = Minuit(costR, *pA_vals, name=pA_names)
             mmR.strategy = 2
@@ -855,33 +1000,12 @@ def fit_peaks_of_CalibrationHistogram(
             for p in mmR.parameters:
                 mmR.fixed[p] = False
 
-            # --- Keep the SAME anti-degeneracy limits as the main fit ---
-            # If we drop std/gain bounds here, Poisson mixtures often collapse sigma->0
-            # and "eat" peaks (especially in the right tail).
-            bw_loc = float(np.median(np.diff(edgesR)))
-            bw_loc = max(bw_loc, 1e-12)
-
-            gain0 = float(base_params[3])
-            s0    = float(base_params[2])
-            std_min = max(_STD_MIN_BINW_FRAC * bw_loc, _STD_MIN_SEED_FRAC * s0)
-            std_max = max(std_min * 1.05, min(_STD_MAX_SEED_MULT * s0,
-                                              _STD_MAX_GAIN_FRAC * max(gain0, std_min)))
-            gain_min = max(std_min * 1.1, _GAIN_MIN_FRAC * gain0)
-            gain_max = max(gain_min * 1.05, _GAIN_MAX_MULT * gain0)
-
-            for p in mmR.parameters:
-                if p == "mean_baseline":
-                    mmR.limits[p] = (None, None)
-                elif p == "std_baseline":
-                    mmR.limits[p] = (std_min, std_max)
-                elif p == "gain":
-                    mmR.limits[p] = (gain_min, gain_max)
-                elif p == "propstd":
-                    mmR.limits[p] = (0.0, std_max)
-                else:
-                    mmR.limits[p] = (0.0, None)
+            # Apply the SAME caps/guards as the main fit (critical).
+            _ = _set_common_limits(mmR, edgesR, yR)
             if "bkg" in mmR.parameters:
-                mmR.limits["bkg"] = (0.0, None)           
+                if (not use_bkg) or ("bkgEMG_area" in mmR.parameters):
+                    mmR.values["bkg"] = 0.0
+                    mmR.fixed["bkg"] = True        
             try:
                 mmR.migrad(); mmR.hesse()
                 okA = bool(mmR.fmin.is_valid)
@@ -918,7 +1042,7 @@ def fit_peaks_of_CalibrationHistogram(
     # Sweep configuration
     sweep_start = 3
     # Cap the sweep to avoid runaway models; can tune if needed
-    sweep_stop  = min(max(n_peaks_found + 5, sweep_start + 2), 20)
+    sweep_stop  = min(max(n_peaks_found + 5, sweep_start + 2), 6)
 
     # If peaks are very close compared to seed sigma, allow the sweep to start smaller.
     # This reduces failures where the optimizer can't stabilize a too-large model early.
@@ -1015,7 +1139,7 @@ def fit_peaks_of_CalibrationHistogram(
     # Build model prediction to compute residuals
     data_y = calibration_histogram.counts
     # Consistent residuals: Poisson (Pearson) residuals on binned expected counts
-    model_post = MultiGaussBinnedModel(list(mm.parameters))
+    model_post = MultiGaussBinnedModel(list(mm.parameters), use_emg=use_emg, use_bkg=use_bkg)
     mu = model_post(calibration_histogram.edges, *[float(mm.values[p]) for p in mm.parameters])
     resid = (data_y - mu) / np.sqrt(np.clip(mu, 1.0, None))  # Pearson residuals
 
@@ -1037,12 +1161,15 @@ def fit_peaks_of_CalibrationHistogram(
     peak_mu_max = []
     peak_mu_tot_at_max = []
     peak_area_counts = []
+    SQRT_2PI = math.sqrt(2.0 * math.pi)
     for k, p in enumerate(peak_names, start=1):
         scale_i = float(mm.values[p])
         mean_i  = float(mm.values['mean_baseline']) + k * float(mm.values['gain'])
         std_i   = float(np.sqrt(std0**2 + (propstd**2) * k))
-        mu_i = wun.gaussian_bin_counts(edges, scale_i, mean_i, std_i)
-        peak_area_counts.append(float(np.sum(mu_i)))
+        # scale_i is AREA (counts). gaussian_bin_counts needs density amplitude:
+        dens_i = scale_i / max(1e-24, (SQRT_2PI * std_i))
+        mu_i = wun.gaussian_bin_counts(edges, dens_i, mean_i, std_i)
+        peak_area_counts.append(scale_i)  # area is already "total counts"
         j = int(np.argmax(mu_i))
         peak_mu_max.append(float(mu_i[j]))
         peak_mu_tot_at_max.append(float(mu_total[j]))
@@ -1094,7 +1221,7 @@ def fit_peaks_of_CalibrationHistogram(
         pnames = list(mm.parameters)
         pvals  = [float(mm.values[p]) for p in pnames]
 
-        model_bins = MultiGaussBinnedModel(pnames)
+        model_bins = MultiGaussBinnedModel(pnames, use_emg=use_emg, use_bkg=use_bkg)
         mu_bins = model_bins(edges_all, *pvals)  # expected counts/bin (len = nbins)
 
         setattr(calibration_histogram, "fit_x_centers", x_centers)
@@ -1115,8 +1242,14 @@ def fit_peaks_of_CalibrationHistogram(
     calibration_histogram._CalibrationHistogram__reset_gaussian_fit_parameters()
     
     # Store scales as HEIGHT (counts/bin) directly (compatible with waffles plotting)
-    amp0  = float(mm.values['scale_baseline']) * bw0
-    amp0e = (float(mm.errors['scale_baseline']) if mm.errors['scale_baseline'] is not None else 0.0) * bw0
+    # Store amplitude as ~counts/bin at the peak:
+    # height_density = area/(sqrt(2pi)*sigma)  (counts/x)
+    # height_per_bin ~ height_density * binw
+    SQRT_2PI = math.sqrt(2.0 * math.pi)
+    _s0_for_amp = max(1e-24, float(mm.values['std_baseline']))
+    amp0  = (float(mm.values['scale_baseline']) / (SQRT_2PI * _s0_for_amp)) * bw0
+    amp0e = ((float(mm.errors['scale_baseline']) if mm.errors['scale_baseline'] is not None else 0.0)
+             / (SQRT_2PI * _s0_for_amp)) * bw0
     mu0 = float(mm.params[1].value)
     mu0e = float(mm.params[1].error) if mm.params[1].error is not None else 0.0
     s0 = float(mm.params[2].value)
@@ -1142,8 +1275,11 @@ def fit_peaks_of_CalibrationHistogram(
         pname = f"scale_{i}pe"
         # area -> height counts/bin
         mean_i_val  = gain * i + mean0
-        amp_i  = float(mm.values[pname]) * bw0
-        amp_ie = (float(mm.errors[pname]) if mm.errors[pname] is not None else 0.0) * bw0
+        std_i_val   = np.sqrt(mm.params[2].value ** 2 + (propstd ** 2) * i)
+        _si_for_amp = max(1e-24, float(std_i_val))
+        amp_i  = (float(mm.values[pname]) / (SQRT_2PI * _si_for_amp)) * bw0
+        amp_ie = ((float(mm.errors[pname]) if mm.errors[pname] is not None else 0.0)
+                  / (SQRT_2PI * _si_for_amp)) * bw0
         # d(mean_i)^2 = (i * d(gain))^2 + d(mean_baseline)^2
         m0e = float(mm.params[1].error) if mm.params[1].error is not None else 0.0
         ge  = float(errgain) if errgain is not None else 0.0
@@ -1180,17 +1316,18 @@ def fit_peaks_of_CalibrationHistogram(
         pnames_ = list(mm.parameters)
         pvals_  = [float(mm.values[p]) for p in pnames_]
 
-        model_full = MultiGaussBinnedModel(pnames_)
+        model_full = MultiGaussBinnedModel(pnames_, use_emg=use_emg, use_bkg=use_bkg)
         mu_total = np.asarray(model_full(edges_all, *pvals_), dtype=float)  # counts/bin
 
-        # Also build "signal-only" = sum of the fitted gaussian peaks (baseline + PE),
-        # i.e. excluding constant bkg and excluding gaussian bkg component.
+    # Also build "signal-only" = sum of the fitted gaussian peaks (baseline + PE),
+    # i.e. excluding constant bkg and excluding EMG bkg component.
         vals = {n: float(v) for n, v in zip(pnames_, pvals_)}
         bw = float(np.median(np.diff(edges_all)))
         bw = max(bw, 1e-12)
 
-        mu_sig = wun.gaussian_bin_counts(edges_all,
-                                         float(vals["scale_baseline"]),
+        SQRT_2PI = math.sqrt(2.0 * math.pi)
+        dens0 = float(vals["scale_baseline"]) / max(1e-24, (SQRT_2PI * float(vals["std_baseline"])))
+        mu_sig = wun.gaussian_bin_counts(edges_all, dens0,
                                          float(vals["mean_baseline"]),
                                          float(vals["std_baseline"]))
         mu0 = float(vals["mean_baseline"])
@@ -1203,8 +1340,10 @@ def fit_peaks_of_CalibrationHistogram(
                 k = int(pname.split("_")[1].replace("pe", ""))
                 mu_k = mu0 + k * gain
                 s_k  = math.sqrt(max(1e-24, s0*s0 + (prop*prop)*k))
-                mu_sig = mu_sig + wun.gaussian_bin_counts(edges_all, float(vals[pname]), mu_k, s_k)
+                dens_k = float(vals[pname]) / max(1e-24, (SQRT_2PI * float(s_k)))
+                mu_sig = mu_sig + wun.gaussian_bin_counts(edges_all, dens_k, mu_k, s_k)
 
+        # background = total - signal (includes EMG and/or flat bkg, if present)
         mu_bkg = mu_total - mu_sig
 
         setattr(calibration_histogram, "fit_x_centers", x_centers)
@@ -1217,6 +1356,12 @@ def fit_peaks_of_CalibrationHistogram(
     try:
         setattr(calibration_histogram, 'gof', best_gof)
         setattr(calibration_histogram, 'best_fit_model', 'multigauss_iminuit')
+        # (opcional) registrar si EMG estuvo habilitado en este fit
+        try:
+            setattr(calibration_histogram, 'use_emg', bool(use_emg))
+            setattr(calibration_histogram, 'use_bkg', bool(use_bkg))
+        except Exception:
+            pass
         _v(1, f"[fit_peaks] Done. n_peaks={n_peaks_found}, redχ²={best_gof['redchi2']:.4g}, BIC={best_gof['BIC']:.4g}")
     except Exception:
         pass
@@ -1245,7 +1390,9 @@ def fit_peaks_of_ChannelWsGrid(
     half_points_to_fit: int = 2,
     std_increment_seed_fallback: float = 1e+2,
     ch_span_fraction_around_peaks: float = 0.05,
-    verbose: bool = False
+    verbose: bool = False,
+    use_emg: bool = False,
+    use_bkg: bool = False,
 ) -> bool:
     """For each ChannelWs object, say chws, contained in
     the ChWfSets attribute of the given ChannelWsGrid
@@ -1369,7 +1516,9 @@ def fit_peaks_of_ChannelWsGrid(
                     fit_type=fit_type,
                     half_points_to_fit=half_points_to_fit,
                     std_increment_seed_fallback=std_increment_seed_fallback,
-                    ch_span_fraction_around_peaks=ch_span_fraction_around_peaks
+                    ch_span_fraction_around_peaks=ch_span_fraction_around_peaks,
+                    use_emg=use_emg,
+                    use_bkg=use_bkg
                 )
             elif verbose:
                 print(

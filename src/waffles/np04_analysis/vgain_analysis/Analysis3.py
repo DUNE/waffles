@@ -624,12 +624,22 @@ class Analysis3(WafflesAnalysis):
         # since, for each waveform, it only depends on such waveform, and not on any
         # characteristics of the channel which it comes from
 
-        baseliner_input_parameters = IPDict({
-            'baseline_limits': self.params.baseline_limits[self.apa],
-            'std_cut': self.params.baseliner_std_cut,
-            'type': self.params.baseliner_type
-        })
+        # baseliner_input_parameters = IPDict({
+        #     'baseline_limits': self.params.baseline_limits[self.apa],
+        #     'std_cut': self.params.baseliner_std_cut,
+        #     'type': self.params.baseliner_type
+        # })
 
+        baseliner_input_parameters = IPDict(
+            pedestal_limit=130,       # límite superior (en la misma convención que usas en waffles)
+            average_width=5,         # # de samples por ventana
+            number_of_regions=50, # cuántas ventanas aleatorias
+            seed=12345,                           # semilla RNG (reproducible)
+            store_window_means=False                         # opcional
+        )
+
+        # checks_kwargs típicamente igual que con WindowBaseliner
+        # (si ya lo estabas usando, lo reutilizás tal cual)
         checks_kwargs = IPDict({
             'points_no': self.wfset.points_per_wf
         })
@@ -644,9 +654,17 @@ class Analysis3(WafflesAnalysis):
             )
 
         # Compute the baseline for the waveforms in the new WaveformSet
+        # _ = self.wfset.analyse(
+        #     self.params.baseline_analysis_label,
+        #     WindowBaseliner,
+        #     baseliner_input_parameters,
+        #     checks_kwargs=checks_kwargs,
+        #     overwrite=True
+        # )
+
         _ = self.wfset.analyse(
             self.params.baseline_analysis_label,
-            WindowBaseliner,
+            RandomWindowPedestalBaseliner,          # <- reemplaza WindowBaseliner
             baseliner_input_parameters,
             checks_kwargs=checks_kwargs,
             overwrite=True
@@ -765,6 +783,46 @@ class Analysis3(WafflesAnalysis):
                     self.params.signal_allowed_dev
                 )
 
+                # q_rms_low, q_rms_high = compute_quantile_band_from_wfset(
+                #     self.grid_apa.ch_wf_sets[endpoint][channel],
+                #     self.params.baseline_analysis_label,
+                #     "waveform_rms",
+                #     0.15, 0.85
+                # )
+
+                # aux = WaveformSet.from_filtered_WaveformSet(
+                #     self.grid_apa.ch_wf_sets[endpoint][channel],
+                #     selection_by_metric_quantile_band,
+                #     self.params.baseline_analysis_label,
+                #     "waveform_rms",
+                #     q_rms_low, q_rms_high
+                # )
+
+                # #Or filter by pedestal (baseline)
+                # q_baseline_low, q_baseline_high = compute_quantile_band_from_wfset(
+                #     aux,
+                #     self.params.baseline_analysis_label,
+                #     "baseline",
+                #     0.15, 0.85
+                # )
+
+                # aux2 = WaveformSet.from_filtered_WaveformSet(
+                #     aux,
+                #     selection_by_metric_quantile_band,
+                #     self.params.baseline_analysis_label,
+                #     "baseline",
+                #     q_baseline_low, q_baseline_high
+                # )
+
+                # aux, bands = filter_wfset_by_quantile_specs(
+                #     self.grid_apa.ch_wf_sets[endpoint][channel],
+                #     self.params.baseline_analysis_label,
+                #     specs={
+                #     "baseline": (0.15, 0.85),      # baseline: dejo 80% central
+                #     "waveform_rms": (0.25, 0.75),  # rms: dejo IQR (50% central)
+                #     }
+                # )
+
                 self.grid_apa.ch_wf_sets[endpoint][channel] = \
                     ChannelWs(*aux.waveforms)
 
@@ -797,7 +855,7 @@ class Analysis3(WafflesAnalysis):
                 mean_waveform_zero_baselined_io_dict[endpoint, channel] = self.grid_apa_zero_baselined.ch_wf_sets[endpoint][channel].compute_mean_waveform()
 
                 #Here after the baseline subtraction I should put the HPF filter.
-                coefficients = self.hpf_coefficients_dict[self.filter_type][self.filter_cutoff]
+                coefficients = self.hpf_coefficients_dict["HPF"]["AFE"]
                 self.grid_apa.ch_wf_sets[endpoint][channel].apply(
                     filter_waveform,
                     self.params.baseline_analysis_label,
@@ -918,8 +976,8 @@ class Analysis3(WafflesAnalysis):
             self.grid_apa,
             analysis_label=self.params.integration_analysis_label,
             variable="integral",
-            q_low=0.005,
-            q_high=0.995,
+            q_low=0.03,
+            q_high=0.97,
             pad_frac=0.05,
         )
 
@@ -929,6 +987,8 @@ class Analysis3(WafflesAnalysis):
                 (
                     self.params.calib_histo_lower_limit,
                     self.params.calib_histo_upper_limit
+                    #calib_histo_lower_limit_,
+                    #calib_histo_upper_limit_
                 )
             ),
             variable='integral',
@@ -947,7 +1007,8 @@ class Analysis3(WafflesAnalysis):
             half_points_to_fit=self.params.half_points_to_fit,
             std_increment_seed_fallback=self.params.std_increment_seed_fallback,
             ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
-            verbose=self.params.verbose
+            verbose=self.params.verbose,
+            use_bkg=True
         )
         # Check which waveforms are within 2 std from the mean of the second peak
         #create a array of empty list with the same shape as the grid
@@ -972,7 +1033,7 @@ class Analysis3(WafflesAnalysis):
                     if integral < u1 + 2*std1 and integral > u1 - 2*std1:
                         spe_idxs.append(idx)
                 if(len(spe_idxs) != 0):
-                    mean_spe = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform(wf_idcs=spe_idxs)
+                    mean_spe = self.grid_apa_zero_baselined.ch_wf_sets[endpoint][channel].compute_mean_waveform(wf_idcs=spe_idxs)
                     self.grid_spe_parameters[endpoint][channel] = {
                         'min': np.min(mean_spe.adcs),
                         'max': np.max(mean_spe.adcs),
@@ -980,9 +1041,10 @@ class Analysis3(WafflesAnalysis):
                         'dynamic_range': 2**14/(np.max(mean_spe.adcs) - np.min(mean_spe.adcs)),
                         'error_dr': False
                     }
+                    print(f"AVG: waveforms min: {np.min(mean_spe.adcs)}, max:{np.max(mean_spe.adcs)}")
                     self.grid_spe_idxs[endpoint][channel] = spe_idxs   
                 else:
-                    mean_spe = self.grid_apa.ch_wf_sets[endpoint][channel].compute_mean_waveform()
+                    mean_spe = self.grid_apa_zero_baselined.ch_wf_sets[endpoint][channel].compute_mean_waveform()
                     self.grid_spe_parameters[endpoint][channel] = {
                         'min': np.min(mean_spe.adcs),
                         'max': np.max(mean_spe.adcs),
