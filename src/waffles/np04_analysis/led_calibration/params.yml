@@ -112,7 +112,7 @@ SPE_template_upper_limit_wrt_pulse: 300
 # more information, check the
 # align_waveforms_by_correlation() function
 # docstring.
-maximum_allowed_shift: 30
+maximum_allowed_shift: 10
 
 ## Parameters for the average-baseline-std computation
 
@@ -186,7 +186,7 @@ signal_region_half_points: 10
 
 baseline_i_low: # Typical alignment
     1:
-        0
+        455
     2:
         0
     3:
@@ -255,12 +255,13 @@ signal_i_up: # Typical alignment
 # the baseline by more than this value times the
 # baseline STD will be excluded.
 baseline_allowed_dev: 4.
-signal_allowed_dev: 10.
+
 # Number of allowed baseline-STDs in the signal
 # region. I.e. the waveforms for which at least
 # one ADC sample in the signal region deviates
 # from the signal by more than this value times
 # the baseline STD will be excluded
+signal_allowed_dev: 20.
 
 ## Parameters for the computation of the integration window
 integrate_entire_pulse: false
