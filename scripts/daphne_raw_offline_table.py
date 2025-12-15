@@ -2,8 +2,7 @@
 """
 Print a mapping between raw DAPHNE Ethernet channels and offline channel IDs.
 
-Fragment type detection decides whether to use stream or self-trigger unpackers,
-and the detchannelmaps plugin translates each raw channel into an offline ID.
+Deprecated: prefer scripts/inspect_raw_file.py for unified inspection/mapping.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ from collections import Counter
 from typing import Iterable, Optional, Tuple
 
 import numpy as np
+import warnings
 
 import detchannelmaps
 import detdataformats
@@ -32,6 +32,11 @@ except ImportError:  # pragma: no cover
 
 from waffles.utils.daphne_helpers import select_records
 
+warnings.warn(
+    "daphne_raw_offline_table.py is deprecated; use scripts/inspect_raw_file.py for unified inspection.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 STREAM_TYPES = {
     FragmentType.kDAPHNEStream,
     FragmentType.kDAPHNEEthStream,
