@@ -11,7 +11,7 @@ the ETH reader; otherwise it falls back to the standard raw reader.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Iterable
 
 import h5py
 
@@ -24,8 +24,10 @@ def normalize_detector(det: str) -> str:
     """Accept a variety of detector spellings and normalize to the expected strings."""
     det_clean = det.replace("-", "_")
     mapping = {
-        "VD_CathodePDS": "VD_Cathode_PDS",
-        "VD_MembranePDS": "VD_Membrane_PDS",
+        "VD_CathodePDS": "VD_CathodePDS",
+        "VD_Cathode_PDS": "VD_CathodePDS",
+        "VD_MembranePDS": "VD_MembranePDS",
+        "VD_Membrane_PDS": "VD_MembranePDS",
         "VD_PMT_PDS": "VD_PMT_PDS",
         "VD_PMT": "VD_PMT_PDS",
         "HD_PDS": "HD_PDS",
@@ -48,6 +50,36 @@ def _probe_eth(filepath: str, det: str, max_records: int = 5) -> bool:
     return wfset is not None and len(wfset.waveforms) > 0
 
 
+def _probe_raw(filepath: str, det: str) -> bool:
+    """Tiny raw probe to see if any waveform can be read."""
+    try:
+        wfset = raw_hdf5_reader.WaveformSet_from_hdf5_file(
+            filepath,
+            nrecord_start_fraction=0.0,
+            nrecord_stop_fraction=0.05,
+            subsample=1,
+            wvfm_count=1,
+            det=det,
+            record_chunk_size=50,
+        )
+        return wfset is not None and len(wfset.waveforms) > 0
+    except Exception:
+        return False
+
+
+def _auto_detect_detector(filepath: str, candidates: Iterable[str]) -> str:
+    """
+    Try detector candidates until a probe returns data. Falls back to HD_PDS.
+    """
+    for det in candidates:
+        det_norm = normalize_detector(det)
+        if _probe_eth(filepath, det_norm, max_records=2):
+            return det_norm
+        if _probe_raw(filepath, det_norm):
+            return det_norm
+    return "HD_PDS"
+
+
 def _is_structured_file(filepath: str) -> bool:
     """Heuristic check for structured HDF5 (saved via hdf5_structured)."""
     try:
@@ -60,7 +92,7 @@ def _is_structured_file(filepath: str) -> bool:
 def load_waveforms(
     filepath: str,
     *,
-    det: str = "HD_PDS",
+    det: Optional[str] = "HD_PDS",
     force_eth: bool = False,
     force_raw: bool = False,
     force_structured: bool = False,
@@ -83,6 +115,12 @@ def load_waveforms(
     If neither force flag is set, a small ETH probe is attempted; if ETH waveforms
     are found, the ETH reader is used, otherwise it falls back to the raw reader.
     """
+    if det in (None, "", "AUTO"):
+        det = _auto_detect_detector(
+            filepath,
+            candidates=("VD_MembranePDS", "VD_CathodePDS", "HD_PDS", "VD_PMT_PDS"),
+        )
+
     if force_eth and force_raw:
         raise ValueError("force_eth and force_raw are mutually exclusive")
     if (force_structured and force_eth) or (force_structured and force_raw):
