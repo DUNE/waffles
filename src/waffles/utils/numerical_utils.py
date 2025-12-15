@@ -73,7 +73,7 @@ def gaussian(
     """Evaluates an scaled gaussian function
     in x. The function is defined as:
 
-    f(x) = scale * exp(-1 * ((x - mean) / (2 * std)) ** 2)
+    f(x) = scale * exp(-0.5 * ((x - mean) / std) ** 2)
 
     This function supports numpy arrays as input.
 
@@ -94,7 +94,7 @@ def gaussian(
         The value of the function at x
     """
 
-    return scale * np.exp(-0.5 * ((x - mean) / std)**2)
+    return scale * np.exp(-0.5 * (np.power((x - mean) / std, 2)))
 
 def multigaussfit_binned(edges, *params):
     """
