@@ -1,0 +1,27 @@
+# Path to the files.txt containing the Rucio's paths
+filepath_folder: "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/November2025run/spy_buffer/vgain_scan_membrane_noise_n5V_below_Vbr/"
+
+# Name of the folder where the txt files containing FFTs will be saved
+# No "/" in the name!
+fft_folder: "FFTs_txt"
+
+# Name of the folder where the set of FFTs will be saved (set == all the FFTs of a given configuration)
+# No "/" in the name!
+fft_set_folder: "FFT_sets"
+
+# All the noise runs acquired in NP04
+# Dictionary with the noise run <-> Vgain setting
+# run_vgain_dict:
+  # 31946: 931
+  # 31947: 931
+         
+# Run-channel to ignore
+# Ignore because of digital jumps / wfs out of dynamic range / ...
+# If you don't want to ignore any channel, just leave it empty
+# ignore_ch_dict:
+#   27877: [10512, 10700, 10702, 10705, 10707, 10710, 10712, 10715, 10717, 10910, 10911, 10913, 10914, 10916, 10917]
+
+# Golden HPK and FBK Offline channels (no low freq. spikes)
+# golden_ch_dict:
+#   "HPK": 0
+  # "FBK": 72

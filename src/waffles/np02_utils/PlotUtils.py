@@ -223,7 +223,7 @@ def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_pro
         params = ch_read_params(filename=configyaml)
 
     if endpoint not in params or channel not in params[endpoint]:
-        raise ValueError(f"No parameters found for endpoint {endpoint} and channel {channel} in the configuration file.")
+        print(f"No parameters found for endpoint {endpoint} and channel {channel} in the configuration file.")
 
     if(len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
         raise ValueError(f"Should have only one channel in the waveform set...")
@@ -269,7 +269,8 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     channel = wfset.waveforms[0].channel
 
     if endpoint not in params or channel not in params[endpoint]:
-        raise ValueError(f"No parameters found for endpoint {endpoint} and channel {channel} in the configuration file.")
+        params[endpoint] = {channel: {'fit': {}, 'baseline': {}}}
+        print(f"No parameters found for endpoint {endpoint} and channel {channel} in the configuration file.")
 
     if(len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
         raise ValueError(f"Should have only one channel in the waveform set...")
@@ -317,8 +318,10 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             figure=figure,
             row=row, col=col,
             plot_fits=False,
-            name=f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}",
+            name=f"{dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)), '')}",
         )
+        if wf_func.get("log_y", False):
+            figure.update_yaxes(type="log")
         return
 
     # This method in case histogram should cut average
@@ -366,16 +369,18 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             errgain = hInt.iminuit.params[3].error
         snr = gain / baseline_stddev
     except:
-        print(f"Could not fit for {dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}")
+        print(f"Could not fit for {dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)),'')}")
 
     plot_CalibrationHistogram(
         hInt,
         figure=figure,
         row=row, col=col,
         plot_fits=True,
-        name=f"{dict_uniqch_to_module[str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel))]}; snr={snr:.2f}",
+        name=f"{dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)),'')}; snr={snr:.2f}",
         showfitlabels=False,
     )
+    if wf_func.get("log_y", False):
+        figure.update_yaxes(type="log", range=[-1, np.log10(np.max(hInt.counts)*2) ], row=row, col=col)
 
     if snr != 0:
         for wf in wfset.waveforms:

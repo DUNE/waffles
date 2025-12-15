@@ -1,37 +1,31 @@
 # ---------------------------------------------------------------------
 # --- ANALYSIS 1 PARAMETERS -------------------------------------------
 # ---------------------------------------------------------------------
-# not used in the analysis
-input_path: "data"
-output_path: "output"
-
 # Useful if you have stored raw files somewhere else
 # This overwrite the "filepath_folder" parameter, if not blank
-custom_filepath_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/file_location_txts/"
-
-# Do you want to use full statistics? (True/False)
-full_stat: False
+custom_filepath_folder: ""
 
 # Debug mode? (True/False)
 debug_mode: False
 
 # Append or overwrite the output files? (append="a", overwrite="w")
-out_writing_mode: "a"
+out_writing_mode: "w"
 
 # Which runs are you interested in? (e.g. [31920, 31928])
 # Leave it empty if you want to use all the runs []
-user_runs: []
-# user_runs: [31940]
+user_vgains: []
 
 # Where do you want to save the output files? (e.g. "/eos/YOUR_PATH/Noise_Studies/analysis/")
-# ana_path: "./output/"  # local output
-ana_path: "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/"
+ana_path: "/eos/home-f/fegalizz/ColdBox_VD/November25/SpyBuffer/Noise_Analysis/"
+
+# Number of ticks per waveform
+memorydepth: 2048
 
 # ---------------------------------------------------------------------
 # --- ANALYSIS 2 PARAMETERS -------------------------------------------
 # ---------------------------------------------------------------------
 # The integrators where ON or OFF? 
-integrators: "ON" # "ON" or "OFF"
+integrators: "OFF" # "ON" or "OFF"
 
 # If you want to compute FFTs and noise RMS for a custom configuration of
 # daphne AFEs and vgain, set this to True and fill the dictionary "daphneAFE_vgain_dict"
