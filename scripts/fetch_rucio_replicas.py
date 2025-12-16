@@ -49,12 +49,11 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
 
     # Remove any fndca1.fnal.gov realm that is *only* tape_backed
     for realm, lines in list(realm_to_lines.items()):
-        if "fndca1.fnal.gov" in realm:
-            if all("tape_backed" in ln for ln in lines):
-                #print(
-                #    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
-                #)
-                del realm_to_lines[realm]
+        if all("tape_backed" in ln for ln in lines):
+            #print(
+            #    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
+            #)
+            del realm_to_lines[realm]
 
     # Preferred realms (sub-string match makes the port irrelevant)
     priorities = ["eospublic.cern.ch", "fndca1.fnal.gov"]
@@ -79,7 +78,8 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
                if "eosctapublic.cern.ch" not in r]
     if not non_cta:
         raise RuntimeError(
-            "Only CASTOR replicas (eosctapublic.cern.ch) were found – aborting."
+            "Possibly only CASTOR replicas (eosctapublic.cern.ch) were found – aborting. The output:\n"
+            + "\n".join(pfn_lines)
         )
 
     # Otherwise just pick the first acceptable realm
