@@ -28,6 +28,8 @@ class CalibrationHistogram(TrackedHistogram):
     bins_number: int (inherited from TrackedHistogram)
     edges: unidimensional numpy array of floats
     (inherited from TrackedHistogram)
+    mean: float (inherited from TrackedHistogram)
+    nentries: int (inherited from TrackedHistogram)
     mean_bin_width: float (inherited from TrackedHistogram)
     counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)

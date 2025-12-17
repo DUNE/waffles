@@ -22,6 +22,13 @@ class TrackedHistogram:
         i-th bin, with i = 0, ..., bins_number - 1,
         contains the number of occurrences between
         edges[i] and edges[i+1].
+    mean: float
+        The mean value of the histogram, computed
+        as the weighted average of the bin centers,
+        with weights given by the bin counts.
+    nentries: int
+        The total number of entries in the histogram,
+        i.e., the sum of all bin counts.
     mean_bin_width: float
         The mean difference between two consecutive
         edges. It is computed as
