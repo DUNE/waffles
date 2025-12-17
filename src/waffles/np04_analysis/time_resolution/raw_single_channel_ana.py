@@ -1,5 +1,4 @@
-from pandas.core import base
-from waffles.np04_utils.utils import get_np04_channel_mapping
+from waffles.np04_utils.utils import get_np04_daphne_to_offline_channel_dict
 from waffles.np04_analysis.time_resolution.imports import *
 
 
@@ -13,11 +12,7 @@ if __name__ == "__main__":
     data_folder = config_variables.get("data_folder")
     ana_folder = config_variables.get("ana_folder")
     raw_ana_folder = ana_folder+config_variables.get("raw_ana_folder")
-    # channel_map_file = config_variables.get("channel_map_file")
-    # new_channel_map_file = config_variables.get("new_channel_map_file")
-    mapping_df = get_np04_channel_mapping(version="new")
-    new_daphne_channels = mapping_df['daphne_ch'].values + 100*mapping_df['endpoint'].values
-    new_daphne_to_offline = dict(zip(new_daphne_channels, mapping_df['offline_ch']))
+    new_daphne_to_offline = get_np04_daphne_to_offline_channel_dict(version="new")
     
     # Setup variables according to the params.yml file
     with open("./params.yml", 'r') as params_stream:
@@ -44,7 +39,6 @@ if __name__ == "__main__":
     relative_thrs = params_variables.get("relative_thrs")
     filt_levels = params_variables.get("filt_levels")
     h2_nbins = params_variables.get("h2_nbins")
-    stat_lost = params_variables.get("stat_lost")
 
     # --- EXTRA VARIABLES -------------------------------------------
     files = [data_folder+"processed_merged_run_"+str(run)+"_structured.hdf5" for run in runs]
@@ -68,8 +62,11 @@ if __name__ == "__main__":
         a = tr.TimeResolution(wf_set=wfset_run) 
            
         # --- LOOP OVER CHANNELS ------------------------------------------
+        print("Channels to analyze: ", channels)
         if (channels == []):
             print("No channels specified. Using all channels.")
+            channels = set(calibration_df['DaphneCh'].values.tolist())
+            print("Channels to analyze: ", channels)
         for daphne_ch in channels:
             if daphne_ch not in new_daphne_to_offline:
                 print(f"Channel {daphne_ch} not in new channel map")
@@ -101,6 +98,7 @@ if __name__ == "__main__":
             spe_charge = float(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'Gain'].values[0])
             spe_ampl = float(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'SpeAmpl'].values[0])
             baseline_rms = float(noise_df.loc[noise_df['OfflineCh'] == offline_ch, 'RMS'].values[0])
+            print(baseline_rms)
 
            
             try:
@@ -119,7 +117,10 @@ if __name__ == "__main__":
             out_root_file_name = raw_ana_folder+f"Run_{run}_DaphneCh_{daphne_ch}_OfflineCh_{offline_ch}_time_resolution.root"
             root_file = TFile(out_root_file_name, "RECREATE")
         
+            print("Number of selected wfs for time resolution: ", a.n_select_wfs)
+            print(a.debug_counter)
             if a.n_select_wfs > 500:
+                print("Creating persistence histogram...")
                 n_pwfs = min(9000, a.n_select_wfs)
                 all_wfs = np.array([wf.adcs_float for wf in a.wfs[:n_pwfs] if wf.time_resolution_selection]).flatten()
                 all_tikcs = np.array([np.arange(len(wf.adcs_float)) for wf in a.wfs[:n_pwfs] if wf.time_resolution_selection]).flatten()
