@@ -357,7 +357,7 @@ class CalibrationHistogram(TrackedHistogram):
         err_fraction_events_in_peaks = np.array(err_fraction_events_in_peaks)
         peak_numbers = np.array(peak_numbers)
 
-        iminuitparams = [self.mean, 0.1, 1.0]
+        iminuitparams = [self.mean/spe_charge, 0.1, 1.0]
         paramnames = ["L", "p", "N"]
 
         chi2 = LeastSquares(peak_numbers,
