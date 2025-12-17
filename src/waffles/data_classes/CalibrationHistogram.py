@@ -10,7 +10,6 @@ import waffles.Exceptions as we
 
 from iminuit import Minuit
 from iminuit.cost import LeastSquares
-import waffles.utils.numerical_utils as wun
 from waffles.data_classes.CrossTalk import CrossTalk
 
 class CalibrationHistogram(TrackedHistogram):
@@ -29,6 +28,8 @@ class CalibrationHistogram(TrackedHistogram):
     bins_number: int (inherited from TrackedHistogram)
     edges: unidimensional numpy array of floats
     (inherited from TrackedHistogram)
+    mean: float (inherited from TrackedHistogram)
+    nentries: int (inherited from TrackedHistogram)
     mean_bin_width: float (inherited from TrackedHistogram)
     counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)
@@ -312,7 +313,6 @@ class CalibrationHistogram(TrackedHistogram):
             normalization=normalization
         )
 
-    # @classmethod
     def compute_cross_talk(self) -> None:
         """
         This method computes the cross-talk of the SiPM
@@ -330,7 +330,11 @@ class CalibrationHistogram(TrackedHistogram):
             The uncertainty in the cross-talk estimate
         """
         if len(self.gaussian_fits_parameters["mean"]) < 3:
-            print("Peak fitting failed.")
+            print(
+                "In method CalibrationHistogram.compute_cross_talk(): "
+                "Since there are less than 3 fitted peaks of the charge"
+                " histogram, the cross talk computation will be skipped."
+            )
             self.CrossTalk = CrossTalk()
             return
 
@@ -375,7 +379,10 @@ class CalibrationHistogram(TrackedHistogram):
         fitstatus = mm.fmin.is_valid if mm.fmin else False
 
         if fitstatus == False:
-            print("Cross-talk fit failed.")
+            print(
+                "In method CalibrationHistogram.compute_cross_talk(): "
+                "Cross-talk fit failed."
+            )
             self.CrossTalk = CrossTalk()
             return 
 
