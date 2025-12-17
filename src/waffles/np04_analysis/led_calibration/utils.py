@@ -1401,7 +1401,9 @@ def get_gain_snr_and_fit_parameters(
                     "output entries (namely 'gain', 'snr', "
                     "'center_0', 'center_0_error', "
                     "'center_1', 'center_1_error', 'std_0', "
-                    "'std_0_error', 'std_1', 'std_1_error') "
+                    "'std_0_error', 'std_1', 'std_1_error', "
+                    "'avg_photons', 'avg_photons_error', "
+                    "'cross_talk', 'cross_talk_error') "
                     "will be set to NaN."
                 )
                 
@@ -1426,11 +1428,13 @@ def get_gain_snr_and_fit_parameters(
                 print(
                     "In function get_gain_snr_and_fit_parameters(): "
                     "Only one fitted peak found for channel "
-                    f"{endpoint}-{channel}. Since the gain and "
-                    "the SNR cannot be computed, some of the "
-                    "entries (namely 'gain', 'snr', 'center_1', "
-                    "'center_1_error', 'std_1', 'std_1_error') "
-                    "will be set to NaN."
+                    f"{endpoint}-{channel}. Since the gain, "
+                    "the SNR and the cross talk cannot be computed, "
+                    "some of the entries (namely 'gain', 'snr', "
+                    "'center_1', 'center_1_error', 'std_1', "
+                    "'std_1_error', 'avg_photons', "
+                    "'avg_photons_error', 'cross_talk', "
+                    "'cross_talk_error') will be set to NaN."
                 )
 
                 aux = {
@@ -1451,9 +1455,8 @@ def get_gain_snr_and_fit_parameters(
                 }
 
             else: # fitted_peaks >= 2:
-                cx = grid_apa.ch_wf_sets[endpoint][channel].calib_histo.CrossTalk
-
                 aux_gain = fit_params['mean'][1][0] - fit_params['mean'][0][0]
+                aux_cross_talk = grid_apa.ch_wf_sets[endpoint][channel].calib_histo.CrossTalk
                 aux = {
                     'gain': aux_gain,
                     'snr': aux_gain / fit_params['std'][0][0],
@@ -1465,11 +1468,10 @@ def get_gain_snr_and_fit_parameters(
                     'std_0_error': fit_params['std'][0][1],
                     'std_1': fit_params['std'][1][0],
                     'std_1_error': fit_params['std'][1][1],
-                    'avg_photons': cx.avg_photons,
-                    'avg_photons_error': cx.avg_photons_error,
-                    'cross_talk': cx.CX,
-                    'cross_talk_error': cx.CX_error
-
+                    'avg_photons': aux_cross_talk.avg_photons,
+                    'avg_photons_error': aux_cross_talk.avg_photons_error,
+                    'cross_talk': aux_cross_talk.CX,
+                    'cross_talk_error': aux_cross_talk.CX_error
                 }
 
             if endpoint not in data.keys():
