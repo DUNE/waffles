@@ -23,7 +23,6 @@ if __name__ == "__main__":
     with open("../params.yml", 'r') as params_stream:
         params_variables = yaml.safe_load(params_stream)
 
-    endpoints = params_variables.get("endpoints")
     channels = params_variables.get("channels")    
     methods = params_variables.get("methods")
     relative_thrs = params_variables.get("relative_thrs")
