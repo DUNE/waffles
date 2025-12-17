@@ -163,7 +163,7 @@ def plot_grid(chgrid: ChannelWsGrid, title:str = "", html: Union[Path, None] = N
 
     rows, cols= chgrid.ch_map.rows, chgrid.ch_map.columns
 
-    showplots = kwargs.pop("showplots", True)
+    showplots = kwargs.pop("showplots", False)
 
     subtitles = chgrid.titles
 
