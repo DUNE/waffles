@@ -330,7 +330,11 @@ class CalibrationHistogram(TrackedHistogram):
             The uncertainty in the cross-talk estimate
         """
         if len(self.gaussian_fits_parameters["mean"]) < 3:
-            print("Peak fitting failed.")
+            print(
+                "In method CalibrationHistogram.compute_cross_talk(): "
+                "Since there are less than 3 fitted peaks of the charge"
+                " histogram, the cross talk computation will be skipped."
+            )
             self.CrossTalk = CrossTalk()
             return
 
@@ -370,7 +374,10 @@ class CalibrationHistogram(TrackedHistogram):
         fitstatus = mm.fmin.is_valid if mm.fmin else False
 
         if fitstatus == False:
-            print("Cross-talk fit failed.")
+            print(
+                "In method CalibrationHistogram.compute_cross_talk(): "
+                "Cross-talk fit failed."
+            )
             self.CrossTalk = CrossTalk()
             return 
 
