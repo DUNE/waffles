@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 from waffles.np04_analysis.time_resolution.imports import *
-from waffles.np04_utils.utils import get_np04_channel_mapping
+from waffles.np04_utils.utils import get_np04_daphne_to_offline_channel_dict
 
 prepulse_ticks = 50
 folder = "/Users/federico/CERN/PDHD/TimeResolution/FromGabriel/"
@@ -15,11 +15,8 @@ if __name__ == "__main__":
         wfsets = pickle.load(file)
 
     wfset_hv = wfsets[0]
-    # hvs = np.arange(len(wfset_hv)).astype(np.int32)
     hv = 0
-    mapping_df = get_np04_channel_mapping(version="old")
-    daphne_channels = mapping_df['daphne_ch'].values + 100*mapping_df['endpoint'].values
-    daphne_to_offline = dict(zip(daphne_channels, mapping_df['offline_ch']))
+    daphne_to_offline = get_np04_daphne_to_offline_channel_dict(version="old")
 
     tr_hv = []
     iter = 0
@@ -46,7 +43,7 @@ if __name__ == "__main__":
             ch=daphne_ch,
             int_low=20,
             int_up=200,
-            spe_charge=0.16,
+            spe_charge=1,
             spe_ampl=4,
             min_pes=1,
             baseline_rms=0.5
@@ -82,10 +79,3 @@ if __name__ == "__main__":
         t.Write()
 
         root_file.Close()
-
-        
-
-
-        # tr_hv.append(tr_ch)
-
-    
