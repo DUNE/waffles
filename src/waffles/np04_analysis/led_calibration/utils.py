@@ -1342,7 +1342,7 @@ def get_number_of_fitted_peaks(
 
     return n_peaks
 
-def get_gain_snr_and_fit_parameters(
+def get_gain_snr_and_cross_talk(
     grid_apa: ChannelWsGrid,
     excluded_channels: list,
     reset_excluded_channels: bool = False
@@ -1362,7 +1362,7 @@ def get_gain_snr_and_fit_parameters(
             ) in excluded_channels:
 
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     f"Excluding channel {endpoint}-{channel} ..."
                 )
                 if reset_excluded_channels:
@@ -1383,7 +1383,7 @@ def get_gain_snr_and_fit_parameters(
 
             except KeyError:
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     f"Skipping channel {endpoint}-{channel} "
                     "since it was not found in data."
                 )
@@ -1395,7 +1395,7 @@ def get_gain_snr_and_fit_parameters(
 
             if fitted_peaks == 0:
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     "No fitted peaks found for channel "
                     f"{endpoint}-{channel}. All of the "
                     "output entries (namely 'gain', 'snr', "
@@ -1426,7 +1426,7 @@ def get_gain_snr_and_fit_parameters(
 
             elif fitted_peaks == 1:
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     "Only one fitted peak found for channel "
                     f"{endpoint}-{channel}. Since the gain, "
                     "the SNR and the cross talk cannot be computed, "
@@ -1479,7 +1479,7 @@ def get_gain_snr_and_fit_parameters(
 
             elif channel in data[endpoint].keys():
                 raise Exception(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     f"An entry for channel {endpoint}-{channel} "
                     f"was already found when trying to save "
                     "the gain and SNR for this channel. Something "
@@ -2730,7 +2730,7 @@ def add_SPE_info_to_output_dictionary(
                 continue
 
             # If the 'gain' entry is available, it means that
-            # get_gain_snr_and_fit_parameters() made sure that the number
+            # get_gain_snr_and_cross_talk() made sure that the number
             # of fitted peaks is at least 2
             try:
                 targeted_peak_idx = __infer_SPE_peak_index(
