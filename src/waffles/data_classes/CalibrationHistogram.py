@@ -311,7 +311,6 @@ class CalibrationHistogram(TrackedHistogram):
             normalization=normalization
         )
 
-    # @classmethod
     def compute_cross_talk(self) -> None:
         """
         This method computes the cross-talk of the SiPM
