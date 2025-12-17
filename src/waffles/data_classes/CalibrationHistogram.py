@@ -365,6 +365,11 @@ class CalibrationHistogram(TrackedHistogram):
                             err_fraction_events_in_peaks,
                             wun.CX_fit_function)
         mm = Minuit(chi2, *iminuitparams, name=paramnames)
+
+        mm.limits["L"] = (0, None)
+        mm.limits["p"] = (0, 1)
+        mm.limits["N"] = (0, 2)
+
         mm.migrad()
         mm.hesse()
         fitstatus = mm.fmin.is_valid if mm.fmin else False
