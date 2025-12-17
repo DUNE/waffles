@@ -62,8 +62,12 @@ if __name__ == "__main__":
 
         # --- LOOP OVER RUNS --------------------------------------------
         for run in runs:
-            ref_file = [f for f in files if str(ref_ch) in f and run in f][0]
-            com_file = [f for f in files if str(com_ch) in f and run in f][0]
+            try:
+                ref_file = [f for f in files if str(ref_ch) in f and run in f][0]
+                com_file = [f for f in files if str(com_ch) in f and run in f][0]
+            except IndexError:
+                print(f"Missing file for run {run}, skipping...")
+                continue
             if not (os.path.exists(ref_file) and os.path.exists(com_file)):
                 continue
 
@@ -96,13 +100,13 @@ if __name__ == "__main__":
                 out_root_file.mkdir(subdir_name)
                 out_root_file.cd(subdir_name)
 
-                t0_diff = time_alligner.ref_ch.t0s - time_alligner.com_ch.t0s
+                t0_diff = time_alligner.com_ch.t0s - time_alligner.ref_ch.t0s
 
                 # --- PLOTTING ---------------------------------------------------
                 # t0 differences distribution ------------------------------------
                 x_min = np.percentile(t0_diff, 0.5)
                 x_max = np.percentile(t0_diff, 99.5)
-                h_t0_diff = TH1F("h_t0_diff", "Reference-Comparison time difference;t0 [ticks=16ns];Counts",
+                h_t0_diff = TH1F("h_t0_diff", "Comparison-Reference time difference;t0 [ticks=16ns];Counts",
                                  200, x_min, x_max)
                 for diff in t0_diff:
                     h_t0_diff.Fill(diff)
