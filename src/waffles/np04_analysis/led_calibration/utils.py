@@ -1598,6 +1598,10 @@ def save_data_to_dataframe(
         - std_0_error
         - std_1
         - std_1_error
+        - avg_photons
+        - avg_photons_error
+        - cross_talk
+        - cross_talk_error
         - SPE_mean_amplitude
         - SPE_mean_adcs
         - fine_selection_baseline_i_low
@@ -1639,6 +1643,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_11
                     },
@@ -1653,6 +1661,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_12
                     },
@@ -1670,6 +1682,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_21
                     },
@@ -1684,6 +1700,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_22
                     },
@@ -1823,6 +1843,10 @@ def save_data_to_dataframe(
         "std_0_error": [],
         "std_1": [],
         "std_1_error": [],
+        "avg_photons": [],
+        "avg_photons_error": [],
+        "cross_talk": [],
+        "cross_talk_error": [],
         "SPE_mean_amplitude": [],
         "SPE_mean_adcs": [],
         "fine_selection_baseline_i_low": [],
@@ -1857,6 +1881,10 @@ def save_data_to_dataframe(
         df['std_0_error'] = df['std_0_error'].astype(float)
         df['std_1'] = df['std_1'].astype(float)
         df['std_1_error'] = df['std_1_error'].astype(float)
+        df['avg_photons'] = df['avg_photons'].astype(float)
+        df['avg_photons_error'] = df['avg_photons_error'].astype(float)
+        df['cross_talk'] = df['cross_talk'].astype(float)
+        df['cross_talk_error'] = df['cross_talk_error'].astype(float)
         df['SPE_mean_amplitude'] = df['SPE_mean_amplitude'].astype(float)
         df['SPE_mean_adcs'] = df['SPE_mean_adcs'].astype(object) # cannot specify list[float] or np.ndarray
         df['fine_selection_baseline_i_low'] = df['fine_selection_baseline_i_low'].astype(int)
@@ -1965,6 +1993,10 @@ def save_data_to_dataframe(
                     "std_0_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_0_error"]],
                     "std_1": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1"]],
                     "std_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1_error"]],
+                    "avg_photons": [packed_gain_snr_and_SPE_info[endpoint][channel]["avg_photons"]],
+                    "avg_photons_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["avg_photons_error"]],
+                    "cross_talk": [packed_gain_snr_and_SPE_info[endpoint][channel]["cross_talk"]],
+                    "cross_talk_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["cross_talk_error"]],
                     "SPE_mean_amplitude": [aux_SPE_mean_amplitude],
                     "SPE_mean_adcs": [aux_SPE_mean_adcs],
                     "fine_selection_baseline_i_low": [fine_selection_limits[0]],
