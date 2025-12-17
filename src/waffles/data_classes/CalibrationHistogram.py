@@ -10,7 +10,6 @@ import waffles.Exceptions as we
 
 from iminuit import Minuit
 from iminuit.cost import LeastSquares
-import waffles.utils.numerical_utils as wun
 from waffles.data_classes.CrossTalk import CrossTalk
 
 class CalibrationHistogram(TrackedHistogram):
