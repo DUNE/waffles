@@ -206,9 +206,6 @@ def main() -> None:
         sftp = None
 
 
-    if ssh is None or sftp is None:
-        args.use_rucio = True
-
     if args.use_rucio:
         logging.info("Using rucio paths from %s", databaserucio)
         ok_runs: list[int] = []
