@@ -226,6 +226,26 @@ def get_np04_offline_to_daphne_channel_dict(version: str="", run: int=-1) -> dic
     offline_to_daphne = dict(zip(df['offline_ch'], daphne_channels))
     return offline_to_daphne
 
+@lru_cache(maxsize=1)
+def get_np04_channel_position_dataframe() -> pd.DataFrame:
+    """
+    Parameters
+    ----------
+
+    Returns
+    -------
+    - df: pd.DataFrame
+        The channel position mapping as a pandas DataFrame
+        Columns: offline_ch, det_center_x, det_center_y, det_center_z, ch_center_z
+    """
+    wafflesdir = Path(waffles.__file__).parent
+    if not Path(wafflesdir / "np04_utils" / "PDHD_PDS_Channel_Positions.csv").exists() :
+        raise FileNotFoundError(
+            "The channel mapping was not found. You probably need to install waffles with -e option:\n`python3 -m pip install -e .`")
+
+    mapping_file = wafflesdir / "np04_utils" / "PDHD_PDS_Channel_Positions.csv"
+    df = pd.read_csv(mapping_file, sep=",")
+    return df
 
 @lru_cache(maxsize=1)
 def load_configs(daphne_config_file = "") -> dict:
