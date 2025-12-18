@@ -38,14 +38,15 @@ def ssh_connect(host: str, port: int, user: str,
                 passwd: str | None = None) -> paramiko.SSHClient:
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    timeout = 10 # seconds
     if kerberos:
         c.connect(host, port=port, username=user,
-                  gss_auth=True, gss_kex=True, gss_host=host)
+                  gss_auth=True, gss_kex=True, gss_host=host, timeout=timeout)
     elif key:
         pkey = paramiko.RSAKey.from_private_key_file(key, password=passwd)
-        c.connect(host, port=port, username=user, pkey=pkey)
+        c.connect(host, port=port, username=user, pkey=pkey, timeout=timeout)
     else:
-        c.connect(host, port=port, username=user, password=passwd)
+        c.connect(host, port=port, username=user, password=passwd, timeout=timeout)
     return c
 
 
@@ -192,11 +193,21 @@ def main() -> None:
     pw = None
     if not args.kerberos and not args.ssh_key:
         pw = getpass.getpass(f"{args.user}@{args.hostname} password: ")
-    ssh = ssh_connect(args.hostname, args.port, args.user,
-                      kerberos=args.kerberos, key=args.ssh_key, passwd=pw)
-    sftp = ssh.open_sftp()
-    logging.info("✅ SSH connected")
 
+    try: 
+        logging.info("🔑 Connecting to %s:%d as %s ...", args.hostname, args.port, args.user)
+        ssh = ssh_connect(args.hostname, args.port, args.user,
+                          kerberos=args.kerberos, key=args.ssh_key, passwd=pw)
+        sftp = ssh.open_sftp()
+        logging.info("✅ SSH connected")
+    except:
+        logging.error("❌ SSH connection failed")
+        ssh = None
+        sftp = None
+
+
+    if ssh is None or sftp is None:
+        args.use_rucio = True
 
     if args.use_rucio:
         logging.info("Using rucio paths from %s", databaserucio)
@@ -228,6 +239,8 @@ def main() -> None:
                 ok_runs.append(run)
                 continue
             try:
+                if ssh is None or sftp is None:
+                    raise RuntimeError("No SSH/SFTP connection available")
                 rem = remote_hdf5_files(ssh, args.remote_dir, run)
                 if not rem:
                     logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
@@ -264,8 +277,9 @@ def main() -> None:
             except Exception as e:
                 logging.error("run %d: %s", run, e)
 
-        sftp.close()
-        ssh.close()
+        if sftp is not None and ssh is not None:
+            sftp.close()
+            ssh.close()
 
 
     # ── Skip already-processed runs ─────────────────────────────────────────
