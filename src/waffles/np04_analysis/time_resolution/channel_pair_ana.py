@@ -6,6 +6,7 @@ import numpy as np
 from ROOT import TH1F, TH2F, TFile, TGraphErrors
 import uproot
 import waffles.np04_analysis.time_resolution.time_alignment as ta
+from waffles.np04_utils.utils import get_np04_daphne_to_offline_channel_dict
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
@@ -35,10 +36,12 @@ if __name__ == "__main__":
     os.makedirs(out_folder, exist_ok=True)
 
     run_info_df = pd.read_csv("configs/"+run_info_file, sep=",")
-    
+    daphne_to_offline = get_np04_daphne_to_offline_channel_dict(version="new")
+    if event_type == "cosmic":
+        daphne_to_offline = get_np04_daphne_to_offline_channel_dict(version="old")
 
 
-
+    out_df_rows = []
     for ref_ch, com_ch in zip(ref_chs, com_chs):
         files = [raw_ana_folder+f for f in os.listdir(raw_ana_folder) if f.endswith("time_resolution.root") and ((str(ref_ch) in f) or (str(com_ch) in f))]
         runs = set()
@@ -111,7 +114,20 @@ if __name__ == "__main__":
                 for diff in t0_diff:
                     h_t0_diff.Fill(diff)
 
-                print("com_ch:", com_ch, h_t0_diff.GetMean()*16)
+                t0_offset = h_t0_diff.GetMean()
+                out_df_rows.append({
+                    "Run": int(run),
+                    "ReferenceChannel": ref_ch,
+                    "ComparisonChannel": com_ch,
+                    "OfflineRefChannel": daphne_to_offline[ref_ch],
+                    "OfflineComChannel": daphne_to_offline[com_ch],
+                    "Method": root_dir,
+                    "PDE": pde if event_type == "led" else np.nan,
+                    "LEDIntensity": led if event_type == "led" else np.nan,
+                    "T0Offset [ticks]": t0_offset,
+                    "T0Offset [ns]": t0_offset*16.0,
+                    "T0Offset_StdDev [ns]": h_t0_diff.GetStdDev()*16.0
+                    })
 
                 # Com vs Ref pes -------------------------------------------------
                 x_min = np.percentile(time_alligner.ref_ch.pes, 0.5)
@@ -165,3 +181,8 @@ if __name__ == "__main__":
                     g_dt0_led[pde].Write()
 
         out_root_file.Close()
+
+    out_df = pd.DataFrame(out_df_rows)
+    out_df = out_df.sort_values(by="OfflineComChannel")
+    out_csv_name = out_folder + event_type+"_channel_time_offsets.csv"
+    out_df.to_csv(out_csv_name, index=False)
