@@ -22,6 +22,13 @@ class TrackedHistogram:
         i-th bin, with i = 0, ..., bins_number - 1,
         contains the number of occurrences between
         edges[i] and edges[i+1].
+    mean: float
+        The mean value of the histogram, computed
+        as the weighted average of the bin centers,
+        with weights given by the bin counts.
+    nentries: int
+        The total number of entries in the histogram,
+        i.e., the sum of all bin counts.
     mean_bin_width: float
         The mean difference between two consecutive
         edges. It is computed as
@@ -108,6 +115,17 @@ class TrackedHistogram:
                 self.__bins_number] - self.__edges[0]) / self.__bins_number
         self.__counts = counts
         self.__indices = indices
+        
+        mean = 0.0
+        for i in range(bins_number):
+            bin_center = 0.5 * (edges[i] + edges[i + 1])
+            mean += bin_center * counts[i]
+        mean /= np.sum(counts) if np.sum(counts) > 0 else 1.0
+        self.__mean = mean
+        # Total number of entries
+        # NB: different from ROOT TH1's GetEntries() because 
+        # it does not count underflows and overflows
+        self.__nentries = np.sum(counts)
 
     # Getters
     @property
@@ -117,6 +135,14 @@ class TrackedHistogram:
     @property
     def edges(self):
         return self.__edges
+
+    @property
+    def mean(self):
+        return self.__mean
+
+    @property
+    def nentries(self):
+        return self.__nentries
 
     @property
     def mean_bin_width(self):

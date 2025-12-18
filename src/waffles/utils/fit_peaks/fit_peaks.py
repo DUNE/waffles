@@ -223,6 +223,7 @@ def fit_peaks_of_CalibrationHistogram(
     n_peaks_found = len(calibration_histogram.gaussian_fits_parameters['scale'])
 
     if fit_type != 'multigauss_iminuit' or n_peaks_found < 1:
+        calibration_histogram.compute_cross_talk()
         return fFoundMax & fFitAll
 
 
@@ -319,6 +320,8 @@ def fit_peaks_of_CalibrationHistogram(
 
     setattr(calibration_histogram, 'n_peaks_found', n_peaks_found)
     setattr(calibration_histogram, 'iminuit', mm)
+
+    calibration_histogram.compute_cross_talk()
         
     return fitstatus
 

@@ -1,0 +1,144 @@
+# File.csv containing (at least) the columns:
+# Run, Threshold, LED
+# Run: run number
+# Threshold: threshold in exadecimal
+# LED: LED intensity
+run_info_file: "./configs/SelfTrigger_RunInfo.csv"
+
+# File.csv stored in ana_folder containing (at least) the columns:
+# SiPMChannel, IntLow, IntUp, PrepulseTicks, BaselineRMS, SpeCharge, SNR, SpeAmpl
+# SiPMChannel: SiPM channel number (e.g. 11121)
+# IntLow: lower integration limit (in ticks)
+# IntUp: upper integration limit (in ticks)
+# PrepulseTicks: number of ticks before the signal to compute the baseline
+# BaselineRMS: baseline RMS (in ADC counts)
+# SpeCharge: SPE charge (in ADC x ticks)
+# SpeAmpl: SPE amplitude (in ADC counts)
+calibration_file: "./configs/SelfTrigger_Calibration.csv"
+
+# Path to the hdf5 files with name:
+# Run_XXXXXX_ChSiPM_YYYYY_ChST_ZZZZZ_structured.hdf5 
+file_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/files/"
+
+# SiPM channel to analyze
+SiPM_channel: 10903
+
+# Do you want to save all the png of the Total/Passed histograms?
+save_pngs: False 
+
+# List of runs to analyze
+runs : [31505,
+  31508,
+  31510,
+  31512,
+  31515,
+  31540,
+  31542,
+  31545,
+  31547,
+  31550,
+  31591,
+  31593,
+  31595,
+  31598,
+  31600,
+  31620,
+  31623,
+  31625,
+  31628,
+  31630,
+  31649,
+  31651,
+  31654,
+  31656,
+  31658,
+  31677,
+  31679,
+  31682,
+  31684,
+  31686,
+  31949,
+  31950,
+  31951,
+  31952,
+  31953,
+  31961,
+  31962,
+  31963,
+  31964,
+  31965,
+  31973,
+  31974,
+  31975,
+  31976,
+  31977,
+  31985,
+  31986,
+  31987,
+  31988,
+  31989,
+  31997,
+  31998,
+  31999,
+  32000,
+  32001,
+  32009,
+  32010,
+  32011,
+  32012,
+  32013,
+  32021,
+  32022,
+  32023,
+  32024,
+  32025,
+  32033,
+  32034,
+  32035,
+  32036,
+  32037,
+  32045,
+  32046,
+  32047,
+  32048,
+  32049,
+  32057,
+  32058,
+  32059,
+  32060,
+  32061,
+  32069,
+  32070,
+  32071,
+  32072,
+  32073,
+  32081,
+  32082,
+  32083,
+  32084,
+  32085,
+  32093,
+  32094,
+  32095,
+  32096,
+  32097,
+  32105,
+  32106,
+  32107,
+  32108,
+  32109,
+  32117,
+  32118,
+  32119,
+  32120,
+  32121,
+  32129,
+  32130,
+  32131,
+  32132,
+  32133,
+  32142,
+  32143,
+  32144,
+  32145,
+  32146]

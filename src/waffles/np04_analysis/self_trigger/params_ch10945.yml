@@ -1,0 +1,144 @@
+# File.csv containing (at least) the columns:
+# Run, Threshold, LED
+# Run: run number
+# Threshold: threshold in exadecimal
+# LED: LED intensity
+run_info_file: "./configs/SelfTrigger_RunInfo.csv"
+
+# File.csv stored in ana_folder containing (at least) the columns:
+# SiPMChannel, IntLow, IntUp, PrepulseTicks, BaselineRMS, SpeCharge, SNR, SpeAmpl
+# SiPMChannel: SiPM channel number (e.g. 11121)
+# IntLow: lower integration limit (in ticks)
+# IntUp: upper integration limit (in ticks)
+# PrepulseTicks: number of ticks before the signal to compute the baseline
+# BaselineRMS: baseline RMS (in ADC counts)
+# SpeCharge: SPE charge (in ADC x ticks)
+# SpeAmpl: SPE amplitude (in ADC counts)
+calibration_file: "./configs/SelfTrigger_Calibration.csv"
+
+# Path to the hdf5 files with name:
+# Run_XXXXXX_ChSiPM_YYYYY_ChST_ZZZZZ_structured.hdf5 
+file_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/files/"
+
+# SiPM channel to analyze
+SiPM_channel: 10945
+
+# Do you want to save all the png of the Total/Passed histograms?
+save_pngs: False
+
+# List of runs to analyze
+runs : [32219,
+  32220,
+  32221,
+  32222,
+  32223,
+  32224,
+  32231,
+  32232,
+  32233,
+  32234,
+  32235,
+  32236,
+  32243,
+  32244,
+  32245,
+  32246,
+  32247,
+  32248,
+  32255,
+  32256,
+  32257,
+  32258,
+  32259,
+  32260,
+  32267,
+  32268,
+  32269,
+  32270,
+  32271,
+  32272,
+  32279,
+  32280,
+  32281,
+  32282,
+  32283,
+  32284,
+  32291,
+  32292,
+  32293,
+  32294,
+  32295,
+  32296,
+  32303,
+  32304,
+  32305,
+  32306,
+  32307,
+  32308,
+  32315,
+  32316,
+  32317,
+  32318,
+  32319,
+  32320,
+  32327,
+  32328,
+  32329,
+  32330,
+  32331,
+  32332,
+  32339,
+  32340,
+  32341,
+  32342,
+  32343,
+  32344,
+  32351,
+  32352,
+  32353,
+  32354,
+  32355,
+  32356,
+  32363,
+  32364,
+  32365,
+  32366,
+  32367,
+  32368,
+  32375,
+  32376,
+  32377,
+  32378,
+  32379,
+  32380,
+  32387,
+  32388,
+  32389,
+  32390,
+  32391,
+  32392,
+  32399,
+  32400,
+  32401,
+  32402,
+  32403,
+  32404,
+  32415,
+  32416,
+  32417,
+  32418,
+  32419,
+  32420,
+  32428,
+  32429,
+  32431,
+  32432,
+  32433,
+  32434,
+  32444,
+  32445,
+  32446,
+  32447,
+  32448,
+  32449]
+
