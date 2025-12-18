@@ -146,7 +146,8 @@ class TimeResolution:
                 # Check if the signal is within saturation limits
                 if (ampl_post < 0.8*max_el_signal
                     and wf.pe > self.min_pes):
-                    wf.time_resolution_selection = True; n_selected += 1
+                    wf.time_resolution_selection = True
+                    n_selected += 1
                     self.debug_counter['selected'] = self.debug_counter.get('selected', 0) + 1 
 
                 else:
