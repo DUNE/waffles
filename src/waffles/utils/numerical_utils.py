@@ -336,29 +336,36 @@ def error_propagation(p1: float, e1: float, p2: float, e2: float, operation: str
     float
         The propagated error
     """
+    # precompute squares once
+    e1_2 = e1 * e1
+    e2_2 = e2 * e2
+    p1_2 = p1 * p1
+    p2_2 = p2 * p2
 
     result = 0.
+    
+    match operation:
+        case "sum" | "sub":
+            result = math.sqrt(e1_2 + e2_2)
 
-    if operation   == "sum":
-        result = math.sqrt(e1 * e1 + e2 * e2)
-    elif operation == "sub":
-        result = math.sqrt(e1 * e1 + e2 * e2)
-    elif operation == "mul":
-        result = math.sqrt((e1 * e1) * (p2 * p2) + (e2 * e2) * (p1 * p1))
-    elif operation == "div":
-        result = math.sqrt((e1 * e1) / (p2 * p2) + (e2 * e2) * (p1 * p1) / (p2 * p2 * p2 * p2))
-    elif operation == "sqrt_sum":
-        f2 = p1*p1 + p2*p2
-        result = math.sqrt( (e1*e1 * p1*p1)/f2 + (e2*e2 * p2*p2)/f2 )
-    elif operation == "sqrt_sub":
-        f2 = p1*p1 - p2*p2
-        result = math.sqrt( (e1*e1 * p1*p1)/f2 + (e2*e2 * p2*p2)/f2 )
-    else:
-        raise Exception(GenerateExceptionMessage(
-            1,
-            'error_propagation()',
-            "Invalid operation: must be 'sum', 'sub', 'mul',"
-            " 'div', 'sqrt_sum' or 'sqrt_sub'."))
+        case "mul":
+            result = math.sqrt( e1_2 * p2_2 + e2_2 * p1_2 )
+
+        case "div":
+            p2_4 = p2_2 * p2_2
+            result = math.sqrt(e1_2 / p2_2 + e2_2 * p1_2 / p2_4)
+
+        case "sqrt_sum" | "sqrt_sub":
+            sign = 1 if operation == "sqrt_sum" else -1
+            f2 = p1_2 + sign * p2_2
+            result = math.sqrt((e1_2 * p1_2 + e2_2 * p2_2) / f2)
+
+        case _:
+            raise Exception(GenerateExceptionMessage(
+                1,
+                'error_propagation()',
+                "Invalid operation: must be 'sum', 'sub', 'mul',"
+                " 'div', 'sqrt_sum' or 'sqrt_sub'."))
 
     return result
 
