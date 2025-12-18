@@ -21,9 +21,11 @@ from waffles.plotting.plot import plot_ChannelWsGrid, plot_CustomChannelGrid
 from waffles.plotting.plot import plot_CalibrationHistogram
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
 from waffles.utils.baseline.baseline import SBaseline
+from waffles.utils.numerical_utils import average_wf_ch
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
+
 import waffles.Exceptions as we
 import matplotlib.pyplot as plt
 
@@ -586,3 +588,58 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[Uni
         if not wfs: continue
         plot_function(wfs, **func_params)
 
+
+def plot_averages(fig:go.Figure, g:ChannelWsGrid):
+    """
+    Plot average waveforms for all valid channels in a channel grid.
+
+    This function iterates over the channel map stored in a `ChannelWsGrid`,
+    computes the average waveform for each available channel using
+    `average_wf_ch`, and adds it as a line trace to the corresponding subplot
+    in a Plotly figure.
+
+    Only channels that are present in `dict_uniqch_to_module` and for which
+    waveform data are available are plotted.
+
+    Parameters
+    ----------
+    fig : go.Figure
+        Plotly figure with a predefined subplot layout. 
+    g : ChannelWsGrid
+        Channel grid object containing the channel mapping and the associated
+        waveform sets (`ch_wf_sets`).
+
+    Returns
+    -------
+    None
+        The function modifies the input figure in place by adding traces.
+
+
+    Example
+    --------
+    fig = make_subplots(rows=1, cols=2)
+    gt = np02_gen_grids(mywfset, detector=["M3(1)", "M3(2)"])
+    plot_averages(fig, gt["Custom"])
+    fig.show()
+    """
+
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        row += 1
+        col += 1
+        
+        if str(uch) not in dict_uniqch_to_module:
+            continue
+        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
+            continue
+        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
+        avg = average_wf_ch(wfch)
+        time = np.arange(avg.size)
+
+        fig.add_trace(
+            go.Scatter(
+                x = time,
+                y = avg,
+                mode = "lines",
+            ),
+            row=row, col=col
+        )

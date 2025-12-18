@@ -1,0 +1,8 @@
+107: 
+    27: 
+        cuts:
+        - { t0:  10, tf:   245, threshold: 130, type: lower, filter:  0, npop: max }
+        - { t0:  250, tf:   340, threshold: 1100, type:  lower, filter:  0, npop: max }
+        - { t0: 350, tf: 1024, threshold:  130, type:  lower, filter:  0, npop: max }
+        - { t0: 10, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+        # - { t0: 381, tf:  387, threshold: -20., type: higher, filter:  0, npop: min }

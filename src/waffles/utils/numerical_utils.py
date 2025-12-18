@@ -1,7 +1,9 @@
 import numba
 import numpy as np
 from typing import List, Tuple
+from tqdm import tqdm
 
+from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
 
 
@@ -564,3 +566,50 @@ def cluster_integers_by_contiguity(
             'The given numpy array must contain at least two elements.'))
 
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
+
+
+def average_wf_ch(wfch: WaveformSet, analysis_label="std"):
+    """
+    Compute the average waveform for a single channel after baseline subtraction.
+
+    This function loops over all waveforms stored in a `WaveformSet`, subtracts
+    the baseline computed in a previous analysis step, and returns the sample-wise
+    average waveform.
+
+    Parameters
+    ----------
+    wfch : WaveformSet
+        WaveformSet object containing the waveforms to be averaged.
+    analysis_label : str, optional
+        Label of the analysis from which the baseline value is retrieved
+        (default is "std"). 
+
+    Returns
+    -------
+    average_waveform : ndarray
+        One-dimensional NumPy array containing the average waveform (in ADC units)
+        after baseline subtraction.
+
+    Example
+    --------
+    avg_wf = average_wf_ch(wfch, analysis_label="std")
+    
+    """
+    
+    arrs = []
+    for run in wfch.runs: 
+        available_endpoints_and_channels = wfch.available_channels[run]
+        if len(list(available_endpoints_and_channels.keys())) > 1:
+            raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
+        for ep, channels in available_endpoints_and_channels.items():
+            if len(list(channels)) > 1:
+                raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
+
+    for wf in tqdm(wfch.waveforms):
+        adcs_float = np.asarray(wf.adcs).astype(float)          
+        if analysis_label in wf.analyses:
+            baseline = wf.analyses[analysis_label].result["baseline"]
+            adcs_float = adcs_float - baseline                
+            arrs.append(adcs_float)
+            
+    return np.mean(arrs, axis=0)
