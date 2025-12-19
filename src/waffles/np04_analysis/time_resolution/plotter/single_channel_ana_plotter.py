@@ -1,6 +1,7 @@
 import yaml
 import os
 import numpy as np
+import array
 
 import ROOT
 from ROOT import TFile, TH2F, TGraph, TGraphErrors
@@ -58,20 +59,23 @@ if __name__ == "__main__":
             out_root_file.mkdir(root_dir.replace(";1", ""))
             out_root_file.cd(root_dir.replace(";1", ""))
 
-            pe_quantiles  = np.array([stat_lost, 1.0 - stat_lost], dtype="d")
-            pe_q_values   = rdf.Quantile("pe", pe_quantiles).GetValue()
-            pe_low, pe_up = pe_q_values[0], pe_q_values[1]
+            #Computing pe quantiles to define histogram range
+            h_pe = rdf.Histo1D("pe").GetValue()
+            probs = array.array("d", [stat_lost, 1.0 - stat_lost])
+            qs    = array.array("d", [0.0, 0.0])
+            h_pe.GetQuantiles(2, qs, probs)
+            pe_low, pe_up = qs[0], qs[1]
 
             x_low  = float(int(pe_low))-0.5
             x_up   = float(int(pe_up)) +0.5
             x_bins = int(x_up - x_low)
 
-            t0_quantiles  = np.array([stat_lost, 1.0 - stat_lost], dtype="d")
-            t0_q_values   = rdf.Quantile("t0", t0_quantiles).GetValue()
-            t0_low, t0_up = t0_q_values[0], t0_q_values[1]
+            h_t0 = rdf.Histo1D("t0").GetValue()
+            h_t0.GetQuantiles(2, qs, probs)
+            t0_low, t0_up = qs[0], qs[1]
 
             # Histogram 2D of t0 vs pe
-            h2_model = ROOT.RDF.TH2FModel(
+            h2_model = ROOT.RDF.TH2DModel(
                 "t0_vs_pe",
                 "2D Histogram;#p.e;t0 [ticks]",
                 x_bins,   x_low,  x_up,
@@ -86,13 +90,15 @@ if __name__ == "__main__":
 
             # Graph of time resolution vs pe
             g_res_pe = TGraphErrors()
+            ip = 0
             for i in range(h2_t0_pe.GetNbinsX()+1):
                 h1_t0 = h2_t0_pe.ProjectionY(f"proj_{i}", i, i)
                 if h1_t0.GetEntries() > 50:
                     sigma = h1_t0.GetRMS()
                     err_sigma = sigma / np.sqrt(float(h1_t0.GetEntries()))
-                    g_res_pe.AddPoint(h2_t0_pe.GetXaxis().GetBinCenter(i+1), sigma*16,
-                                      h2_t0_pe.GetXaxis().GetBinWidth(i+1)/2, err_sigma*16)
+                    g_res_pe.SetPoint(ip, h2_t0_pe.GetXaxis().GetBinCenter(i+1), sigma*16)
+                    g_res_pe.SetPointError(ip, h2_t0_pe.GetXaxis().GetBinWidth(i+1)/2, err_sigma*16)
+                    ip += 1
 
             g_res_pe.SetName("res_vs_pe")
             g_res_pe.SetTitle("Resolution vs p.e.;p.e.;#sigma_{t0} [ns]")
