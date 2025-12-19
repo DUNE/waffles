@@ -1,10 +1,9 @@
 import yaml
 import os
 import numpy as np
-import array
 
-import ROOT
 from ROOT import TFile, TH2F, TGraph, TGraphErrors
+import uproot
 
 
 
@@ -37,65 +36,63 @@ if __name__ == "__main__":
     # --- LOOP OVER RUNS --------------------------------------------
     files = [raw_ana_folder+f for f in os.listdir(raw_ana_folder) if f.endswith("time_resolution.root")]
     for file in files:
-        int_root_file = TFile(file, "READ")
+        root_file = uproot.open(file)
+        root_dirs = root_file.keys()
 
         out_root_file_name = file.replace(raw_ana_folder, single_ana_folder).replace(".root", "_plots.root")
         print("opening ", out_root_file_name)
         out_root_file = TFile(out_root_file_name, "RECREATE")
 
-        for key in int_root_file.GetListOfKeys():
-            root_dir = key.GetName()
-            if root_dir == "persistence" or "/" in root_dir:
+        for root_dir in root_dirs:
+            try:
+                if root_dir == "persistence;1" or "/" in root_dir:
+                    continue
+                directory = root_file[root_dir]
+            except:
                 continue
-            dir = int_root_file.GetDirectory(root_dir)
-            if not dir:
-                continue
-            tree = dir.Get("time_resolution")
-            if not tree:
-                continue
-
-            rdf = ROOT.RDataFrame(tree)
-
+            tree = directory["time_resolution"]
+            arrays = tree.arrays(["t0", "pe", "timestamp"], library="np")
+            
             out_root_file.mkdir(root_dir.replace(";1", ""))
             out_root_file.cd(root_dir.replace(";1", ""))
+            
+            t0s = arrays["t0"]
+            pes = arrays["pe"]
+            tss = arrays["timestamp"]
 
-            #Computing pe quantiles to define histogram range
-            h_pe = rdf.Histo1D("pe").GetValue()
-            probs = array.array("d", [stat_lost, 1.0 - stat_lost])
-            qs    = array.array("d", [0.0, 0.0])
-            h_pe.GetQuantiles(2, qs, probs)
-            pe_low, pe_up = qs[0], qs[1]
-
+            # Compute the stat_lost and 1-stat_lost quantiles
+            pe_low, pe_up = np.quantile(pes, [stat_lost, 1-stat_lost])
             x_low  = float(int(pe_low))-0.5
             x_up   = float(int(pe_up)) +0.5
             x_bins = int(x_up - x_low)
 
-            h_t0 = rdf.Histo1D("t0").GetValue()
-            h_t0.GetQuantiles(2, qs, probs)
-            t0_low, t0_up = qs[0], qs[1]
+            t0_low, t0_up = np.quantile(t0s, [stat_lost, 1-stat_lost])
+                
 
+            counts, xedges, yedges = np.histogram2d(pes, t0s, bins=(x_bins,h2_nbins),
+                                                    range=[[x_low, x_up], [t0_low, t0_up]])
+            
             # Histogram 2D of t0 vs pe
-            h2_model = ROOT.RDF.TH2DModel(
-                "t0_vs_pe",
-                "2D Histogram;#p.e;t0 [ticks]",
-                x_bins,   x_low,  x_up,
-                h2_nbins, t0_low, t0_up
-            )
+            h2_t0_pe = TH2F("t0_vs_pe", "2D Histogram;#p.e;t0 [ticks]",
+                            x_bins, x_low, x_up,
+                            h2_nbins, t0_low, t0_up)
 
-            h2_t0_pe = rdf.Histo2D(h2_model, "pe", "t0")
+            for i in range(x_bins):
+                for j in range(h2_nbins):
+                    h2_t0_pe.SetBinContent(i+1, j+1, counts[i, j]) 
             
             corr = h2_t0_pe.GetCorrelationFactor()
-            h2_t0_pe.SetTitle(f"Correlation: {corr:.3f};#p.e;t0 [ticks]")
+            h2_t0_pe.SetTitle(f"Correlation: {corr}")
             h2_t0_pe.Write()
 
             # Graph of time resolution vs pe
             g_res_pe = TGraphErrors()
             ip = 0
-            for i in range(h2_t0_pe.GetNbinsX()+1):
-                h1_t0 = h2_t0_pe.ProjectionY(f"proj_{i}", i, i)
+            for i in range(h2_t0_pe.GetNbinsX()):
+                h1_t0 = h2_t0_pe.ProjectionY(f"proj_{i}", i+1, i+1)
                 if h1_t0.GetEntries() > 50:
                     sigma = h1_t0.GetRMS()
-                    err_sigma = sigma / np.sqrt(float(h1_t0.GetEntries()))
+                    err_sigma = sigma/np.sqrt(float(h1_t0.GetEntries()))
                     g_res_pe.SetPoint(ip, h2_t0_pe.GetXaxis().GetBinCenter(i+1), sigma*16)
                     g_res_pe.SetPointError(ip, h2_t0_pe.GetXaxis().GetBinWidth(i+1)/2, err_sigma*16)
                     ip += 1
@@ -111,7 +108,7 @@ if __name__ == "__main__":
             hp_t0_pe.Write()
 
             # TGraph p.e. vs timestamp
-            g_pe_ts = rdf.Graph("timestamp", "pe")
+            g_pe_ts = TGraph(pes.size, tss.astype('d'), pes.astype('d'))
             g_pe_ts.SetName("pe_vs_ts")
             g_pe_ts.SetTitle("p.e. vs timestamp;timestamp [a.u.];p.e.")
             g_pe_ts.Write()
