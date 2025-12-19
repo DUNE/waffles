@@ -324,8 +324,6 @@ class MyAnaConvolution(WfAna):
             
 
         
-        
-    
 
     @staticmethod
     @we.handle_missing_data
