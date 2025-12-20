@@ -5,10 +5,7 @@ import plotly.subplots as psu
 import logging
 from typing import List, Union
 from typing import Optional, Callable
-import yaml
-from importlib import resources
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
@@ -25,6 +22,7 @@ from waffles.utils.numerical_utils import average_wf_ch
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
+from waffles.np02_utils.load_utils import ch_read_params
 
 import waffles.Exceptions as we
 import matplotlib.pyplot as plt
@@ -505,33 +503,6 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       show_progress=show_progress
                      )
 
-def ch_read_params(filename:str = 'ch_snr_parameters.yaml') -> dict:
-    try:
-        with resources.files('waffles.np02_utils.data').joinpath(filename).open('r') as f:
-            return yaml.safe_load(f)
-    except Exception as error:
-        print(error)
-        print("\n\n")
-        raise FileNotFoundError(
-            f"Could not find the {filename} file in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
-        )
-
-def ch_read_calib(filename: str = 'calibration_results_file.csv') -> dict:
-    try:
-        with resources.files('waffles.np02_utils.data').joinpath(filename).open('r') as f:
-            df = pd.read_csv(f)
-            result = ( df.set_index(['endpoint', 'channel'])[['Gain', 'SpeAmpl']].to_dict(orient='index'))
-            # now regroup by endpoint
-            nested_dict = {}
-            for (ep, ch), values in result.items():
-                nested_dict.setdefault(ep, {})[ch] = values
-            return nested_dict
-    except Exception as error:
-        print(error)
-        print("\n\n")
-        raise FileNotFoundError(
-            f"Could not find the {filename} file in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
-        )
 
 def select_spe(waveform:Waveform, pretrigger=200, posttrigger=400, threshold=80) -> bool:
     if 'spe_charge' not in waveform.analyses['std'].result:
