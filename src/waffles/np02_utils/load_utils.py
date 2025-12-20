@@ -65,11 +65,12 @@ def ch_read_calib(filename: str = 'np02-config-v3.0.0.csv') -> dict:
     try:
         with resources.files('waffles.np02_utils.data.calibration_data').joinpath(filename).open('r') as f:
             df = pd.read_csv(f, skipinitialspace=True)
-            result = ( df.set_index(['endpoint', 'channel'])[['Gain', 'SpeAmpl']].to_dict(orient='index'))
+            df = df.set_index(['endpoint', 'channel'])[['Gain', 'SpeAmpl']]
             # now regroup by endpoint
             nested_dict = {}
-            for (ep, ch), values in result.items():
-                nested_dict.setdefault(ep, {})[ch] = values
+            for values in df.itertuples():
+                ep, ch = getattr(values, 'Index')
+                nested_dict.setdefault(ep, {})[ch] = {'Gain': getattr(values, 'Gain'), 'SpeAmpl': getattr(values, 'SpeAmpl')}
             return nested_dict
     except Exception as error:
         print(error)
