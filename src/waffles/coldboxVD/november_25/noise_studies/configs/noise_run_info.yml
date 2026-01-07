@@ -1,13 +1,13 @@
 # Path to the files.txt containing the Rucio's paths
-filepath_folder: "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/November2025run/spy_buffer/vgain_scan_membrane_noise_n5V_below_Vbr/"
+filepath_folder: "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/November2025run/spy_buffer/noise/vgain_scan_membrane_noise_n5V_below_Vbr_02122025_afternoon/"
 
 # Name of the folder where the txt files containing FFTs will be saved
 # No "/" in the name!
-fft_folder: "FFTs_txt"
+fft_folder: "FFTs_txt_vgain_scan_membrane_noise_n5V_below_Vbr_02122025_afternoon"
 
 # Name of the folder where the set of FFTs will be saved (set == all the FFTs of a given configuration)
 # No "/" in the name!
-fft_set_folder: "FFT_sets"
+#fft_set_folder: "FFT_sets"
 
 # All the noise runs acquired in NP04
 # Dictionary with the noise run <-> Vgain setting
