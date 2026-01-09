@@ -114,7 +114,7 @@ def process_structured(h5: Path, outdir: Path,
     for n, g in np02_gen_grids(wfset, detector).items():
         g: ChannelWsGrid = cast(ChannelWsGrid, g)
         html = outdir / f"{n}.html" if headless else None
-        plot_grid(chgrid=g, title=n, html=html, detector=detector)
+        plot_grid(chgrid=g, title=n, html=html, detector=detector, showplots=False)
         if html:
             os.chmod(html.as_posix(), 0o775)
 
