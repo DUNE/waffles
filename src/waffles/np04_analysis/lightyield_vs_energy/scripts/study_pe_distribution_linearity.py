@@ -234,6 +234,15 @@ for energy in [2, 3, 5, 7]:
     y_lg = langauss(x_fit, mpv, eta, sigma_lg, A_lg)
     y_g  = gaussian(x_fit, mu, sigma_g, A_g)
 
+
+    # Intersection point
+    intersection_mask = (x_fit >= mpv) & (x_fit <= mu)
+    x_sub  = x_fit[intersection_mask]
+    y_g_sub  = y_g[intersection_mask]
+    y_lg_sub = y_lg[intersection_mask]
+    intersection_idx = np.argmin(np.abs(y_g_sub - y_lg_sub))
+    x_intersection = x_sub[intersection_idx]
+
     # ----------------------------------------------------------------------
     # 8. Langauss peak position
     # ----------------------------------------------------------------------
@@ -259,6 +268,7 @@ for energy in [2, 3, 5, 7]:
     plt.plot(x_fit, y_fit, 'k-', lw=2, label='Langauss + Gaussian')
     plt.plot(x_fit, y_lg, 'r--', lw=1, label='Langauss')
     plt.plot(x_fit, y_g,  'b--', lw=1, label='Gaussian')
+    plt.axvline(x_intersection, color='gold', linestyle='--', linewidth=1, label="Intersection")
 
 
     info_text = (
@@ -275,6 +285,8 @@ for energy in [2, 3, 5, 7]:
         f"$A$ = {A_g:.0f} ± {eA_g:.0f}\n\n"
 
         f"R$^2$ = {r_squared:.3f}\n\n"
+
+        f"Intersection = {x_intersection:.0f}\n\n"
 
         f"bins width = {dict_info[energy]['bin width']:.0f}"
     )
