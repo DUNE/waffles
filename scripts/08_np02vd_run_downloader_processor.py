@@ -9,6 +9,7 @@ import os
 import paramiko                               # SSH / SFTP
 import numpy as np
 from typing import cast
+import tempfile
 
 # ── waffles imports ──────────────────────────────────────────────────────────
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -304,13 +305,16 @@ def main() -> None:
             output_dir=processed_dir.as_posix(),
             suffix=suffix,
         ))
-        pathscripts=Path(__file__).resolve().parent
-        tmp_cfg = pathscripts / "temp_config.json"
-        tmp_cfg.write_text(json.dumps(cfg, indent=4))
 
-        logging.info("🚀 07_save_structured_from_config.py …")
-        subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
-                        "--config", tmp_cfg.as_posix()], check=True)
+        pathscripts=Path(__file__).resolve().parent
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_config_file:
+
+            tmp_cfg = Path(tmp_config_file.name)
+            tmp_cfg.write_text(json.dumps(cfg, indent=4))
+
+            logging.info("🚀 07_save_structured_from_config.py …")
+            subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
+                            "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
     if args.headless:
