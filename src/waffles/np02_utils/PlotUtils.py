@@ -6,6 +6,8 @@ import logging
 from typing import List, Union
 from typing import Optional, Callable
 import matplotlib.pyplot as plt
+from typing import Optional
+import os
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
@@ -664,7 +666,7 @@ def plot_averages_w_peaks(fig:go.Figure, g:ChannelWsGrid):
                 x=[peak_time],
                 y=[peak_value],
                 mode="markers",
-                marker=dict(size=10, symbol="x", color="red"),
+                marker=dict(size=8, symbol="x", color="red"),
                 name=f"Peak amplitude {peak_value:.1f} ADC"
             ),
             row=row, col=col
@@ -735,16 +737,16 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
             row=row, col=col
         )
     
-        fig.add_trace(
-            go.Scatter(
-                x=[peak_time],
-                y=[peak_value],
-                mode="markers",
-                marker=dict(size=10, symbol="x", color="red"),
-                name=f"Peak amplitude {peak_value:.1f} ADC"
-            ),
-            row=row, col=col
-        )
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=[peak_time],
+        #         y=[peak_value],
+        #         mode="markers",
+        #         marker=dict(size=10, symbol="x", color="red"),
+        #         name=f"Peak amplitude {peak_value:.1f} ADC"
+        #     ),
+        #     row=row, col=col
+        # )
 
         for t, color, label in [
             (vals["t_low"], "green", "t10 rise"),
@@ -793,3 +795,68 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
             fig.update_xaxes(range=[x_min, x_max])
         
     return fig
+
+def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, save: bool = False, save_dir: Optional[str] = None):
+
+    if save:
+        if save_dir is None:
+            raise ValueError("save_dir must be specified")
+        os.makedirs(save_dir, exist_ok=True)
+
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        row += 1
+        col += 1
+        
+        if str(uch) not in dict_uniqch_to_module:
+            continue
+        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
+            continue
+            
+        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
+        avg = average_wf_ch(wfch)
+        time = np.arange(avg.size)
+
+        ch = uch.channel
+        if ch not in spe_by_channel:
+            print(f"Missing calibration for channel {ch}")
+            continue
+
+        spe_amp = spe_by_channel[ch]
+        peak_avg = np.max(avg)
+
+        if peak_avg == 0:
+            print(f"Zero peak for channel {ch}")
+            continue
+
+        avg_norm = avg * (spe_amp / peak_avg )
+
+        if save:
+            key = f"{uch.endpoint}-{uch.channel}"
+            module_name = dict_uniqch_to_module.get(key, None)
+
+            if module_name is None:
+                print(f"No module mapping found for EP {uch.endpoint}, CH {uch.channel}")
+                continue
+
+            filename = f"template_{module_name}.txt"
+            filepath = os.path.join(save_dir, filename)
+
+            np.savetxt(
+                filepath,
+                avg_norm,
+                fmt="%.9e"
+            )
+
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                print(f"File saved: {filepath}")
+            else:
+                print(f"Failed to save: {filepath}")
+        
+        fig.add_trace(
+            go.Scatter(
+                x = time,
+                y = avg_norm,
+                mode = "lines",
+            ),
+            row=row, col=col
+        )
