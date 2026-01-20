@@ -312,6 +312,9 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
 
     bins_int = params[endpoint][channel]['fit'].get('bins_int', 100)
     domain_int_str = params[endpoint][channel]['fit'].get('domain_int', [-10e3, 100e3])
+    force_max_peaks = params[endpoint][channel]['fit'].get('force_max_peaks', False)
+    fit_limits = params[endpoint][channel]['fit'].get('fit_limits',[None, None])
+    fit_limits = [ None if x == 'None' else x for x in fit_limits ]
     histautorange = wf_func.get('histautorange', False)
 
 
@@ -398,9 +401,11 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         max_peaks          = max_peaks,
         prominence         = prominence,
         initial_percentage = initial_percentage,
-        half_points_to_fit  = half_point_to_fit,
+        half_points_to_fit = half_point_to_fit,
         percentage_step    = percentage_step,
-        fit_type=fit_type
+        fit_type           = fit_type,
+        force_max_peaks    = force_max_peaks,
+        fit_limits         = fit_limits,
     )
     if verbosemultigauss:
         print(getattr(hInt, "iminuit", None))
