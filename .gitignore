@@ -10,7 +10,7 @@ test/*
 *krb5.conf*
 *.DS_Store
 
-!script/np02comm/**/*.ipynb
+!scripts/np02comm/**/*.ipynb
 
 # Ignore processed outputs:
 src/analyisis/*
