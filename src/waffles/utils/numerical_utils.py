@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
+from waffles.np02_utils.AutoMap import dict_uniqch_to_module
 
 
 def gaussian(
@@ -613,3 +614,61 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std"):
             arrs.append(adcs_float)
             
     return np.mean(arrs, axis=0)
+
+
+def compute_peaks_rise_fall_ch(g: "ChannelWsGrid"):
+
+    peaks_all = {}
+
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        if str(uch) not in dict_uniqch_to_module:
+            continue
+        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
+            continue
+
+        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
+        avg = average_wf_ch(wfch)
+        time = np.arange(avg.size)
+
+        peak_idx = np.argmax(avg)
+        peak_value = avg[peak_idx]
+        peak_time = time[peak_idx]
+
+        amp_10 = 0.1 * peak_value
+        amp_90 = 0.9 * peak_value
+
+        t_low = None
+        t_high = None
+        for j in range(peak_idx + 1):
+            if t_low is None and avg[j] >= amp_10:
+                t_low = time[j]
+            if t_high is None and avg[j] >= amp_90:
+                t_high = time[j]
+                break
+        rise_time = t_high - t_low
+
+        t_high_fall = None
+        t_low_fall = None
+        for j in range(peak_idx, len(avg)):
+            if t_high_fall is None and avg[j] <= amp_90:
+                t_high_fall = time[j]
+            if t_low_fall is None and avg[j] <= amp_10:
+                t_low_fall = time[j]
+                break
+        fall_time = t_low_fall - t_high_fall
+
+        peaks_all[(uch.endpoint, uch.channel)] = {
+            "peak_index": peak_idx,
+            "peak_time": peak_time,
+            "peak_value": peak_value,
+            "rise_time": rise_time,
+            "fall_time": fall_time,
+            "t_low": t_low,
+            "t_high": t_high,
+            "t_high_fall": t_high_fall,
+            "t_low_fall": t_low_fall,
+            "time": time,   
+            "avg": avg      
+        }
+
+    return peaks_all

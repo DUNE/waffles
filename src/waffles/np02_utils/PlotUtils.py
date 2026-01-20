@@ -18,7 +18,7 @@ from waffles.plotting.plot import plot_ChannelWsGrid, plot_CustomChannelGrid
 from waffles.plotting.plot import plot_CalibrationHistogram
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
 from waffles.utils.baseline.baseline import SBaseline
-from waffles.utils.numerical_utils import average_wf_ch
+from waffles.utils.numerical_utils import average_wf_ch, compute_peaks_rise_fall_ch
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
@@ -619,3 +619,177 @@ def plot_averages(fig:go.Figure, g:ChannelWsGrid):
             ),
             row=row, col=col
         )
+
+def plot_averages_w_peaks(fig:go.Figure, g:ChannelWsGrid):
+
+    peaks_all = {}
+    ncols = len(g.ch_map.data[0])    
+    
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        row += 1
+        col += 1
+
+        subplot_idx = (row - 1) * ncols + col
+        
+        if str(uch) not in dict_uniqch_to_module:
+            continue
+        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
+            continue
+        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
+        avg = average_wf_ch(wfch)
+        time = np.arange(avg.size)
+
+        peak_idx = np.argmax(avg)
+        peak_value = avg[peak_idx]
+        peak_time = time[peak_idx]
+    
+        peaks_all[(uch.endpoint, uch.channel)] = {
+            "peak_index": peak_idx,
+            "peak_time": peak_time,
+            "peak_value": peak_value,
+        }
+    
+        fig.add_trace(
+            go.Scatter(
+                x=time,
+                y=avg,
+                mode="lines",
+                name=f"{uch.endpoint}-{uch.channel}"
+            ),
+            row=row, col=col        
+        )
+    
+        fig.add_trace(
+            go.Scatter(
+                x=[peak_time],
+                y=[peak_value],
+                mode="markers",
+                marker=dict(size=10, symbol="x", color="red"),
+                name=f"Peak amplitude {peak_value:.1f} ADC"
+            ),
+            row=row, col=col
+        )
+
+        fig.update_layout(showlegend=False)
+
+        if subplot_idx == 1:
+            xref = "x domain"
+            yref = "y domain"
+        else:
+            xref = f"x{subplot_idx} domain"
+            yref = f"y{subplot_idx} domain"
+
+        fig.add_annotation(
+            x=0.98,
+            y=0.95,
+            xref=xref,
+            yref=yref,
+            text=(
+                f"{uch.endpoint}-{uch.channel}<br>"
+                f"Peak = {peak_value:.1f} ADC"
+            ),
+            showarrow=False,
+            align="left",
+            font=dict(size=11),
+            bgcolor="rgba(255,255,255,0.7)",
+            bordercolor="black",
+            borderwidth=1
+        )
+
+def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None):
+
+    ncols = len(g.ch_map.data[0])    
+
+    fig.layout.annotations = ()
+
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        row += 1
+        col += 1
+
+        subplot_idx = (row - 1) * ncols + col
+        
+        if str(uch) not in dict_uniqch_to_module:
+            continue
+        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
+            continue
+
+        vals = peaks_all[(uch.endpoint, uch.channel)]
+        time = vals["time"]
+        avg = vals["avg"]
+        peak_time = vals["peak_time"]
+        peak_value = vals["peak_value"]
+
+        if x_range is not None:
+            x_min, x_max = x_range
+            mask = (time >= x_min) & (time <= x_max)
+            time = time[mask]
+            avg = avg[mask]
+        
+        fig.add_trace(
+            go.Scatter(
+                x=time,
+                y=avg,
+                mode="lines",
+                name=f"{uch.endpoint}-{uch.channel}"
+            ),
+            row=row, col=col
+        )
+    
+        fig.add_trace(
+            go.Scatter(
+                x=[peak_time],
+                y=[peak_value],
+                mode="markers",
+                marker=dict(size=10, symbol="x", color="red"),
+                name=f"Peak amplitude {peak_value:.1f} ADC"
+            ),
+            row=row, col=col
+        )
+
+        for t, color, label in [
+            (vals["t_low"], "green", "t10 rise"),
+            (vals["t_high"], "blue", "t90 rise"),
+            (vals["t_high_fall"], "orange", "t90 fall"),
+            (vals["t_low_fall"], "purple", "t10 fall"),
+        ]:
+            fig.add_trace(
+                go.Scatter(
+                    x=[t, t],
+                    y=[0, peak_value], 
+                    mode="lines",
+                    line=dict(color=color, dash="dash"),
+                    showlegend=False,  
+                ),
+                row=row, col=col
+            ) 
+                    
+        if subplot_idx == 1:
+            xref = "x domain"
+            yref = "y domain"
+        else:
+            xref = f"x{subplot_idx} domain"
+            yref = f"y{subplot_idx} domain"
+
+        fig.add_annotation(
+            x=0.98,
+            y=0.95,
+            xref=xref,
+            yref=yref,
+            text=(
+                f"{uch.endpoint}-{uch.channel}<br>"
+                f"Peak = {peak_value:.1f} ADC<br>"
+                f"Rise time = {vals['rise_time']:.0f} ticks<br>"
+                f"Fall time = {vals['fall_time']:.0f} ticks"
+            ),
+            showarrow=False,
+            align="left",
+            font=dict(size=11),
+            bgcolor="rgba(255,255,255,0.7)",
+            bordercolor="black",
+            borderwidth=1
+        )
+
+        if x_range is not None:
+            fig.update_xaxes(range=[x_min, x_max])
+        
+    return fig

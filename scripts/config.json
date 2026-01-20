@@ -1,7 +1,7 @@
 {
     "runs": [36325],
     "rucio_dir": ".",
-    "output_dir": ".",
+    "output_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/",
     "ch": {
     },
     "save_single_file": false,
