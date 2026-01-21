@@ -624,6 +624,41 @@ def plot_averages(fig:go.Figure, g:ChannelWsGrid):
 
 def plot_averages_w_peaks(fig:go.Figure, g:ChannelWsGrid):
 
+    """
+    Plot average waveforms for all valid channels in a channel grid, 
+    finds the peaks and shows them with a marker.
+
+    This function iterates over the channel map stored in a `ChannelWsGrid`,
+    computes the average waveform for each available channel using
+    `average_wf_ch`, and adds it as a line trace to the corresponding subplot
+    in a Plotly figure.
+    Afterwards, finds the peak and indicates it with a marker.
+
+    Only channels that are present in `dict_uniqch_to_module` and for which
+    waveform data are available are plotted.
+
+    Parameters
+    ----------
+    fig : go.Figure
+        Plotly figure with a predefined subplot layout. 
+    g : ChannelWsGrid
+        Channel grid object containing the channel mapping and the associated
+        waveform sets (`ch_wf_sets`).
+
+    Returns
+    -------
+    None
+        The function modifies the input figure in place by adding traces.
+
+
+    Example
+    --------
+    fig = make_subplots(rows=1, cols=2)
+    gt = np02_gen_grids(mywfset, detector=["M3(1)", "M3(2)"])
+    plot_averages_w_peaks(fig, gt["Custom"])
+    fig.show()
+    """
+
     peaks_all = {}
     ncols = len(g.ch_map.data[0])    
     
@@ -699,6 +734,35 @@ def plot_averages_w_peaks(fig:go.Figure, g:ChannelWsGrid):
         )
 
 def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None):
+
+    """
+    Plot average waveforms for each channel in a ChannelWsGrid with peak and rise/fall indicators.
+
+    For each valid channel in the grid, this function:
+      - Plots the averaged waveform in the corresponding subplot.
+      - Optionally restricts the x-axis to a specified range.
+      - Adds vertical dashed lines at key points: t10 and t90 of rise, t90 and t10 of fall.
+      - Annotates each subplot with channel info, peak amplitude, and rise/fall times.
+
+    Parameters
+    ----------
+    peaks_all : dict
+        Dictionary returned by `compute_peaks_rise_fall_ch`. Keys are (endpoint, channel),
+        values contain peak, rise/fall times, and averaged waveform data.
+    fig : go.Figure
+        Plotly Figure object containing the subplots where waveforms will be plotted.
+    g : ChannelWsGrid
+        Grid object containing the channel waveform sets.
+    x_range : tuple of two floats, optional
+        (min, max) time range to display on the x-axis for all subplots. 
+        If None, the full waveform is shown.
+
+    Returns
+    -------
+    go.Figure
+        The updated Plotly Figure with all average waveforms plotted, vertical lines for 
+        rise/fall times, and annotations with peak and timing information.
+    """
 
     ncols = len(g.ch_map.data[0])    
 
@@ -797,6 +861,36 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
     return fig
 
 def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, save: bool = False, save_dir: Optional[str] = None):
+
+    """
+    Plot normalized average waveforms for each channel in a ChannelWsGrid.
+
+    For each valid channel in the grid, this function:
+      - Computes the average waveform.
+      - Normalizes it to a single photoelectron (SPE) amplitude.
+      - Plots the normalized waveform in the corresponding subplot.
+      - Optionally saves the normalized waveform to a text file for each channel.
+
+    Parameters
+    ----------
+    fig : go.Figure
+        Plotly Figure object containing subplots for each channel.
+    g : ChannelWsGrid
+        Grid object containing waveform sets for multiple channels.
+    spe_by_channel : dict
+        Dictionary mapping channel numbers to single photoelectron (SPE) amplitudes.
+        Used for normalizing the waveform.
+    save : bool, optional
+        If True, normalized waveforms are saved to text files. Default is False.
+    save_dir : str, optional
+        Directory where normalized waveform files will be saved. Must be specified if `save` is True.
+
+    Returns
+    -------
+    None
+        The function updates the provided Plotly Figure with normalized waveforms.
+
+    """
 
     if save:
         if save_dir is None:

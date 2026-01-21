@@ -618,6 +618,39 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std"):
 
 def compute_peaks_rise_fall_ch(g: "ChannelWsGrid"):
 
+    """
+    Compute peak characteristics and rise/fall times for each channel in a ChannelWsGrid.
+
+    For each valid channel in the provided grid, this function:
+      - Computes the average waveform.
+      - Finds the peak value and its index.
+      - Calculates the rise time (10% → 90% of peak) and fall time (90% → 10% of peak).
+      - Stores intermediate times corresponding to 10% and 90% amplitudes for rise and fall.
+
+    Parameters
+    ----------
+    g : ChannelWsGrid
+        A grid object containing waveform sets for multiple channels. 
+        Channels not present in `dict_uniqch_to_module` or missing waveforms are skipped.
+
+    Returns
+    -------
+    peaks_all : dict
+        Dictionary with keys `(endpoint, channel)` and values as another dict containing:
+            - "peak_index": int, index of the peak in the averaged waveform
+            - "peak_time": int, time tick of the peak
+            - "peak_value": float, value of the peak
+            - "rise_time": float, duration from 10% to 90% of peak
+            - "fall_time": float, duration from 90% to 10% of peak
+            - "t_low": int, time of 10% of peak during rise
+            - "t_high": int, time of 90% of peak during rise
+            - "t_high_fall": int, time of 90% of peak during fall
+            - "t_low_fall": int, time of 10% of peak during fall
+            - "time": np.ndarray, array of time indices
+            - "avg": np.ndarray, averaged waveform
+
+    """
+
     peaks_all = {}
 
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
