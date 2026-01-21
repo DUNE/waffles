@@ -19,8 +19,8 @@ Create a virtual environment and install the dependencies:
 ```bash
 python3 -m venv /path/to/new/virtual/environment
 source /path/to/new/virtual/environment/bin/activate
-which python3 # Should show the .venv Python
-python3 -m pip install -r requirements.txt .
+which python # Should show the .venv Python
+python -m pip install -r requirements.txt .
 ```
 
 Add the `ROOT` library to your environment by adding these lines at the end of the `bin/activate` file:
