@@ -835,10 +835,13 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, sav
             module_name = dict_uniqch_to_module.get(key, None)
 
             if module_name is None:
-                print(f"No module mapping found for EP {uch.endpoint}, CH {uch.channel}")
+                print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
                 continue
 
-            filename = f"template_{module_name}.txt"
+            module_for_title = module_name[:2]
+            channel_for_title = module_name[3]
+
+            filename = f"template_{module_for_title}_{channel_for_title}.txt"
             filepath = os.path.join(save_dir, filename)
 
             np.savetxt(
