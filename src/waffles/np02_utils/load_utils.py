@@ -63,7 +63,7 @@ def ch_show_avaliable_calib_files():
     for f in files:
         print(f"- {f}")
 
-def ch_read_calib(filename: str = 'np02-config-v3.0.0.csv', attributes = ['Gain', 'SpeAmpl']) -> dict:
+def ch_read_calib(filename: str = 'np02-config-v4.0.0.csv', attributes = ['Gain', 'SpeAmpl']) -> dict:
 
     thefile = resources.files('waffles.np02_data.calibration_data').joinpath(filename)
     if thefile.is_file() is False:
