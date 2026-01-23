@@ -20,6 +20,9 @@ def main(all_channel_data, input_folder, output_folder):
     bin_enrgy_dic = {1: 5, 2: 5, 3: 8, 5: 10, 7: 15}  # Photoelectron width of the histogram at different energies
     # bin_enrgy_dic = {1: 10, 2: 10, 3: 10, 5: 10, 7: 10}
     analysis_result_dict = {}
+    cols = ['APA', 'Endpoint', 'Channel', 'Energies', 'Gaussian mu', 'Gaussian emu', 'Gaussian params', 'Gaussian eparams', 'Gaussian chi2rid', 'Langauss peak', 'Langauss epeak', 'Langauss params', 'Langauss eparams', 'Langauss chi2rid']
+    analysis_result_df = pd.DataFrame(columns=cols)
+    df_rows = []
 
     for apa in [1,2]: 
         analysis_result_dict[apa] = {}
@@ -217,7 +220,7 @@ def main(all_channel_data, input_folder, output_folder):
                         analysis_result_dict[apa][endpoint][channel][energy]['langauss']['peak'] = l_peak
                         analysis_result_dict[apa][endpoint][channel][energy]['langauss']['epeak'] = l_epeak
 
-
+                        
                     ax[i].set_title(f"{energy} GeV/c")
                     ax[i].set_xlabel(r'$N_{\mathrm{PE}}$')
                     ax[i].set_ylabel('Counts [AU]')
@@ -259,24 +262,24 @@ def main(all_channel_data, input_folder, output_folder):
                     ax[i].plot(x_fit, y_fit, 'b-', label=f'Gaussian fit: y = A + Bx\nA = {g_A:.2f} ± {g_eA:.2f} \nB = {g_B:.2f} ±{g_eB:.2f} \n$\\chi^2_{{rid}}$ = {g_chi2rid:.2f}')
 
                     # Langauss mean linearity
-                    l_means = np.array([
+                    l_peaks = np.array([
                         analysis_result_dict[apa][endpoint][channel][e]['langauss']['peak']
                         for e in energies
                     ])
 
-                    l_means_errors = np.array([
+                    l_peak_errors = np.array([
                         analysis_result_dict[apa][endpoint][channel][e]['langauss']['epeak']
                         for e in energies
                     ])
 
-                    l_means_errors = l_means_errors + 0.05 * l_means
-                    ax[i].errorbar(energies, l_means, yerr=l_means_errors, fmt='o', color='fuchsia', label='Langauss peak', capsize=3, markersize=2)
+                    l_peak_errors = l_peak_errors + 0.05 * l_peaks
+                    ax[i].errorbar(energies, l_peaks, yerr=l_peak_errors, fmt='o', color='fuchsia', label='Langauss peak', capsize=3, markersize=2)
 
-                    l_popt, l_pcov = curve_fit(linear, energies, l_means, sigma=l_means_errors, absolute_sigma=True)
+                    l_popt, l_pcov = curve_fit(linear, energies, l_peaks, sigma=l_peak_errors, absolute_sigma=True)
                     l_A, l_B = l_popt
                     l_eA, l_eB = np.sqrt(np.diag(l_pcov))
 
-                    l_chi2rid = (np.sum(((l_means - linear(energies, *l_popt)) / l_means_errors) ** 2)) / (len(energies) - 2)
+                    l_chi2rid = (np.sum(((l_peaks - linear(energies, *l_popt)) / l_peak_errors) ** 2)) / (len(energies) - 2)
 
                     x_fit = np.linspace(min(energies)-0.5, max(energies)+0.5, 100)
                     y_fit = linear(x_fit, l_A, l_B)
@@ -309,12 +312,21 @@ def main(all_channel_data, input_folder, output_folder):
                     analysis_result_dict[apa][endpoint][channel]['linearity']['langauss']['eA'] = l_eA
                     analysis_result_dict[apa][endpoint][channel]['linearity']['langauss']['B'] = l_B
                     analysis_result_dict[apa][endpoint][channel]['linearity']['langauss']['eB'] = l_eB
+
+
+                    df_rows.append({'APA':apa, 'Endpoint':endpoint, 'Channel':channel, 'Energies':energies, 'Gaussian mu':g_means, 'Gaussian emu':g_means_errors, 'Gaussian params':g_popt, 'Gaussian eparams': np.sqrt(np.diag(g_pcov)).tolist(), 'Gaussian chi2rid':g_chi2rid, 'Langauss peak': l_peaks, 'Langauss epeak':l_peak_errors, 'Langauss params':l_popt, 'Langauss eparams':np.sqrt(np.diag(l_pcov)).tolist(), 'Langauss chi2rid':l_chi2rid})
+
+
                 
                 plt.tight_layout()
                 APA_pdf_file.savefig(fig)
                 plt.close(fig)
 
         APA_pdf_file.close()
+
+    analysis_result_df = pd.concat([analysis_result_df, pd.DataFrame(df_rows)], ignore_index=True)
+    analysis_result_df.to_csv(f"{output_folder}/PE_study_results.csv", index=False)
+
 
     with open(f"{output_folder}/PE_study_results.json", "w") as f:
         json.dump(analysis_result_dict, f, indent=4)
