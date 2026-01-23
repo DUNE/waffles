@@ -16,6 +16,8 @@ src/analyisis/*
 # Ignore the input/output of each particular NP04 analysis
 src/waffles/np04_analysis/*/data/
 src/waffles/np04_analysis/*/output/
+src/waffles/np04_analysis/lightyield_vs_energy/scripts/MY_config.json
+src/waffles/np04_analysis/lightyield_vs_energy/scripts/Renan_scripts/pe_histogram_data/
 
 !test/wtest_*
 !docs/examples/00_CheckData.ipynb
