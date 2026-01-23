@@ -4,6 +4,10 @@ import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.offsetbox import AnchoredText
+from matplotlib.backends.backend_pdf import PdfPages
+
 import plotly.graph_objects as go
 import matplotlib.ticker as ticker
 import pickle 
@@ -12,6 +16,9 @@ import click
 from tqdm.notebook import tqdm
 import json
 from pathlib import Path
+from scipy.optimize import minimize_scalar
+from scipy.optimize import curve_fit
+from landaupy import langauss as lg
 
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
@@ -29,6 +36,85 @@ from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 
 from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaPeak_NEW import MyAnaPeak_NEW
 from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaConvolution import MyAnaConvolution
+
+
+#####################################################################
+
+def linear(x, A, B):
+    return A + B*x
+
+#####################################################################
+
+def gaussian(x, mu, sigma, A):
+    return A * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+#####################################################################
+
+def langauss(x, mpv, eta, sigma, A):
+    return A * lg.pdf(x, mpv, eta, sigma)
+
+def find_peak(params):
+    mpv, eta, sigma, A = params
+
+    # Prevent very small sigma from breaking the optimizer
+    sigma = max(sigma, 1e-3)
+    search_width = max(0.1, 5 * sigma)  # Ensure minimum range
+
+    result = minimize_scalar(
+        lambda x: -langauss(x, mpv, eta, sigma, A),
+        bounds=(mpv - search_width, mpv + search_width),
+        method='bounded'
+    )
+    return result.x
+
+
+def propagate_error(find_peak, params, errors, epsilon=1e-5):
+    peak = find_peak(params)
+    partials = []
+
+    for i in range(len(params)):
+        params_eps_plus = params.copy()
+        params_eps_minus = params.copy()
+
+        params_eps_plus[i] += epsilon
+        params_eps_minus[i] -= epsilon
+
+        f_plus = find_peak(params_eps_plus)
+        f_minus = find_peak(params_eps_minus)
+
+        derivative = (f_plus - f_minus) / (2 * epsilon)
+        partials.append(derivative)
+
+    # Now propagate the errors
+    squared_terms = [(partials[i] * errors[i])**2 for i in range(len(params))]
+    total_error = np.sqrt(sum(squared_terms))
+
+    return peak, total_error
+
+#####################################################################
+
+channel_vendor_map = { 104: {0: "FBK", 1: "FBK", 2: "FBK", 3: "FBK", 4: "FBK", 5: "FBK", 6: "FBK", 7: "FBK",
+                                10: "HPK", 11: "HPK", 12: "HPK", 13: "HPK", 14: "HPK", 15: "HPK", 16: "HPK", 17: "HPK"},
+                        105: {0: "FBK", 1: "FBK", 2: "FBK", 3: "FBK", 4: "FBK", 5: "FBK", 6: "FBK", 7: "FBK",
+                                10: "FBK", 12: "FBK", 15: "FBK", 17: "FBK", 21: "HPK", 23: "HPK", 24: "HPK", 26: "HPK"},
+                        107: {0: "FBK", 2: "FBK", 5: "FBK", 7: "FBK",
+                                10: "HPK", 12: "HPK", 15: "HPK", 17: "HPK"},
+                        109: {0: "FBK", 1: "FBK", 2: "FBK", 3: "FBK", 4: "FBK", 5: "FBK", 6: "FBK", 7: "FBK",
+                                10: "FBK", 11: "FBK", 12: "FBK", 13: "FBK", 14: "FBK", 15: "FBK", 16: "FBK", 17: "FBK",
+                                20: "HPK", 21: "HPK", 22: "HPK", 23: "HPK", 24: "HPK", 25: "HPK", 26: "HPK", 27: "HPK",
+                                30: "HPK", 31: "HPK", 32: "HPK", 33: "HPK", 34: "HPK", 35: "HPK", 36: "HPK", 37: "HPK",
+                                40: "HPK", 41: "HPK", 42: "HPK", 43: "HPK", 44: "HPK", 45: "HPK", 46: "HPK", 47: "HPK"},
+                        111: {0: "FBK", 1: "FBK", 2: "FBK", 3: "FBK", 4: "FBK", 5: "FBK", 6: "FBK", 7: "FBK",
+                                10: "FBK", 11: "FBK", 12: "FBK", 13: "FBK", 14: "FBK", 15: "FBK", 16: "FBK", 17: "FBK",
+                                20: "FBK", 21: "FBK", 22: "FBK", 23: "FBK", 24: "FBK", 25: "FBK", 26: "FBK", 27: "FBK",
+                                30: "HPK", 31: "HPK", 32: "HPK", 33: "HPK", 34: "HPK", 35: "HPK", 36: "HPK", 37: "HPK",
+                                40: "HPK", 41: "HPK", 42: "HPK", 43: "HPK", 44: "HPK", 45: "HPK", 46: "HPK", 47: "HPK"},
+                        112: {0: "HPK", 1: "HPK", 2: "HPK", 3: "HPK", 4: "HPK", 5: "HPK", 6: "HPK", 7: "HPK",
+                                10: "HPK", 11: "HPK", 12: "HPK", 13: "HPK", 14: "HPK", 15: "HPK", 16: "HPK", 17: "HPK",
+                                20: "HPK", 21: "HPK", 22: "HPK", 23: "HPK", 24: "HPK", 25: "HPK", 26: "HPK", 27: "HPK",
+                                30: "HPK", 31: "HPK", 32: "HPK", 33: "HPK", 34: "HPK", 35: "HPK", 36: "HPK", 37: "HPK",
+                                40: "HPK", 42: "HPK", 45: "HPK", 47: "HPK"},
+                        113: {0: "FBK", 2: "FBK", 5: "FBK", 7: "FBK"}}
 
 #####################################################################
 
@@ -693,3 +779,20 @@ def timeoffset_distribution_hist(timeoffset_list, apa, energy, output_dir, zoom_
         plt.savefig(os.path.join(output_dir, f"apa{apa}_offsethist_{energy}GeV.png"), dpi=300)
     if show:
         plt.show()
+
+#####################################################################
+
+def which_endpoints_in_the_APA(APA : int):
+    endpoint_list = []
+    for row in APA_map[APA].data: # cycle on rows
+        for ch_info in row: # cycle on columns elements (i.e. channels)
+            endpoint_list.append(ch_info.endpoint)
+    return list(set(endpoint_list))
+
+
+def which_APA_for_the_ENDPOINT(endpoint: int):
+    apa_endpoints = {1: {104, 105, 107}, 2: {109}, 3: {111}, 4: {112, 113}}
+    for apa, endpoints in apa_endpoints.items():
+        if endpoint in endpoints:
+            return apa
+    return None
