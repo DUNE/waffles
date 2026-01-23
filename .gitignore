@@ -2,7 +2,7 @@
 *.root
 *.npy
 *.hdf5
-*.ipynb
+#*.ipynb
 *.pkl
 *.swp
 test/*
