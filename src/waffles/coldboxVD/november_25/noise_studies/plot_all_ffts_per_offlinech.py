@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ana_path = user_config.get("ana_path")
 
     input_path = ana_path + fft_folder + "/"
-    output_path = ana_path + "all_ffts_per_offlinech_vgain_scan_membrane_noise_n5V_below_Vbr_02122025_morning/"
+    output_path = ana_path + "all_ffts_per_offlinech_vgain_scan_membrane_noise_n5V_below_Vbr_03122025_NEW"
     
 
     # Create the frequencies array to plot x-axis
@@ -75,16 +75,17 @@ if __name__ == "__main__":
         plt.figure(figsize=(10,6), dpi=300)
         for vgain, fft in vgain_fft_dict.items():
             print(f"  Plotting VGain {vgain}")
-            plt.plot(frequencies, fft, label=f"VGain {vgain} - Ch {channel}")  
+            
+            plt.plot(frequencies, fft, label=f"VGain {vgain} - Ch {channel}")  #federico
+            
 
-            # plt.plot(frequencies, estimated_fft, label="Estimated "+str(estrapolated_vgain), linestyle="--")
-            # plt.legend()
             plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
             plt.xscale("log")
-            plt.yscale("log")
+            plt.yscale("log")  #federico
 
             plt.xlabel("Frequency [MHz]")
-            plt.ylabel("Amplitude")
+            plt.ylabel("Amplitude") #federico
+           
    
             plt.tight_layout()
             # save the plot in the same directory

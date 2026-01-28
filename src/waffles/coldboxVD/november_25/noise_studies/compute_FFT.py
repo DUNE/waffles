@@ -127,7 +127,7 @@ if __name__ == "__main__":
     
     # Save the results in a csv file
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(ana_path+"Noise_Studies_Results_vgain_scan_membrane_noise_n5V_below_Vbr_02122025_afternoon.csv", index=False, mode=out_writing_mode)
+    out_df.to_csv(ana_path+"Noise_Studies_Results_vgain_scan_membrane_noise_n5V_below_Vbr_03122025_NEW.csv", index=False, mode=out_writing_mode)
 
 
 
