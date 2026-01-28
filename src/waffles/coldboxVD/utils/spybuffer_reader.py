@@ -19,6 +19,7 @@ def read_cb_25_spybuffer_file(filename, WFs, length):
     waveform_adcs_array = data.reshape(WFs, length)
 
     print("The file has been correctly read")
+    print(data.min(), data.max()) #check
     return waveform_adcs_array
 
 def create_waveform_set_from_spybuffer(filename: str, 
