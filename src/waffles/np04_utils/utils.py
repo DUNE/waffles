@@ -75,7 +75,7 @@ def get_channel_iterator(
         3,
         'get_channel_iterator()',
         f"The given channel ({endpoint}-{channel}) "
-        "is not present in the specified APA."))
+        f"is not present in the specified APA ({apa_no})."))
 
 def get_endpoint_and_channel(
     apa_no: int,
