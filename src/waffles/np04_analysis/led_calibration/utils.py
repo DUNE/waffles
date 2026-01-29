@@ -4,7 +4,7 @@ import yaml
 import numpy as np
 import pandas as pd
 from plotly import graph_objects as pgo
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, Union, Any # add union, any
 from numbers import Number
 
 from waffles.data_classes.WafflesAnalysis import BaseInputParams
@@ -236,7 +236,7 @@ def get_batches_dates_mapping(
     return mapping
 
 def get_sipm_vendor_dataframe(
-    filepath: str | None
+    filepath: Union[str, None] #filepath: str | None
     ) -> pd.DataFrame:
     """This function reads the given CSV file and
     checks that it contains the required columns:
@@ -286,7 +286,7 @@ def get_sipm_vendor_dataframe(
     return sipm_vendor_df
 
 def get_alignment_seeds_dataframe(
-    filepath: str | None
+    filepath: Union[str, None] #filepath: str | None
     ) -> pd.DataFrame:
     """This function reads the given CSV file and
     checks that it contains the required columns
@@ -2613,9 +2613,9 @@ def __infer_SPE_peak_index(
 def add_SPE_info_to_output_dictionary(
     grid_apa: ChannelWsGrid,
     excluded_channels: list,
-    output_data: Dict[int, Dict[int, ...]],
+    output_data: Dict[int, Dict[int, Any]], #output_data: Dict[int, Dict[int, ...]],
     half_width_around_peak_in_stds: float = 1.0
-) -> Dict[int, Dict[int, ...]]:
+)  -> Dict[int, Dict[int, Any]]: #-> Dict[int, Dict[int, ...]]:
     """This function processes each channel in the given
     ChannelWsGrid to extract information about the Single
     Photo-Electron (SPE, 1-PE) peak from the fitted calibration
@@ -2800,7 +2800,7 @@ def add_SPE_info_to_output_dictionary(
 
 def get_SPE_grid_plot(
     grid_apa: ChannelWsGrid,
-    output_data: Dict[int, Dict[int, ...]],
+    output_data: Dict[int, Dict[int, Any]], #output_data: Dict[int, Dict[int, ...]],
     null_baseline_analysis_label: str,
     time_bins: int = 512,
     adc_bins: int = 50,
