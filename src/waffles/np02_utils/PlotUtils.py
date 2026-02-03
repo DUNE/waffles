@@ -719,6 +719,9 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
             xref = f"x{subplot_idx} domain"
             yref = f"y{subplot_idx} domain"
 
+        key = f"{uch.endpoint}-{uch.channel}"
+        module_name = dict_uniqch_to_module.get(key, None)
+
         if rise_fall:
             fig.add_annotation(
                 x=0.98,
@@ -726,7 +729,7 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
                 xref=xref,
                 yref=yref,
                 text=(
-                    f"{uch.endpoint}-{uch.channel}<br>"
+                    f"{module_name}<br>"
                     f"Peak = {peak_value:.1f} ADC<br>"
                     f"Rise time = {vals['rise_time']:.0f} ticks<br>"
                     f"Fall time = {vals['fall_time']:.0f} ticks"
@@ -746,7 +749,7 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
                 xref=xref,
                 yref=yref,
                 text=(
-                    f"{uch.endpoint}-{uch.channel}<br>"
+                    f"{module_name}<br>"
                     f"Peak = {peak_value:.1f} ADC<br>"
                 ),
                 showarrow=False,
