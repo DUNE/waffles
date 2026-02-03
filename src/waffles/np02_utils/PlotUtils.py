@@ -622,118 +622,7 @@ def plot_averages(fig:go.Figure, g:ChannelWsGrid):
             row=row, col=col
         )
 
-def plot_averages_w_peaks(fig:go.Figure, g:ChannelWsGrid):
-
-    """
-    Plot average waveforms for all valid channels in a channel grid, 
-    finds the peaks and shows them with a marker.
-
-    This function iterates over the channel map stored in a `ChannelWsGrid`,
-    computes the average waveform for each available channel using
-    `average_wf_ch`, and adds it as a line trace to the corresponding subplot
-    in a Plotly figure.
-    Afterwards, finds the peak and indicates it with a marker.
-
-    Only channels that are present in `dict_uniqch_to_module` and for which
-    waveform data are available are plotted.
-
-    Parameters
-    ----------
-    fig : go.Figure
-        Plotly figure with a predefined subplot layout. 
-    g : ChannelWsGrid
-        Channel grid object containing the channel mapping and the associated
-        waveform sets (`ch_wf_sets`).
-
-    Returns
-    -------
-    None
-        The function modifies the input figure in place by adding traces.
-
-
-    Example
-    --------
-    fig = make_subplots(rows=1, cols=2)
-    gt = np02_gen_grids(mywfset, detector=["M3(1)", "M3(2)"])
-    plot_averages_w_peaks(fig, gt["Custom"])
-    fig.show()
-    """
-
-    peaks_all = {}
-    ncols = len(g.ch_map.data[0])    
-    
-    for (row, col), uch in np.ndenumerate(g.ch_map.data):
-        row += 1
-        col += 1
-
-        subplot_idx = (row - 1) * ncols + col
-        
-        if str(uch) not in dict_uniqch_to_module:
-            continue
-        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
-            continue
-        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
-        avg = average_wf_ch(wfch)
-        time = np.arange(avg.size)
-
-        peak_idx = np.argmax(avg)
-        peak_value = avg[peak_idx]
-        peak_time = time[peak_idx]
-    
-        peaks_all[(uch.endpoint, uch.channel)] = {
-            "peak_index": peak_idx,
-            "peak_time": peak_time,
-            "peak_value": peak_value,
-        }
-    
-        fig.add_trace(
-            go.Scatter(
-                x=time,
-                y=avg,
-                mode="lines",
-                name=f"{uch.endpoint}-{uch.channel}"
-            ),
-            row=row, col=col        
-        )
-    
-        fig.add_trace(
-            go.Scatter(
-                x=[peak_time],
-                y=[peak_value],
-                mode="markers",
-                marker=dict(size=8, symbol="x", color="red"),
-                name=f"Peak amplitude {peak_value:.1f} ADC"
-            ),
-            row=row, col=col
-        )
-
-        fig.update_layout(showlegend=False)
-
-        if subplot_idx == 1:
-            xref = "x domain"
-            yref = "y domain"
-        else:
-            xref = f"x{subplot_idx} domain"
-            yref = f"y{subplot_idx} domain"
-
-        fig.add_annotation(
-            x=0.98,
-            y=0.95,
-            xref=xref,
-            yref=yref,
-            text=(
-                f"{uch.endpoint}-{uch.channel}<br>"
-                f"Peak = {peak_value:.1f} ADC"
-            ),
-            showarrow=False,
-            align="left",
-            font=dict(size=11),
-            bgcolor="rgba(255,255,255,0.7)",
-            bordercolor="black",
-            borderwidth=1
-        )
-
-def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None):
+def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None, rise_fall:bool = True):
 
     """
     Plot average waveforms for each channel in a ChannelWsGrid with peak and rise/fall indicators.
@@ -741,8 +630,8 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
     For each valid channel in the grid, this function:
       - Plots the averaged waveform in the corresponding subplot.
       - Optionally restricts the x-axis to a specified range.
-      - Adds vertical dashed lines at key points: t10 and t90 of rise, t90 and t10 of fall.
-      - Annotates each subplot with channel info, peak amplitude, and rise/fall times.
+      - Optionally adds vertical dashed lines at key points: t10 and t90 of rise, t90 and t10 of fall.
+      - Annotates each subplot with channel info, peak amplitude, and optionally rise/fall times.
 
     Parameters
     ----------
@@ -756,6 +645,8 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
     x_range : tuple of two floats, optional
         (min, max) time range to display on the x-axis for all subplots. 
         If None, the full waveform is shown.
+    rise_fall : bool, True by default.
+        If True the rise and fall time dashed lines are shown and the values are added in the legend
 
     Returns
     -------
@@ -766,7 +657,8 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
 
     ncols = len(g.ch_map.data[0])    
 
-    fig.layout.annotations = ()
+    fig.data = []
+    fig.layout.annotations = []
 
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
         row += 1
@@ -800,34 +692,25 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
             ),
             row=row, col=col
         )
-    
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=[peak_time],
-        #         y=[peak_value],
-        #         mode="markers",
-        #         marker=dict(size=10, symbol="x", color="red"),
-        #         name=f"Peak amplitude {peak_value:.1f} ADC"
-        #     ),
-        #     row=row, col=col
-        # )
 
-        for t, color, label in [
-            (vals["t_low"], "green", "t10 rise"),
-            (vals["t_high"], "blue", "t90 rise"),
-            (vals["t_high_fall"], "orange", "t90 fall"),
-            (vals["t_low_fall"], "purple", "t10 fall"),
-        ]:
-            fig.add_trace(
-                go.Scatter(
-                    x=[t, t],
-                    y=[0, peak_value], 
-                    mode="lines",
-                    line=dict(color=color, dash="dash"),
-                    showlegend=False,  
-                ),
-                row=row, col=col
-            ) 
+        if rise_fall:
+
+            for t, color, label in [
+                (vals["t_low"], "green", "t10 rise"),
+                (vals["t_high"], "blue", "t90 rise"),
+                (vals["t_high_fall"], "orange", "t90 fall"),
+                (vals["t_low_fall"], "purple", "t10 fall"),
+            ]:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[t, t],
+                        y=[0, peak_value], 
+                        mode="lines",
+                        line=dict(color=color, dash="dash"),
+                        showlegend=False,  
+                    ),
+                    row=row, col=col
+                ) 
                     
         if subplot_idx == 1:
             xref = "x domain"
@@ -836,24 +719,43 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
             xref = f"x{subplot_idx} domain"
             yref = f"y{subplot_idx} domain"
 
-        fig.add_annotation(
-            x=0.98,
-            y=0.95,
-            xref=xref,
-            yref=yref,
-            text=(
-                f"{uch.endpoint}-{uch.channel}<br>"
-                f"Peak = {peak_value:.1f} ADC<br>"
-                f"Rise time = {vals['rise_time']:.0f} ticks<br>"
-                f"Fall time = {vals['fall_time']:.0f} ticks"
-            ),
-            showarrow=False,
-            align="left",
-            font=dict(size=11),
-            bgcolor="rgba(255,255,255,0.7)",
-            bordercolor="black",
-            borderwidth=1
-        )
+        if rise_fall:
+            fig.add_annotation(
+                x=0.98,
+                y=0.95,
+                xref=xref,
+                yref=yref,
+                text=(
+                    f"{uch.endpoint}-{uch.channel}<br>"
+                    f"Peak = {peak_value:.1f} ADC<br>"
+                    f"Rise time = {vals['rise_time']:.0f} ticks<br>"
+                    f"Fall time = {vals['fall_time']:.0f} ticks"
+                ),
+                showarrow=False,
+                align="left",
+                font=dict(size=11),
+                bgcolor="rgba(255,255,255,0.7)",
+                bordercolor="black",
+                borderwidth=1
+            )
+
+        else:
+            fig.add_annotation(
+                x=0.98,
+                y=0.95,
+                xref=xref,
+                yref=yref,
+                text=(
+                    f"{uch.endpoint}-{uch.channel}<br>"
+                    f"Peak = {peak_value:.1f} ADC<br>"
+                ),
+                showarrow=False,
+                align="left",
+                font=dict(size=11),
+                bgcolor="rgba(255,255,255,0.7)",
+                bordercolor="black",
+                borderwidth=1
+            )
 
         if x_range is not None:
             fig.update_xaxes(range=[x_min, x_max])
