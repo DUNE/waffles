@@ -37,6 +37,9 @@ def open_processed(run, dettype, datadir, channels = None, endpoints=None, nwave
     return wfset
 
 def ch_read_params(filename:str = 'ch_snr_parameters.yaml') -> dict:
+    if not filename:
+        print("No filename provided for ch_read_params...")
+        return {}
     thefile = resources.files('waffles.np02_utils.data').joinpath(filename)  # type: ignore
     if thefile.is_file() is False:
         # Trying to load file locally...

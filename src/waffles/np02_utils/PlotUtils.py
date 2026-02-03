@@ -239,7 +239,7 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
 def __update_dict(dictd, dictup, key):
         dictd[key] = dictup.get(key, dictd[key])
 
-def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True, onlyoptimal=True):
+def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True, onlyoptimal=True, onlyonerun=True):
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
     if not params:
@@ -249,7 +249,7 @@ def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_pro
     if endpoint not in params or channel not in params[endpoint]:
         print(f"No parameters found for endpoint {endpoint} and channel {channel} in the configuration file.")
 
-    if(len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
+    if onlyonerun and (len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
         raise ValueError(f"Should have only one channel in the waveform set...")
 
     if updatethreshold:
@@ -277,7 +277,34 @@ def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_pro
                           configyaml=params
                           )
 
+def process_by_channel(
+        wfset: WaveformSet,
+        configyaml: str = 'ch_snr_parameters.yaml',
+        updatethreshold: bool = False,
+        show_progress: bool = True,
+        onlyoptimal: bool = True
+    ):
+
+    params = ch_read_params(filename=configyaml)
+
+    wfsetch = ChannelWsGrid.clusterize_waveform_set(wfset)
+
+    for ep, ch_dict in wfsetch.items():
+        for ch, wfset_channel in ch_dict.items():
+            runBasicWfAnaNP02Updating(
+                wfset_channel,
+                updatethreshold=updatethreshold,
+                show_progress=show_progress,
+                doprocess=True,
+                onlyoptimal=onlyoptimal,
+                params=params
+            )
+
 def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
+
+    if len(list(wfset.runs)) > 1:
+        raise ValueError(f"Should have only one run in the waveform set...")
+
     doprocess = wf_func.get("doprocess", True)
     dofit = wf_func.get("dofit", True)
     normalize_hist = wf_func.get("normalize_hist", False)
@@ -289,6 +316,12 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         fit_type = wf_func.get('fit_type', 'multigauss_iminuit')
     verbosemultigauss = wf_func.get('verbosemultigauss', False)
     params = ch_read_params(filename=wf_func.get('configyaml', 'ch_snr_parameters.yaml'))
+    update_threshold = wf_func.get("update_threshold", False)
+    onlyoptimal=wf_func.get("onlyoptimal", True)
+    histautorange = wf_func.get('histautorange', False)
+
+    onlyonerun = wf_func.get("onlyonerun", True) # A safe check that there is only one run per ch.
+                                                 # This can be done otherwise too, but carefully.
     
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
@@ -300,7 +333,6 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     if(len(wfset.available_channels[list(wfset.runs)[0]][endpoint]) > 1):
         raise ValueError(f"Should have only one channel in the waveform set...")
 
-    update_threshold = wf_func.get("update_threshold", False)
     
     # params get updated inide here
     runBasicWfAnaNP02Updating(
@@ -309,7 +341,8 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         show_progress=show_progress,
         params=params,
         doprocess=doprocess,
-        onlyoptimal=wf_func.get("onlyoptimal", True)
+        onlyoptimal=onlyoptimal,
+        onlyonerun=onlyonerun
     )
 
     bins_int = params[endpoint][channel]['fit'].get('bins_int', 100)
@@ -317,7 +350,6 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
     force_max_peaks = params[endpoint][channel]['fit'].get('force_max_peaks', False)
     fit_limits = params[endpoint][channel]['fit'].get('fit_limits',[None, None])
     fit_limits = [ None if x == 'None' else x for x in fit_limits ]
-    histautorange = wf_func.get('histautorange', False)
 
 
     domain_int = [float(x) for x in domain_int_str]
@@ -552,9 +584,9 @@ def plot_average_spe(wfset: WaveformSet,
     print(f"{maximum:.2f}")
 
 
-def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], plot_function:Callable, func_params:dict, figsize=(16,8)):
+def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], plot_function:Callable, func_params:dict={}, figsize=(16,8), rows=0, cols=0):
 
-    detChMap = generate_ChannelMap(detector)
+    detChMap = generate_ChannelMap(detector, rows=rows, cols=cols)
     gridWs = ChannelWsGrid(detChMap, wfset)
 
     fig, axs = plt.subplots(gridWs.ch_map.rows, gridWs.ch_map.columns, figsize=figsize)
