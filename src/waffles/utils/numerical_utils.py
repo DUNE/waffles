@@ -1,8 +1,11 @@
 import numba
 import numpy as np
 from typing import List, Tuple
+from tqdm import tqdm
 
+from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
+from waffles.np02_utils.AutoMap import dict_uniqch_to_module
 
 
 def gaussian(
@@ -564,3 +567,141 @@ def cluster_integers_by_contiguity(
             'The given numpy array must contain at least two elements.'))
 
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
+
+
+def average_wf_ch(wfch: WaveformSet, analysis_label="std"):
+    """
+    Compute the average waveform for a single channel after baseline subtraction.
+
+    This function loops over all waveforms stored in a `WaveformSet`, subtracts
+    the baseline computed in a previous analysis step, and returns the sample-wise
+    average waveform.
+
+    Parameters
+    ----------
+    wfch : WaveformSet
+        WaveformSet object containing the waveforms to be averaged.
+    analysis_label : str, optional
+        Label of the analysis from which the baseline value is retrieved
+        (default is "std"). 
+
+    Returns
+    -------
+    average_waveform : ndarray
+        One-dimensional NumPy array containing the average waveform (in ADC units)
+        after baseline subtraction.
+
+    Example
+    --------
+    avg_wf = average_wf_ch(wfch, analysis_label="std")
+    
+    """
+    
+    arrs = []
+    for run in wfch.runs: 
+        available_endpoints_and_channels = wfch.available_channels[run]
+        if len(list(available_endpoints_and_channels.keys())) > 1:
+            raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
+        for ep, channels in available_endpoints_and_channels.items():
+            if len(list(channels)) > 1:
+                raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
+
+    for wf in tqdm(wfch.waveforms):
+        adcs_float = np.asarray(wf.adcs).astype(float)          
+        if analysis_label in wf.analyses:
+            baseline = wf.analyses[analysis_label].result["baseline"]
+            adcs_float = adcs_float - baseline                
+            arrs.append(adcs_float)
+            
+    return np.mean(arrs, axis=0)
+
+
+def compute_peaks_rise_fall_ch(g: "ChannelWsGrid"):
+
+    """
+    Compute peak characteristics and rise/fall times for each channel in a ChannelWsGrid.
+
+    For each valid channel in the provided grid, this function:
+      - Computes the average waveform.
+      - Finds the peak value and its index.
+      - Calculates the rise time (10% → 90% of peak) and fall time (90% → 10% of peak).
+      - Stores intermediate times corresponding to 10% and 90% amplitudes for rise and fall.
+
+    Parameters
+    ----------
+    g : ChannelWsGrid
+        A grid object containing waveform sets for multiple channels. 
+        Channels not present in `dict_uniqch_to_module` or missing waveforms are skipped.
+
+    Returns
+    -------
+    peaks_all : dict
+        Dictionary with keys `(endpoint, channel)` and values as another dict containing:
+            - "peak_index": int, index of the peak in the averaged waveform
+            - "peak_time": int, time tick of the peak
+            - "peak_value": float, value of the peak
+            - "rise_time": float, duration from 10% to 90% of peak
+            - "fall_time": float, duration from 90% to 10% of peak
+            - "t_low": int, time of 10% of peak during rise
+            - "t_high": int, time of 90% of peak during rise
+            - "t_high_fall": int, time of 90% of peak during fall
+            - "t_low_fall": int, time of 10% of peak during fall
+            - "time": np.ndarray, array of time indices
+            - "avg": np.ndarray, averaged waveform
+
+    """
+
+    peaks_all = {}
+
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        if str(uch) not in dict_uniqch_to_module:
+            continue
+        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
+            continue
+
+        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
+        avg = average_wf_ch(wfch)
+        time = np.arange(avg.size)
+
+        peak_idx = np.argmax(avg)
+        peak_value = avg[peak_idx]
+        peak_time = time[peak_idx]
+
+        amp_10 = 0.1 * peak_value
+        amp_90 = 0.9 * peak_value
+
+        t_low = None
+        t_high = None
+        for j in range(peak_idx + 1):
+            if t_low is None and avg[j] >= amp_10:
+                t_low = time[j]
+            if t_high is None and avg[j] >= amp_90:
+                t_high = time[j]
+                break
+        rise_time = t_high - t_low
+
+        t_high_fall = None
+        t_low_fall = None
+        for j in range(peak_idx, len(avg)):
+            if t_high_fall is None and avg[j] <= amp_90:
+                t_high_fall = time[j]
+            if t_low_fall is None and avg[j] <= amp_10:
+                t_low_fall = time[j]
+                break
+        fall_time = t_low_fall - t_high_fall
+
+        peaks_all[(uch.endpoint, uch.channel)] = {
+            "peak_index": peak_idx,
+            "peak_time": peak_time,
+            "peak_value": peak_value,
+            "rise_time": rise_time,
+            "fall_time": fall_time,
+            "t_low": t_low,
+            "t_high": t_high,
+            "t_high_fall": t_high_fall,
+            "t_low_fall": t_low_fall,
+            "time": time,   
+            "avg": avg      
+        }
+
+    return peaks_all

@@ -123,6 +123,13 @@ class WaveformAdcs:
         self.__adcs = input
         return
 
+    # __set_time_offset does not accept negative number, which is not correct.
+    # Adding a more free setter for time_offset
+    @time_offset.setter
+    def time_offset(self, offset: float):
+        self.__time_offset = offset
+
+
     def __set_time_offset(self, input: float) -> None:
         """This method is not intended for user usage. It 
         is a setter for the time_offset attribute.

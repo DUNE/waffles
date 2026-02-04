@@ -22,7 +22,9 @@ def fit_peaks_of_CalibrationHistogram(
     weigh_fit_by_poisson_sigmas: bool = False,
     half_points_to_fit: int = 2,
     std_increment_seed_fallback: float = 1e+2,
-    ch_span_fraction_around_peaks: float = 0.05
+    ch_span_fraction_around_peaks: float = 0.05,
+    force_max_peaks: bool = False,
+    fit_limits: list = [None, None]
 ) -> bool:
     """For the given CalibrationHistogram object, 
     calibration_histogram, this function
@@ -156,6 +158,27 @@ def fit_peaks_of_CalibrationHistogram(
         wuff.__fit_correlated_gaussians_to_calibration_histogram()
         function. For more information, check the
         documentation of such function.
+    force_max_peaks: bool
+        This parameter is only used if the fit_type
+        parameter is set to 'multigauss_iminuit'.
+        If it is set to True, the function will try to
+        fit exactly max_peaks number of peaks using
+        iminuit, even if less peaks were found in the
+        previous step. If it is set to False, the
+        function will to estimate the number of peaks
+        using as starting point the number of peaks
+        found in the previous step plus 15 extra peaks.
+    fit_limits: list
+        This parameter is only used if the fit_type
+        parameter is set to 'multigauss_iminuit'.
+        It must be a list of two elements, which can
+        be either float or None. If the first element
+        is not None, it gives the lower limit of the
+        x values to consider for the iminuit fit.
+        If the second element is not None, it gives
+        the upper limit of the x values to consider
+        for the iminuit fit.
+
 
     Returns
     -------
@@ -251,6 +274,8 @@ def fit_peaks_of_CalibrationHistogram(
     # Estimates the number of peaks that should be fitted based on the histogram
     # Starts with a huge number of peaks, and then reduces it
     n_peaks_to_fit_iminuit = n_peaks_found + 15 
+    if force_max_peaks:
+        n_peaks_to_fit_iminuit = max_peaks
     searchdone=False
     for i in range(1, n_peaks_to_fit_iminuit):
         ipeakscale = np.argmin( np.abs( calibration_histogram.edges - onepe_mean*i ))
@@ -265,6 +290,15 @@ def fit_peaks_of_CalibrationHistogram(
 
     data_x = ( calibration_histogram.edges[:-1] + calibration_histogram.edges[1:] )*0.5
     data_y = calibration_histogram.counts
+    if fit_limits[0] is not None:
+        fit_mask = data_x >= fit_limits[0]
+        data_x = data_x[fit_mask]
+        data_y = data_y[fit_mask]
+    if fit_limits[1] is not None:
+        fit_mask = data_x <= fit_limits[1]
+        data_x = data_x[fit_mask]
+        data_y = data_y[fit_mask]
+
     data_err = np.sqrt(data_y)
     data_err[data_err == 0] = 1 # avoid division by zero
     chi2 = LeastSquares(data_x, data_y, data_err, wun.multigaussfit)
@@ -275,6 +309,7 @@ def fit_peaks_of_CalibrationHistogram(
     mm.fixed['gain'] = True
     mm.fixed['propstd'] = False
     mm.fixed['scale_1pe'] = True
+    mm.migrad()
     mm.migrad()
 
     for p in mm.parameters: # we are now free

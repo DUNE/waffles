@@ -9,6 +9,7 @@ import os
 import paramiko                               # SSH / SFTP
 import numpy as np
 from typing import cast
+import tempfile
 
 # ── waffles imports ──────────────────────────────────────────────────────────
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -38,14 +39,15 @@ def ssh_connect(host: str, port: int, user: str,
                 passwd: str | None = None) -> paramiko.SSHClient:
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    timeout = 10 # seconds
     if kerberos:
         c.connect(host, port=port, username=user,
-                  gss_auth=True, gss_kex=True, gss_host=host)
+                  gss_auth=True, gss_kex=True, gss_host=host, timeout=timeout)
     elif key:
         pkey = paramiko.RSAKey.from_private_key_file(key, password=passwd)
-        c.connect(host, port=port, username=user, pkey=pkey)
+        c.connect(host, port=port, username=user, pkey=pkey, timeout=timeout)
     else:
-        c.connect(host, port=port, username=user, password=passwd)
+        c.connect(host, port=port, username=user, password=passwd, timeout=timeout)
     return c
 
 
@@ -113,7 +115,7 @@ def process_structured(h5: Path, outdir: Path,
     for n, g in np02_gen_grids(wfset, detector).items():
         g: ChannelWsGrid = cast(ChannelWsGrid, g)
         html = outdir / f"{n}.html" if headless else None
-        plot_grid(chgrid=g, title=n, html=html, detector=detector)
+        plot_grid(chgrid=g, title=n, html=html, detector=detector, showplots=False)
         if html:
             os.chmod(html.as_posix(), 0o775)
 
@@ -192,10 +194,17 @@ def main() -> None:
     pw = None
     if not args.kerberos and not args.ssh_key:
         pw = getpass.getpass(f"{args.user}@{args.hostname} password: ")
-    ssh = ssh_connect(args.hostname, args.port, args.user,
-                      kerberos=args.kerberos, key=args.ssh_key, passwd=pw)
-    sftp = ssh.open_sftp()
-    logging.info("✅ SSH connected")
+
+    try: 
+        logging.info("🔑 Connecting to %s:%d as %s ...", args.hostname, args.port, args.user)
+        ssh = ssh_connect(args.hostname, args.port, args.user,
+                          kerberos=args.kerberos, key=args.ssh_key, passwd=pw)
+        sftp = ssh.open_sftp()
+        logging.info("✅ SSH connected")
+    except:
+        logging.error("❌ SSH connection failed")
+        ssh = None
+        sftp = None
 
 
     if args.use_rucio:
@@ -228,6 +237,8 @@ def main() -> None:
                 ok_runs.append(run)
                 continue
             try:
+                if ssh is None or sftp is None:
+                    raise RuntimeError("No SSH/SFTP connection available")
                 rem = remote_hdf5_files(ssh, args.remote_dir, run)
                 if not rem:
                     logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
@@ -250,6 +261,8 @@ def main() -> None:
                                     (databaserucio / f"{run:06d}.txt").read_text())
                                 logging.info("run %d: using existing .txt file", run)
                                 ok_runs.append(run)
+                            else:
+                                logging.error("run %d: no raw data found remotely or locally\n", run)
 
                     continue
                 if cfg.get("max_files", "all") != "all":
@@ -262,8 +275,9 @@ def main() -> None:
             except Exception as e:
                 logging.error("run %d: %s", run, e)
 
-        sftp.close()
-        ssh.close()
+        if sftp is not None and ssh is not None:
+            sftp.close()
+            ssh.close()
 
 
     # ── Skip already-processed runs ─────────────────────────────────────────
@@ -291,13 +305,16 @@ def main() -> None:
             output_dir=processed_dir.as_posix(),
             suffix=suffix,
         ))
-        pathscripts=Path(__file__).resolve().parent
-        tmp_cfg = pathscripts / "temp_config.json"
-        tmp_cfg.write_text(json.dumps(cfg, indent=4))
 
-        logging.info("🚀 07_save_structured_from_config.py …")
-        subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
-                        "--config", tmp_cfg.as_posix()], check=True)
+        pathscripts=Path(__file__).resolve().parent
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_config_file:
+
+            tmp_cfg = Path(tmp_config_file.name)
+            tmp_cfg.write_text(json.dumps(cfg, indent=4))
+
+            logging.info("🚀 07_save_structured_from_config.py …")
+            subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
+                            "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
     if args.headless:

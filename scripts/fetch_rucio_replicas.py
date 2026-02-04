@@ -23,7 +23,7 @@ REPLICA_PREFIXES = [
 # Helper functions
 # -----------------------------------------------------------------------------
 
-def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
+def _choose_realm(pfn_lines: list[str], debug: bool = False) -> tuple[str, list[str]]:
     """
     Decide which group of PFNs to keep, in the following order:
 
@@ -49,15 +49,18 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
 
     # Remove any fndca1.fnal.gov realm that is *only* tape_backed
     for realm, lines in list(realm_to_lines.items()):
-        if "fndca1.fnal.gov" in realm:
-            if all("tape_backed" in ln for ln in lines):
-                #print(
-                #    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
-                #)
-                del realm_to_lines[realm]
+        if all("tape_backed" in ln for ln in lines):
+            #print(
+            #    "\033[93mAll PFNs at fndca1.fnal.gov are tape_backed — excluding this realm completely.\033[0m"
+            #)
+            del realm_to_lines[realm]
 
     # Preferred realms (sub-string match makes the port irrelevant)
     priorities = ["eospublic.cern.ch", "fndca1.fnal.gov"]
+
+    if debug:
+        for realm, lines in realm_to_lines.items():
+            print(f"DEBUG: Found realm {realm} with {len(lines)} PFNs.")
 
     # 1-2.  Try the preferred ones in order
     for dom in priorities:
@@ -79,7 +82,8 @@ def _choose_realm(pfn_lines: list[str]) -> tuple[str, list[str]]:
                if "eosctapublic.cern.ch" not in r]
     if not non_cta:
         raise RuntimeError(
-            "Only CASTOR replicas (eosctapublic.cern.ch) were found – aborting."
+            "Possibly only CASTOR replicas (eosctapublic.cern.ch) were found – aborting. The output:\n"
+            + "\n".join(pfn_lines)
         )
 
     # Otherwise just pick the first acceptable realm
@@ -136,7 +140,7 @@ def setup_rucio_environment() -> None:
 # Core logic
 # -----------------------------------------------------------------------------
 
-def fetch_rucio_replicas(run_number: str, max_files: int) -> None:
+def fetch_rucio_replicas(run_number: str, max_files: int, debug: bool = False) -> None:
     """Try all dataset prefixes until files are found, then write them to disk.
 
     Parameters
@@ -186,7 +190,7 @@ def fetch_rucio_replicas(run_number: str, max_files: int) -> None:
     # Keep only PFNs from the *first* realm (protocol+domain)
     # ------------------------------------------------------------------
     try:
-        chosen_realm, same_realm_lines = _choose_realm(all_lines)
+        chosen_realm, same_realm_lines = _choose_realm(all_lines, debug)
     except RuntimeError as err:
         print(f"\033[31m{err}\033[0m")
         return
@@ -209,12 +213,13 @@ def fetch_rucio_replicas(run_number: str, max_files: int) -> None:
 @click.command()
 @click.option("--runs", required=True, help="Comma‐separated run numbers, e.g. 28676,28677")
 @click.option("--max-files", required=True, type=int, help="Maximum number of files per run")
-def main(runs: str, max_files: int) -> None:
+@click.option("--debug", is_flag=True, help="Enable debug output", default=False)
+def main(runs: str, max_files: int, debug:bool) -> None:
     """Entry point when the script is executed via the command line."""
     setup_rucio_environment()
 
     for run in [r.strip() for r in runs.split(",") if r.strip()]:
-        fetch_rucio_replicas(run, max_files)
+        fetch_rucio_replicas(run, max_files, debug)
 
     # Clean‑up Kerberos tickets
     #subprocess.run("kdestroy", shell=True)
