@@ -50,6 +50,8 @@ def onlyvalid(waveform: Waveform) -> bool:
     return False
 
 def marksaturation(waveform: Waveform) -> bool:
+    # This is just to remove CE saturation in which the signal goes negative...
+    # The other is just in case the baseline failed badly and signals are over 15k
     refval = waveform.adcs[245: 260] - waveform.analyses['std'].result['baseline']
     if np.max(refval) > 15000  or np.min(refval) < -500:
         waveform.issat = True # type: ignore
