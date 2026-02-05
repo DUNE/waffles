@@ -633,9 +633,13 @@ def plot_averages(fig:go.Figure, g:ChannelWsGrid):
     fig.show()
     """
 
+    ncols = len(g.ch_map.data[0])    
+
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
         row += 1
         col += 1
+
+        subplot_idx = (row - 1) * ncols + col
         
         if str(uch) not in dict_uniqch_to_module:
             continue
@@ -653,6 +657,10 @@ def plot_averages(fig:go.Figure, g:ChannelWsGrid):
             ),
             row=row, col=col
         )
+
+        fig.update_xaxes(title_text = "Time [ticks]", row=row, col=col)
+        fig.update_yaxes(title_text = "Amplitude [ADC]", row=row, col=col)
+
 
 def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None, rise_fall:bool = True):
 
@@ -753,6 +761,9 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
 
         key = f"{uch.endpoint}-{uch.channel}"
         module_name = dict_uniqch_to_module.get(key, None)
+        
+        fig.update_xaxes(title_text = "Time [ticks]", row=row, col=col)
+        fig.update_yaxes(title_text = "Amplitude [ADC]", row=row, col=col)
 
         if rise_fall:
             fig.add_annotation(
