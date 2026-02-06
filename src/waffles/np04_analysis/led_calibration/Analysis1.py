@@ -420,6 +420,16 @@ class Analysis1(WafflesAnalysis):
                 example=2
             )
 
+            min_distance_between_neighbouring_peaks: int = Field(
+                ...,
+                description="Required minimal horizontal distance, "
+                "in number of bins, between neighbouring peaks of "
+                "the charge histogram for them to be considered "
+                "separate. It is useful to avoid spotting statistical "
+                "fluctuations as peaks.",
+                example=5
+            )
+
             prominence: float = Field(
                 ...,
                 description="Minimal prominence, as a fraction "
@@ -1177,6 +1187,7 @@ class Analysis1(WafflesAnalysis):
         fit_peaks_of_ChannelWsGrid( 
             self.grid_apa,
             self.params.max_peaks,
+            self.params.min_distance_between_neighbouring_peaks,
             self.params.prominence,
             initial_percentage=self.params.initial_percentage,
             percentage_step=self.params.percentage_step,

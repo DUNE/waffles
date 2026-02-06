@@ -59,6 +59,7 @@ def trim_spsi_find_peaks_output_to_max_peaks(
 def __spot_first_peaks_in_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
     max_peaks: int,
+    min_distance_between_neighbouring_peaks: int,
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
@@ -74,8 +75,11 @@ def __spot_first_peaks_in_CalibrationHistogram(
 
     This function iteratively calls
 
-        scipy.signal.find_peaks(signal[0:points], 
-                                prominence = prominence)
+        scipy.signal.find_peaks(
+            signal[0:points],
+            distance=min_distance_between_neighbouring_peaks,
+            prominence=prominence
+        )
 
     to spot, at most, max_peaks peaks. To do so, at the 
     first iteration, points is computed as 
@@ -90,8 +94,11 @@ def __spot_first_peaks_in_CalibrationHistogram(
     len(signal), then scipy.signal.find_peaks() is called 
     one last time as
 
-        scipy.signal.find_peaks(signal, 
-                                prominence = prominence)
+        scipy.signal.find_peaks(
+            signal, 
+            distance=min_distance_between_neighbouring_peaks,
+            prominence=prominence
+        )
 
     If the last call found a number of peaks smaller than
     max_peaks, then this function returns (False, peaks),
@@ -121,6 +128,15 @@ def __spot_first_peaks_in_CalibrationHistogram(
         The maximum number of peaks to spot. It must 
         be a positive integer. This is not checked here, 
         it is the caller's responsibility to ensure this.
+    min_distance_between_neighbouring_peaks: int
+        The distance parameter to pass to the
+        scipy.signal.find_peaks() function. It gives the
+        required minimal horizontal distance, in number of
+        bins, between neighbouring peaks of the charge
+        histogram. It is useful to avoid spotting
+        statistical fluctuations as peaks. For more
+        information, check the scipy.signal.find_peaks()
+        documentation.
     prominence: float
         The prominence parameter to pass to the
         scipy.signal.find_peaks() function. Since the
@@ -193,6 +209,7 @@ def __spot_first_peaks_in_CalibrationHistogram(
 
         spsi_output = spsi.find_peaks(
             signal[0:points],
+            distance=min_distance_between_neighbouring_peaks,
             prominence=prominence,
             width=0,
             rel_height=0.5
