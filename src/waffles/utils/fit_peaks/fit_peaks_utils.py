@@ -349,7 +349,8 @@ def __fit_independent_gaussians_to_calibration_histogram(
                 aux_counts,
                 p0=aux_seeds,
                 sigma=sigma,
-                absolute_sigma=weigh_fit_by_poisson_sigmas
+                absolute_sigma=weigh_fit_by_poisson_sigmas,
+                method='trf'
             )
             
         # Happens if scipy.optimize.curve_fit()
@@ -641,7 +642,8 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 fit_y,
                 p0=aux_seeds,
                 sigma=sigma,
-                absolute_sigma=weigh_fit_by_poisson_sigmas
+                absolute_sigma=weigh_fit_by_poisson_sigmas,
+                method='trf'
             )
             
         # Happens if scipy.optimize.curve_fit()
