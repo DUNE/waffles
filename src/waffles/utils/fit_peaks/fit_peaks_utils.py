@@ -529,8 +529,6 @@ def __fit_correlated_gaussians_to_calibration_histogram(
 
         if peaks_n_to_fit >= 2:
 
-            second_peak_idx = spsi_output[0][1]
-
             fitting_function = lambda \
                 x, \
                 mean_0, \
@@ -547,31 +545,40 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                     std_increment,
                 )
 
-            # Needed for the computation of the
-            # mean_increment seed
-            mean_1_seed = (calibration_histogram.edges[
-                second_peak_idx
-            ] + calibration_histogram.edges[
-                second_peak_idx + 1
-            ]) / 2.
+            # Compute the mean_increment seed as the
+            # average distance between any two adjacent peaks
+            peaks_positions = [
+                (
+                    calibration_histogram.edges[idx] + \
+                    calibration_histogram.edges[idx + 1]
+                ) / 2.
+                for idx in spsi_output[0][0:peaks_n_to_fit]
+            ]
 
             # mean_increment seed for fitting_function
-            mean_increment_seed = mean_1_seed - mean_0_seed
-
-            # Needed for the computation of the std_increment
-            # seed
-            std_1_seed = spsi_output[1]['widths'][1] * \
-                calibration_histogram.mean_bin_width / 2.355
+            mean_increment_seed = np.mean(np.diff(peaks_positions))
 
             # std_increment seed for fitting_function
-            # Using std_i = ((std_0^2) + (i * (std_increment^2))) ** 0.5
-            # for i=1
-            if std_1_seed > std_0_seed:
-                std_increment_seed = ((std_1_seed ** 2) - \
-                    (std_0_seed ** 2)) ** 0.5
+            # By definition of
+            # std_i = ((std_0^2) + (i * (std_increment^2))) ** 0.5,
+            # a seed for std_increment can be computed for each pair
+            # of adjacent peaks as
+            # std_increment_seed = ((std_i_seed^2) - (std_(i-1)_seed^2)) ** 0.5
+            # long as the second peak has a bigger standard deviation seed
+            # than the first one.
+            aux = 0
+            std_increment_seed = 0.
+            for i in range(0, peaks_n_to_fit - 1):
+                if spsi_output[1]['widths'][i + 1] > spsi_output[1]['widths'][i]:
+                    aux += 1
+                    std_increment_seed += \
+                        ((spsi_output[1]['widths'][i + 1] ** 2) - \
+                        (spsi_output[1]['widths'][i] ** 2)) ** 0.5
+            if aux > 0:
+                std_increment_seed /= aux
             else:
                 std_increment_seed = std_increment_seed_fallback
-            
+                                        
             # scaling_factors seed for fitting_function
             scaling_factors_seed = [
                 calibration_histogram.counts[idx] 
