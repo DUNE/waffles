@@ -367,6 +367,10 @@ def __fit_independent_gaussians_to_calibration_histogram(
                 p0=aux_seeds,
                 sigma=sigma,
                 absolute_sigma=weigh_fit_by_poisson_sigmas,
+                bounds=(
+                    [0., -np.inf, 0.],
+                    [np.inf, np.inf, np.inf]
+                ),
                 method='trf'
             )
             
@@ -544,6 +548,11 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                     std_0,
                     std_increment,
                 )
+            
+            bounds = (
+                [-np.inf, 0., 0., 0., *([0.] * peaks_n_to_fit)],
+                [np.inf, np.inf, np.inf, np.inf, *([np.inf] * peaks_n_to_fit)]
+            )
 
             # Compute the mean_increment seed as the
             # average distance between any two adjacent peaks
@@ -630,6 +639,11 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                     0.,
                 )
             
+            bounds = (
+                [-np.inf, 0., 0.],
+                [np.inf, np.inf, np.inf]
+            )
+            
             # scaling_factors seed for fitting_function
             scaling_0_seed = calibration_histogram.counts[
                 first_peak_idx
@@ -688,6 +702,7 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 p0=aux_seeds,
                 sigma=sigma,
                 absolute_sigma=weigh_fit_by_poisson_sigmas,
+                bounds=bounds,
                 method='trf'
             )
             
