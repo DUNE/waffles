@@ -556,7 +556,28 @@ def __fit_correlated_gaussians_to_calibration_histogram(
             ]
 
             # mean_increment seed for fitting_function
-            mean_increment_seed = np.mean(np.diff(peaks_positions))
+            mean_increment_seed_samples = np.diff(peaks_positions)
+            mean_increment_seed = mean_increment_seed_samples[0]
+
+            # The loop happens at least once if peaks_n_to_fit > 2
+            for i in range(1, peaks_n_to_fit - 1):
+                # It may happen that the i-th peak is skipped by the peak finder,
+                # making two "adjacent" peaks to be actually separated by twice
+                # the mean increment seed. If the peak finder is not able to find
+                # a consecutive set of peaks, then try to look for a smaller number
+                # of peaks until the found set is consecutive.
+                if abs(mean_increment_seed_samples[i] - (2. * mean_increment_seed_samples[0])) \
+                    < abs(mean_increment_seed_samples[i] - mean_increment_seed_samples[0]):
+
+                        fFitAll = False
+                        peaks_n_to_fit -= 1
+                        if peaks_n_to_fit == 0:
+                            fTryAgain = False
+                        continue
+                else:
+                    mean_increment_seed += mean_increment_seed_samples[i]
+
+            mean_increment_seed = mean_increment_seed / (peaks_n_to_fit - 1)
 
             # std_increment seed for fitting_function
             # By definition of
