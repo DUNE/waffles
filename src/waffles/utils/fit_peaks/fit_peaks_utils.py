@@ -572,11 +572,13 @@ def __fit_correlated_gaussians_to_calibration_histogram(
 
             # The loop happens at least once if peaks_n_to_fit > 2
             for i in range(1, peaks_n_to_fit - 1):
-                # It may happen that the i-th peak is skipped by the peak finder,
-                # making two "adjacent" peaks to be actually separated by twice
-                # the mean increment seed. If the peak finder is not able to find
-                # a consecutive set of peaks, then try to look for a smaller number
-                # of peaks until the found set is consecutive.
+                # It may happen that one of the actual charge peaks is skipped
+                # by the peak finder (p.e. if the statistical fluctuations make
+                # it less prominent than the required prominence), making two
+                # "adjacent" peaks to be actually separated by twice the mean
+                # increment seed. In these cases (if the peak finder is not
+                # able to find a consecutive set of peaks) try to look for a
+                # smaller number of peaks until the found set is consecutive.
                 if abs(mean_increment_seed_samples[i] - (2. * mean_increment_seed_samples[0])) \
                     < abs(mean_increment_seed_samples[i] - mean_increment_seed_samples[0]):
 
