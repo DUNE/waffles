@@ -774,6 +774,16 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                     ith_std_error
                 )
 
+            calibration_histogram._CalibrationHistogram__add_other_entry_to_gaussian_fits_parameters(
+                'mean_increment',
+                (aux_optimal_parameters[1], aux_errors[1]),
+            )
+
+            calibration_histogram._CalibrationHistogram__add_other_entry_to_gaussian_fits_parameters(
+                'std_increment',
+                (aux_optimal_parameters[3], aux_errors[3]),
+            )
+
         else:
 
             # Needed for later i-dependent computations
