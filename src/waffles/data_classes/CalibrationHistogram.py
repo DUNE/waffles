@@ -29,17 +29,23 @@ class CalibrationHistogram(TrackedHistogram):
     counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)
     indices: list of lists of integers (inherited from TrackedHistogram)
-    gaussian_fits_parameters: dict of list of tuples of floats
+    gaussian_fits_parameters: dict
         The keys for this dictionary are
-        'scale', 'mean', and 'std'. The value for
-        each key is a list of tuples. The i-th
-        element of the list whose key is 'scale'
-        (resp. 'mean', 'std'), gives a tuple with
-        two floats, where the first element is the
-        scaling factor (resp. mean, standard
-        deviation) of the i-th gaussian fit of this
-        histogram, and the second one is the error
-        of such fit parameter.
+        'scale', 'mean', 'std' and 'other'. The
+        value for each key, except for 'other',
+        is a list of tuples. The i-th element of
+        the list whose key is 'scale' (resp. 'mean',
+        'std'), gives a tuple with two floats, where
+        the first element is the scaling factor
+        (resp. mean, standard deviation) of the
+        i-th gaussian fit of this histogram, and
+        the second one is the error of such fit
+        parameter. The value for the 'other'
+        key is another dictionary with no
+        predefined structure, and it can be used
+        to store any other information regarding
+        the gaussian fits that the user may find
+        useful.
 
     Methods
     ----------
@@ -98,7 +104,9 @@ class CalibrationHistogram(TrackedHistogram):
         self.__gaussian_fits_parameters = {
             'scale': [],
             'mean': [],
-            'std': []}
+            'std': [],
+            'other': {}
+        }
         return
 
     def __add_gaussian_fit_parameters(
@@ -143,6 +151,35 @@ class CalibrationHistogram(TrackedHistogram):
         self.__gaussian_fits_parameters['scale'].append((scale, scale_err))
         self.__gaussian_fits_parameters['mean'].append((mean, mean_err))
         self.__gaussian_fits_parameters['std'].append((std, std_err))
+
+        return
+    
+    def __add_other_entry_to_gaussian_fits_parameters(
+        self, 
+        key,
+        value
+    ) -> None:
+        """This method is not intended for user usage.
+        It adds an entry to the
+        self.__gaussian_fits_parameters['other'] dictionary,
+        where the key is given by the 'key' input parameter,
+        and the value is given by the 'value' input parameter.
+
+        Parameters
+        ----------
+        key
+            The key for the entry to add to the
+            self.__gaussian_fits_parameters['other'] dictionary
+        value
+            The value for the entry to add to the
+            self.__gaussian_fits_parameters['other'] dictionary
+
+        Returns
+        ----------
+        None
+        """
+
+        self.__gaussian_fits_parameters['other'][key] = value
 
         return
 
