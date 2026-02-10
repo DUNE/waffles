@@ -141,7 +141,7 @@ class Analysis1(WafflesAnalysis):
                 "SPE templates used for the correlation alignment. "
                 "The CSV file must contain the columns 'batch', 'APA', "
                 "'PDE', 'endpoint', 'channel', 'vendor', 'center_0', "
-                "'center_1' and 'SPE_mean_adcs'.",
+                "'gain' and 'SPE_mean_adcs'.",
                 example='./configs/alignment_seeds_filepath.csv'
             )
 
@@ -910,8 +910,7 @@ class Analysis1(WafflesAnalysis):
 
                     led_utils.align_waveforms_by_correlation(
                         self.grid_apa.ch_wf_sets[endpoint][channel],
-                        aux['center_0'],
-                        aux['center_1'],
+                        aux['gain'],
                         aux['SPE_mean_adcs'],
                         self.params.integrate_entire_pulse,
                         # Assuming that the baseline has already been

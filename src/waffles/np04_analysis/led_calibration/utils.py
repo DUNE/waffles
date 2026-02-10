@@ -291,7 +291,7 @@ def get_alignment_seeds_dataframe(
     """This function reads the given CSV file and
     checks that it contains the required columns
     ('batch', 'APA', 'PDE', 'endpoint', 'channel',
-    'vendor', 'center_0', 'center_1' and
+    'vendor', 'center_0', 'gain' and
     'SPE_mean_adcs'). If filepath is None,
     a we.IncompatibleInput exception is raised.
 
@@ -326,7 +326,7 @@ def get_alignment_seeds_dataframe(
         'channel',
         'vendor',
         'center_0',
-        'center_1',
+        'gain',
         'SPE_mean_adcs'
     }
 
@@ -338,7 +338,7 @@ def get_alignment_seeds_dataframe(
                 f"The file {filepath} is missing some of the required "
                 "columns. It must contain at least 'batch', 'APA', "
                 "'PDE', 'endpoint', 'channel', 'vendor', 'center_0', "
-                "'center_1' and 'SPE_mean_adcs'."
+                "'gain' and 'SPE_mean_adcs'."
             )
         )
 
@@ -402,7 +402,7 @@ def get_alignment_seeds(
     same_batch_apa_and_pde_fallback: bool = True
 ) -> np.ndarray:
     """This function retrieves the following entries: 'center_0', 
-    'center_1' and 'SPE_mean_adcs'; from the given dataframe,
+    'gain' and 'SPE_mean_adcs'; from the given dataframe,
     based on the specified batch, APA, PDE, endpoint and channel
     values. If no exact match is found, it can optionally fall
     back to searching for such information
@@ -428,7 +428,7 @@ def get_alignment_seeds(
             - 'channel',
             - 'vendor',
             - 'center_0',
-            - 'center_1' and
+            - 'gain' and
             - 'SPE_mean_adcs'.
     batch: int
         The batch number to look for
@@ -466,7 +466,7 @@ def get_alignment_seeds(
         The returned dictionary has the following structure:
         {
             'center_0': float,
-            'center_1': float,
+            'gain': float,
             'SPE_mean_adcs': np.ndarray
         }
     """
@@ -570,14 +570,13 @@ def get_alignment_seeds(
 
     return {
             'center_0': float(used_row['center_0']),
-            'center_1': float(used_row['center_1']),
+            'gain': float(used_row['gain']),
             'SPE_mean_adcs': SPE_template
         }
 
 def align_waveforms_by_correlation(
     input_ChannelWs: ChannelWs,
-    center_0: float,
-    center_1: float,
+    gain: float,
     SPE_template_array: np.ndarray,
     integrate_entire_pulse: bool,
     baseline_analysis_label: str,
@@ -598,28 +597,26 @@ def align_waveforms_by_correlation(
     around the pulse. The function then integrates each
     waveform using the inferred limits and ignores or
     aligns them based on their integral values. Namely,
-    waveforms whose integral evaluates to less than
-    (center_0 + center_1)/2 are considered as baselines
-    and are not aligned. This cut is meant to avoid
-    biasing the pedestal position upwards: aligning
-    baseline samples to the SPE template would find
-    noisy regions which are systematically positive,
-    artificially increasing its integral on average. The
-    waveforms are finally trimmed, so that they are
-    aligned amongst each other, according to some limits
-    which are defined by the input parameters. These
-    changes to the input ChannelWs object are done in
-    place.
+    waveforms whose integral (corrected by the baseline)
+    evaluates to less than gain / 2.0 are considered as
+    baselines and are not aligned. This cut is meant to
+    avoid biasing the pedestal position upwards: aligning
+    baseline samples to the SPE template would find noisy
+    regions which are systematically positive, artificially
+    increasing its integral on average. The waveforms are
+    finally trimmed, so that they are aligned amongst
+    each other, according to some limits which are
+    defined by the input parameters. These changes to the
+    input ChannelWs object are done in place.
 
     Parameters
     ----------
     input_ChannelWs: ChannelWs
         The ChannelWs object containing the waveforms
         to be aligned.
-    center_0 (resp. center_1): float
-        The estimated mean of the baselines (resp. SPE)
-        integrals, used to decide if a waveform is a
-        baseline or not.
+    gain: float
+        The estimated average value of 1-PE waveforms
+        integrals.
     SPE_template_array: np.ndarray
         The SPE template array used for correlation
     integrate_entire_pulse: bool
@@ -869,7 +866,7 @@ def align_waveforms_by_correlation(
     optimal_shift_in_time_ticks = []
 
     # Compute the baseline charge threshold only once
-    baseline_charge_threshold = ((center_0 + center_1) / 2.) - center_0
+    baseline_charge_threshold = gain / 2.
 
     for waveform in input_ChannelWs.waveforms:
 
