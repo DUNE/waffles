@@ -241,7 +241,8 @@ def get_np04_channel_position_dataframe() -> pd.DataFrame:
     wafflesdir = Path(waffles.__file__).parent
     if not Path(wafflesdir / "np04_utils" / "PDHD_PDS_Channel_Positions.csv").exists() :
         raise FileNotFoundError(
-            "The channel mapping was not found. You probably need to install waffles with -e option:\n`python3 -m pip install -e .`")
+            "The channel positions file 'PDHD_PDS_Channel_Positions.csv' was not found. "
+            "You probably need to install waffles with -e option:\n`python3 -m pip install -e .`")
 
     mapping_file = wafflesdir / "np04_utils" / "PDHD_PDS_Channel_Positions.csv"
     df = pd.read_csv(mapping_file, sep=",")
