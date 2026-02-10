@@ -1,9 +1,9 @@
 ## Time Resolution
 Time resolution studies as performed for ProtoDUNE-HD. This analysis module tests the PDS performance in
-terms of time resolution mostly relying on LED data. We implemented a cross-checl analysis based on
+terms of time resolution mostly relying on LED data. We implemented a cross-check analysis based on
 cosmic rays events as well. In this case the events are the same as the ones used for `../light_yield_vs_e/`.
 *NOTE:* The Time Resolution analysis makes a heavy use of `ROOT`, so you will probably have to setup
-a python environment with `ROOT` installed oustide the DAQ environment.
+a python environment with `ROOT` installed outside the DAQ environment.
 If running on CERN machines (lxplus), you can simply add this line:
 ```bash
 source /cvmfs/sft.cern.ch/lcg/app/releases/ROOT/6.32.02/x86_64-almalinux9.4-gcc114-opt/bin/thisroot.sh
