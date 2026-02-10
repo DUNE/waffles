@@ -30,7 +30,6 @@ def process_by_file(file:str, channels = None, endpoints:int = 106, nwaveforms=N
     wfset_peaks = WaveformSet.from_filtered_WaveformSet(wfset_full, apply_full_peak_search, show_progress=True)
     get_peaks_info(wfset_peaks, nrecords, allpeaks, endpoint=endpoints)
     if restsub:
-        print(f"Creating subset of {subwaves} waveforms for quick access...")
         wfsetsub = WaveformSet(*wfset_full.waveforms[:subwaves]) # create a subset for quick access...
         return wfsetsub
     else:
