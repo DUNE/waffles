@@ -17,23 +17,26 @@ if __name__ == "__main__":
     # --- SETUP -----------------------------------------------------
     with open("steering.yml", 'r') as stream:
         steering_config = yaml.safe_load(stream)
+
     params_file_name = steering_config.get("params_file", "params.yml")
-    run_info_file = steering_config.get("run_info_file")
-    ana_folder  = steering_config.get("ana_folder")
+    run_info_file    = steering_config.get("run_info_file")
+    ana_folder       = steering_config.get("ana_folder")
     if not os.path.exists(ana_folder):
         os.makedirs(ana_folder)
+    
     metadata_folder = ana_folder + "metadata/"
     if not os.path.exists(metadata_folder):
         os.makedirs(metadata_folder)
     
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
-    calibration_file = user_config.get("calibration_file")
-    SiPM_channel = user_config.get("SiPM_channel")
-    files_in_folder = [metadata_folder+f for f in os.listdir(metadata_folder) if f.startswith("Merged_")]
-    channel_files = [f for f in files_in_folder if f"_ChSiPM_{SiPM_channel}" in f]
     
-    df_runs = pd.read_csv(run_info_file, sep=",") 
+    calibration_file = user_config.get("calibration_file")
+    SiPM_channel     = user_config.get("SiPM_channel")
+    files_in_folder  = [metadata_folder+f for f in os.listdir(metadata_folder) if f.startswith("Merged_")]
+    channel_files    = [f for f in files_in_folder if f"_ChSiPM_{SiPM_channel}" in f]
+    
+    df_runs     = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
 
     calibration_df = pd.read_csv(calibration_file, sep=",")
@@ -46,6 +49,7 @@ if __name__ == "__main__":
         in_df_filename = ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}_merged_NoChi2cut.csv"
         if not os.path.exists(in_df_filename):
             raise FileNotFoundError(f"Input dataframe file not found for channel {SiPM_channel}")
+
     threshold_calibration_df = pd.read_csv(in_df_filename, sep=",")
     print(threshold_calibration_df.head(5))
     
@@ -57,7 +61,6 @@ if __name__ == "__main__":
 
     thresholds_set = df_runs['Threshold'].unique()
     print(thresholds_set)
-
 
     for exa_threshold in thresholds_set:
         threshold = int(exa_threshold, 16)
@@ -80,7 +83,7 @@ if __name__ == "__main__":
 
 
         ch_sipm = SiPM_channel
-        ch_st = filename.split("ChST_")[-1].split(".")[0]
+        ch_st   = filename.split("ChST_")[-1].split(".")[0]
         st = self_trigger.SelfTrigger(ch_sipm=int(ch_sipm),
                                       ch_st=int(ch_st),
                                       prepulse_ticks=prepulse_ticks,
@@ -96,23 +99,18 @@ if __name__ == "__main__":
         for nspe, h_STdisrt in dict_hSTdisrt.items():
             h_STdisrt.SetName(f"h_STdisrt_nspe_{nspe}")
             st.h_st = h_STdisrt
-            h_st = st.fit_self_trigger_distribution()
+            st.h_st.Write()
+            h_st, fit_ok = st.fit_self_trigger_distribution(fit_second_peak=True)
+            h_st.SetName(f"h_STdisrt_BkgSub_nspe_{nspe}")
             h_st.Write()
-            h_st2, fit_ok = st.fit_self_trigger_distribution2(fit_second_peak=True)
-            h_st2.SetName(f"h_STdisrt_BkgSub_nspe_{nspe}")
-            h_st2.Write()
 
             out_df_rows.append({
                                "Threshold": threshold,
                                "PE": nspe,
-                               "MeanTrgPos": st.f_STpeak.GetParameter(1),
+                               "MeanTrgPos"   : st.f_STpeak.GetParameter(1),
                                "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
-                               "SigmaTrg": st.f_STpeak.GetParameter(2),
-                               "ErrSigmaTrg": st.f_STpeak.GetParError(2),
-                               "MeanTrgPos2": st.f_STpeak2.GetParameter(1),
-                               "ErrMeanTrgPos2": st.f_STpeak2.GetParError(1),
-                               "SigmaTrg2": st.f_STpeak2.GetParameter(2),
-                               "ErrSigmaTrg2": st.f_STpeak2.GetParError(2),
+                               "SigmaTrg"     : st.f_STpeak.GetParameter(2),
+                               "ErrSigmaTrg"  : st.f_STpeak.GetParError(2),
                                "FitOK": fit_ok,
                                "IntegralTrg": st.f_STpeak.Integral(st.f_STpeak.GetParameter(1) - 3 * st.f_STpeak.GetParameter(2),
                                                                    st.f_STpeak.GetParameter(1) + 3 * st.f_STpeak.GetParameter(2),

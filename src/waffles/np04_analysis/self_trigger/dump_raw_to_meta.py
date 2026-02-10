@@ -15,10 +15,12 @@ if __name__ == "__main__":
     # --- SETUP -----------------------------------------------------
     with open("steering.yml", 'r') as stream:
         steering_config = yaml.safe_load(stream)
+
     params_file_name = steering_config.get("params_file", "params.yml")
-    ana_folder  = steering_config.get("ana_folder")
+    ana_folder       = steering_config.get("ana_folder")
     if not os.path.exists(ana_folder):
         os.makedirs(ana_folder)
+    
     metadata_folder = ana_folder + "metadata/"
     if not os.path.exists(metadata_folder):
         os.makedirs(metadata_folder)
@@ -26,26 +28,26 @@ if __name__ == "__main__":
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
 
-    run_info_file = user_config.get("run_info_file")
+    run_info_file    = user_config.get("run_info_file")
     calibration_file = user_config.get("calibration_file")
-    file_folder = user_config.get("file_folder")
-    SiPM_channel = user_config.get("SiPM_channel")
-    save_pngs = user_config.get("save_pngs", True)
-    runs = user_config.get("runs", [])
-    files_in_folder = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
+    file_folder      = user_config.get("file_folder")
+    SiPM_channel     = user_config.get("SiPM_channel")
+    save_pngs        = user_config.get("save_pngs", True)
+    runs             = user_config.get("runs", [])
+    files_in_folder  = [file_folder+f for f in os.listdir(file_folder) if f.endswith("structured.hdf5")]
 
-    df_runs = pd.read_csv(run_info_file, sep=",") 
+    df_runs     = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
 
     calibration_df = pd.read_csv(calibration_file, sep=",")
     print(calibration_df.head(5))
-    int_low = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntLow'].values[0])
-    int_up = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'IntUp'].values[0])
-    prepulse_ticks = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'PrepulseTicks'].values[0])
-    bsl_rms = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'BaselineRMS'].values[0])
-    spe_charge = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'SpeCharge'].values[0])
-    snr = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'SNR'].values[0])
-    spe_ampl = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'SpeAmpl'].values[0])
+    int_low        = int(calibration_df.loc[calibration_df['SiPMChannel']   == SiPM_channel, 'IntLow'].values[0])
+    int_up         = int(calibration_df.loc[calibration_df['SiPMChannel']   == SiPM_channel, 'IntUp'].values[0])
+    prepulse_ticks = int(calibration_df.loc[calibration_df['SiPMChannel']   == SiPM_channel, 'PrepulseTicks'].values[0])
+    bsl_rms        = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'BaselineRMS'].values[0])
+    spe_charge     = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'SpeCharge'].values[0])
+    snr            = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'SNR'].values[0])
+    spe_ampl       = float(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'SpeAmpl'].values[0])
 
     df_mapping = get_np04_channel_mapping(version="new")
     print(df_mapping.head(5))
@@ -62,9 +64,9 @@ if __name__ == "__main__":
         filename = filename[0]
         print("Reading file ", filename)
 
-        wfset = reader.load_structured_waveformset(filename)
+        wfset   = reader.load_structured_waveformset(filename)
         ch_sipm = SiPM_channel
-        ch_st = filename.split("ChST_")[-1].split("_")[0]
+        ch_st   = filename.split("ChST_")[-1].split("_")[0]
         st = self_trigger.SelfTrigger(ch_sipm=int(ch_sipm),
                                       ch_st=int(ch_st),
                                       wf_set=wfset,

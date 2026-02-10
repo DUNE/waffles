@@ -178,136 +178,85 @@ class SelfTrigger:
         self.window_up  = int(afttrg)
         return self.h_st
 
-    def fit_self_trigger_distribution(self) -> TH1D:
-        """
-        Fit the self-trigger distribution.
-        """
-        x_hST_max = self.h_st.GetMaximumBin()
-        y_hST_max = self.h_st.GetBinContent(x_hST_max)
-
-        f_constant = TF1("f_constant", "pol0", 2, self.prep)
-        f_constant.SetParameter(0, self.h_st.GetBinContent(5))
-        f_constant.SetNpx(2000)
-        fit_option = "QR"
-        if self.verbose:
-            fit_option = "R"
-        self.h_st.Fit(f_constant, fit_option)
-        
-        thr_counts = f_constant.GetParameter(0)+sqrt(f_constant.GetParameter(0))
-        if thr_counts < 1.0:
-            thr_counts = 1.0
-        pretrg = x_hST_max
-        i = x_hST_max
-
-        while i > 1:
-            pretrg = i
-            if self.h_st.GetBinContent(i) < thr_counts \
-                or self.h_st.GetBinContent(i - 1) > self.h_st.GetBinContent(i):
-                pretrg = i-1
-                break
-            i -= 1
-
-        afttrg = x_hST_max
-        i = x_hST_max
-        while i < self.nticks - 1:
-            afttrg = i
-            if self.h_st.GetBinContent(i + 1) < thr_counts \
-                or self.h_st.GetBinContent(i + 1) > self.h_st.GetBinContent(i):
-                break
-            i += 1 
-
-        f_STpeak = TF1("f_STpeak", f"{f_constant.GetParameter(0)}+gaus", pretrg, afttrg)
-        estimated_gaus_amp = y_hST_max - f_constant.GetParameter(0)
-        f_STpeak.SetParameters(estimated_gaus_amp, x_hST_max, 1.0)
-        f_STpeak.SetParLimits(0, estimated_gaus_amp * 0.5, estimated_gaus_amp * 1.5)
-        f_STpeak.SetParLimits(1, pretrg, afttrg)
-        f_STpeak.SetParLimits(2, 0.05, 5.0)
-        f_STpeak.SetNpx(1000)
-        self.h_st.Fit(f_STpeak, fit_option)
-
-        self.f_STpeak = f_STpeak
-        self.window_low = int(pretrg)
-        self.window_up  = int(afttrg)
-        return self.h_st
-
-    def fit_self_trigger_distribution2(self, fit_second_peak: bool=False) -> tuple:
+    
+    def fit_self_trigger_distribution(self, fit_second_peak: bool=False) -> tuple:
         """
         Now use ROOT::TSpectrum
         """
-        self.h_st2 = self.h_st.Clone("h_selftrigger_bkgsub")
+        self.h_st = self.h_st.Clone("h_selftrigger_bkgsub")
         h_bkg = TSpectrum()
-        background = h_bkg.Background(self.h_st2, 15)
-        for i in range(1, self.h_st2.GetNbinsX() + 1):
-            self.h_st2.SetBinContent(i, self.h_st2.GetBinContent(i) - background[i - 1])
+        background = h_bkg.Background(self.h_st, 15)
+        for i in range(1, self.h_st.GetNbinsX() + 1):
+            self.h_st.SetBinContent(i, self.h_st.GetBinContent(i) - background[i - 1])
 
         # Starting from the maximum, go left and right until we find the first bin with content larger than the previous one
-        x_hST_max = self.h_st2.GetMaximumBin()
-        y_hST_max = self.h_st2.GetBinContent(x_hST_max)
+        x_hST_max = self.h_st.GetMaximumBin()
+        y_hST_max = self.h_st.GetBinContent(x_hST_max)
         left_peak_candidate = False
         x_second_peak = np.nan
         # Left scan
-        self.window_low2 = x_hST_max
+        self.window_low = x_hST_max
         for i in range(2, x_hST_max):
-            if self.h_st2.GetBinContent(x_hST_max - i) > self.h_st2.GetBinContent(x_hST_max - (i - 1)) \
-                    or self.h_st2.GetBinContent(x_hST_max - i) < y_hST_max * 0.005:
-                self.window_low2 = x_hST_max - i
+            if self.h_st.GetBinContent(x_hST_max - i) > self.h_st.GetBinContent(x_hST_max - (i - 1)) \
+                    or self.h_st.GetBinContent(x_hST_max - i) < y_hST_max * 0.005:
+                self.window_low = x_hST_max - i
                 break
 
         if fit_second_peak:
-            x_second_peak = get_xmax_in_range(self.h_st2, max(1, self.window_low2 - 10), self.window_low2)
-            y_second_peak = self.h_st2.GetBinContent(x_second_peak)
+            x_second_peak = get_xmax_in_range(self.h_st, max(1, self.window_low - 10), self.window_low)
+            y_second_peak = self.h_st.GetBinContent(x_second_peak)
             if y_second_peak > 0.03 * y_hST_max:
                 left_peak_candidate = True
                 for i in range (1, x_second_peak):
-                    if self.h_st2.GetBinContent(x_second_peak - i) > self.h_st2.GetBinContent(x_second_peak - (i - 1)) \
-                            or self.h_st2.GetBinContent(x_second_peak - i) < y_hST_max * 0.02:
-                        self.window_low2 = x_second_peak - i
+                    if self.h_st.GetBinContent(x_second_peak - i) > self.h_st.GetBinContent(x_second_peak - (i - 1)) \
+                            or self.h_st.GetBinContent(x_second_peak - i) < y_hST_max * 0.02:
+                        self.window_low = x_second_peak - i
                         break
 
 
         right_peak_candidate = False
         # Right scan
-        self.window_up2 = x_hST_max
-        for i in range(x_hST_max+1, self.h_st2.GetNbinsX()):
-            if self.h_st2.GetBinContent(i + 1) > self.h_st2.GetBinContent(i) \
-                    or self.h_st2.GetBinContent(i) < y_hST_max * 0.005:
-                self.window_up2 = i
+        self.window_up = x_hST_max
+        for i in range(x_hST_max+1, self.h_st.GetNbinsX()):
+            if self.h_st.GetBinContent(i + 1) > self.h_st.GetBinContent(i) \
+                    or self.h_st.GetBinContent(i) < y_hST_max * 0.005:
+                self.window_up = i
                 break
 
         if not left_peak_candidate and fit_second_peak:
-            x_second_peak = get_xmax_in_range(self.h_st2, self.window_up2, min(self.h_st2.GetNbinsX(), self.window_up2 + 10))
-            y_second_peak = self.h_st2.GetBinContent(x_second_peak)
+            x_second_peak = get_xmax_in_range(self.h_st, self.window_up, min(self.h_st.GetNbinsX(), self.window_up + 10))
+            y_second_peak = self.h_st.GetBinContent(x_second_peak)
             if y_second_peak > 0.03 * y_hST_max:
                 right_peak_candidate = True
-                for i in range(x_second_peak, self.h_st2.GetNbinsX()):
-                    if self.h_st2.GetBinContent(i + 1) > self.h_st2.GetBinContent(i) \
-                            or self.h_st2.GetBinContent(i) < y_hST_max * 0.02:
-                        self.window_up2 = i
+                for i in range(x_second_peak, self.h_st.GetNbinsX()):
+                    if self.h_st.GetBinContent(i + 1) > self.h_st.GetBinContent(i) \
+                            or self.h_st.GetBinContent(i) < y_hST_max * 0.02:
+                        self.window_up = i
                         break
 
         found_second_peak = left_peak_candidate or right_peak_candidate
         if found_second_peak and self.verbose:
-            print(f"\n\nFound second peak at {x_second_peak} with {self.h_st2.GetBinContent(x_second_peak)} counts\n\n")
+            print(f"\n\nFound second peak at {x_second_peak} with {self.h_st.GetBinContent(x_second_peak)} counts\n\n")
         
 
-        f_STpeak = TF1("f_STpeak2", "gaus", self.window_low2, self.window_up2)
+        f_STpeak = TF1("f_STpeak", "gaus", self.window_low, self.window_up)
         if not found_second_peak:
-            estimated_gaus_amp = self.h_st2.GetBinContent(x_hST_max)
+            estimated_gaus_amp = self.h_st.GetBinContent(x_hST_max)
             f_STpeak.SetParameters(estimated_gaus_amp, x_hST_max, 1.0)
             f_STpeak.SetParLimits(0, estimated_gaus_amp * 0.5, estimated_gaus_amp * 1.5)
-            f_STpeak.SetParLimits(1, self.window_low2, self.window_up2)
+            f_STpeak.SetParLimits(1, self.window_low, self.window_up)
             f_STpeak.SetParLimits(2, 0.05, 5.0)
             f_STpeak.SetNpx(1000)
             fit_option = "QRS"
             if self.verbose:
-                print(f"Fitting range: {self.window_low2} - {self.window_up2}")
+                print(f"Fitting range: {self.window_low} - {self.window_up}")
                 fit_option = "RS"
-            fit_result = self.h_st2.Fit(f_STpeak, fit_option)
+            fit_result = self.h_st.Fit(f_STpeak, fit_option)
         
         else:
-            f_STpeak = TF1("f_STpeak2", "gaus(0)+gaus(3)", self.window_low2, self.window_up2)
-            estimated_gaus_amp1 = self.h_st2.GetBinContent(x_hST_max)
-            estimated_gaus_amp2 = self.h_st2.GetBinContent(x_second_peak)
+            f_STpeak = TF1("f_STpeak", "gaus(0)+gaus(3)", self.window_low, self.window_up)
+            estimated_gaus_amp1 = self.h_st.GetBinContent(x_hST_max)
+            estimated_gaus_amp2 = self.h_st.GetBinContent(x_second_peak)
             # Print initial parameters
             f_STpeak.SetParameters(estimated_gaus_amp1, x_hST_max, 0.5,
                                    estimated_gaus_amp2, x_second_peak, 0.5)
@@ -321,16 +270,16 @@ class SelfTrigger:
             fit_option = "QRS"
             if self.verbose:
                 print(f"Initial parameters: amp1={estimated_gaus_amp1}, mean1={x_hST_max}, sigma1=1.0, amp2={estimated_gaus_amp2}, mean2={x_second_peak}, sigma2=1.0")
-                print(f"Fitting range: {self.window_low2} - {self.window_up2} with second peak")
+                print(f"Fitting range: {self.window_low} - {self.window_up} with second peak")
                 fit_option = "RS"
-            fit_result = self.h_st2.Fit(f_STpeak, fit_option)
+            fit_result = self.h_st.Fit(f_STpeak, fit_option)
 
         
         #Check fit convergence
         fit_ok = bool(fit_result.Get() and fit_result.Get().IsValid())
-        self.f_STpeak2 = f_STpeak
+        self.f_STpeak = f_STpeak
 
-        return (self.h_st2, fit_ok)
+        return (self.h_st, fit_ok)
 
 
 
