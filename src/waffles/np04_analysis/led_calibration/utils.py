@@ -346,19 +346,20 @@ def get_alignment_seeds_dataframe(
 
 def __got_well_formed_alignment_seeds(
     filtered_df: pd.DataFrame
-) -> bool:
+) -> Tuple[bool, int]:
     """This is a helper function which should only be called by
     get_alignment_seeds(). It checks whether the given
-    filtered_df contains well-formed data for the correlation-based
-    alignment. It returns False if any of the following conditions
-    are met:
+    filtered_df contains at least one row of well-formed data
+    for the correlation-based alignment, meaning that such row
+    meets the following requirements: 
 
-        - filtered_df is empty
-        - the first entry of the 'center_0' column is not a float
-        - the first entry of the 'center_1' column is not a float
-        - the first entry of the 'SPE_mean_adcs' column is not a str
+        - the value of the 'center_0' column is a number
+        - the value of the 'gain' column is a number
+        - the value of the 'SPE_mean_adcs' column is a str
 
-    It returns True if else.
+    In that case, this function returns True and the index of
+    the first row in filtered_df which meets these requirements.
+    If such row does not exist, the function returns False and -1.
 
     Parameters
     ----------
@@ -368,19 +369,26 @@ def __got_well_formed_alignment_seeds(
     Returns
     -------
     bool
-        True if the data is well-formed, False otherwise
+        True if there is at least one row in filtered_df which
+        meets the three listed requirements, False otherwise.
+    int
+        The index of the first row in filtered_df which meets
+        the three listed requirements.
+
     """
 
-    # isinstance(..., Number) don't distinguish
-    # between int, np.int, float, np.float etc.
-    if len(filtered_df) == 0 or \
-        not isinstance(filtered_df.iloc[0]['center_0'], Number) or \
-        not isinstance(filtered_df.iloc[0]['center_1'], Number) or \
-        not isinstance(filtered_df.iloc[0]['SPE_mean_adcs'], str):
+    if len(filtered_df) == 0:
+        return False, -1
 
-        return False
-
-    return True
+    else:
+        # isinstance(..., Number) don't distinguish
+        # between int, np.int, float, np.float etc.
+        for i in range(len(filtered_df)):
+            if isinstance(filtered_df.iloc[i]['center_0'], Number):
+                if isinstance(filtered_df.iloc[i]['gain'], Number):
+                    if isinstance(filtered_df.iloc[i]['SPE_mean_adcs'], str):
+                        return True, i
+        return False, -1
 
 def get_alignment_seeds(
     alignment_seeds_dataframe: pd.DataFrame,
@@ -479,7 +487,8 @@ def get_alignment_seeds(
         aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
     
     filtered_df = alignment_seeds_dataframe[aux]
-    fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
+    fGotWellFormedData, targeted_row = \
+        __got_well_formed_alignment_seeds(filtered_df)
 
     if not fGotWellFormedData:
         if not same_endpoint_fallback:
@@ -502,7 +511,8 @@ def get_alignment_seeds(
             aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
 
         filtered_df = alignment_seeds_dataframe[aux]
-        fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
+        fGotWellFormedData, targeted_row = \
+            __got_well_formed_alignment_seeds(filtered_df)
 
         if not fGotWellFormedData:
             if not same_batch_apa_and_pde_fallback:
@@ -526,7 +536,8 @@ def get_alignment_seeds(
                 aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
 
             filtered_df = alignment_seeds_dataframe[aux]
-            fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
+            fGotWellFormedData, targeted_row = \
+                __got_well_formed_alignment_seeds(filtered_df)
 
             if not fGotWellFormedData:
                 raise Exception(
@@ -538,7 +549,7 @@ def get_alignment_seeds(
                     "is not as expected)."
                 )
         
-    used_row = filtered_df.iloc[0]
+    used_row = filtered_df.iloc[targeted_row]
     if endpoint != used_row['endpoint'] or \
         channel != used_row['channel']:
         print(
