@@ -23,7 +23,7 @@ The user is supposed to properly configure the analyses through the following co
 ```
 steering.yml
 params.yml
-config/time_resolution_config.yml
+configs/time_resolution_configs.yml
 ```
 and then run the following macro:
 ```
