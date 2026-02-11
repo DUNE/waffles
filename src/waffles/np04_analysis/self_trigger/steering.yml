@@ -1,5 +1,4 @@
-params_file : "./params_ch11121.yml"
-# params_file : "./params_CB24_ch10403.yml"
+params_file : "./params_files/params_ch11121.yml"
 
 # File.csv containing (at least) the columns:
 # Run, Threshold, LED
@@ -7,11 +6,9 @@ params_file : "./params_ch11121.yml"
 # Threshold: threshold in exadecimal
 # LED: LED intensity
 run_info_file: "./configs/SelfTrigger_RunInfo.csv"
-# run_info_file: "./configs/ColdboxDec24_ST_RunInfo.csv"
 
 # Where to store the output files
 ana_folder: "/Users/federico/CERN/PDHD/Self_trigger/analysis/"
-# ana_folder: "/Users/federico/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/"
 
 # Number of photoelectrons of interest (integer)
 # In the analysis, there is special focus on this value.
