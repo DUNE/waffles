@@ -19,6 +19,8 @@ from waffles.data_classes.IPDict import IPDict
 from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.Map import Map
+from waffles.np02_utils.AutoMap import ordered_channels_membrane, ordered_channels_cathode
+from waffles.utils.utils import print_colored, ColoredFormatter
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -106,11 +108,43 @@ def _analyse(wfset:WaveformSet):
                   checks_kwargs=dict(points_no=wfset.points_per_wf),
                   overwrite=True)
 
+# ╭────────────────── Waveform check quality ────────────────────╮
+def _check_all_channels_ok(wfset:WaveformSet, channels_needed: list[int]) -> bool:
+    available_channels = []
+    for run, ep_ch in wfset.available_channels.items():
+        if len(ep_ch.keys()) > 1:
+            raise Exception("This should never happen...")
+        for ep, ch in ep_ch.items():
+            if ep == 110:
+                return True
+            available_channels += list(ch)
+
+    available_channels = set(available_channels)
+    missing = set(channels_needed) - available_channels
+    if missing:
+        logging.error("Missing channels: %s", ", ".join(str(ch) for ch in missing))
+
+        print_colored(f"-----: Missing channels: {', '.join(str(ch) for ch in missing)}", "red", ["bold"])
+        return False
+    return True
+            
+    
+
+
 def process_structured(h5: Path, outdir: Path,
                        max_wfs: int, headless: bool, detector: str):
 
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
+
+    channels_needed: list[int] = []
+    if detector == "VD_Membrane_PDS":
+        channels_needed = ordered_channels_membrane
+    elif detector == "VD_Cathode_PDS":
+        channels_needed = ordered_channels_cathode
+
+    is_ok = _check_all_channels_ok(wfset, channels_needed)
+
     _analyse(wfset)
     for n, g in np02_gen_grids(wfset, detector).items():
         g: ChannelWsGrid = cast(ChannelWsGrid, g)
@@ -118,6 +152,7 @@ def process_structured(h5: Path, outdir: Path,
         plot_grid(chgrid=g, title=n, html=html, detector=detector, showplots=False)
         if html:
             os.chmod(html.as_posix(), 0o775)
+    return is_ok
 
 
 # ╭─────────────────────────────── main() ─────────────────────────────────────╮
@@ -147,8 +182,15 @@ def main() -> None:
 
     args = ap.parse_args()
 
-    logging.basicConfig(level=max(10, 30 - 10*args.verbose),
-                        format="%(levelname)s: %(message)s")
+    logging.basicConfig(
+        level=max(10, 30 - 10*args.verbose),
+        format="%(levelname)s: %(message)s",
+        handlers=[logging.StreamHandler()]
+    )
+    
+    # Apply colored formatter
+    for handler in logging.root.handlers:
+        handler.setFormatter(ColoredFormatter('%(levelname)s: %(message)s'))
 
     runs = parse_run_list(args.runs)
     cfg = json.load(open(args.config_template))
@@ -206,6 +248,7 @@ def main() -> None:
         ssh = None
         sftp = None
 
+    original_runs_requested = set(runs.copy())
 
     if args.use_rucio:
         logging.info("Using rucio paths from %s", databaserucio)
@@ -319,6 +362,7 @@ def main() -> None:
     # ── Plot each run (new or existing) ─────────────────────────────────────
     if args.headless:
         if  cfg.get("trigger", "full_streaming") != "full_streaming" and detector != "VD_PMT_PDS":
+            is_ok = True
             for r in ok_runs:
                 prod = list(processed_dir.glob(
                     processed_pattern % (r,r)))
@@ -328,8 +372,15 @@ def main() -> None:
                 pr_dir = plot_root / f"run{r:06d}_{suffix}"
                 pr_dir.mkdir(parents=True, exist_ok=True)
                 os.chmod(pr_dir, 0o775)
-                process_structured(prod[0], pr_dir,
+                is_ok &= process_structured(prod[0], pr_dir,
                                    args.max_waveforms, args.headless, detector)
+            if not is_ok:
+                logging.error("Some runs had missing channels, check the logs for details.")
+                print_colored("-----: Some runs had missing channels, check the logs for details.", "red", ["bold"])
+    missing_runs = set(original_runs_requested) - set(ok_runs)
+    if missing_runs:
+        logging.error("The following runs were requested but not found: %s", ", ".join(str(r) for r in missing_runs))
+        print_colored(f"-----: The following runs were requested but not found: {', '.join(str(r) for r in missing_runs)}", "red", ["bold"])
 
 
 if __name__ == "__main__":

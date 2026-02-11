@@ -4,6 +4,24 @@ from waffles.utils.numerical_utils import average_wf_ch
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 
+import logging
+
+class ColoredFormatter(logging.Formatter):
+    COLORS = {
+        'DEBUG': '\033[36m',      # Cyan
+        'INFO': '\033[32m',       # Green
+        'WARNING': '\033[33m',    # Yellow
+        'ERROR': '\033[31m',      # Red
+        'CRITICAL': '\033[1;31m', # Bold Red
+    }
+    RESET = '\033[0m'
+    
+    def format(self, record):
+        log_color = self.COLORS.get(record.levelname, '')
+        record.levelname = f"{log_color}{record.levelname}{self.RESET}"
+        return super().format(record)
+
+
 def print_colored(string, color="white", styles=[]):
     '''
     Print a string in a specific styles
