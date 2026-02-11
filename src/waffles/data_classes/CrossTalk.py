@@ -28,13 +28,13 @@ class CrossTalk:
             fraction_events_in_peaks (np.ndarray): Fraction of events in each peak (y-axis).
             err_fraction_events_in_peaks (np.ndarray): Uncertainty in the fraction of events in each peak.
         """
-        self.avg_photons = avg_photons
-        self.avg_photons_error = avg_photons_error
-        self.CX = CX
-        self.CX_error = CX_error
-        self.norm_factor = norm_factor
-        self.norm_factor_error = norm_factor_error
-        self.n_cx_peaks = n_cx_peaks
-        self.peak_numbers = peak_numbers
-        self.fraction_events_in_peaks = fraction_events_in_peaks
+        self.avg_photons                  = avg_photons
+        self.avg_photons_error            = avg_photons_error
+        self.CX                           = CX
+        self.CX_error                     = CX_error
+        self.norm_factor                  = norm_factor
+        self.norm_factor_error            = norm_factor_error
+        self.n_cx_peaks                   = n_cx_peaks
+        self.peak_numbers                 = peak_numbers
+        self.fraction_events_in_peaks     = fraction_events_in_peaks
         self.err_fraction_events_in_peaks = err_fraction_events_in_peaks

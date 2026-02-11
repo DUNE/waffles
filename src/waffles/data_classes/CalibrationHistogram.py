@@ -338,13 +338,13 @@ class CalibrationHistogram(TrackedHistogram):
             self.CrossTalk = CrossTalk()
             return
 
-        fraction_events_in_peaks = [] 
+        fraction_events_in_peaks     = [] 
         err_fraction_events_in_peaks = []
-        peak_numbers = []
-        n_fitted_peaks = len(self.gaussian_fits_parameters["mean"])
-        spe_charge = self.gaussian_fits_parameters["mean"][1][0] - self.gaussian_fits_parameters["mean"][0][0]
-        n_cx_peaks = min(int(self.edges[-1] // spe_charge)+1, n_fitted_peaks)
-        norm_factor = 1./(self.nentries * self.mean_bin_width)
+        peak_numbers                 = []
+        n_fitted_peaks               = len(self.gaussian_fits_parameters["mean"])
+        spe_charge                   = self.gaussian_fits_parameters["mean"][1][0] - self.gaussian_fits_parameters["mean"][0][0]
+        n_cx_peaks                   = min(int(self.edges[-1] // spe_charge)+1, n_fitted_peaks)
+        norm_factor                  = 1./(self.nentries * self.mean_bin_width)
 
         for peak in range(0, n_cx_peaks):
             scale = self.gaussian_fits_parameters["scale"][peak][0]
@@ -362,7 +362,7 @@ class CalibrationHistogram(TrackedHistogram):
         peak_numbers = np.array(peak_numbers)
 
         iminuitparams = [self.mean/spe_charge, 0.1, 1.0]
-        paramnames = ["L", "p", "N"]
+        paramnames    = ["L", "p", "N"]
 
         chi2 = LeastSquares(peak_numbers,
                             fraction_events_in_peaks,
