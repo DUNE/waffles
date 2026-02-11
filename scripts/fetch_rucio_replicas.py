@@ -66,6 +66,11 @@ def _choose_realm(pfn_lines: list[str], debug: bool = False) -> tuple[str, list[
     for dom in priorities:
         for realm, lines in realm_to_lines.items():
             if dom in realm:
+                linesok = [ ln for ln in lines if "tp-stream" not in ln and "writter" not in ln ]
+                if debug:
+                    print(f"DEBUG: {len(lines)} PFNs at {realm}, {len(linesok)} after tp-stream/writter filter.")
+                lines = linesok
+
                 if dom == "fndca1.fnal.gov":
                     # Skip this realm if any PFN contains "tape_backed"
                     filtered = [ln for ln in lines if "tape_backed" not in ln]
