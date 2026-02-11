@@ -230,8 +230,9 @@
 
     36: # C4(1), Mask 16, int 2400
         cuts:
-        - { t0: 0, tf: 235, threshold: 250, type: lower, filter: 0, npop: max }
-        - { t0: 245, tf:   340, threshold: 2000, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf: 250, threshold: 250, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 2100, type:  lower, filter:  0, npop: max }
+        - { t0: 250, tf:   310, threshold: 300, type:  higher, filter:  0, npop: max }
         - { t0: 380, tf: 1024, threshold:  250, type:  lower, filter:  0, npop: max }
         - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
 
@@ -260,14 +261,14 @@
         cuts:
         - { t0: 0, tf: 230, threshold: 430, type: lower, filter: 0, npop: max }
         - { t0: 240, tf:   360, threshold: 3500, type:  lower, filter:  0, npop: max }
-        - { t0: 450, tf: 1024, threshold:  450, type:  lower, filter:  0, npop: max }
+        - { t0: 420, tf: 1024, threshold:  450, type:  lower, filter:  0, npop: max }
         - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
 
     2: # C5(2), Mask 16, int 2400
         cuts:
         - { t0: 0, tf: 230, threshold: 430, type: lower, filter: 0, npop: max }
         - { t0: 245, tf:   360, threshold: 3800, type:  lower, filter:  0, npop: max }
-        - { t0: 450, tf: 1024, threshold:  450, type:  lower, filter:  0, npop: max }
+        - { t0: 425, tf: 1024, threshold:  450, type:  lower, filter:  0, npop: max }
         - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
 
     1: # C6(1), Mask 8, int 4000
