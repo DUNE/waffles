@@ -20,7 +20,7 @@ from waffles.plotting.plot import plot_ChannelWsGrid, plot_CustomChannelGrid
 from waffles.plotting.plot import plot_CalibrationHistogram
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
 from waffles.utils.baseline.baseline import SBaseline
-from waffles.utils.numerical_utils import average_wf_ch, compute_peaks_rise_fall_ch
+from waffles.utils.numerical_utils import average_wf_ch
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
