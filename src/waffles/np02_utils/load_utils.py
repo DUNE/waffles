@@ -6,7 +6,7 @@ import pandas as pd
 import pathlib
 import re
 from waffles.input_output.hdf5_structured import load_structured_waveformset
-from waffles.np02_utils.AutoMap import dict_module_to_uniqch
+from waffles.np02_utils.AutoMap import dict_module_to_uniqch, dict_uniqch_to_module, strUch
 
 def open_processed(run, dettype, datadir, channels = None, endpoints=None, nwaveforms=None, mergefiles = True, verbose=True):
     """
@@ -102,5 +102,7 @@ def ch_read_template(template_folder:str = 'templates_multi_pe_normalized'):
         with tfile.open('r') as f:
             template_waveform = pd.read_csv(f, header=None).to_numpy().flatten()
         ret.setdefault(endpoint, {})[channel] = template_waveform
+    for ep, rettemp in ret.items():
+        ret[ep] = { k: v for k, v in sorted(rettemp.items(), key=lambda x: dict_uniqch_to_module[strUch(ep, x[0])]) }
 
     return ret
