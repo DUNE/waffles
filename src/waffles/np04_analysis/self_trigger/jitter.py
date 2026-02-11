@@ -35,6 +35,9 @@ if __name__ == "__main__":
     SiPM_channel     = user_config.get("SiPM_channel")
     files_in_folder  = [metadata_folder+f for f in os.listdir(metadata_folder) if f.startswith("Merged_")]
     channel_files    = [f for f in files_in_folder if f"_ChSiPM_{SiPM_channel}" in f]
+    if channel_files == []:
+        raise FileNotFoundError(f"No merged files found for channel {SiPM_channel} in {metadata_folder}\
+                \nPlease run ./miscellanea/merger.py first to merge the files for this channel.")
     
     df_runs     = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
@@ -46,9 +49,7 @@ if __name__ == "__main__":
     ch_folder = ana_folder+f"Ch_{SiPM_channel}/"
     in_df_filename = ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}_merged.csv"
     if not os.path.exists(in_df_filename):
-        in_df_filename = ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}_merged_NoChi2cut.csv"
-        if not os.path.exists(in_df_filename):
-            raise FileNotFoundError(f"Input dataframe file not found for channel {SiPM_channel}")
+        raise FileNotFoundError(f"Input dataframe file not found for channel {SiPM_channel}")
 
     threshold_calibration_df = pd.read_csv(in_df_filename, sep=",")
     print(threshold_calibration_df.head(5))
