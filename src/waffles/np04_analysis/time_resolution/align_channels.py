@@ -1,26 +1,21 @@
+# --- IMPORTS -------------------------------------------------------
 import yaml
 import os
 import pandas as pd
 import numpy as np
-
-# from ROOT import TFile
 import uproot
 
-from waffles.np04_utils.utils import get_np04_daphne_to_offline_channel_dict, get_np04_channel_position_dataframe
+from waffles.np04_analysis.time_resolution.utils import time_of_flight
+from waffles.np04_utils.utils import (get_np04_daphne_to_offline_channel_dict, 
+                                      get_np04_channel_position_dataframe)
 
+# --- HARD-CODED VARIABLES ------------------------------------------
 golden_run = 30666
 reference_channel = 11221
 led_x = 0.
 led_y = 305.5
 led_z = 231.3
-
-def distance(point1, point2):
-    return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2 + (point1[2]-point2[2])**2)
-
-def time_of_flight(point1, point2, speed=23):
-    return distance(point1, point2) / speed
-
-
+# -------------------------------------------------------------------
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
@@ -29,24 +24,17 @@ if __name__ == "__main__":
     with open("./configs/time_resolution_configs.yml", 'r') as config_stream:
         config_variables = yaml.safe_load(config_stream)
 
-    ana_folder = config_variables.get("ana_folder")
-    raw_ana_folder = ana_folder+config_variables.get("raw_ana_folder")
+    ana_folder        = config_variables.get("ana_folder")
+    raw_ana_folder    = ana_folder+config_variables.get("raw_ana_folder")
     single_ana_folder = ana_folder+config_variables.get("single_ana_folder")
     
-    # Setup variables according to the params.yml file
-    with open("./params.yml", 'r') as params_stream:
-        params_variables = yaml.safe_load(params_stream)
-
-    h2_nbins = params_variables.get("h2_nbins")
-    stat_lost = params_variables.get("stat_lost")
-    
-    new_daphne_to_offline = get_np04_daphne_to_offline_channel_dict(version="new")
+    new_daphne_to_offline        = get_np04_daphne_to_offline_channel_dict(version="new")
     offline_channel_positions_df = get_np04_channel_position_dataframe()
-    offline_reference_channel = new_daphne_to_offline[reference_channel]
-    ref_channel_position = offline_channel_positions_df.loc[offline_channel_positions_df['offline_ch'] == offline_reference_channel, \
+    offline_reference_channel    = new_daphne_to_offline[reference_channel]
+    ref_channel_position         = offline_channel_positions_df.loc[offline_channel_positions_df['offline_ch'] == offline_reference_channel, \
                                                             ['det_center_x', 'det_center_y', 'ch_center_z']].values[0]
-    led_position = np.array([led_x, led_y, led_z])
-    ref_ch_tof   = time_of_flight(led_position, ref_channel_position)
+    led_position                 = np.array([led_x, led_y, led_z])
+    ref_ch_tof                   = time_of_flight(led_position, ref_channel_position)
 
     # --- EXTRA VARIABLES -------------------------------------------
     os.makedirs(single_ana_folder, exist_ok=True)
@@ -68,9 +56,9 @@ if __name__ == "__main__":
                     continue
             except:
                 continue
-            tree = directory["time_resolution"]
+            tree     = directory["time_resolution"]
             branches = tree.keys()
-            arrays = tree.arrays(branches, library="np")
+            arrays   = tree.arrays(branches, library="np")
             
             t0s = arrays["t0"]
             channel_avgt0_dict[daphne_ch] = np.mean(t0s)
@@ -81,18 +69,18 @@ if __name__ == "__main__":
     out_df_rows = []
     for daphne_ch, avg_t0 in channel_avgt0_dict.items():
         offline_ch = new_daphne_to_offline[daphne_ch]
-        t0_offset = avg_t0 - reference_t0
+        t0_offset  = avg_t0 - reference_t0
         channel_position = offline_channel_positions_df.loc[offline_channel_positions_df['offline_ch'] == offline_ch, \
                                                             ['det_center_x', 'det_center_y', 'ch_center_z']].values[0]
         tof_correction = time_of_flight(led_position, channel_position) - ref_ch_tof
 
         out_df_rows.append({
-            "OfflineChannel": offline_ch,
-            "DaphneChannel": daphne_ch,
-            "AverageT0": avg_t0,
-            "T0Offset [ticks]": t0_offset,
-            "T0Offset [ns]": (t0_offset*16.0),
-            "TOFCorrection [ns]": tof_correction,
+            "OfflineChannel"        : offline_ch,
+            "DaphneChannel"         : daphne_ch,
+            "AverageT0"             : avg_t0,
+            "T0Offset [ticks]"      : t0_offset,
+            "T0Offset [ns]"         : (t0_offset*16.0),
+            "TOFCorrection [ns]"    : tof_correction,
             "CorrectedT0Offset [ns]": (t0_offset*16.0) - tof_correction
         })
    

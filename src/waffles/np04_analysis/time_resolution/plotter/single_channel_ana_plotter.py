@@ -1,12 +1,11 @@
+# --- IMPORTS -------------------------------------------------------
 import yaml
 import os
 import numpy as np
 
 from ROOT import TFile, TH2F, TGraph, TGraphErrors
 import uproot
-
-
-
+# -------------------------------------------------------------------
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
@@ -15,20 +14,20 @@ if __name__ == "__main__":
     with open("../configs/time_resolution_configs.yml", 'r') as config_stream:
         cfg = yaml.safe_load(config_stream)
 
-    ana_folder = cfg["ana_folder"]
-    raw_ana_folder = ana_folder+cfg["raw_ana_folder"]
+    ana_folder        = cfg["ana_folder"]
+    raw_ana_folder    = ana_folder+cfg["raw_ana_folder"]
     single_ana_folder = ana_folder+cfg["single_ana_folder"]
-    
+
     # Setup variables according to the params.yml file
     with open("../params.yml", 'r') as params_stream:
         params_variables = yaml.safe_load(params_stream)
 
-    channels = params_variables["channels"]
-    methods = params_variables["methods"]
+    channels      = params_variables["channels"]
+    methods       = params_variables["methods"]
     relative_thrs = params_variables["relative_thrs"]
-    filt_levels = params_variables["filt_levels"]
-    h2_nbins = params_variables["h2_nbins"]
-    stat_lost = params_variables["stat_lost"]
+    filt_levels   = params_variables["filt_levels"]
+    h2_nbins      = params_variables["h2_nbins"]
+    stat_lost     = params_variables["stat_lost"]
 
     # --- EXTRA VARIABLES -------------------------------------------
     os.makedirs(single_ana_folder, exist_ok=True)
@@ -50,7 +49,7 @@ if __name__ == "__main__":
                 directory = root_file[root_dir]
             except:
                 continue
-            tree = directory["time_resolution"]
+            tree   = directory["time_resolution"]
             arrays = tree.arrays(["t0", "pe", "timestamp"], library="np")
             
             out_root_file.mkdir(root_dir.replace(";1", ""))
@@ -67,7 +66,6 @@ if __name__ == "__main__":
             x_bins = int(x_up - x_low)
 
             t0_low, t0_up = np.quantile(t0s, [stat_lost, 1-stat_lost])
-                
 
             counts, xedges, yedges = np.histogram2d(pes, t0s, bins=(x_bins,h2_nbins),
                                                     range=[[x_low, x_up], [t0_low, t0_up]])

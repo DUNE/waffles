@@ -7,6 +7,7 @@ from ROOT import TH1F, TH2F, TFile, TGraphErrors
 import uproot
 import waffles.np04_analysis.time_resolution.time_alignment as ta
 from waffles.np04_utils.utils import get_np04_daphne_to_offline_channel_dict
+# -------------------------------------------------------------------
 
 # --- MAIN ----------------------------------------------------------
 if __name__ == "__main__":
@@ -14,28 +15,29 @@ if __name__ == "__main__":
     with open("steering.yml", 'r') as stream:
         steering_config = yaml.safe_load(stream)
    
+    h2_nbins   = steering_config.get("h2_nbins", 100)
     event_type = steering_config.get("event_type", "led")
     if event_type != "led" and event_type != "cosmic":
         raise ValueError("event_type must be either 'led' or 'cosmic'")
+
     ref_chs = steering_config.get("reference_channels", [])
     com_chs = steering_config.get("comparison_channels", [])
     if len(ref_chs) == 1:
         ref_chs = ref_chs*len(com_chs)
     elif len(ref_chs) != len(com_chs):
         raise ValueError("Reference and Comparison channel lists must have the same length or only one reference channel.")
-    h2_nbins = steering_config.get("h2_nbins", 100)
 
     # Setup variables according to the configs/time_resolution_config.yml file
     with open("./configs/time_resolution_configs.yml", 'r') as config_stream:
         config_variables = yaml.safe_load(config_stream)
 
-    run_info_file = config_variables.get("run_info_file")
-    ana_folder = config_variables.get("ana_folder")
+    run_info_file  = config_variables.get("run_info_file")
+    ana_folder     = config_variables.get("ana_folder")
     raw_ana_folder = ana_folder+config_variables.get("raw_ana_folder")
-    out_folder = ana_folder+config_variables.get("pair_ana_folder")
+    out_folder     = ana_folder+config_variables.get("pair_ana_folder")
     os.makedirs(out_folder, exist_ok=True)
 
-    run_info_df = pd.read_csv("configs/"+run_info_file, sep=",")
+    run_info_df       = pd.read_csv("configs/"+run_info_file, sep=",")
     daphne_to_offline = get_np04_daphne_to_offline_channel_dict(version="new")
     if event_type == "cosmic":
         daphne_to_offline = get_np04_daphne_to_offline_channel_dict(version="old")
@@ -44,10 +46,12 @@ if __name__ == "__main__":
     out_df_rows = []
     for ref_ch, com_ch in zip(ref_chs, com_chs):
         files = [raw_ana_folder+f for f in os.listdir(raw_ana_folder) if f.endswith("time_resolution.root") and ((str(ref_ch) in f) or (str(com_ch) in f))]
-        runs = set()
+        runs  = set()
+
         for file in files:
             run = file.split("Run_")[-1].split("_")[0]
             runs.add(run)
+        
         runs = sorted(runs, key=lambda x: int(x))
         pdes = set(run_info_df["PDE"].values )
 
@@ -134,7 +138,7 @@ if __name__ == "__main__":
                 x_max = np.percentile(time_alligner.ref_ch.pes, 99.5)
                 y_min = np.percentile(time_alligner.com_ch.pes, 0.5)
                 y_max = np.percentile(time_alligner.com_ch.pes, 99.5)
-                counts, xedges, yedges = np.histogram2d(time_alligner.com_ch.pes, time_alligner.ref_ch.pes,
+                counts, xedges, yedges = np.histogram2d(time_alligner.ref_ch.pes, time_alligner.com_ch.pes,
                                                         bins=(h2_nbins,h2_nbins),
                                                         # range=[[500,1000],[500,1000]])
                                                         range=[[x_min, x_max], [y_min, y_max]])
