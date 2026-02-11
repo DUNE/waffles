@@ -49,13 +49,9 @@ if __name__ == "__main__":
     df_mapping = get_np04_channel_mapping(version="new")
     SiPM       = df_mapping.loc[((df_mapping['endpoint'] == SiPM_channel//100) & (df_mapping['daphne_ch'] == SiPM_channel%100)), 'sipm'].values[0]
 
-
-    out_root_file_name = ana_folder+f"AnaST_Ch_{SiPM_channel}"
-    if not run_by_run:
-        out_root_file_name += "_merged"
-    
-    out_root_file = TFile(out_root_file_name+".root", "RECREATE")
-    ch_folder     = ana_folder+f"Ch_{SiPM_channel}/"
+    merged_string = "" if run_by_run else "_merged" 
+    out_root_file_name = ana_folder+f"AnaST_Ch_{SiPM_channel}{merged_string}"
+    ch_folder     = ana_folder+f"Ch_{SiPM_channel}{merged_string}/"
     if not os.path.exists(ch_folder):
         os.makedirs(ch_folder)
 
@@ -66,10 +62,9 @@ if __name__ == "__main__":
         datasets       = [f for f in channel_files if "Thr_" in f]
         exa_thresholds = [str(f.split("Thr_")[-1].split("_")[0]) for f in datasets]
         thresholds     = [int(thr, 16) for thr in exa_thresholds]
-    if not run_by_run:
         datasets = [x for _, x in sorted(zip(thresholds, datasets))]
 
-
+    out_root_file = TFile(out_root_file_name+".root", "RECREATE")
 
     for dataset in datasets:
         if run_by_run:

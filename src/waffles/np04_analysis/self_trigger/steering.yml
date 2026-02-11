@@ -8,7 +8,7 @@ params_file : "./params_files/params_ch11121.yml"
 run_info_file: "./configs/SelfTrigger_RunInfo.csv"
 
 # Where to store the output files
-ana_folder: "/Users/federico/CERN/PDHD/Self_trigger/analysis/"
+ana_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/analysis/"
 
 # Number of photoelectrons of interest (integer)
 # In the analysis, there is special focus on this value.

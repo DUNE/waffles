@@ -15,16 +15,15 @@ if __name__ == "__main__":
     with open("steering.yml", 'r') as stream:
         steering_config = yaml.safe_load(stream)
     params_file_name = steering_config.get("params_file", "params.yml")
-    run_info_file = steering_config.get("run_info_file")
-    ana_folder  = steering_config.get("ana_folder")
-    metadata_folder = ana_folder + "metadata/"
-    df_runs = pd.read_csv(run_info_file, sep=",") 
-    thresholds = df_runs['Threshold'].unique()
-    
+    run_info_file    = steering_config.get("run_info_file")
+    ana_folder       = steering_config.get("ana_folder")
+    metadata_folder  = ana_folder + "metadata/"
+    df_runs          = pd.read_csv(run_info_file, sep=",") 
+    thresholds       = df_runs['Threshold'].unique()
+
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
     SiPM_channel = user_config.get("SiPM_channel")
-    
     files_in_folder = [metadata_folder+f for f in os.listdir(metadata_folder) if f.endswith(".root")]
 
     for threshold in thresholds:
