@@ -3,6 +3,7 @@ import pickle
 import yaml
 import numpy as np
 import pandas as pd
+from scipy import signal as spsi
 from plotly import graph_objects as pgo
 from typing import Tuple, Dict, Optional
 from numbers import Number
@@ -3096,3 +3097,56 @@ def get_SPE_grid_plot(
             )
 
     return persistence_figure
+
+
+def apply_high_pass_filter(
+    waveform_set: WaveformSet, 
+    cutoff_frequency_hz: float = 50e+3, 
+    order: int = 3, 
+) -> None:
+    """Apply a high-pass Bessel filter to all waveforms in a WaveformSet.
+    
+    This function applies a high-pass Bessel filter to filter out low
+    frequency noise from the waveforms. The filtering is done in-place,
+    modifying the ADCs of each waveform directly. It is assumed that
+    the baseline has already been subtracted from the waveforms, and
+    that the time step of the waveforms is the same for every waveform
+    in the set. 
+    
+    Parameters
+    ----------
+    waveform_set : WaveformSet
+        The WaveformSet containing the waveforms to be filtered
+    cutoff_frequency_hz : float, default 50e+3
+        The cutoff frequency of the high-pass filter in Hz
+    order : int, default 3
+        The order of the Bessel filter
+        
+    Returns
+    -------
+    None
+        The function modifies the waveforms in-place
+    """
+
+    sampling_frequency_hz = 1. / \
+        (waveform_set.waveforms[0].time_step_ns * 1e-9)
+    
+    num_coeff, den_coeff = spsi.bessel(
+        order,
+        cutoff_frequency_hz,
+        btype='highpass',
+        analog=False,
+        output='ba',
+        norm='phase',
+        fs=sampling_frequency_hz
+    )
+    
+    for waveform in waveform_set.waveforms:
+        filtered_adcs = spsi.lfilter(
+            num_coeff,
+            den_coeff,
+            waveform.adcs
+        )
+        waveform._WaveformAdcs__set_adcs(filtered_adcs)
+
+    return
