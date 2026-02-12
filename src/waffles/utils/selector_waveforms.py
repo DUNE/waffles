@@ -78,8 +78,10 @@ class WaveformSelector:
             
             # Substract baseline and denoise before getting the reference value for the cut
             if analysis_label in waveform.analyses:
-                wf_cut = waveform.adcs-waveform.analyses[analysis_label].result["baseline"]
-                wf_cut = self.denoiser.apply_denoise(wf_cut, filter) 
+                wf_base = waveform.adcs-waveform.analyses[analysis_label].result["baseline"]
+                wf_cut = self.denoiser.apply_denoise_inplace(wf_base, filter) # this method avoids memory leaks
+            else:
+                raise ValueError(f"Analysis label '{analysis_label}' not found in waveform analyses. Cannot apply cuts.")
 
             # get the reference value in the time range specified [t0, tf]
             # the type of reference value is given by cut['npop'] = 'max, 'min' 
@@ -95,6 +97,20 @@ class WaveformSelector:
 
 
         return True
+
+    def check_and_fix_cutsdata(self):
+
+        for ep, chcuts in self.cutsdata.items():
+            for ch, dictcuts in chcuts.items():
+                cuts = dictcuts.get('cuts', [])
+                if isinstance(dict, list):
+                    # Ok...
+                    continue
+                elif isinstance(cuts, dict):
+                    # If cuts is a dict, convert it to a list of dicts
+                    self.cutsdata[ep][ch]['cuts'] = [ v for k, v in cuts.items() ]
+                    
+
         
     def loadcuts(self):
         try:
@@ -102,7 +118,7 @@ class WaveformSelector:
                 self.cutsdata = yaml.safe_load(f)
         except FileNotFoundError:
             raise FileNotFoundError(f"YAML file {self.yamlfile} not found. Cannot apply cuts.")
-            self.cutsdata = {}
         except yaml.YAMLError as e:
             raise ValueError(f"Error parsing YAML file {self.yamlfile}: {e}. No cuts will be applied.")
-            self.cutsdata = {}
+
+        self.check_and_fix_cutsdata()
