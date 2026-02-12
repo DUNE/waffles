@@ -1342,7 +1342,7 @@ def get_number_of_fitted_peaks(
 
     return n_peaks
 
-def get_gain_snr_and_fit_parameters(
+def get_gain_snr_and_cross_talk(
     grid_apa: ChannelWsGrid,
     excluded_channels: list,
     reset_excluded_channels: bool = False
@@ -1362,7 +1362,7 @@ def get_gain_snr_and_fit_parameters(
             ) in excluded_channels:
 
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     f"Excluding channel {endpoint}-{channel} ..."
                 )
                 if reset_excluded_channels:
@@ -1383,7 +1383,7 @@ def get_gain_snr_and_fit_parameters(
 
             except KeyError:
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     f"Skipping channel {endpoint}-{channel} "
                     "since it was not found in data."
                 )
@@ -1395,13 +1395,15 @@ def get_gain_snr_and_fit_parameters(
 
             if fitted_peaks == 0:
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     "No fitted peaks found for channel "
                     f"{endpoint}-{channel}. All of the "
                     "output entries (namely 'gain', 'snr', "
                     "'center_0', 'center_0_error', "
                     "'center_1', 'center_1_error', 'std_0', "
-                    "'std_0_error', 'std_1', 'std_1_error') "
+                    "'std_0_error', 'std_1', 'std_1_error', "
+                    "'avg_photons', 'avg_photons_error', "
+                    "'cross_talk', 'cross_talk_error') "
                     "will be set to NaN."
                 )
                 
@@ -1415,18 +1417,24 @@ def get_gain_snr_and_fit_parameters(
                     'std_0': np.nan,
                     'std_0_error': np.nan,
                     'std_1': np.nan,
-                    'std_1_error': np.nan
+                    'std_1_error': np.nan,
+                    'avg_photons': np.nan,
+                    'avg_photons_error': np.nan,
+                    'cross_talk': np.nan,
+                    'cross_talk_error': np.nan
                 }
 
             elif fitted_peaks == 1:
                 print(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     "Only one fitted peak found for channel "
-                    f"{endpoint}-{channel}. Since the gain and "
-                    "the SNR cannot be computed, some of the "
-                    "entries (namely 'gain', 'snr', 'center_1', "
-                    "'center_1_error', 'std_1', 'std_1_error') "
-                    "will be set to NaN."
+                    f"{endpoint}-{channel}. Since the gain, "
+                    "the SNR and the cross talk cannot be computed, "
+                    "some of the entries (namely 'gain', 'snr', "
+                    "'center_1', 'center_1_error', 'std_1', "
+                    "'std_1_error', 'avg_photons', "
+                    "'avg_photons_error', 'cross_talk', "
+                    "'cross_talk_error') will be set to NaN."
                 )
 
                 aux = {
@@ -1439,12 +1447,16 @@ def get_gain_snr_and_fit_parameters(
                     'std_0': fit_params['std'][0][0],
                     'std_0_error': fit_params['std'][0][1],
                     'std_1': np.nan,
-                    'std_1_error': np.nan
+                    'std_1_error': np.nan,
+                    'avg_photons': np.nan,
+                    'avg_photons_error': np.nan,
+                    'cross_talk': np.nan,
+                    'cross_talk_error': np.nan
                 }
 
             else: # fitted_peaks >= 2:
-
                 aux_gain = fit_params['mean'][1][0] - fit_params['mean'][0][0]
+                aux_cross_talk = grid_apa.ch_wf_sets[endpoint][channel].calib_histo.CrossTalk
                 aux = {
                     'gain': aux_gain,
                     'snr': aux_gain / fit_params['std'][0][0],
@@ -1455,7 +1467,11 @@ def get_gain_snr_and_fit_parameters(
                     'std_0': fit_params['std'][0][0],
                     'std_0_error': fit_params['std'][0][1],
                     'std_1': fit_params['std'][1][0],
-                    'std_1_error': fit_params['std'][1][1]
+                    'std_1_error': fit_params['std'][1][1],
+                    'avg_photons': aux_cross_talk.avg_photons,
+                    'avg_photons_error': aux_cross_talk.avg_photons_error,
+                    'cross_talk': aux_cross_talk.CX,
+                    'cross_talk_error': aux_cross_talk.CX_error
                 }
 
             if endpoint not in data.keys():
@@ -1463,7 +1479,7 @@ def get_gain_snr_and_fit_parameters(
 
             elif channel in data[endpoint].keys():
                 raise Exception(
-                    "In function get_gain_snr_and_fit_parameters(): "
+                    "In function get_gain_snr_and_cross_talk(): "
                     f"An entry for channel {endpoint}-{channel} "
                     f"was already found when trying to save "
                     "the gain and SNR for this channel. Something "
@@ -1582,6 +1598,10 @@ def save_data_to_dataframe(
         - std_0_error
         - std_1
         - std_1_error
+        - avg_photons
+        - avg_photons_error
+        - cross_talk
+        - cross_talk_error
         - SPE_mean_amplitude
         - SPE_mean_adcs
         - fine_selection_baseline_i_low
@@ -1623,6 +1643,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_11
                     },
@@ -1637,6 +1661,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_12
                     },
@@ -1654,6 +1682,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_21
                     },
@@ -1668,6 +1700,10 @@ def save_data_to_dataframe(
                         'std_0_error': ...,
                         'std_1': ...,
                         'std_1_error': ...,
+                        'avg_photons': ...,
+                        'avg_photons_error': ...,
+                        'cross_talk': ...,
+                        'cross_talk_error': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_22
                     },
@@ -1807,6 +1843,10 @@ def save_data_to_dataframe(
         "std_0_error": [],
         "std_1": [],
         "std_1_error": [],
+        "avg_photons": [],
+        "avg_photons_error": [],
+        "cross_talk": [],
+        "cross_talk_error": [],
         "SPE_mean_amplitude": [],
         "SPE_mean_adcs": [],
         "fine_selection_baseline_i_low": [],
@@ -1841,6 +1881,10 @@ def save_data_to_dataframe(
         df['std_0_error'] = df['std_0_error'].astype(float)
         df['std_1'] = df['std_1'].astype(float)
         df['std_1_error'] = df['std_1_error'].astype(float)
+        df['avg_photons'] = df['avg_photons'].astype(float)
+        df['avg_photons_error'] = df['avg_photons_error'].astype(float)
+        df['cross_talk'] = df['cross_talk'].astype(float)
+        df['cross_talk_error'] = df['cross_talk_error'].astype(float)
         df['SPE_mean_amplitude'] = df['SPE_mean_amplitude'].astype(float)
         df['SPE_mean_adcs'] = df['SPE_mean_adcs'].astype(object) # cannot specify list[float] or np.ndarray
         df['fine_selection_baseline_i_low'] = df['fine_selection_baseline_i_low'].astype(int)
@@ -1949,6 +1993,10 @@ def save_data_to_dataframe(
                     "std_0_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_0_error"]],
                     "std_1": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1"]],
                     "std_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1_error"]],
+                    "avg_photons": [packed_gain_snr_and_SPE_info[endpoint][channel]["avg_photons"]],
+                    "avg_photons_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["avg_photons_error"]],
+                    "cross_talk": [packed_gain_snr_and_SPE_info[endpoint][channel]["cross_talk"]],
+                    "cross_talk_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["cross_talk_error"]],
                     "SPE_mean_amplitude": [aux_SPE_mean_amplitude],
                     "SPE_mean_adcs": [aux_SPE_mean_adcs],
                     "fine_selection_baseline_i_low": [fine_selection_limits[0]],
@@ -2714,7 +2762,7 @@ def add_SPE_info_to_output_dictionary(
                 continue
 
             # If the 'gain' entry is available, it means that
-            # get_gain_snr_and_fit_parameters() made sure that the number
+            # get_gain_snr_and_cross_talk() made sure that the number
             # of fitted peaks is at least 2
             try:
                 targeted_peak_idx = __infer_SPE_peak_index(
