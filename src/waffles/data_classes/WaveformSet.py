@@ -1223,7 +1223,7 @@ class WaveformSet:
     def __repr__(self) -> str:
 
         retval = (f"WaveformSet with {len(self.__waveforms)} waveforms "
-            f"runs: {self.__runs}, "
+            f"runs: {sorted(self.runs)}, "
             f"points_per_wf: {self.__points_per_wf}, "
             f"available_channels: {self.__available_channels}, "
             f"record_numbers per run: "
