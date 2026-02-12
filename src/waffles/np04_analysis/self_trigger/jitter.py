@@ -20,6 +20,7 @@ if __name__ == "__main__":
 
     params_file_name = steering_config.get("params_file", "params.yml")
     run_info_file    = steering_config.get("run_info_file")
+    run_by_run       = steering_config.get("run_by_run", False)
     ana_folder       = steering_config.get("ana_folder")
     if not os.path.exists(ana_folder):
         os.makedirs(ana_folder)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
     channel_files    = [f for f in files_in_folder if f"_ChSiPM_{SiPM_channel}" in f]
     if channel_files == []:
         raise FileNotFoundError(f"No merged files found for channel {SiPM_channel} in {metadata_folder}\
-                \nPlease run ./miscellanea/merger.py first to merge the files for this channel.")
+                \nPlease run merger.py first to merge the files for this channel.")
     
     df_runs     = pd.read_csv(run_info_file, sep=",") 
     out_df_rows = []
@@ -46,8 +47,9 @@ if __name__ == "__main__":
     print(calibration_df.head(5))
     prepulse_ticks = int(calibration_df.loc[calibration_df['SiPMChannel'] == SiPM_channel, 'PrepulseTicks'].values[0])
 
-    ch_folder = ana_folder+f"Ch_{SiPM_channel}/"
-    in_df_filename = ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}_merged.csv"
+    merged_string = "" if run_by_run else "_merged"
+    ch_folder = ana_folder+f"Ch_{SiPM_channel}{merged_string}/"
+    in_df_filename = ch_folder+f"SelfTrigger_Results_Ch_{SiPM_channel}{merged_string}.csv"
     if not os.path.exists(in_df_filename):
         raise FileNotFoundError(f"Input dataframe file not found for channel {SiPM_channel}")
 
