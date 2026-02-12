@@ -13,13 +13,15 @@ import tempfile
 
 # ── waffles imports ──────────────────────────────────────────────────────────
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.IPDict import IPDict
 from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.Map import Map
-from waffles.np02_utils.AutoMap import ordered_channels_membrane, ordered_channels_cathode
+from waffles.np02_utils.AutoMap import ordered_channels_membrane, ordered_channels_cathode, ordered_channels_pmt
+from waffles.np02_data.ProtoDUNE_VD_maps import cathode_endpoint, membrane_endpoint, pmt_endpoint
 from waffles.utils.utils import print_colored, ColoredFormatter
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -132,7 +134,7 @@ def _check_all_channels_ok(wfset:WaveformSet, channels_needed: list[int]) -> boo
 
 
 def process_structured(h5: Path, outdir: Path,
-                       max_wfs: int, headless: bool, detector: str):
+                       max_wfs: int, headless: bool, detector: str | list):
 
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
@@ -142,6 +144,10 @@ def process_structured(h5: Path, outdir: Path,
         channels_needed = ordered_channels_membrane
     elif detector == "VD_Cathode_PDS":
         channels_needed = ordered_channels_cathode
+    elif detector == "VD_PMT_PDS":
+        channels_needed = ordered_channels_pmt
+        detector = [ UniqueChannel(pmt_endpoint, ch) for ch in ordered_channels_pmt ]
+
 
     is_ok = _check_all_channels_ok(wfset, channels_needed)
 
@@ -361,7 +367,7 @@ def main() -> None:
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
     if args.headless:
-        if  cfg.get("trigger", "full_streaming") != "full_streaming" and detector != "VD_PMT_PDS":
+        if  cfg.get("trigger", "full_streaming") != "full_streaming":
             is_ok = True
             for r in ok_runs:
                 prod = list(processed_dir.glob(

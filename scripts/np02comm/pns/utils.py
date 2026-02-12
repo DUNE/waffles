@@ -163,9 +163,11 @@ def plot_runs(wfset:WaveformSet, rates_results = {}, runs_to_plot=[]):
 
 
 
-# This function makes first derivative, then two moving averages and the second derivative.
-# This all done at once because cathode data is too heavy. 
 def apply_full_peak_search(waveform: Waveform, mult_factor=10, width=12, deriv_threshold=20, too_big=1000, jump=1000) -> bool:
+    """
+    This function makes first derivative, then two moving averages and the second derivative.
+    This all done at once because cathode data is too heavy. 
+    """
     data = derivative(waveform.adcs, mult_factor=mult_factor) 
     data = moving_average(data, width=width)
     data = moving_average(data, width=width)
