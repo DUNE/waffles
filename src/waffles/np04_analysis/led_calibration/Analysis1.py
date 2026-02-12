@@ -109,6 +109,16 @@ class Analysis1(WafflesAnalysis):
                 "of the selected ADC samples",
             )
 
+            cutoff_frequency_hz: float | None = Field(
+                default=None,
+                description="Cutoff frequency for the high-pass "
+                "Bessel filter (third order) applied to remove "
+                "low frequency noise from the waveforms, "
+                "expressed in Hz. If None, no high-pass filter "
+                "is applied.",
+                example=50.e+3
+            )
+
             lower_limit_wrt_baseline: float = Field(
                 ...,
                 description="It is used for the coarse selection "
@@ -834,6 +844,31 @@ class Analysis1(WafflesAnalysis):
             {'baseline': 0.},
             overwrite=True
         )
+
+        # Apply high-pass filter to remove low frequency noise (if enabled)
+        if self.params.cutoff_frequency_hz is not None:
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.analyze(): "
+                    "Applying high-pass filter with cutoff frequency "
+                    f"{self.params.cutoff_frequency_hz:.0f} Hz to batch "
+                    f"{self.batch}, APA {self.apa}, and PDE {self.pde} ... ",
+                    end=''
+                )
+            
+            led_utils.apply_high_pass_filter(
+                self.wfset, 
+                cutoff_frequency_hz=self.params.cutoff_frequency_hz
+            )
+            
+            if self.params.verbose:
+                print("Finished.")
+
+        elif self.params.verbose:
+            print(
+                "In function Analysis1.analyze(): "
+                "Skipping high-pass filter (cutoff_frequency_hz is None)"
+            )
 
         if self.params.verbose:
             print(

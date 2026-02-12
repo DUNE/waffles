@@ -66,6 +66,13 @@ baseliner_std_cut: 3.
 # ADC samples
 baseliner_type: 'mean'
 
+## Parameters for the high-pass filter
+# Cutoff frequency for the high-pass Bessel filter
+# (third order) applied to remove low frequency noise
+# from the waveforms, expressed in Hz. If set to null,
+# no high-pass filter is applied.
+cutoff_frequency_hz: 50.e+3
+
 ## Parameters for the coarse selection cut
 lower_limit_wrt_baseline: -200.
 upper_limit_wrt_baseline: 40.
