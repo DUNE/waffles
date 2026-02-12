@@ -108,7 +108,7 @@ def _analyse(wfset:WaveformSet):
                   checks_kwargs=dict(points_no=wfset.points_per_wf),
                   overwrite=True)
 
-# ╭────────────────── Waveform check quality ────────────────────╮
+# ╭────────────────────────── Waveform check quality ────────────────────────────╮
 def _check_all_channels_ok(wfset:WaveformSet, channels_needed: list[int]) -> bool:
     available_channels = []
     for run, ep_ch in wfset.available_channels.items():
