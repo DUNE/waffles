@@ -8,7 +8,7 @@ import re
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.np02_utils.AutoMap import dict_module_to_uniqch, dict_uniqch_to_module, strUch
 
-def open_processed(run, dettype, datadir, channels = None, endpoints=None, nwaveforms=None, mergefiles = True, verbose=True):
+def open_processed(run, dettype, datadir, channels = None, endpoints=None, nwaveforms=None, mergefiles = True, verbose=True, file_slice=slice(None,None)):
     """
     Open the processed waveform set for a given run and detector type.
     """
@@ -21,6 +21,7 @@ def open_processed(run, dettype, datadir, channels = None, endpoints=None, nwave
         )
     except:
         files = glob(f"{datadir}/processed/run{run:06d}_{dettype}/processed_*_run{run:06d}_*_{dettype}.hdf5")
+        files = files[file_slice]
         if verbose:
             print("List of files found:")
             print(files)
@@ -85,8 +86,23 @@ def ch_read_calib(filename: str = 'np02-config-v4.0.0.csv', attributes = ['Gain'
             nested_dict.setdefault(ep, {})[ch] = { k: getattr(values, k) for k in attributes }
         return nested_dict
 
+def ch_show_avaliable_template_folders():
+    thepath = resources.files('waffles.np02_data.templates')
+    folders = [f.name for f in thepath.iterdir() if f.is_dir()]
+    print("Available template folders:")
+    for f in folders:
+        print(f"- {f}")
+
 def ch_read_template(template_folder:str = 'templates_multi_pe_normalized'):
+    if not template_folder:
+        ch_show_avaliable_template_folders()
+        raise ValueError("No template folder provided for ch_read_template...")
     thepath = resources.files('waffles.np02_data.templates').joinpath(template_folder)
+    if thepath.is_dir() is False:
+        ch_show_avaliable_template_folders()
+        raise FileNotFoundError(
+            f"Could not find the {template_folder} folder in the waffles.np02_utils.PlotUtils.data package.\nWaffles should be installed with -e option to access this file.\n"
+        )
     template_files = [f for f in thepath.iterdir() if f.is_file() and f.name.endswith('.txt')]
     ret = {}
     # file name is template_{reference_run}_{module}_{channel}.txt
