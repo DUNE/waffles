@@ -1,0 +1,164 @@
+107:
+    37: # M7(1)
+        cuts: &defaultMcut
+          1: { t0: 0, tf:   60, threshold:  75, type:   lower, filter:  8, npop: max }
+          2: { t0: 0, tf:   60, threshold:  -75, type:  higher, filter: 8, npop: min }
+          3: { t0: 75, tf:  85, threshold:  2000, type: higher, filter: 8, npop: max }
+          4: { t0: 75, tf:  85, threshold:  6000, type: lower, filter:  8, npop: max }
+          5: { t0: 220, tf: 320, threshold: 2000, type: lower, filter:  8, npop: max }
+          6: { t0: 400, tf: 1024, threshold: 250, type: lower, filter:  8, npop: max }
+          7: { t0: 400, tf: 1024, threshold: -300, type: higher, filter:  8, npop: min }
+        # - { t0: 250, tf: 300, threshold:  20, type:   higher, filter: 0, npop: max }
+        # - { t0: 360, tf: 1024, threshold: 330, type:  lower, filter:  0, npop: max }
+        # - { t0: 0, tf:   1024, threshold: -150, type: higher, filter: 0, npop: min }
+
+    30: # M7(2)
+        cuts: {
+            <<: *defaultMcut
+        }
+
+    46: # M3(1)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+    44: # M3(2)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+    43: # M4(1)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+    41: # M4(2)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+    7: # M5(1)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+    0: # M5(2)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+    27: # M6(1)
+        cuts: {
+            <<: *defaultMcut
+        }
+
+    20: # M6(2)
+        cuts: {
+            <<: *defaultMcut
+        }
+
+    17: # M8(1)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+    10: # M8(2)
+        cuts: {
+            <<: *defaultMcut,
+                20: { t0: 65, tf:  76, threshold:  50, type:  higher, filter:  8, npop: max }
+        }
+
+106:
+    32: # C1(1), Mask 16, int 4000
+        cuts: &defaultCcut
+          1: { t0: 0, tf:   60, threshold:  75, type:   lower, filter:  8, npop: max }
+          2: { t0: 0, tf:   60, threshold:  -75, type:  higher, filter: 8, npop: min }
+          3: { t0: 75, tf:  85, threshold:  2000, type: higher, filter: 8, npop: max }
+          4: { t0: 75, tf:  85, threshold:  6000, type: lower, filter:  8, npop: max }
+          5: { t0: 68, tf:  80, threshold:  50, type:  higher, filter:  8, npop: min }
+          6: { t0: 220, tf: 320, threshold: 2500, type: lower, filter:  8, npop: max }
+          7: { t0: 400, tf: 1024, threshold: 700, type: lower, filter:  8, npop: max }
+          8: { t0: 400, tf: 1024, threshold: -250, type: higher, filter:  8, npop: min }
+
+    33: # C1(2), Mask 16, int 4000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                                
+    30: # C2(1), Mask 8, int 3000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    31: # C2(2), Mask 8, int 3000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    34: # C3(1), Mask 1, 2800
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    35: # C3(2), Mask 1, 2800
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    36: # C4(1), Mask 16, int 2400
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    37: # C4(2), Mask 16, int 2400
+        cuts: {
+            <<: *defaultCcut,
+        }
+
+    0: # C5(1), Mask 16, int 2400
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    2: # C5(2), Mask 16, int 2400
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    1: # C6(1), Mask 8, int 4000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    3: # C6(2), Mask 8, int 4000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    5: # C7(1), Mask 16, int 4000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    7: # C7(2), Mask 16, int 4000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    4: # C8(1), Mask 16, int 4000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
+    6: # C8(2), Mask 16, int 4000
+        cuts: {
+            <<: *defaultCcut,
+        }
+                                        
