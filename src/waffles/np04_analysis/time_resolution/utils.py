@@ -107,16 +107,8 @@ def find_zero_crossing(y: np.array,
         return 0  # If root-finding fails
 
 
+def distance(point1, point2):
+    return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2 + (point1[2]-point2[2])**2)
 
-
-# # Old fuction, not used
-# def smooth_wfs(waveforms: List[waffles.Waveform], sigma: int) -> None:
-#     """
-
-#     """
-#     gx = np.linspace(-4*sigma, 4*sigma, 8*sigma+1)
-#     gauss = np.exp(-0.5*((gx/sigma)**2))*(1/(sigma*(2*np.pi)**0.5))
-
-#     for wf in waveforms:
-#         wf = np.convolve(wf,gauss,"same")
-
+def time_of_flight(point1, point2, speed=23):
+    return distance(point1, point2) / speed

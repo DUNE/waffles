@@ -25,25 +25,22 @@ class TimeResolution:
         """
         This class is used to estimate the time resolution.
         """
-        self.wf_set = wf_set
-
-        self.prepulse_ticks = prepulse_ticks
+        self.wf_set          = wf_set
+        self.prepulse_ticks  = prepulse_ticks
         self.postpulse_ticks = postpulse_ticks
-        self.baseline_rms = baseline_rms
-        self.spe_charge = spe_charge
-        self.spe_ampl = spe_ampl
-        self.min_pes = min_pes
-        self.int_low = int_low
-        self.int_up = int_up
-        # self.qq = qq
-        self.denoiser = Denoise()
-
-        self.ch = ch        #channel
-        self.wfs = []           #waveforms
-        self.denoisedwfs = []   #waveforms
-        self.n_select_wfs = 0   #number of selected wfs
-        self.t0 = 0.            #Average t0 among the selected wfs
-        self.t0_std = 0.        #Standard deviation to t0
+        self.baseline_rms    = baseline_rms
+        self.spe_charge      = spe_charge
+        self.spe_ampl        = spe_ampl
+        self.min_pes         = min_pes
+        self.int_low         = int_low
+        self.int_up          = int_up
+        self.denoiser        = Denoise()
+        self.ch              = ch        #channel
+        self.wfs             = []           #waveforms
+        self.denoisedwfs     = []   #waveforms
+        self.n_select_wfs    = 0   #number of selected wfs
+        self.t0              = 0.            #Average t0 among the selected wfs
+        self.t0_std          = 0.        #Standard deviation to t0
 
 
     def sanity_check(self) -> None:
@@ -80,19 +77,19 @@ class TimeResolution:
         """
         Set the analysis parameters and do sanity checks
         """
-        self.ch = ch
-        self.prepulse_ticks = prepulse_ticks
-        self.postpulse_ticks = postpulse_ticks
-        self.int_low = int_low
-        self.int_up = int_up
-        self.spe_charge = spe_charge
-        self.spe_ampl = spe_ampl
-        self.min_pes = min_pes
-        self.baseline_rms = baseline_rms
-        self.invert = invert
+        self.ch                   = ch
+        self.prepulse_ticks       = prepulse_ticks
+        self.postpulse_ticks      = postpulse_ticks
+        self.int_low              = int_low
+        self.int_up               = int_up
+        self.spe_charge           = spe_charge
+        self.spe_ampl             = spe_ampl
+        self.min_pes              = min_pes
+        self.baseline_rms         = baseline_rms
+        self.invert               = invert
         self.rms_times_thoreshold = rms_times_thoreshold
-        self.ticks_to_ns = ticks_to_ns
-        self.debug_counter = {}
+        self.ticks_to_ns          = ticks_to_ns
+        self.debug_counter        = {}
 
         try:
             self.sanity_check()
@@ -105,7 +102,7 @@ class TimeResolution:
     
 
     def create_wfs(self) -> None:
-        t_wfset = waffles.WaveformSet.from_filtered_WaveformSet(self.wf_set, allow_channel_wfs, self.ch)
+        t_wfset  = waffles.WaveformSet.from_filtered_WaveformSet(self.wf_set, allow_channel_wfs, self.ch)
         self.wfs = t_wfset.waveforms
         create_float_waveforms(self.wfs)
         sub_baseline_to_wfs(self.wfs, self.prepulse_ticks, invert=self.invert)
@@ -114,7 +111,7 @@ class TimeResolution:
         create_filtered_waveforms(self.wfs, filt_level)
         
 
-    def select_time_resolution_wfs(self) -> None:
+    def select_time_resolution_wfs(self, event_type: str="") -> None:
         """
         Args:
         - waveforms: self.wfs
@@ -122,12 +119,17 @@ class TimeResolution:
         Returns:
         - waveforms.time_resolution_selection: boolean variable to mark if the wf satisfy the selection
         """
-        waveforms = self.wfs
+        waveforms  = self.wfs
 
         n_selected = 0
         self.debug_counter['nwfs'] = len(waveforms) 
 
         for wf in waveforms:
+            wf.time_resolution_selection = True
+            if event_type == "cosmic":
+                wf.pe = 1
+                continue
+
             max_el_pre = np.max(wf.adcs_float[:self.prepulse_ticks])
             min_el_pre = np.min(wf.adcs_float[:self.prepulse_ticks])
 
@@ -135,13 +137,14 @@ class TimeResolution:
             if max_el_pre < self.rms_times_thoreshold*self.baseline_rms and min_el_pre > -(self.rms_times_thoreshold*self.baseline_rms):
                 # Calculate max and min in the signal region (after the pre region)
                 max_el_signal = np.max(wf.adcs_float[self.prepulse_ticks:self.postpulse_ticks])
-                ampl_post = wf.adcs_float[self.postpulse_ticks]
-                wf.pe = wf.adcs_float[self.int_low:self.int_up].sum()*self.ticks_to_ns/self.spe_charge
+                ampl_post     = wf.adcs_float[self.postpulse_ticks]
+                wf.pe         = wf.adcs_float[self.int_low:self.int_up].sum()*self.ticks_to_ns/self.spe_charge
 
                 # Check if the signal is within saturation limits
                 if (ampl_post < 0.8*max_el_signal
                     and wf.pe > self.min_pes):
-                    wf.time_resolution_selection = True; n_selected += 1
+                    wf.time_resolution_selection = True
+                    n_selected += 1
                     self.debug_counter['selected'] = self.debug_counter.get('selected', 0) + 1 
 
                 else:
@@ -194,8 +197,8 @@ class TimeResolution:
                     pe_list.append(wf.pe)
                     ts_list.append(wf.timestamp)
 
-        t0s = np.array(t0_list)
-        pes = np.array(pe_list)
-        tss = np.array(ts_list)
+        t0s = np.array(t0_list, dtype=np.float64)
+        pes = np.array(pe_list, dtype=np.float64)
+        tss = np.array(ts_list, dtype=np.int64)
 
         return t0s, pes, tss
