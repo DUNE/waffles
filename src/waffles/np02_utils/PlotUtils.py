@@ -20,9 +20,9 @@ from waffles.plotting.plot import plot_ChannelWsGrid, plot_CustomChannelGrid
 from waffles.plotting.plot import plot_CalibrationHistogram
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
 from waffles.utils.baseline.baseline import SBaseline
-from waffles.utils.numerical_utils import average_wf_ch, compute_peaks_rise_fall_ch
-from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map
-from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map
+from waffles.utils.numerical_utils import average_wf_ch
+from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, pmt_endpoint, membrane_endpoint
+from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map, cathode_endpoint
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
 from waffles.np02_utils.load_utils import ch_read_params
 
@@ -43,6 +43,8 @@ tol_colors = [
 modules_colormap = {module: tol_colors[int(module[1:-3])-1] for module in ordered_modules_cathode + ordered_modules_membrane}
 endpoint_channel_colormap = {}
 for module, uniqch in dict_module_to_uniqch.items():
+    if uniqch.endpoint == pmt_endpoint:
+        continue
     endpoint_channel_colormap[uniqch.endpoint] = endpoint_channel_colormap.get(uniqch.endpoint, {})
     endpoint_channel_colormap[uniqch.endpoint][uniqch.channel] = modules_colormap[module]
 

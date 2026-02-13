@@ -1,6 +1,8 @@
 import numpy as np
+from waffles.np02_data.ProtoDUNE_VD_maps import cathode_endpoint, membrane_endpoint, pmt_endpoint
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_nontco_data, cat_geometry_tco_data, cat_geometry_nontco_titles, cat_geometry_tco_titles
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_nontco_data, mem_geometry_tco_data, mem_geometry_nontco_titles, mem_geometry_tco_titles
+from waffles.np02_data.ProtoDUNE_VD_maps import pmt_geometry_data, pmt_geometry_titles
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelMap import ChannelMap
 from typing import List, cast, Union
@@ -25,19 +27,27 @@ def _merge_dicts(dict1, dict2):
 dict_uniqch_to_module = _merge_dicts(_merge_dicts(_setup_dicts(cat_geometry_nontco_data, cat_geometry_nontco_titles)[0],
                                                   _setup_dicts(cat_geometry_tco_data, cat_geometry_tco_titles)[0]),
                                      _merge_dicts(_setup_dicts(mem_geometry_nontco_data, mem_geometry_nontco_titles)[0],
-                                                  _setup_dicts(mem_geometry_tco_data, mem_geometry_tco_titles)[0])
+                                                  _setup_dicts(mem_geometry_tco_data, mem_geometry_tco_titles)[0]),
                                      )
+
+dict_uniqch_to_module = _merge_dicts(dict_uniqch_to_module, _setup_dicts(pmt_geometry_data, pmt_geometry_titles)[0])
 
 dict_module_to_uniqch = _merge_dicts(_merge_dicts(_setup_dicts(cat_geometry_nontco_data, cat_geometry_nontco_titles)[1],
                                                   _setup_dicts(cat_geometry_tco_data, cat_geometry_tco_titles)[1]),
                                      _merge_dicts(_setup_dicts(mem_geometry_nontco_data, mem_geometry_nontco_titles)[1],
                                                   _setup_dicts(mem_geometry_tco_data, mem_geometry_tco_titles)[1])
                                      )
+dict_module_to_uniqch = _merge_dicts(dict_module_to_uniqch, _setup_dicts(pmt_geometry_data, pmt_geometry_titles)[1])
 
 ordered_modules_membrane = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("M") ] )
 ordered_modules_cathode = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("C") ] )
+ordered_modules_pmt = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("P") ], key=lambda x: int(x[1:]) )
+
 ordered_channels_membrane = [ dict_module_to_uniqch[m].channel for m in ordered_modules_membrane ]
 ordered_channels_cathode = [ dict_module_to_uniqch[m].channel for m in ordered_modules_cathode ]
+ordered_channels_pmt = [ dict_module_to_uniqch[m].channel for m in ordered_modules_pmt ]
+
+dict_endpoints_channels_list = { membrane_endpoint : ordered_channels_membrane, cathode_endpoint : ordered_channels_cathode, pmt_endpoint : ordered_channels_pmt }
 
 
 def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], rows:int = 0, cols:int = 0) -> ChannelMap:

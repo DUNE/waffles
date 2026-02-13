@@ -33,7 +33,8 @@ from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.utils.baseline.baseline import SBaseline
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, strUch, ordered_channels_membrane, ordered_channels_cathode
-from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid, plot_detectors, genhist, fithist, runBasicWfAnaNP02, ch_read_calib
+from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid, plot_detectors, genhist, fithist, runBasicWfAnaNP02
+from waffles.np02_utils.load_utils import ch_read_calib
 
 
 
@@ -56,7 +57,7 @@ def main(run, outputdir):
     group4 = [ f"{dletter}{detnum}({chnum})" for detnum in range(7, 9) for chnum in range(1,3) ]
     groupall = group1+group2+group3+group4
 
-    calib_values = ch_read_calib()
+    calib_values = ch_read_calib('np02-config-v3.0.0.csv')
     list_of_unch = ordered_channels_cathode
 
 
@@ -356,12 +357,13 @@ def main(run, outputdir):
 import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--run", type=int, required=True, help="Run number to process")
+    parser.add_argument("--runs", type=int, nargs='+', help="List of run numbers to process", required=True)
     parser.add_argument("--output-dir", type=str, default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/beam_csv_files/", help="Output folder to save results")
     args = parser.parse_args()
     run = args.run
     outputdir = args.output_dir
-    main(run, outputdir)
+    for run in args.runs:
+        main(run, args.output_dir)
 
 
 

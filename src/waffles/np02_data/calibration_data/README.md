@@ -4,9 +4,9 @@ Files are created following the tag created in the DUNE/PDS repository. For inst
 
 The available files are:
 
-- np02-config-v3.0.0.csv : Optimal calibration created after trim scan for the membranes. It was used during TPC+PDS run on beam period and aftwards
+- np02-config-v4.0.0.csv : Optimal calibration created after trim scan for the membranes. It was used during TPC+PDS run on beam period and aftwards
 
-- np02-config-v2.0.0.csv : Calibration created before trim scan. It was used during standalone PDS run on beam period.
+- np02-config-v3.0.0.csv : Calibration created before trim scan. It was used during standalone PDS run on beam period.
 
 ### How to load calibration data
 
