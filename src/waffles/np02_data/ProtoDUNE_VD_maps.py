@@ -167,9 +167,29 @@ cat_index_map = { 1 : cat_index}
 flat_MEM_geometry_map = {1 : ChannelMap(1, 16, [ wuw.flatten_2D_list(mem_index_map[1].data) ])}
 
 
-pmt_geometry_data = [UniqueChannel(pmt_endpoint, 0),  UniqueChannel(pmt_endpoint, 2),  UniqueChannel(pmt_endpoint, 6),  UniqueChannel(pmt_endpoint, 7),  UniqueChannel(pmt_endpoint, 10),  UniqueChannel(pmt_endpoint, 12),  UniqueChannel(pmt_endpoint, 14),  UniqueChannel(pmt_endpoint, 16),  UniqueChannel(pmt_endpoint, 17),  UniqueChannel(pmt_endpoint, 20),  UniqueChannel(pmt_endpoint, 22),  UniqueChannel(pmt_endpoint, 24),  UniqueChannel(pmt_endpoint, 26),  UniqueChannel(pmt_endpoint, 30),  UniqueChannel(pmt_endpoint, 32),  UniqueChannel(pmt_endpoint, 34),  UniqueChannel(pmt_endpoint, 36),  UniqueChannel(pmt_endpoint, 37),  UniqueChannel(pmt_endpoint, 40),  UniqueChannel(pmt_endpoint, 42),  UniqueChannel(pmt_endpoint, 44),  UniqueChannel(pmt_endpoint, 46)]
+pmt_geometry_data = [UniqueChannel(pmt_endpoint, 0),  UniqueChannel(pmt_endpoint, 2),
+                     UniqueChannel(pmt_endpoint, 6),  UniqueChannel(pmt_endpoint, 7),
+                     UniqueChannel(pmt_endpoint, 10), UniqueChannel(pmt_endpoint, 12),
+                     UniqueChannel(pmt_endpoint, 14), UniqueChannel(pmt_endpoint, 16),
+                     UniqueChannel(pmt_endpoint, 17), UniqueChannel(pmt_endpoint, 20),
+                     UniqueChannel(pmt_endpoint, 22), UniqueChannel(pmt_endpoint, 24),
+                     UniqueChannel(pmt_endpoint, 26), UniqueChannel(pmt_endpoint, 30),
+                     UniqueChannel(pmt_endpoint, 32), UniqueChannel(pmt_endpoint, 34),
+                     UniqueChannel(pmt_endpoint, 36), UniqueChannel(pmt_endpoint, 37),
+                     UniqueChannel(pmt_endpoint, 40), UniqueChannel(pmt_endpoint, 42),
+                     UniqueChannel(pmt_endpoint, 44), UniqueChannel(pmt_endpoint, 46)]
 
-pmt_geometry_titles = ["P5", "P37", "P7 ", "P29", "P31", "P41", "P15", "P35", "P38", "P21", "P14", "P25", "P6", "P20", "P26", "P32", "P28", "P12", "P34", "P16", "P19", "P17"]
+pmt_geometry_titles = ["P5",  "P37",
+                       "P7 ", "P29",
+                       "P31", "P41",
+                       "P15", "P35",
+                       "P38", "P21",
+                       "P14", "P25",
+                       "P6",  "P20",
+                       "P26", "P32",
+                       "P28", "P12",
+                       "P34", "P16",
+                       "P19", "P17"]
 
 
 pmt_geometry = MEMMap_ind([pmt_geometry_data], r=1, c=len(pmt_geometry_data))
