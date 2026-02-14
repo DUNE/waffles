@@ -3,6 +3,7 @@ import pickle
 import yaml
 import numpy as np
 import pandas as pd
+from scipy import signal as spsi
 from plotly import graph_objects as pgo
 from typing import Tuple, Dict, Optional
 from numbers import Number
@@ -291,7 +292,7 @@ def get_alignment_seeds_dataframe(
     """This function reads the given CSV file and
     checks that it contains the required columns
     ('batch', 'APA', 'PDE', 'endpoint', 'channel',
-    'vendor', 'center_0', 'center_1' and
+    'vendor', 'center_0', 'gain' and
     'SPE_mean_adcs'). If filepath is None,
     a we.IncompatibleInput exception is raised.
 
@@ -326,7 +327,7 @@ def get_alignment_seeds_dataframe(
         'channel',
         'vendor',
         'center_0',
-        'center_1',
+        'gain',
         'SPE_mean_adcs'
     }
 
@@ -338,7 +339,7 @@ def get_alignment_seeds_dataframe(
                 f"The file {filepath} is missing some of the required "
                 "columns. It must contain at least 'batch', 'APA', "
                 "'PDE', 'endpoint', 'channel', 'vendor', 'center_0', "
-                "'center_1' and 'SPE_mean_adcs'."
+                "'gain' and 'SPE_mean_adcs'."
             )
         )
 
@@ -346,19 +347,20 @@ def get_alignment_seeds_dataframe(
 
 def __got_well_formed_alignment_seeds(
     filtered_df: pd.DataFrame
-) -> bool:
+) -> Tuple[bool, int]:
     """This is a helper function which should only be called by
     get_alignment_seeds(). It checks whether the given
-    filtered_df contains well-formed data for the correlation-based
-    alignment. It returns False if any of the following conditions
-    are met:
+    filtered_df contains at least one row of well-formed data
+    for the correlation-based alignment, meaning that such row
+    meets the following requirements: 
 
-        - filtered_df is empty
-        - the first entry of the 'center_0' column is not a float
-        - the first entry of the 'center_1' column is not a float
-        - the first entry of the 'SPE_mean_adcs' column is not a str
+        - the value of the 'center_0' column is a number
+        - the value of the 'gain' column is a number
+        - the value of the 'SPE_mean_adcs' column is a str
 
-    It returns True if else.
+    In that case, this function returns True and the index of
+    the first row in filtered_df which meets these requirements.
+    If such row does not exist, the function returns False and -1.
 
     Parameters
     ----------
@@ -368,19 +370,26 @@ def __got_well_formed_alignment_seeds(
     Returns
     -------
     bool
-        True if the data is well-formed, False otherwise
+        True if there is at least one row in filtered_df which
+        meets the three listed requirements, False otherwise.
+    int
+        The index of the first row in filtered_df which meets
+        the three listed requirements.
+
     """
 
-    # isinstance(..., Number) don't distinguish
-    # between int, np.int, float, np.float etc.
-    if len(filtered_df) == 0 or \
-        not isinstance(filtered_df.iloc[0]['center_0'], Number) or \
-        not isinstance(filtered_df.iloc[0]['center_1'], Number) or \
-        not isinstance(filtered_df.iloc[0]['SPE_mean_adcs'], str):
+    if len(filtered_df) == 0:
+        return False, -1
 
-        return False
-
-    return True
+    else:
+        # isinstance(..., Number) don't distinguish
+        # between int, np.int, float, np.float etc.
+        for i in range(len(filtered_df)):
+            if isinstance(filtered_df.iloc[i]['center_0'], Number):
+                if isinstance(filtered_df.iloc[i]['gain'], Number):
+                    if isinstance(filtered_df.iloc[i]['SPE_mean_adcs'], str):
+                        return True, i
+        return False, -1
 
 def get_alignment_seeds(
     alignment_seeds_dataframe: pd.DataFrame,
@@ -394,7 +403,7 @@ def get_alignment_seeds(
     same_batch_apa_and_pde_fallback: bool = True
 ) -> np.ndarray:
     """This function retrieves the following entries: 'center_0', 
-    'center_1' and 'SPE_mean_adcs'; from the given dataframe,
+    'gain' and 'SPE_mean_adcs'; from the given dataframe,
     based on the specified batch, APA, PDE, endpoint and channel
     values. If no exact match is found, it can optionally fall
     back to searching for such information
@@ -420,7 +429,7 @@ def get_alignment_seeds(
             - 'channel',
             - 'vendor',
             - 'center_0',
-            - 'center_1' and
+            - 'gain' and
             - 'SPE_mean_adcs'.
     batch: int
         The batch number to look for
@@ -458,7 +467,7 @@ def get_alignment_seeds(
         The returned dictionary has the following structure:
         {
             'center_0': float,
-            'center_1': float,
+            'gain': float,
             'SPE_mean_adcs': np.ndarray
         }
     """
@@ -479,7 +488,8 @@ def get_alignment_seeds(
         aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
     
     filtered_df = alignment_seeds_dataframe[aux]
-    fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
+    fGotWellFormedData, targeted_row = \
+        __got_well_formed_alignment_seeds(filtered_df)
 
     if not fGotWellFormedData:
         if not same_endpoint_fallback:
@@ -502,7 +512,8 @@ def get_alignment_seeds(
             aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
 
         filtered_df = alignment_seeds_dataframe[aux]
-        fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
+        fGotWellFormedData, targeted_row = \
+            __got_well_formed_alignment_seeds(filtered_df)
 
         if not fGotWellFormedData:
             if not same_batch_apa_and_pde_fallback:
@@ -526,7 +537,8 @@ def get_alignment_seeds(
                 aux = aux & (alignment_seeds_dataframe['vendor'] == vendor)
 
             filtered_df = alignment_seeds_dataframe[aux]
-            fGotWellFormedData = __got_well_formed_alignment_seeds(filtered_df)
+            fGotWellFormedData, targeted_row = \
+                __got_well_formed_alignment_seeds(filtered_df)
 
             if not fGotWellFormedData:
                 raise Exception(
@@ -538,7 +550,7 @@ def get_alignment_seeds(
                     "is not as expected)."
                 )
         
-    used_row = filtered_df.iloc[0]
+    used_row = filtered_df.iloc[targeted_row]
     if endpoint != used_row['endpoint'] or \
         channel != used_row['channel']:
         print(
@@ -559,14 +571,13 @@ def get_alignment_seeds(
 
     return {
             'center_0': float(used_row['center_0']),
-            'center_1': float(used_row['center_1']),
+            'gain': float(used_row['gain']),
             'SPE_mean_adcs': SPE_template
         }
 
 def align_waveforms_by_correlation(
     input_ChannelWs: ChannelWs,
-    center_0: float,
-    center_1: float,
+    gain: float,
     SPE_template_array: np.ndarray,
     integrate_entire_pulse: bool,
     baseline_analysis_label: str,
@@ -587,28 +598,26 @@ def align_waveforms_by_correlation(
     around the pulse. The function then integrates each
     waveform using the inferred limits and ignores or
     aligns them based on their integral values. Namely,
-    waveforms whose integral evaluates to less than
-    (center_0 + center_1)/2 are considered as baselines
-    and are not aligned. This cut is meant to avoid
-    biasing the pedestal position upwards: aligning
-    baseline samples to the SPE template would find
-    noisy regions which are systematically positive,
-    artificially increasing its integral on average. The
-    waveforms are finally trimmed, so that they are
-    aligned amongst each other, according to some limits
-    which are defined by the input parameters. These
-    changes to the input ChannelWs object are done in
-    place.
+    waveforms whose integral (corrected by the baseline)
+    evaluates to less than gain / 2.0 are considered as
+    baselines and are not aligned. This cut is meant to
+    avoid biasing the pedestal position upwards: aligning
+    baseline samples to the SPE template would find noisy
+    regions which are systematically positive, artificially
+    increasing its integral on average. The waveforms are
+    finally trimmed, so that they are aligned amongst
+    each other, according to some limits which are
+    defined by the input parameters. These changes to the
+    input ChannelWs object are done in place.
 
     Parameters
     ----------
     input_ChannelWs: ChannelWs
         The ChannelWs object containing the waveforms
         to be aligned.
-    center_0 (resp. center_1): float
-        The estimated mean of the baselines (resp. SPE)
-        integrals, used to decide if a waveform is a
-        baseline or not.
+    gain: float
+        The estimated average value of 1-PE waveforms
+        integrals.
     SPE_template_array: np.ndarray
         The SPE template array used for correlation
     integrate_entire_pulse: bool
@@ -858,7 +867,7 @@ def align_waveforms_by_correlation(
     optimal_shift_in_time_ticks = []
 
     # Compute the baseline charge threshold only once
-    baseline_charge_threshold = ((center_0 + center_1) / 2.) - center_0
+    baseline_charge_threshold = gain / 2.
 
     for waveform in input_ChannelWs.waveforms:
 
@@ -1398,81 +1407,148 @@ def get_gain_snr_and_cross_talk(
                     "In function get_gain_snr_and_cross_talk(): "
                     "No fitted peaks found for channel "
                     f"{endpoint}-{channel}. All of the "
-                    "output entries (namely 'gain', 'snr', "
-                    "'center_0', 'center_0_error', "
-                    "'center_1', 'center_1_error', 'std_0', "
-                    "'std_0_error', 'std_1', 'std_1_error', "
-                    "'avg_photons', 'avg_photons_error', "
-                    "'cross_talk', 'cross_talk_error') "
-                    "will be set to NaN."
+                    "output entries (namely 'gain', 'gain_error', "
+                    "'snr', 'snr_error', 'center_0', 'center_0_error', "
+                    "'std_0', 'std_0_error', 'std_increment', "
+                    "'std_increment_error', 'scaling_factors', "
+                    "'scaling_factors_errors') will be set to NaN."
                 )
                 
                 aux = {
                     'gain': np.nan,
+                    'gain_error': np.nan,
                     'snr': np.nan,
+                    'snr_error': np.nan,
                     'center_0': np.nan,
                     'center_0_error': np.nan,
-                    'center_1': np.nan,
-                    'center_1_error': np.nan,
                     'std_0': np.nan,
                     'std_0_error': np.nan,
-                    'std_1': np.nan,
-                    'std_1_error': np.nan,
-                    'avg_photons': np.nan,
-                    'avg_photons_error': np.nan,
-                    'cross_talk': np.nan,
-                    'cross_talk_error': np.nan
+                    'std_increment': np.nan,
+                    'std_increment_error': np.nan,
+                    'scaling_factors': np.nan,
+                    'scaling_factors_errors': np.nan
                 }
 
             elif fitted_peaks == 1:
                 print(
                     "In function get_gain_snr_and_cross_talk(): "
                     "Only one fitted peak found for channel "
-                    f"{endpoint}-{channel}. Since the gain, "
-                    "the SNR and the cross talk cannot be computed, "
-                    "some of the entries (namely 'gain', 'snr', "
-                    "'center_1', 'center_1_error', 'std_1', "
-                    "'std_1_error', 'avg_photons', "
-                    "'avg_photons_error', 'cross_talk', "
-                    "'cross_talk_error') will be set to NaN."
+                    f"{endpoint}-{channel}. Since the gain and "
+                    "the SNR cannot be computed, some of the "
+                    "entries (namely 'gain', 'gain_error', 'snr', "
+                    "'snr_error', 'std_increment', "
+                    "'std_increment_error') will be set to NaN."
                 )
 
                 aux = {
                     'gain': np.nan,
+                    'gain_error': np.nan,
                     'snr': np.nan,
+                    'snr_error': np.nan,
                     'center_0': fit_params['mean'][0][0],
                     'center_0_error': fit_params['mean'][0][1],
-                    'center_1': np.nan,
-                    'center_1_error': np.nan,
                     'std_0': fit_params['std'][0][0],
                     'std_0_error': fit_params['std'][0][1],
-                    'std_1': np.nan,
-                    'std_1_error': np.nan,
-                    'avg_photons': np.nan,
-                    'avg_photons_error': np.nan,
-                    'cross_talk': np.nan,
-                    'cross_talk_error': np.nan
+                    'std_increment': np.nan,
+                    'std_increment_error': np.nan,
+                    'scaling_factors': [fit_params['scale'][0][0]],
+                    'scaling_factors_errors': [fit_params['scale'][0][1]]
                 }
 
             else: # fitted_peaks >= 2:
-                aux_gain = fit_params['mean'][1][0] - fit_params['mean'][0][0]
-                aux_cross_talk = grid_apa.ch_wf_sets[endpoint][channel].calib_histo.CrossTalk
-                aux = {
-                    'gain': aux_gain,
-                    'snr': aux_gain / fit_params['std'][0][0],
-                    'center_0': fit_params['mean'][0][0],
-                    'center_0_error': fit_params['mean'][0][1],
-                    'center_1': fit_params['mean'][1][0],
-                    'center_1_error': fit_params['mean'][1][1],
-                    'std_0': fit_params['std'][0][0],
-                    'std_0_error': fit_params['std'][0][1],
-                    'std_1': fit_params['std'][1][0],
-                    'std_1_error': fit_params['std'][1][1],
-                    'avg_photons': aux_cross_talk.avg_photons,
-                    'avg_photons_error': aux_cross_talk.avg_photons_error,
-                    'cross_talk': aux_cross_talk.CX,
-                    'cross_talk_error': aux_cross_talk.CX_error
-                }
+
+                # Handle both, the case of independent Gaussian fits and the case of
+                # correlated Gaussian fits, since the output fit parameters have a
+                # different structure in these two cases.
+                fUsedCorrelatedGaussiansModel = False
+                if 'other' in fit_params.keys():
+                    if 'mean_increment' in fit_params['other'].keys() and \
+                        'std_increment' in fit_params['other'].keys():
+                        fUsedCorrelatedGaussiansModel = True
+
+                # Common parameters for both models
+                aux_center_0 = fit_params['mean'][0][0]
+                aux_center_0_error = fit_params['mean'][0][1]
+
+                aux_std_0 = fit_params['std'][0][0]
+                aux_std_0_error = fit_params['std'][0][1]
+
+                aux_scaling_factors = [
+                    fit_params['scale'][k][0] for k in range(fitted_peaks)
+                ]
+                aux_scaling_factors_errors = [
+                    fit_params['scale'][k][1] for k in range(fitted_peaks)
+                ]
+
+                if not fUsedCorrelatedGaussiansModel:
+
+                    aux_center_1 = fit_params['mean'][1][0]
+                    aux_center_1_error = fit_params['mean'][1][1]
+
+                    aux_std_1 = fit_params['std'][1][0]
+                    aux_std_1_error = fit_params['std'][1][1]
+
+                    aux_gain = aux_center_1 - aux_center_0
+                    aux_gain_error = ((aux_center_0_error ** 2) + (aux_center_1_error ** 2)) ** 0.5
+
+                    if aux_std_1 > aux_std_0:
+                        aux_std_increment = ((aux_std_1 ** 2) - (aux_std_0 ** 2)) ** 0.5
+                        aux_std_increment_error = ((((aux_std_0 * aux_std_0_error) ** 2) + \
+                            ((aux_std_1 * aux_std_1_error) ** 2)) ** 0.5) / aux_std_increment
+                    else:
+                        print(
+                            "In function get_gain_snr_and_fit_parameters(): "
+                            "The standard deviation of the second fitted peak is smaller "
+                            "than the one of the first fitted peak for channel "
+                            f"{endpoint}-{channel}, which is allowed for the independent "
+                            "Gaussian fits model. The std_increment and its error will "
+                            "be set to NaN."
+                        )
+                        aux_std_increment = np.nan
+                        aux_std_increment_error = np.nan
+
+                    aux = {
+                        'gain': aux_gain,
+                        'gain_error': aux_gain_error,
+                        'snr': aux_gain / aux_std_0,
+                        'snr_error': (
+                            ((aux_gain_error / aux_std_0) ** 2) + \
+                            (((aux_gain * aux_center_0_error) / (aux_std_0 ** 2)) ** 2)
+                        ) ** 0.5,
+                        'center_0': aux_center_0,
+                        'center_0_error': aux_center_0_error,
+                        'std_0': aux_std_0,
+                        'std_0_error': aux_std_0_error,
+                        'std_increment': aux_std_increment,
+                        'std_increment_error': aux_std_increment_error,
+                        'scaling_factors': aux_scaling_factors,
+                        'scaling_factors_errors': aux_scaling_factors_errors
+                    }
+                
+                else:
+
+                    aux_gain = fit_params['other']['mean_increment'][0]
+                    aux_gain_error = fit_params['other']['mean_increment'][1]
+                    aux_std_increment = fit_params['other']['std_increment'][0]
+                    aux_std_increment_error = fit_params['other']['std_increment'][1]
+
+                    aux = {
+                        'gain': aux_gain,
+                        'gain_error': aux_gain_error,
+                        'snr': aux_gain / aux_std_0,
+                        'snr_error': (
+                            ((aux_gain_error / aux_std_0) ** 2) + \
+                            (((aux_gain * aux_center_0_error) / (aux_std_0 ** 2)) ** 2)
+                        ) ** 0.5,
+                        'center_0': aux_center_0,
+                        'center_0_error': aux_center_0_error,
+                        'std_0': aux_std_0,
+                        'std_0_error': aux_std_0_error,
+                        'std_increment': aux_std_increment,
+                        'std_increment_error': aux_std_increment_error,
+                        'scaling_factors': aux_scaling_factors,
+                        'scaling_factors_errors': aux_scaling_factors_errors
+                    }
 
             if endpoint not in data.keys():
                 data[endpoint] = {}
@@ -1589,19 +1665,17 @@ def save_data_to_dataframe(
         - OV#
         - OV_V
         - gain
+        - gain_error
         - snr
+        - snr_error
         - center_0
         - center_0_error
-        - center_1
-        - center_1_error
         - std_0
         - std_0_error
-        - std_1
-        - std_1_error
-        - avg_photons
-        - avg_photons_error
-        - cross_talk
-        - cross_talk_error
+        - std_increment
+        - std_increment_error
+        - scaling_factors
+        - scaling_factors_errors
         - SPE_mean_amplitude
         - SPE_mean_adcs
         - fine_selection_baseline_i_low
@@ -1634,37 +1708,33 @@ def save_data_to_dataframe(
                 endpoint1: {
                     channel1: {
                         'gain': gain_value_11,
+                        'gain_error': ...,
                         'snr': ...,
+                        'snr_error': ...,
                         'center_0': ...,
                         'center_0_error': ...,
-                        'center_1': ...,
-                        'center_1_error': ...,
                         'std_0': ...,
                         'std_0_error': ...,
-                        'std_1': ...,
-                        'std_1_error': ...,
-                        'avg_photons': ...,
-                        'avg_photons_error': ...,
-                        'cross_talk': ...,
-                        'cross_talk_error': ...,
+                        'std_increment': ...,
+                        'std_increment_error': ...,
+                        'scaling_factors': ...,
+                        'scaling_factors_errors': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_11
                     },
                     channel2: {
                         'gain': gain_value_12,
+                        'gain_error': ...,
                         'snr': ...,
+                        'snr_error': ...,
                         'center_0': ...,
                         'center_0_error': ...,
-                        'center_1': ...,
-                        'center_1_error': ...,
                         'std_0': ...,
                         'std_0_error': ...,
-                        'std_1': ...,
-                        'std_1_error': ...,
-                        'avg_photons': ...,
-                        'avg_photons_error': ...,
-                        'cross_talk': ...,
-                        'cross_talk_error': ...,
+                        'std_increment': ...,
+                        'std_increment_error': ...,
+                        'scaling_factors': ...,
+                        'scaling_factors_errors': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_12
                     },
@@ -1673,37 +1743,33 @@ def save_data_to_dataframe(
                 endpoint2: {
                     channel1: {
                         'gain': gain_value_21,
+                        'gain_error': ...,
                         'snr': ...,
+                        'snr_error': ...,
                         'center_0': ...,
                         'center_0_error': ...,
-                        'center_1': ...,
-                        'center_1_error': ...,
                         'std_0': ...,
                         'std_0_error': ...,
-                        'std_1': ...,
-                        'std_1_error': ...,
-                        'avg_photons': ...,
-                        'avg_photons_error': ...,
-                        'cross_talk': ...,
-                        'cross_talk_error': ...,
+                        'std_increment': ...,
+                        'std_increment_error': ...,
+                        'scaling_factors': ...,
+                        'scaling_factors_errors': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_21
                     },
                     channel2: {
                         'gain': gain_value_22,
+                        'gain_error': ...,
                         'snr': ...,
+                        'snr_error': ...,
                         'center_0': ...,
                         'center_0_error': ...,
-                        'center_1': ...,
-                        'center_1_error': ...,
                         'std_0': ...,
                         'std_0_error': ...,
-                        'std_1': ...,
-                        'std_1_error': ...,
-                        'avg_photons': ...,
-                        'avg_photons_error': ...,
-                        'cross_talk': ...,
-                        'cross_talk_error': ...,
+                        'std_increment': ...,
+                        'std_increment_error': ...,
+                        'scaling_factors': ...,
+                        'scaling_factors_errors': ...,
                         'SPE_mean_amplitude': ...,
                         'SPE_mean_adcs': SPE_mean_adcs_value_22
                     },
@@ -1834,19 +1900,17 @@ def save_data_to_dataframe(
         "OV#": [],
         "OV_V": [],
         "gain": [],
+        "gain_error": [],
         "snr": [],
+        "snr_error": [],
         "center_0": [],
         "center_0_error": [],
-        "center_1": [],
-        "center_1_error": [],
         "std_0": [],
         "std_0_error": [],
-        "std_1": [],
-        "std_1_error": [],
-        "avg_photons": [],
-        "avg_photons_error": [],
-        "cross_talk": [],
-        "cross_talk_error": [],
+        "std_increment": [],
+        "std_increment_error": [],
+        "scaling_factors": [],
+        "scaling_factors_errors": [],
         "SPE_mean_amplitude": [],
         "SPE_mean_adcs": [],
         "fine_selection_baseline_i_low": [],
@@ -1872,19 +1936,17 @@ def save_data_to_dataframe(
         df['OV#'] = df['OV#'].astype(int)
         df['OV_V'] = df['OV_V'].astype(float)
         df['gain'] = df['gain'].astype(float)
+        df['gain_error'] = df['gain_error'].astype(float)
         df['snr'] = df['snr'].astype(float)
+        df['snr_error'] = df['snr_error'].astype(float)
         df['center_0'] = df['center_0'].astype(float)
         df['center_0_error'] = df['center_0_error'].astype(float)
-        df['center_1'] = df['center_1'].astype(float)
-        df['center_1_error'] = df['center_1_error'].astype(float)
         df['std_0'] = df['std_0'].astype(float)
         df['std_0_error'] = df['std_0_error'].astype(float)
-        df['std_1'] = df['std_1'].astype(float)
-        df['std_1_error'] = df['std_1_error'].astype(float)
-        df['avg_photons'] = df['avg_photons'].astype(float)
-        df['avg_photons_error'] = df['avg_photons_error'].astype(float)
-        df['cross_talk'] = df['cross_talk'].astype(float)
-        df['cross_talk_error'] = df['cross_talk_error'].astype(float)
+        df['std_increment'] = df['std_increment'].astype(float)
+        df['std_increment_error'] = df['std_increment_error'].astype(float)
+        df['scaling_factors'] = df['scaling_factors'].astype(object)
+        df['scaling_factors_errors'] = df['scaling_factors_errors'].astype(object)
         df['SPE_mean_amplitude'] = df['SPE_mean_amplitude'].astype(float)
         df['SPE_mean_adcs'] = df['SPE_mean_adcs'].astype(object) # cannot specify list[float] or np.ndarray
         df['fine_selection_baseline_i_low'] = df['fine_selection_baseline_i_low'].astype(int)
@@ -1940,6 +2002,16 @@ def save_data_to_dataframe(
                     )
                     integration_limits = (np.nan, np.nan)
 
+                aux_scaling_factors = [
+                    round(x) for x in \
+                    packed_gain_snr_and_SPE_info[endpoint][channel]["scaling_factors"]
+                ]
+
+                aux_scaling_factors_errors = [
+                    round(float(x), 2) for x in \
+                    packed_gain_snr_and_SPE_info[endpoint][channel]["scaling_factors_errors"]
+                ]
+
                 try:
                     aux_SPE_mean_amplitude = \
                         abs(packed_gain_snr_and_SPE_info[endpoint][channel]["SPE_mean_amplitude"])
@@ -1984,19 +2056,17 @@ def save_data_to_dataframe(
                         }[vendor]
                     ],
                     "gain": [packed_gain_snr_and_SPE_info[endpoint][channel]["gain"]],
+                    "gain_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["gain_error"]],
                     "snr": [packed_gain_snr_and_SPE_info[endpoint][channel]["snr"]],
+                    "snr_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["snr_error"]],
                     "center_0": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_0"]],
                     "center_0_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_0_error"]],
-                    "center_1": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_1"]],
-                    "center_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["center_1_error"]],
                     "std_0": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_0"]],
                     "std_0_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_0_error"]],
-                    "std_1": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1"]],
-                    "std_1_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_1_error"]],
-                    "avg_photons": [packed_gain_snr_and_SPE_info[endpoint][channel]["avg_photons"]],
-                    "avg_photons_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["avg_photons_error"]],
-                    "cross_talk": [packed_gain_snr_and_SPE_info[endpoint][channel]["cross_talk"]],
-                    "cross_talk_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["cross_talk_error"]],
+                    "std_increment": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_increment"]],
+                    "std_increment_error": [packed_gain_snr_and_SPE_info[endpoint][channel]["std_increment_error"]],
+                    "scaling_factors": [aux_scaling_factors],
+                    "scaling_factors_errors": [aux_scaling_factors_errors],
                     "SPE_mean_amplitude": [aux_SPE_mean_amplitude],
                     "SPE_mean_adcs": [aux_SPE_mean_adcs],
                     "fine_selection_baseline_i_low": [fine_selection_limits[0]],
@@ -3027,3 +3097,56 @@ def get_SPE_grid_plot(
             )
 
     return persistence_figure
+
+
+def apply_high_pass_filter(
+    waveform_set: WaveformSet, 
+    cutoff_frequency_hz: float = 50e+3, 
+    order: int = 3, 
+) -> None:
+    """Apply a high-pass Bessel filter to all waveforms in a WaveformSet.
+    
+    This function applies a high-pass Bessel filter to filter out low
+    frequency noise from the waveforms. The filtering is done in-place,
+    modifying the ADCs of each waveform directly. It is assumed that
+    the baseline has already been subtracted from the waveforms, and
+    that the time step of the waveforms is the same for every waveform
+    in the set. 
+    
+    Parameters
+    ----------
+    waveform_set : WaveformSet
+        The WaveformSet containing the waveforms to be filtered
+    cutoff_frequency_hz : float, default 50e+3
+        The cutoff frequency of the high-pass filter in Hz
+    order : int, default 3
+        The order of the Bessel filter
+        
+    Returns
+    -------
+    None
+        The function modifies the waveforms in-place
+    """
+
+    sampling_frequency_hz = 1. / \
+        (waveform_set.waveforms[0].time_step_ns * 1e-9)
+    
+    num_coeff, den_coeff = spsi.bessel(
+        order,
+        cutoff_frequency_hz,
+        btype='highpass',
+        analog=False,
+        output='ba',
+        norm='phase',
+        fs=sampling_frequency_hz
+    )
+    
+    for waveform in waveform_set.waveforms:
+        filtered_adcs = spsi.lfilter(
+            num_coeff,
+            den_coeff,
+            waveform.adcs
+        )
+        waveform._WaveformAdcs__set_adcs(filtered_adcs)
+
+    return

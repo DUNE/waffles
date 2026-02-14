@@ -66,6 +66,13 @@ baseliner_std_cut: 3.
 # ADC samples
 baseliner_type: 'mean'
 
+## Parameters for the high-pass filter
+# Cutoff frequency for the high-pass Bessel filter
+# (third order) applied to remove low frequency noise
+# from the waveforms, expressed in Hz. If set to null,
+# no high-pass filter is applied.
+cutoff_frequency_hz: 50.e+3
+
 ## Parameters for the coarse selection cut
 lower_limit_wrt_baseline: -200.
 upper_limit_wrt_baseline: 40.
@@ -155,7 +162,7 @@ infer_regions_for_fine_selection: true
 # infer_regions_for_fine_selection is set to False.
 # For more information, check the
 # get_fine_selection_regions() function docstring.
-baseline_region_points: 100
+baseline_region_points: 20
 
 # Number of ADC samples to consider on either side of
 # the average pulse peak for the signal region in the
@@ -326,7 +333,14 @@ average_fallback: true
 
 ## Parameters for peak fitting
 # Maximum number of peaks to fit
-max_peaks: 2
+max_peaks: 5
+
+# Required minimal horizontal distance, in number
+# of bins, between neighbouring peaks of the charge
+# histogram for them to be considered separate. It
+# is useful to avoid spotting statistical
+# fluctuations as peaks
+min_distance_between_neighbouring_peaks: 4
 
 # Minimal prominence, as a fraction
 # of the y-range, for a peak to be detected

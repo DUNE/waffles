@@ -14,6 +14,7 @@ import waffles.utils.numerical_utils as wun
 def fit_peaks_of_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
     max_peaks: int,
+    min_distance_between_neighbouring_peaks: int,
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
@@ -65,6 +66,17 @@ def fit_peaks_of_CalibrationHistogram(
         parameter of the 
         wuff.__spot_first_peaks_in_CalibrationHistogram()
         function.
+    min_distance_between_neighbouring_peaks: int
+        It must be a positive integer. It gives the
+        required minimal horizontal distance, in number
+        of bins, between neighbouring peaks of the charge
+        histogram. It is useful to avoid spotting
+        statistical fluctuations as peaks. This parameter
+        is passed to the 'min_distance_between_neighbouring_peaks'
+        parameter of the
+        wuff.__spot_first_peaks_in_CalibrationHistogram() function,
+        which uses it as the 'distance' parameter of the
+        scipy.signal.find_peaks() function.
     prominence: float
         It must be greater than 0.0 and smaller than 1.0.
         It gives the minimal prominence of the peaks to 
@@ -195,23 +207,31 @@ def fit_peaks_of_CalibrationHistogram(
             f"The given max_peaks ({max_peaks}) "
             "must be greater than 0."))
     
+    if min_distance_between_neighbouring_peaks < 1:
+        raise Exception(GenerateExceptionMessage(
+            2,
+            'fit_peaks_of_CalibrationHistogram()',
+            f"The given min_distance_between_neighbouring_peaks "
+            f"({min_distance_between_neighbouring_peaks}) must be "
+            "a positive integer."))
+    
     if prominence <= 0.0 or prominence >= 1.0:
         raise Exception(GenerateExceptionMessage( 
-            2,
+            3,
             'fit_peaks_of_CalibrationHistogram()',
             f"The given prominence ({prominence}) "
             "must be greater than 0.0 and smaller than 1.0."))
     
     if initial_percentage <= 0.0 or initial_percentage >= 1.0:
         raise Exception(GenerateExceptionMessage( 
-            3,
+            4,
             'fit_peaks_of_CalibrationHistogram()',
             f"The given initial_percentage ({initial_percentage})"
             " must be greater than 0.0 and smaller than 1.0."))
 
     if percentage_step <= 0.0 or percentage_step >= 1.0:
         raise Exception(GenerateExceptionMessage(
-            4,
+            5,
             'fit_peaks_of_CalibrationHistogram()',
             f"The given percentage_step ({percentage_step})"
             " must be greater than 0.0 and smaller than 1.0."))
@@ -221,6 +241,7 @@ def fit_peaks_of_CalibrationHistogram(
     fFoundMax, spsi_output = wuff.__spot_first_peaks_in_CalibrationHistogram(   
         calibration_histogram,
         max_peaks,
+        min_distance_between_neighbouring_peaks,
         prominence,
         initial_percentage=initial_percentage,
         percentage_step=percentage_step,
@@ -363,6 +384,7 @@ def fit_peaks_of_CalibrationHistogram(
 def fit_peaks_of_ChannelWsGrid( 
     channel_ws_grid: ChannelWsGrid,
     max_peaks: int,
+    min_distance_between_neighbouring_peaks: int,
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
@@ -400,7 +422,18 @@ def fit_peaks_of_ChannelWsGrid(
         searched for in each calibration histogram.
         It is given to the 'max_peaks' parameter of
         the fit_peaks_of_CalibrationHistogram()
-        function for each calibration histogram.    
+        function for each calibration histogram.
+    min_distance_between_neighbouring_peaks: int
+        It must be a positive integer. It gives the
+        required minimal horizontal distance, in number
+        of bins, between neighbouring peaks of the charge
+        histogram. It is useful to avoid spotting
+        statistical fluctuations as peaks. This parameter
+        is passed to the
+        'min_distance_between_neighbouring_peaks' parameter
+        of the fit_peaks_of_CalibrationHistogram() function.
+        For more information, check the documentation of
+        such function.
     prominence: float
         It must be greater than 0.0 and smaller than 
         1.0. It gives the minimal prominence of the 
@@ -494,6 +527,7 @@ def fit_peaks_of_ChannelWsGrid(
                 output *= fit_peaks_of_CalibrationHistogram(
                     channel_ws.calib_histo,
                     max_peaks,
+                    min_distance_between_neighbouring_peaks,
                     prominence,
                     initial_percentage=initial_percentage,
                     percentage_step=percentage_step,

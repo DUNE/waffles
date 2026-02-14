@@ -109,6 +109,16 @@ class Analysis1(WafflesAnalysis):
                 "of the selected ADC samples",
             )
 
+            cutoff_frequency_hz: float | None = Field(
+                default=None,
+                description="Cutoff frequency for the high-pass "
+                "Bessel filter (third order) applied to remove "
+                "low frequency noise from the waveforms, "
+                "expressed in Hz. If None, no high-pass filter "
+                "is applied.",
+                example=50.e+3
+            )
+
             lower_limit_wrt_baseline: float = Field(
                 ...,
                 description="It is used for the coarse selection "
@@ -141,7 +151,7 @@ class Analysis1(WafflesAnalysis):
                 "SPE templates used for the correlation alignment. "
                 "The CSV file must contain the columns 'batch', 'APA', "
                 "'PDE', 'endpoint', 'channel', 'vendor', 'center_0', "
-                "'center_1' and 'SPE_mean_adcs'.",
+                "'gain' and 'SPE_mean_adcs'.",
                 example='./configs/alignment_seeds_filepath.csv'
             )
 
@@ -418,6 +428,16 @@ class Analysis1(WafflesAnalysis):
                 description="Maximum number of peaks to fit in "
                 "each charge histogram",
                 example=2
+            )
+
+            min_distance_between_neighbouring_peaks: int = Field(
+                ...,
+                description="Required minimal horizontal distance, "
+                "in number of bins, between neighbouring peaks of "
+                "the charge histogram for them to be considered "
+                "separate. It is useful to avoid spotting statistical "
+                "fluctuations as peaks.",
+                example=5
             )
 
             prominence: float = Field(
@@ -825,6 +845,31 @@ class Analysis1(WafflesAnalysis):
             overwrite=True
         )
 
+        # Apply high-pass filter to remove low frequency noise (if enabled)
+        if self.params.cutoff_frequency_hz is not None:
+            if self.params.verbose:
+                print(
+                    "In function Analysis1.analyze(): "
+                    "Applying high-pass filter with cutoff frequency "
+                    f"{self.params.cutoff_frequency_hz:.0f} Hz to batch "
+                    f"{self.batch}, APA {self.apa}, and PDE {self.pde} ... ",
+                    end=''
+                )
+            
+            led_utils.apply_high_pass_filter(
+                self.wfset, 
+                cutoff_frequency_hz=self.params.cutoff_frequency_hz
+            )
+            
+            if self.params.verbose:
+                print("Finished.")
+
+        elif self.params.verbose:
+            print(
+                "In function Analysis1.analyze(): "
+                "Skipping high-pass filter (cutoff_frequency_hz is None)"
+            )
+
         if self.params.verbose:
             print(
                 "In function Analysis1.analyze(): "
@@ -900,8 +945,7 @@ class Analysis1(WafflesAnalysis):
 
                     led_utils.align_waveforms_by_correlation(
                         self.grid_apa.ch_wf_sets[endpoint][channel],
-                        aux['center_0'],
-                        aux['center_1'],
+                        aux['gain'],
                         aux['SPE_mean_adcs'],
                         self.params.integrate_entire_pulse,
                         # Assuming that the baseline has already been
@@ -1177,6 +1221,7 @@ class Analysis1(WafflesAnalysis):
         fit_peaks_of_ChannelWsGrid( 
             self.grid_apa,
             self.params.max_peaks,
+            self.params.min_distance_between_neighbouring_peaks,
             self.params.prominence,
             initial_percentage=self.params.initial_percentage,
             percentage_step=self.params.percentage_step,

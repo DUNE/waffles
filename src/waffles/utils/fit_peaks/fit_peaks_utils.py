@@ -59,6 +59,7 @@ def trim_spsi_find_peaks_output_to_max_peaks(
 def __spot_first_peaks_in_CalibrationHistogram(
     calibration_histogram: CalibrationHistogram,
     max_peaks: int,
+    min_distance_between_neighbouring_peaks: int,
     prominence: float,
     initial_percentage: float = 0.1,
     percentage_step: float = 0.1,
@@ -74,8 +75,11 @@ def __spot_first_peaks_in_CalibrationHistogram(
 
     This function iteratively calls
 
-        scipy.signal.find_peaks(signal[0:points], 
-                                prominence = prominence)
+        scipy.signal.find_peaks(
+            signal[0:points],
+            distance=min_distance_between_neighbouring_peaks,
+            prominence=prominence
+        )
 
     to spot, at most, max_peaks peaks. To do so, at the 
     first iteration, points is computed as 
@@ -90,8 +94,11 @@ def __spot_first_peaks_in_CalibrationHistogram(
     len(signal), then scipy.signal.find_peaks() is called 
     one last time as
 
-        scipy.signal.find_peaks(signal, 
-                                prominence = prominence)
+        scipy.signal.find_peaks(
+            signal, 
+            distance=min_distance_between_neighbouring_peaks,
+            prominence=prominence
+        )
 
     If the last call found a number of peaks smaller than
     max_peaks, then this function returns (False, peaks),
@@ -121,6 +128,15 @@ def __spot_first_peaks_in_CalibrationHistogram(
         The maximum number of peaks to spot. It must 
         be a positive integer. This is not checked here, 
         it is the caller's responsibility to ensure this.
+    min_distance_between_neighbouring_peaks: int
+        The distance parameter to pass to the
+        scipy.signal.find_peaks() function. It gives the
+        required minimal horizontal distance, in number of
+        bins, between neighbouring peaks of the charge
+        histogram. It is useful to avoid spotting
+        statistical fluctuations as peaks. For more
+        information, check the scipy.signal.find_peaks()
+        documentation.
     prominence: float
         The prominence parameter to pass to the
         scipy.signal.find_peaks() function. Since the
@@ -193,6 +209,7 @@ def __spot_first_peaks_in_CalibrationHistogram(
 
         spsi_output = spsi.find_peaks(
             signal[0:points],
+            distance=min_distance_between_neighbouring_peaks,
             prominence=prominence,
             width=0,
             rel_height=0.5
@@ -349,7 +366,12 @@ def __fit_independent_gaussians_to_calibration_histogram(
                 aux_counts,
                 p0=aux_seeds,
                 sigma=sigma,
-                absolute_sigma=weigh_fit_by_poisson_sigmas
+                absolute_sigma=weigh_fit_by_poisson_sigmas,
+                bounds=(
+                    [0., -np.inf, 0.],
+                    [np.inf, np.inf, np.inf]
+                ),
+                method='trf'
             )
             
         # Happens if scipy.optimize.curve_fit()
@@ -511,8 +533,6 @@ def __fit_correlated_gaussians_to_calibration_histogram(
 
         if peaks_n_to_fit >= 2:
 
-            second_peak_idx = spsi_output[0][1]
-
             fitting_function = lambda \
                 x, \
                 mean_0, \
@@ -528,32 +548,74 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                     std_0,
                     std_increment,
                 )
+            
+            bounds = (
+                [-np.inf, 0., 0., 0., *([0.] * peaks_n_to_fit)],
+                [np.inf, np.inf, np.inf, np.inf, *([np.inf] * peaks_n_to_fit)]
+            )
 
-            # Needed for the computation of the
-            # mean_increment seed
-            mean_1_seed = (calibration_histogram.edges[
-                second_peak_idx
-            ] + calibration_histogram.edges[
-                second_peak_idx + 1
-            ]) / 2.
+            # Compute the mean_increment seed as the
+            # average distance between any two adjacent peaks
+            peaks_positions = [
+                (
+                    calibration_histogram.edges[idx] + \
+                    calibration_histogram.edges[idx + 1]
+                ) / 2.
+                for idx in spsi_output[0][0:peaks_n_to_fit]
+            ]
 
             # mean_increment seed for fitting_function
-            mean_increment_seed = mean_1_seed - mean_0_seed
+            mean_increment_seed_samples = np.diff(peaks_positions)
+            mean_increment_seed = mean_increment_seed_samples[0]
 
-            # Needed for the computation of the std_increment
-            # seed
-            std_1_seed = spsi_output[1]['widths'][1] * \
-                calibration_histogram.mean_bin_width / 2.355
+            fFoundPeaksAreConsecutive = True
+
+            # The loop happens at least once if peaks_n_to_fit > 2
+            for i in range(1, peaks_n_to_fit - 1):
+                # It may happen that one of the actual charge peaks is skipped
+                # by the peak finder (p.e. if the statistical fluctuations make
+                # it less prominent than the required prominence), making two
+                # "adjacent" peaks to be actually separated by twice the mean
+                # increment seed. In these cases (if the peak finder is not
+                # able to find a consecutive set of peaks) try to look for a
+                # smaller number of peaks until the found set is consecutive.
+                if abs(mean_increment_seed_samples[i] - (2. * mean_increment_seed_samples[0])) \
+                    < abs(mean_increment_seed_samples[i] - mean_increment_seed_samples[0]):
+
+                    fFoundPeaksAreConsecutive = False
+                else:
+                    mean_increment_seed += mean_increment_seed_samples[i]
+
+            if not fFoundPeaksAreConsecutive:
+                fFitAll = False
+                peaks_n_to_fit -= 1
+                if peaks_n_to_fit == 0:
+                    fTryAgain = False
+                continue
+
+            mean_increment_seed = mean_increment_seed / (peaks_n_to_fit - 1)
 
             # std_increment seed for fitting_function
-            # Using std_i = ((std_0^2) + (i * (std_increment^2))) ** 0.5
-            # for i=1
-            if std_1_seed > std_0_seed:
-                std_increment_seed = ((std_1_seed ** 2) - \
-                    (std_0_seed ** 2)) ** 0.5
+            # By definition of
+            # std_i = ((std_0^2) + (i * (std_increment^2))) ** 0.5,
+            # a seed for std_increment can be computed for each pair
+            # of adjacent peaks as
+            # std_increment_seed = ((std_i_seed^2) - (std_(i-1)_seed^2)) ** 0.5
+            # long as the second peak has a bigger standard deviation seed
+            # than the first one.
+            aux = 0
+            std_increment_seed = 0.
+            for i in range(0, peaks_n_to_fit - 1):
+                if spsi_output[1]['widths'][i + 1] > spsi_output[1]['widths'][i]:
+                    aux += 1
+                    std_increment_seed += \
+                        ((spsi_output[1]['widths'][i + 1] ** 2) - \
+                        (spsi_output[1]['widths'][i] ** 2)) ** 0.5
+            if aux > 0:
+                std_increment_seed /= aux
             else:
                 std_increment_seed = std_increment_seed_fallback
-            
+                                        
             # scaling_factors seed for fitting_function
             scaling_factors_seed = [
                 calibration_histogram.counts[idx] 
@@ -583,6 +645,11 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                     std_0,
                     0.,
                 )
+            
+            bounds = (
+                [-np.inf, 0., 0.],
+                [np.inf, np.inf, np.inf]
+            )
             
             # scaling_factors seed for fitting_function
             scaling_0_seed = calibration_histogram.counts[
@@ -641,7 +708,9 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 fit_y,
                 p0=aux_seeds,
                 sigma=sigma,
-                absolute_sigma=weigh_fit_by_poisson_sigmas
+                absolute_sigma=weigh_fit_by_poisson_sigmas,
+                bounds=bounds,
+                method='trf'
             )
             
         # Happens if scipy.optimize.curve_fit()
@@ -704,6 +773,16 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                     ith_optimal_std,
                     ith_std_error
                 )
+
+            calibration_histogram._CalibrationHistogram__add_other_entry_to_gaussian_fits_parameters(
+                'mean_increment',
+                (aux_optimal_parameters[1], aux_errors[1]),
+            )
+
+            calibration_histogram._CalibrationHistogram__add_other_entry_to_gaussian_fits_parameters(
+                'std_increment',
+                (aux_optimal_parameters[3], aux_errors[3]),
+            )
 
         else:
 
