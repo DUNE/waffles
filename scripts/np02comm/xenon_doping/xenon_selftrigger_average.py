@@ -17,17 +17,30 @@ from waffles.utils.numerical_utils import average_wf_ch
 from waffles.utils.selector_waveforms import WaveformSelector
 from waffles.np02_utils.AutoMap import dict_uniqch_to_module, dict_module_to_uniqch, strUch, ordered_channels_membrane, ordered_channels_cathode
 from waffles.np02_utils.PlotUtils import runBasicWfAnaNP02, plot_detectors
-from waffles.np02_utils.load_utils import open_processed
+from waffles.np02_utils.load_utils import open_processed, remove_extra_channels_membrane
+
+from utils import DEFAULT_RESPONSE, PATH_XE_AVERAGES
 
 
-def main(run, dettype, datadir, nwaveforms=None, outputdir="./", cutyaml="cuts.yaml", saveplots=False):
+def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, dryrun=False):
 
     endpoint = 106 if dettype == "cathode" else 107
-    if outputdir == "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/xenon_averages/":
-        outputdir = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/xenon_averages/{os.getlogin()}/"
+    # Ensures same standard for the analysis name, so it can be easily identified and sorted in the output directory
+    analysisname = analysisname.replace("-", "_")
+    if outputdir.absolute().as_posix() == Path(PATH_XE_AVERAGES).as_posix():
+        analysisname = analysisname + '-' + os.getlogin()
+
+    outputdir = outputdir / analysisname
+    averages_dir = Path(outputdir) / f"run{run:06d}_{dettype}_response"
+
+    if dryrun:
+        print(f"Run: {run}, will be processed and saved in {averages_dir.absolute().as_posix()}")
+        return
 
 
     wfset_full = open_processed(run, dettype, datadir, nwaveforms=nwaveforms, mergefiles=True, file_slice=slice(None,None))
+
+    wfset_full = WaveformSet.from_filtered_WaveformSet(wfset_full, remove_extra_channels_membrane)
 
 
     runBasicWfAnaNP02(wfset_full, onlyoptimal=False, baselinefinish=60, int_ll=64, int_ul=100, amp_ll=64, amp_ul=150, configyaml="")
@@ -48,15 +61,14 @@ def main(run, dettype, datadir, nwaveforms=None, outputdir="./", cutyaml="cuts.y
     for ch, wfs in wfsetch.items():
         averages[ch] = average_wf_ch(wfs,show_progress=True)
 
-    template_dir = Path(outputdir) / f"run{run:06d}_{dettype}_response"
     # Create with permission 775 to allow group members to read and write the files
-    template_dir.mkdir(exist_ok=True, parents=True)
-    template_dir.chmod(0o775) # apparently it needs to be done after
+    averages_dir.mkdir(exist_ok=True, parents=True)
+    averages_dir.chmod(0o775) # apparently it needs to be done after
 
     # Create a README file with some information about the templates
     # Keep permisson restricted, so there is no overlap with other users
     # Saves the number of averages waveforms in each channel
-    with open(template_dir / "README.md", "w", ) as f:
+    with open(averages_dir / "README.md", "w", ) as f:
         f.write(f"Run: {run}\n")
         f.write(f"Detector type: {dettype}\n")
         f.write(f"Number of waveforms averaged in each channel:\n")
@@ -64,14 +76,14 @@ def main(run, dettype, datadir, nwaveforms=None, outputdir="./", cutyaml="cuts.y
             f.write(f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: {len(wfs.waveforms)} waveforms\n")
 
     # Saves the yaml cuts used to select the waveforms as cuts_used.yaml in the same directory
-    with open(template_dir / "cuts_used.yaml", "w") as f:
+    with open(averages_dir / "cuts_used.yaml", "w") as f:
         with open(cutyaml, "r") as fcuts:
             f.write(fcuts.read())
 
     # Save the average waveforms as numpy arrays
     # The filename is "average_endpoint{endpoint}_ch{ch}.txt"
     for ch, avg in averages.items():
-        np.savetxt(template_dir / f"average-endpoint-{endpoint}-ch-{ch}.txt", avg)
+        np.savetxt(averages_dir / f"average-endpoint-{endpoint}-ch-{ch}.txt", avg)
 
 
     if saveplots:
@@ -95,30 +107,33 @@ def main(run, dettype, datadir, nwaveforms=None, outputdir="./", cutyaml="cuts.y
             cols=2,
         )
 
-        htmlname = template_dir / f"persistence_selected.html"
+        htmlname = averages_dir / f"persistence_selected.html"
         detector = groupall
-        plot_detectors(wfset_clean, detector, html=htmlname, **argsheat)
+        plot_detectors(wfset_clean, detector, html=htmlname, **argsheat) # type: ignore
 
 if __name__ == "__main__":
-    argp = argparse.ArgumentParser(description="Generate average waveforms for a given run and detector type.")
+    argp = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="Generate average waveforms for a given run and detector type.")
     argp.add_argument("--runs", nargs="+", type=int, default=[39510], help="List of runs to process.")
     argp.add_argument("--dettype", type=str, default="m", choices=["m", "c"], help="Detector type to process.")
     argp.add_argument("--datadir", type=str, default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/", help="Directory where the processed waveform files are located.")
     argp.add_argument("--nwaveforms", type=int, default=None, help="Maximum number of waveforms to load for each channel.")
-    argp.add_argument("--outputdir", type=str, default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/xenon_averages/", help="Directory where the average waveforms will be saved.")
+    argp.add_argument("--outputdir", type=str, default=PATH_XE_AVERAGES, help="Directory where the average waveforms will be saved.")
     argp.add_argument("--cutyaml", type=str, default="cuts.yaml", help="YAML file containing the cuts to apply to the waveforms.")
     argp.add_argument("--saveplots", action="store_true", help="Whether to save the persistence plots of the waveforms.")
+    argp.add_argument("--analysisname", type=str, default=DEFAULT_RESPONSE, help="Name of the analysis, used to create a subdirectory in the output directory.")
+    argp.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
 
     args = argp.parse_args()
     runs = args.runs
     dettype = args.dettype
     datadir = args.datadir
     nwaveforms = args.nwaveforms
-    outputdir = args.outputdir
+    outputdir = Path(args.outputdir)
     cutyaml = args.cutyaml
     saveplots = args.saveplots
+    analysisname = args.analysisname
 
     dettype = "membrane" if dettype == "m" else "cathode"
 
     for run in runs:
-        main(run, dettype, datadir, nwaveforms, outputdir=outputdir, cutyaml=cutyaml, saveplots=saveplots)
+        main(run, dettype, datadir, analysisname, nwaveforms, outputdir=outputdir, cutyaml=cutyaml, saveplots=saveplots, dryrun=args.dryrun)

@@ -11,14 +11,15 @@ from scipy import interpolate
 
 class ConvFitter:
     def __init__(self, 
-                 threshold_align_template = 0.27, 
-                 threshold_align_response = 0.1, 
-                 error = 10,
-                 dointerpolation = False, 
-                 interpolation_factor = 8,
-                 align_waveforms: bool=True,
-                 dtime = 16,
-                 convtype = 'time'
+                 threshold_align_template:float = 0.27, 
+                 threshold_align_response:float = 0.1, 
+                 error:float = 10,
+                 dointerpolation:bool = False, 
+                 interpolation_factor:int = 8,
+                 align_waveforms:bool=True,
+                 dtime:int = 16,
+                 convtype:str = 'time',
+                 scinttype:str = 'lar'
                  ):
         """ This class is used to fit a template waveform to a response waveform using a convolution model of LAr response.
 
@@ -70,16 +71,19 @@ class ConvFitter:
         self.response:np.ndarray
         self.dtime = dtime
         self.convtype = convtype
+        self.scinttype = scinttype
+        self.chi2 = -1
+        self.m: Minuit
 
-    #################################################
+    ##################################################
     def set_template_waveform(self, wvf: np.ndarray):
         self.template = wvf.copy()
 
-    #################################################
+    ##################################################
     def set_response_waveform(self, wvf: np.ndarray):
         self.response = wvf.copy()
 
-    #################################################
+    ##################################################
     def prepare_waveforms(self):    
 
         if self.dointerpolation:                        
@@ -97,8 +101,8 @@ class ConvFitter:
         if self.convtype == 'fft':
             self.templatefft = FFTWaffles.getFFT(self.template)
 
-    #################################################
-    def interpolate(self, wf:np.ndarray, interpolation_factor: int):
+    ##################################################
+    def interpolate(self, wf:np.ndarray, interpolation_factor: int) -> np.ndarray:
 
         # Create an array of times with 16 ns tick width 
         tick_width = self.dtime
@@ -118,9 +122,11 @@ class ConvFitter:
 
         return wf
 
-    #################################################
-    def fit(self, scan: int = 0, print_flag: bool = False):
+    ##################################################
+    def fit(self, scan: int = 0, print_flag: bool = False, oneexp: bool = False):
+        xenon_fit = False if self.scinttype == 'lar' else True
 
+        idxMinChi2 = 0
         # scan over offsets to minimize the chi2 between the response and the template x model
         if scan > 0:
 
@@ -129,13 +135,26 @@ class ConvFitter:
 
             chi2s = []
             offsets = np.arange(0, scan)
-            print ('    scanning over offsets to minimize chi2 between the response and the template x model')
+            if print_flag:
+                print ('    scanning over offsets to minimize chi2 between the response and the template x model', len(offsets), 'offsets to scan')
             for offset in offsets:
                 self.response = np.roll(resp_original, offset, axis=0)
                 self.response = self.response[offset:]
                 self.template = temp_original[offset:]
+                if len(self.response)%2 == 1 and self.convtype == 'fft':
+                    self.response = self.response[:-1]
+                    self.template = self.template[:-1]
                 self.templatefft = FFTWaffles.getFFT(self.template)
-                params, chi2 = self.minimize(False)
+                if not xenon_fit:
+                    params, chi2 = self.minimize(printresult=False)
+                else:
+                    params, chi2 = self.minimize_larxe(printresult=False)
+                mfmin: FMin = self.m.fmin
+                if not mfmin.is_valid:
+                    chi2 *= 10 # Penalize invalid fits by doubling the chi2
+                if mfmin.has_parameters_at_limit:
+                    chi2 *= 2
+
                 chi2s.append(chi2)
                 if(print_flag): print(offset, params, chi2)
 
@@ -144,28 +163,38 @@ class ConvFitter:
             self.response = np.roll(resp_original, offsets[idxMinChi2], axis=0)
             self.response = self.response[offsets[idxMinChi2]:]
             self.template = temp_original[offsets[idxMinChi2]:]
+            if len(self.response)%2 == 1 and self.convtype == 'fft':
+                self.response = self.response[:-1]
+                self.template = self.template[:-1]
+
             self.templatefft = FFTWaffles.getFFT(self.template)
 
         # recompute parameters for the minimum chi2
-        params, chi2 = self.minimize(print_flag)
-        if(print_flag): print(params, chi2)
-
+        params, chi2 = self.minimize(printresult=print_flag, oneexp=oneexp)
+        if not xenon_fit:
+            params, chi2 = self.minimize(printresult=print_flag, oneexp=oneexp)
+        else:
+            params, chi2 = self.minimize_larxe(printresult=False)
         self.fit_results = params
+        self.chi2 = chi2
 
-    #################################################
+        if(print_flag): print(params, chi2, idxMinChi2)
+
+
+    ##################################################
     def lar_convolution_time(self, t, A, fp, t1, t3):
         self.lar = A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
         return np.convolve(self.lar,self.template,mode='full')[:len(self.lar)]
 
-    #################################################
+    ##################################################
     def lar_convolution_freq(self, t, A, fp, t1, t3):
         self.lar = A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
         larfreq = FFTWaffles.getFFT(self.lar)
         res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
         return np.real(res)
 
-    #################################################
-    def minimize(self, printresult:bool):
+    ##################################################
+    def minimize(self, printresult:bool, oneexp:bool=False):
 
         tick_width = self.dtime if not self.dointerpolation else self.dtime/self.interpolation_factor
         nticks = len(self.response)
@@ -181,9 +210,12 @@ class ConvFitter:
         # mcost = self.mycost
 
         A = 10e3
-        fp = 0.3
+        fp = 0.3 if not oneexp else 1
         t1 = 35.
         t3 = 1600.
+        if oneexp:
+            t3 = 35
+            fp = 0.95
 
         m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3)
 
@@ -191,25 +223,98 @@ class ConvFitter:
         m.limits['fp'] = (0,1)
         m.limits['t1'] = (2,50)
         m.limits['t3'] = (500,2000)
-
-
+        if oneexp:
+            m.limits['t3'] = (0,100)
         m.fixed['fp'] =True
         m.migrad()
         m.migrad()
         m.migrad()
-        m.fixed['fp'] = False
+        m.fixed['fp'] = False 
         m.migrad()
         m.migrad()
         m.migrad()
+        m.hesse()
 
         pars = describe(self.model)[1:]
         params = [m.values[p] for p in pars]
 
-        self.m = m
+        self.m: Minuit = m
         if printresult:
             print(m)
 
         chi2res: float = 0
         if isinstance(m.fmin, FMin):
             chi2res = m.fmin.reduced_chi2
+        self.chi2 = chi2res
+        return params, chi2res
+    
+
+
+    #######  ADDED DUE TO XENON DOPING ON NP02 #######
+    ##################################################
+    def larxe_convolution_time(self, t, A, fp, fs, t1, t3, td):
+        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 + (1-fp-fs)*np.exp(-t/td)/td)
+        return np.convolve(self.lar,self.template,mode='full')[:len(self.lar)]
+
+    ##################################################
+    def larxe_convolution_freq(self, t, A, fp, fs, t1, t3, td):
+        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 + (1-fp-fs)*np.exp(-t/td)/td)
+        larfreq = FFTWaffles.getFFT(self.lar)
+        res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
+        return np.real(res)
+
+    ##################################################
+    def minimize_larxe(self, printresult:bool):
+
+        tick_width = self.dtime if not self.dointerpolation else self.dtime/self.interpolation_factor
+        nticks = len(self.response)
+
+        times  = np.linspace(0, tick_width*nticks, nticks,endpoint=False)
+        errors = np.ones(nticks)*self.error
+
+        if self.convtype == 'time':
+            self.model = self.larxe_convolution_time
+        elif self.convtype == 'fft':
+            self.model = self.larxe_convolution_freq
+        mcost = cost.LeastSquares(times, self.response, errors, self.model)
+        # mcost = self.mycost
+
+        A = 10e3
+        fp = 0.3
+        fs = 1-fp-0.1
+
+        t1 = 35.
+        t3 = 1200.
+        td = 50.
+
+
+        m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3)
+
+        m.limits['A'] = (0,None)
+        m.limits['fp'] = (0,1)
+        m.limits['t1'] = (2,50)
+        m.limits['t3'] = (500,2000)
+        m.fixed['fp'] =True
+        m.fixed['fs'] =True
+        m.migrad()
+        m.migrad()
+        m.migrad()
+        m.fixed['fp'] = False 
+        m.fixed['fs'] = False 
+        m.migrad()
+        m.migrad()
+        m.migrad()
+        m.hesse()
+
+        pars = describe(self.model)[1:]
+        params = [m.values[p] for p in pars]
+
+        self.m: Minuit = m
+        if printresult:
+            print(m)
+
+        chi2res: float = 0
+        if isinstance(m.fmin, FMin):
+            chi2res = m.fmin.reduced_chi2
+        self.chi2 = chi2res
         return params, chi2res

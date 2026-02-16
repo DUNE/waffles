@@ -10,15 +10,16 @@ import matplotlib.pyplot as plt
 
 class ConvFitterVDWrapper(ConvFitter):
     def __init__(self, 
-                 threshold_align_template = 0.27, 
-                 threshold_align_response = 0.1, 
-                 error=10,
-                 dointerpolation=False, 
-                 interpolation_factor = 8,
-                 align_waveforms: bool=True,
-                 dtime=16,
-                 convtype = 'time',
-                 usemplhep=True, 
+                 threshold_align_template:float = 0.27, 
+                 threshold_align_response:float = 0.1, 
+                 error:float = 10,
+                 dointerpolation:bool = False, 
+                 interpolation_factor:int = 8,
+                 align_waveforms:bool=True,
+                 dtime:int = 16,
+                 convtype:str = 'time',
+                 usemplhep:bool = True, 
+                 scinttype:str = 'lar'
                  ):
         super().__init__(
             threshold_align_template = threshold_align_template, 
@@ -28,7 +29,8 @@ class ConvFitterVDWrapper(ConvFitter):
             interpolation_factor = interpolation_factor,
             align_waveforms = align_waveforms,
             dtime = dtime,
-            convtype = convtype
+            convtype = convtype,
+            scinttype = scinttype
         )
 
         self.usemplhep = usemplhep
@@ -39,7 +41,7 @@ class ConvFitterVDWrapper(ConvFitter):
         self.response = wfresponse.astype(np.float32)
 
     #################################################
-    def plot(self):
+    def plot(self, newplot=False):
 
 
         # root ploting style
@@ -60,8 +62,9 @@ class ConvFitterVDWrapper(ConvFitter):
         nticks = len(self.response)
         times  = np.linspace(0, tick_width*nticks, nticks,endpoint=False)
 
-        # create new figure
-        plt.figure()
+        if newplot:
+            # create new figure
+            plt.figure()
 
         # do the plot
         plt.plot(times, self.response,'-', lw=2 ,color='k', label='data')
@@ -77,12 +80,15 @@ class ConvFitterVDWrapper(ConvFitter):
         mapnames = {
             'A': 'Norm.',
             'fp': 'A_\\text{fast}',
+            'fs': 'A_\\text{slow}',
             't1': '\\tau_\\text{fast}',
             't3': '\\tau_\\text{slow}',
+            'td': '\\tau_\\text{delay}',
         }
 
         for p, v, e in zip(self.m.parameters, self.m.values, self.m.errors):
-            fit_info.append(f"${mapnames[p]}$ = ${v:.3f} \\pm {e:.3f}$")
+            if p in mapnames:
+                fit_info.append(f"${mapnames[p]}$ = ${v:.3f} \\pm {e:.3f}$")
         plt.plot([],[], ' ', label='\n'.join(fit_info))
         plt.xlabel('Time [ns]')
         plt.ylabel('Amplitude [ADC]')
