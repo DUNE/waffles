@@ -57,7 +57,7 @@ def main(run, outputdir):
     group4 = [ f"{dletter}{detnum}({chnum})" for detnum in range(7, 9) for chnum in range(1,3) ]
     groupall = group1+group2+group3+group4
 
-    calib_values = ch_read_calib('np02-config-v3.0.0.csv')
+    calib_values = ch_read_calib('np02-config-v5.0.0.csv')
     list_of_unch = ordered_channels_cathode
 
 
@@ -360,7 +360,6 @@ if __name__ == "__main__":
     parser.add_argument("--runs", type=int, nargs='+', help="List of run numbers to process", required=True)
     parser.add_argument("--output-dir", type=str, default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/beam_csv_files/", help="Output folder to save results")
     args = parser.parse_args()
-    run = args.run
     outputdir = args.output_dir
     for run in args.runs:
         main(run, args.output_dir)

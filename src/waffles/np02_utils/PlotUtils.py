@@ -799,7 +799,7 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
         
     return fig
 
-def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, save: bool = False, save_dir: Optional[str] = None):
+def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:dict, save: bool = False, save_dir: Optional[str] = None):
 
     """
     Plot normalized average waveforms for each channel in a ChannelWsGrid.
@@ -816,9 +816,7 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, sav
         Plotly Figure object containing subplots for each channel.
     g : ChannelWsGrid
         Grid object containing waveform sets for multiple channels.
-    spe_by_channel : dict
-        Dictionary mapping channel numbers to single photoelectron (SPE) amplitudes.
-        Used for normalizing the waveform.
+    spe_amp : SPE amplitude taken from calibration file
     save : bool, optional
         If True, normalized waveforms are saved to text files. Default is False.
     save_dir : str, optional
@@ -839,7 +837,7 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, sav
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
         row += 1
         col += 1
-        
+       
         if str(uch) not in dict_uniqch_to_module:
             continue
         if uch.channel not in g.ch_wf_sets[uch.endpoint]:
@@ -850,17 +848,13 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, sav
         time = np.arange(avg.size)
 
         ch = uch.channel
-        if ch not in spe_by_channel:
-            print(f"Missing calibration for channel {ch}")
-            continue
-
-        spe_amp = spe_by_channel[ch]
+        run = list(wfch.runs)[0]
         peak_avg = np.max(avg)
 
         if peak_avg == 0:
             print(f"Zero peak for channel {ch}")
             continue
-
+        spe_amp = calibration_data[uch.endpoint][uch.channel]["SpeAmpl"]
         avg_norm = avg * (spe_amp / peak_avg )
 
         if save:
@@ -874,7 +868,7 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, sav
             module_for_title = module_name[:2]
             channel_for_title = module_name[3]
 
-            filename = f"template_{module_for_title}_{channel_for_title}.txt"
+            filename = f"template_{run}_{module_for_title}_{channel_for_title}.txt"
             filepath = os.path.join(save_dir, filename)
 
             np.savetxt(
