@@ -1,17 +1,10 @@
 import numpy as np
-<<<<<<< HEAD:src/waffles/np04_analysis/tau_slow_convolution/ConvFitter.py
-import pickle
-<<<<<<< HEAD
-=======
-import os
->>>>>>> main
-=======
->>>>>>> main:src/waffles/utils/convolution/ConvFitter.py
 import waffles.utils.time_align_utils as tutils
 
 from iminuit import Minuit, cost
 from iminuit.util import describe
 from iminuit.util import FMin
+from waffles.utils.fft.fftutils import FFTWaffles
 from waffles.utils.convolution.ConvUtils import *
 
 from scipy import interpolate
@@ -83,40 +76,8 @@ class ConvFitter:
         self.template = wvf.copy()
 
     #################################################
-<<<<<<< HEAD:src/waffles/np04_analysis/tau_slow_convolution/ConvFitter.py
-    def parse_input(self,file):
-<<<<<<< HEAD
-=======
-        if os.path.isfile(file) is not True:
-            print("No response from", file)
-            exit(0)        
->>>>>>> main
-        try:
-            with open(file, 'rb') as f:
-                finput = pickle.load(f)
-        except Exception as error:
-            print(error)
-<<<<<<< HEAD
-            print("No response from", file)
-=======
-            print("Could not load file", file)
->>>>>>> main
-            exit(0)
-
-        keys = ["avgwvf", "firsttime", "nselected"]
-
-        output = {}
-        try:
-            for k, v in zip(keys, finput):
-                output[k] = v
-        except Exception as error:
-            print(error)
-            exit(0)
-        return output
-=======
     def set_response_waveform(self, wvf: np.ndarray):
         self.response = wvf.copy()
->>>>>>> main:src/waffles/utils/convolution/ConvFitter.py
 
     #################################################
     def prepare_waveforms(self):    
@@ -134,7 +95,7 @@ class ConvFitter:
             self.template = self.template[offset:]
 
         if self.convtype == 'fft':
-            self.templatefft = getFFT(self.template)
+            self.templatefft = FFTWaffles.getFFT(self.template)
 
     #################################################
     def interpolate(self, wf:np.ndarray, interpolation_factor: int):
@@ -173,7 +134,7 @@ class ConvFitter:
                 self.response = np.roll(resp_original, offset, axis=0)
                 self.response = self.response[offset:]
                 self.template = temp_original[offset:]
-                self.templatefft = getFFT(self.template)
+                self.templatefft = FFTWaffles.getFFT(self.template)
                 params, chi2 = self.minimize(False)
                 chi2s.append(chi2)
                 if(print_flag): print(offset, params, chi2)
@@ -183,7 +144,7 @@ class ConvFitter:
             self.response = np.roll(resp_original, offsets[idxMinChi2], axis=0)
             self.response = self.response[offsets[idxMinChi2]:]
             self.template = temp_original[offsets[idxMinChi2]:]
-            self.templatefft = getFFT(self.template)
+            self.templatefft = FFTWaffles.getFFT(self.template)
 
         # recompute parameters for the minimum chi2
         params, chi2 = self.minimize(print_flag)
@@ -199,8 +160,8 @@ class ConvFitter:
     #################################################
     def lar_convolution_freq(self, t, A, fp, t1, t3):
         self.lar = A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
-        larfreq = getFFT(self.lar)
-        res = backFFT(convolveFFT(self.templatefft, larfreq))
+        larfreq = FFTWaffles.getFFT(self.lar)
+        res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
         return np.real(res)
 
     #################################################
@@ -248,74 +209,7 @@ class ConvFitter:
         if printresult:
             print(m)
 
-<<<<<<< HEAD:src/waffles/np04_analysis/tau_slow_convolution/ConvFitter.py
-        return params, m.fmin.reduced_chi2
-
-#        if self.dosave:
-#            self.saveresults()
-
-    #################################################
-    def plot(self):
-
-        """ ---------- do the convolution and fit plot ----------- """
-
-        # root ploting style
-        if self.usemplhep:
-            import mplhep
-            mplhep.style.use(mplhep.style.ROOT)
-            plt.rcParams.update({'font.size': 20,
-                                 'grid.linestyle': '--',
-                                 'axes.grid': True,
-                                 'figure.autolayout': True,
-                                 'figure.figsize': [14,6]
-                                 })
-
-        
-
-        # Create an array of times with 16 ns tick width 
-        tick_width = 16 if not self.dointerpolation else 16/self.interpolation_fraction
-        nticks = len(self.response)
-        times  = np.linspace(0, tick_width*nticks, nticks,endpoint=False)
-
-        # create new figure
-        plt.figure()
-
-        # do the plot
-        plt.plot(times, self.response,'-', lw=2 ,color='k', label='data')
-        plt.plot(times, self.model(times,*self.fit_results), color='r', zorder=100, label='fit')
-        plt.xlim(times[0], times[-1])
-        
-        """ ---------- add legend to the plot ----------- """
-
-        fit_info = [
-            f"$\\chi^2$/$n_\\mathrm{{dof}}$ = {self.m.fval:.2f} / {self.m.ndof:.0f} = {self.m.fmin.reduced_chi2:.2f}",
-        ]
-
-        mapnames = {
-            'A': 'Norm.',
-            'fp': 'A_\\text{fast}',
-            't1': '\\tau_\\text{fast}',
-            't3': '\\tau_\\text{slow}',
-        }
-
-        for p, v, e in zip(self.m.parameters, self.m.values, self.m.errors):
-            fit_info.append(f"${mapnames[p]}$ = ${v:.3f} \\pm {e:.3f}$")
-        plt.plot([],[], ' ', label='\n'.join(fit_info))
-        plt.xlabel('Time [ns]')
-        plt.ylabel('Amplitude [ADC]')
-
-        #get handles and labels
-        handles, labels = plt.gca().get_legend_handles_labels()
-
-        return plt
-<<<<<<< HEAD
-    
-=======
-    
->>>>>>> main
-=======
         chi2res: float = 0
         if isinstance(m.fmin, FMin):
             chi2res = m.fmin.reduced_chi2
         return params, chi2res
->>>>>>> main:src/waffles/utils/convolution/ConvFitter.py

@@ -4,22 +4,33 @@
 # the vgain value. The FFTs are stored in a numpy array and the vgain values are stored in a list.
 # The estimated FFT comes from an interpolation of the FFTs of the channels.
 
-# read the txt files and store the FFTs in numpy arrays
-# the txts have only a column
-# code here
-
-# files = all the files in the directory /eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/FFT_txt/
-# code to create files list here
 import os
 import sys
 import yaml
 import numpy as np
 import pandas as pd
-import noisy_function as nf
+from pathlib import Path
+import argparse
+import waffles
+import waffles.np04_analysis.noise_studies.noisy_function as nf
+from waffles.np04_utils.utils import get_np04_channel_mapping
 
 
 # --- MAIN --------------------------------------------------------------------
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Create FFT set")
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Optional Daphne config number",
+        default=None  # or a default like 0
+    )
+    args = parser.parse_args()
+
+    # Your existing user_config logic
+    daphne_config = args.config
+    
+
     # --- SETUP ---------------------------------------------------------------
     # Setup variables according to the noise_run_info.yaml file ---------------
     with open("./configs/noise_run_info.yml", 'r') as stream:
@@ -36,17 +47,29 @@ if __name__ == "__main__":
     daphneAFE_vgain_dict = user_config.get("daphneAFE_vgain_dict", {})
     ana_path  = user_config.get("ana_path")
     integrators = user_config.get("integrators")
+    create_custom_config = user_config.get("create_custom_config")
+    if daphne_config is None:
+        daphne_config = user_config.get("daphne_config")
+
+
+    print("\n\n\n--------------------------Daphne config: ", daphne_config)
+
+    if not create_custom_config:
+        daphneAFE_vgain_dict = nf.create_daphne_vgain_dict(daphne_config)
+        integrators = nf.get_config_integrators(daphne_config) 
+    
+    # Sanity checks -----------------------------------------------------------
     if integrators == "OFF":
-        channel_map_file = run_info.get("new_channel_map_file")
+        channel_map_file = "new"
     elif integrators == "ON":
-        channel_map_file = run_info.get("channel_map_file")
+        channel_map_file = "old"
     else:
         print("Integrators must be either ON or OFF")
         exit()
 
 
     # Read the channel map file (daphne ch <-> offline ch) --------------------
-    df = pd.read_csv("configs/"+channel_map_file, sep=",")
+    df = get_np04_channel_mapping(version=channel_map_file)
     daphne_channels = df['daphne_ch'].values + 100*df['endpoint'].values
     daphne_to_offline_dict = dict(zip(daphne_channels, df['offline_ch']))
     offline_to_daphne_dict = dict(zip(df['offline_ch'], daphne_channels))
@@ -54,11 +77,20 @@ if __name__ == "__main__":
     del df
 
     # Read the results file containing the RMS of the channels ----------------
-    df = pd.read_csv(ana_path+"Noise_Studies_Results.csv")
+    wafflesdir = Path(waffles.__file__).parent
+    input_path = ""
+    if not Path(wafflesdir / "np04_data" / "Noise_Studies_Results.csv").exists():
+        print(f"The Noise_Studies_Results.csv file was not found. You probably need to install waffles with -e option:"
+              f"\n`python3 -m pip install -e .`"
+              f"\n Using the Noise_Studies_Results.csv file from ana_path") 
+        df = pd.read_csv(ana_path+"Noise_Studies_Results.csv")
+        input_path = ana_path + fft_folder + "/"
+    else:
+        df = pd.read_csv(wafflesdir / "np04_data" / "Noise_Studies_Results.csv")
+        input_path = str(wafflesdir / "np04_data" / fft_folder) + "/"
 
 
     # Store all the filenames in a list ---------------------------------------
-    input_path = ana_path + fft_folder + "/"
     files = [input_path+f for f in os.listdir(input_path) if f.endswith(".txt") and integrators in f]
     if len(files) == 0:
         print("No files found")
@@ -74,10 +106,12 @@ if __name__ == "__main__":
     # Create output directories and variables ---------------------------------
     out_path = ana_path + fft_set_folder + "/"
     os.makedirs(out_path, exist_ok=True)
-    out_ffts_folder = out_path + "FFTs_Config/"
+    if create_custom_config:
+        out_ffts_folder = out_path + "FFTs_Config_Custom/"
+    else:
+        out_ffts_folder = out_path + f"FFTs_Config_{daphne_config}/"
     os.makedirs(out_ffts_folder, exist_ok=True)
     out_df_rows = []
-    # out_df = pd.DataFrame(columns=["OfflineCh", "Integrators", "VGain", "RMS"])
 
     # --- LOOP OVER OFFLINE CHANNELS ------------------------------------------
     missing_channels = []
@@ -88,7 +122,7 @@ if __name__ == "__main__":
         # Prepare variables ---------------------------------------------------
         sipm = str(offline_to_sipm_dict[offline_ch])
         daphne_ch = offline_to_daphne_dict[offline_ch]
-        desired_vgain = daphneAFE_vgain_dict[daphne_ch//10]
+        desired_vgain = daphneAFE_vgain_dict[str(daphne_ch//10)]
         expected_rms = np.float64(0.)
         out_fft_file = (out_ffts_folder+"FFT_PDHD_Noise_Template"
                         +"_SiPM_"+str(sipm)
@@ -171,7 +205,12 @@ if __name__ == "__main__":
         np.savetxt(out_fft_file, estimated_fft)
 
     out_df = pd.DataFrame(out_df_rows)
-    out_df.to_csv(out_path+"OfflineCh_RMS_Config.csv", index=False)
+    if create_custom_config:
+        out_df_filename = (out_path+"OfflineCh_RMS_Config_Custom.csv")
+    else:
+        out_df_filename = (out_path+f"OfflineCh_RMS_Config_{daphne_config}.csv")
+    out_df.to_csv(out_df_filename, index=False)
+
     print("\n\n-----------------------------------------------------------------")
     print("Missing channels are saved according to the golden channels (HPK/FBK)")
     print("Missing channels: ", missing_channels)

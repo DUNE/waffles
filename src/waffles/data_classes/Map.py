@@ -31,11 +31,11 @@ class Map:
     """
 
     def __init__(
-        self: int,
+        self,
         rows: int,
         columns: int,
         type_: type,
-        data: Optional[List[List[Any]]] = None
+        data: List[List[Any]]
     ):
         """Map class initializer
 
@@ -167,7 +167,7 @@ class Map:
             If True, the returned Map object will have
             independent copies of the value parameter in each
             one of its entries. If False, the returned Map object
-            will have  references to the same object in each one
+            will have references to the same object in each one
             of its entries.
 
         Returns

@@ -312,7 +312,11 @@ def truncate_waveforms_in_WaveformSet(
     return
 
 
+<<<<<<< HEAD
 def selection_for_led_calibration(
+=======
+def fine_selection_for_led_calibration(
+>>>>>>> main
     waveform: Waveform,
     baseline_analysis_label: str,
     baseline_i_up: int,
@@ -320,6 +324,10 @@ def selection_for_led_calibration(
     baseline_std: float,
     baseline_allowed_dev: float,
     signal_allowed_dev: float,
+<<<<<<< HEAD
+=======
+    baseline_i_low: int = 0
+>>>>>>> main
 ) -> bool:
     """This function returns True if the following two
     conditions are met simultaneously:
@@ -359,12 +367,22 @@ def selection_for_led_calibration(
         Its absolute value is assumed to be the maximum multiple
         of baseline_std which the signal can deviate from the
         baseline in the baseline region, i.e. in the
+<<<<<<< HEAD
         waveform.adcs[0:baseline_i_up] region
+=======
+        waveform.adcs[baseline_i_low:baseline_i_up] region
+>>>>>>> main
     signal_allowed_dev: float
         Its absolute value is assumed to be the maximum multiple
         of baseline_std which the signal can deviate, negatively,
         from the baseline in the signal region, i.e. in the
         waveform.adcs[baseline_i_up:signal_i_up] region.
+<<<<<<< HEAD
+=======
+    baseline_i_low: int
+        Iterator value for the waveform.adcs array which gives
+        the lower limit of the baseline region
+>>>>>>> main
 
     Returns
     ----------
@@ -372,14 +390,22 @@ def selection_for_led_calibration(
     """
 
     try:
+<<<<<<< HEAD
         baseline_samples = waveform.adcs[:baseline_i_up] - \
+=======
+        baseline_samples = waveform.adcs[baseline_i_low:baseline_i_up] - \
+>>>>>>> main
             waveform.analyses[baseline_analysis_label].result['baseline']
 
     except KeyError:
         raise Exception(
             GenerateExceptionMessage(
                 1,
+<<<<<<< HEAD
                 "selection_for_led_calibration()",
+=======
+                "fine_selection_for_led_calibration()",
+>>>>>>> main
                 f"The given waveform does not have the analysis"
                 f" '{baseline_analysis_label}' in its analyses "
                 "attribute, or it does, but the 'baseline' key "
@@ -394,7 +420,180 @@ def selection_for_led_calibration(
     signal_samples = waveform.adcs[baseline_i_up:signal_i_up] - \
         waveform.analyses[baseline_analysis_label].result['baseline']
     
+<<<<<<< HEAD
     if np.min(signal_samples) < -1.*abs(signal_allowed_dev * baseline_std):
         return False
     
     return True
+=======
+    try:
+        if np.min(signal_samples) < -1.*abs(signal_allowed_dev * baseline_std):
+            return False
+    
+    except ValueError as e:
+        raise ValueError(
+            GenerateExceptionMessage(
+                1,
+                "fine_selection_for_led_calibration()",
+                f"Caught the following ValueError: {e}. It could "
+                "have been due to an empty signal_samples array. "
+                f"If len(signal_samples) (={len(signal_samples)}) "
+                "is equal to zero, then make sure that baseline_i_up "
+                f"(={baseline_i_up}) is smaller than signal_i_up "
+                f"(={signal_i_up})."
+            )
+        )
+    
+    return True
+
+def coarse_selection_for_led_calibration(
+    waveform: Waveform,
+    baseline_analysis_label: str,
+    lower_limit_wrt_baseline: float,
+    upper_limit_wrt_baseline: float
+) -> bool:
+    """This function returns True if the following two
+    conditions are met simultaneously:
+
+        - the waveform adcs do not drop below the
+        baseline minus the absolute value of
+        lower_limit_wrt_baseline and
+
+        - the waveform adcs do not raise above the
+        baseline plus the absolute value of
+        upper_limit_wrt_baseline
+
+    If any of them is not met, it returns False.
+
+    Parameters
+    ----------
+    waveform: Waveform
+        The waveform to apply the selection to
+    baseline_analysis_label: str
+        The baseline of the filtered waveform must be available
+        under the 'baseline' key of the result of the analysis
+        whose label is given by this parameter, i.e. in
+        waveform.analyses[analysis_label].result['baseline']
+    lower_limit_wrt_baseline: float
+        Its absolute value is the allowed margin for the
+        waveform adcs below its baseline.
+    upper_limit_wrt_baseline: float
+        Its absolute value is the allowed margin for the
+        waveform adcs above its baseline.
+
+    Returns
+    ----------
+    bool
+    """
+
+    try:
+        baseline = \
+            waveform.analyses[baseline_analysis_label].result['baseline']
+
+    except KeyError:
+        raise Exception(
+            GenerateExceptionMessage(
+                1,
+                "coarse_selection_for_led_calibration()",
+                f"The given waveform does not have the analysis"
+                f" '{baseline_analysis_label}' in its analyses "
+                "attribute, or it does, but the 'baseline' key "
+                "is not present in its result."
+            )
+        )
+
+    lower_threshold = baseline - abs(lower_limit_wrt_baseline)
+    upper_threshold = baseline + abs(upper_limit_wrt_baseline)
+
+    # The following algorithm is slightly faster (~0.61 vs
+    # ~0.68 seconds on average for a waveformset with 199453
+    # waveforms with 1024 points each on a Mac M2) than the
+    # one which computes np.max(waveform.adcs) and
+    # np.min(waveform.adcs) and compares it to lower_threshold
+    # and upper_threshold.
+    for adc in waveform.adcs:
+        if adc < lower_threshold or adc > upper_threshold:
+            return False
+    
+    return True
+
+def band_correlation_filter(
+    waveform: Waveform,
+    template_adcs: np.ndarray,
+    exclusion_band_lower_limit: float,
+    exclusion_band_upper_limit: float,
+    upper_limit_idx: int = -1,
+    L2_normalization: bool = True
+) -> bool:
+    """This function computes the correlation coefficient
+    between the given waveform and a template defined
+    by the template_adcs parameter, up to the given iterator
+    value. If the correlation coefficient is within the
+    exclusion band defined by exclusion_band_lower_limit
+    and exclusion_band_upper_limit, it returns False. If
+    it is outside this band, it returns True.
+
+    Parameters
+    ----------
+    waveform: Waveform
+        The waveform to apply the filter to
+    template_adcs: np.ndarray
+        The template waveform adcs to compute the
+        correlation coefficient with
+    exclusion_band_lower_limit: float
+        The lower limit of the exclusion band for
+        the correlation coefficient
+    exclusion_band_upper_limit: float
+        The upper limit of the exclusion band for
+        the correlation coefficient
+    upper_limit_idx: int
+        Before applying the normalization and computing
+        the correlation coefficient, both waveform
+        and template_adcs are sliced to the
+        [0:upper_limit_idx] interval.
+    L2_normalization: bool
+        If True, L2 normalization is applied to both
+        waveform and template_adcs before computing
+        the correlation coefficient. If False, max
+        absolute value normalization is applied.
+
+    Returns
+    ----------
+    bool
+        True if the computed correlation coefficient
+        is outside the exclusion band, False if it is
+        inside the exclusion band.
+    """
+
+    sliced_waveform_adcs = waveform.adcs[:upper_limit_idx]
+    sliced_template_adcs = template_adcs[:upper_limit_idx]
+
+    if L2_normalization:
+        normalized_waveform_adcs = sliced_waveform_adcs /\
+            np.linalg.norm(sliced_waveform_adcs)
+        
+        normalized_template_adcs = sliced_template_adcs /\
+            np.linalg.norm(sliced_template_adcs)
+    else:
+        normalized_waveform_adcs = sliced_waveform_adcs /\
+            np.max(np.abs(sliced_waveform_adcs))
+
+        normalized_template_adcs = sliced_template_adcs /\
+            np.max(np.abs(sliced_template_adcs))
+
+
+    correlation_coefficient = np.max(
+        np.correlate(
+            normalized_waveform_adcs,
+            normalized_template_adcs,
+            mode='valid'
+        )
+    )
+
+    if correlation_coefficient < exclusion_band_lower_limit:
+        return True
+    elif correlation_coefficient <= exclusion_band_upper_limit:
+        return False
+    else:
+        return True
+>>>>>>> main

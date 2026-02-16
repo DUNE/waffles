@@ -2,24 +2,26 @@ import waffles
 import numpy as np
 from scipy.optimize import curve_fit, brentq
 from waffles.utils.denoising.tv1ddenoise import Denoise
+from typing import List
 
 
 def allow_channel_wfs(waveform: waffles.Waveform, channel: int) -> bool:
     return waveform.endpoint == (channel//100) and waveform.channel == (channel%100)
  
 # --- Waveform manipulation methods ------------------------------------------
-def create_float_waveforms(waveforms: waffles.Waveform) -> None:
+def create_float_waveforms(waveforms: List[waffles.Waveform]) -> None:
     for wf in waveforms:
         wf.adcs_float = wf.adcs.astype(np.float64)
 
-def sub_baseline_to_wfs(waveforms: waffles.Waveform, prepulse_ticks: int):
+def sub_baseline_to_wfs(waveforms: List[waffles.Waveform], prepulse_ticks: int, invert: bool=True) -> None:
     norm = 1./prepulse_ticks
     for wf in waveforms:
         baseline = np.sum(wf.adcs_float[:prepulse_ticks])*norm
         wf.adcs_float -= baseline
-        wf.adcs_float *= -1
+        if invert:
+            wf.adcs_float *= -1
 
-def create_filtered_waveforms(waveforms: waffles.Waveform,
+def create_filtered_waveforms(waveforms: List[waffles.Waveform],
                               filt_level: float) -> None:
     denoiser = Denoise()
     for wf in waveforms:
@@ -55,6 +57,8 @@ def find_threshold_crossing(y: np.array,
     x2, y2 = idx, y[idx]
     
     # Interpolate the exact crossing point
+    if (y2 - y1) == 0:
+        return None  # Avoid division by zero; return the lower index
     x_cross = x1 + (threshold - y1) * (x2 - x1) / (y2 - y1)
     return x_cross
 
@@ -103,15 +107,8 @@ def find_zero_crossing(y: np.array,
         return 0  # If root-finding fails
 
 
+def distance(point1, point2):
+    return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2 + (point1[2]-point2[2])**2)
 
-
-def smooth_wfs(waveforms: waffles.Waveform, sigma: int) -> None:
-    """
-
-    """
-    gx = np.linspace(-4*sigma, 4*sigma, 8*sigma+1)
-    gauss = np.exp(-0.5*((gx/sigma)**2))*(1/(sigma*(2*np.pi)**0.5))
-
-    for wf in waveforms:
-        wf = np.convolve(wf,gauss,"same")
-
+def time_of_flight(point1, point2, speed=23):
+    return distance(point1, point2) / speed

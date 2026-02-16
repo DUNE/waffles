@@ -3,7 +3,6 @@ from typing import Optional, Callable, cast, Union
 from plotly import graph_objects as pgo
 from plotly import subplots as psu
 
-
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -30,8 +29,7 @@ def plot_WaveformAdcs(
     show_spotted_peaks: bool = True,
     show_peaks_integration_limits: bool = False,
     analysis_label: Optional[str] = None,
-    verbose: bool = False,
-    offset: bool = False
+    verbose: bool = False
 ) -> None:
     """This function plots the given WaveformAdcs object
     in the given figure.
@@ -142,14 +140,8 @@ def plot_WaveformAdcs(
     ## the caller define it, so as not to recompute
     ## this array for each waveform.
 
-    if offset:
-        delta_t = np.float32(np.int64(waveform_adcs.timestamp)-np.int64(waveform_adcs.daq_window_timestamp)),
-    else:
-        delta_t = 0
-    
     wf_trace = pgo.Scatter( 
-        #x=x + waveform_adcs.time_offset,
-        x=x + delta_t,
+        x=x + waveform_adcs.time_offset,
         y=waveform_adcs.adcs,
         mode='lines',
         line=dict(
@@ -230,7 +222,7 @@ def plot_WaveformAdcs(
         if show_baseline:
 
             try:
-                aux = ana.result['baseline']
+                aux = ana.result['baseline'] 
 
             except KeyError:
                 if verbose:
@@ -401,7 +393,7 @@ def plot_WaveformSet(
     adc_range_below_baseline: int = 200,
     detailed_label: bool = True,
     verbose: bool = False,
-    offset: bool=False,
+    yannotation: Optional[float] = 1.25,
     **kwargs
 ) -> pgo.Figure: 
     """This function returns a plotly.graph_objects.Figure 
@@ -626,6 +618,8 @@ def plot_WaveformSet(
         of each subplot.
     verbose: bool
         Whether to print functioning-related messages
+    yannotation: float
+        y-coordinate of the top annotation of each subplot
     **kwargs
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
@@ -759,8 +753,7 @@ def plot_WaveformSet(
                             show_peaks_integration_limits,
                             analysis_label=
                             analysis_label,
-                            verbose=verbose,
-                            offset = offset)
+                            verbose=verbose)
                 else:
                     wpu.__add_no_data_annotation(
                         figure_,
@@ -833,8 +826,7 @@ def plot_WaveformSet(
                     show_peaks_integration_limits,
                     analysis_label=
                     analysis_label if (plot_analysis_markers and fAnalyzed) else None,
-                    verbose=verbose,
-                    offset = offset)
+                    verbose=verbose)
                 
     elif mode == 'heatmap':
 
@@ -896,7 +888,7 @@ def plot_WaveformSet(
                         # The annotation is left-aligned
                         # and on top of each subplot
                         x=0.,
-                        y=1.25,
+                        y=yannotation,
                         showarrow=False,
                         text=aux_name,
                         row=i + 1,
@@ -923,6 +915,7 @@ def plot_CalibrationHistogram(
     row: Optional[int] = None,
     col: Optional[int] = None,
     plot_fits: bool = False,
+    plot_sum_of_gaussians: bool = False,
     fit_npoints: int = 200,
     showfitlabels: bool = True
 ) -> bool:
@@ -1013,24 +1006,57 @@ def plot_CalibrationHistogram(
             num=fit_npoints
         )
 
-        if not plot_sum_of_gaussians:
+        for i in range(len(calibration_histogram.
+                        gaussian_fits_parameters['scale'])):
+
+            fPlottedOneFit = True
+            
+            fit_y = wun.gaussian(   
+                fit_x,
+                calibration_histogram.
+                gaussian_fits_parameters['scale'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['mean'][i][0],
+                calibration_histogram.
+                gaussian_fits_parameters['std'][i][0])
+            
+            fit_trace = pgo.Scatter(
+                x=fit_x,
+                y=fit_y,
+                mode='lines',
+                line=dict(
+                    color='red', 
+                    width=0.5),
+                name=f"{name} (Fit {i})",
+                showlegend=showfitlabels
+            )
+            
+            figure.add_trace(
+                fit_trace,
+                row=row,
+                col=col)
+
+        if plot_sum_of_gaussians:
+
+            fit_y = np.zeros(np.shape(fit_x))
+
             for i in range(len(calibration_histogram.
                             gaussian_fits_parameters['scale'])):
 
+                fPlottedOneFit = True
 
-                fit_x = np.linspace(
-                    calibration_histogram.edges[0],
-                    calibration_histogram.edges[-1],
-                    num=fit_npoints)
-                
-                fit_y = wun.gaussian(   
+                fit_y += wun.gaussian(
                     fit_x,
                     calibration_histogram.
                     gaussian_fits_parameters['scale'][i][0],
                     calibration_histogram.
                     gaussian_fits_parameters['mean'][i][0],
                     calibration_histogram.
-                    gaussian_fits_parameters['std'][i][0])
+                    gaussian_fits_parameters['std'][i][0]
+                )
+
+            if fPlottedOneFit:
+                
                 fit_trace = pgo.Scatter(
                     x=fit_x,
                     y=fit_y,
@@ -1038,7 +1064,7 @@ def plot_CalibrationHistogram(
                     line=dict(
                         color='red', 
                         width=0.5),
-                    name=f"{name} Fit({i})",
+                    name=f"{name} (MultiFit)",
                     showlegend=showfitlabels
                 )
                 
@@ -1046,7 +1072,6 @@ def plot_CalibrationHistogram(
                     fit_trace,
                     row=row,
                     col=col)
-
             
     return fPlottedOneFit
 
@@ -1057,7 +1082,7 @@ def plot_ChannelWsGrid(
     share_x_scale: bool = False,
     share_y_scale: bool = False,
     mode: str = 'overlay',
-    wfs_per_axes: Optional[int] = 1,
+    wfs_per_axes: Union[None, int, Map] = 1,
     analysis_label: Optional[str] = None,
     plot_analysis_markers: bool = False,
     show_baseline_limits: bool = False, 
@@ -1077,6 +1102,7 @@ def plot_ChannelWsGrid(
     detailed_label: bool = True,
     plot_event: bool = False,
     event_id: Optional[int] = 0,
+    yannotation: Optional[float] = 1.25,
     verbose: bool = True,
     filtering: float = 0,
     zlog: bool = False,
@@ -1146,18 +1172,31 @@ def plot_ChannelWsGrid(
         Check its documentation for more information.
             If it is set to 'calibration', then the
         calibration histogram of each ChannelWs object
-        will be plotted. In this case, the calib_histo
-        attribute of each ChannelWs object must be
-        defined, i.e. it must be different to None.
-        If it is not, then an exception will be raised.
-    wfs_per_axes: int
+        will be plotted. In this case, if the
+        calib_histo attribute of a ChannelWs object
+        is not defined, a no-data annotation will be
+        added to the plot.
+    wfs_per_axes: None, int or Map
         If it is None, then every waveform in each
-        ChannelWs object will be considered. Otherwise,
-        only the first wfs_per_axes waveforms of each
-        ChannelWs object will be considered. If 
+        ChannelWs object will be considered. If it
+        is a (positive) integer, only the first
+        wfs_per_axes waveforms of each ChannelWs
+        object will be considered. In this case, if
         wfs_per_axes is greater than the number of 
         waveforms in a certain ChannelWs object, then 
-        all of its waveforms will be considered.
+        all of its waveforms will be considered. If
+        it is a Map object, then its shape must match
+        that of the channel_ws_grid.ch_map attribute,
+        and its type attribute must be list. Each
+        element of the wfs_per_axes.data attribute
+        must be a list of non-negative integers.
+        In this case, for each subplot at position
+        i,j, only the waveforms whose indices are
+        given in the list at position i,j of the
+        wfs_per_axes.data attribute will be
+        considered. If the list at position i,j
+        is empty, then no waveform will be
+        considered for the subplot at position i,j.
     analysis_label: str
         The meaning of this parameter varies slightly
         depending on the value given to the 'mode'
@@ -1333,6 +1372,8 @@ def plot_ChannelWsGrid(
         parameter is set to True. In that case, it is the index
         of the waveform in the ChannelWs object which will be
         plotted. It must be a valid index.
+    yannotation: float
+        y-coordinate of the top annotation of each subplot
     verbose: bool
         Whether to print functioning-related messages
     **kwargs
@@ -1368,18 +1409,51 @@ def plot_ChannelWsGrid(
         figure_ = psu.make_subplots(
             rows=channel_ws_grid.ch_map.rows, 
             cols=channel_ws_grid.ch_map.columns)
-        
-    fPlotAll = True
-    if wfs_per_axes is not None:
 
-        if wfs_per_axes < 1:
-            raise Exception(GenerateExceptionMessage(
-                1,
-                'plot_ChannelWsGrid()',
-                'If defined, the number of waveforms'
-                ' per axes must be positive.'))
-        
-        fPlotAll = False
+    # 1 is for all waveforms, 2 is for a
+    # defined number of waveforms while
+    # 3 is for a Map of waveform indices
+    fConsideredWaveformsMode = 1
+    if wfs_per_axes is not None:
+        if isinstance(wfs_per_axes, int):
+            if wfs_per_axes < 1:
+                raise Exception(
+                    GenerateExceptionMessage(
+                        1,
+                        'plot_ChannelWsGrid()',
+                        'If an integer is given, the wfs_per_axes '
+                        f"parameter ({wfs_per_axes}) must be positive."
+                    )
+                )
+            fConsideredWaveformsMode = 2
+
+        elif isinstance(wfs_per_axes, Map):
+            if wfs_per_axes.rows != channel_ws_grid.ch_map.rows or \
+                wfs_per_axes.columns != channel_ws_grid.ch_map.columns:
+                raise Exception(
+                    GenerateExceptionMessage(
+                        2,
+                        'plot_ChannelWsGrid()',
+                        'If a Map is given, the wfs_per_axes '
+                        'dimensions ('
+                        f"{wfs_per_axes.rows}, {wfs_per_axes.columns}) "
+                        'must match the channel_ws_grid dimensions '
+                        f"({channel_ws_grid.ch_map.rows}, "
+                        f"{channel_ws_grid.ch_map.columns})."
+                    )
+                )
+
+            if wfs_per_axes.type != type([]):
+                raise Exception(
+                    GenerateExceptionMessage(
+                        3,
+                        'plot_ChannelWsGrid()',
+                        'If a Map is given, the wfs_per_axes '
+                        f"type ({wfs_per_axes.type}) must be list."
+                    )
+                )
+
+            fConsideredWaveformsMode = 3
 
     # If mode is 'heatmap', then
     # there is already a right-aligned
@@ -1391,7 +1465,9 @@ def plot_ChannelWsGrid(
     wpu.__add_unique_channels_top_annotations(  
         channel_ws_grid,
         figure_,
-        also_add_run_info=True if mode != 'heatmap' else False)
+        also_add_run_info=True if mode != 'heatmap' else False,
+        yannotation=yannotation,
+    )
 
     # An alternative way is to specify 
     # shared_xaxes=True (or share_yaxes=True)
@@ -1409,33 +1485,38 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
+                if not channel_ws:
+                    continue
+
+                aux_idcs = wpu.__get_idcs_of_wvfs_to_plot(
+                    fConsideredWaveformsMode,
+                    channel_ws,
+                    wfs_per_axes,
+                    i,
+                    j
+                )
+
+                # For fConsideredWaveformsMode equal to 1 or 2,
+                # this cannot happen, but for the map case (3),
+                # some of the entries in the map may be empty
+                # lists. In that case, add a no-data annotation
+                # and continue to the next channel
+                if len(aux_idcs) == 0:
                     wpu.__add_no_data_annotation(   
                         figure_,
                         i + 1,
-                        j + 1)
-                    
+                        j + 1
+                    )
+
                     continue
 
-                if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
-                else:
-
-                    # If wfs_per_axes is defined, then it has been
-                    # checked to be >=1. If it is not defined, then
-                    # still len(channel_ws.waveforms) is >=1 (which
-                    # is ensured by WaveformSet.__init__), so the 
-                    # minimum is always >=1.
-
-                    aux_idcs = range(min(
-                        wfs_per_axes, 
-                        len(channel_ws.waveforms)))
-                
                 if plot_event:
                     aux_idcs = [event_id]
 
@@ -1467,33 +1548,43 @@ def plot_ChannelWsGrid(
                         analysis_label=
                         analysis_label,
                         verbose=
-                        verbose,
-                        offset = offset
-                    )
+                        verbose)
                     
     elif mode == 'average':
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
+                if not channel_ws:
+                    continue
+
+                aux_idcs = wpu.__get_idcs_of_wvfs_to_plot(
+                    fConsideredWaveformsMode,
+                    channel_ws,
+                    wfs_per_axes,
+                    i,
+                    j
+                )
+
+                # For fConsideredWaveformsMode equal to 1 or 2,
+                # this cannot happen, but for the map case (3),
+                # some of the entries in the map may be empty
+                # lists. In that case, add a no-data annotation
+                # and continue to the next channel
+                if len(aux_idcs) == 0:
                     wpu.__add_no_data_annotation(   
                         figure_,
                         i + 1,
-                        j + 1)
-                    
-                    continue
+                        j + 1
+                    )
 
-                if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
-                else:
-                    aux_idcs = range(min(
-                        wfs_per_axes, 
-                        len(channel_ws.waveforms)))
+                    continue
 
                 # WaveformSet.compute_mean_waveform()
                 # will raise an exception if
@@ -1542,8 +1633,7 @@ def plot_ChannelWsGrid(
                     show_peaks_integration_limits,
                     analysis_label=
                     analysis_label if (plot_analysis_markers and fAnalyzed) else None,
-                    verbose=verbose,
-                    offset = offset)
+                    verbose=verbose)
                 
     elif mode == 'heatmap':
 
@@ -1552,7 +1642,7 @@ def plot_ChannelWsGrid(
         
         if analysis_label is None:
             raise Exception(GenerateExceptionMessage( 
-                2,
+                4,
                 'plot_ChannelWsGrid()',
                 "The 'analysis_label' parameter must be "
                 "defined if the 'mode' parameter is set to 'heatmap'."))
@@ -1560,25 +1650,37 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
-                    wpu.__add_no_data_annotation(
-                        figure_,
-                        i + 1,
-                        j + 1)
-                    
+                if not channel_ws:
                     continue
 
-                if fPlotAll:
-                    aux_idcs = range(len(channel_ws.waveforms))
-                else:
-                    aux_idcs = range(min(
-                        wfs_per_axes, 
-                        len(channel_ws.waveforms)))
+                aux_idcs = wpu.__get_idcs_of_wvfs_to_plot(
+                    fConsideredWaveformsMode,
+                    channel_ws,
+                    wfs_per_axes,
+                    i,
+                    j
+                )
+
+                # For fConsideredWaveformsMode equal to 1 or 2,
+                # this cannot happen, but for the map case (3),
+                # some of the entries in the map may be empty
+                # lists. In that case, add a no-data annotation
+                # and continue to the next channel
+                if len(aux_idcs) == 0:
+                    wpu.__add_no_data_annotation(   
+                        figure_,
+                        i + 1,
+                        j + 1
+                    )
+
+                    continue
 
                 aux_name = f"{len(aux_idcs)} Wf(s)"
                 if detailed_label:
@@ -1619,13 +1721,12 @@ def plot_ChannelWsGrid(
                     time_bins,
                     adc_bins,
                     aux_ranges,
-                    #aux_ranges,
                     # The color scale is not shown
                     # since it may differ from one plot
                     # to another.
                     show_color_bar=False,
                     filtering=filtering,
-                    zlog=zlog
+                    zlog=zlog,
                 )
 
                 ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
@@ -1641,7 +1742,7 @@ def plot_ChannelWsGrid(
                     # The annotation is right-aligned,
                     # and placed on top of each subplot.
                     x=1.,
-                    y=1.25,
+                    y=yannotation,
                     showarrow=False,
                     text=aux_name,
                     row=i + 1,
@@ -1654,26 +1755,32 @@ def plot_ChannelWsGrid(
         for i in range(channel_ws_grid.ch_map.rows):
             for j in range(channel_ws_grid.ch_map.columns):
 
-                try:
-                    channel_ws = channel_ws_grid.ch_wf_sets[
-                        channel_ws_grid.ch_map.data[i][j].endpoint][
-                            channel_ws_grid.ch_map.data[i][j].channel]
+                figure_, channel_ws = wpu.__get_ChannelWs_or_indicate_no_data(
+                    channel_ws_grid,
+                    figure_,
+                    i,
+                    j,
+                )
 
-                except KeyError:
+                if not channel_ws:
+                    continue
+
+                if channel_ws.calib_histo is None:
+                    if verbose:
+                        print(
+                            "In function plot_ChannelWsGrid(): "
+                            "The calib_histo attribute of channel "
+                            f"{channel_ws_grid.ch_map.data[i][j].endpoint}-"
+                            f"{channel_ws_grid.ch_map.data[i][j].channel} "
+                            "is not defined. This channel will be skipped."
+                        )
+
                     wpu.__add_no_data_annotation(
                         figure_,
                         i + 1,
                         j + 1)
                     
                     continue
-
-                if channel_ws.calib_histo is None:
-                    raise Exception(GenerateExceptionMessage( 
-                        3,
-                        'plot_ChannelWsGrid()',
-                        f"In 'calibration' mode, the calib_histo "
-                        "attribute of each considered ChannelWs "
-                        "object must be defined."))
                 
                 aux_name = f"C.H. of channel "
                 f"{channel_ws_grid.ch_map.data[i][j]}"
@@ -1690,14 +1797,16 @@ def plot_ChannelWsGrid(
 
         if verbose:
             if plot_peaks_fits and not fPlottedOneFit:
-                print("In function plot_ChannelWsGrid(): "
-                      "No gaussian fit was found for plotting. "
-                      "You may have forgotten to call the "
-                      "fit_peaks_of_calibration_histograms() "
-                      "method of ChannelWsGrid.")
+                print(
+                    "In function plot_ChannelWsGrid(): "
+                    "No gaussian fit was found for plotting. "
+                    "You may have forgotten to call the "
+                    "fit_peaks_of_calibration_histograms() "
+                    "method of ChannelWsGrid."
+                )
     else:                                                                                                           
         raise Exception(GenerateExceptionMessage( 
-            4,
+            5,
             'plot_ChannelWsGrid()',
             f"The given mode ({mode}) must match "
             "either 'overlay', 'average', 'heatmap'"
@@ -1717,7 +1826,8 @@ def plot_CustomChannelGrid(
     figure_title: Optional[str] = None,  
     show_ticks_only_on_edges: bool = False,  
     wf_func: Optional[Callable] = None,
-    log_x_axis: bool = False
+    log_x_axis: bool = False,
+    yannotation: Optional[float] = 1.25
 ) -> pgo.Figure:
     """
     This function returns a plotly.graph_objects.Figure with a grid of subplots arranged according to the 
@@ -1735,6 +1845,7 @@ def plot_CustomChannelGrid(
     - figure_title (Optional[str]): The title of the entire figure.
     - show_ticks_only_on_edges (bool): Whether to show ticks only on the edges of the plot.
     - wf_func (Optional[Callable]): Optional function for additional waveform processing.
+    - yannotation (Optional[float]): Y-coordinate for the top annotation of each subplot.
     """
 
     # Create a new figure if one is not provided
@@ -1751,7 +1862,9 @@ def plot_CustomChannelGrid(
     wpu.__add_unique_channels_top_annotations(  
         channel_ws_grid,
         figure_,
-        also_add_run_info=True)
+        also_add_run_info=True,
+        yannotation=yannotation
+    )
 
     # Add title to the figure if provided
     if figure_title:

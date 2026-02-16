@@ -105,7 +105,7 @@ def main():
             prioritize_string_parameters = True,
             verbose = args.verbose
         )
-        
+
         validated_parameters = \
             locals()[analyses[i]['name']].get_input_params_model()(
                 **parameters_to_deliver

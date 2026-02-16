@@ -1,4 +1,3 @@
-
 import os
 import pickle
 import re
@@ -22,13 +21,10 @@ for fp in filepaths:
 
     base_name = os.path.basename(fp).replace(".hdf5", "")
     output_filename = (
-        f"/eos/home-f/fegalizz/public/to_Anna/wfset_{run_number}_{base_name}.pkl" # type: ignore
+        f"/eos/home-f/fegalizz/public/to_Anna/wfset_{run_number}_{base_name}.pkl"
     )
 
     with open(output_filename, "wb") as f:
         pickle.dump(wfset, f)
 
     print(f"WaveformSet saved to {output_filename}")
-    
-
-

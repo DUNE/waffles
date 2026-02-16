@@ -7,11 +7,12 @@ fft_folder: "FFTs_txt"
 
 # Name of the folder where the set of FFTs will be saved (set == all the FFTs of a given configuration)
 # No "/" in the name!
-fft_set_folder: "Configs/ConfigXXX"
+fft_set_folder: "FFT_sets"
 
 # File with the daphne-channel <-> Offline channel mapping
 # The new channel map is the one after 24 September 2024
-# Note: run number > 30000 == new channel mapdaphne_to_offline_dictF
+# Note: run number > 30000 == new channel mapdaphne_to_offline_dict
+# Note: these files are now in np04_utils
 channel_map_file: "PDHD_PDS_ChannelMap.csv"
 new_channel_map_file: "PDHD_PDS_NewChannelMap.csv"
 

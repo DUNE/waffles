@@ -41,7 +41,7 @@ class WaveformProcessor:
     def read_and_save(self) -> bool:
         """Reads waveforms and saves based on the chosen granularity."""
         print_colored(f"Reading waveforms for run {self.run_number}...", color="DEBUG")
-        self.combined_wfset=None
+
         try:
             # reader = HDF5Reader()
             rucio_filepath = f"{self.rucio_paths_directory}/{str(self.run_number).zfill(6)}.txt"
@@ -109,7 +109,7 @@ class WaveformProcessor:
 
     def write_merged_output(self) -> bool:
         """Saves the merged waveform data into a single HDF5 file."""
-        output_filename = f"wfset_{self.max_files}_{self.run_number}.hdf5"
+        output_filename = f"processed_merged_run_{self.run_number}.hdf5"
         output_filepath = Path(self.output_path) / output_filename
 
         print_colored(f"Saving merged waveform data to {output_filepath}...", color="DEBUG")

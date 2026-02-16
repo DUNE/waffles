@@ -50,7 +50,7 @@ class SBaseline:
         if default_filtering is not None:
             self.filtering = default_filtering
 
-        self.write_filtered_waveform = True
+        self.write_filtered_waveform = False
         self.data_base:dict = data_base
 
     @staticmethod
@@ -71,6 +71,8 @@ class SBaseline:
                 i+=1
         if (counts>0):
             res /= counts
+        else:
+            return res0, False
         if(counts > (baselinefinish - baselinestart)*minimumfrac):
             return res, True
         else:
@@ -100,13 +102,16 @@ class SBaseline:
                 If the baseline is optimazed or not
         """
         if filtering is not None:
-            wvf_base = self.denoiser.apply_denoise(wvf_base, filtering)
+            wfcompute = self.denoiser.apply_denoise_inplace(wvf_base, filtering)
+        else:
+            wfcompute = wvf_base
+
 
         # # find the MPV so we can estimate the offset
-        hist, bin_edges = np.histogram(wvf_base[self.baselinestart:self.baselinefinish], bins=self.binsbase)
+        hist, bin_edges = np.histogram(wfcompute[self.baselinestart:self.baselinefinish], bins=self.binsbase)
         # first estimative of baseline
         res0 = bin_edges[np.argmax(hist)]
-        return self.compute_base_mean(wvf_base, res0, self.threshold, self.baselinestart, self.baselinefinish, self.wait, self.minimumfrac)
+        return self.compute_base_mean(wfcompute, res0, self.threshold, self.baselinestart, self.baselinefinish, self.wait, self.minimumfrac)
 
 
     def wfset_baseline(self, waveform: Waveform, filtering: float = 2) -> tuple[float, bool]:

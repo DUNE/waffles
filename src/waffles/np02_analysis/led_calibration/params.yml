@@ -1,12 +1,7 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-<<<<<<< HEAD
-# Attention: the file name must be 0<run_number>.hdf5
-input_path: "data_led/036335.hdf5"
-=======
 input_path: "data/<file_name>"
->>>>>>> main
 
 # Path to the output
 output_path: "output/"
@@ -31,10 +26,7 @@ tmax: -1
 # [-1] means all channels
 ch: 
     - 30
-<<<<<<< HEAD
-=======
     - 37
->>>>>>> main
 
 # Number of waveforms to analyze
 # -1 means all waveforms
@@ -56,11 +48,6 @@ integ_window: 60
 # Approximate ADC value of the waveform peak
 wf_peak: 262
 
-<<<<<<< HEAD
-# 36335: 262
-
-=======
->>>>>>> main
 # Baseline limits
 baseline_limits:
     - 0
@@ -72,20 +59,6 @@ nbins: 130
 # Integration intervals to use
 integration_intervals:
     - 10
-<<<<<<< HEAD
-
-# 36335: ch 30: 10
-# 36335: ch 37: 12
-
-# ADC threshold for the ADC filter (second filter if there is a lot of light leakage). It is useful for filtered the spe waveforms.
-# -1 means no second filter applied
-thr_adc: 350
-
-# 36335: ch 30: 130
-# 36335: ch 37: 150
-
-save_processed_wfset: True
-=======
     - 12
     - 14
 
@@ -95,7 +68,6 @@ thr_adc: 350
 
 # If True, a hdf5 file with the processed Waveformset will be created
 save_processed_wfset: False
->>>>>>> main
 
 # ------- Parameters for peak fitting -------
 
@@ -119,9 +91,4 @@ half_points_to_fit: 2 # [2 - 3]
 # function defined in 
 # utils/fit_peaks/fit_peaks_utils.py
 initial_percentage: 0.15 
-<<<<<<< HEAD
 percentage_step: 0.05
-
-=======
-percentage_step: 0.05
->>>>>>> main

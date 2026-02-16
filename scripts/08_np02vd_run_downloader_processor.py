@@ -9,15 +9,20 @@ import os
 import paramiko                               # SSH / SFTP
 import numpy as np
 from typing import cast
+import tempfile
 
 # ── waffles imports ──────────────────────────────────────────────────────────
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.data_classes.BasicWfAna import BasicWfAna
 from waffles.data_classes.IPDict import IPDict
 from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.Map import Map
+from waffles.np02_utils.AutoMap import ordered_channels_membrane, ordered_channels_cathode, ordered_channels_pmt
+from waffles.np02_data.ProtoDUNE_VD_maps import cathode_endpoint, membrane_endpoint, pmt_endpoint
+from waffles.utils.utils import print_colored, ColoredFormatter
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -38,14 +43,15 @@ def ssh_connect(host: str, port: int, user: str,
                 passwd: str | None = None) -> paramiko.SSHClient:
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    timeout = 10 # seconds
     if kerberos:
         c.connect(host, port=port, username=user,
-                  gss_auth=True, gss_kex=True, gss_host=host)
+                  gss_auth=True, gss_kex=True, gss_host=host, timeout=timeout)
     elif key:
         pkey = paramiko.RSAKey.from_private_key_file(key, password=passwd)
-        c.connect(host, port=port, username=user, pkey=pkey)
+        c.connect(host, port=port, username=user, pkey=pkey, timeout=timeout)
     else:
-        c.connect(host, port=port, username=user, password=passwd)
+        c.connect(host, port=port, username=user, password=passwd, timeout=timeout)
     return c
 
 
@@ -104,18 +110,55 @@ def _analyse(wfset:WaveformSet):
                   checks_kwargs=dict(points_no=wfset.points_per_wf),
                   overwrite=True)
 
-def process_structured(h5: Path, outdir: Path,
-                       max_wfs: int, headless: bool, detector: str):
+# ╭────────────────────────── Waveform check quality ────────────────────────────╮
+def _check_all_channels_ok(wfset:WaveformSet, channels_needed: list[int]) -> bool:
+    available_channels = []
+    for run, ep_ch in wfset.available_channels.items():
+        if len(ep_ch.keys()) > 1:
+            raise Exception("This should never happen...")
+        for ep, ch in ep_ch.items():
+            if ep == 110:
+                return True
+            available_channels += list(ch)
+
+    available_channels = set(available_channels)
+    missing = set(channels_needed) - available_channels
+    if missing:
+        logging.error("Missing channels: %s", ", ".join(str(ch) for ch in missing))
+
+        print_colored(f"-----: Missing channels: {', '.join(str(ch) for ch in missing)}", "red", ["bold"])
+        return False
+    return True
+            
     
+
+
+def process_structured(h5: Path, outdir: Path,
+                       max_wfs: int, headless: bool, detector: str | list):
+
     wfset = load_structured_waveformset(h5.as_posix(),
                                         max_waveforms=max_wfs)
+
+    channels_needed: list[int] = []
+    if detector == "VD_Membrane_PDS":
+        channels_needed = ordered_channels_membrane
+    elif detector == "VD_Cathode_PDS":
+        channels_needed = ordered_channels_cathode
+    elif detector == "VD_PMT_PDS":
+        channels_needed = ordered_channels_pmt
+        detector = [ UniqueChannel(pmt_endpoint, ch) for ch in ordered_channels_pmt ]
+
+
+    is_ok = _check_all_channels_ok(wfset, channels_needed)
+
     _analyse(wfset)
     for n, g in np02_gen_grids(wfset, detector).items():
         g: ChannelWsGrid = cast(ChannelWsGrid, g)
         html = outdir / f"{n}.html" if headless else None
-        plot_grid(chgrid=g, title=n, html=html, detector=detector)
+        plot_grid(chgrid=g, title=n, html=html, detector=detector, showplots=False)
         if html:
             os.chmod(html.as_posix(), 0o775)
+    return is_ok
 
 
 # ╭─────────────────────────────── main() ─────────────────────────────────────╮
@@ -139,11 +182,21 @@ def main() -> None:
     ap.add_argument("-c", "--cathode", action="store_const",
                     const="VD_Cathode_PDS", dest="det", help="Use cathode PDS detector, ignores the json")
     ap.add_argument('-fs', '--full-stream', action='store_true', help="Use full stream instead of self-trigger")
+    ap.add_argument("-p", "--pmt", action="store_const",
+                    const="VD_PMT_PDS", dest="det", help="Use PMT PDS detector, ignores the json")
+    ap.add_argument("-ur", "--use-rucio", action="store_true", help="Use rucio paths instead of downloading from remote server.\nScript 07 will be called directly using the `databaserucio`.")
 
     args = ap.parse_args()
 
-    logging.basicConfig(level=max(10, 30 - 10*args.verbose),
-                        format="%(levelname)s: %(message)s")
+    logging.basicConfig(
+        level=max(10, 30 - 10*args.verbose),
+        format="%(levelname)s: %(message)s",
+        handlers=[logging.StreamHandler()]
+    )
+    
+    # Apply colored formatter
+    for handler in logging.root.handlers:
+        handler.setFormatter(ColoredFormatter('%(levelname)s: %(message)s'))
 
     runs = parse_run_list(args.runs)
     cfg = json.load(open(args.config_template))
@@ -168,6 +221,9 @@ def main() -> None:
         suffix="membrane"
     elif detector == 'VD_Cathode_PDS':
         suffix="cathode"
+    elif detector == 'VD_PMT_PDS':
+        suffix="pmt"
+
     else:
         raise ValueError(f"Unknown detector: {detector}")
 
@@ -181,60 +237,102 @@ def main() -> None:
         else:
             logging.warning("Full stream only available for VD_Cathode_PDS, ignoring\nIf this warning is outdated, remove it.")
 
+    databaserucio = Path( "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/ruciopaths/" )
     # ── SSH login ───────────────────────────────────────────────────────────
     pw = None
     if not args.kerberos and not args.ssh_key:
         pw = getpass.getpass(f"{args.user}@{args.hostname} password: ")
-    ssh = ssh_connect(args.hostname, args.port, args.user,
-                      kerberos=args.kerberos, key=args.ssh_key, passwd=pw)
-    sftp = ssh.open_sftp()
-    logging.info("✅ SSH connected")
 
- #   ok_runs: list[int] = []
- #   for run in runs:
-    # -----------------------------------------------------------------
-    # runs that already have a processed file -> skip EVERYTHING
-    # -----------------------------------------------------------------
-    have_struct = {
-        run for run in runs
-        if any(processed_dir.glob(processed_pattern % (run, run)))
-    }
-    for r in sorted(have_struct):
-        logging.info("run %d: processed file exists – nothing to do", r)
+    try: 
+        logging.info("🔑 Connecting to %s:%d as %s ...", args.hostname, args.port, args.user)
+        ssh = ssh_connect(args.hostname, args.port, args.user,
+                          kerberos=args.kerberos, key=args.ssh_key, passwd=pw)
+        sftp = ssh.open_sftp()
+        logging.info("✅ SSH connected")
+    except:
+        logging.error("❌ SSH connection failed")
+        ssh = None
+        sftp = None
 
-    ok_runs: list[int] = []
+    original_runs_requested = set(runs.copy())
 
-    for run in runs:
-        if run in have_struct: # already processed, just keeping for plots
-            ok_runs.append(run)
-            continue
-        try:
-            rem = remote_hdf5_files(ssh, args.remote_dir, run)
-            if not rem:
-                logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
-                if any(raw_dir.glob(raw_pattern % (run, run))):
-                    logging.info("run %d: raw data already present – ok", run)
-                    (list_dir / f"{run:06d}.txt").write_text(
-                        "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
-                    ok_runs.append(run)
+    if args.use_rucio:
+        logging.info("Using rucio paths from %s", databaserucio)
+        ok_runs: list[int] = []
+        cfg["only_unprocessed"] = True
+        for run in runs:
+            if (databaserucio / f"{run:06d}.txt").is_file():
+                (list_dir / f"{run:06d}.txt").write_text(
+                    (databaserucio / f"{run:06d}.txt").read_text())
+                logging.info("run %d: using existing .txt file", run)
+                ok_runs.append(run)
+            else:
+                logging.warning("run %d: no .txt file in rucio paths %s", run, databaserucio)
+    else:
+        # -----------------------------------------------------------------
+        # runs that already have a processed file -> skip EVERYTHING
+        # -----------------------------------------------------------------
+        have_struct = {
+            run for run in runs
+            if any(processed_dir.glob(processed_pattern % (run, run)))
+        }
+        for r in sorted(have_struct):
+            logging.info("run %d: processed file exists – nothing to do", r)
+
+        ok_runs: list[int] = []
+
+        for run in runs:
+            if run in have_struct: # already processed, just keeping for plots
+                ok_runs.append(run)
                 continue
-            if cfg.get("max_files", "all") != "all":
-                rem = rem[:int(cfg["max_files"])]
-            loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
-            (list_dir / f"{run:06d}.txt").write_text(
-                "\n".join(p.as_posix() for p in loc) + "\n")
-            ok_runs.append(run)
-            os.chmod(raw_dir / f"run{run:06d}", 0o775)
-        except Exception as e:
-            logging.error("run %d: %s", run, e)
-    sftp.close()
-    ssh.close()
+            try:
+                if ssh is None or sftp is None:
+                    raise RuntimeError("No SSH/SFTP connection available")
+                rem = remote_hdf5_files(ssh, args.remote_dir, run)
+                if not rem:
+                    logging.warning("run %d: no remote files\nChecking if raw files already exists...", run)
+                    if any(raw_dir.glob(raw_pattern % (run, run))):
+                        logging.info("run %d: raw data already present – ok", run)
+                        (list_dir / f"{run:06d}.txt").write_text(
+                            "\n".join(p.as_posix() for p in raw_dir.glob(raw_pattern % (run, run))) + "\n")
+                        ok_runs.append(run)
+                    else:
+                        # Then, accept .txt file with rucio path if already there
+                        logging.info("Checking if .txt file already exists...")
+                        if (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").is_file():
+                            (list_dir / f"{run:06d}.txt").write_text(
+                                (Path(cfg.get('rucio_dir', ".")) / f"{run:06d}.txt").read_text())
+                            logging.info("run %d: using existing .txt file", run)
+                            ok_runs.append(run)
+                        if run not in ok_runs:
+                            if (databaserucio / f"{run:06d}.txt").is_file():
+                                (list_dir / f"{run:06d}.txt").write_text(
+                                    (databaserucio / f"{run:06d}.txt").read_text())
+                                logging.info("run %d: using existing .txt file", run)
+                                ok_runs.append(run)
+                            else:
+                                logging.error("run %d: no raw data found remotely or locally\n", run)
+
+                    continue
+                if cfg.get("max_files", "all") != "all":
+                    rem = rem[:int(cfg["max_files"])]
+                loc = download_all(sftp, rem, raw_dir / f"run{run:06d}")
+                (list_dir / f"{run:06d}.txt").write_text(
+                    "\n".join(p.as_posix() for p in loc) + "\n")
+                ok_runs.append(run)
+                os.chmod(raw_dir / f"run{run:06d}", 0o775)
+            except Exception as e:
+                logging.error("run %d: %s", run, e)
+
+        if sftp is not None and ssh is not None:
+            sftp.close()
+            ssh.close()
 
 
     # ── Skip already-processed runs ─────────────────────────────────────────
     pending = []
     for r in ok_runs:
-        if any(processed_dir.glob(processed_pattern % (r, r))):
+        if any(processed_dir.glob(processed_pattern % (r, r))) and not args.use_rucio:
             logging.info("run %d already processed – skip", r)
         else:
             pro_dir = processed_dir / f"run{r:06d}_{suffix}"
@@ -242,7 +340,12 @@ def main() -> None:
             pending.append(r)
 
     if not pending:
-        logging.warning("Nothing to process; all runs already done.")
+        noprocessmessage = "Nothing to process; "
+        if len(ok_runs) == 0:
+            noprocessmessage += "no runs found..."
+        else:
+            noprocessmessage += "all runs already done."
+        logging.warning(noprocessmessage)
     else:
         # ── Build config for 07_save_structured_from_config.py ──────────────
         cfg.update(dict(
@@ -251,27 +354,39 @@ def main() -> None:
             output_dir=processed_dir.as_posix(),
             suffix=suffix,
         ))
-        pathscripts=Path(__file__).resolve().parent
-        tmp_cfg = pathscripts / "temp_config.json"
-        tmp_cfg.write_text(json.dumps(cfg, indent=4))
 
-        logging.info("🚀 07_save_structured_from_config.py …")
-        subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
-                        "--config", tmp_cfg.as_posix()], check=True)
+        pathscripts=Path(__file__).resolve().parent
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_config_file:
+
+            tmp_cfg = Path(tmp_config_file.name)
+            tmp_cfg.write_text(json.dumps(cfg, indent=4))
+
+            logging.info("🚀 07_save_structured_from_config.py …")
+            subprocess.run(["python3", f"{pathscripts}/07_save_structured_from_config.py",
+                            "--config", tmp_cfg.as_posix()], check=True)
 
     # ── Plot each run (new or existing) ─────────────────────────────────────
-    if args.headless and cfg.get("trigger", "full_streaming") != "full_streaming":
-        for r in ok_runs:
-            prod = list(processed_dir.glob(
-                processed_pattern % (r,r)))
-            if not prod:
-                logging.warning("run %d: processed file missing", r)
-                continue
-            pr_dir = plot_root / f"run{r:06d}_{suffix}"
-            pr_dir.mkdir(parents=True, exist_ok=True)
-            os.chmod(pr_dir, 0o775)
-            process_structured(prod[0], pr_dir,
-                               args.max_waveforms, args.headless, detector)
+    if args.headless:
+        if  cfg.get("trigger", "full_streaming") != "full_streaming":
+            is_ok = True
+            for r in ok_runs:
+                prod = list(processed_dir.glob(
+                    processed_pattern % (r,r)))
+                if not prod:
+                    logging.warning("run %d: processed file missing", r)
+                    continue
+                pr_dir = plot_root / f"run{r:06d}_{suffix}"
+                pr_dir.mkdir(parents=True, exist_ok=True)
+                os.chmod(pr_dir, 0o775)
+                is_ok &= process_structured(prod[0], pr_dir,
+                                   args.max_waveforms, args.headless, detector)
+            if not is_ok:
+                logging.error("Some runs had missing channels, check the logs for details.")
+                print_colored("-----: Some runs had missing channels, check the logs for details.", "red", ["bold"])
+    missing_runs = set(original_runs_requested) - set(ok_runs)
+    if missing_runs:
+        logging.error("The following runs were requested but not found: %s", ", ".join(str(r) for r in missing_runs))
+        print_colored(f"-----: The following runs were requested but not found: {', '.join(str(r) for r in missing_runs)}", "red", ["bold"])
 
 
 if __name__ == "__main__":

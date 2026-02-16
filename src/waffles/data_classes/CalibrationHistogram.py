@@ -6,9 +6,11 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.TrackedHistogram import TrackedHistogram
 
 import waffles.utils.numerical_utils as wun
+import waffles.Exceptions as we
 
-from waffles.Exceptions import GenerateExceptionMessage
-
+from iminuit import Minuit
+from iminuit.cost import LeastSquares
+from waffles.data_classes.CrossTalk import CrossTalk
 
 class CalibrationHistogram(TrackedHistogram):
     """This class implements a histogram which is used
@@ -26,6 +28,8 @@ class CalibrationHistogram(TrackedHistogram):
     bins_number: int (inherited from TrackedHistogram)
     edges: unidimensional numpy array of floats
     (inherited from TrackedHistogram)
+    mean: float (inherited from TrackedHistogram)
+    nentries: int (inherited from TrackedHistogram)
     mean_bin_width: float (inherited from TrackedHistogram)
     counts: unidimensional numpy array of integers
     (inherited from tracked_Histogram)
@@ -52,7 +56,8 @@ class CalibrationHistogram(TrackedHistogram):
         bins_number: int,
         edges: np.ndarray,
         counts: np.ndarray,
-        indices: List[List[int]]
+        indices: List[List[int]],
+        normalization: float = 1.0
     ):
         """CalibrationHistogram class initializer. It is the
         caller's responsibility to check the types of the
@@ -66,12 +71,22 @@ class CalibrationHistogram(TrackedHistogram):
         indices: list of lists of integers
         """
 
+        if not np.any(counts):
+            raise we.EmptyCalibrationHistogram(
+                we.GenerateExceptionMessage(
+                    1,
+                    'CalibrationHistogram.__init__()',
+                    "The given calibration histogram is empty."
+                )
+            )
+
         super().__init__(
             bins_number,
             edges,
             counts,
             indices)
 
+        self.normalization = normalization
         self.__gaussian_fits_parameters = {}
         self.__reset_gaussian_fit_parameters()
 
@@ -143,7 +158,8 @@ class CalibrationHistogram(TrackedHistogram):
         bins_number: int,
         domain: np.ndarray,
         variable: str,
-        analysis_label: Optional[str] = None
+        analysis_label: Optional[str] = None,
+        normalize_histogram: bool = False
     ):
         """This method creates a CalibrationHistogram object
         by taking one sample per Waveform from the given
@@ -198,16 +214,22 @@ class CalibrationHistogram(TrackedHistogram):
         """
 
         if bins_number < 2:
-            raise Exception(GenerateExceptionMessage(
-                1,
-                'CalibrationHistogram.from_WaveformSet()',
-                f"The given bins number ({bins_number}) must be"
-                " greater than 1."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    1,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    f"The given bins number ({bins_number}) must be"
+                    " greater than 1."
+                )
+            )
         if np.ndim(domain) != 1 or len(domain) != 2:
-            raise Exception(GenerateExceptionMessage(
-                2,
-                'CalibrationHistogram.from_WaveformSet()',
-                "The 'domain' parameter must be a 2x1 numpy array."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    2,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    "The 'domain' parameter must be a 2x1 numpy array."
+                )
+            )
 
         # Trying to grab the WfAna object Waveform by Waveform using
         # WaveformAdcs.get_analysis() might be slow. Find a different
@@ -219,25 +241,35 @@ class CalibrationHistogram(TrackedHistogram):
                 len(waveform_set.waveforms))
             if waveform_set.waveforms[idx].get_analysis( analysis_label).result[variable] is not np.nan
         ]
+        meansample = 1.0
+        if normalize_histogram:
+            meansample = np.mean(samples)
+            samples = [ s/meansample for s in samples ]
         try:
             return cls.__from_samples(
                 samples,
                 bins_number,
-                domain)
+                domain,
+                normalization=meansample
+            )
         except numba.errors.TypingError:
 
-            raise Exception(GenerateExceptionMessage(
-                3,
-                'CalibrationHistogram.from_WaveformSet()',
-                f"The given variable ('{variable}') does not give"
-                " suited samples for a 1D histogram."))
+            raise Exception(
+                we.GenerateExceptionMessage(
+                    3,
+                    'CalibrationHistogram.from_WaveformSet()',
+                    f"The given variable ('{variable}') does not give"
+                    " suited samples for a 1D histogram."
+                )
+            )
 
     @classmethod
     def __from_samples(
         cls, 
         samples: List[Union[int, float]],
         bins_number: int,
-        domain: np.ndarray
+        domain: np.ndarray,
+        normalization: float = 1.0
     ) -> 'CalibrationHistogram':
         """This method is not intended for user usage. It 
         must be only called by the
@@ -277,4 +309,109 @@ class CalibrationHistogram(TrackedHistogram):
             bins_number,
             edges,
             counts,
-            indices)
+            indices,
+            normalization=normalization
+        )
+
+    def compute_cross_talk(self) -> None:
+        """
+        This method computes the cross-talk of the SiPM
+        from the fitted gaussian peaks of the calibration
+        histogram. It relies on the Vinogradov et al. method
+        described in Henrique's thesis arXiv:2112.02967v1
+        page 108.
+        It also create a CrossTalk object to store the results
+        of the cross-talk analysis.
+        Returns
+        -------
+        cross_talk: float
+            The estimated cross-talk value
+        err_cross_talk: float
+            The uncertainty in the cross-talk estimate
+        """
+        if len(self.gaussian_fits_parameters["mean"]) < 3:
+            print(
+                "In method CalibrationHistogram.compute_cross_talk(): "
+                "Since there are less than 3 fitted peaks of the charge"
+                " histogram, the cross talk computation will be skipped."
+            )
+            self.CrossTalk = CrossTalk()
+            return
+
+        fraction_events_in_peaks     = [] 
+        err_fraction_events_in_peaks = []
+        peak_numbers                 = []
+        n_fitted_peaks               = len(self.gaussian_fits_parameters["mean"])
+        spe_charge                   = self.gaussian_fits_parameters["mean"][1][0] - self.gaussian_fits_parameters["mean"][0][0]
+        n_cx_peaks                   = min(int(self.edges[-1] // spe_charge)+1, n_fitted_peaks)
+        norm_factor                  = 1./(self.nentries * self.mean_bin_width)
+
+        for peak in range(0, n_cx_peaks):
+            scale = self.gaussian_fits_parameters["scale"][peak][0]
+            if scale < 0:
+                continue
+            std   = self.gaussian_fits_parameters["std"][peak][0]
+            fraction_events_in_peaks.append(scale * std * np.sqrt(2 * np.pi) * norm_factor)
+            err_scale = self.gaussian_fits_parameters["scale"][peak][1]
+            err_std   = self.gaussian_fits_parameters["std"][peak][1]
+            err_fit   = wun.error_propagation(scale, err_scale, std, err_std, "mul")
+            err_fraction_events_in_peaks.append(err_fit * np.sqrt(2*np.pi) * norm_factor)
+            peak_numbers.append(peak)
+        fraction_events_in_peaks = np.array(fraction_events_in_peaks)
+        err_fraction_events_in_peaks = np.array(err_fraction_events_in_peaks)
+        peak_numbers = np.array(peak_numbers)
+
+        iminuitparams = [self.mean/spe_charge, 0.1, 1.0]
+        paramnames    = ["L", "p", "N"]
+
+        chi2 = LeastSquares(peak_numbers,
+                            fraction_events_in_peaks,
+                            err_fraction_events_in_peaks,
+                            wun.CX_fit_function)
+        mm = Minuit(chi2, *iminuitparams, name=paramnames)
+
+        mm.limits["L"] = (0, None)
+        mm.limits["p"] = (0, 1)
+        mm.limits["N"] = (0, 2)
+
+        mm.migrad()
+        mm.hesse()
+        fitstatus = mm.fmin.is_valid if mm.fmin else False
+
+        if fitstatus == False:
+            print(
+                "In method CalibrationHistogram.compute_cross_talk(): "
+                "Cross-talk fit failed."
+            )
+            self.CrossTalk = CrossTalk()
+            return 
+
+        avg_photons     = mm.params[0].value
+        err_avg_photons = mm.params[0].error
+        cross_talk      = mm.params[1].value
+        err_cross_talk  = mm.params[1].error
+        norm_factor     = mm.params[2].value
+        err_norm_factor = mm.params[2].error
+
+        self.CrossTalk = CrossTalk(
+            avg_photons,
+            err_avg_photons,
+            cross_talk,
+            err_cross_talk,
+            norm_factor,
+            err_norm_factor,
+            n_cx_peaks,
+            peak_numbers,
+            fraction_events_in_peaks,
+            err_fraction_events_in_peaks
+        )
+
+        return
+
+    # @property
+    def get_cross_talk(self, recompute: bool=True) -> CrossTalk:
+        if hasattr(self, 'CrossTalk') and not recompute:
+            return self.CrossTalk
+        else:
+            self.compute_cross_talk()
+            return self.CrossTalk

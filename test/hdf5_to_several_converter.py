@@ -42,16 +42,16 @@ def save_as_hdf5_pickle(obj, filename, compression=None):
 def main(run_number):
     
     print("Reading the complete hdf5 file...")
-    # 025107
+    
     #From a rucio filepath. Important: First execute python get_rucio.py --runs <run_number> in <repos_dir>/waffles/scripts
-    rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{run_number}.txt"
-    filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
+    #rucio_filepath = f"/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/{run_number}.txt"
+    #filepaths = reader.get_filepaths_from_rucio(rucio_filepath)
     #wfset = reader.WaveformSet_from_hdf5_file(filepaths[0], det='VD_Membrane_PDS', read_full_streaming_data=False) # Only takes the first filepath 
     
     #From a directly download file in a specific filepath
-    #filepath = f"/afs/cern.ch/work/a/arochefe/private/repositories/waffles/scripts/030201.txt"
-    det='HD_PDS'
-    wfset = reader.WaveformSet_from_hdf5_files(filepaths, det=det, ch={"109":[0,2,5]}, read_full_streaming_data=False) 
+    filepath = f""
+    det='VD_Membrane_PDS'
+    wfset = reader.WaveformSet_from_hdf5_file(filepath,  det=det, read_full_streaming_data=False) 
 
     # File naming
     pkl_filename = f"wfset_{run_number}.pkl"
@@ -82,7 +82,7 @@ def main(run_number):
     print(f"{'Format':<15} {'Compression':<10} {'Size (MB)':<10} {'Time (sec)':<10}")
     print("="*50)
     print(f"{'Pickle':<15} {'-':<10} {pkl_size / 1e6:<10.2f} {pkl_time:<10.2f}")
-    #print(f"{'Hickle':<15} {'-':<10} {hkl_size / 1e6:<10.2f} {hkl_time:<10.2f}")
+    print(f"{'Hickle':<15} {'-':<10} {hkl_size / 1e6:<10.2f} {hkl_time:<10.2f}")
     for comp, size, time_taken in results:
         print(f"{'HDF5':<15} {comp or 'None':<10} {size / 1e6:<10.2f} {time_taken:<10.2f}")
 

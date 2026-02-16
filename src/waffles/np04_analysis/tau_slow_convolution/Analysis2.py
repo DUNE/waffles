@@ -117,17 +117,6 @@ class Analysis2(WafflesAnalysis):
         
         if self.params.fix_template:
             self.runled = self.led_run_template
-      
-        return True
-
-
-    ##################################################################
-    def analyze(self) -> bool:
-
-        #-------- This block should be moved to input when a double loop is available in read_input ------
-
-        # items for current iteration (channel number)
-        self.channel = self.analyze_itr
 
         print(f"  Processing channel {self.channel}")
 
@@ -161,7 +150,7 @@ class Analysis2(WafflesAnalysis):
         print ('    fit results: ', self.cfit.fit_results)
 
         return True
-        
+
     ##################################################################
     def write_output(self) -> bool:
 

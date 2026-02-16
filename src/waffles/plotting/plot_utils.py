@@ -1,9 +1,11 @@
 import numpy as np
 from plotly import graph_objects as pgo
-from typing import List, Optional
+from typing import Tuple, List, Optional, Union
 
 from waffles.data_classes.WaveformSet import WaveformSet
+from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
+from waffles.data_classes.Map import Map
 
 import waffles.utils.numerical_utils as wun
 
@@ -240,7 +242,7 @@ def __subplot_heatmap(
     ranges: np.ndarray,
     show_color_bar: bool = False,
     filtering: float = 0,
-    zlog: bool = False
+    zlog: bool = False,
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -376,11 +378,14 @@ def __subplot_heatmap(
         dy=adc_step,
         name=name,
         transpose=True,
-        showscale=show_color_bar)
+        showscale=show_color_bar,
+    )
 
     figure_.add_trace(heatmap,
                       row=row,
                       col=col)
+    figure_.update_xaxes(title_text="Time [ticks]", row=row, col=col)
+    figure_.update_yaxes(title_text="Amplitude [ADCs]", row=row, col=1)
     return figure_
 
 
@@ -443,7 +448,8 @@ def arrange_time_vs_ADC_ranges(
 def __add_unique_channels_top_annotations(
     channel_ws_grid: ChannelWsGrid,
     figure: pgo.Figure,
-    also_add_run_info: bool = False
+    also_add_run_info: bool = False,
+    yannotation = 1.25,
 ) -> pgo.Figure:
     """This function is not intended for user usage. It is
     meant to be called uniquely by the plot_ChannelWSGrid() 
@@ -480,6 +486,7 @@ def __add_unique_channels_top_annotations(
     figure: plotly.graph_objects.Figure
         The given figure with the annotations added
     """
+    # y position of the annotations, changed from 1.25 for low rows,cols
 
     for i in range(channel_ws_grid.ch_map.rows):
         for j in range(channel_ws_grid.ch_map.columns):
@@ -489,12 +496,13 @@ def __add_unique_channels_top_annotations(
                 # The annotation is left-aligned
                 # and on top of each subplot
                 x=0.,
-                y=1.25,
+                y=yannotation,
                 showarrow=False,
                 # Implicitly using UniqueChannel.__repr__()
                 text=str(channel_ws_grid.ch_map.data[i][j]),
                 row=i + 1,
                 col=j + 1)
+            text=str(channel_ws_grid.ch_map.data[i][j]),
             
     if also_add_run_info:
         for i in range(channel_ws_grid.ch_map.rows):
@@ -523,9 +531,152 @@ def __add_unique_channels_top_annotations(
                     yref="y domain",
                     # The run annotation is right-aligned
                     x=1.,
-                    y=1.25,
+                    y=yannotation,
                     showarrow=False,
                     text=annotation,
                     row=i + 1,
                     col=j + 1)
     return figure
+
+def __get_ChannelWs_or_indicate_no_data(
+    channel_ws_grid: ChannelWsGrid,
+    figure: pgo.Figure,
+    i: int,
+    j: int,
+) -> Tuple[pgo.Figure,  Optional[ChannelWs]]:
+    """This function is not intended for user usage. It is
+    meant to be called uniquely by the plot_ChannelWSGrid()
+    function, where the well-formedness of the input
+    parameters has been checked. This function tries to
+    get the ChannelWs object located at the (i,j) position
+    of the given ChannelWsGrid object. If such object
+    exists, then it is returned along with the given figure.
+    If such object does not exist, then an annotation
+    indicating 'No data' is added to the given figure
+    at the (i,j) position, and None is returned as the
+    ChannelWs object.
+
+    Parameters
+    ----------
+    channel_ws_grid: ChannelWsGrid
+        The ChannelWsGrid object from which the ChannelWs
+        object at position (i,j) will be retrieved.
+    figure: plotly.graph_objects.Figure
+        The figure where the 'No data' annotation will be
+        added if there is no ChannelWs object at position
+        (i,j) of the given ChannelWsGrid object.
+    i (resp. j): int
+        The row (resp. column) index of the ChannelWsGrid
+        object where the ChannelWs object will be retrieved
+        from. These values are expected to be 0-indexed.
+
+    Returns
+    ----------
+    figure: plotly.graph_objects.Figure
+        The given figure, possibly with the 'No data'
+        annotation added at position (i+1, j+1).
+    channel_ws: ChannelWs or None
+        The ChannelWs object located at position (i,j)
+        of the given ChannelWsGrid object, if it exists.
+        If it does not exist, then None is returned.
+    """
+
+    try:
+        channel_ws = channel_ws_grid.ch_wf_sets\
+            [channel_ws_grid.ch_map.data[i][j].endpoint]\
+                [channel_ws_grid.ch_map.data[i][j].channel]
+
+    except KeyError:
+        __add_no_data_annotation(   
+            figure,
+            i + 1,
+            j + 1
+        )
+        
+        channel_ws = None
+
+    return figure, channel_ws
+
+def __get_idcs_of_wvfs_to_plot(
+    mode: int,
+    channel_ws: ChannelWs,
+    wfs_per_axes: Union[None, int, Map],
+    i: Optional[int] = None,
+    j: Optional[int] = None
+) -> List[int]:
+    """This function is not intended for user usage. It is
+    meant to be called uniquely by the plot_ChannelWSGrid()
+    function, where the well-formedness of the input
+    parameters has been checked. This function receives
+    a mode parameter which indicates how to get the
+    indices of the waveforms to be plotted from the
+    given ChannelWs object. If mode is 1, then all the
+    waveform indices are returned. If mode is 2, then
+    the first wfs_per_axes indices are returned. If
+    mode is 3, then the waveform indices located at
+    position (i,j) of the given wfs_per_axes Map object
+    are returned. Finally, the list of waveform indices
+    to be plotted is returned.
+
+    Parameters
+    ----------
+    mode: int
+        It must be either 1, 2 or 3.
+    channel_ws: ChannelWs
+        The ChannelWs object from which the waveform
+        indices will be retrieved.
+    wfs_per_axes: int or Map or None
+        If mode is 2, then it must be an integer
+        indicating the number of waveforms to be
+        plotted. If mode is 3, then it must be a Map
+        object indicating the waveform indices to
+        be plotted at each position of the grid.
+        If mode is 1, then it is not used and can
+        be set to None.
+    i (resp. j): int or None
+        If mode is 3, then it must be the row (resp.
+        column) index indicating the position in
+        the wfs_per_axes Map object where the
+        waveform indices to be plotted are located.
+        If mode is 1 or 2, then it is not used and
+        can be set to None.
+
+    Returns
+    ----------
+    wvf_idcs: list of int
+        The list of waveform indices to be plotted.
+    """
+
+    if mode == 1:
+        wvf_idcs = list(
+            range(
+                len(
+                    channel_ws.waveforms
+                )
+            )
+        )
+
+    elif mode == 2:
+        wvf_idcs = list(
+            range(
+                min(
+                    wfs_per_axes, 
+                    len(channel_ws.waveforms)
+                )
+            )
+        )
+
+    elif mode == 3:
+        wvf_idcs = wfs_per_axes.data[i][j]
+
+    else:
+        raise Exception(
+            GenerateExceptionMessage( 
+                1,
+                '__get_idcs_of_wvfs_to_plot()',
+                f"The given mode ({mode}) must be either "
+                "1, 2 or 3."
+            )
+        )
+
+    return wvf_idcs

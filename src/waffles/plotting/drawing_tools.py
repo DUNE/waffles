@@ -105,55 +105,6 @@ def plot_wfs(wfs: list,
     write_image(fig)     
 
 
-    
-###########################
-def plot_grid(wfset: WaveformSet,                
-              apa: int = -1, 
-              ch: Union[int, list]=-1,
-              nwfs: int = -1,
-              tmin: int = -1,
-              tmax: int = -1,
-              xmin: int = -1,
-              xmax: int = -1,
-              ymin: int = -1,
-              ymax: int = -1,
-              offset: bool = False,
-              rec: list = [-1],
-              mode: str = 'overlay'):
-
-    """
-    Plot a WaveformSet in grid mode
-    """
-
-    # don't consider time intervals that will not appear in the plot
-    if tmin == -1 and tmax == -1:
-        tmin=xmin-1024    # harcoded number
-        tmax=xmax        
-    
-    # get the endpoints corresponding to a given APA
-    eps= get_endpoints(apa)
-
-    # get all waveforms in the specified endpoint, channels,  time offset range and record
-    selected_wfs= get_wfs(wfset.waveforms,eps,ch,nwfs,tmin,tmax,rec)
-
-    run = wfset.waveforms[0].run_number
-    
-    # get the ChannelWsGrid for that subset of wafeforms and that APA
-    grid = get_grid(selected_wfs,apa,run)
-
-    # plot the grid
-    global fig
-    fig = plot_ChannelWsGrid(grid, wfs_per_axes=1000,mode=mode,offset=offset)
-
-    if xmin != -1 and xmax != -1:
-        fig.update_xaxes(range = [xmin,xmax])
-    
-    if ymin != -1 and ymax != -1:
-        fig.update_yaxes(range = [ymin,ymax])
-    
-    write_image(fig,800,1200)
-
-    
 ###########################
 def plot_wf( waveform_adcs : WaveformAdcs,  
              figure : pgo.Figure,
@@ -438,6 +389,38 @@ def plot_charge_peaks(calibh: CalibrationHistogram,
     plot_CalibrationHistogram(calibh,fig,'hola',None,None,True,200)
     
     write_image(fig)
+
+###########################
+def compute_peaks(calibh: CalibrationHistogram,
+                    npeaks: int=2, 
+                    prominence: float=0.2,
+                    half_points_to_fit: int =10,
+                    op: str = ''):        
+
+
+    # fit the peaks of the calibration histogram
+    fp.fit_peaks_of_CalibrationHistogram(calibration_histogram=calibh,
+                                        max_peaks = npeaks,
+                                        prominence = prominence,
+                                        initial_percentage = 0.1,
+                                        percentage_step = 0.1,
+                                        half_points_to_fit = half_points_to_fit)
+
+
+    # print the gain and the S/N
+    if op and op.find('print') !=-1:
+        if len(calibh.gaussian_fits_parameters['mean']) < 2:
+            print ('<2 peaks found. S/N and gain cannot be computed')
+        else:
+            gain = (calibh.gaussian_fits_parameters['mean'][1][0]-calibh.gaussian_fits_parameters['mean'][0][0])
+            signal_to_noise = gain/sqrt(calibh.gaussian_fits_parameters['std'][1][0]**2+calibh.gaussian_fits_parameters['std'][0][0]**2)        
+            print ('S/N =  ', signal_to_noise)
+            print ('gain = ', gain)
+            print ('s.p.e. mean charge = ', calibh.gaussian_fits_parameters['mean'][1][0], 
+                ' +- ', 
+                calibh.gaussian_fits_parameters['mean'][1][1])
+
+
 
 ###########################
 def plot_avg(wset: WaveformSet,
@@ -1130,6 +1113,7 @@ def plot_function_grid(wfset: WaveformSet,
         
     # Obtain the endpoints from the APA
     eps = get_endpoints(apa)
+
     # Select the waveforms in a specific time interval of the DAQ window
     selected_wfs = get_wfs(wfset.waveforms, eps, ch, nwfs, tmin, tmax, rec)
     

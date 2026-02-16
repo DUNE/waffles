@@ -60,9 +60,9 @@ class Analysis2(WafflesAnalysis):
     ##################################################################
     def read_input(self) -> bool:
 
-        print(f"Reading events from hdf5 (gzip) file: ", self.params.events_output_path)
+        print(f"Reading events from pickle file: ", self.params.events_output_path)
 
-        self.events = events_from_hdf5_file(self.params.events_output_path)
+        self.events = events_from_pickle_file(self.params.events_output_path)
 
         print(f"  {len(self.events)} events read")
         
@@ -84,22 +84,18 @@ class Analysis2(WafflesAnalysis):
             if not nwfs: continue
 
             # ------------- Analyse the waveform set -------------
+
             b_ll = 0
-            b_ul = 55
-            int_0 = 60
-            int_1 = 99
-            int_2 = 125
+            b_ul = 100
+            int_ll = 135
+            int_ul = 165
             
             # baseline limits
             bl = [b_ll, b_ul, 900, 1000]
             
             peak_finding_kwargs = dict( prominence = 20,rel_height=0.5,width=[0,75])
-            ip_portion = IPDict(baseline_limits=bl,
-                        int_ll=int_0,int_ul=int_1,amp_ll=int_0,amp_ul=int_1,
-                        points_no=10,
-                        peak_finding_kwargs=peak_finding_kwargs)
-            ip_total = IPDict(baseline_limits=bl,
-                        int_ll=int_0,int_ul=int_2,amp_ll=int_0,amp_ul=int_2,
+            ip = IPDict(baseline_limits=bl,
+                        int_ll=int_ll,int_ul=int_ul,amp_ll=int_ll,amp_ul=int_ul,
                         points_no=10,
                         peak_finding_kwargs=peak_finding_kwargs)
             analysis_kwargs = dict(  return_peaks_properties = False)
@@ -107,11 +103,8 @@ class Analysis2(WafflesAnalysis):
             #if wset.waveforms[0].has_analysis('standard') == False:
             
             # analyse the waveforms (copute baseline, amplitude and integral)
-            
-            a_portion=e.wfset.analyse('Portion_integral',BasicWfAna,ip_portion,checks_kwargs = checks_kwargs,overwrite=True)
-            a_total=e.wfset.analyse('Total_integral',BasicWfAna,ip_total,checks_kwargs = checks_kwargs,overwrite=True)
-            
-            '''
+            a=e.wfset.analyse('standard',BasicWfAna,ip,checks_kwargs = checks_kwargs,overwrite=True)
+
             # dump event information when ROOT is not available
             if not ROOT_IMPORTED:
 
@@ -127,7 +120,6 @@ class Analysis2(WafflesAnalysis):
                        ', c0 =', e.beam_info.c0,
                        ', c1 =', e.beam_info.c1,
                        ', tof =', e.beam_info.tof)
-            '''
         
         return True
 
@@ -135,122 +127,62 @@ class Analysis2(WafflesAnalysis):
     def write_output(self) -> bool:
 
         if not ROOT_IMPORTED:
-            
-            print(f'Saving events summary in root file with uproot: {self.params.events_summary_output_path}')
+            return False
+
+
+        print(f'Saving events summary in root file: {self.params.events_summary_output_path}')
         
-            # Inicializar listas vacías para almacenar datos
-            data = {
-                "evt": [],
-                "p": [],
-                "tof": [],
-                "c0": [],
-                "c1": [],
-                "t": [],
-                "nwfs": [],
-                "a": [],
-                "qport": [],
-                "qtotal":[]
-            }
+        file = TFile(f'{self.params.events_summary_output_path}', 'recreate')
+        tree = TTree("tree", "tree title")
 
-            # Loop sobre eventos
-            for e in self.events:
-                qtotal = 0
-                qport=0
-                a = 0            
-                if e.wfset:
-                    for wf in e.wfset.waveforms:
-                        qport += wf.get_analysis('Portion_integral').result['integral']
-                        qtotal += wf.get_analysis('Total_integral').result['integral']
-                        a += wf.get_analysis('Total_integral').result['amplitude']
+        evt  = np.array([0], dtype=np.int32)        
+        p    = np.array([0], dtype=np.float64)
+        tof  = np.array([0], dtype=np.float64)
+        c0   = np.array([0], dtype=np.int32)
+        c1   = np.array([0], dtype=np.int32)
+        t    = np.array([0], dtype=np.int64)
+        nwfs = np.array([0], dtype=np.int32)
+        q    = np.array([0], dtype=np.float64)
+        a    = np.array([0], dtype=np.float64)                
 
-                nwfs = len(e.wfset.waveforms) if e.wfset else 0
-                if nwfs > 0:
-                    qport /= nwfs
-                    qtotal /= nwfs
-                    a /= nwfs            
-
-                # Agregar valores a las listas
-                data["evt"].append(e.event_number)
-                data["p"].append(e.beam_info.p)
-                data["tof"].append(e.beam_info.tof)
-                data["c0"].append(e.beam_info.c0)
-                data["c1"].append(e.beam_info.c1)
-                data["t"].append(e.beam_info.t)
-                data["nwfs"].append(nwfs)
-                data["qport"].append(qport)
-                data["qtotal"].append(qtotal)
-                data["a"].append(a)
-
-            # Convertir listas a arrays de numpy
-            for key in data:
-                data[key] = np.array(data[key])
-
-            # Escribir a un archivo ROOT usando uproot
-            with uproot.recreate(self.params.events_summary_output_path) as file:
-                file["tree"] = data  # Crear el árbol directamente desde el diccionario
-
-            print(f"  {len(self.events)} events saved")
+        tree.Branch("evt", evt, 'normal/I')
+        tree.Branch("p",   p,   'normal/D')
+        tree.Branch("tof", tof, 'normal/D')
+        tree.Branch("c0",  c0,  'normal/I')
+        tree.Branch("c1",  c1,  'normal/I')
+        tree.Branch("t",   t,   'normal/I')
+        tree.Branch("nwfs",nwfs,'normal/I')
+        tree.Branch("q",   q,   'normal/D')
+        tree.Branch("a",   a,   'normal/D')        
         
-        else:
+        # loop over events
+        for e in self.events:
 
-            print(f'Saving events summary in root file: {self.params.events_summary_output_path}')
+            q[0]=0
+            a[0]=0            
+            if e.wfset:
+                for wf in e.wfset.waveforms:
+                    q[0] += wf.get_analysis('standard').result['integral']
+                    a[0] += wf.get_analysis('standard').result['amplitude']
+
+            if nwfs>0:
+                q[0] = q[0]/(1.*nwfs)
+                a[0] = a[0]/(1.*nwfs)                
+
+            evt[0] = e.event_number
+            p[0]   = e.beam_info.p
+            tof[0] = e.beam_info.tof
+            c0[0]  = e.beam_info.c0
+            c1[0]  = e.beam_info.c1
+            t[0]   = e.beam_info.t
+            nwfs[0]= len(e.wfset.waveforms) if e.wfset else 0                        
             
-            file = TFile(f'{self.params.events_summary_output_path}', 'recreate')
-            tree = TTree("tree", "tree title")
-
-            evt  = np.array([0], dtype=np.int32)        
-            p    = np.array([0], dtype=np.float64)
-            tof  = np.array([0], dtype=np.float64)
-            c0   = np.array([0], dtype=np.int32)
-            c1   = np.array([0], dtype=np.int32)
-            t    = np.array([0], dtype=np.int64)
-            nwfs = np.array([0], dtype=np.int32)
-            qport    = np.array([0], dtype=np.float64)
-            qtotal    = np.array([0], dtype=np.float64)
-            a    = np.array([0], dtype=np.float64)                
-
-            tree.Branch("evt", evt, 'normal/I')
-            tree.Branch("p",   p,   'normal/D')
-            tree.Branch("tof", tof, 'normal/D')
-            tree.Branch("c0",  c0,  'normal/I')
-            tree.Branch("c1",  c1,  'normal/I')
-            tree.Branch("t",   t,   'normal/I')
-            tree.Branch("nwfs",nwfs,'normal/I')
-            tree.Branch("qport",   qport,   'normal/D')
-            tree.Branch("qtotal",   qtotal,   'normal/D')
-            tree.Branch("a",   a,   'normal/D')        
             
-            # loop over events
-            for e in self.events:
+            tree.Fill()
 
-                qport[0]=0
-                qtotal[0]=0
-                a[0]=0            
-                if e.wfset:
-                    for wf in e.wfset.waveforms:
-                        qport[0] += wf.get_analysis('Portion_integral').result['integral']
-                        qtotal[0] += wf.get_analysis('Total_integral').result['integral']
-                        a[0] += wf.get_analysis('Total_integral').result['amplitude']
+        file.Write()
+        file.Close()
 
-                if nwfs>0:
-                    qport[0] = qport[0]/(1.*nwfs)
-                    qtotal[0] = qtotal[0]/(1.*nwfs)
-                    a[0] = a[0]/(1.*nwfs)                
-
-                evt[0] = e.event_number
-                p[0]   = e.beam_info.p
-                tof[0] = e.beam_info.tof
-                c0[0]  = e.beam_info.c0
-                c1[0]  = e.beam_info.c1
-                t[0]   = e.beam_info.t
-                nwfs[0]= len(e.wfset.waveforms) if e.wfset else 0                        
-                
-                
-                tree.Fill()
-
-            file.Write()
-            file.Close()
-
-            print(f"  {len(self.events)} events saved")
+        print(f"  {len(self.events)} events saved")
         
         return True

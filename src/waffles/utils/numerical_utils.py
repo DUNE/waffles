@@ -1,7 +1,16 @@
 import numba
+<<<<<<< HEAD
 import numpy as np
 from typing import List, Tuple
 
+=======
+import math
+import numpy as np
+from typing import List, Tuple
+from tqdm import tqdm
+
+from waffles.data_classes.WaveformSet import WaveformSet
+>>>>>>> main
 from waffles.Exceptions import GenerateExceptionMessage
 
 
@@ -14,7 +23,11 @@ def gaussian(
     """Evaluates an scaled gaussian function
     in x. The function is defined as:
 
+<<<<<<< HEAD
     f(x) = scale * exp(-1 * ((x - mean) / (2 * std)) ** 2)
+=======
+    f(x) = scale * exp(-0.5 * ((x - mean) / std) ** 2)
+>>>>>>> main
 
     This function supports numpy arrays as input.
 
@@ -35,7 +48,71 @@ def gaussian(
         The value of the function at x
     """
 
+<<<<<<< HEAD
     return scale * np.exp(-1. * (np.power((x - mean) / (2 * std), 2)))
+=======
+    return scale * np.exp(-0.5 * (np.power((x - mean) / std, 2)))
+
+def multigaussfit(x, *params):
+    """Multivariate Gaussian function for fitting.
+    Parameters
+    ----------
+    x : array_like
+        The input data points.
+    params : tuple
+    n_peaks : int
+        The number of peaks to fit.
+
+    Returns
+    -------
+    output : array_like
+        The evaluated multivariate Gaussian function.
+    """
+    
+    output = np.zeros_like(x)
+    
+    n_peaks = (len(params)-4)
+    baseline_amplitude = abs(params[0])
+    baseline_mean = params[1]
+    baseline_std = params[2]
+    output += gaussian(x, baseline_amplitude, baseline_mean, baseline_std)
+
+    gain = params[3]
+    std_prop = params[4]
+
+    for i in range(1, n_peaks):
+        gaus_amplitude = abs(params[i + 4])
+        gaus_mean = i*gain + baseline_mean
+        gaus_std = np.sqrt( baseline_std ** 2 + std_prop ** 2 * i )
+        output += gaussian(x, gaus_amplitude, gaus_mean, gaus_std)
+
+    return output
+
+def multigaussplot(x, *params):
+    """Multivariate Gaussian function for plotting.
+    Parameters
+    ----------
+    x : array_like
+        The input data points.
+    params : array with values of scale, mean and std
+        The parameters of the Gaussian function.
+    Returns
+    -------
+    output : array_like
+        The evaluated multivariate Gaussian function.
+    """
+    output = np.zeros_like(x)
+    for i in range(len(params)//3):
+        output += gaussian(
+            x,
+            params[i * 3],  # scale
+            params[i * 3 + 1],  # mean
+            params[i * 3 + 2]  # std
+        )
+    return output
+
+
+>>>>>>> main
 
 
 def correlated_sum_of_gaussians(
@@ -106,6 +183,136 @@ def correlated_sum_of_gaussians(
     return result
 
 
+<<<<<<< HEAD
+=======
+
+def CX_function(x, *par):
+    """
+    Function to be used in the cross-talk (CX) fit.
+    It relies on the Vinogradov et al. method described
+    in Henrique's thesis arXiv:2112.02967v1 page 108.
+    Parameters
+    ----------
+    x : float
+        The input data point (peak number).
+    par : tuple
+        The parameters of the CX function:
+        par[0] : float
+            Average number of photons detected (L).
+        par[1] : float
+            Cross-talk probability (p).
+    Returns
+    -------
+    float
+        The evaluated CX function at point x.
+    """
+    k=int(x)
+    L = par[0]
+    p = par[1]
+
+    # Special case: k == 0
+    if k == 0:
+        return math.exp(-L)
+
+    eL = math.exp(-L)
+    L1p = L * (1.0 - p)
+
+    result = 0.0
+
+    # Precompute factorials up to k
+    # (small overhead, huge speed win for large k)
+    fact = [1.0] * (k + 1)
+    for i in range(1, k + 1):
+        fact[i] = fact[i-1] * i
+
+    # main loop
+    for i in range(k + 1):
+
+        # Compute fB(i,k)
+        if i == 0:
+            fb = 0.0     # fB(0,k>0)=0
+        else:
+            # fB(i,k) = comb(k-1, i-1)/i!
+            # comb(n,r) = n!/(r!(n-r)!)
+            comb = fact[k-1] / (fact[i-1] * fact[(k-1)-(i-1)])
+            fb = comb / fact[i]
+
+        # term = e^{-L} * fB(i,k) * (L*(1-p))^i * p^(k-i)
+        # use iterative pow for speed
+        term = fb * (L1p ** i) * (p ** (k - i))
+        result += term
+    return eL * result
+
+
+def CX_fit_function(
+        x,
+        *par,
+) -> float:
+    """
+    Function to be used in the cross-talk (CX) fit.
+    The core is the CX_function defined above. Here
+    we just multiply it by a normalization factor and
+    handle the case in which x is/is not a numpy array.
+    """
+    if isinstance(x, (float, int, np.integer)): 
+        return par[2]*CX_function(x, *par)
+    output = np.zeros_like(x)
+    for i, v in enumerate(x):
+        output[i] = par[2]*CX_function(v, *par)
+
+    return output
+
+
+def error_propagation(p1: float, e1: float, p2: float, e2: float, operation: str) -> float:
+    """Error propagation given two parameters and their errors
+    (no covariance).
+
+    Parameters
+    ----------
+    p1: float
+        The first parameter
+    e1: float
+        The error associated to the first parameter
+    p2: float
+        The second parameter
+    e2: float
+        The error associated to the second parameter
+    operation: str
+        The operation to be performed. It must be one of the 
+        following strings: 'sum', 'sub', 'mul', 'div', 
+        'sqrt_sum' or 'sqrt_sub'.
+
+    Returns
+    -------
+    float
+        The propagated error
+    """
+    result = 0.
+    
+    if operation   == "sum":
+        result = math.sqrt(e1 * e1 + e2 * e2)
+    elif operation == "sub":
+        result = math.sqrt(e1 * e1 + e2 * e2)
+    elif operation == "mul":
+        result = math.sqrt((e1 * e1) * (p2 * p2) + (e2 * e2) * (p1 * p1))
+    elif operation == "div":
+        result = math.sqrt((e1 * e1) / (p2 * p2) + (e2 * e2) * (p1 * p1) / (p2 * p2 * p2 * p2))
+    elif operation == "sqrt_sum":
+        f2 = p1*p1 + p2*p2
+        result = math.sqrt( (e1*e1 * p1*p1)/f2 + (e2*e2 * p2*p2)/f2 )
+    elif operation == "sqrt_sub":
+        f2 = p1*p1 - p2*p2
+        result = math.sqrt( (e1*e1 * p1*p1)/f2 + (e2*e2 * p2*p2)/f2 )
+    else:
+        raise Exception(GenerateExceptionMessage(
+            1,
+            'error_propagation()',
+            "Invalid operation: must be 'sum', 'sub', 'mul',"
+            " 'div', 'sqrt_sum' or 'sqrt_sub'."))
+
+    return result
+
+>>>>>>> main
 @numba.njit(nogil=True, parallel=False)
 def __histogram1d(
     samples: np.ndarray,
@@ -436,3 +643,55 @@ def cluster_integers_by_contiguity(
             'The given numpy array must contain at least two elements.'))
 
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
+<<<<<<< HEAD
+=======
+
+
+def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) -> np.ndarray:
+    """
+    Compute the average waveform for a single channel after baseline subtraction.
+
+    This function loops over all waveforms stored in a `WaveformSet`, subtracts
+    the baseline computed in a previous analysis step, and returns the sample-wise
+    average waveform.
+
+    Parameters
+    ----------
+    wfch : WaveformSet
+        WaveformSet object containing the waveforms to be averaged.
+    analysis_label : str, optional
+        Label of the analysis from which the baseline value is retrieved
+        (default is "std"). 
+
+    Returns
+    -------
+    average_waveform : ndarray
+        One-dimensional NumPy array containing the average waveform (in ADC units)
+        after baseline subtraction.
+
+    Example
+    --------
+    avg_wf = average_wf_ch(wfch, analysis_label="std")
+    
+    """
+    
+    arrs = []
+    for run in wfch.runs: 
+        available_endpoints_and_channels = wfch.available_channels[run]
+        if len(list(available_endpoints_and_channels.keys())) > 1:
+            raise Exception("WaveformSet must contain exactly one endpoint.")
+        for channels in available_endpoints_and_channels.values():
+            if len(list(channels)) > 1:
+                raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
+
+    for wf in tqdm(wfch.waveforms, disable=not show_progress, desc="Computing average waveform"):
+        adcs_float = np.asarray(wf.adcs).astype(float)          
+        if analysis_label in wf.analyses:
+            baseline = wf.analyses[analysis_label].result["baseline"]
+            adcs_float = adcs_float - baseline                
+            arrs.append(adcs_float)
+            
+    return np.mean(arrs, axis=0)
+
+
+>>>>>>> main

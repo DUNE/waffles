@@ -22,3 +22,4 @@ pydantic
 h5py
 hickle
 python-gssapi
+paramiko

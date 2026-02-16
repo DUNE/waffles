@@ -58,6 +58,26 @@ class Denoise:
             self.__setupreturn()
         return self.tv1filter.TV1D_denoise(raw.astype(np.float32), self.__npts, filter)
 
+    def apply_denoise_inplace(self, raw: Waveform.adcs, filter: float = 0) -> np.ndarray:
+        """Apply denoising on Waveform.adcs or numpy array objects.
+
+        Parameters
+        ----------
+        raw: Waveform.adcs (or numpy array)
+            Raw waveform in which you wish to apply the filtering
+        filter: float
+            Filtering level.
+            ATTENTION: the filtering level depends on the length of the
+            waveform. Therefore, for different lengths, one need to test what
+            is the appropriate filter value.
+
+        """
+        if not self.__hasnptsset:
+            self.__npts = len(raw)
+            self.__setupreturn()
+            self.output = np.zeros(self.__npts, dtype=np.float32)
+        self.tv1filter.TV1D_denoise_inplace(raw.astype(np.float32), self.__npts, filter, self.output)
+        return self.output
 
     def create_filtered_waveforms(self, wfset:WaveformSet, filter: float = 0, show_progress: bool = False):
         """Apply denoising on all waveforms of a WaveformSet. Saved the filtered waveforms in each `waveforms` object as `filtered`
@@ -80,21 +100,27 @@ class Denoise:
 
     def load_filter(self, dir_path:str):
         
-        if not os.path.isfile(f'{dir_path}/tv1ddenoise.o'):
+        if not os.path.isfile(f'{dir_path}/tv1ddenoise.so'):
             if os.path.isfile(f'{dir_path}/tv1ddenoise.c'):
                 print("Installing denoise...")
-                os.system(f'g++ -shared {dir_path}/tv1ddenoise.c -o {dir_path}/tv1ddenoise.o')
+                os.system(f'g++ -O3 -fPIC -shared {dir_path}/tv1ddenoise.c -o {dir_path}/tv1ddenoise.so')
             else:
                 raise Exception(f"No tv1ddenoise.c found at {dir_path}")
                 return
 
-        self.tv1filter = ctypes.cdll.LoadLibrary(f"{dir_path}/tv1ddenoise.o")
+        self.tv1filter = ctypes.cdll.LoadLibrary(f"{dir_path}/tv1ddenoise.so")
         self.tv1filter.TV1D_denoise.argtypes = [ np.ctypeslib.ndpointer(dtype=np.float32), ctypes.c_int , ctypes.c_double ]
+        try:
+            self.tv1filter.TV1D_denoise_inplace.argtypes = [ np.ctypeslib.ndpointer(dtype=np.float32), ctypes.c_int , ctypes.c_double, np.ctypeslib.ndpointer(dtype=np.float32) ]
+        except Exception as e:
+            print(f"Error setting up TV1D_denoise_inplace: {e}")
+            raise
 
 
     def __setupreturn(self):
         self.__hasnptsset = True
         self.tv1filter.TV1D_denoise.restype = np.ctypeslib.ndpointer(dtype=np.float32, shape=(self.__npts,))
+        self.tv1filter.TV1D_denoise_inplace.restype = None
         
 
         

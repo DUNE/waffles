@@ -28,8 +28,6 @@ class Analysis1(WafflesAnalysis):
             channels:                list = Field(...,          description="work in progress")
             dry:                     bool = Field(default=False,description="work in progress")
             force:                   bool = Field(default=False,description="work in progress")
-            response:                bool = Field(default=False,description="work in progress")
-            template:                bool = Field(default=False,description="work in progress")
             runlist:                  str = Field(...,          description="work in progress")
             runs:                    list = Field(...,          description="work in progress")
             showp:                   bool = Field(default=False,description="work in progress")
@@ -65,25 +63,17 @@ class Analysis1(WafflesAnalysis):
         if self.params.force:
             self.safemode = False
 
-        # make sure only -r or -t is chosen, not both
-        if not self.params.response and not self.params.template:
-            print("Please, choose one type --response or --template")
-            exit(0)
-
-        if self.params.response:
+        if self.params.runlist != "led":
             self.selection_type='response'
-        elif self.params.template:
+        else:
             self.selection_type='template'
 
         # ReaderCSV is in np04_data
         dfcsv = ReaderCSV()
 
         # these runs should be analyzed only on the last half
-        try: 
-            tmptype = 'Run'
-            if self.params.template:
-                tmptype = 'Run LED'
-            runs = np.unique(dfcsv.dataframes[self.params.runlist][tmptype].to_numpy())
+        try:
+            runs = np.unique(dfcsv.dataframes[self.params.runlist]['Run'].to_numpy())
         except Exception as error:
             print(error)
             print('Could not open the csv file...')
@@ -134,7 +124,25 @@ class Analysis1(WafflesAnalysis):
         if not os.path.isfile(file):
             print("No file for run", run, "endpoint", self.endpoint)
             return False
-        if self.params.dry:
+
+
+        self.pickle_selec_name = {}
+        self.pickle_avg_name   = {}
+        os.makedirs(f'{self.params.output_path}/{self.selection_type}s', exist_ok=True)
+        self.missingchannels = []
+        for ch in self.params.channels:
+            base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{ch}'
+
+            self.pickle_selec_name[ch] = f'{base_file_path}.pkl'
+            self.pickle_avg_name[ch]   = f'{base_file_path}_avg.pkl'
+            if self.safemode and os.path.isfile(self.pickle_avg_name[ch]):
+                return False
+            self.missingchannels.append(ch)
+
+        if not self.missingchannels:
+            print(f"Run {runnumber} there already for both channels...")
+            return False
+        elif self.params.dry:
             print(run, file)
             return False
 
@@ -147,6 +155,9 @@ class Analysis1(WafflesAnalysis):
             print("Could not load the file... of run ", run, file)
             return False
 
+
+        self.analyze_loop = self.missingchannels
+        
         return True
 
     ##################################################################
@@ -158,39 +169,7 @@ class Analysis1(WafflesAnalysis):
 
         print(f"    Processing channel {channel}")
 
-        # --------- perform the analysis for channel in run ----------- 
-
         self.wfset_ch:WaveformSet = 0
-        base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}'
-        self.pickle_selec_name = f'{base_file_path}.pkl'
-        self.pickle_avg_name   = f'{base_file_path}_avg.pkl'
-        os.makedirs(f'{self.params.output_path}/{self.selection_type}s', exist_ok=True)
-
-        # if the output files already exist check if we want to process the channel again
-        if self.safemode and os.path.isfile(self.pickle_selec_name):
-            val:str
-            val = input('File already there... overwrite? (y/n)\n')
-            val = val.lower()
-            if val == "y" or val == "yes":
-                pass
-            else:
-                return False
-
-        self.wfset_ch:WaveformSet = 0
-        base_file_path = f'{self.params.output_path}/{self.selection_type}s/{self.selection_type}_run0{run}_ch{channel}'
-        self.pickle_selec_name = f'{base_file_path}.pkl'
-        self.pickle_avg_name   = f'{base_file_path}_avg.pkl'
-        os.makedirs(f'{self.params.output_path}/{self.selection_type}s', exist_ok=True)
-
-        # if the output files already exist check if we want to process the channel again
-        if self.safemode and os.path.isfile(self.pickle_selec_name):
-            val:str
-            val = input('File already there... overwrite? (y/n)\n')
-            val = val.lower()
-            if val == "y" or val == "yes":
-                pass
-            else:
-                return False
             
         # --------- perform waveform selection  ----------- 
 
@@ -206,16 +185,16 @@ class Analysis1(WafflesAnalysis):
 
         # select waveforms in the interesting channels
         self.wfset_ch = WaveformSet.from_filtered_WaveformSet(self.wfset, 
-                                    extractor.allow_certain_endpoints_channels, 
-                                    [self.endpoint], [wch], 
-                                    show_progress=self.params.showp)
+                                                                  extractor.allow_certain_endpoints_channels, 
+                                                                  [self.endpoint], [wch], 
+                                                                  show_progress=self.params.showp)
 
         print ('      - #Waveforms (in channel): ', len(self.wfset_ch.waveforms))
        
         try: 
             self.wfset_ch = WaveformSet.from_filtered_WaveformSet(self.wfset_ch, 
-                                                    extractor.apply_cuts,
-                                                    show_progress=self.params.showp)
+                                                                  extractor.apply_cuts,
+                                                                  show_progress=self.params.showp)
         except Exception as error:
             print(error)
             print(f"No waveforms for run {run}, channel {wch}")
@@ -256,17 +235,20 @@ class Analysis1(WafflesAnalysis):
 
     ##################################################################
     def write_output(self) -> bool:
-            
+
+        # get the channel number from the analyze iterator
+        channel = self.analyze_itr
+
         # save all the waveforms contributing to the average waveform
-        with open(self.pickle_selec_name, "wb") as f:
+        with open(self.pickle_selec_name[channel], "wb") as f:
             pickle.dump(self.wfset_ch, f)
 
         # save the average waveform, the time stamp of the first waveform and the number of selected waveforms
         output = np.array([self.wfset_ch.avg_wf, self.wfset_ch.waveforms[0].timestamp, self.wfset_ch.nselected], dtype=object)
 
-        with open(self.pickle_avg_name, "wb") as f:
+        with open(self.pickle_avg_name[channel], "wb") as f:
             pickle.dump(output, f)
-        print(f'      Average waveform saved in file: {self.pickle_avg_name}')
+        print(f'      Average waveform saved in file: {self.pickle_avg_name[channel]}')
 
         return True
 

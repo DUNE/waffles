@@ -1,6 +1,8 @@
 import numpy as np
+from waffles.np02_data.ProtoDUNE_VD_maps import cathode_endpoint, membrane_endpoint, pmt_endpoint
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_nontco_data, cat_geometry_tco_data, cat_geometry_nontco_titles, cat_geometry_tco_titles
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_nontco_data, mem_geometry_tco_data, mem_geometry_nontco_titles, mem_geometry_tco_titles
+from waffles.np02_data.ProtoDUNE_VD_maps import pmt_geometry_data, pmt_geometry_titles
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelMap import ChannelMap
 from typing import List, cast, Union
@@ -13,8 +15,8 @@ import math
 def _setup_dicts(map_data, map_title):
     map_data = np.array([map_data]).flatten()
     map_title = np.array([map_title]).flatten()
-    dict_uniqch_to_module = {str(k): v for k, v in zip(map_data, map_title)}
-    dict_module_to_uniqch = {v: k for k, v in zip(map_data, map_title)}
+    dict_uniqch_to_module = {str(k): v for k, v in zip(map_data, map_title) if v}
+    dict_module_to_uniqch = {v: k for k, v in zip(map_data, map_title) if v}
     return dict_uniqch_to_module, dict_module_to_uniqch
 
 def _merge_dicts(dict1, dict2):
@@ -25,14 +27,27 @@ def _merge_dicts(dict1, dict2):
 dict_uniqch_to_module = _merge_dicts(_merge_dicts(_setup_dicts(cat_geometry_nontco_data, cat_geometry_nontco_titles)[0],
                                                   _setup_dicts(cat_geometry_tco_data, cat_geometry_tco_titles)[0]),
                                      _merge_dicts(_setup_dicts(mem_geometry_nontco_data, mem_geometry_nontco_titles)[0],
-                                                  _setup_dicts(mem_geometry_tco_data, mem_geometry_tco_titles)[0])
+                                                  _setup_dicts(mem_geometry_tco_data, mem_geometry_tco_titles)[0]),
                                      )
+
+dict_uniqch_to_module = _merge_dicts(dict_uniqch_to_module, _setup_dicts(pmt_geometry_data, pmt_geometry_titles)[0])
 
 dict_module_to_uniqch = _merge_dicts(_merge_dicts(_setup_dicts(cat_geometry_nontco_data, cat_geometry_nontco_titles)[1],
                                                   _setup_dicts(cat_geometry_tco_data, cat_geometry_tco_titles)[1]),
                                      _merge_dicts(_setup_dicts(mem_geometry_nontco_data, mem_geometry_nontco_titles)[1],
                                                   _setup_dicts(mem_geometry_tco_data, mem_geometry_tco_titles)[1])
                                      )
+dict_module_to_uniqch = _merge_dicts(dict_module_to_uniqch, _setup_dicts(pmt_geometry_data, pmt_geometry_titles)[1])
+
+ordered_modules_membrane = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("M") ] )
+ordered_modules_cathode = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("C") ] )
+ordered_modules_pmt = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("P") ], key=lambda x: int(x[1:]) )
+
+ordered_channels_membrane = [ dict_module_to_uniqch[m].channel for m in ordered_modules_membrane ]
+ordered_channels_cathode = [ dict_module_to_uniqch[m].channel for m in ordered_modules_cathode ]
+ordered_channels_pmt = [ dict_module_to_uniqch[m].channel for m in ordered_modules_pmt ]
+
+dict_endpoints_channels_list = { membrane_endpoint : ordered_channels_membrane, cathode_endpoint : ordered_channels_cathode, pmt_endpoint : ordered_channels_pmt }
 
 
 def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], rows:int = 0, cols:int = 0) -> ChannelMap:
@@ -57,7 +72,7 @@ def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Uni
     unch: List[UniqueChannel] 
     unch = [ channel if isinstance(channel, UniqueChannel) else (dict_module_to_uniqch[channel] if channel[0] in ["M", "C"] else dict_uniqch_to_module[channel]) for channel in channels]
 
-    titles = [ dict_uniqch_to_module[str(channel)] for channel in unch ]
+    titles = [ dict_uniqch_to_module[str(channel)] if channel and str(channel) in dict_uniqch_to_module else f"{channel.endpoint}-{channel.channel}" for channel in unch ]
 
     if len(unch)%2 != 0 and len(unch) != 1:
         unch.append(UniqueChannel(101, 0))
@@ -75,15 +90,18 @@ def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Uni
         rows = math.ceil(n / cols)
     else:
         rows = math.isqrt(n)
-        while n % rows != 0:
-            rows -= 1
-        cols = n // rows
+        cols = rows
+        while cols * rows < n:
+            cols += 1
+    if cols * rows > n:
+        unch.extend( [ UniqueChannel(101,0) ] * (cols*rows - n) )
     channels_shaped = np.array(unch).reshape(rows, cols)
     channelsmap:List[List[UniqueChannel]] = [ list(row) for row in channels_shaped ]
     output = ChannelMap(rows, cols, channelsmap)
     output.titles = titles
     return output
 
-
+def strUch(endpoint:int, channel: int):
+    return str(UniqueChannel(endpoint, channel))
 
 

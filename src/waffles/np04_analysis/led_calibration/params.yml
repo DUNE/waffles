@@ -1,81 +1,45 @@
 
 # ------- General parameters -------
 
-# APA number
-apas: [2,3,4] # 1, 2, 3, 4
-
-# Photon detection efficiency
-pdes: [0.4,0.45] # 0.40, 0.45, 0.50
-
-# Calibration-batch number
-batches: [3] # 1, ...
-
 # Path to the folder containing the data
 input_path: 'data'
 
 # Path to the output
 output_path: 'output'
 
-# PDE-to-OV mapping for HPK sipms
-hpk_ov:
-    0.4: 2.0
-    0.45: 3.5
-    0.50: 4.0
+# Calibration-batch number
+batches: [1, 2, 3, 4, 5, 6, 7] # 1, ..., 7
 
-# PDE-to-OV mapping for FBK sipms
-fbk_ov:
-    0.4: 3.5
-    0.45: 4.5
-    0.50 : 7.0
+# APA number
+apas: [1, 2, 3, 4] # 1, 2, 3, 4
 
-# Enumeration of PDE values
-ov_no:
-    0.4: 1
-    0.45: 2
-    0.50: 3
+# Photon detection efficiency
+pdes: [0.4, 0.45, 0.5] # 0.40, 0.45, 0.50
 
-# ------- Parameters for charge histogram -------
+# Path to a CSV file which lists the channels
+# which should be calibrated for each run
+channels_per_run_filepath: './configs/channels_per_run_database.csv'
 
-analysis_label: 'standard'
+# Path to a CSV file which lists the channels
+# which should be excluded from the calibration
+excluded_channels_filepath: './configs/excluded_channels_database.csv'
 
-# Lower integration limits. For APA 1 the limits are
-# run-wise, while for APA 2, 3, 4 they are the same
-# for all runs 
-starting_tick:
-    1:
-        27818: 621
-        27820: 615
-        27822: 615
-        27823: 615
-        27824: 615
-        27825: 615
-        27826: 615
-        27827: 632
-        27828: 626
-        27898: 635
-        27899: 635
-        27900: 618
-        27921: 602
-        27901: 615
-        27902: 615
-        27903: 615
-        27904: 630
-        27905: 620
-        27906: 610
-        27907: 608
-        27908: 602
-    2:
-        125
-    3:
-        125
-    4:
-        125
+# Whether to show the produced figures
+show_figures: false
 
-# Baseline limits
+# Whether to print verbose messages
+verbose: true
+
+## Parameters for the baseline analysis
+baseline_analysis_label: 'baseliner'
+null_baseline_analysis_label: 'null_baseliner'
+
 baseline_limits:
     1:
+        - 0
         - 100
-        - 400
+        - 900
+        - 1000
     2: 
         - 0
         - 100
@@ -92,11 +56,275 @@ baseline_limits:
         - 900
         - 1000
 
-# Integration window width, in time ticks
-integ_window: 40
+# Number of allowed standard deviations from a
+# preliminary baseline estimate. The ADC samples
+# that fall into the given range are considered
+# in the definitive baseline computation
+baseliner_std_cut: 3.
 
-# ------- Parameters for peak fitting -------
+# How to compute the baseline out of the selected
+# ADC samples
+baseliner_type: 'mean'
 
+## Parameters for the coarse selection cut
+lower_limit_wrt_baseline: -200.
+upper_limit_wrt_baseline: 40.
+
+## Parameters for the correlation alignment
+# Whether to apply the correlation alignment. For more
+# information, see the
+# align_waveforms_by_correlation() function
+# docstring.
+apply_correlation_alignment: false
+
+# If apply_correlation_alignment is set to True,
+# this parameter must be defined. It is the path 
+# to a CSV file which contains the seed gain and the 
+# SPE templates used for the correlation alignment. 
+# The CSV file must contain the columns 'batch', 'APA', 
+# 'PDE', 'endpoint', 'channel', 'vendor, 'center_0', 
+# 'center_1' and 'SPE_mean_adcs'
+alignment_seeds_filepath: './configs/optimal_seeds_dfb_30p.csv'
+
+
+# This parameter makes a difference only 
+# if apply_correlation_alignment is set to True. In that 
+# case, its absolute value gives the number of points to 
+# the left of the SPE pulse which are considered for the 
+# correlation alignment. For more information, check the 
+# align_waveforms_by_correlation() function 
+# docstring.
+SPE_template_lower_limit_wrt_pulse: -50
+
+# This parameter makes a difference only 
+# if apply_correlation_alignment is set to True. In that 
+# case, its absolute value gives the number of points to 
+# the right of the SPE pulse which are considered for the 
+# correlation alignment. For more information, check the 
+# align_waveforms_by_correlation() function 
+# docstring.
+SPE_template_upper_limit_wrt_pulse: 300
+
+# This parameter makes a difference only if
+# apply_correlation_alignment is set to True. In that
+# case, it gives the maximum allowed shift (in number
+# of ADC samples) for the correlation alignment. For
+# more information, check the
+# align_waveforms_by_correlation() function
+# docstring.
+maximum_allowed_shift: 10
+
+## Parameters for the average-baseline-std computation
+
+# If True, the baseline std is retrieved 
+# from external files whose paths are given by the
+# daphne_configuration_database_filepath and the 
+# noise_results_dataframe_filepath input parameters. 
+# If False, the baseline std is computed from the data.
+baseline_std_from_noise_results: true
+
+# Only used if the
+# baseline_std_from_noise_results parameter is set to 
+# True. It is the path to the Daphne configuration JSON
+# file.
+daphne_configuration_database_filepath: '../../np04_utils/DaphneConfigs.json'
+
+# Only used if the 
+# baseline_std_from_noise_results parameter is set to 
+# True. It is the path to the noise results CSV file, 
+# which must contain the columns 'ConfigNumber', 
+# 'OfflineCh' and 'RMS'.
+noise_results_dataframe_filepath: '../../np04_data/OfflineCh_RMS_Config_all.csv'
+
+## Parameters for the fine selection cut
+# Whether to infer the baseline and signal regions (on
+# a channel basis) for the fine selection cut, based on
+# the average waveform of each channel. If set to True,
+# then the baseline_region_points and the
+# signal_region_half_points parameters must be defined. If 
+# set to False, then those parameters are ignored, but 
+# the baseline_i_low, baseline_i_up and signal_i_up 
+# parameters must be defined instead.
+infer_regions_for_fine_selection: true
+
+# Number of ADC samples to consider for the baseline
+# region in the fine selection cut. If the waveform
+# deviates from the baseline by more than a certain
+# amount in this region, it will be excluded from
+# the analysis. This parameter is ignored if
+# infer_regions_for_fine_selection is set to False.
+# For more information, check the
+# get_fine_selection_regions() function docstring.
+baseline_region_points: 100
+
+# Number of ADC samples to consider on either side of
+# the average pulse peak for the signal region in the
+# fine selection cut. This parameter is ignored if
+# infer_regions_for_fine_selection is set to False.
+# For more information, check the
+# get_fine_selection_regions() function docstring.
+signal_region_half_points: 10
+
+# This parameter is only used if
+# infer_regions_for_fine_selection is set to False. 
+# It is a dictionary whose keys refer to the APA 
+# number, and its values are the ADCs-array iterator 
+# value for the lower limit of the window which is 
+# considered to be the baseline region. If the waveform 
+# deviates from the baseline by more than a certain 
+# amount in this region, it will be excluded from the 
+# analysis.
+# baseline_i_low: # No aligment
+#     1:
+#         455
+#     2:
+#         0
+#     3:
+#         0
+#     4:
+#         0
+
+baseline_i_low: # Typical alignment
+    1:
+        455
+    2:
+        0
+    3:
+        0
+    4:
+        0
+
+# This parameter is only used if 
+# infer_regions_for_fine_selection is set to False. 
+# It is a dictionary whose keys refer to the APA 
+# number, and its values are the ADCs-array iterator 
+# value for the upper limit of the window which is 
+# considered to be the baseline region. If the waveform 
+# deviates from the baseline by more than a certain 
+# amount in this region, it will be excluded from the 
+# analysis.
+# baseline_i_up: # No alignment
+#     1:
+#         575
+#     2:
+#         120
+#     3:
+#         120
+#     4:
+#         120
+
+baseline_i_up: # Typical alignment
+    1:
+        40
+    2:
+        40
+    3:
+        40
+    4:
+        40
+
+# This parameter is only used if 
+# infer_regions_for_fine_selection is set to False. 
+# It is a dictionary whose keys refer to the APA 
+# number, and its values are the ADCs-array iterator 
+# value for the upper limit of the window where an 
+# upper-bound cut to the signal is applied
+# signal_i_up: # No alignment
+#     1:
+#         650
+#     2:
+#         165
+#     3:
+#         165
+#     4:
+#         165
+
+signal_i_up: # Typical alignment
+    1:
+        55
+    2:
+        55
+    3:
+        55
+    4:
+        55
+
+# Number of allowed baseline-STDs in the baseline
+# region. I.e. the waveforms for which at least one
+# ADC sample in the baseline region deviates from
+# the baseline by more than this value times the
+# baseline STD will be excluded.
+baseline_allowed_dev: 4.
+
+# Number of allowed baseline-STDs in the signal
+# region. I.e. the waveforms for which at least
+# one ADC sample in the signal region deviates
+# from the signal by more than this value times
+# the baseline STD will be excluded
+signal_allowed_dev: 20.
+
+## Parameters for the computation of the integration window
+integrate_entire_pulse: false
+deviation_from_baseline: 0.3
+lower_limit_correction: 0
+upper_limit_correction: 0
+
+# Path to a CSV file which contains the mapping between
+# batch numbers and the dates when the data for each
+# batch was obtained. The CSV file must contain the columns
+# 'batch', 'date_day', 'date_month', 'date_year'.
+filepath_to_batches_dates_csv: './configs/batches_dates.csv'
+
+# Whether to save a copy of the input parameters into a
+# YAML file in the output folder
+backup_input_parameters_to_output_folder: true
+
+## Parameters for the integration analysis
+integration_analysis_label: 'integrator'
+
+## Parameters for the calibration histogram
+# Used if gain_seeds_filepath is None
+# Bins width in the calibration histogram for each PDE
+calib_histo_bin_width:
+    0.4:
+        480.
+    0.45:
+        571.
+    0.50:
+        667.
+
+# Used if gain_seeds_filepath is None
+# Lower and upper limits for the calibration histogram
+calib_histo_lower_limit: -5000.
+calib_histo_upper_limit: 15000.
+
+# If None, the number of bins and the domain of the charge
+# calibration histogram are computed out of the
+# calib_histo_bin_width, calib_histo_lower_limit and
+# calib_histo_upper_limit input parameters. If it is defined,
+# then it should give the path to a CSV file which contains,
+# at least, the following columns: 'batch', 'APA', 'PDE',
+# 'endpoint', 'channel' and 'gain'. The channel-wise gain
+# read from such file is used to compute a channel-wise domain
+# for the charge calibration histograms.
+gain_seeds_filepath: './configs/optimal_seeds_dfb_30p.csv'
+
+# Used only if the gain_seeds_filepath parameter is defined.
+# In that case, the calibration histogram (CH) domain is
+# automatically set to [-1.*gain_seed, 5.*gain_seed], and
+# the number of bins in the CH is computed as the domain 
+# width (i.e. 6.*gain_seed) multiplied by this parameter.
+bins_per_charge_peak: 7
+
+# Used only if the gain_seeds_filepath parameter
+# is defined. In that case, and if the given CSV lacks the
+# gain-seed information for one or more of the required
+# channels, then the domain (for the calibration histogram)
+# for the lacking channels is set to the average domain of
+# all of the other channels.
+average_fallback: true
+
+## Parameters for peak fitting
 # Maximum number of peaks to fit
 max_peaks: 2
 
@@ -104,17 +332,82 @@ max_peaks: 2
 # of the y-range, for a peak to be detected
 prominence: 0.15 # [0.10 - 0.2]
 
-# The number of points to fit on either side
-# of the peak maximum. P.e. setting this to 
-# 2 will fit 5 points in total: the maximum
-# and 2 points on either side
-half_points_to_fit: 2 # [2 - 3] 
-
-# Check the documentation of the
-# 'initial_percentage' and 'percentage_step'
+# These parameters have to do with the peak
+# detection in the calibration histogram. For
+# more information check the documentation of
+# the 'initial_percentage' and 'percentage_step'
 # parameters of the
 # __spot_first_peaks_in_CalibrationHistogram
 # function defined in 
 # utils/fit_peaks/fit_peaks_utils.py
-initial_percentage: 0.15 
+initial_percentage: 0.15
 percentage_step: 0.05
+
+# It can be either 'correlated_gaussians'
+# or 'independent_gaussians'
+fit_type: 'correlated_gaussians'
+
+# Whether to weigh the least squares fit by
+# the Poisson standard deviation of each bin
+# in the charge histogram
+weigh_fit_by_poisson_sigmas: true
+
+# Only used if fit_type is set to 'independent_gaussians'.
+# The number of points to fit on either side
+# of the peak maximum. P.e. setting this to 
+# 2 will fit 5 points in total: the maximum
+# and 2 points on either side.
+half_points_to_fit: 2 # [2 - 3] 
+
+# Only used if fit_type is set to 'correlated_gaussians'.
+# It is used when the peak finder predicts that the
+# standard deviation of the second peak is less than
+# the standard deviation of the first peak, which is
+# incompatible with our fitting function. In this case,
+# the seed for the standard deviation increment is set
+# to this value.
+std_increment_seed_fallback: 100.
+
+# Only used if fit_type is set to 'correlated_gaussians'.
+# It determines the limits of the subrange of the
+# calibration histogram which is considered for the fit.
+# The lower (resp. upper) limit is computed as the
+# maximum of the first (resp. last) peak position minus
+# (resp. plus) this fraction of the full range of the
+# calibration histogram. For 50% (resp. 40%) PDE, this value
+# should not be greater than 0.05 (resp. 0.04).
+ch_span_fraction_around_peaks: 0.06
+
+# The half-width around the SPE peak mean, expressed in
+# units of the peak's standard deviation, used to select
+# waveforms for SPE characterization. Waveforms with
+# integrated charge in the range [mean - half_width*std, 
+# mean + half_width*std] are included in the SPE computation.
+half_width_around_peak_in_stds_for_SPE_filtering: 1.0
+
+# Whether to save the persistence heatmaps of the
+# integrated waveforms or not
+save_persistence_heatmaps: true
+
+# Whether to save the heatmaps of the waveforms
+# identified as SPEs
+save_SPE_heatmaps: true
+
+# Name of the output CSV file where
+# the calibration results will be saved
+output_dataframe_filename: 'calibration_results.csv'
+
+# If None, the 'vendor' column of the output CSV file
+# will be filled with strings which match 'unavailable'.
+# If it is defined, then it is the path to a CSV file
+# which must contain the columns 'endpoint', 'daphne_ch',
+# and 'sipm', from which the endpoint, the channel and
+# the vendor associated to each channel can be retrieved,
+# respectively. In this case, the 'vendor' column of the
+# output CSV file will be filled with the vendor
+# information retrieved from this file.
+sipm_vendor_filepath: '../../np04_utils/PDHD_PDS_ChannelMap.csv'
+
+# Whether to potentially overwrite existing rows in the
+# output dataframe
+overwrite_output_dataframe: true

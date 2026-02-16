@@ -92,3 +92,12 @@ class IncompatibleInput(WafflesBaseException):
 class NonExistentDirectory(WafflesBaseException):
     """Exception raised when an specified directory does
     not exist."""
+
+class EmptyCalibrationHistogram(WafflesBaseException):
+    """Exception raised when a calibration histogram 
+    has no entries."""
+
+class MissingColumnsInDataFrame(WafflesBaseException):
+    """Exception raised when a pandas DataFrame is
+    missing some of the required columns."""
+    pass

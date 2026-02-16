@@ -1,0 +1,24 @@
+# File.csv containing (at least) the columns:
+# SiPMChannel, IntLow, IntUp, PrepulseTicks, BaselineRMS, SpeCharge, SNR, SpeAmpl
+# SiPMChannel: SiPM channel number (e.g. 11121)
+# IntLow: lower integration limit (in ticks)
+# IntUp: upper integration limit (in ticks)
+# PrepulseTicks: number of ticks before the signal to compute the baseline
+# BaselineRMS: baseline RMS (in ADC counts)
+# SpeCharge: SPE charge (in ADC x ticks)
+# SpeAmpl: SPE amplitude (in ADC counts)
+calibration_file: "./configs/SelfTrigger_Calibration.csv"
+
+# Path to the hdf5 files with name:
+# Run_XXXXXX_ChSiPM_YYYYY_ChST_ZZZZZ_structured.hdf5 
+file_folder: "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/files/"
+
+# SiPM channel to analyze
+SiPM_channel: 11121
+
+# Specify for which LED intensity you want to plot the fits
+# Plots are stored if save_fit_pngs is True in the steering file
+led_to_plot: 1800
+
+# List of runs to analyze
+runs : []

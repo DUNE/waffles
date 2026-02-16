@@ -23,7 +23,11 @@ For the saved pickle files, in `rawdata/waffles_tau_slow_protoDUNE_HD` the "spe"
 
 Example of usage:
 ```bash
-python extract_selection.py --runs 25171 -r -rl purity -ch 11114 11116
+python extract_selection.py --runs 25171 -rl purity -ch 11114 11116
+```
+or 
+```bash
+python extract_selection.py --runs 26081 -rl led -ch 11114 11116
 ```
 
 Check `--help` for inputs
@@ -38,7 +42,7 @@ It will automatically save data, unless argument `--no-save` is passed. The scri
 Example of usage:
 
 ```bash
-python convfit.py --runs 25171 -ch 11114 -rl purity -ft -tt 0 -ns new_analysis -i --scan 6'
+python convfit.py --runs 25171 -ch 11114 -rl purity -ft -tt 0 -ns new_analysis -i --scan 6
 ```
 
 Have fun :D 
