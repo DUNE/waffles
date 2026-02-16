@@ -5,8 +5,9 @@ import yaml
 import pandas as pd
 import pathlib
 import re
+from waffles.data_classes.Waveform import Waveform
 from waffles.input_output.hdf5_structured import load_structured_waveformset
-from waffles.np02_utils.AutoMap import dict_module_to_uniqch, dict_uniqch_to_module, strUch
+from waffles.np02_utils.AutoMap import dict_module_to_uniqch, dict_uniqch_to_module, strUch, ordered_channels_membrane
 
 def open_processed(run, dettype, datadir, channels = None, endpoints=None, nwaveforms=None, mergefiles = True, verbose=True, file_slice=slice(None,None)):
     """
@@ -65,6 +66,8 @@ def ch_show_avaliable_calib_files():
     files = [f.name for f in data_path.iterdir() if f.is_file() and f.name.endswith('.csv')]
     print("Available calibration files:")
     for f in files:
+        if f == '__pycache__':
+            continue
         print(f"- {f}")
 
 def ch_read_calib(filename: str = 'np02-config-v4.0.0.csv', attributes = ['Gain', 'SpeAmpl']) -> dict:
@@ -91,12 +94,15 @@ def ch_show_avaliable_template_folders():
     folders = [f.name for f in thepath.iterdir() if f.is_dir()]
     print("Available template folders:")
     for f in folders:
+        if f == '__pycache__':
+            continue
         print(f"- {f}")
 
 def ch_read_template(template_folder:str = 'templates_multi_pe_normalized'):
     if not template_folder:
         ch_show_avaliable_template_folders()
         raise ValueError("No template folder provided for ch_read_template...")
+
     thepath = resources.files('waffles.np02_data.templates').joinpath(template_folder)
     if thepath.is_dir() is False:
         ch_show_avaliable_template_folders()
@@ -122,3 +128,12 @@ def ch_read_template(template_folder:str = 'templates_multi_pe_normalized'):
         ret[ep] = { k: v for k, v in sorted(rettemp.items(), key=lambda x: dict_uniqch_to_module[strUch(ep, x[0])]) }
 
     return ret
+
+
+def remove_extra_channels_membrane(waveform: Waveform) -> bool:
+    """
+    Remove extra channels from the membrane that are not part of the ordered channels list.
+    """
+    if waveform.endpoint == 107 and waveform.channel not in ordered_channels_membrane:
+        return False
+    return True

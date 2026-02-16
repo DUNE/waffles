@@ -43,11 +43,11 @@ ordered_modules_membrane = sorted( [ m for m in dict_module_to_uniqch.keys() if 
 ordered_modules_cathode = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("C") ] )
 ordered_modules_pmt = sorted( [ m for m in dict_module_to_uniqch.keys() if m and m.startswith("P") ], key=lambda x: int(x[1:]) )
 
-ordered_channels_membrane = [ dict_module_to_uniqch[m].channel for m in ordered_modules_membrane ]
-ordered_channels_cathode = [ dict_module_to_uniqch[m].channel for m in ordered_modules_cathode ]
-ordered_channels_pmt = [ dict_module_to_uniqch[m].channel for m in ordered_modules_pmt ]
+ordered_channels_membrane:list[int] = [ dict_module_to_uniqch[m].channel for m in ordered_modules_membrane ]
+ordered_channels_cathode:list[int] = [ dict_module_to_uniqch[m].channel for m in ordered_modules_cathode ]
+ordered_channels_pmt:list[int] = [ dict_module_to_uniqch[m].channel for m in ordered_modules_pmt ]
 
-dict_endpoints_channels_list = { membrane_endpoint : ordered_channels_membrane, cathode_endpoint : ordered_channels_cathode, pmt_endpoint : ordered_channels_pmt }
+dict_endpoints_channels_list: dict[int, list[int]]= { membrane_endpoint : ordered_channels_membrane, cathode_endpoint : ordered_channels_cathode, pmt_endpoint : ordered_channels_pmt }
 
 
 def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], rows:int = 0, cols:int = 0) -> ChannelMap:

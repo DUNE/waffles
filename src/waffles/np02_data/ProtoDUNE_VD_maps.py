@@ -9,9 +9,9 @@ from waffles.np02_data_classes.CATMap import CATMap_ind
 
 import waffles.utils.wf_maps_utils as wuw
 
-cathode_endpoint = 106
-membrane_endpoint = 107
-pmt_endpoint = 110
+cathode_endpoint:int = 106
+membrane_endpoint:int = 107
+pmt_endpoint:int = 110
 
 # ---------------------------MEMBRANES MAPPING---------------------------------
 
