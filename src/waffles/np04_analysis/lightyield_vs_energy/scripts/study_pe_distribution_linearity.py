@@ -5,6 +5,8 @@ For the full APA 1
 - study the langauss x peak vs energy (muon stability)
 - study the gaussian sigma vs energy ** NEW
 
+
+- Input data from merging_results_apa12.ipynb 
 '''
 
 import matplotlib.pyplot as plt
@@ -39,7 +41,7 @@ dict_info = {1 : {'filepath' : "/afs/cern.ch/work/a/anbalbon/private/waffles/src
                 'bin width': 2,
                 'pe_separation':0,
                 'use_given_parameters' : False,
-                'use mean' : True},
+                'use mean' : False},
             2 :{'filepath' : "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/2GeV/apa12_study/all_apa1_mean_photoelectrons.csv",
                 'run': 27355,
                 'which binning' : 'bins',
@@ -143,7 +145,7 @@ def langauss_plus_gauss_array(params, x):
 def find_peak(params):
     mpv, eta, sigma, A = params
 
-    # Prevent very small sigma from breaking the optimizer
+    # --- Prevent very small sigma from breaking the optimizer
     sigma = max(sigma, 1e-3)
     search_width = max(0.1, 5 * sigma)  # Ensure minimum range
 
@@ -172,7 +174,7 @@ def propagate_error(find_peak, params, errors, epsilon=1e-5):
         derivative = (f_plus - f_minus) / (2 * epsilon)
         partials.append(derivative)
 
-    # Now propagate the errors
+    # --- Now propagate the errors
     squared_terms = [(partials[i] * errors[i])**2 for i in range(len(params))]
     total_error = np.sqrt(sum(squared_terms))
 
@@ -186,45 +188,42 @@ def propagate_error(find_peak, params, errors, epsilon=1e-5):
 
 dict_energy_linearity = {}
 
+# ----------------------------------------------------------------------
+# 1. 2-3-5-7 GeV analysis
+# ----------------------------------------------------------------------
+
 for energy in [2, 3, 5, 7]:
     print(f'\n ---------------------\nAnalysis {energy} GeV ...')
 
-    # ----------------------------------------------------------------------
-    # 0. Preparation
-    # ----------------------------------------------------------------------
-
+    # --- All data from merging_results_apa12.ipynb output
     df = pd.read_csv(dict_info[energy]['filepath'])
 
-    # ----------------------------------------------------------------------
-    # 1. Histogram
-    # ----------------------------------------------------------------------
-
+    # --- First selection 
     select = np.asarray([s for s in df.PhotonA_y_x if s > 50])
     
+    # --- Histogram build on fixed bin width or number of bins  
     if dict_info[energy]['which binning'] == 'width':
         width = dict_info[energy]['bin width']
         bins = np.arange(0, np.max(select) + width, width)
     else: 
         bins = dict_info[energy]['bins']
 
+    # --- Histogram
     count, b = np.histogram(select, bins=bins)
     bin_centers = (b[:-1] + b[1:]) / 2
     bin_width = b[1] - b[0]
 
-    # ----------------------------------------------------------------------
-    # 2. Restrict fit region
-    # ----------------------------------------------------------------------
-
+    # --- Second selection 
+    # x_fit_data and y_fit_data MUST BE USED FOR THE FIT!!!!!!!!!!!!!
     mask = count > 0
     x_fit_data = bin_centers[mask]
     y_fit_data = count[mask]
     y_err = np.sqrt(y_fit_data)
     x_err = np.full_like(x_fit_data, 0.5 * bin_width)
 
-    # ----------------------------------------------------------------------
-    # 3. and 4. Initial guesses (data-driven) and bounds
-    # ----------------------------------------------------------------------
 
+    # --- Initial params values and bounds
+    # From input dict or automatically computed 
     if dict_info[energy]['use_given_parameters']:
         initial_guess = dict_info[energy]['initial_guess']
         bounds_low = dict_info[energy]['bounds_low']
@@ -256,10 +255,8 @@ for energy in [2, 3, 5, 7]:
             np.max(select),  np.std(gauss_pe)+20, np.inf
         ]
 
-    # ----------------------------------------------------------------------
-    # 5. Fit
-    # ----------------------------------------------------------------------
-    
+
+    # --- First fit, only y_err 
     params_initial, covariance_initial = curve_fit(
         langauss_plus_gauss,
         x_fit_data,
@@ -273,7 +270,7 @@ for energy in [2, 3, 5, 7]:
     )
 
 
-    ### To propagate x-error  -
+    # --- x_err propagation 
     epsilon = 1e-5
     dfdx = (langauss_plus_gauss(x_fit_data + epsilon, *params_initial)
             - langauss_plus_gauss(x_fit_data - epsilon, *params_initial)) / (2 * epsilon)
@@ -282,6 +279,7 @@ for energy in [2, 3, 5, 7]:
 
     sigma_tot = np.sqrt(y_err**2 + (dfdx * sigma_x)**2)
 
+    # --- Second fit, with sigma_tot = y_err + x_err
     params, covariance = curve_fit(
     langauss_plus_gauss,
     x_fit_data,
@@ -294,40 +292,33 @@ for energy in [2, 3, 5, 7]:
     method='trf'
     )
 
+    ## If you want to use just the first fit results....
     # params = params_initial
     # covariance = covariance_initial
 
 
-    # Alternative way - it doesn't work for 3GeV (no bounds can be given)
+    ## Alternative way - it doesn't work for 3GeV (no bounds can be given)
     # data = RealData(x_fit_data, y_fit_data, sx=x_err, sy=y_err)
     # model = Model(langauss_plus_gauss_array)
     # odr = ODR(data, model, beta0=params_initial)
     # out = odr.run()
-
-    
-    # ----------------------------------------------------------------------
-    # 6. Extract parameters
-    # ----------------------------------------------------------------------
-
-    errors = np.sqrt(np.diag(covariance))
     # params = out.beta
     # errors = out.sd_beta
+
+    
+    # --- Params and error extraction 
+    errors = np.sqrt(np.diag(covariance))
     mpv, eta, sigma_lg, A_lg, mu, sigma_g, A_g = params 
     empv, eeta, esigma_lg, eA_lg, emu, esigma_g, eA_g = errors
 
-    # ----------------------------------------------------------------------
-    # 7. Evaluate fit
-    # ----------------------------------------------------------------------
-
+    # --- Fit function computation, to draw
     x_fit = np.linspace(min(b), max(b), 10000)
-    y_fit = langauss_plus_gauss(x_fit, *params)
-
-    # Components
-    y_lg = langauss(x_fit, mpv, eta, sigma_lg, A_lg)
-    y_g  = gaussian(x_fit, mu, sigma_g, A_g)
+    y_fit = langauss_plus_gauss(x_fit, *params) # Guassian + Langauss
+    y_lg = langauss(x_fit, mpv, eta, sigma_lg, A_lg) # Langauss only
+    y_g  = gaussian(x_fit, mu, sigma_g, A_g) # Gaussian onluy
 
 
-    # Intersection point
+    # --- Intersection point computation (if required)
     # intersection_mask = (x_fit >= mpv) & (x_fit <= mu)
     # x_sub  = x_fit[intersection_mask]
     # y_g_sub  = y_g[intersection_mask]
@@ -335,26 +326,16 @@ for energy in [2, 3, 5, 7]:
     # intersection_idx = np.argmin(np.abs(y_g_sub - y_lg_sub))
     # x_intersection = x_sub[intersection_idx]
 
-    # ----------------------------------------------------------------------
-    # 8. Langauss peak position
-    # ----------------------------------------------------------------------
-
+    # --- Langauss peak position
     peak, error_peak = propagate_error(find_peak, params[:4], errors[:4], epsilon=1e-5)
 
-    # ----------------------------------------------------------------------
-    # 9. R²
-    # ----------------------------------------------------------------------
-
+    # --- Chi2 and R2
     y_fit_pred = langauss_plus_gauss(x_fit_data, *params)
     r_squared = r2_score(y_fit_data, y_fit_pred)
     chi2, chi2_rid, ndf = chi2_func(y_fit_data, y_fit_pred, y_err, len(params))
-    # chi2_rid = out.sum_square / (len(y_fit_data) - len(params))
 
 
-    # ----------------------------------------------------------------------
-    # 10. Plot
-    # ----------------------------------------------------------------------
-
+    # --- Plot
     plt.figure(figsize=(8, 5))
     plt.stairs(values=count, edges=b, color='orange', label='Data')
     plt.plot(x_fit, y_fit, 'k-', lw=2, label='Langauss + Gaussian')
@@ -408,42 +389,50 @@ for energy in [2, 3, 5, 7]:
     plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/{energy}GeV.png')
     plt.close()
 
-    # ----------------------------------------------------------------------
-    # 11. Saving data
-    # ----------------------------------------------------------------------
-
+    # --- Saving data for next analysis 
     dict_energy_linearity[energy] = {'mpv' : mpv, 'eta' : eta, 'sigma_lg' : sigma_lg, 'A_lg' : A_lg, 'mu' : mu, 'sigma_g': sigma_g, 'A_g' : A_g, 'peak': peak,
                                      'empv' : empv, 'eeta' : eeta, 'esigma_lg' : esigma_lg, 'eA_lg' : eA_lg, 'emu' : emu, 'esigma_g': esigma_g, 'eA_g' : eA_g, 'epeak': error_peak}
 
     print(f'DONE !!\n\n ')
 
+#####################################################################################
+#####################################################################################
 
 # ----------------------------------------------------------------------
-# 12. 1 GeV analysis
+# 2. 1 GeV analysis
 # ----------------------------------------------------------------------
+
 energy = 1
+
+# --- All data from merging_results_apa12.ipynb output
 df = pd.read_csv(dict_info[energy]['filepath'])
 
 print(f'\n ---------------------\nAnalysis {energy} GeV ...')
 
-
+# --- First selection 
 select = np.asarray([s for s in df.PhotonA_y_x if (s > 10) and (s< 150)])
 
+# --- Histogram build on fixed bin width or number of bins  
 if dict_info[energy]['which binning'] == 'width':
     width = dict_info[energy]['bin width']
     bins = np.arange(0, np.max(select) + width, width)
 else: 
     bins = dict_info[energy]['bins']
 
+# --- Histogram
 count, b = np.histogram(select, bins=bins)
 bin_centers = (b[:-1] + b[1:]) / 2
 bin_width = b[1] - b[0]
 
+# --- Second selection 
+# x_fit_data and y_fit_data MUST BE USED FOR THE FIT!!!!!!!!!!!!!
 mask = count > 0
 x_fit_data = bin_centers[mask]
 y_fit_data = count[mask]
 y_err = np.sqrt(y_fit_data)
 
+# --- Initial params values and bounds
+# From input dict or automatically computed (both for gaussian and langauss)
 if dict_info[energy]['use_given_parameters']:
         langauss_initial_guess = dict_info[energy]['langauss_initial_guess']
         lagauss_bounds_low = dict_info[energy]['lagauss_bounds_low']
@@ -461,17 +450,18 @@ else:
     gaussian_bounds_low = [50, 5,  10]
     gaussian_bounds_high = [100,  25, np.inf]
 
-# Langauss
+# --- Langauss fit 
+
+# First fit with only y_err
 langauss_params_initial, langauss_covariance_initial = curve_fit(langauss, x_fit_data,  y_fit_data, p0=langauss_initial_guess, sigma=y_err, absolute_sigma=True, bounds=(lagauss_bounds_low, langauss_bounds_high), maxfev=30000, method='trf' )
 
-### To propagate x-error  -
+# x_err propagation
 epsilon = 1e-5
-dfdx = (langauss(x_fit_data + epsilon, *langauss_params_initial)
-        - langauss(x_fit_data - epsilon, *langauss_params_initial)) / (2 * epsilon)
-
+dfdx = (langauss(x_fit_data + epsilon, *langauss_params_initial)- langauss(x_fit_data - epsilon, *langauss_params_initial)) / (2 * epsilon)
 sigma_x = 0.5 * bin_width
 sigma_tot = np.sqrt(y_err**2 + (dfdx * sigma_x)**2)
 
+# Second fit with y_tot
 langauss_params, langauss_covariance = curve_fit(
 langauss,
 x_fit_data,
@@ -484,13 +474,13 @@ maxfev=30000,
 method='trf'
 )
 
-# langauss_params, langauss_covariance = curve_fit(langauss, x_fit_data,  y_fit_data, p0=langauss_initial_guess, sigma=y_err, absolute_sigma=True, bounds=(lagauss_bounds_low, langauss_bounds_high), maxfev=30000, method='trf' )
+# Parameters and error extrapolation
 langauss_errors = np.sqrt(np.diag(langauss_covariance))
 mpv, eta, sigma_lg, A_lg = langauss_params
 empv, eeta, esigma_lg, eA_lg = langauss_errors
-
 langauss_peak, langauss_error_peak = propagate_error(find_peak, langauss_params[:4], langauss_errors[:4], epsilon=1e-5)
 
+# Fit info for plot + Chi2 and R2
 x_fit = np.linspace(min(b), max(b), 10000)
 langauss_y_fit = langauss(x_fit, *langauss_params)
 langauss_y_fit_pred = langauss(x_fit_data, *langauss_params)
@@ -498,24 +488,22 @@ langauss_r_squared = r2_score(y_fit_data, langauss_y_fit_pred)
 langauss_chi2, langauss_chi2_rid, langauss_ndf = chi2_func(y_fit_data, langauss_y_fit_pred, y_err, len(langauss_params))
 
 
-# Gaussian
+# --- Gaussian fit - easy (no x_err)
 gaussian_params, gaussian_covariance = curve_fit(gaussian, x_fit_data, y_fit_data, p0=gaussian_initial_guess, sigma=y_err, absolute_sigma=True, bounds=(gaussian_bounds_low, gaussian_bounds_high), maxfev=30000, method='trf' )
 gaussian_errors = np.sqrt(np.diag(gaussian_covariance))
 mu, sigma_g, A_g = gaussian_params
 emu, esigma_g, eA_g = gaussian_errors
-
 x_fit = np.linspace(min(b), max(b), 10000)
 gaussian_y_fit = gaussian(x_fit, *gaussian_params)
 gaussian_y_fit_pred = gaussian(x_fit_data, *gaussian_params)
 gaussian_r_squared = r2_score(y_fit_data, gaussian_y_fit_pred)
 gaussian_chi2, gaussian_chi2_rid, gaussian_ndf = chi2_func(y_fit_data, gaussian_y_fit_pred, y_err, len(gaussian_params))
 
-# Plot
+# --- Plot 
 plt.figure(figsize=(8, 5))
 plt.stairs(values=count, edges=b, color='orange', label='Data')
 plt.plot(x_fit, langauss_y_fit, 'k-', lw=2, label='Langauss')
 # plt.plot(x_fit, gaussian_y_fit,  'r--', lw=1, label='Gaussian')
-
 
 info_text = (
     f"Langauss:\n"
@@ -545,7 +533,7 @@ box = AnchoredText(
 ax.add_artist(box)
 
 plt.title(f"Energy {energy} GeV - Run 0{dict_info[energy]['run']} - APA 1")
-plt.xlabel(r'$\langle N_{\mathrm{PE}} \rangle$')
+plt.xlabel(r'$\langle N_{\mathrm{PE}} \rangle$ [AU]')
 plt.ylabel('Counts [AU]')
 plt.xlim(0, mu*2)
 plt.ylim(0, max(count) * 1.2)
@@ -560,26 +548,26 @@ plt.text(0.7, 0.95, r'$\bf{ProtoDUNE\!-\!HD}$ Preliminary',
 plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/{energy}GeV.png')
 plt.close()
 
+# --- Saving data for next analysis 
 dict_energy_linearity[energy] = {'mpv' : mpv, 'eta' : eta, 'sigma_lg' : sigma_lg, 'A_lg' : A_lg, 'mu' : mu, 'sigma_g': sigma_g, 'A_g' : A_g, 'peak' : langauss_peak,
                                     'empv' : empv, 'eeta' : eeta, 'esigma_lg' : esigma_lg, 'eA_lg' : eA_lg, 'emu' : emu, 'esigma_g': esigma_g, 'eA_g' : eA_g, 'epeak' : langauss_error_peak}
 
-
 print(f'DONE !!\n\n ')
 
-
+#####################################################################################
+#####################################################################################
 
 # ----------------------------------------------------------------------
-# 12. Linear regression of Mu vs energy 
+# 3. Gaussian mean vs energy analysis
 # ----------------------------------------------------------------------
 
-print(f'Linear fit...')
+print(f'Gaussian mean vs energy...')
 
 energies = np.array([2, 3, 5, 7])
 means = np.array([dict_energy_linearity[e]['mu'] for e in energies])
 means_errors = np.array([dict_energy_linearity[e]['emu'] for e in energies])
 
-
-if 'use mean':
+if dict_info[1]['use mean']: # Use gaussian or langauss for 1 GeV 
     energies = np.append(energies, 1)
     means = np.append(means, dict_energy_linearity[1]['mu'])
     means_errors = np.append(means_errors, dict_energy_linearity[1]['emu'])
@@ -602,7 +590,7 @@ plt.errorbar(energies, means, xerr=energies_errors, yerr=means_errors,
 
 data = RealData(energies, means, sx=energies_errors, sy=means_errors)
 
-# Linear
+# --- Linear fit 
 model_1 = Model(linear_array)
 odr_1 = ODR(data, model_1, beta0=curve_fit(linear, energies, means)[0])
 out_1 = odr_1.run()
@@ -613,10 +601,10 @@ chi2rid_1 = out_1.sum_square / (len(energies)-len(out_1.beta))
 r2_1 = r2_score(means, linear(energies,A_1, B_1))
 x_fit = np.linspace(min(energies)-0.5, max(energies)+0.5, 100)
 y_fit_1 = linear(x_fit, A_1, B_1)
-plt.plot(x_fit, y_fit_1, color=linear_color, linewidth=2, label=f'Fit: y = A + Bx \nA = {A_1:.2f} ± {eA_1:.2f} \nB = {B_1:.2f} ± {eB_1:.2f} \n$\chi^{2}_{{rid}}$ = {chi2rid_1:.3f}\n$R^2$ = {r2_1:.3f}')
+plt.plot(x_fit, y_fit_1, color=linear_color, linewidth=2, label=f'Fit: y = A + Bx \nA = {A_1:.2f} ± {eA_1:.2f} \nB = {B_1:.2f} ± {eB_1:.2f} \n$R^2$ = {r2_1:.3f}') #\n$\chi^{2}_{{rid}}$ = {chi2rid_1:.3f}
 
 
-# Parabolic fit 
+# --- Parabolic fit
 model_2 = Model(parabola_array)
 odr_2 = ODR(data, model_2, beta0=curve_fit(parabola, energies, means)[0])
 out_2 = odr_2.run()
@@ -626,13 +614,10 @@ ndf_2 = (len(energies) - len(out_2.beta))
 chi2rid_2 = out_2.sum_square / (len(energies)-len(out_2.beta))
 r2_2 = r2_score(means, parabola(energies,A_2, B_2, C_2 ))
 y_fit_2 = parabola(x_fit, A_2, B_2, C_2)
-plt.plot(x_fit, y_fit_2, color=parab_color, linewidth=2, label=f'Fit: y = A + Bx + Cx$^{2}$\nA = {A_2:.2f} ± {eA_2:.2f} \nB = {B_2:.2f} ± {eB_2:.2f} \nC = {C_2:.2f} ± {eC_2:.2f}\n$\chi^{2}_{{rid}}$ = {chi2rid_2:.3f}\n$R^2$ = {r2_2:.3f}')
-
-plt.text(0.7, 0.95, r'$\bf{ProtoDUNE\!-\!HD}$ Preliminary',
-         transform=plt.gca().transAxes,
-         fontsize=11, ha='right', va='top')
+plt.plot(x_fit, y_fit_2, color=parab_color, linewidth=2, label=f'Fit: y = A + Bx + Cx$^{2}$\nA = {A_2:.2f} ± {eA_2:.2f} \nB = {B_2:.2f} ± {eB_2:.2f} \nC = {C_2:.2f} ± {eC_2:.2f}\n$R^2$ = {r2_2:.3f}') #$\chi^{2}_{{rid}}$ = {chi2rid_2:.3f}
 
 
+plt.text(0.7, 0.95, r'$\bf{ProtoDUNE\!-\!HD}$ Preliminary', transform=plt.gca().transAxes, fontsize=11, ha='right', va='top')
 plt.xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
 plt.ylabel(r"Gaussian mean $\langle N_{\mathrm{PE}} \rangle$")
 plt.legend()
@@ -642,15 +627,14 @@ plt.tight_layout()
 plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/linearity.png')
 plt.close()
 
-print(f'DONE !!\n\n')
-
-
+#####################################################################################
+#####################################################################################
 
 # ----------------------------------------------------------------------
-# 13. Linear regression of muon vs energy
+# 4. Langauss peak vs energy analysis
 # ----------------------------------------------------------------------
 
-print(f'Linear fit...')
+print(f'Langauss peak vs energy...')
 
 energies = np.array([2, 3, 5, 7])
 peaks = np.array([dict_energy_linearity[e]['peak'] for e in energies])
@@ -677,4 +661,77 @@ plt.tight_layout()
 plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/muon_validation.png')
 plt.close()
 
-print(f'DONE !!\n\n')
+
+#####################################################################################
+#####################################################################################
+
+# ----------------------------------------------------------------------
+# 5. Gaussian sigma vs energy analysis
+# ----------------------------------------------------------------------
+
+print(f'Gaussian sigma vs energy...')
+
+energies = np.array([1, 2, 3, 5, 7]) # Using gaussian result also for 1 GeV 
+energies_errors = 0.05 * energies
+
+# GAUSSIAN DATA
+means = np.array([dict_energy_linearity[e]['mu'] for e in energies])
+means_errors = np.array([dict_energy_linearity[e]['emu'] for e in energies])
+means_errors = means_errors + 0.05 * means_errors 
+
+sigma = np.array([dict_energy_linearity[e]['sigma_g'] for e in energies])
+sigma_errors = np.array([dict_energy_linearity[e]['esigma_g'] for e in energies])
+sigma_errors = sigma_errors + 0.05 * sigma_errors # keep it??
+
+## LANGAUSS DATA
+# means = np.array([dict_energy_linearity[e]['peak'] for e in energies])
+# means_errors = np.array([dict_energy_linearity[e]['peak'] for e in energies])
+# means_errors = means_errors + 0.05 * means_errors 
+
+# sigma = np.array([dict_energy_linearity[e]['sigma_lg'] for e in energies])
+# sigma_errors = np.array([dict_energy_linearity[e]['esigma_lg'] for e in energies])
+#sigma_errors = sigma_errors + 0.05 * sigma_errors # keep it??
+
+x = energies
+ex = energies_errors
+y = sigma / means
+ey = y* np.sqrt((sigma_errors/sigma)**2 + (means_errors/means)**2)
+
+data_color = "#000000"
+linear_color = "#25E000"
+parab_color = "#001EFF"
+
+
+
+plt.figure(figsize=(8, 5))
+plt.errorbar(x, y, xerr=ex, yerr=ey,
+             fmt='o', color=data_color, markersize=4, elinewidth=1.5, capsize=3, alpha=0.8, label = 'Data')
+
+data = RealData(x, y, sx=ex, sy=ey)
+
+# --- Fit 
+# model_1 = Model(linear_array)
+# odr_1 = ODR(data, model_1, beta0=curve_fit(linear, energies, means)[0])
+# out_1 = odr_1.run()
+# A_1, B_1 = out_1.beta
+# eA_1, eB_1 = out_1.sd_beta
+# ndf_1 = (len(energies) - len(out_1.beta))
+# chi2rid_1 = out_1.sum_square / (len(energies)-len(out_1.beta))
+# r2_1 = r2_score(means, linear(energies,A_1, B_1))
+# x_fit = np.linspace(min(energies)-0.5, max(energies)+0.5, 100)
+# y_fit_1 = linear(x_fit, A_1, B_1)
+# plt.plot(x_fit, y_fit_1, color=linear_color, linewidth=2, label=f'Fit: y = A + Bx \nA = {A_1:.2f} ± {eA_1:.2f} \nB = {B_1:.2f} ± {eB_1:.2f} \n$R^2$ = {r2_1:.3f}') #\n$\chi^{2}_{{rid}}$ = {chi2rid_1:.3f}
+
+
+plt.text(0.7, 0.95, r'$\bf{ProtoDUNE\!-\!HD}$ Preliminary', transform=plt.gca().transAxes, fontsize=11, ha='right', va='top')
+plt.xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
+plt.ylabel(r"Gaussian $\dfrac{\sigma}{\mu}$ [AU]")
+plt.legend()
+plt.title('Energy resolution')
+plt.grid(True, linestyle='--', alpha=0.3)
+plt.tight_layout()
+plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/energy_resolution.png')
+plt.close()
+
+
+print('\n\nDONE!!\n')

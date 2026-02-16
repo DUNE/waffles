@@ -20,6 +20,8 @@ from scipy.optimize import minimize_scalar
 from scipy.optimize import curve_fit
 from landaupy import langauss as lg
 
+from scipy.odr import ODR, Model, RealData
+
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.Waveform import Waveform
@@ -42,6 +44,10 @@ from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaConvolution import 
 
 def linear(x, A, B):
     return A + B*x
+
+def linear_array(params, x):
+    a,b = params
+    return linear(x,a,b)
 
 #####################################################################
 
@@ -796,3 +802,36 @@ def which_APA_for_the_ENDPOINT(endpoint: int):
         if endpoint in endpoints:
             return apa
     return None
+
+
+#####################################################################
+
+def r2_score(y, y_fit):
+    """
+    Calcola il coefficiente di determinazione R².
+    """
+    ss_res = np.sum((y - y_fit)**2)
+    ss_tot = np.sum((y - np.mean(y))**2)
+    r2 = 1 - ss_res / ss_tot
+    return r2
+
+def r2_score_weighted(y, y_fit, yerr):
+    """
+    Calcola R² pesato.
+    """
+    w = 1 / yerr**2
+    y_mean_w = np.average(y, weights=w)
+    ss_res_w = np.sum(w * (y - y_fit)**2)
+    ss_tot_w = np.sum(w * (y - y_mean_w)**2)
+    r2_w = 1 - ss_res_w / ss_tot_w
+    return r2_w
+
+def chi2_func(y, y_fit, yerr, n_params):
+    """
+    Calcola chi-quadro e chi-quadro ridotto.
+    """
+    residuals = (y - y_fit) / yerr
+    chi2_val = np.sum(residuals**2)
+    ndf = len(y) - n_params
+    chi2_red = chi2_val / ndf
+    return chi2_val, chi2_red, ndf
