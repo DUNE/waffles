@@ -12,17 +12,14 @@ import os
 import re
 
 from ConvFitterVDWrapper import ConvFitterVDWrapper
-from waffles.data_classes.EasyWaveformCreator import EasyWaveformCreator
-from waffles.data_classes.WaveformSet import WaveformSet
-from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.np02_utils.AutoMap import dict_endpoints_channels_list, dict_module_to_uniqch, dict_uniqch_to_module, strUch
 from waffles.np02_utils.AutoMap import ordered_channels_cathode, ordered_channels_membrane, ordered_modules_cathode, ordered_modules_membrane
-from waffles.np02_utils.PlotUtils import matplotlib_plot_WaveformSetGrid
 from waffles.np02_utils.load_utils import ch_read_template, ch_show_avaliable_template_folders
 from waffles.utils.utils import print_colored
+from waffles.utils.numerical_utils import error_propagation
 
 from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, PATH_XE_OUTPUTS, DEFAULT_CONV_NAME
-from utils import make_standard_analysis_name, makeslice
+from utils import make_standard_analysis_name
 from utils_conv import ConvFitParams, process_convfit
 
 import mplhep
@@ -125,21 +122,28 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
         for ch, cfitch in chs.items():
             nselected = chinfo[ep][ch]['counts']
             first_time = chinfo[ep][ch]['first_time']
-            norm = cfitch.m.params['A'].value
-            fp = cfitch.m.params['fp'].value
-            fs = cfitch.m.params['fs'].value if 'fs' in cfitch.m.parameters else 1-fp
-            t1 = cfitch.m.params['t1'].value
-            t3 = cfitch.m.params['t3'].value
-            td = cfitch.m.params['td'].value if 'td' in cfitch.m.parameters else 0
+            params_name_to_save = ['A', 'fp', 'fs', 't1', 't3', 'td']
+            params_to_save = {}
+            errors = {}
+            for param_name in params_name_to_save:
+                if param_name in cfitch.m.parameters:
+                    params_to_save[param_name] = cfitch.m.params[param_name].value
+                    errors[param_name] = cfitch.m.params[param_name].error
 
-            allparams['response'] = response
-            allparams['template'] = template
+            params_to_save['fs'] = params_to_save['fs'] if 'fs' in cfitch.m.parameters else 1-params_to_save['fp']
+            params_to_save['td'] = params_to_save['td'] if 'td' in cfitch.m.parameters else 0
+            errors['fs'] = errors['fs'] if 'fs' in cfitch.m.parameters else error_propagation(1,0, params_to_save['fp'], errors['fp'],"sub")
+            errors['td'] = errors['td'] if 'td' in cfitch.m.parameters else 0
 
-            with open( outputdir / f"fit_params_run{run:06d}_ep{ep}_ch{ch}.yaml", 'w') as f:
+            
+            with open( outputdir / f"convfit_params_run{run:06d}_ep{ep}_ch{ch}.yaml", 'w') as f:
                 yaml.dump(allparams, f, sort_keys=False)
             with open( outputdir / f"convfit_output_run{run:06}_{ep}_{ch}.txt", 'w') as f:
-                f.write(f"# timestamp[ticks] norm fp fs t1[ns] t3[ns] td[ns] nselected\n")
-                f.write(f"{first_time} {norm} {fp} {fs} {t1} {t3} {td} {nselected}")
+                f.write(f"# timestamp[ticks] A errA fp errfp fs errfs t1[ns] errt1[ns] t3[ns] errt3[ns] td[ns] errtd[ns] nselected chi2\n")
+                f.write(f"{first_time} ")
+                for pname, pval in params_to_save.items():
+                    f.write(f"{pval} {errors[pname]} ")
+                f.write(f"{nselected} {cfitch.chi2}\n")
 
             plt = cfitch.plot(newplot=True)
             plt.legend()
@@ -312,6 +316,7 @@ def main(run:int = 39510,
 
 if __name__ == "__main__":
     argp = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="Fit a template waveform to a response waveform using a convolution model of LAr/Xe response.")
+    argp.add_argument("--method", required=True, type=str, help="Method to use for fitting, either 'conv' for convolution fit or 'deconv' for deconvolution fit.")
     argp.add_argument("--runs", nargs="+", type=int, default=[39510], help="List of runs to process.")
     argp.add_argument("--rootdir", type=str, default=PATH_XE_AVERAGES, help="Directory where the processed waveform files are located.")
     argp.add_argument("-r", "--response", type=str, default=DEFAULT_RESPONSE, help=f"Name of the analysis containing the response waveforms to fit.") 
@@ -324,7 +329,6 @@ if __name__ == "__main__":
     argp.add_argument("--blacklist", nargs="+", type=int, default=[], help="List of channels to exclude from processing. Format: endpoint+channel, e.g. 10600 for endpoint 106 channel 0.")
     argp.add_argument("-c", "--cathode", action="store_true", help="If set, cathode channels will be processed. If both -c and -m are not set, all channels will be processed.")
     argp.add_argument("-m", "--membrane", action="store_true", help="If set, membrane channels will be processed. If both -c and -m are not set, all channels will be processed.")
-    argp.add_argument("--method", type=str, default="conv",help="Method to use for fitting, either 'conv' for convolution fit or 'deconv' for deconvolution fit.")
     argp.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
 
     args = argp.parse_args()
@@ -348,8 +352,5 @@ if __name__ == "__main__":
         membrane = True
     for run in runs:
         main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, method, dryrun)
-
-
-
 
 

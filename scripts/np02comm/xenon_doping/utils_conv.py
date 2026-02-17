@@ -77,7 +77,7 @@ def process_convfit(ep:int,
 
     if modulename[:2] == "M7" and cfitch.scinttype != "xe":
         oneexp = True
-    print(slice_template, slice_response)
+
     wvft = (template).astype(np.float32)
     wvfr = (response).astype(np.float32)
     wvft = wvft - np.mean(wvft[slice_template])

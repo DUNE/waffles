@@ -675,3 +675,10 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) 
     return np.mean(arrs, axis=0)
 
 
+def lar_response(t, A, fp, t1, t3) -> np.ndarray:
+    return A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
+
+def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
+    return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
+
+

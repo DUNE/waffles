@@ -1,4 +1,5 @@
 import numpy as np
+from waffles.utils.numerical_utils import lar_response, lar_xe_response
 import waffles.utils.time_align_utils as tutils
 
 from iminuit import Minuit, cost
@@ -182,12 +183,12 @@ class ConvFitter:
 
     ##################################################
     def lar_convolution_time(self, t, A, fp, t1, t3):
-        self.lar = A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
+        self.lar:np.ndarray = lar_response(t, A, fp, t1, t3)
         return np.convolve(self.lar,self.template,mode='full')[:len(self.lar)]
 
     ##################################################
     def lar_convolution_freq(self, t, A, fp, t1, t3):
-        self.lar = A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
+        self.lar:np.ndarray = lar_response(t, A, fp, t1, t3)
         larfreq = FFTWaffles.getFFT(self.lar)
         res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
         return np.real(res)
@@ -250,14 +251,16 @@ class ConvFitter:
 
 
     #######  ADDED DUE TO XENON DOPING ON NP02 #######
+
+
     ##################################################
     def larxe_convolution_time(self, t, A, fp, fs, t1, t3, td):
-        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
+        self.lar = lar_xe_response(t, A, fp, fs, t1, t3, td)
         return np.convolve(self.lar,self.template,mode='full')[:len(self.lar)]
 
     ##################################################
     def larxe_convolution_freq(self, t, A, fp, fs, t1, t3, td):
-        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
+        self.lar = lar_xe_response(t, A, fp, fs, t1, t3, td)
         larfreq = FFTWaffles.getFFT(self.lar)
         res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
         return np.real(res)
