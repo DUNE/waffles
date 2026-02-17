@@ -1,0 +1,23 @@
+# Parameters for ConvFitterVDWrapper
+cfitparams:
+    threshold_align_template: 0.27
+    threshold_align_response: 0.2
+    error: 10
+    dointerpolation: True
+    interpolation_factor: 8
+    align_waveforms :  True
+    dtime: 16
+    convtype: 'fft'
+    usemplhep: True
+    scinttype: 'lar'
+
+# Number of offsets changes during convolution
+scan: 1
+
+print_flag: False
+slice_template:
+    t0: 200
+    tf: 240
+slice_response:
+    t0: None
+    tf: 54
