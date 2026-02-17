@@ -1,54 +1,42 @@
-import numpy as np
-import copy
-from waffles.data_classes.WaveformSet import WaveformSet
-from ConvFitterVDWrapper import ConvFitterVDWrapper
-from waffles.np02_utils.AutoMap import dict_uniqch_to_module, strUch
-import matplotlib.pyplot as plt
+import os
+from pathlib import Path
+from waffles.utils.utils import print_colored
 
 
 DEFAULT_RESPONSE:str = "average_waveforms"
 DEFAULT_TEMPLATE:str = "templates_large_pulses"
 DEFAULT_CONV_NAME:str = "convfit_results"
 PATH_XE_AVERAGES:str = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/xenon_averages/"
+PATH_XE_OUTPUTS:str = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/xenon_outputs/"
 
 
-def process_convfit(response:np.ndarray, template:np.ndarray, cfitch:ConvFitterVDWrapper, scan:int=8, print_flag:bool=False, oneexp:bool=False, dofit:bool=True, verbose:bool=False):
-    wvft = (template).astype(np.float32)
-    wvfr = (response).astype(np.float32)
-    wvft = wvft - np.mean(wvft[200:240])
-    wvfr = wvfr - np.mean(wvfr[:54])
 
-    cfitch.set_template_waveform(wvft)
-    cfitch.set_response_waveform(wvfr)
-    cfitch.prepare_waveforms()
-    if dofit:
-        cfitch.fit(scan=8, print_flag=verbose, oneexp=oneexp)
-    if not dofit and verbose:
-        print(cfitch.fit_results)
+def make_standard_analysis_name(outputdir: Path, analysisname:str) -> str:
 
-    cfitch.set_template_waveform(template)
-    cfitch.set_response_waveform(response)
-    cfitch.prepare_waveforms()
-    if dofit:
-        cfitch.fit(scan=scan, print_flag=print_flag, oneexp=oneexp)
-    if not dofit and print_flag:
-        print(cfitch.fit_results)
+    # Ensures same standard for the analysis name, so it can be easily identified and sorted in the output directory
+    if '-' in analysisname:
+        check_name = analysisname.split('-')
+        expected_user_name = check_name[-1]
+        expected_analysis_name = check_name[:-1]
+        if expected_user_name != os.getlogin():
+            if Path( outputdir / analysisname ).exists():
+                print_colored(f"Warning: analysis name {analysisname} ends with {expected_user_name}, which does not match the current user {os.getlogin()}. Please, be sure you are not doing any mistake.", "WARNING")
+            else:
+                print_colored(f"As a python script... I don't know if the argument after '-' is another user or not. So I am just replacing it by underscore and adding your user. Feel free to change the directory name later if you need to.", "WARNING")
+                analysisname = analysisname.replace("-", "_")
+                analysisname = analysisname + '-' + os.getlogin()
+    else:
+        analysisname = analysisname + '-' + os.getlogin()
+    return analysisname
 
 
-def plot_convfit(wfset:WaveformSet, cfit: dict[int, dict[int,ConvFitterVDWrapper]], templates:dict[int, dict[int, np.ndarray]], responses: dict[int, dict[int, np.ndarray]], dofit=True, verbose=False):
-    ep = wfset.waveforms[0].endpoint
-    ch = wfset.waveforms[0].channel
-    modulename = dict_uniqch_to_module[strUch(ep,ch)]
-    print(f"Processing {ep}-{ch}: {modulename}")
-    cfitch = cfit[ep][ch]
+def makeslice(slicevalues:dict) -> slice:
+    t0 = slicevalues['t0']
+    t0 = int(t0) if isinstance(t0, int) else None
+    tf = slicevalues['tf']
+    tf = int(tf) if isinstance(tf, int) else None
+    return slice(t0,tf)
 
-    oneexp = False
-    if modulename[:2] == "M7" and cfitch.scinttype != "xe":
-        oneexp = True
 
-    process_convfit(responses[ep][ch], templates[ep][ch], cfitch, scan=8, print_flag=verbose, oneexp=oneexp, dofit=dofit)
 
-    cfitch.plot()
-    plt.title(f"{modulename}: {ep}-{ch}")
-    plt.legend()
 

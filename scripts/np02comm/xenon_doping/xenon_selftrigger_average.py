@@ -20,15 +20,16 @@ from waffles.np02_utils.PlotUtils import runBasicWfAnaNP02, plot_detectors
 from waffles.np02_utils.load_utils import open_processed, remove_extra_channels_membrane
 
 from utils import DEFAULT_RESPONSE, PATH_XE_AVERAGES
+from utils import make_standard_analysis_name 
 
 
 def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, dryrun=False):
 
     endpoint = 106 if dettype == "cathode" else 107
-    # Ensures same standard for the analysis name, so it can be easily identified and sorted in the output directory
-    analysisname = analysisname.replace("-", "_")
+            
     if outputdir.absolute().as_posix() == Path(PATH_XE_AVERAGES).as_posix():
-        analysisname = analysisname + '-' + os.getlogin()
+        analysisname = make_standard_analysis_name(outputdir, analysisname)
+
 
     outputdir = outputdir / analysisname
     averages_dir = Path(outputdir) / f"run{run:06d}_{dettype}_response"
@@ -58,8 +59,10 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
     wfsetch = { k: v for k, v in sorted(wfsetch.items(), key=lambda x: dict_uniqch_to_module[strUch(endpoint, x[0])]) }
 
     averages = {}
+    timestamps = {}
     for ch, wfs in wfsetch.items():
         averages[ch] = average_wf_ch(wfs,show_progress=True)
+        timestamps[ch] = sorted( [ wf.timestamp for wf in wfs.waveforms ] )[0]
 
     # Create with permission 775 to allow group members to read and write the files
     averages_dir.mkdir(exist_ok=True, parents=True)
@@ -73,7 +76,7 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
         f.write(f"Detector type: {dettype}\n")
         f.write(f"Number of waveforms averaged in each channel:\n")
         for ch, wfs in wfsetch.items():
-            f.write(f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: {len(wfs.waveforms)} waveforms\n")
+            f.write(f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: nwaveforms {len(wfs.waveforms)} timestamp {timestamps[ch]} ticks\n")
 
     # Saves the yaml cuts used to select the waveforms as cuts_used.yaml in the same directory
     with open(averages_dir / "cuts_used.yaml", "w") as f:

@@ -99,7 +99,12 @@ class ConvFitter:
             self.template = self.template[offset:]
 
         if self.convtype == 'fft':
-            self.templatefft = FFTWaffles.getFFT(self.template)
+            self.update_waveforms_fft()
+
+    def update_waveforms_fft(self):
+        self.templatefft = FFTWaffles.getFFT(self.template)
+        self.response = FFTWaffles.backFFT(FFTWaffles.getFFT(self.response))
+        self.template = FFTWaffles.backFFT(FFTWaffles.getFFT(self.template))
 
     ##################################################
     def interpolate(self, wf:np.ndarray, interpolation_factor: int) -> np.ndarray:
@@ -130,6 +135,7 @@ class ConvFitter:
         # scan over offsets to minimize the chi2 between the response and the template x model
         if scan > 0:
 
+
             resp_original = self.response.copy()
             temp_original = self.template.copy()
 
@@ -141,10 +147,7 @@ class ConvFitter:
                 self.response = np.roll(resp_original, offset, axis=0)
                 self.response = self.response[offset:]
                 self.template = temp_original[offset:]
-                if len(self.response)%2 == 1 and self.convtype == 'fft':
-                    self.response = self.response[:-1]
-                    self.template = self.template[:-1]
-                self.templatefft = FFTWaffles.getFFT(self.template)
+                self.update_waveforms_fft()
                 if not xenon_fit:
                     params, chi2 = self.minimize(printresult=False)
                 else:
@@ -163,14 +166,10 @@ class ConvFitter:
             self.response = np.roll(resp_original, offsets[idxMinChi2], axis=0)
             self.response = self.response[offsets[idxMinChi2]:]
             self.template = temp_original[offsets[idxMinChi2]:]
-            if len(self.response)%2 == 1 and self.convtype == 'fft':
-                self.response = self.response[:-1]
-                self.template = self.template[:-1]
 
-            self.templatefft = FFTWaffles.getFFT(self.template)
+            self.update_waveforms_fft()
 
         # recompute parameters for the minimum chi2
-        params, chi2 = self.minimize(printresult=print_flag, oneexp=oneexp)
         if not xenon_fit:
             params, chi2 = self.minimize(printresult=print_flag, oneexp=oneexp)
         else:
@@ -253,12 +252,12 @@ class ConvFitter:
     #######  ADDED DUE TO XENON DOPING ON NP02 #######
     ##################################################
     def larxe_convolution_time(self, t, A, fp, fs, t1, t3, td):
-        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 + (1-fp-fs)*np.exp(-t/td)/td)
+        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
         return np.convolve(self.lar,self.template,mode='full')[:len(self.lar)]
 
     ##################################################
     def larxe_convolution_freq(self, t, A, fp, fs, t1, t3, td):
-        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 + (1-fp-fs)*np.exp(-t/td)/td)
+        self.lar = A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
         larfreq = FFTWaffles.getFFT(self.lar)
         res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
         return np.real(res)
@@ -288,7 +287,7 @@ class ConvFitter:
         td = 50.
 
 
-        m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3)
+        m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3,td=td, fs=fs)
 
         m.limits['A'] = (0,None)
         m.limits['fp'] = (0,1)

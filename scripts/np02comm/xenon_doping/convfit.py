@@ -1,12 +1,15 @@
     
+from dataclasses import asdict
 from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Union
+import yaml
 from glob import glob
 import argparse
 import os
+import re
 
 from ConvFitterVDWrapper import ConvFitterVDWrapper
 from waffles.data_classes.EasyWaveformCreator import EasyWaveformCreator
@@ -16,9 +19,11 @@ from waffles.np02_utils.AutoMap import dict_endpoints_channels_list, dict_module
 from waffles.np02_utils.AutoMap import ordered_channels_cathode, ordered_channels_membrane, ordered_modules_cathode, ordered_modules_membrane
 from waffles.np02_utils.PlotUtils import matplotlib_plot_WaveformSetGrid
 from waffles.np02_utils.load_utils import ch_read_template, ch_show_avaliable_template_folders
-
-from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, DEFAULT_CONV_NAME, process_convfit
 from waffles.utils.utils import print_colored
+
+from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, PATH_XE_OUTPUTS, DEFAULT_CONV_NAME
+from utils import make_standard_analysis_name, makeslice
+from utils_conv import ConvFitParams, process_convfit
 
 import mplhep
 mplhep.style.use(mplhep.style.ROOT)
@@ -29,7 +34,8 @@ plt.rcParams.update({'font.size': 20,
                      'figure.figsize': [14,6]
                      })
 
-def retrieve_responses(response_folder:Path, output={}, counts={}):
+def retrieve_responses(response_folder:Path, output={}, chinfo={}):
+
     if not response_folder.is_dir():
         # Trying to add user name to the path, in case the response folder was created with the -user tag
         userslogin = os.getlogin()
@@ -39,55 +45,105 @@ def retrieve_responses(response_folder:Path, output={}, counts={}):
         if not response_folder_user.is_dir():
             raise NotADirectoryError(f"{response_folder.as_posix()} and {response_folder_user.as_posix()} are not valid directories.")
         else:
-            response_folder = response_folder_user
             print_colored(f"\n\nWarning: {response_folder.as_posix()} is not a valid directory.\nUsing {response_folder_user.as_posix()} instead.\n\n", 'WARNING')
-            sleep(2)
+            response_folder = response_folder_user
+            sleep(0)
 
     # file format is like this: average-endpoint-107-ch-0.txt
     files_averages = [ Path(x) for x in glob(f"{response_folder.as_posix()}/*.txt")]
+
+    endpoint = 0
+    list_ordered_chs = []
+    tmpoutput = {}
     for file in files_averages:
         fname_fragments = file.name.split('-')
         ep = int(fname_fragments[2])
         ch = int(fname_fragments[4].split('.')[0])
-        output[ep] = output.get(ep, {})
-        output[ep][ch] = np.loadtxt(file, dtype=np.float32)
+        tmpoutput[ep] = tmpoutput.get(ep, {})
+        tmpoutput[ep][ch] = np.loadtxt(file, dtype=np.float32)
 
-        counts[ep] = counts.get(ep, {})
-        counts[ep][ch] = np.loadtxt(file, dtype=np.float32)
+        chinfo[ep] = chinfo.get(ep, {})
+        chinfo[ep][ch] = {
+            'counts': 0,
+            'first_time': 0,
+        }
+        endpoint = ep
+        if ep == 106:
+            list_ordered_chs = ordered_channels_cathode
+        else:
+            list_ordered_chs = ordered_channels_membrane
+    
+    output[endpoint] = { k: tmpoutput[endpoint][k] for k in list_ordered_chs if k in tmpoutput[endpoint].keys() }
+
+
     readmefile = response_folder / "README.md"
     if not readmefile.exists():
         raise FileNotFoundError(f"README.md file not found in {response_folder.as_posix()}.\n\
                                 This file is required to retrieve the number of waveforms averaged for each channel.\n\
                                 If neeeded, you can create an empty README.md file, and then number of waveofrms will be set to 1 for all channels.")
 
+    # pattern to match:
+    # M1(1) 107-47: nwaveforms 46961 timestamp 109892117694173128 ticks
+    pattern = r'(\S+)\s+(\d+)-(\d+):\s+nwaveforms\s+(\d+)\s+timestamp\s+(\d+)'
     with open(readmefile, 'r') as f:
         lines = f.readlines()
         lines = [ l.strip() for l in lines if l[0] in ["C", "M"]]
         for line in lines:
-            data = line.split()
-            chinfo = data[1].replace(":", "").split("-")
-            ep = int(chinfo[0])
-            ch = int(chinfo[1])
-            if ep in counts and ch in counts[ep]:
-                counts[ep][ch] = int(data[2])
+            match = re.match(pattern, line)
+            if match:
+                ep = int(match.group(2))
+                ch = int(match.group(3))
+                nwaveforms = int(match.group(4))
+                timestamp = int(match.group(5))
+                if ep in chinfo and ch in chinfo[ep]:
+                    chinfo[ep][ch]['counts'] = nwaveforms
+                    chinfo[ep][ch]['first_time'] = timestamp
+
 
     # Checking if all counts are zero, if all are zero... ok
     # If some are zero and some are not, print a warning that the README.md file might be incomplete or not properly formatted
     all_zero = True
-    for ep, chs in counts.items():
-        for ch, count in chs.items():
-            if count != 0:
+    for ep, chs in chinfo.items():
+        for ch, info in chs.items():
+            if info['counts'] != 0:
                 all_zero = False
                 break
     if not all_zero:
         haszeros = False
-        for ep, chs in counts.items():
-            for ch, count in chs.items():
-                if count == 0:
+        for ep, chs in chinfo.items():
+            for ch, info in chs.items():
+                if info['counts'] == 0:
                     haszeros = True
                     print(f"Warning: Count for endpoint {ep} channel {ch} is zero. This might indicate that the README.md file is incomplete or not properly formatted.")
         if haszeros:
             raise ValueError("Some counts are zero. Please check the README.md file in the response folder.")
+
+def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], response:str, template:str, allparams:dict, run:int):
+    outputdir.mkdir(parents=True, exist_ok=True)
+
+    for ep, chs in cfit.items():
+        for ch, cfitch in chs.items():
+            nselected = chinfo[ep][ch]['counts']
+            first_time = chinfo[ep][ch]['first_time']
+            norm = cfitch.m.params['A'].value
+            fp = cfitch.m.params['fp'].value
+            fs = cfitch.m.params['fs'].value if 'fs' in cfitch.m.parameters else 1-fp
+            t1 = cfitch.m.params['t1'].value
+            t3 = cfitch.m.params['t3'].value
+            td = cfitch.m.params['td'].value if 'td' in cfitch.m.parameters else 0
+
+            allparams['response'] = response
+            allparams['template'] = template
+
+            with open( outputdir / f"fit_params_run{run:06d}_ep{ep}_ch{ch}.yaml", 'w') as f:
+                yaml.dump(allparams, f, sort_keys=False)
+            with open( outputdir / f"convfit_output_run{run:06}_{ep}_{ch}.txt", 'w') as f:
+                f.write(f"# timestamp[ticks] norm fp fs t1[ns] t3[ns] td[ns] nselected\n")
+                f.write(f"{first_time} {norm} {fp} {fs} {t1} {t3} {td} {nselected}")
+
+            plt = cfitch.plot(newplot=True)
+            plt.legend()
+            plt.savefig( outputdir / f"convfit_plot_run{run:06d}_ep{ep}_ch{ch}.png" )
 
 
 
@@ -97,10 +153,12 @@ def main(run:int = 39510,
          template:str = DEFAULT_TEMPLATE,
          outputdir:Union[Path,str] = "./",
          analysisname:str = DEFAULT_CONV_NAME,
+         analysisparams:str = "params.yaml",
          channels:list = [],
          blacklist:list = [],
          cathode:bool = True,
          membrane:bool = True,
+         method:str = "conv",
          dryrun:bool = False
          ):
 
@@ -108,25 +166,29 @@ def main(run:int = 39510,
     rootdir = Path(rootdir)
     # Ensures same standard for the analysis name, so it can be easily identified and sorted in the output directory
     analysisname = analysisname.replace("-", "_")
+
     if outputdir.absolute().as_posix() == Path(PATH_XE_AVERAGES).as_posix():
-        analysisname = analysisname + '-' + os.getlogin()
+        raise Exception(f"Output directory cannot be the same as the response directory ({PATH_XE_AVERAGES}).")
+
+    if outputdir.absolute().as_posix() == Path(PATH_XE_OUTPUTS).as_posix():
+        analysisname = make_standard_analysis_name(outputdir, analysisname)
 
     outputdir = outputdir / analysisname
 
     response_folder_cathode = rootdir / response / f'run{run:06d}_cathode_response'
     response_folder_membrane = rootdir / response / f'run{run:06d}_membrane_response'
 
-    cfitparams = dict(
-        threshold_align_template=0.27,
-        threshold_align_response=0.2,
-        error=10,
-        dointerpolation=True,
-        interpolation_factor=8,
-        align_waveforms = True,
-        dtime=16,
-        convtype='fft',
-        usemplhep=True,
-    )
+    fileparams = Path(analysisparams)
+
+
+    allparamsC = ConvFitParams(response, template)
+    if not fileparams.is_file():
+        print_colored(f"Warning: {fileparams.as_posix()} is not a valid file. Using default parameters for the convolution fit.", 'WARNING')
+    else:
+        allparamsC.update_values_from_yaml(fileparams, response, template)
+
+    allparams:dict = allparamsC.__dict__
+
 
     templates = ch_read_template(template_folder=template)
 
@@ -156,19 +218,19 @@ def main(run:int = 39510,
     membrane = membrane and 107 in dict_ep_ch_user_want.keys()
 
     responses = {}
-    counts = {}
+    chinfo = {}
     ep_to_analyze = []
     if cathode:
-        retrieve_responses(response_folder_cathode, responses, counts)
+        retrieve_responses(response_folder_cathode, responses, chinfo)
         ep_to_analyze += [ 106 ] 
     if membrane:
-        retrieve_responses(response_folder_membrane, responses, counts)
+        retrieve_responses(response_folder_membrane, responses, chinfo)
         ep_to_analyze += [ 107 ]
 
 
     # I can only analyze channels for which I have both the response and the
     # template, so I create a dictionary with the channels that have both
-    # signals, and then I create a ConvFitterVDWrapper for each of them
+    # signals, and then I create a ConvFitterVDWrapper | DeconvFitterVDWrapper for each of them
     cfit = {}
     dict_ep_ch_with_both_signals = {}
     for ep, ch_wvf in responses.items():
@@ -183,7 +245,12 @@ def main(run:int = 39510,
                     if ch not in dict_ep_ch_user_want[ep]:
                         continue
                     dict_ep_ch_with_both_signals[ep] = dict_ep_ch_with_both_signals.get(ep, []) + [ch]
-                    cfit[ep][ch] = ConvFitterVDWrapper(**cfitparams) # type: ignore
+                    if method == "conv":
+                        cfit[ep][ch] = ConvFitterVDWrapper(**allparams['cfitparams']) # type: ignore
+                    elif method == "deconv":
+                        cfit[ep][ch] = ConvFitterVDWrapper(**allparams['deconvparams'])
+                    else:
+                        raise ValueError(f"Invalid method {method}. Valid methods are 'conv' and 'deconv'.")
 
 
     if len(dict_ep_ch_with_both_signals) == 0:
@@ -195,7 +262,6 @@ def main(run:int = 39510,
         print(f"Response folder name: {response}")
         print(f"Template folder name: {template}")
         print(f"Output directory: {outputdir}")
-        print(f"Analysis name: {analysisname}")
         print(f"Channels: {channels}")
         print(f"Blacklist: {blacklist}")
         print(f"Cathode: {cathode}")
@@ -206,7 +272,7 @@ def main(run:int = 39510,
             print("The following channels will be processed:")
             for ep, chs in dict_ep_ch_with_both_signals.items():
                 for ch in chs:
-                    print(f"Endpoint {ep} Channel {ch}")
+                    print(f"Endpoint {ep} Channel {ch}: {dict_uniqch_to_module[strUch(ep,ch)]}")
         else:
             print_colored("No channels will be processed. Please check the parameters and the availability of the response and template files.", 'ERROR')
         return
@@ -216,16 +282,19 @@ def main(run:int = 39510,
             modulename = dict_uniqch_to_module[strUch(ep,ch)]
             print(f"Processing {ep}-{ch}: {modulename}")
             process_convfit(
+                ep,
+                ch,
                 responses[ep][ch],
                 templates[ep][ch],
                 cfit[ep][ch],
-                scan=8,
-                print_flag=False,
+                scan=allparams['scan'],
+                print_flag=allparams['print_flag'],
                 dofit=True,
-                verbose=False
+                slice_template=allparams['slice_template'],
+                slice_response=allparams['slice_response']
             )
 
-
+    write_output(outputdir, cfit, chinfo, response, template, allparams, run)
 
 
     # Warning the user about the were requested but there is no response or
@@ -233,7 +302,11 @@ def main(run:int = 39510,
     for ep, chs in dict_ep_ch_user_want.items():
         for ch in chs:
             if ep not in dict_ep_ch_with_both_signals.keys() or ch not in dict_ep_ch_with_both_signals[ep]:
-                print_colored(f"Warning: channel {ep}-{ch} was requested but there is no response or template for it. It was skipped in the analysis.", 'WARNING')
+                print_colored(f"Warning: {dict_uniqch_to_module[strUch(ep,ch)]} {ep}-{ch} was requested but there is no response or template for it. It was skipped in the analysis.", 'WARNING')
+                if ep not in responses.keys() or ch not in responses[ep].keys():
+                    print_colored(f"\tReason: response not found.", 'WARNING')
+                if ep not in templates.keys() or ch not in templates[ep].keys():
+                    print_colored(f"\tReason: template not found.", 'WARNING')
 
 
 
@@ -245,11 +318,13 @@ if __name__ == "__main__":
     argp.add_argument("-t", "--template", type=str, default=DEFAULT_TEMPLATE, help=f"Name of the analysis containing the template waveforms to fit.")
     argp.add_argument("-o", "--outputdir", type=str, default="./", help="Directory where the average waveforms will be saved.")
     argp.add_argument("-a", "--analysisname", type=str, default=DEFAULT_CONV_NAME, help="Name of the analysis, used to create a subdirectory in the output directory.")
+    argp.add_argument("--analysisparams", type=str, default="params_conv.yaml", help="Parameters to be loaded from a yaml file")
     argp.add_argument("--channels", nargs="+", type=int, default=[], help="List of channels to process. If not specified, all channels will be processed.\
         \n\tFormat: endpoint+channel, e.g. 1060 for endpoint 106 channel 0.")
-    argp.add_argument("--blacklist", nargs="+", type=int, default=[], help="List of channels to exclude from processing. Format: endpoint+channel, e.g. 1060 for endpoint 106 channel 0.")
+    argp.add_argument("--blacklist", nargs="+", type=int, default=[], help="List of channels to exclude from processing. Format: endpoint+channel, e.g. 10600 for endpoint 106 channel 0.")
     argp.add_argument("-c", "--cathode", action="store_true", help="If set, cathode channels will be processed. If both -c and -m are not set, all channels will be processed.")
     argp.add_argument("-m", "--membrane", action="store_true", help="If set, membrane channels will be processed. If both -c and -m are not set, all channels will be processed.")
+    argp.add_argument("--method", type=str, default="conv",help="Method to use for fitting, either 'conv' for convolution fit or 'deconv' for deconvolution fit.")
     argp.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
 
     args = argp.parse_args()
@@ -260,17 +335,19 @@ if __name__ == "__main__":
     template = args.template
     outputdir = args.outputdir
     analysisname = args.analysisname
+    analysisparams = args.analysisparams
     channels = args.channels
     blacklist = args.blacklist
     cathode = args.cathode
     membrane = args.membrane
+    method = args.method
     dryrun = args.dryrun
 
     if not cathode and not membrane:
         cathode = True
         membrane = True
     for run in runs:
-        main(run, rootdir, response, template, outputdir, analysisname, channels, blacklist, cathode, membrane, dryrun)
+        main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, method, dryrun)
 
 
 

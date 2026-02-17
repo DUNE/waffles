@@ -41,7 +41,7 @@ class ConvFitterVDWrapper(ConvFitter):
         self.response = wfresponse.astype(np.float32)
 
     #################################################
-    def plot(self, newplot=False):
+    def plot(self, newplot=False, **modelparams):
 
 
         # root ploting style
@@ -68,28 +68,36 @@ class ConvFitterVDWrapper(ConvFitter):
 
         # do the plot
         plt.plot(times, self.response,'-', lw=2 ,color='k', label='data')
-        plt.plot(times, self.model(times,*self.fit_results), color='r', zorder=100, label='fit')
+
+        if not modelparams:
+            plt.plot(times, self.model(times,*self.fit_results), color='r', zorder=100, label='fit')
+            """ ---------- add legend to the plot ----------- """
+
+            fit_info = [
+                f"$\\chi^2$/$n_\\mathrm{{dof}}$ = {self.m.fval:.2f} / {self.m.ndof:.0f} = {self.m.fmin.reduced_chi2:.2f}",
+            ]
+
+            mapnames = {
+                'A': 'Norm.',
+                'fp': 'A_\\text{fast}',
+                'fs': 'A_\\text{slow}',
+                't1': '\\tau_\\text{fast}',
+                't3': '\\tau_\\text{slow}',
+                'td': '\\tau_\\text{delay}',
+            }
+
+            for p, v, e in zip(self.m.parameters, self.m.values, self.m.errors):
+                if p in mapnames:
+                    fit_info.append(f"${mapnames[p]}$ = ${v:.3f} \\pm {e:.3f}$")
+            plt.plot([],[], ' ', label='\n'.join(fit_info))
+        
+        else:
+            plt.plot(times, self.model(times, *modelparams.values()), color='r', zorder=100, label='model')
+
+
+
+
         plt.xlim(times[0], times[-1])
-
-        """ ---------- add legend to the plot ----------- """
-
-        fit_info = [
-            f"$\\chi^2$/$n_\\mathrm{{dof}}$ = {self.m.fval:.2f} / {self.m.ndof:.0f} = {self.m.fmin.reduced_chi2:.2f}",
-        ]
-
-        mapnames = {
-            'A': 'Norm.',
-            'fp': 'A_\\text{fast}',
-            'fs': 'A_\\text{slow}',
-            't1': '\\tau_\\text{fast}',
-            't3': '\\tau_\\text{slow}',
-            'td': '\\tau_\\text{delay}',
-        }
-
-        for p, v, e in zip(self.m.parameters, self.m.values, self.m.errors):
-            if p in mapnames:
-                fit_info.append(f"${mapnames[p]}$ = ${v:.3f} \\pm {e:.3f}$")
-        plt.plot([],[], ' ', label='\n'.join(fit_info))
         plt.xlabel('Time [ns]')
         plt.ylabel('Amplitude [ADC]')
 
