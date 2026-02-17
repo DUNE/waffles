@@ -14,7 +14,7 @@
     #     - { t0: 400, tf: 1024, threshold:  210, type:  lower, filter:  0, npop: max }
     #     - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
 
-    46: # M3(1), Mask 8, int 1600
+    46: # M3(1), Mask 8, int 2250
         cuts:
         - { t0: 0, tf: 240, threshold: 280, type: lower, filter: 0, npop: max }
         - { t0: 245, tf:   340, threshold: 1900, type:  lower, filter:  0, npop: max }
@@ -22,11 +22,11 @@
         - { t0: 360, tf: 1024, threshold:  330, type:  lower, filter:  0, npop: max }
         - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
 
-    44: # M3(2), Mask 8, int 1600
+    44: # M3(2), Mask 8, int 2250
         cuts:
         - { t0: 0, tf: 240, threshold: 300, type: lower, filter: 0, npop: max }
         - { t0: 245, tf:   340, threshold: 2700, type:  lower, filter:  0, npop: max }
-        - { t0: 250, tf:   300, threshold: 20, type:  higher, filter:  0, npop: max }
+        - { t0: 250, tf:   310, threshold: 200, type:  higher, filter:  0, npop: max }
         - { t0: 400, tf: 1024, threshold:  360, type:  lower, filter:  0, npop: max }
         - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
 

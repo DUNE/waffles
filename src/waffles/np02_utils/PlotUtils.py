@@ -442,6 +442,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         fit_type           = fit_type,
         force_max_peaks    = force_max_peaks,
         fit_limits         = fit_limits,
+        compute_crosstalk  = False
     )
     if verbosemultigauss:
         print(getattr(hInt, "iminuit", None))
@@ -834,9 +835,13 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:di
             raise ValueError("save_dir must be specified")
         os.makedirs(save_dir, exist_ok=True)
 
+    ncols = len(g.ch_map.data[0])    
+
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
         row += 1
         col += 1
+
+        subplot_idx = (row - 1) * ncols + col
        
         if str(uch) not in dict_uniqch_to_module:
             continue
@@ -857,13 +862,14 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:di
         spe_amp = calibration_data[uch.endpoint][uch.channel]["SpeAmpl"]
         avg_norm = avg * (spe_amp / peak_avg )
 
-        if save:
-            key = f"{uch.endpoint}-{uch.channel}"
-            module_name = dict_uniqch_to_module.get(key, None)
+        key = f"{uch.endpoint}-{uch.channel}"
+        module_name = dict_uniqch_to_module.get(key, None)
 
-            if module_name is None:
-                print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
-                continue
+        if module_name is None:
+            print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
+            continue
+
+        if save:
 
             module_for_title = module_name[:2]
             channel_for_title = module_name[3]
@@ -889,4 +895,25 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:di
                 mode = "lines",
             ),
             row=row, col=col
+        )
+
+        if subplot_idx == 1:
+            xref = "x domain"
+            yref = "y domain"
+        else:
+            xref = f"x{subplot_idx} domain"
+            yref = f"y{subplot_idx} domain"
+
+        fig.add_annotation(
+            x=0.98,
+            y=0.95,
+            xref=xref,
+            yref=yref,
+            text=(
+                f"{module_name}<br>"
+            ),
+            showarrow=False,
+            align="left",
+            font=dict(size=11),
+            bgcolor="rgba(255,255,255,0.7)"
         )

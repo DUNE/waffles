@@ -24,7 +24,8 @@ def fit_peaks_of_CalibrationHistogram(
     std_increment_seed_fallback: float = 1e+2,
     ch_span_fraction_around_peaks: float = 0.05,
     force_max_peaks: bool = False,
-    fit_limits: list = [None, None]
+    fit_limits: list = [None, None],
+    compute_crosstalk: bool = False
 ) -> bool:
     """For the given CalibrationHistogram object, 
     calibration_histogram, this function
@@ -245,10 +246,9 @@ def fit_peaks_of_CalibrationHistogram(
 
     n_peaks_found = len(calibration_histogram.gaussian_fits_parameters['scale'])
 
-    if fit_type != 'multigauss_iminuit' or n_peaks_found < 1:
+    if fit_type != 'multigauss_iminuit' or n_peaks_found < 1 and compute_crosstalk == True:
         calibration_histogram.compute_cross_talk()
         return fFoundMax & fFitAll
-
 
     # initialize parameters for iminuit
     paramnames = ['scale_baseline', 'mean_baseline', 'std_baseline', 'gain', 'propstd']
@@ -356,7 +356,8 @@ def fit_peaks_of_CalibrationHistogram(
     setattr(calibration_histogram, 'n_peaks_found', n_peaks_found)
     setattr(calibration_histogram, 'iminuit', mm)
 
-    calibration_histogram.compute_cross_talk()
+    if compute_crosstalk == True:
+        calibration_histogram.compute_cross_talk()
         
     return fitstatus
 
