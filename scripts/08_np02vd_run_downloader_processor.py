@@ -20,7 +20,7 @@ from waffles.data_classes.IPDict import IPDict
 from waffles.np02_utils.PlotUtils import np02_gen_grids, plot_grid
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.data_classes.Map import Map
-from waffles.np02_utils.AutoMap import ordered_channels_membrane, ordered_channels_cathode, ordered_channels_pmt
+from waffles.np02_utils.AutoMap import ordered_channels_membrane, ordered_channels_cathode, ordered_channels_pmt, dict_uniqch_to_module, strUch
 from waffles.np02_data.ProtoDUNE_VD_maps import cathode_endpoint, membrane_endpoint, pmt_endpoint
 from waffles.utils.utils import print_colored, ColoredFormatter
 # ─────────────────────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ def _analyse(wfset:WaveformSet):
                   overwrite=True)
 
 # ╭────────────────────────── Waveform check quality ────────────────────────────╮
-def _check_all_channels_ok(wfset:WaveformSet, channels_needed: list[int]) -> bool:
+def _check_all_channels_ok(wfset:WaveformSet, channels_needed: list[int], endpoint:int) -> bool:
     available_channels = []
     for run, ep_ch in wfset.available_channels.items():
         if len(ep_ch.keys()) > 1:
@@ -124,9 +124,10 @@ def _check_all_channels_ok(wfset:WaveformSet, channels_needed: list[int]) -> boo
     available_channels = set(available_channels)
     missing = set(channels_needed) - available_channels
     if missing:
-        logging.error("Missing channels: %s", ", ".join(str(ch) for ch in missing))
+        ep_ch_mname_list = [f"{endpoint}-{ch} {dict_uniqch_to_module[strUch(endpoint, ch)]}" for ch in missing]
+        logging.error("Missing channels: %s", ", ".join(str(ch) for ch in ep_ch_mname_list))
 
-        print_colored(f"-----: Missing channels: {', '.join(str(ch) for ch in missing)}", "red", ["bold"])
+        print_colored(f"-----: Missing channels: {', '.join(str(ch) for ch in ep_ch_mname_list)}", "ERROR", ["bold"])
         return False
     return True
             
@@ -140,16 +141,20 @@ def process_structured(h5: Path, outdir: Path,
                                         max_waveforms=max_wfs)
 
     channels_needed: list[int] = []
+    endpoint = 0
     if detector == "VD_Membrane_PDS":
         channels_needed = ordered_channels_membrane
+        endpoint = membrane_endpoint
     elif detector == "VD_Cathode_PDS":
         channels_needed = ordered_channels_cathode
+        endpoint = cathode_endpoint
     elif detector == "VD_PMT_PDS":
         channels_needed = ordered_channels_pmt
         detector = [ UniqueChannel(pmt_endpoint, ch) for ch in ordered_channels_pmt ]
+        endpoint = pmt_endpoint
 
 
-    is_ok = _check_all_channels_ok(wfset, channels_needed)
+    is_ok = _check_all_channels_ok(wfset, channels_needed, endpoint)
 
     _analyse(wfset)
     for n, g in np02_gen_grids(wfset, detector).items():
@@ -382,11 +387,11 @@ def main() -> None:
                                    args.max_waveforms, args.headless, detector)
             if not is_ok:
                 logging.error("Some runs had missing channels, check the logs for details.")
-                print_colored("-----: Some runs had missing channels, check the logs for details.", "red", ["bold"])
+                print_colored("-----: Some runs had missing channels, check the logs for details.", "ERROR", ["bold"])
     missing_runs = set(original_runs_requested) - set(ok_runs)
     if missing_runs:
         logging.error("The following runs were requested but not found: %s", ", ".join(str(r) for r in missing_runs))
-        print_colored(f"-----: The following runs were requested but not found: {', '.join(str(r) for r in missing_runs)}", "red", ["bold"])
+        print_colored(f"-----: The following runs were requested but not found: {', '.join(str(r) for r in missing_runs)}", "ERROR", ["bold"])
 
 
 if __name__ == "__main__":
