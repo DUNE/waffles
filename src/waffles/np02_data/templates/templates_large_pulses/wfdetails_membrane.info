@@ -1,75 +1,13 @@
-Run: (40801, [46, 44])
-Detector type: membrane
-Number of waveforms averaged in each channel:
-M3(2) 107-44: 62638 waveforms
-M3(1) 107-46: 21408 waveforms
-M4(2) 107-41: 46009 waveforms
-M4(1) 107-43: 45135 waveforms
-M6(2) 107-20: 51776 waveforms
-M6(1) 107-27: 50102 waveforms
-M5(2) 107-0: 5010 waveforms
-M5(1) 107-7: 4919 waveforms
-M7(2) 107-30: 45291 waveforms
-M7(1) 107-37: 45015 waveforms
-M8(2) 107-10: 55966 waveforms
-M8(1) 107-17: 55640 waveforms
-Run: (40808, [43, 41, 27, 20])
-Detector type: membrane
-Number of waveforms averaged in each channel:
-M3(2) 107-44: 62638 waveforms
-M3(1) 107-46: 21408 waveforms
-M4(2) 107-41: 46009 waveforms
-M4(1) 107-43: 45135 waveforms
-M6(2) 107-20: 51776 waveforms
-M6(1) 107-27: 50102 waveforms
-M5(2) 107-0: 5010 waveforms
-M5(1) 107-7: 4919 waveforms
-M7(2) 107-30: 45291 waveforms
-M7(1) 107-37: 45015 waveforms
-M8(2) 107-10: 55966 waveforms
-M8(1) 107-17: 55640 waveforms
-Run: (41522, [7, 0])
-Detector type: membrane
-Number of waveforms averaged in each channel:
-M3(2) 107-44: 62638 waveforms
-M3(1) 107-46: 21408 waveforms
-M4(2) 107-41: 46009 waveforms
-M4(1) 107-43: 45135 waveforms
-M6(2) 107-20: 51776 waveforms
-M6(1) 107-27: 50102 waveforms
-M5(2) 107-0: 5010 waveforms
-M5(1) 107-7: 4919 waveforms
-M7(2) 107-30: 45291 waveforms
-M7(1) 107-37: 45015 waveforms
-M8(2) 107-10: 55966 waveforms
-M8(1) 107-17: 55640 waveforms
-Run: (41236, [37, 30])
-Detector type: membrane
-Number of waveforms averaged in each channel:
-M3(2) 107-44: 62638 waveforms
-M3(1) 107-46: 21408 waveforms
-M4(2) 107-41: 46009 waveforms
-M4(1) 107-43: 45135 waveforms
-M6(2) 107-20: 51776 waveforms
-M6(1) 107-27: 50102 waveforms
-M5(2) 107-0: 5010 waveforms
-M5(1) 107-7: 4919 waveforms
-M7(2) 107-30: 45291 waveforms
-M7(1) 107-37: 45015 waveforms
-M8(2) 107-10: 55966 waveforms
-M8(1) 107-17: 55640 waveforms
-Run: (42156, [17, 10])
-Detector type: membrane
-Number of waveforms averaged in each channel:
-M3(2) 107-44: 62638 waveforms
-M3(1) 107-46: 21408 waveforms
-M4(2) 107-41: 46009 waveforms
-M4(1) 107-43: 45135 waveforms
-M6(2) 107-20: 51776 waveforms
-M6(1) 107-27: 50102 waveforms
-M5(2) 107-0: 5010 waveforms
-M5(1) 107-7: 4919 waveforms
-M7(2) 107-30: 45291 waveforms
-M7(1) 107-37: 45015 waveforms
-M8(2) 107-10: 55966 waveforms
-M8(1) 107-17: 55640 waveforms
+Module, endpoint-channel, run number, # of waveforms
+M3(1) 107-46, 40801, 21408
+M3(2) 107-44, 40801, 62637
+M4(1) 107-43, 40808, 45135
+M4(2) 107-41, 40808, 46009
+M6(1) 107-27, 40808, 50102
+M6(2) 107-20, 40808, 51776
+M5(1) 107-7, 41522, 4919
+M5(2) 107-0, 41522, 5010
+M7(1) 107-37, 41236, 45015
+M7(2) 107-30, 41236, 45291
+M8(1) 107-17, 42156, 55640
+M8(2) 107-10, 42156, 55966
