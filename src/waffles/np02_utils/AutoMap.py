@@ -104,4 +104,7 @@ def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Uni
 def strUch(endpoint:int, channel: int):
     return str(UniqueChannel(endpoint, channel))
 
+def getModuleName(ep: int, ch: int) -> str:
+    return dict_uniqch_to_module.get(strUch(ep,ch), f"{ep}-{ch}")
+
 

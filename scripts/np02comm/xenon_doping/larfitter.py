@@ -12,13 +12,13 @@ import os
 import re
 
 from ConvFitterVDWrapper import ConvFitterVDWrapper
-from waffles.np02_utils.AutoMap import dict_endpoints_channels_list, dict_module_to_uniqch, dict_uniqch_to_module, strUch
+from waffles.np02_utils.AutoMap import dict_endpoints_channels_list, dict_module_to_uniqch, dict_uniqch_to_module, strUch, getModuleName
 from waffles.np02_utils.AutoMap import ordered_channels_cathode, ordered_channels_membrane, ordered_modules_cathode, ordered_modules_membrane
 from waffles.np02_utils.load_utils import ch_read_template, ch_show_avaliable_template_folders
 from waffles.utils.utils import print_colored
 from waffles.utils.numerical_utils import error_propagation
 
-from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, PATH_XE_OUTPUTS, DEFAULT_CONV_NAME
+from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, PATH_XE_OUTPUTS, DEFAULT_ANA_NAME, list_of_ints
 from utils import make_standard_analysis_name
 from utils_conv import ConvFitParams, process_convfit
 
@@ -115,11 +115,17 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
         if haszeros:
             raise ValueError("Some counts are zero. Please check the README.md file in the response folder.")
 
-def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], response:str, template:str, allparams:dict, run:int):
+def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], response:str, template:str, allparams:dict, run:int, method:str):
     outputdir.mkdir(parents=True, exist_ok=True)
+    outputdir.chmod(0o775)
+    outputdir.parent.chmod(0o775)
 
     for ep, chs in cfit.items():
         for ch, cfitch in chs.items():
+            # Retrieving all results
+            modulename = getModuleName(ep, ch)
+            submodulename = modulename[3]
+            moduletype = modulename[:2]
             nselected = chinfo[ep][ch]['counts']
             first_time = chinfo[ep][ch]['first_time']
             params_name_to_save = ['A', 'fp', 'fs', 't1', 't3', 'td']
@@ -134,20 +140,38 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             params_to_save['td'] = params_to_save['td'] if 'td' in cfitch.m.parameters else 0
             errors['fs'] = errors['fs'] if 'fs' in cfitch.m.parameters else error_propagation(1,0, params_to_save['fp'], errors['fp'],"sub")
             errors['td'] = errors['td'] if 'td' in cfitch.m.parameters else 0
-
             
-            with open( outputdir / f"convfit_params_run{run:06d}_ep{ep}_ch{ch}.yaml", 'w') as f:
-                yaml.dump(allparams, f, sort_keys=False)
-            with open( outputdir / f"convfit_output_run{run:06}_{ep}_{ch}.txt", 'w') as f:
+            # Saving results
+            with open( outputdir / f"{method}fit_output_run{run:06}_{moduletype}_{submodulename}_{ep}_{ch}.txt", 'w') as f:
                 f.write(f"# timestamp[ticks] A errA fp errfp fs errfs t1[ns] errt1[ns] t3[ns] errt3[ns] td[ns] errtd[ns] nselected chi2\n")
                 f.write(f"{first_time} ")
                 for pname, pval in params_to_save.items():
                     f.write(f"{pval} {errors[pname]} ")
                 f.write(f"{nselected} {cfitch.chi2}\n")
-
+            
+            # Saving plots
             plt = cfitch.plot(newplot=True)
             plt.legend()
-            plt.savefig( outputdir / f"convfit_plot_run{run:06d}_ep{ep}_ch{ch}.png" )
+            plt.title(f"{modulename}: {ep}-{ch}")
+            plt.savefig( outputdir / f"{method}fit_plot_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.png" )
+            plt.close()
+
+            # Saving parameters used:
+            with open( outputdir / f"{method}fit_params_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.yaml", 'w') as f:
+
+                allparams_clean = allparams.copy()
+                slice_template = allparams_clean.pop('slice_template')
+                slice_response = allparams_clean.pop('slice_response')
+                allparams_clean['slice_template'] = {
+                    't0': slice_template.start,
+                    'tf': slice_template.stop
+                }
+                allparams_clean['slice_response'] = {
+                    't0': slice_response.start,
+                    'tf': slice_response.stop
+                }
+
+                yaml.dump(allparams_clean, f, sort_keys=False)
 
 
 
@@ -156,7 +180,7 @@ def main(run:int = 39510,
          response:str = DEFAULT_RESPONSE,
          template:str = DEFAULT_TEMPLATE,
          outputdir:Union[Path,str] = "./",
-         analysisname:str = DEFAULT_CONV_NAME,
+         analysisname:str = DEFAULT_ANA_NAME,
          analysisparams:str = "params.yaml",
          channels:list = [],
          blacklist:list = [],
@@ -174,10 +198,12 @@ def main(run:int = 39510,
     if outputdir.absolute().as_posix() == Path(PATH_XE_AVERAGES).as_posix():
         raise Exception(f"Output directory cannot be the same as the response directory ({PATH_XE_AVERAGES}).")
 
+    extra_folder = "deconvolution" if method == "deconv" else "convolution"
+
     if outputdir.absolute().as_posix() == Path(PATH_XE_OUTPUTS).as_posix():
         analysisname = make_standard_analysis_name(outputdir, analysisname)
 
-    outputdir = outputdir / analysisname
+    outputdir = outputdir / analysisname / extra_folder 
 
     response_folder_cathode = rootdir / response / f'run{run:06d}_cathode_response'
     response_folder_membrane = rootdir / response / f'run{run:06d}_membrane_response'
@@ -261,7 +287,8 @@ def main(run:int = 39510,
         dryrun = True
     if dryrun:
         print("Dry run mode. Parameters:")
-        print(f"Runs: {runs}")
+        print(f"Run: {runs}")
+        print(f"Current run: {run}")
         print(f"Root directory: {rootdir}")
         print(f"Response folder name: {response}")
         print(f"Template folder name: {template}")
@@ -270,20 +297,21 @@ def main(run:int = 39510,
         print(f"Blacklist: {blacklist}")
         print(f"Cathode: {cathode}")
         print(f"Membrane: {membrane}")
+        print(f"Parameters: {allparams}")
         ch_show_avaliable_template_folders()
 
         if len(dict_ep_ch_with_both_signals) != 0:
             print("The following channels will be processed:")
             for ep, chs in dict_ep_ch_with_both_signals.items():
                 for ch in chs:
-                    print(f"Endpoint {ep} Channel {ch}: {dict_uniqch_to_module[strUch(ep,ch)]}")
+                    print(f"Endpoint {ep} Channel {ch}: {getModuleName(ep, ch)}")
         else:
             print_colored("No channels will be processed. Please check the parameters and the availability of the response and template files.", 'ERROR')
         return
 
     for ep, chs in dict_ep_ch_with_both_signals.items():
         for ch in chs:
-            modulename = dict_uniqch_to_module[strUch(ep,ch)]
+            modulename = getModuleName(ep, ch)
             print(f"Processing {ep}-{ch}: {modulename}")
             process_convfit(
                 ep,
@@ -298,7 +326,7 @@ def main(run:int = 39510,
                 slice_response=allparams['slice_response']
             )
 
-    write_output(outputdir, cfit, chinfo, response, template, allparams, run)
+    write_output(outputdir, cfit, chinfo, response, template, allparams, run, method)
 
 
     # Warning the user about the were requested but there is no response or
@@ -306,7 +334,7 @@ def main(run:int = 39510,
     for ep, chs in dict_ep_ch_user_want.items():
         for ch in chs:
             if ep not in dict_ep_ch_with_both_signals.keys() or ch not in dict_ep_ch_with_both_signals[ep]:
-                print_colored(f"Warning: {dict_uniqch_to_module[strUch(ep,ch)]} {ep}-{ch} was requested but there is no response or template for it. It was skipped in the analysis.", 'WARNING')
+                print_colored(f"Warning: {getModuleName(ep, ch)} {ep}-{ch} was requested but there is no response or template for it. It was skipped in the analysis.", 'WARNING')
                 if ep not in responses.keys() or ch not in responses[ep].keys():
                     print_colored(f"\tReason: response not found.", 'WARNING')
                 if ep not in templates.keys() or ch not in templates[ep].keys():
@@ -317,12 +345,12 @@ def main(run:int = 39510,
 if __name__ == "__main__":
     argp = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="Fit a template waveform to a response waveform using a convolution model of LAr/Xe response.")
     argp.add_argument("--method", required=True, type=str, help="Method to use for fitting, either 'conv' for convolution fit or 'deconv' for deconvolution fit.")
-    argp.add_argument("--runs", nargs="+", type=int, default=[39510], help="List of runs to process.")
+    argp.add_argument("--runs", type=list_of_ints, default="39510", help="List of runs to process. Example: --runs 39510,39511,39512")
     argp.add_argument("--rootdir", type=str, default=PATH_XE_AVERAGES, help="Directory where the processed waveform files are located.")
     argp.add_argument("-r", "--response", type=str, default=DEFAULT_RESPONSE, help=f"Name of the analysis containing the response waveforms to fit.") 
     argp.add_argument("-t", "--template", type=str, default=DEFAULT_TEMPLATE, help=f"Name of the analysis containing the template waveforms to fit.")
     argp.add_argument("-o", "--outputdir", type=str, default="./", help="Directory where the average waveforms will be saved.")
-    argp.add_argument("-a", "--analysisname", type=str, default=DEFAULT_CONV_NAME, help="Name of the analysis, used to create a subdirectory in the output directory.")
+    argp.add_argument("-a", "--analysisname", type=str, default=DEFAULT_ANA_NAME, help="Name of the analysis, used to create a subdirectory in the output directory.")
     argp.add_argument("--analysisparams", type=str, default="params_conv.yaml", help="Parameters to be loaded from a yaml file")
     argp.add_argument("--channels", nargs="+", type=int, default=[], help="List of channels to process. If not specified, all channels will be processed.\
         \n\tFormat: endpoint+channel, e.g. 1060 for endpoint 106 channel 0.")
@@ -347,10 +375,16 @@ if __name__ == "__main__":
     method = args.method
     dryrun = args.dryrun
 
+    if method not in ["conv", "deconv"]:
+        print_colored(f"Error: invalid method {method}. Valid methods are 'conv' and 'deconv'.", 'ERROR')
+        exit(0)
+
     if not cathode and not membrane:
         cathode = True
         membrane = True
     for run in runs:
+        if not dryrun:
+            print(f"Prossessing run {run} ...")
         main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, method, dryrun)
 
 

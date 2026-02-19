@@ -20,7 +20,7 @@ from waffles.np02_utils.PlotUtils import runBasicWfAnaNP02, plot_detectors
 from waffles.np02_utils.load_utils import open_processed, remove_extra_channels_membrane
 
 from utils import DEFAULT_RESPONSE, PATH_XE_AVERAGES
-from utils import make_standard_analysis_name 
+from utils import make_standard_analysis_name, list_of_ints
 
 
 def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, dryrun=False):
@@ -67,6 +67,7 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
     # Create with permission 775 to allow group members to read and write the files
     averages_dir.mkdir(exist_ok=True, parents=True)
     averages_dir.chmod(0o775) # apparently it needs to be done after
+    averages_dir.parent.chmod(0o775)
 
     # Create a README file with some information about the templates
     # Keep permisson restricted, so there is no overlap with other users
@@ -116,7 +117,7 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
 
 if __name__ == "__main__":
     argp = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="Generate average waveforms for a given run and detector type.")
-    argp.add_argument("--runs", nargs="+", type=int, default=[39510], help="List of runs to process.")
+    argp.add_argument("--runs", type=list_of_ints, default=39510, help="List of runs to process.")
     argp.add_argument("--dettype", type=str, default="m", choices=["m", "c"], help="Detector type to process.")
     argp.add_argument("--datadir", type=str, default="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/commissioning/", help="Directory where the processed waveform files are located.")
     argp.add_argument("--nwaveforms", type=int, default=None, help="Maximum number of waveforms to load for each channel.")

@@ -41,16 +41,18 @@ class DeconvFitter(FFTWaffles):
         self.templatefft = self.getFFT(self.template)
         self.responsefft = self.getFFT(self.response)
 
+    ##################################################
     def model_lar(self):
         pass
 
+    ##################################################
     def model_larxe(self):
         pass
 
     ##################################################
     def minimize(self, printresult:bool, oneexp:bool=False):
 
-        self.deconvolved = self.deconvolve(self.response, self.template)
+        self.deconvolved = self.backFFT(self.deconvolve(self.response, self.template))
 
         self.model = self.model_lar if self.scinttype == 'lar' else self.model_larxe
         nticks = len(self.response)

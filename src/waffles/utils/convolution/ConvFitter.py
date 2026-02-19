@@ -144,13 +144,14 @@ class ConvFitter:
             offsets = np.arange(0, scan)
             if print_flag:
                 print ('    scanning over offsets to minimize chi2 between the response and the template x model', len(offsets), 'offsets to scan')
+                print ('    offset, params, chi2, is_valid, has_parameters_at_limit')
             for offset in offsets:
                 self.response = np.roll(resp_original, offset, axis=0)
                 self.response = self.response[offset:]
                 self.template = temp_original[offset:]
                 self.update_waveforms_fft()
                 if not xenon_fit:
-                    params, chi2 = self.minimize(printresult=False)
+                    params, chi2 = self.minimize(printresult=False, oneexp=oneexp)
                 else:
                     params, chi2 = self.minimize_larxe(printresult=False)
                 mfmin: FMin = self.m.fmin
@@ -160,14 +161,13 @@ class ConvFitter:
                     chi2 *= 2
 
                 chi2s.append(chi2)
-                if(print_flag): print(offset, params, chi2)
+                if(print_flag): print(offset, params, chi2, mfmin.is_valid, mfmin.has_parameters_at_limit)
 
             # recompute the waveforms for the minimum chi2
             idxMinChi2 = np.argmin(chi2s)
             self.response = np.roll(resp_original, offsets[idxMinChi2], axis=0)
             self.response = self.response[offsets[idxMinChi2]:]
             self.template = temp_original[offsets[idxMinChi2]:]
-
             self.update_waveforms_fft()
 
         # recompute parameters for the minimum chi2

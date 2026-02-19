@@ -5,7 +5,7 @@ from waffles.utils.utils import print_colored
 
 DEFAULT_RESPONSE:str = "average_waveforms"
 DEFAULT_TEMPLATE:str = "templates_large_pulses"
-DEFAULT_CONV_NAME:str = "convfit_results"
+DEFAULT_ANA_NAME:str = "analysis_results"
 PATH_XE_AVERAGES:str = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/xenon_averages/"
 PATH_XE_OUTPUTS:str = "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/xenon_outputs/"
 
@@ -37,6 +37,8 @@ def makeslice(slicevalues:dict) -> slice:
     tf = int(tf) if isinstance(tf, int) else None
     return slice(t0,tf)
 
+def list_of_ints(arg):
+    return list(map(int, arg.split(',')))
 
 
 

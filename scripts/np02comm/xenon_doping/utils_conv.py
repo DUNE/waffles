@@ -3,7 +3,7 @@ import yaml
 from pathlib import Path
 from waffles.data_classes.WaveformSet import WaveformSet
 from ConvFitterVDWrapper import ConvFitterVDWrapper
-from waffles.np02_utils.AutoMap import dict_uniqch_to_module, strUch
+from waffles.np02_utils.AutoMap import getModuleName
 import matplotlib.pyplot as plt
 
 from dataclasses import dataclass, field, asdict
@@ -12,16 +12,16 @@ from utils import print_colored, makeslice
 
 @dataclass
 class ConvWrapperParams:
-    threshold_align_template=0.27,
-    threshold_align_response=0.2,
-    error=10,
-    dointerpolation=True,
-    interpolation_factor=8,
-    align_waveforms = True,
-    dtime=16,
-    convtype='fft',
-    usemplhep=True,
-    scinttype='lar',
+    threshold_align_template:float=0.27
+    threshold_align_response:float=0.2
+    error:float=10
+    dointerpolation:bool=True
+    interpolation_factor:int=8
+    align_waveforms:bool=True
+    dtime:int=16
+    convtype:str='fft'
+    usemplhep:bool=True
+    scinttype:str='lar'
 
 class ConvFitParams:
     """
@@ -30,7 +30,7 @@ class ConvFitParams:
     def __init__(self, response:str, template:str):
         self.response = response
         self.template = template
-        self.cfitparams:dict = asdict(ConvWrapperParams())
+        self.cfitparams = asdict(ConvWrapperParams())
         self.scan:int = 8
         self.print_flag:bool = False 
         self.slice_template:slice = slice(200,240)
@@ -73,15 +73,18 @@ def process_convfit(ep:int,
                     slice_response:slice = slice(None,54)
                     ):
 
-    modulename = dict_uniqch_to_module[strUch(ep,ch)]
+    modulename = getModuleName(ep, ch)
+
 
     if modulename[:2] == "M7" and cfitch.scinttype != "xe":
         oneexp = True
 
     wvft = (template).astype(np.float32)
     wvfr = (response).astype(np.float32)
-    wvft = wvft - np.mean(wvft[slice_template])
-    wvfr = wvfr - np.mean(wvfr[slice_response])
+    if slice_template.start != 0 and slice_template.stop != 0: # If both are zero, no re-baseline
+        wvft = wvft - np.mean(wvft[slice_template])
+    if slice_response.start != 0 and slice_response.stop != 0: # if both are zero, no re-baseline
+        wvfr = wvfr - np.mean(wvfr[slice_response])
 
     cfitch.set_template_waveform(wvft)
     cfitch.set_response_waveform(wvfr)
@@ -96,7 +99,7 @@ def process_convfit(ep:int,
 def plot_convfit(wfset:WaveformSet, cfit: dict[int, dict[int,ConvFitterVDWrapper]], templates:dict[int, dict[int, np.ndarray]], responses: dict[int, dict[int, np.ndarray]], dofit=True, verbose=False, scan=8, slice_template:slice = slice(200,240), slice_response:slice = slice(None,54)):
     ep = wfset.waveforms[0].endpoint
     ch = wfset.waveforms[0].channel
-    modulename = dict_uniqch_to_module[strUch(ep,ch)]
+    modulename = getModuleName(ep, ch)
     print(f"Processing {ep}-{ch}: {modulename}")
     cfitch = cfit[ep][ch]
 

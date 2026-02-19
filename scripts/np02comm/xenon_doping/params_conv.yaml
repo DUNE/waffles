@@ -12,12 +12,16 @@ cfitparams:
     scinttype: 'lar'
 
 # Number of offsets changes during convolution
-scan: 1
+scan: 8
 
+# If true, print minuit fit results
 print_flag: False
+
+# Slice used to recompute baseline on the templates
+# Set both to zero to not compute baseline
 slice_template:
     t0: 200
     tf: 240
 slice_response:
-    t0: None
+    t0: null
     tf: 54
