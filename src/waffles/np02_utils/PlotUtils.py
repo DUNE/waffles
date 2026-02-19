@@ -601,6 +601,8 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[Uni
         if not wfs: continue
         plot_function(wfs, **func_params)
 
+    return fig, axs
+
 
 def plot_averages(fig:go.Figure, g:ChannelWsGrid):
     """

@@ -68,12 +68,12 @@ def process_convfit(ep:int,
                     scan:int=8,
                     print_flag:bool=False,
                     oneexp:bool=False,
-                    dofit:bool=True,
                     slice_template:slice = slice(200,240),
                     slice_response:slice = slice(None,54)
                     ):
 
     modulename = getModuleName(ep, ch)
+    print(f"Processing {ep}-{ch}: {modulename}")
 
 
     if modulename[:2] == "M7" and cfitch.scinttype != "xe":
@@ -89,10 +89,7 @@ def process_convfit(ep:int,
     cfitch.set_template_waveform(wvft)
     cfitch.set_response_waveform(wvfr)
     cfitch.prepare_waveforms()
-    if dofit:
-        cfitch.fit(scan=scan, print_flag=print_flag, oneexp=oneexp)
-    if not dofit and print_flag:
-        print(cfitch.fit_results)
+    cfitch.fit(scan=scan, print_flag=print_flag, oneexp=oneexp)
 
 
 
@@ -100,11 +97,15 @@ def plot_convfit(wfset:WaveformSet, cfit: dict[int, dict[int,ConvFitterVDWrapper
     ep = wfset.waveforms[0].endpoint
     ch = wfset.waveforms[0].channel
     modulename = getModuleName(ep, ch)
-    print(f"Processing {ep}-{ch}: {modulename}")
+    if ep not in cfit.keys() or ch not in cfit[ep].keys():
+        return
     cfitch = cfit[ep][ch]
 
     oneexp = False
-    process_convfit(ep, ch, responses[ep][ch], templates[ep][ch], cfitch, scan=scan, print_flag=verbose, oneexp=oneexp, dofit=dofit, slice_template=slice_template, slice_response=slice_response)
+    if dofit:
+        process_convfit(ep, ch, responses[ep][ch], templates[ep][ch], cfitch, scan=scan, print_flag=verbose, oneexp=oneexp, slice_template=slice_template, slice_response=slice_response)
+    elif verbose:
+        print(cfitch.fit_results, '...')
 
     cfitch.plot()
     plt.title(f"{modulename}: {ep}-{ch}")

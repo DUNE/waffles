@@ -1,7 +1,9 @@
     
+from copy import deepcopy
 from dataclasses import asdict
 from time import sleep
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Union
@@ -11,16 +13,20 @@ import argparse
 import os
 import re
 
-from ConvFitterVDWrapper import ConvFitterVDWrapper
+
+from waffles.data_classes.EasyWaveformCreator import EasyWaveformCreator
+from waffles.np02_utils.PlotUtils import matplotlib_plot_WaveformSetGrid
 from waffles.np02_utils.AutoMap import dict_endpoints_channels_list, dict_module_to_uniqch, dict_uniqch_to_module, strUch, getModuleName
 from waffles.np02_utils.AutoMap import ordered_channels_cathode, ordered_channels_membrane, ordered_modules_cathode, ordered_modules_membrane
 from waffles.np02_utils.load_utils import ch_read_template, ch_show_avaliable_template_folders
 from waffles.utils.utils import print_colored
 from waffles.utils.numerical_utils import error_propagation
 
+
+from ConvFitterVDWrapper import ConvFitterVDWrapper
 from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, PATH_XE_OUTPUTS, DEFAULT_ANA_NAME, list_of_ints
 from utils import make_standard_analysis_name
-from utils_conv import ConvFitParams, process_convfit
+from utils_conv import ConvFitParams, process_convfit, plot_convfit
 
 import mplhep
 mplhep.style.use(mplhep.style.ROOT)
@@ -115,7 +121,7 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
         if haszeros:
             raise ValueError("Some counts are zero. Please check the README.md file in the response folder.")
 
-def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], response:str, template:str, allparams:dict, run:int, method:str):
+def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], response:str, template:str, allparams:dict, run:int, method:str, gridfigs:dict[str, Figure]):
     outputdir.mkdir(parents=True, exist_ok=True)
     outputdir.chmod(0o775)
     outputdir.parent.chmod(0o775)
@@ -143,18 +149,19 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             
             # Saving results
             with open( outputdir / f"{method}fit_output_run{run:06}_{moduletype}_{submodulename}_{ep}_{ch}.txt", 'w') as f:
-                f.write(f"# timestamp[ticks] A errA fp errfp fs errfs t1[ns] errt1[ns] t3[ns] errt3[ns] td[ns] errtd[ns] nselected chi2\n")
+                f.write(f"# timestamp[ticks] run ep ch A errA fp errfp fs errfs t1[ns] errt1[ns] t3[ns] errt3[ns] td[ns] errtd[ns] nselected chi2\n")
                 f.write(f"{first_time} ")
+                f.write(f"{run} {ep} {ch} ")
                 for pname, pval in params_to_save.items():
                     f.write(f"{pval} {errors[pname]} ")
                 f.write(f"{nselected} {cfitch.chi2}\n")
             
             # Saving plots
-            plt = cfitch.plot(newplot=True)
-            plt.legend()
-            plt.title(f"{modulename}: {ep}-{ch}")
-            plt.savefig( outputdir / f"{method}fit_plot_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.png" )
-            plt.close()
+            figplt = cfitch.plot(newplot=True)
+            figplt.legend()
+            figplt.title(f"{modulename}: {ep}-{ch}")
+            figplt.savefig( outputdir / f"{method}fit_plot_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.png" )
+            figplt.close()
 
             # Saving parameters used:
             with open( outputdir / f"{method}fit_params_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.yaml", 'w') as f:
@@ -172,6 +179,10 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
                 }
 
                 yaml.dump(allparams_clean, f, sort_keys=False)
+    for detector, fig in gridfigs.items():
+        fig.savefig( outputdir / f"{method}fit_grid_run{run:06d}_{detector}.png" )
+        plt.close()
+
 
 
 
@@ -227,6 +238,9 @@ def main(run:int = 39510,
         endpoints_to_process += [ 106 ]
     if membrane:
         endpoints_to_process += [ 107 ]
+
+    gridcathode = cathode and len(channels) == 0
+    gridmembrane = membrane and len(channels) == 0
 
     dict_ep_ch_user_want = {}
     if len(channels) == 0: # Creates a list with all channels, excluding the ones in the blacklist
@@ -311,8 +325,6 @@ def main(run:int = 39510,
 
     for ep, chs in dict_ep_ch_with_both_signals.items():
         for ch in chs:
-            modulename = getModuleName(ep, ch)
-            print(f"Processing {ep}-{ch}: {modulename}")
             process_convfit(
                 ep,
                 ch,
@@ -321,12 +333,31 @@ def main(run:int = 39510,
                 cfit[ep][ch],
                 scan=allparams['scan'],
                 print_flag=allparams['print_flag'],
-                dofit=True,
                 slice_template=allparams['slice_template'],
                 slice_response=allparams['slice_response']
             )
+    
+    # Create empty waveform
+    wfset = EasyWaveformCreator.create_WaveformSet_dictEndpointCh(dict_endpoint_ch=dict_endpoints_channels_list)
+    funcparams = {
+        'cfit':cfit,
+        'dofit':False,
+        'responses': responses,
+        'templates': templates,
+        'verbose': False,
+    }
+    gridfigs = {}
 
-    write_output(outputdir, cfit, chinfo, response, template, allparams, run, method)
+    if gridcathode:
+        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_cathode, plot_function=plot_convfit, func_params=funcparams, cols=4, figsize=(32,32))
+        gridfigs['cathode'] = deepcopy(fig)
+    if gridmembrane:
+        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_membrane, plot_function=plot_convfit, func_params=funcparams, cols=4, figsize=(32,32))
+        gridfigs['membrane'] = deepcopy(fig)
+
+
+
+    write_output(outputdir, cfit, chinfo, response, template, allparams, run, method, gridfigs)
 
 
     # Warning the user about the were requested but there is no response or
