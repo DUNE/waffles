@@ -1,79 +1,42 @@
 default_baseline: &dfbase
   threshold: 50
   minimumfrac: 0.67
+  default_filtering: 2
 
 default_fit: &dfit
-    int_ll:             254            # integration lower limit in ticks
+    int_ll:             255            # integration lower limit in ticks
     int_ul:             270            # integration upper limit in ticks
     bins_int:           100            # binning of the histogram
-    domain_int:         [-10e3, 90e3] # min and max value of histogram x-axis
+    domain_int:         [-0.5, 3.2] # min and max value of histogram x-axis
     max_peaks:          2              # maximum number of peaks to fit
     half_point_to_fit:  5              # positive int, maximum number of bins to the left and right of the peak to fit
-    prominence:         0.02           # 0 to 1, minimum fraction of peaks to spot relative to maximum peak
+    prominence:         0.03           # 0 to 1, minimum fraction of peaks to spot relative to maximum peak
     initial_percentage: 0.10           # 0 to 1, starting percentage to search for peaks
     percentage_step:    0.05           # if n peaks < max_peaks, increase the percentage by this value
+    force_max_peaks: True
+    fit_limits: [None, 1.5]
 
 110: {
-  0  : { baseline: { <<: *dfbase, threshold: 40}, fit: { <<: *dfit, int_ll: 254, int_ul: 275 }},
-  2  : { baseline: { <<: *dfbase, threshold: 16}, fit: { <<: *dfit }},
-  4  : { baseline: { <<: *dfbase, threshold: 10}, fit: { <<: *dfit }},
-  6  : { baseline: { <<: *dfbase, threshold: 40}, fit: { <<: *dfit }},
-  7  : { baseline: { <<: *dfbase, threshold: 22.5}, fit: { <<: *dfit }},
-  10 : { baseline: { <<: *dfbase, threshold: 10}, fit: { <<: *dfit }},
-  12 : { baseline: { <<: *dfbase, threshold: 27}, fit: { <<: *dfit }},
-  14 : { baseline: { <<: *dfbase, threshold: 22.5}, fit: { <<: *dfit }},
-  16 : { baseline: { <<: *dfbase, threshold: 10}, fit: { <<: *dfit }},
-  17 : { baseline: { <<: *dfbase, threshold: 27}, fit: { <<: *dfit }},
-  20 : { baseline: { <<: *dfbase, threshold: 20}, fit: { <<: *dfit, half_point_to_fit: 2, domain_int: [-20e3, 50e3] }},
-  22 : { baseline: { <<: *dfbase, threshold: 15}, fit: { <<: *dfit, half_point_to_fit: 3}},
-  24 : { baseline: { <<: *dfbase, threshold: 15}, fit: { <<: *dfit, half_point_to_fit: 3}},
-  26 : { baseline: { <<: *dfbase, threshold: 37}, fit: { <<: *dfit }},
-  30 : { baseline: { <<: *dfbase, threshold: 13}, fit: { <<: *dfit }},
-  32 : { baseline: { <<: *dfbase, threshold: 8}, fit: { <<: *dfit }},
-  34 : { baseline: { <<: *dfbase, threshold: 22.5}, fit: { <<: *dfit }},
-  36 : { baseline: { <<: *dfbase, threshold: 18}, fit: { <<: *dfit }},
-  40 : { baseline: { <<: *dfbase, threshold: 10}, fit: { <<: *dfit }},
-  42 : { baseline: { <<: *dfbase, threshold: 10}, fit: { <<: *dfit }},
-  44 : { baseline: { <<: *dfbase, threshold: 10}, fit: { <<: *dfit }},
-  46 : { baseline: { <<: *dfbase, threshold: 18}, fit: { <<: *dfit, half_point_to_fit: 3}}
+  0  : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-1.5, 5], fit_limits: [None, 3], int_ul: 265 }},
+  2  : { baseline: { <<: *dfbase }, fit: { <<: *dfit }},
+  6  : { baseline: { <<: *dfbase }, fit: { <<: *dfit }},
+  7  : { baseline: { <<: *dfbase, threshold: 15 }, fit: { <<: *dfit, domain_int: [-1.5, 4] , fit_limits: [None, 3], int_ul: 275}},
+  10 : { baseline: { <<: *dfbase, threshold: 10 }, fit: { <<: *dfit }},
+  12 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, fit_limits: [None, 2.5] }},
+  14 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, fit_limits: [None, 3], int_ul: 265 }},
+  16 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, fit_limits: [None, 2.5] }},
+  17 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-1.5, 4], fit_limits: [None, 2.5]  }},
+  20 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-2, 8], fit_limits: [None, 5]}},
+  22 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-1.5, 5], int_ul: 275, fit_limits: [None, 4]}},
+  24 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-2.5, 6.5], int_ul: 275, fit_limits: [None, 4.5]}},
+  26 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, fit_limits: [None, 2], int_ul: 265}},
+  30 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, fit_limits: [None, 5], int_ul: 265, domain_int: [-0.5, 5]}},
+  32 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-1.5, 5], fit_limits: [None, 5], int_ul: 275}},
+  34 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, fit_limits: [None, 1.8], int_ul: 270}},
+  36 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, int_ll: 265, int_ul: 280, fit_limits: [None, 1.5], domain_int: [-0.5, 2.5]}},
+  37 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, fit_limits: [None, 4.5], domain_int: [-1.5, 5], int_ul: 265}},
+  40 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-1.5, 5], int_ul: 270, fit_limits: [None, 5]}},
+  42 : { baseline: { <<: *dfbase }, fit: { <<: *dfit }},
+  44 : { baseline: { <<: *dfbase }, fit: { <<: *dfit }},
+  46 : { baseline: { <<: *dfbase }, fit: { <<: *dfit, domain_int: [-1.5, 4], fit_limits: [None, 3] }}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
