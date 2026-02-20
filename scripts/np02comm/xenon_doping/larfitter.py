@@ -206,8 +206,6 @@ def main(run:int = 39510,
 
     outputdir = Path(outputdir)
     rootdir = Path(rootdir)
-    # Ensures same standard for the analysis name, so it can be easily identified and sorted in the output directory
-    analysisname = analysisname.replace("-", "_")
 
     if outputdir.absolute().as_posix() == Path(PATH_XE_AVERAGES).as_posix():
         raise Exception(f"Output directory cannot be the same as the response directory ({PATH_XE_AVERAGES}).")
@@ -421,7 +419,7 @@ if __name__ == "__main__":
     method = args.method
     dryrun = args.dryrun
 
-    if method == "conv" and analysisparams == "params_conv.yaml":
+    if method == "deconv" and analysisparams == "params_conv.yaml":
         raise ValueError("Default parameters file for convolution fit is 'params_conv.yaml'. Please specify it with --analysisparams or choose a different file.")
 
     if method not in ["conv", "deconv"]:
