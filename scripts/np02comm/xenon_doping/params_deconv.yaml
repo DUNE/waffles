@@ -1,0 +1,19 @@
+# Parameters for ConvFitterVDWrapper
+deconvparams:
+    scinttype: 'lar'
+    error: 0.05
+    filter_type: 'Gauss'
+    cutoff_MHz: 2.5
+    dtime: 16
+
+# If true, print minuit fit results
+print_flag: False
+
+# Slice used to recompute baseline on the templates
+# Set both to zero to not compute baseline
+slice_template:
+    t0: 200
+    tf: 240
+slice_response:
+    t0: null
+    tf: 54
