@@ -107,13 +107,13 @@ if __name__ == "__main__":
                 out_root_file.mkdir(subdir_name)
                 out_root_file.cd(subdir_name)
 
-                t0_diff = time_alligner.com_ch.t0s - time_alligner.ref_ch.t0s
+                t0_diff = (time_alligner.com_ch.t0s - time_alligner.ref_ch.t0s)*16.0 # convert to ns
 
                 # --- PLOTTING ---------------------------------------------------
                 # t0 differences distribution ------------------------------------
                 x_min = np.percentile(t0_diff, 0.5)
                 x_max = np.percentile(t0_diff, 99.5)
-                h_t0_diff = TH1F("h_t0_diff", "Comparison-Reference time difference;t0 [ticks=16ns];Counts",
+                h_t0_diff = TH1F("h_t0_diff", "Comparison-Reference time difference;#Deltat [ns];Counts",
                                  200, x_min, x_max)
                 for diff in t0_diff:
                     h_t0_diff.Fill(diff)
