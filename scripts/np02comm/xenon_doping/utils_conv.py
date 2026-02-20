@@ -1,14 +1,22 @@
 import numpy as np
 import yaml
 from pathlib import Path
-from waffles.data_classes.WaveformSet import WaveformSet
-from ConvFitterVDWrapper import ConvFitterVDWrapper
-from waffles.np02_utils.AutoMap import getModuleName
-import matplotlib.pyplot as plt
-
 from dataclasses import dataclass, field, asdict
 
-from utils import print_colored, makeslice
+from waffles.np02_utils.AutoMap import getModuleName
+from waffles.utils.utils import print_colored
+
+from utils import update_values_from_yaml
+
+
+from ConvFitterVDWrapper import ConvFitterVDWrapper
+
+def makeslice(slicevalues:dict) -> slice:
+    t0 = slicevalues['t0']
+    t0 = int(t0) if isinstance(t0, int) else None
+    tf = slicevalues['tf']
+    tf = int(tf) if isinstance(tf, int) else None
+    return slice(t0,tf)
 
 @dataclass
 class ConvWrapperParams:
@@ -38,26 +46,16 @@ class ConvFitParams:
     
     def update_values_from_yaml(self, fileparams:Path, response:str, template:str):
 
-        with open(fileparams, 'r') as f:
-            allparams = yaml.safe_load(f)
-            # Those are the only ones that can cause problems...
-            if 'slice_template' in allparams.keys():
-                self.slice_template = makeslice(allparams.pop('slice_template'))
-            if 'slice_response' in allparams.keys():
-                self.slice_response = makeslice(allparams.pop('slice_response'))
-
-            if 'response' in allparams.keys():
-                if response != allparams['response']:
-                    print_colored(f"Warning: response in {fileparams.as_posix()} is different from the one specified in the arguments. Using the one in the arguments ({response}).", 'WARNING')
-            if 'template' in allparams.keys():
-                if template != allparams['template']:
-                    print_colored(f"Warning: template in {fileparams.as_posix()} is different from the one specified in the arguments. Using the one in the arguments ({template}).", 'WARNING')
-
-            for k, v in allparams.items():
-                if k in self.__dict__.keys():
-                    setattr(self, k, v)
-                else:
-                    print_colored(f"Warning: {k} is not a valid parameter for ConvFitParams. Ignoring it.", 'WARNING')
+        allparams, slice_template, slice_response = update_values_from_yaml(fileparams, response, template)
+        if slice_template is not None:
+            self.slice_template = slice_template
+        if slice_response is not None:
+            self.slice_response = slice_response
+        for k, v in allparams.items():
+            if k in self.__dict__.keys():
+                setattr(self, k, v)
+            else:
+                print_colored(f"Warning: {k} is not a valid parameter for ConvFitParams. Ignoring it.", 'WARNING')
 
 
 def process_convfit(ep:int,
@@ -91,22 +89,3 @@ def process_convfit(ep:int,
     cfitch.prepare_waveforms()
     cfitch.fit(scan=scan, print_flag=print_flag, oneexp=oneexp)
 
-
-
-def plot_convfit(wfset:WaveformSet, cfit: dict[int, dict[int,ConvFitterVDWrapper]], templates:dict[int, dict[int, np.ndarray]], responses: dict[int, dict[int, np.ndarray]], dofit=True, verbose=False, scan=8, slice_template:slice = slice(200,240), slice_response:slice = slice(None,54)):
-    ep = wfset.waveforms[0].endpoint
-    ch = wfset.waveforms[0].channel
-    modulename = getModuleName(ep, ch)
-    if ep not in cfit.keys() or ch not in cfit[ep].keys():
-        return
-    cfitch = cfit[ep][ch]
-
-    oneexp = False
-    if dofit:
-        process_convfit(ep, ch, responses[ep][ch], templates[ep][ch], cfitch, scan=scan, print_flag=verbose, oneexp=oneexp, slice_template=slice_template, slice_response=slice_response)
-    elif verbose:
-        print(cfitch.fit_results, '...')
-
-    cfitch.plot()
-    plt.title(f"{modulename}: {ep}-{ch}")
-    plt.legend()

@@ -24,9 +24,12 @@ from waffles.utils.numerical_utils import error_propagation
 
 
 from ConvFitterVDWrapper import ConvFitterVDWrapper
-from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, PATH_XE_OUTPUTS, DEFAULT_ANA_NAME, list_of_ints
-from utils import make_standard_analysis_name
-from utils_conv import ConvFitParams, process_convfit, plot_convfit
+from DeconvFitterVDWrapper import DeconvFitterVDWrapper
+from utils import DEFAULT_RESPONSE, DEFAULT_TEMPLATE, PATH_XE_AVERAGES, PATH_XE_OUTPUTS, DEFAULT_ANA_NAME
+from utils import make_standard_analysis_name, list_of_ints
+from utils_plot import plot_fit
+from utils_conv import ConvFitParams, process_convfit
+from utils_deconv import DeconvFitParams, process_deconvfit
 
 import mplhep
 mplhep.style.use(mplhep.style.ROOT)
@@ -192,7 +195,7 @@ def main(run:int = 39510,
          template:str = DEFAULT_TEMPLATE,
          outputdir:Union[Path,str] = "./",
          analysisname:str = DEFAULT_ANA_NAME,
-         analysisparams:str = "params.yaml",
+         analysisparams:str = "params_conv.yaml",
          channels:list = [],
          blacklist:list = [],
          cathode:bool = True,
@@ -221,14 +224,14 @@ def main(run:int = 39510,
 
     fileparams = Path(analysisparams)
 
-
-    allparamsC = ConvFitParams(response, template)
+    
+    allparamsClass = ConvFitParams(response, template) if method == "conv" else DeconvFitParams(response, template)
     if not fileparams.is_file():
         print_colored(f"Warning: {fileparams.as_posix()} is not a valid file. Using default parameters for the convolution fit.", 'WARNING')
     else:
-        allparamsC.update_values_from_yaml(fileparams, response, template)
+        allparamsClass.update_values_from_yaml(fileparams, response, template)
 
-    allparams:dict = allparamsC.__dict__
+    allparams:dict = allparamsClass.__dict__
 
 
     templates = ch_read_template(template_folder=template)
@@ -292,7 +295,7 @@ def main(run:int = 39510,
                     if method == "conv":
                         cfit[ep][ch] = ConvFitterVDWrapper(**allparams['cfitparams']) # type: ignore
                     elif method == "deconv":
-                        cfit[ep][ch] = ConvFitterVDWrapper(**allparams['deconvparams'])
+                        cfit[ep][ch] = DeconvFitterVDWrapper(**allparams['deconvparams'])
                     else:
                         raise ValueError(f"Invalid method {method}. Valid methods are 'conv' and 'deconv'.")
 
@@ -325,17 +328,29 @@ def main(run:int = 39510,
 
     for ep, chs in dict_ep_ch_with_both_signals.items():
         for ch in chs:
-            process_convfit(
-                ep,
-                ch,
-                responses[ep][ch],
-                templates[ep][ch],
-                cfit[ep][ch],
-                scan=allparams['scan'],
-                print_flag=allparams['print_flag'],
-                slice_template=allparams['slice_template'],
-                slice_response=allparams['slice_response']
-            )
+            if method == "conv":
+                process_convfit(
+                    ep,
+                    ch,
+                    responses[ep][ch],
+                    templates[ep][ch],
+                    cfit[ep][ch],
+                    scan=allparams['scan'],
+                    print_flag=allparams['print_flag'],
+                    slice_template=allparams['slice_template'],
+                    slice_response=allparams['slice_response']
+                )
+            elif method == "deconv":
+                process_deconvfit(
+                    ep,
+                    ch,
+                    responses[ep][ch],
+                    templates[ep][ch],
+                    cfit[ep][ch],
+                    print_flag=allparams['print_flag'],
+                    slice_template=allparams['slice_template'],
+                    slice_response=allparams['slice_response']
+                )
     
     # Create empty waveform
     wfset = EasyWaveformCreator.create_WaveformSet_dictEndpointCh(dict_endpoint_ch=dict_endpoints_channels_list)
@@ -349,10 +364,10 @@ def main(run:int = 39510,
     gridfigs = {}
 
     if gridcathode:
-        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_cathode, plot_function=plot_convfit, func_params=funcparams, cols=4, figsize=(32,32))
+        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_cathode, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
         gridfigs['cathode'] = deepcopy(fig)
     if gridmembrane:
-        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_membrane, plot_function=plot_convfit, func_params=funcparams, cols=4, figsize=(32,32))
+        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_membrane, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
         gridfigs['membrane'] = deepcopy(fig)
 
 
@@ -405,6 +420,9 @@ if __name__ == "__main__":
     membrane = args.membrane
     method = args.method
     dryrun = args.dryrun
+
+    if method == "conv" and analysisparams == "params_conv.yaml":
+        raise ValueError("Default parameters file for convolution fit is 'params_conv.yaml'. Please specify it with --analysisparams or choose a different file.")
 
     if method not in ["conv", "deconv"]:
         print_colored(f"Error: invalid method {method}. Valid methods are 'conv' and 'deconv'.", 'ERROR')
