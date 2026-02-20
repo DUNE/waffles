@@ -1,5 +1,7 @@
 from waffles.np04_analysis.led_calibration.imports import *
 
+from waffles.np04_analysis.led_calibration.binary_reader import create_waveform_set_from_spybuffer
+
 class Analysis1(WafflesAnalysis):
 
     def __init__(self):
@@ -724,35 +726,50 @@ class Analysis1(WafflesAnalysis):
                     )   
 
             # Get the filepaths to the input chunks for this run
-            input_filepaths = led_utils.get_input_filepaths_for_run(
-                self.params.input_path,
-                self.batch,
-                self.pde,
-                run
-            )
+            # input_filepaths = led_utils.get_input_filepaths_for_run(
+            #     self.params.input_path,
+            #     self.batch,
+            #     self.pde,
+            #     run
+            # )
+            #
+            # new_wfset = WaveformSet_from_pickle_files(
+            #         filepath_list=input_filepaths,
+            #         target_extension='.pkl',
+            #         verbose=self.params.verbose
+            # )
+            #
+            # # Keep only the waveforms coming from 
+            # # the targeted channels for this run.
+            # # This step is useless for cases when
+            # # the input pickles were already filtered
+            # # when copied from the original HDF5 files
+            # new_wfset = WaveformSet.from_filtered_WaveformSet(
+            #     new_wfset,
+            #     led_utils.comes_from_channel,
+            #     channels
+            # )
+            #
+            # if fFirstRun:
+            #     self.wfset = new_wfset
+            #     fFirstRun = False
+            # else:
+            #     self.wfset.merge(new_wfset)
 
-            new_wfset = WaveformSet_from_pickle_files(
-                    filepath_list=input_filepaths,
-                    target_extension='.pkl',
-                    verbose=self.params.verbose
-            )
+            my_folder = "/Users/federico/Downloads/EstebanNP04VGainScan/"
+            my_channels = [46, 14, 36]
+            file_to_read = [my_folder+f"channel_{ch}.dat" for ch in my_channels]
 
-            # Keep only the waveforms coming from 
-            # the targeted channels for this run.
-            # This step is useless for cases when
-            # the input pickles were already filtered
-            # when copied from the original HDF5 files
-            new_wfset = WaveformSet.from_filtered_WaveformSet(
-                new_wfset,
-                led_utils.comes_from_channel,
-                channels
-            )
+            self.wfset = create_waveform_set_from_spybuffer(filename=file_to_read[0], run_number=run)
+            print(self.wfset.waveforms[0].adcs)
+            print(len(self.wfset.waveforms))
 
-            if fFirstRun:
-                self.wfset = new_wfset
-                fFirstRun = False
-            else:
+            for file in file_to_read[1:]:
+                new_wfset = create_waveform_set_from_spybuffer(filename=file, run_number=run)
                 self.wfset.merge(new_wfset)
+                del new_wfset
+            
+            # fFirstRun = False 
 
         return True
 
@@ -881,6 +898,11 @@ class Analysis1(WafflesAnalysis):
             )
 
         len_before_coarse_selection = len(self.wfset.waveforms)
+        print("\n\n\nhere\n\n\n")
+        print(self.params.null_baseline_analysis_label)
+        print(self.params.lower_limit_wrt_baseline)
+        print(self.params.upper_limit_wrt_baseline)
+        
 
         self.wfset = WaveformSet.from_filtered_WaveformSet(
             self.wfset,
@@ -973,7 +995,8 @@ class Analysis1(WafflesAnalysis):
                         )
 
                     average_baseline_std = get_average_baseline_std_from_file(
-                        self.grid_apa.ch_wf_sets[endpoint][channel].waveforms[0].run_number,
+                        run=30705,
+                        # self.grid_apa.ch_wf_sets[endpoint][channel].waveforms[0].run_number,
                         endpoint=endpoint,
                         channel=channel,
                         daphne_configuration_database_filepath=\
@@ -1078,6 +1101,7 @@ class Analysis1(WafflesAnalysis):
                             f"Kept {100.*(len_after_fine_selection/len_before_fine_selection):.2f}%"
                             " of the waveforms"
                         )
+                        print(len_before_fine_selection)
                 else:
                     self.output_limits[endpoint][channel]['fine_selection'] = (
                         np.nan,
@@ -1354,8 +1378,8 @@ class Analysis1(WafflesAnalysis):
                 time_range_lower_limit += self.params.baseline_i_low[self.apa]
                 time_range_upper_limit += self.params.baseline_i_up[self.apa]
             
-            aux_adc_range_above_baseline = 20
-            aux_adc_range_below_baseline = 80
+            aux_adc_range_above_baseline = 200
+            aux_adc_range_below_baseline = 800
 
             persistence_figure = plot_ChannelWsGrid(
                 self.grid_apa,
