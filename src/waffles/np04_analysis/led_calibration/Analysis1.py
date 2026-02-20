@@ -760,8 +760,9 @@ class Analysis1(WafflesAnalysis):
             my_channels = [46, 14, 36]
             file_to_read = [my_folder+f"channel_{ch}.dat" for ch in my_channels]
 
+            print(f"Run {run} - files to read: {file_to_read}")
             self.wfset = create_waveform_set_from_spybuffer(filename=file_to_read[0], run_number=run)
-            print(self.wfset.waveforms[0].adcs)
+            print(self.wfset.waveforms[0].run_number)
             print(len(self.wfset.waveforms))
 
             for file in file_to_read[1:]:
@@ -769,7 +770,7 @@ class Analysis1(WafflesAnalysis):
                 self.wfset.merge(new_wfset)
                 del new_wfset
             
-            # fFirstRun = False 
+            print("\n\n\n",self.wfset.waveforms[0].run_number,"\n\n\n")
 
         return True
 
@@ -898,11 +899,14 @@ class Analysis1(WafflesAnalysis):
             )
 
         len_before_coarse_selection = len(self.wfset.waveforms)
-        print("\n\n\nhere\n\n\n")
-        print(self.params.null_baseline_analysis_label)
-        print(self.params.lower_limit_wrt_baseline)
-        print(self.params.upper_limit_wrt_baseline)
         
+        if self.params.lower_limit_wrt_baseline == 0.:
+            average_baseline_std = get_average_baseline_std_from_file(
+                run=self.wfset.waveforms[0].run_number,
+                endpoint=self.wfset.waveforms[0].endpoint,
+                channel=self.wfset.waveforms[0].channel)
+            self.params.lower_limit_wrt_baseline = - average_baseline_std * 60
+            self.params.upper_limit_wrt_baseline = average_baseline_std * 20
 
         self.wfset = WaveformSet.from_filtered_WaveformSet(
             self.wfset,
@@ -995,8 +999,7 @@ class Analysis1(WafflesAnalysis):
                         )
 
                     average_baseline_std = get_average_baseline_std_from_file(
-                        run=30705,
-                        # self.grid_apa.ch_wf_sets[endpoint][channel].waveforms[0].run_number,
+                        run=self.grid_apa.ch_wf_sets[endpoint][channel].waveforms[0].run_number,
                         endpoint=endpoint,
                         channel=channel,
                         daphne_configuration_database_filepath=\

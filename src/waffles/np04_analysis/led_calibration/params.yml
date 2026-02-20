@@ -8,13 +8,16 @@ input_path: 'data'
 output_path: 'output'
 
 # Calibration-batch number
-batches: [1, 2, 3, 4, 5, 6, 7] # 1, ..., 7
+# batches: [1, 2, 3, 4, 5, 6, 7] # 1, ..., 7
+batches: [9] # 1, ..., 7
 
 # APA number
-apas: [1, 2, 3, 4] # 1, 2, 3, 4
+# apas: [1, 2, 3, 4] # 1, 2, 3, 4
+apas: [2] # 1, 2, 3, 4
 
 # Photon detection efficiency
-pdes: [0.4, 0.45, 0.5] # 0.40, 0.45, 0.50
+# pdes: [0.4, 0.45, 0.5] # 0.40, 0.45, 0.50
+pdes: [0.45] # 0.40, 0.45, 0.50
 
 # Path to a CSV file which lists the channels
 # which should be calibrated for each run
@@ -22,7 +25,7 @@ channels_per_run_filepath: './configs/channels_per_run_database.csv'
 
 # Path to a CSV file which lists the channels
 # which should be excluded from the calibration
-excluded_channels_filepath: './configs/excluded_channels_database.csv'
+excluded_channels_filepath: './configs/excluded_channels_csvs/no_hpf/0_with_gain_seeds_dfb_0.3.csv'
 
 # Whether to show the produced figures
 show_figures: false
@@ -74,8 +77,10 @@ baseliner_type: 'mean'
 cutoff_frequency_hz: 50.e+3
 
 ## Parameters for the coarse selection cut
-lower_limit_wrt_baseline: -200.
-upper_limit_wrt_baseline: 40.
+# Leave them == 0. if you want to this selection to be done
+# based on the noise results.
+lower_limit_wrt_baseline: 0.
+upper_limit_wrt_baseline: 0.
 
 ## Parameters for the correlation alignment
 # Whether to apply the correlation alignment. For more
@@ -152,7 +157,8 @@ noise_results_dataframe_filepath: '../../np04_data/OfflineCh_RMS_Config_all.csv'
 # set to False, then those parameters are ignored, but 
 # the baseline_i_low, baseline_i_up and signal_i_up 
 # parameters must be defined instead.
-infer_regions_for_fine_selection: true
+# infer_regions_for_fine_selection: true
+infer_regions_for_fine_selection: false
 
 # Number of ADC samples to consider for the baseline
 # region in the fine selection cut. If the waveform
@@ -302,8 +308,8 @@ calib_histo_bin_width:
 
 # Used if gain_seeds_filepath is None
 # Lower and upper limits for the calibration histogram
-calib_histo_lower_limit: -5000.
-calib_histo_upper_limit: 15000.
+calib_histo_lower_limit: -15000.
+calib_histo_upper_limit: 150000.
 
 # If None, the number of bins and the domain of the charge
 # calibration histogram are computed out of the
@@ -314,7 +320,7 @@ calib_histo_upper_limit: 15000.
 # 'endpoint', 'channel' and 'gain'. The channel-wise gain
 # read from such file is used to compute a channel-wise domain
 # for the charge calibration histograms.
-gain_seeds_filepath: './configs/optimal_seeds_dfb_30p.csv'
+# gain_seeds_filepath: './configs/optimal_seeds_dfb_30p.csv'
 
 # Used only if the gain_seeds_filepath parameter is defined.
 # In that case, the calibration histogram (CH) domain is
@@ -333,7 +339,7 @@ average_fallback: true
 
 ## Parameters for peak fitting
 # Maximum number of peaks to fit
-max_peaks: 5
+max_peaks: 7
 
 # Required minimal horizontal distance, in number
 # of bins, between neighbouring peaks of the charge
@@ -360,6 +366,7 @@ percentage_step: 0.05
 # It can be either 'correlated_gaussians'
 # or 'independent_gaussians'
 fit_type: 'correlated_gaussians'
+# fit_type: "multigauss_iminuit"
 
 # Whether to weigh the least squares fit by
 # the Poisson standard deviation of each bin
