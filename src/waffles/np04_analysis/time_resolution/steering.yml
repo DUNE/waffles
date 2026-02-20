@@ -6,7 +6,7 @@
 # where the overall reference is the LED trigger time.
 # Use "cosmic" for cosmic ray data processed with raw_cosmic_ana.py
 # where the overall reference is the channel you have chosen as ref.
-event_type : "cosmic"
+event_type : "led"
 # Reference and comparison channels for studying the possible
 # misalignment of the PDS channels.
 # The two vectors must either have the same length or you can leave
@@ -14,26 +14,7 @@ event_type : "cosmic"
 # channels against that one reference.
 reference_channels  : [11221]
 
-comparison_channels : [11247,
-  11200,
-  11202,
-  11204,
-  11206,
-  11210,
-  11212,
-  11214,
-  11216,
-  11223,
-  11225,
-  11227,
-  11231,
-  11233,
-  11235,
-  11237,
-  11245,
-  11247,
-  11300,
-  11302]
+comparison_channels : [11113]
 
 # Number of bins for the x and y-axis of the 2D histograms.
 # We plot the distributions of the event absolute time as seen

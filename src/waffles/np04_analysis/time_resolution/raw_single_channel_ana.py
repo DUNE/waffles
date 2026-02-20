@@ -1,5 +1,5 @@
 # --- IMPORTS -------------------------------------------------------
-from waffles.np04_utils.utils import get_np04_daphne_to_offline_channel_dict
+from waffles.np04_utils.utils import get_np04_daphne_to_offline_channel_dict, get_average_baseline_std_from_file
 from waffles.np04_analysis.time_resolution.imports import *
 # -------------------------------------------------------------------
 
@@ -20,9 +20,6 @@ if __name__ == "__main__":
         params_variables = yaml.safe_load(params_stream)
 
     runs               = params_variables.get("runs")
-    noise_results_file = params_variables.get("noise_results_file")
-    noise_df           = pd.read_csv(noise_results_file, sep=",")
-    print(noise_df.head(5))
 
     calibration_file = params_variables.get("calibration_file")
     calibration_df   = pd.read_csv(calibration_file, sep=",")
@@ -59,7 +56,7 @@ if __name__ == "__main__":
         except FileNotFoundError:
             print(f"File {file} not found. Skipping.")
             continue
-            
+
         a = tr.TimeResolution(wf_set=wfset_run) 
            
         # --- LOOP OVER CHANNELS ------------------------------------------
@@ -75,30 +72,33 @@ if __name__ == "__main__":
 
             offline_ch = new_daphne_to_offline[daphne_ch]
 
-            if global_prepulse_ticks != 0:
+            try:
+                prepulse_ticks = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'Prepulse ticks'].values[0])
+            except:
+                print(f"Error: prepulse_ticks not found for channel {daphne_ch} in calibration file. Using global value.")
                 prepulse_ticks = global_prepulse_ticks
-            else:
-                prepulse_ticks = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'prepulse_ticks'].values[0])
 
-            if global_int_low != 0:
+            try:
+                int_low = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'Int low'].values[0])
+            except:
+                print(f"Error: int_low not found for channel {daphne_ch} in calibration file. Using global value.")
                 int_low = global_int_low
-            else:
-                int_low = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'int_low'].values[0])
 
-            if global_int_up != 0:
+            try:
+                int_up = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'Int up'].values[0])
+            except:
+                print(f"Error: int_up not found for channel {daphne_ch} in calibration file. Using global value.")
                 int_up = global_int_up
-            else:
-                int_up = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'int_up'].values[0])
 
-            if global_postpulse_ticks != 0:
+            try:
+                postpulse_ticks = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'Postpulse ticks'].values[0])
+            except:
                 postpulse_ticks = global_postpulse_ticks
-            else:
-                postpulse_ticks = int(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'postpulse_ticks'].values[0])
 
                 
             spe_charge   = float(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'Gain'].values[0])
             spe_ampl     = float(calibration_df.loc[calibration_df['DaphneCh'] == daphne_ch, 'SpeAmpl'].values[0])
-            baseline_rms = float(noise_df.loc[noise_df['OfflineCh'] == offline_ch, 'RMS'].values[0])
+            baseline_rms = get_average_baseline_std_from_file(run=run, daphne_channel=daphne_ch)
             print(baseline_rms)
 
            
@@ -127,13 +127,13 @@ if __name__ == "__main__":
                 all_tikcs = np.array([np.arange(len(wf.adcs_float)) for wf in a.wfs[:n_pwfs] if wf.time_resolution_selection]).flatten()
                 counts, xedges, yedges = np.histogram2d(all_tikcs, all_wfs, bins=(len(a.wfs[0].adcs_float),h2_nbins),
                                                         range=[[0, len(a.wfs[0].adcs_float)],
-                                                               [np.min(all_wfs), np.max(all_wfs)]])
+                                                               [-spe_ampl*5, spe_ampl*100]])
                                                         
 
                 # Histogram 2D of t0 vs pe
                 h2_persistence = TH2F("persistence", ";time [ticks]; Amplitude [ADC]",
                                       len(a.wfs[0].adcs_float), 0, len(a.wfs[0].adcs_float),
-                                      h2_nbins, np.min(all_wfs), np.max(all_wfs))
+                                      h2_nbins, -spe_ampl*5, spe_ampl*100)
 
                 for i in range(len(a.wfs[0].adcs_float)):
                     for j in range(h2_nbins):
