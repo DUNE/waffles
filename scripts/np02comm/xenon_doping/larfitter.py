@@ -240,6 +240,8 @@ def main(run:int = 39510,
     if membrane:
         endpoints_to_process += [ 107 ]
 
+    channels = channels.copy()
+    blacklist = blacklist.copy()
     gridcathode = cathode and len(channels) == 0
     gridmembrane = membrane and len(channels) == 0
 
@@ -349,7 +351,7 @@ def main(run:int = 39510,
                     slice_template=allparams['slice_template'],
                     slice_response=allparams['slice_response']
                 )
-    
+    print("Fits completed. Preparing output...")
     # Create empty waveform
     wfset = EasyWaveformCreator.create_WaveformSet_dictEndpointCh(dict_endpoint_ch=dict_endpoints_channels_list)
     funcparams = {
@@ -370,6 +372,7 @@ def main(run:int = 39510,
 
 
 
+    print("Saving output...")
     write_output(outputdir, cfit, chinfo, response, template, allparams, run, method, gridfigs)
 
 
