@@ -155,8 +155,8 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
                 f.write(f"# timestamp[ticks] run ep ch A errA fp errfp fs errfs t1[ns] errt1[ns] t3[ns] errt3[ns] td[ns] errtd[ns] nselected chi2\n")
                 f.write(f"{first_time} ")
                 f.write(f"{run} {ep} {ch} ")
-                for pname, pval in params_to_save.items():
-                    f.write(f"{pval} {errors[pname]} ")
+                for pname in params_name_to_save:
+                    f.write(f"{params_to_save[pname]} {errors[pname]} ")
                 f.write(f"{nselected} {cfitch.chi2}\n")
             
             # Saving plots

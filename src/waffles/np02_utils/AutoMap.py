@@ -70,7 +70,7 @@ def generate_ChannelMap(channels: Union[List[UniqueChannel], List[str], List[Uni
     ChannelMap
     """
     unch: List[UniqueChannel] 
-    unch = [ channel if isinstance(channel, UniqueChannel) else (dict_module_to_uniqch[channel] if channel[0] in ["M", "C"] else dict_uniqch_to_module[channel]) for channel in channels]
+    unch = [ channel if isinstance(channel, UniqueChannel) else (dict_module_to_uniqch[channel] ) for channel in channels]
 
     titles = [ dict_uniqch_to_module[str(channel)] if channel and str(channel) in dict_uniqch_to_module else f"{channel.endpoint}-{channel.channel}" for channel in unch ]
 
