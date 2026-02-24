@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Union
 import pandas as pd
 from glob import glob
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
 import plotly.graph_objects as go
@@ -40,20 +41,19 @@ def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = [
     if optional_filelist:
         files = optional_filelist.copy()
     else:
-        files = glob(f"{path_to_data}/{sufix}fit_output_*.txt")
+        files = glob(f"{path_to_data}/{sufix}fit_output_*.csv")
     if not files:
         raise ValueError(f"No files found in {path_to_data} with sufix {sufix}. Please check the path and sufix.")
 
     listdf = []
-    for file in files:
-        with open(file) as f:
-            cols = f.readline().lstrip('# ').split()
-        dftmp = pd.read_csv(file, sep='\s+', comment='#', header=None, names=cols)
-        dftmp["timestamp"] = dftmp['timestamp[ticks]'] * 16.e-9
-        dftmp["time"] = pd.to_datetime(dftmp["timestamp"], unit='s')
+    for file in tqdm(files, desc="Loading fit results"):
+        dftmp = pd.read_csv(file)
         listdf.append(dftmp)
 
+    print("All files loaded, concatenating into a single DataFrame...")
     df = pd.concat(listdf, ignore_index=True)
+    df["timestamp"] = df['timestamp[ticks]'] * 16.e-9
+    df["time"] = pd.to_datetime(df["timestamp"], unit='s')
     df['module'] = df.apply( lambda x: getModuleName(int(x['ep']), int(x['ch'])), axis = 1)
     df = df.sort_values(by='time')
 

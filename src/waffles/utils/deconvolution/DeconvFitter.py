@@ -83,12 +83,12 @@ class DeconvFitter(FFTWaffles):
     ##################################################
     # FIT
     ##################################################
-    def fit(self, oneexp: bool = False, print_flag: bool = False):
+    def fit(self, oneexp: bool = False, print_flag: bool = False, **kwargs):
         """
         Fit deconvolved signal
         """
 
-        params, chi2 = self.minimize(self.deconvolved, oneexp, printresult=print_flag)
+        params, chi2 = self.minimize(self.deconvolved, oneexp, printresult=print_flag, **kwargs)
         
         self.fit_results = params
         self.chi2 = chi2
@@ -101,7 +101,14 @@ class DeconvFitter(FFTWaffles):
     ##################################################
     # MINUIT IMPLEMENTATION
     ##################################################
-    def minimize(self, signal_to_fit: np.ndarray, oneexp: bool, printresult: bool, fit_limits_ticks: list = [None, None]):
+    def minimize(self,
+                 signal_to_fit: np.ndarray,
+                 oneexp: bool,
+                 printresult: bool,
+                 fit_limits_ns: list = [None, 10e3],
+                 force_range: bool = False,
+                 tolerance: float = 1e-3
+                 ):
 
 
         nticks = len(signal_to_fit)
@@ -112,15 +119,17 @@ class DeconvFitter(FFTWaffles):
         maxBin = np.argmax(signal_to_fit)
         t0_init = float(maxBin * self.dtime)
 
-        if fit_limits_ticks[-1] is not None:
-            xlim = fit_limits_ticks[-1]
-        else:
-            xlim = 10000//self.dtime
-            lim_attempt = np.argwhere(signal_to_fit[maxBin:xlim] < 10**-3)
-            if len(lim_attempt) > 0:
-                xlim = lim_attempt[0][0] + maxBin
+        xlim_min, xlim_max = fit_limits_ns
+        if xlim_min is not None:
+            xlim_min = xlim_min // self.dtime
+        if xlim_max is not None:
+            xlim_max = int(xlim_max // self.dtime)
+            if not force_range:
+                lim_attempt = np.argwhere(signal_to_fit[maxBin:xlim_max] < tolerance)
+                if len(lim_attempt) > 0:
+                    xlim_max = lim_attempt[0][0] + maxBin
 
-        slice_lim = slice(fit_limits_ticks[0], xlim)
+        slice_lim = slice(xlim_min, xlim_max)
         times = times[slice_lim]
         self.times = times
         signal_to_fit = signal_to_fit[slice_lim]

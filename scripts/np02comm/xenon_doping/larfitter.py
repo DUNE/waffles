@@ -137,13 +137,16 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             moduletype = modulename[:2]
             nselected = chinfo[ep][ch]['counts']
             first_time = chinfo[ep][ch]['first_time']
-            params_name_to_save = ['A', 'fp', 'fs', 't1', 't3', 'td']
+            params_name_to_save = ['A', 'fp', 'fs', 't1', 't3', 'td', 't0', 'sigma']
             params_to_save = {}
             errors = {}
             for param_name in params_name_to_save:
                 if param_name in cfitch.m.parameters:
                     params_to_save[param_name] = cfitch.m.params[param_name].value
                     errors[param_name] = cfitch.m.params[param_name].error
+                else:
+                    params_to_save[param_name] = 0
+                    errors[param_name] = 0
 
             params_to_save['fs'] = params_to_save['fs'] if 'fs' in cfitch.m.parameters else 1-params_to_save['fp']
             params_to_save['td'] = params_to_save['td'] if 'td' in cfitch.m.parameters else 0
@@ -151,13 +154,13 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             errors['td'] = errors['td'] if 'td' in cfitch.m.parameters else 0
             
             # Saving results
-            with open( outputdir / f"{method}fit_output_run{run:06}_{moduletype}_{submodulename}_{ep}_{ch}.txt", 'w') as f:
-                f.write(f"# timestamp[ticks] run ep ch A errA fp errfp fs errfs t1[ns] errt1[ns] t3[ns] errt3[ns] td[ns] errtd[ns] nselected chi2\n")
-                f.write(f"{first_time} ")
-                f.write(f"{run} {ep} {ch} ")
+            with open( outputdir / f"{method}fit_output_run{run:06}_{moduletype}_{submodulename}_{ep}_{ch}.csv", 'w') as f:
+                f.write(f"timestamp[ticks],run,ep,ch,A,errA,fp,errfp,fs,errfs,t1[ns],errt1[ns],t3[ns],errt3[ns],td[ns],errtd[ns],t0[ns],errt0,sigma,errsigma,nselected,chi2\n")
+                f.write(f"{first_time},")
+                f.write(f"{run},{ep},{ch},")
                 for pname in params_name_to_save:
-                    f.write(f"{params_to_save[pname]} {errors[pname]} ")
-                f.write(f"{nselected} {cfitch.chi2}\n")
+                    f.write(f"{params_to_save[pname]},{errors[pname]},")
+                f.write(f"{nselected},{cfitch.chi2}\n")
             
             # Saving plots
             figplt = cfitch.plot(newplot=True)
