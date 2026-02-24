@@ -1,1 +1,9 @@
+# In order for this to work, execute the following commands in your git repository:
+# git config filter.strip-notebook-output.clean "jupyter nbconvert --to notebook --ClearOutputPreprocessor.enabled=True --stdout 2>/dev/null"
+# git config filter.strip-notebook-output.smudge cat
+# But this might not work well in a virtual env if the machine don't have jupyter by default (like lxplus)
 *.ipynb filter=strip-notebook-output  
+
+# Better solution (inside virtual env)
+# pip install nbstripout
+# nbstripout --install

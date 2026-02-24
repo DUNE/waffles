@@ -101,7 +101,7 @@ class DeconvFitter(FFTWaffles):
     ##################################################
     # MINUIT IMPLEMENTATION
     ##################################################
-    def minimize(self, signal_to_fit: np.ndarray, oneexp: bool, printresult: bool):
+    def minimize(self, signal_to_fit: np.ndarray, oneexp: bool, printresult: bool, fit_limits_ticks: list = [None, None]):
 
 
         nticks = len(signal_to_fit)
@@ -111,15 +111,20 @@ class DeconvFitter(FFTWaffles):
         # t0 dynamically initialized at the maximum peak
         maxBin = np.argmax(signal_to_fit)
         t0_init = float(maxBin * self.dtime)
-        xlim = 10000//self.dtime
-        lim_attempt = np.argwhere(signal_to_fit[maxBin:xlim] < 10**-3)
-        if len(lim_attempt) > 0:
-            xlim = lim_attempt[0][0] + maxBin
 
-        times = times[:xlim]
+        if fit_limits_ticks[-1] is not None:
+            xlim = fit_limits_ticks[-1]
+        else:
+            xlim = 10000//self.dtime
+            lim_attempt = np.argwhere(signal_to_fit[maxBin:xlim] < 10**-3)
+            if len(lim_attempt) > 0:
+                xlim = lim_attempt[0][0] + maxBin
+
+        slice_lim = slice(fit_limits_ticks[0], xlim)
+        times = times[slice_lim]
         self.times = times
-        signal_to_fit = signal_to_fit[:xlim]
-        errors = errors[:xlim]
+        signal_to_fit = signal_to_fit[slice_lim]
+        errors = errors[slice_lim]
 
         if self.scinttype == 'lar':
             self.model = self.model_lar
