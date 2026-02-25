@@ -666,7 +666,7 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) 
                 raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
 
     for wf in tqdm(wfch.waveforms, disable=not show_progress, desc="Computing average waveform"):
-        adcs_float = np.asarray(wf.adcs).astype(float)          
+        adcs_float = np.asarray(wf.adcs).astype(np.float32)          
         if analysis_label in wf.analyses:
             baseline = wf.analyses[analysis_label].result["baseline"]
             adcs_float = adcs_float - baseline                
