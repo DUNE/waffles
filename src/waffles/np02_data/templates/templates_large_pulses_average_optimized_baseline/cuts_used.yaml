@@ -174,9 +174,10 @@
 
     30: # C2(1), Mask 8, int 3000
         cuts:
-        - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
-        - { t0: 245, tf:   340, threshold: 800, type:  lower, filter:  0, npop: max }
-        - { t0: 390, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf: 240, threshold: 100, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   350, threshold: 550, type:  lower, filter:  0, npop: max }
+        - { t0: 270, tf:   350, threshold: 380, type:  lower, filter:  0, npop: max }
+        - { t0: 350, tf: 1024, threshold:  100, type:  lower, filter:  0, npop: max }
         - { t0: 0, tf:  1024, threshold: -120, type: higher, filter:  0, npop: min }  
 
     31: # C2(2), Mask 8, int 3000
