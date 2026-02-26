@@ -982,10 +982,6 @@ class WaveformSet:
             True (resp. False).
         """
 
-        signature = inspect.signature(wf_filter)
-
-        wuf.check_well_formedness_of_waveform_filter_function(signature)
-
         # Better fill the two lists during the WaveformSet scan and then return
         # the desired one, rather than filling just the dumped_ones one and then 
         # computing its negative in case return_the_staying_ones is True

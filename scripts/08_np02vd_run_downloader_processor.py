@@ -190,6 +190,7 @@ def main() -> None:
     ap.add_argument("-p", "--pmt", action="store_const",
                     const="VD_PMT_PDS", dest="det", help="Use PMT PDS detector, ignores the json")
     ap.add_argument("-ur", "--use-rucio", action="store_true", help="Use rucio paths instead of downloading from remote server.\nScript 07 will be called directly using the `databaserucio`.")
+    ap.add_argument("-n", "--max-files", type=int, default=0, help="Number of files to load per run (default: 0 -> from config file.)")
 
     args = ap.parse_args()
 
@@ -235,6 +236,8 @@ def main() -> None:
     processed_pattern = f"run%06d_{suffix}/processed_*_run%06d_*_{suffix}.hdf5"
     raw_pattern = f"run%06d/np02vd_raw_run%06d_*"
 
+
+    cfg['max_files'] = args.max_files if args.max_files > 0 else cfg["max_files"]
 
     if args.full_stream:
         if detector == "VD_Cathode_PDS":
