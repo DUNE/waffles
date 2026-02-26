@@ -5,6 +5,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
 import plotly.graph_objects as go
+import matplotlib.image as mpimg
+import re
+import os
 
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.np02_utils.AutoMap import getModuleName, dict_module_to_uniqch
@@ -172,3 +175,63 @@ def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwarg
         df_ch = df[df['module'] == module]
         func_ch(df_ch, **kwargs)
 
+
+def load_module_images(path_to_data: str, sufix: str = 'conv', run=None, modules=None):
+    images = {}
+
+    all_png = glob(f"{path_to_data}/*run0{run}*.png")
+
+    if modules is None:
+        png_files = all_png
+
+    elif modules == 'grid':
+        png_files = glob(f"{path_to_data}/convfit_grid_run0{run}_*.png")
+
+        for file in png_files:
+            img = mpimg.imread(file)
+            plt.figure(figsize=(14, 10))
+            plt.imshow(img)
+            plt.axis("off")
+            plt.tight_layout()
+            plt.show()
+
+        return {}
+
+    else:
+        available = set()
+        pattern = re.compile(r"(C\d+_\d+|M\d+_\d+)")
+
+        for file in all_png:
+            match = pattern.search(os.path.basename(file))
+            if match:
+                mod = match.group(1)           
+                mod = mod.replace("_", "(") + ")" 
+                available.add(mod)
+
+        expanded_modules = expand_modules(modules, list(available))
+
+        expanded_filename_format = [
+            m.replace("(", "_").replace(")", "")
+            for m in expanded_modules
+        ]
+
+        png_files = [
+            file for file in all_png
+            if any(mod in file for mod in expanded_filename_format)
+        ]
+
+    for file in png_files:
+        images[file] = mpimg.imread(file)
+
+    return images
+
+def show_images_grid(image_dict, ncols=1, figsize=(14, 32)):
+    if not image_dict:  
+        return
+
+    for path, image in image_dict.items():
+        fig = plt.figure(figsize=figsize)
+        plt.imshow(image)
+        plt.gca().axis("off")
+        plt.tight_layout()
+        plt.show()
