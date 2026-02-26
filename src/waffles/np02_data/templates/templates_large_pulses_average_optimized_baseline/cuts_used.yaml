@@ -1,0 +1,313 @@
+107:
+    # 46: # M3(1), Mask 8, int 1600
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 700, type:  lower, filter:  0, npop: max }
+    #     - { t0: 350, tf: 1024, threshold:  210, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    # 44: # M3(2), Mask 8, int 1600
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 160, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 800, type:  lower, filter:  0, npop: max }
+    #     - { t0: 250, tf:   300, threshold: 20, type:  higher, filter:  0, npop: max }
+    #     - { t0: 400, tf: 1024, threshold:  210, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    46: # M3(1), Mask 8, int 2250
+        cuts:
+        - { t0: 0, tf: 240, threshold: 280, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 1900, type:  lower, filter:  0, npop: max }
+        - { t0: 250, tf:   300, threshold: 20, type:  higher, filter:  0, npop: max }
+        - { t0: 360, tf: 1024, threshold:  330, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    44: # M3(2), Mask 8, int 2250
+        cuts:
+        - { t0: 0, tf: 240, threshold: 300, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 2700, type:  lower, filter:  0, npop: max }
+        - { t0: 250, tf:   310, threshold: 200, type:  higher, filter:  0, npop: max }
+        - { t0: 400, tf: 1024, threshold:  360, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    43: # M4(1), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 90, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 380, type:  lower, filter:  0, npop: max }
+        - { t0: 260, tf:   275, threshold: 30, type:  higher, filter:  0, npop: max }
+        - { t0: 350, tf: 1024, threshold:  90, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -100, type: higher, filter:  0, npop: min }
+
+    41: # M4(2), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 90, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 380, type:  lower, filter:  0, npop: max }
+        - { t0: 260, tf:   275, threshold: 30, type:  higher, filter:  0, npop: max }
+        - { t0: 350, tf: 1024, threshold:  90, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -100, type: higher, filter:  0, npop: min }
+
+    7: # M5(1), Mask 16, int 3500
+        cuts:
+        - { t0: 0, tf:   245, threshold: 150, type: lower, filter:  0, npop: max }
+        - { t0: 250, tf:   340, threshold: 1200, type:  lower, filter:  0, npop: max }    
+        - { t0: 400, tf: 1024, threshold:  150, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    0: # M5(2), Mask 16, int 3500
+        cuts:
+        - { t0: 0, tf:   245, threshold: 150, type: lower, filter:  0, npop: max }
+        - { t0: 250, tf:   340, threshold: 1200, type:  lower, filter:  0, npop: max }    
+        - { t0: 260, tf:   270, threshold: 60, type:  higher, filter:  0, npop: max }
+        - { t0: 400, tf: 1024, threshold:  150, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    27: # M6(1), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf:   245, threshold: 130, type: lower, filter:  0, npop: max }
+        - { t0: 250, tf:   340, threshold: 1100, type:  lower, filter:  0, npop: max }    
+        - { t0: 350, tf: 1024, threshold:  130, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    20: # M6(2), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf:   245, threshold: 130, type: lower, filter:  0, npop: max }
+        - { t0: 250, tf:   340, threshold: 1100, type:  lower, filter:  0, npop: max }    
+        - { t0: 350, tf: 1024, threshold:  130, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    37: # M7(1), Mask 8, int 3250
+        cuts:
+        - { t0: 0, tf: 240, threshold: 130, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 650, type:  lower, filter:  0, npop: max }
+        - { t0: 255, tf:   275, threshold: 45, type:  higher, filter:  0, npop: max }
+        - { t0: 320, tf: 1024, threshold:  160, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    30: # M7(2), Mask 8, int 3250
+        cuts:
+        - { t0: 0, tf: 240, threshold: 130, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 650, type:  lower, filter:  0, npop: max }
+        - { t0: 255, tf:   270, threshold: 45, type:  higher, filter:  0, npop: max }
+        - { t0: 320, tf: 1024, threshold:  160, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+        
+    # 17: # M8(1), !! Mask 8, int 1500 -> After swapping fibers: Mask 8 was top but here is bottom !!
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+    #     - { t0:  245, tf:   340, threshold: 850, type:  lower, filter:  0, npop: max }
+    #     - { t0:  250, tf:   300, threshold: 250, type:  higher, filter:  0, npop: max }
+    #     - { t0: 470, tf: 1024, threshold: 200, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    # 10: # M8(2), !! Mask 8, int 1500 -> After swapping fibers: Mask 8 was top but here is bottom !!
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 850, type:  lower, filter:  0, npop: max }
+    #     - { t0: 250, tf:   300, threshold: 250, type:  higher, filter:  0, npop: max }
+    #     - { t0: 470, tf: 1024, threshold:  200, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    # 17: # M8(1), !! Mask 8, int 1700 -> After swapping fibers !!
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 340, type: lower, filter: 0, npop: max }
+    #     - { t0:  245, tf:   340, threshold: 1700, type:  lower, filter:  0, npop: max }
+    #     - { t0:  250, tf:   330, threshold: 280, type:  higher, filter:  0, npop: max }
+    #     - { t0: 470, tf: 1024, threshold: 340, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    # 10: # M8(2), !! Mask 8, int 1700 -> After swapping fibers !!
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 340, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 1450, type:  lower, filter:  0, npop: max }
+    #     - { t0: 250, tf:   300, threshold: 250, type:  higher, filter:  0, npop: max }
+    #     - { t0: 470, tf: 1024, threshold:  340, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    # 17: # M8(1), !! Mask 8, int 1900 -> After swapping fibers !!
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 340, type: lower, filter: 0, npop: max }
+    #     - { t0:  245, tf:   340, threshold: 2400, type:  lower, filter:  0, npop: max }
+    #     - { t0:  250, tf:   330, threshold: 280, type:  higher, filter:  0, npop: max }
+    #     - { t0: 470, tf: 1024, threshold: 340, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    # 10: # M8(2), !! Mask 8, int 1900 -> After swapping fibers !!
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 340, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 2200, type:  lower, filter:  0, npop: max }
+    #     - { t0: 250, tf:   300, threshold: 250, type:  higher, filter:  0, npop: max }
+    #     - { t0: 470, tf: 1024, threshold:  340, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    17: # M8(1), !! Mask 8, int 2100 -> After swapping fibers !!
+        cuts:
+        - { t0: 0, tf: 240, threshold: 340, type: lower, filter: 0, npop: max }
+        - { t0:  245, tf:   340, threshold: 3550, type:  lower, filter:  0, npop: max }
+        - { t0:  260, tf:   300, threshold: 1500, type:  higher, filter:  0, npop: max }
+        - { t0: 470, tf: 1024, threshold: 340, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    10: # M8(2), !! Mask 8, int 2100 -> After swapping fibers !!
+        cuts:
+        - { t0: 0, tf: 240, threshold: 340, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 2900, type:  lower, filter:  0, npop: max }
+        - { t0: 250, tf:   300, threshold: 250, type:  higher, filter:  0, npop: max }
+        - { t0: 470, tf: 1024, threshold:  340, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+        
+106:
+    32: # C1(1), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 130, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 800, type:  lower, filter:  0, npop: max }
+        - { t0: 390, tf: 1024, threshold:  130, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -120, type: higher, filter:  0, npop: min }    
+        - { t0: 370, tf:  1024, threshold: -80, type: higher, filter:  0, npop: min }   
+
+    33: # C1(2), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 130, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 600, type:  lower, filter:  0, npop: max }
+        - { t0: 360, tf: 1024, threshold:  130, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -120, type: higher, filter:  0, npop: min }   
+        - { t0: 370, tf:  1024, threshold: -80, type: higher, filter:  0, npop: min }   
+
+    30: # C2(1), Mask 8, int 3000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 800, type:  lower, filter:  0, npop: max }
+        - { t0: 390, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -120, type: higher, filter:  0, npop: min }  
+
+    31: # C2(2), Mask 8, int 3000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 1000, type:  lower, filter:  0, npop: max }
+        - { t0: 390, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -100, type: higher, filter:  0, npop: min }  
+
+    34: # C3(1), Mask 1, 2800
+        cuts:
+        - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 850, type:  lower, filter:  0, npop: max }
+        - { t0: 350, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -120, type: higher, filter:  0, npop: min }  
+
+    35: # C3(2), Mask 1, 2800
+        cuts:
+        - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 900, type:  lower, filter:  0, npop: max }
+        - { t0: 350, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -100, type: higher, filter:  0, npop: min }  
+
+    # 36: # C4(1), Mask 16, int 1600
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 850, type:  lower, filter:  0, npop: max }
+    #     - { t0: 380, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -100, type: higher, filter:  0, npop: min }  
+
+    # 37: # C4(2), Mask 16, int 1600
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 900, type:  lower, filter:  0, npop: max }
+    #     - { t0: 380, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -100, type: higher, filter:  0, npop: min }  
+
+    # 36: # C4(1), Mask 16, int 1900
+    #     cuts:
+    #     - { t0: 0, tf: 235, threshold: 250, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 1450, type:  lower, filter:  0, npop: max }
+    #     - { t0: 380, tf: 1024, threshold:  250, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }  
+
+    # 37: # C4(2), Mask 16, int 1900
+    #     cuts:
+    #     - { t0: 0, tf: 235, threshold: 250, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   340, threshold: 1450, type:  lower, filter:  0, npop: max }
+    #     - { t0: 380, tf: 1024, threshold:  250, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }  
+
+    36: # C4(1), Mask 16, int 2400
+        cuts:
+        - { t0: 0, tf: 235, threshold: 250, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 2000, type:  lower, filter:  0, npop: max }
+        - { t0: 380, tf: 1024, threshold:  250, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    37: # C4(2), Mask 16, int 2400
+        cuts:
+        - { t0: 0, tf: 235, threshold: 250, type: lower, filter: 0, npop: max }
+        - { t0: 240, tf:   340, threshold: 2100, type:  lower, filter:  0, npop: max }
+        - { t0: 380, tf: 1024, threshold:  250, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    # 0: # C5(1), Mask 16, int 1600
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+    #     - { t0: 240, tf:   360, threshold: 1000, type:  lower, filter:  0, npop: max }
+    #     - { t0: 450, tf: 1024, threshold:  260, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    # 2: # C5(2), Mask 16, int 1600
+    #     cuts:
+    #     - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+    #     - { t0: 245, tf:   360, threshold: 1000, type:  lower, filter:  0, npop: max }
+    #     - { t0: 450, tf: 1024, threshold:  260, type:  lower, filter:  0, npop: max }
+    #     - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    0: # C5(1), Mask 16, int 2400
+        cuts:
+        - { t0: 0, tf: 230, threshold: 430, type: lower, filter: 0, npop: max }
+        - { t0: 240, tf:   360, threshold: 3500, type:  lower, filter:  0, npop: max }
+        - { t0: 450, tf: 1024, threshold:  450, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    2: # C5(2), Mask 16, int 2400
+        cuts:
+        - { t0: 0, tf: 230, threshold: 430, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   360, threshold: 3800, type:  lower, filter:  0, npop: max }
+        - { t0: 450, tf: 1024, threshold:  450, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    1: # C6(1), Mask 8, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 1000, type:  lower, filter:  0, npop: max }
+        - { t0: 350, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    3: # C6(2), Mask 8, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 180, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 1200, type:  lower, filter:  0, npop: max }
+        - { t0: 380, tf: 1024, threshold:  180, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }  
+
+    5: # C7(1), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 150, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 800, type:  lower, filter:  0, npop: max }
+        - { t0: 320, tf: 1024, threshold:  160, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    7: # C7(2), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 150, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 900, type:  lower, filter:  0, npop: max }
+        - { t0: 320, tf: 1024, threshold:  160, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -150, type: higher, filter:  0, npop: min }
+
+    4: # C8(1), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 150, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 800, type:  lower, filter:  0, npop: max }
+        - { t0: 320, tf: 1024, threshold:  150, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }
+
+    6: # C8(2), Mask 16, int 4000
+        cuts:
+        - { t0: 0, tf: 240, threshold: 150, type: lower, filter: 0, npop: max }
+        - { t0: 245, tf:   340, threshold: 800, type:  lower, filter:  0, npop: max }
+        - { t0: 320, tf: 1024, threshold:  150, type:  lower, filter:  0, npop: max }
+        - { t0: 0, tf:  1024, threshold: -130, type: higher, filter:  0, npop: min }

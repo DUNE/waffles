@@ -7,6 +7,8 @@ from tqdm import tqdm
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
 
+from scipy.stats import skewnorm
+
 
 def gaussian(
         x: float,
@@ -666,7 +668,7 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) 
                 raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
 
     for wf in tqdm(wfch.waveforms, disable=not show_progress, desc="Computing average waveform"):
-        adcs_float = np.asarray(wf.adcs).astype(float)          
+        adcs_float = np.asarray(wf.adcs).astype(np.float32)          
         if analysis_label in wf.analyses:
             baseline = wf.analyses[analysis_label].result["baseline"]
             adcs_float = adcs_float - baseline                
@@ -680,5 +682,8 @@ def lar_response(t, A, fp, t1, t3) -> np.ndarray:
 
 def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
     return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
+
+def skewed_gaussian(x, A, mu, sigma, alpha):
+    return A * skewnorm.pdf(x, a=alpha, loc=mu, scale=sigma)
 
 
