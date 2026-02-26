@@ -7,7 +7,9 @@ from tqdm import tqdm
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
 
+from scipy import stats
 from scipy.stats import skewnorm
+from scipy.optimize import curve_fit
 
 
 def gaussian(
@@ -686,4 +688,70 @@ def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
 def skewed_gaussian(x, A, mu, sigma, alpha):
     return A * skewnorm.pdf(x, a=alpha, loc=mu, scale=sigma)
 
+def fit_skewed_gaussian(adc_values):
+    
+    minb, maxb = np.quantile(adc_values, [0.01, 0.99])
+    adc_values_filtered = adc_values[(adc_values > minb) & (adc_values < maxb)]
 
+    nbins = min(int(np.sqrt(len(adc_values_filtered))), 75)
+    bins = np.linspace(minb, maxb, nbins + 1)
+    counts, bins_edges = np.histogram(adc_values_filtered, bins=bins)
+    binscenter = (bins_edges[1:] + bins_edges[:-1]) * 0.5
+
+    A_guess = np.max(counts)
+    mu_guess = binscenter[np.argmax(counts)]
+    sigma_guess = np.std(adc_values_filtered)
+    alpha_guess = stats.skew(adc_values_filtered)
+    p0 = [A_guess, mu_guess, sigma_guess, alpha_guess]
+
+    popt, _ = curve_fit(skewed_gaussian, binscenter, counts, p0=p0, maxfev=5000)
+    A, mu, sigma, alpha = popt
+
+    x_range = np.linspace(minb, maxb, 1000)
+    fit_y = skewed_gaussian(x_range, A, mu, sigma, alpha)
+    mpv = x_range[np.argmax(fit_y)]
+
+    return {'adc_values': adc_values_filtered,
+           'bins': bins,
+           'x_range': x_range,
+           'fit_y': fit_y,
+           'mpv': mpv
+            } 
+
+def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick=None):
+    """
+    Compute MPV at each tick for a channel.
+    Possibility to specify a single tick.
+    """
+    ret = {}
+    all_adc_values = []
+    for wf in wfch.waveforms:
+        adcs_float = wf.adcs.astype(np.float32)
+        if analysis_label in wf.analyses:
+            baseline = wf.analyses[analysis_label].result["baseline"]
+            adcs_float = adcs_float - baseline
+        else:
+            continue
+        all_adc_values.append(adcs_float)  
+    
+    all_adc_values = np.array(all_adc_values)
+            
+
+    n_ticks = wfch.points_per_wf
+    mpv_waveform = np.zeros(n_ticks) if specific_tick is None else np.zeros(1)
+    
+    print(f"Computing MPV for {len(wfch.waveforms)} waveforms...")
+    range_for = range(n_ticks) if specific_tick is None else range(specific_tick, specific_tick+1)
+    for i, tick in enumerate(tqdm(range_for, desc="Processing ticks")):
+        adc_values = all_adc_values[:, tick]
+        if len(adc_values) == 0:
+            mpv_waveform[i] = np.nan
+            continue
+
+        ret = fit_skewed_gaussian(adc_values)
+        
+        mpv_waveform[i] = ret['mpv']
+
+    ret['mpv'] = mpv_waveform.copy()
+    
+    return ret

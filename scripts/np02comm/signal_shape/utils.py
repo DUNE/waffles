@@ -13,7 +13,7 @@ from typing import Optional
 import os
 
 from scipy.stats import skewnorm
-from waffles.utils.numerical_utils import skewed_gaussian
+from waffles.utils.numerical_utils import skewed_gaussian, fit_skewed_gaussian, compute_mpv_waveforms
 
 
 def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None, rise_fall:bool = True):
@@ -169,121 +169,7 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
     return fig
 
 
-def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick=None):
-    """
-    Compute MPV at each tick for a channel.
-    Possibility to specify a single tick.
-    """
-    all_adc_values = []
-    for wf in wfch.waveforms:
-        adcs_float = wf.adcs.astype(np.float32)
-        if analysis_label in wf.analyses:
-            baseline = wf.analyses[analysis_label].result["baseline"]
-            adcs_float = adcs_float - baseline
-        else:
-            continue
-        all_adc_values.append(adcs_float)  
-    
-    all_adc_values = np.array(all_adc_values)
-
-    # Handle specific_tick case
-    if specific_tick is not None:
-        adc_values = all_adc_values[:, specific_tick]
-        
-        if len(adc_values) == 0:
-            return {
-                'adc_values': np.array([]),
-                'minb': 0,
-                'maxb': 0,
-                'nbins': 50,
-                'mpv': np.nan,
-                'fit_success': False
-            }
-
-        try:
-            minb, maxb = np.quantile(adc_values, [0.01, 0.99])
-            adc_values_filtered = adc_values[(adc_values > minb) & (adc_values < maxb)]
-
-            nbins = min(int(np.sqrt(len(adc_values_filtered))), 75)
-            bins = np.linspace(minb, maxb, nbins + 1)
-            counts, bins_edges = np.histogram(adc_values_filtered, bins=bins)
-            binscenter = (bins_edges[1:] + bins_edges[:-1]) * 0.5
-
-            A_guess = np.max(counts)
-            mu_guess = binscenter[np.argmax(counts)]
-            sigma_guess = np.std(adc_values_filtered)
-            alpha_guess = stats.skew(adc_values_filtered)
-            p0 = [A_guess, mu_guess, sigma_guess, alpha_guess]
-
-            popt, _ = curve_fit(skewed_gaussian, binscenter, counts, p0=p0, maxfev=5000)
-            A, mu, sigma, alpha = popt
-
-            # Create smooth curve for plotting
-            x_range = np.linspace(minb, maxb, 1000)
-            fit_y = skewed_gaussian(x_range, A, mu, sigma, alpha)
-            mpv = x_range[np.argmax(fit_y)]
             
-            return {
-                'adc_values': adc_values_filtered,
-                'minb': minb,
-                'maxb': maxb,
-                'nbins': nbins,
-                'x_range': x_range,
-                'fit_y': fit_y,
-                'mpv': mpv,
-                'fit_success': True
-            }
-
-        except Exception as e:
-            print(f"Warning: Fit failed at tick {specific_tick}: {e}, using median")
-            return {
-                'adc_values': adc_values_filtered if 'adc_values_filtered' in locals() else adc_values,
-                'minb': minb if 'minb' in locals() else adc_values.min(),
-                'maxb': maxb if 'maxb' in locals() else adc_values.max(),
-                'nbins': nbins if 'nbins' in locals() else 50,
-                'mpv': np.median(adc_values),
-                'fit_success': False
-            }  
-
-    # Normal case: compute for all ticks
-    n_ticks = len(wfch.waveforms[0].adcs)
-    mpv_waveform = np.zeros(n_ticks)
-    print(f"Computing MPV for {n_ticks} ticks from {len(wfch.waveforms)} waveforms...")
-    
-    for tick in tqdm(range(n_ticks), desc="Processing ticks"):
-        adc_values = all_adc_values[:, tick]
-        if len(adc_values) == 0:
-            mpv_waveform[tick] = np.nan
-            continue
-
-        try:
-            minb, maxb = np.quantile(adc_values, [0.01, 0.99])
-            adc_values = adc_values[(adc_values > minb) & (adc_values < maxb)]
-
-            nbins = min(int(np.sqrt(len(adc_values))), 75)
-            bins = np.linspace(minb, maxb, nbins + 1)
-            counts, bins_edges = np.histogram(adc_values, bins=bins)
-            binscenter = (bins_edges[1:] + bins_edges[:-1]) * 0.5
-
-            A_guess = np.max(counts)
-            mu_guess = binscenter[np.argmax(counts)]
-            sigma_guess = np.std(adc_values)
-            alpha_guess = stats.skew(adc_values)
-            p0 = [A_guess, mu_guess, sigma_guess, alpha_guess]
-
-            popt, _ = curve_fit(skewed_gaussian, binscenter, counts, p0=p0, maxfev=5000)
-            A, mu, sigma, alpha = popt
-
-            fit_y = skewed_gaussian(binscenter, A, mu, sigma, alpha)
-            mpv = binscenter[np.argmax(fit_y)]
-            mpv_waveform[tick] = mpv
-
-        except Exception as e:
-            print(f"Warning: Fit failed at tick {tick}: {e}, using median")
-            mpv = np.median(adc_values)
-            mpv_waveform[tick] = mpv
-    
-    return mpv_waveform  
 
 def plot_tick_distributions_with_fit(fig:go.Figure, g:ChannelWsGrid, tick_index):
     max_row, max_col = 0, 0
@@ -303,7 +189,6 @@ def plot_tick_distributions_with_fit(fig:go.Figure, g:ChannelWsGrid, tick_index)
         
         wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
         
-        # Get fit info from compute_mpv_waveforms
         fit_info = compute_mpv_waveforms(wfch, specific_tick=tick_index)
         
         key = f"{uch.endpoint}-{uch.channel}"
@@ -313,15 +198,15 @@ def plot_tick_distributions_with_fit(fig:go.Figure, g:ChannelWsGrid, tick_index)
             print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
             continue
 
-        # Plot histogram
+        bins = fit_info["bins"]
+
         fig.add_trace(
             go.Histogram(
                 x=fit_info['adc_values'],
-                #nbinsx=fit_info['nbins'],
                 xbins=dict(
-                    start=fit_info['minb'], 
-                    end=fit_info['maxb'], 
-                    size=(fit_info['maxb'] - fit_info['minb']) / fit_info['nbins']
+                    start=bins[0], 
+                    end=bins[-1], 
+                    size=bins[1] - bins[0]
                 ),
                 name='Data',
                 showlegend=False,
@@ -330,30 +215,26 @@ def plot_tick_distributions_with_fit(fig:go.Figure, g:ChannelWsGrid, tick_index)
             row=row, col=col
         )
 
-        # Plot fit curve if successful
-        if fit_info['fit_success']:
-            fig.add_trace(
-                go.Scatter(
-                    x=fit_info['x_range'],
-                    y=fit_info['fit_y'],
-                    mode='lines',
-                    line=dict(color='red', width=2),
-                    name='Fit',
-                    showlegend=False
-                ),
-                row=row, col=col
-            )
+        fig.add_trace(
+            go.Scatter(
+                x=fit_info['x_range'],
+                y=fit_info['fit_y'],
+                mode='lines',
+                line=dict(color='red', width=2),
+                name='Fit',
+                showlegend=False
+            ),
+            row=row, col=col
+        )
         
-        # Add MPV line
         fig.add_vline(
-            x=fit_info['mpv'],
+            x=fit_info['mpv'][0], # Only one value registered
             line=dict(color='green', dash='dash', width=2),
             row=row, col=col
         )
 
-        # Add annotation
         stats_text = (f"{module_name}<br>"
-                      f"MPV: {fit_info['mpv']:.2f}")
+                      f"MPV: {fit_info['mpv'][0]:.2f}")
         
         if subplot_idx == 1:
             xref = "x domain"
@@ -448,8 +329,8 @@ def plot_mpv_waveforms_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_da
         print(f"Processing channel {uch.channel}...")
         wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
         
-        mpv_waveform = compute_mpv_waveforms(wfch)
-        
+        fit_info = compute_mpv_waveforms(wfch)
+        mpv_waveform = fit_info["mpv"]
         time = np.arange(len(mpv_waveform))
         ch = uch.channel
         run = list(wfch.runs)[0]
