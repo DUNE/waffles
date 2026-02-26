@@ -175,6 +175,7 @@ def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwarg
         df_ch = df[df['module'] == module]
         func_ch(df_ch, **kwargs)
 
+#Loader for conv/deconv plots
 
 def load_module_images(path_to_data: str, sufix: str = 'conv', run=None, modules=None):
     images = {}
