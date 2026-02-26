@@ -7,6 +7,8 @@ from tqdm import tqdm
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
 
+from scipy.stats import skewnorm
+
 
 def gaussian(
         x: float,
@@ -680,5 +682,8 @@ def lar_response(t, A, fp, t1, t3) -> np.ndarray:
 
 def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
     return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
+
+def skewed_gaussian(x, A, mu, sigma, alpha):
+    return A * skewnorm.pdf(x, a=alpha, loc=mu, scale=sigma)
 
 
