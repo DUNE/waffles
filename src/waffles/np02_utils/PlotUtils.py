@@ -64,6 +64,14 @@ def get_style_module(modulename:str) -> dict:
         **style_map_matplotlib[ch_num]
     }
 
+def remove_bad_baselines(waveform:Waveform, analysislabel='std') -> bool:
+    if waveform.analyses[analysislabel].result['amplitude'] is np.nan:
+        return False
+    return True
+
+def wfset_remove_bad_baselines(wfset:WaveformSet) -> WaveformSet:
+    return WaveformSet.from_filtered_WaveformSet(wfset, remove_bad_baselines)
+
 
 def np02_resolve_detectors(wfset, detectors: Union[List[str], List[UniqueChannel], List[Union[UniqueChannel, str]]], rows=0, cols=1) -> dict[str, ChannelWsGrid]:
     """
@@ -516,6 +524,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       baselinestart:int = 0,
                       minimumfrac: float = 0.67,
                       onlyoptimal: bool = True,
+                      filtering: int = 2,
                       show_progress: bool = True,
                       configyaml:Union[str,dict] = 'ch_snr_parameters.yaml'
                       ):
@@ -526,7 +535,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
     elif isinstance(configyaml, str):
         if configyaml is not None and configyaml != "":
             params = ch_read_params(configyaml)
-    baseline = SBaseline(threshold=threshold, baselinestart=baselinestart, baselinefinish=baselinefinish, default_filtering=2, minimumfrac=minimumfrac, data_base=params)
+    baseline = SBaseline(threshold=threshold, baselinestart=baselinestart, baselinefinish=baselinefinish, default_filtering=filtering, minimumfrac=minimumfrac, data_base=params)
 
     ip = IPDict(
         baseline_method="SBaseline",      # ← NEW (or "Mean", "Fit", …)

@@ -16,7 +16,7 @@ from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.utils.numerical_utils import average_wf_ch
 from waffles.utils.selector_waveforms import WaveformSelector
 from waffles.np02_utils.AutoMap import dict_uniqch_to_module, dict_module_to_uniqch, strUch, ordered_channels_membrane, ordered_channels_cathode
-from waffles.np02_utils.PlotUtils import runBasicWfAnaNP02, plot_detectors
+from waffles.np02_utils.PlotUtils import runBasicWfAnaNP02, plot_detectors, wfset_remove_bad_baselines
 from waffles.np02_utils.load_utils import open_processed, remove_extra_channels_membrane
 
 from utils import DEFAULT_RESPONSE, PATH_XE_AVERAGES
@@ -44,7 +44,8 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
     wfset_full = WaveformSet.from_filtered_WaveformSet(wfset_full, remove_extra_channels_membrane)
 
 
-    runBasicWfAnaNP02(wfset_full, onlyoptimal=False, baselinefinish=60, int_ll=64, int_ul=100, amp_ll=64, amp_ul=150, configyaml="")
+    runBasicWfAnaNP02(wfset_full, onlyoptimal=True, baselinefinish=60, int_ll=64, int_ul=100, amp_ll=64, amp_ul=150, configyaml="")
+    wfset_full = wfset_remove_bad_baselines(wfset_full)
 
     extractor = WaveformSelector(yamlfile=cutyaml)
 
