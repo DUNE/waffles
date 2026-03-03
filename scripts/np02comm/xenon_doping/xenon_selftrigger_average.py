@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 
 import waffles
@@ -14,7 +15,7 @@ from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.utils.numerical_utils import average_wf_ch
 from waffles.utils.selector_waveforms import WaveformSelector
-from waffles.np02_utils.AutoMap import dict_uniqch_to_module, dict_module_to_uniqch, strUch, ordered_channels_membrane, ordered_channels_cathode
+from waffles.np02_utils.AutoMap import dict_uniqch_to_module, dict_module_to_uniqch, strUch, ordered_channels_membrane, ordered_channels_cathode, getModuleName
 from waffles.np02_utils.PlotUtils import runBasicWfAnaNP02, plot_detectors, wfset_remove_bad_baselines
 from waffles.np02_utils.load_utils import open_processed, remove_extra_channels_membrane
 
@@ -53,28 +54,10 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
     wfset_clean = WaveformSet.from_filtered_WaveformSet(wfset_full, extractor.applycuts, show_progress=True)
     print(f"Original waveforms: {len(wfset_full.waveforms)}, after cut: {len(wfset_clean.waveforms)}")
 
-    
-    wfch_all = ChannelWsGrid.clusterize_waveform_set(wfset_clean)
-    wfch = wfch_all[endpoint]
 
-    wfsetch = {}
+    wfsetch = ChannelWsGrid.clusterize_waveform_set(wfset_clean)[endpoint]
 
-    if dettype in ("cathode", "membrane"):
-
-        sorted_channels = sorted(
-            wfch.keys(),
-            key=lambda ch: dict_uniqch_to_module[strUch(endpoint, ch)]
-        )
-
-    elif dettype == "pmt":
-
-        sorted_channels = sorted(wfch.keys())
-
-    else:
-        raise ValueError(f"Unknown detector type: {dettype}")
-
-    for ch in sorted_channels:
-        wfsetch[ch] = wfch[ch]
+    wfsetch = { k: v for k, v in sorted(wfsetch.items(), key=lambda x: getModuleName(endpoint, x[0])) }
 
     averages = {}
     timestamps = {}
@@ -82,8 +65,9 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
         averages[ch] = average_wf_ch(wfs,show_progress=True)
         timestamps[ch] = sorted( [ wf.timestamp for wf in wfs.waveforms ] )[0]
 
+    # Create with permission 775 to allow group members to read and write the files
     averages_dir.mkdir(exist_ok=True, parents=True)
-    averages_dir.chmod(0o775) 
+    averages_dir.chmod(0o775) # apparently it needs to be done after
     averages_dir.parent.chmod(0o775)
 
     # Create a README file with some information about the templates
@@ -93,20 +77,8 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
         f.write(f"Run: {run}\n")
         f.write(f"Detector type: {dettype}\n")
         f.write(f"Number of waveforms averaged in each channel:\n")
-
         for ch, wfs in wfsetch.items():
-
-            if dettype in ("cathode", "membrane"):
-                module = dict_uniqch_to_module[strUch(endpoint, ch)]
-                label = f"{module} {endpoint}-{ch}"
-
-            elif dettype == "pmt":
-                label = f"{endpoint}-{ch}"
-
-            else:
-                raise ValueError(f"Unknown detector type: {dettype}")
-
-        f.write(f"{label}: " f"nwaveforms {len(wfs.waveforms)} " f"timestamp {timestamps[ch]} ticks\n")
+            f.write(f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: nwaveforms {len(wfs.waveforms)} timestamp {timestamps[ch]} ticks\n")
 
     # Saves the yaml cuts used to select the waveforms as cuts_used.yaml in the same directory
     with open(averages_dir / "cuts_used.yaml", "w") as f:
@@ -120,7 +92,10 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
 
 
     if saveplots:
-
+        groupalldict = { k: v for k, v in sorted(dict_module_to_uniqch.items(), key=lambda x: x[0]) if v.endpoint == endpoint }
+        groupall = list(groupalldict.keys())
+        if endpoint == 110:  
+            groupall = sorted(groupall, key=lambda x: int(x[1:]))  # Ensures proper membrane ordering
         argsheat = dict(
             mode="heatmap",
             analysis_label="std",
@@ -139,28 +114,9 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
             cols=2,
         )
 
-        htmlname = averages_dir / "persistence_selected.html"
-
-        if dettype in ("cathode", "membrane"):
-
-            dletter = dettype.upper()[0]
-            detector = [
-                f"{dletter}{detnum}({chnum})"
-                for detnum in range(1, 9)
-                for chnum in range(1, 3)
-            ]
-
-        elif dettype == "pmt":
-
-            detector = [
-                UniqueChannel(endpoint, ch)
-                for ch in wfsetch.keys()
-            ]
-
-        else:
-            raise ValueError(f"Unknown detector type: {dettype}")
-
-        plot_detectors(wfset_clean, detector, html=htmlname, **argsheat)
+        htmlname = averages_dir / f"persistence_selected.html"
+        detector = groupall
+        plot_detectors(wfset_clean, detector, html=htmlname, **argsheat) # type: ignore
 
 if __name__ == "__main__":
     argp = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="Generate average waveforms for a given run and detector type.")
