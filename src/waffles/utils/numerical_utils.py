@@ -632,7 +632,7 @@ def cluster_integers_by_contiguity(
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
 
 
-def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) -> np.ndarray:
+def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False, slice_to_process:slice = slice(None, None)) -> np.ndarray:
     """
     Compute the average waveform for a single channel after baseline subtraction.
 
@@ -669,7 +669,7 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) 
             if len(list(channels)) > 1:
                 raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
 
-    for wf in tqdm(wfch.waveforms, disable=not show_progress, desc="Computing average waveform"):
+    for wf in tqdm(wfch.waveforms[slice_to_process], disable=not show_progress, desc="Computing average waveform"):
         adcs_float = np.asarray(wf.adcs).astype(np.float32)          
         if analysis_label in wf.analyses:
             baseline = wf.analyses[analysis_label].result["baseline"]

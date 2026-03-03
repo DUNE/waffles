@@ -7,7 +7,7 @@ from waffles.utils.time_align_utils import find_threshold_crossing
 from dataclasses import dataclass, field, asdict
 from waffles.utils.utils import print_colored
 
-from utils import update_values_from_yaml
+from utils import update_values_from_yaml, setup_response_template
 
 @dataclass
 class DeconvWrapperParams:
@@ -58,16 +58,7 @@ def process_deconvfit(ep:int,
 
     if modulename[:2] == "M7" and cfitch.scinttype != "xe":
         oneexp = True
-
-    wvft = (template).astype(np.float32)
-    wvfr = (response).astype(np.float32)
-    if slice_template.start != 0 and slice_template.stop != 0: # If both are zero, no re-baseline
-        wvft = wvft - np.mean(wvft[slice_template])
-    if slice_response.start != 0 and slice_response.stop != 0: # if both are zero, no re-baseline
-        wvfr = wvfr - np.mean(wvfr[slice_response])
-
-    cfitch.set_template_waveform(wvft)
-    cfitch.set_response_waveform(wvfr)
+    setup_response_template(response, template, cfitch, slice_template, slice_response)
     cfitch.generate_deconvolved_signal()
     
     cfitch.fit(oneexp=oneexp, print_flag=print_flag)

@@ -1,7 +1,11 @@
 import os
+import numpy as np
+from typing import Union
 from pathlib import Path
 import yaml
 from waffles.utils.utils import print_colored
+from ConvFitterVDWrapper import ConvFitterVDWrapper
+from DeconvFitterVDWrapper import DeconvFitterVDWrapper
 
 
 
@@ -41,6 +45,24 @@ def makeslice(slicevalues:dict) -> slice:
     tf = slicevalues['tf']
     tf = int(tf) if isinstance(tf, int) else None
     return slice(t0,tf)
+
+def setup_response_template(
+                    response:np.ndarray,
+                    template:np.ndarray,
+                    cfitch:Union[ConvFitterVDWrapper, DeconvFitterVDWrapper],
+                    slice_template:slice = slice(200,240),
+                    slice_response:slice = slice(None,54)
+                    ):
+
+    wvft = (template).astype(np.float32)
+    wvfr = (response).astype(np.float32)
+    if slice_template.start != 0 and slice_template.stop != 0: # If both are zero, no re-baseline
+        wvft = wvft - np.mean(wvft[slice_template])
+    if slice_response.start != 0 and slice_response.stop != 0: # if both are zero, no re-baseline
+        wvfr = wvfr - np.mean(wvfr[slice_response])
+
+    cfitch.set_template_waveform(wvft)
+    cfitch.set_response_waveform(wvfr)
 
 
 def update_values_from_yaml(fileparams:Path, response:str, template:str):
