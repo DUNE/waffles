@@ -179,13 +179,13 @@ pmt_geometry_data = [UniqueChannel(pmt_endpoint, 0),  UniqueChannel(pmt_endpoint
                      UniqueChannel(pmt_endpoint, 40), UniqueChannel(pmt_endpoint, 42),
                      UniqueChannel(pmt_endpoint, 44), UniqueChannel(pmt_endpoint, 46)]
 
-pmt_geometry_titles = ["P5",  "P37",
-                       "P7 ", "P29",
+pmt_geometry_titles = ["P05", "P37",
+                       "P07", "P29",
                        "P31", "P41",
                        "P15", "P35",
                        "P38", "P21",
                        "P14", "P25",
-                       "P6",  "P20",
+                       "P06", "P20",
                        "P26", "P32",
                        "P28", "P12",
                        "P34", "P16",

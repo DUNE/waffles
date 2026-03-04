@@ -94,8 +94,6 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
     if saveplots:
         groupalldict = { k: v for k, v in sorted(dict_module_to_uniqch.items(), key=lambda x: x[0]) if v.endpoint == endpoint }
         groupall = list(groupalldict.keys())
-        if endpoint == 110:  
-            groupall = sorted(groupall, key=lambda x: int(x[1:]))  # Ensures proper membrane ordering
         argsheat = dict(
             mode="heatmap",
             analysis_label="std",

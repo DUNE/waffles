@@ -1,0 +1,94 @@
+110: 
+  0:
+    cuts: &defaultPcut
+        1: { t0: 0, tf:   60, threshold:  75, type:   lower, filter:  8, npop: max }
+        2: { t0: 0, tf:   60, threshold:  -75, type:  higher, filter: 8, npop: min }
+        3: { t0: 75, tf:  85, threshold:  400, type: higher, filter: 8, npop: max }
+        # 4: { t0: 75, tf:  85, threshold:  6000, type: lower, filter:  8, npop: max }
+        # 5: { t0: 220, tf: 320, threshold: 2000, type: lower, filter:  8, npop: max }
+        # 6: { t0: 400, tf: 1024, threshold: 250, type: lower, filter:  8, npop: max }
+        # 7: { t0: 400, tf: 1024, threshold: -300, type: higher, filter:  8, npop: min }
+  2:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  6:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  7:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  10:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  12:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  14:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  16:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  17:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  20:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  22:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  24:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  26:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  30:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  32:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  34:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  36:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  37:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  40:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  42:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  44:
+    cuts: {
+      <<: *defaultPcut,
+    }
+  46:
+    cuts: {
+      <<: *defaultPcut,
+      }
