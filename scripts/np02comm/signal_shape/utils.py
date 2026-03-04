@@ -261,47 +261,15 @@ def plot_tick_distributions_with_fit(fig:go.Figure, g:ChannelWsGrid, tick_index)
         fig.update_xaxes(title_text="ADC", row=max_row, col=col)
         
         
-def plot_mpv_waveforms(fig:go.Figure, g:ChannelWsGrid):
-    """
-    Plot MPV waveform for each channel in a grid
-    """
-    max_row, max_col = 0, 0
-    
-    for (row, col), uch in np.ndenumerate(g.ch_map.data):
-        row += 1
-        col += 1
-        max_row = max(max_row, row)
-        max_col = max(max_col, col)
-        
-        if str(uch) not in dict_uniqch_to_module:
-            continue
-        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
-            continue
-        
-        print(f"Processing channel {uch.channel}...")
-        wfch = g.ch_wf_sets[uch.endpoint][uch.channel] 
 
-        mpv_waveform = compute_mpv_waveforms(wfch)
+def plot_mpv_waveforms(
+                        fig:go.Figure, 
+                        g:ChannelWsGrid, 
+                        calibration_data: Optional[dict] = None, 
+                        save: bool = False, 
+                        save_dir: Optional[str] = None
+                        ):
 
-        time = np.arange(len(mpv_waveform))
-
-        fig.add_trace(
-            go.Scatter(
-                x=time,
-                y=mpv_waveform,
-                mode="lines",
-                showlegend=False
-            ),
-            row=row, col=col
-        )
-   
-    for row in range(1, max_row + 1):
-        fig.update_yaxes(title_text="MPV [ADC]", row=row, col=1)
-    for col in range(1, max_col + 1):
-        fig.update_xaxes(title_text="Time [ticks]", row=max_row, col=col)        
-
-def plot_mpv_waveforms_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:dict, 
-                                   n_ticks=1024, save: bool = False, save_dir: Optional[str] = None):
     """
     Plot normalized MPV waveforms for each channel in a ChannelWsGrid.
     
@@ -340,14 +308,15 @@ def plot_mpv_waveforms_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_da
         if peak_mpv == 0 or np.isnan(peak_mpv):
             print(f"Zero or NaN peak for channel {ch}")
             continue
-        
-        if ch not in calibration_data[uch.endpoint]:
-            print(f"Channel {ch} not found in calibration file")
-            continue
-        
-        spe_amp = calibration_data[uch.endpoint][ch]["SpeAmpl"]
-        
-        mpv_norm = mpv_waveform * (spe_amp / peak_mpv)
+
+        if calibration_data:
+            if ch not in calibration_data[uch.endpoint]:
+                print(f"Channel {ch} not found in calibration file")
+                continue
+            spe_amp = calibration_data[uch.endpoint][ch]["SpeAmpl"]
+            mpv_norm = mpv_waveform * (spe_amp / peak_mpv)
+        else:
+            mpv_norm = mpv_waveform
         
         key = f"{uch.endpoint}-{uch.channel}"
         module_name = dict_uniqch_to_module.get(key, None)

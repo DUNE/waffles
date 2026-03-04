@@ -613,75 +613,16 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[Uni
     return fig, axs
 
 
-def plot_averages(fig:go.Figure, g:ChannelWsGrid):
-    """
-    Plot average waveforms for all valid channels in a channel grid.
-
-    This function iterates over the channel map stored in a `ChannelWsGrid`,
-    computes the average waveform for each available channel using
-    `average_wf_ch`, and adds it as a line trace to the corresponding subplot
-    in a Plotly figure.
-
-    Only channels that are present in `dict_uniqch_to_module` and for which
-    waveform data are available are plotted.
-
-    Parameters
-    ----------
-    fig : go.Figure
-        Plotly figure with a predefined subplot layout. 
-    g : ChannelWsGrid
-        Channel grid object containing the channel mapping and the associated
-        waveform sets (`ch_wf_sets`).
-
-    Returns
-    -------
-    None
-        The function modifies the input figure in place by adding traces.
-
-
-    Example
-    --------
-    fig = make_subplots(rows=1, cols=2)
-    gt = np02_gen_grids(mywfset, detector=["M3(1)", "M3(2)"])
-    plot_averages(fig, gt["Custom"])
-    fig.show()
-    """
-    max_row, max_col = 0, 0
-    
-    for (row, col), uch in np.ndenumerate(g.ch_map.data):
-        row += 1
-        col += 1
-        max_row = max(max_row, row)
-        max_col = max(max_col, col)
-        
-        if str(uch) not in dict_uniqch_to_module:
-            continue
-        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
-            continue
-        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
-        avg = average_wf_ch(wfch)
-        time = np.arange(avg.size)
-
-        fig.add_trace(
-            go.Scatter(
-                x = time,
-                y = avg,
-                mode = "lines",
-            ),
-            row=row, col=col
-        )
-
-    for row in range(1, max_row + 1):
-        fig.update_yaxes(title_text="Amplitude [ADC]", row=row, col=1)
-
-    for col in range(1, max_col + 1):
-        fig.update_xaxes(title_text="Time [ticks]", row=max_row, col=col)
-
-
-def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:dict, save: bool = False, save_dir: Optional[str] = None):
+def plot_averages(
+                    fig:go.Figure, 
+                    g:ChannelWsGrid, 
+                    calibration_data: Optional[dict] = None, # Add this if you want to normalize the waveforms 
+                    save: bool = False, 
+                    save_dir: Optional[str] = None
+                    ):
 
     """
-    Plot normalized average waveforms for each channel in a ChannelWsGrid.
+    Plot average or normalized average waveforms for each channel in a ChannelWsGrid.
 
     For each valid channel in the grid, this function:
       - Computes the average waveform.
@@ -695,7 +636,8 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:di
         Plotly Figure object containing subplots for each channel.
     g : ChannelWsGrid
         Grid object containing waveform sets for multiple channels.
-    spe_amp : SPE amplitude taken from calibration file
+    calibration_data : optional 
+        Calibration file containing the SPE amplitude
     save : bool, optional
         If True, normalized waveforms are saved to text files. Default is False.
     save_dir : str, optional
@@ -739,12 +681,19 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, calibration_data:di
         run = list(wfch.runs)[0]
         peak_avg = np.max(avg)
 
-        if peak_avg == 0:
-            print(f"Zero peak for channel {ch}")
+        if peak_avg == 0 or np.isnan(peak_avg):
+            print(f"Zero or NaN peak for channel {ch}")
             continue
-        spe_amp = calibration_data[uch.endpoint][uch.channel]["SpeAmpl"]
-        avg_norm = avg * (spe_amp / peak_avg )
 
+        if calibration_data:
+            if ch not in calibration_data[uch.endpoint]:
+                print(f"Channel {ch} not found in calibration file")
+                continue
+            spe_amp = calibration_data[uch.endpoint][uch.channel]["SpeAmpl"]
+            avg_norm = avg * (spe_amp / peak_avg )
+        else:
+            avg_norm = avg
+        
         key = f"{uch.endpoint}-{uch.channel}"
         module_name = dict_uniqch_to_module.get(key, None)
 
