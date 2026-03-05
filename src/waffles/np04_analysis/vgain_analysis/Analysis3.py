@@ -631,7 +631,7 @@ class Analysis3(WafflesAnalysis):
         # })
 
         baseliner_input_parameters = IPDict(
-            pedestal_limit=130,       # límite superior (en la misma convención que usas en waffles)
+            pedestal_limit=130,       # límite superior
             average_width=5,         # # de samples por ventana
             number_of_regions=50, # cuántas ventanas aleatorias
             seed=12345,                           # semilla RNG (reproducible)
