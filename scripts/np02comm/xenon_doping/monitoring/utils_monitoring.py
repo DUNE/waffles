@@ -2,6 +2,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 from glob import glob
 from tqdm import tqdm
+from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
 import plotly.graph_objects as go
@@ -22,10 +23,10 @@ def expand_modules(modules: list[str], available: list[str]) -> list[str]:
             expanded.update(x for x in available if x.startswith("M"))
         elif m.startswith("C") and ")" not in m:
             # e.g. "C1" -> matches "C1(1)", "C1(2)"
-            expanded.update(x for x in available if x.endswith(m + ")"))
+            expanded.update(x for x in available if x.startswith(m) )
         elif m.startswith("M") and ")" not in m:
             # e.g. "M3" -> matches "M3(1)", "M3(2)"
-            expanded.update(x for x in available if x.endswith(m + ")"))
+            expanded.update(x for x in available if x.startswith(m) )
         else:
             expanded.add(m)  # exact match like "C1(1)"
     return list(expanded)
@@ -177,28 +178,23 @@ def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwarg
 
 #Loader for conv/deconv plots
 
-def load_module_images(path_to_data: str, sufix: str = 'conv', run=None, modules=None):
+
+#Loader for conv/deconv plots
+def load_module_images(path_to_data: str, run=None, modules:Union[None, list, str]=None):
     images = {}
 
-    all_png = glob(f"{path_to_data}/*run0{run}*.png")
-
-    if modules is None:
+    if modules == 'grid' or modules == ['grid']:
+        png_files = glob(f"{path_to_data}/*_grid_run0{run}_*.png")
+        if len(png_files) == 0:
+            print(f"No grid images found for run {run} in {path_to_data}. Please check the path and run number.")
+            return {}
+    elif modules is None or modules == [None]:
+        all_png = glob(f"{path_to_data}/*_plot_run0{run}*.png")
         png_files = all_png
-
-    elif modules == 'grid':
-        png_files = glob(f"{path_to_data}/convfit_grid_run0{run}_*.png")
-
-        for file in png_files:
-            img = mpimg.imread(file)
-            plt.figure(figsize=(14, 10))
-            plt.imshow(img)
-            plt.axis("off")
-            plt.tight_layout()
-            plt.show()
-
-        return {}
-
     else:
+        if isinstance(modules, str):
+            modules = [modules]
+        all_png = glob(f"{path_to_data}/*_plot_run0{run}*.png")
         available = set()
         pattern = re.compile(r"(C\d+_\d+|M\d+_\d+)")
 
@@ -220,18 +216,24 @@ def load_module_images(path_to_data: str, sufix: str = 'conv', run=None, modules
             file for file in all_png
             if any(mod in file for mod in expanded_filename_format)
         ]
+    if len(png_files) == 0:
+        print(f"No images found for modules {modules} in run {run} at {path_to_data}. Please check the path, run number, and module names.")
+        return {}
 
     for file in png_files:
         images[file] = mpimg.imread(file)
 
     return images
 
-def show_images_grid(image_dict, ncols=1, figsize=(14, 32)):
+def show_images_grid(image_dict, forced_figsize=None):
     if not image_dict:  
         return
 
     for path, image in image_dict.items():
-        fig = plt.figure(figsize=figsize)
+        figsize = (32, 32) if 'grid' in path else (14, 6)
+        if forced_figsize is not None:
+            figsize = forced_figsize
+        plt.figure(figsize=figsize)
         plt.imshow(image)
         plt.gca().axis("off")
         plt.tight_layout()
