@@ -12,9 +12,56 @@ import os
 
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.np02_utils.AutoMap import getModuleName, dict_module_to_uniqch
+from waffles.np02_utils.PlotUtils import endpoint_channel_colormap, modules_colormap
 
+dict_axes_label_to_data = {
+        'time': r'Time CET',
+        't1[ns]': r'$\tau_\text{fast}\, \text{[ns]}$',
+        't3[ns]': r'$\tau_\text{slow}\, \text{[ns]}$',
+        'td[ns]': r'$\tau_\text{delay}\, \text{[ns]}$',
+        'fp' : r'$A_\text{fast}$',
+        'fs' : r'$A_\text{slow}$',
+        't0[ns]' : r'$t_0\, \text{[ns]}$',
+        'sigma' : r'$\sigma\, \text{[ns]}$',
+        'HV' : 'Voltage [kV]',
+        'Efield' : 'Electric field [kV/cm]',
+        'ppm' : 'Concentration [ppm]',
+        'chi2' : r'$\chi^2$',
+        'nselected' : 'Number of waveforms selected',
+}
+
+endpoint_channel_symbol = {}
+for ep, chc in endpoint_channel_colormap.items():
+    endpoint_channel_symbol[ep] = endpoint_channel_symbol.get(ep, {})
+    for ch, _ in chc.items():
+        if ep != 110:
+            endpoint_channel_symbol[ep][ch] = 'cross' if getModuleName(ep, ch)[3]=='1' else 'circle'
+        else:
+            endpoint_channel_symbol[ep][ch] = 'diamond'
+
+style_map_matplotlib = {
+    "1": {"marker": "+" },
+    "2": {"marker": "." }
+}
+
+def get_style_module(modulename:str) -> dict:
+    ch_num = modulename[3:-1] # "1" or "2"
+    return {
+        "color": modules_colormap[modulename],
+        **style_map_matplotlib[ch_num]
+    }
+def define_labels(x, y):
+    return dict_axes_label_to_data.get(x, x), dict_axes_label_to_data.get(y, y)
+
+def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, cols:list[str] = ['t1[ns]', 't3[ns]', 'td[ns]', 'fp', 'fs', 't0[ns]', 'sigma', 'chi2']) -> pd.DataFrame:
+    for col in cols:
+        baseline = df[df[relative_to] == ref_value].groupby('module')[col].mean()
+        df[f'{col} relative'] = df[col] / df['module'].map(baseline) # type: ignore
+    return df
 
 def expand_modules(modules: list[str], available: list[str]) -> list[str]:
+    if modules == [""] or len(modules) == 0:
+        modules = ["C", "M"]
     expanded = set()
     for m in modules:
         if m == "C":
@@ -40,8 +87,18 @@ def load_database():
     xedb['Efield'] = xedb['HV'] / 350.  # Assuming a drift distance of 3500 cm.
     return xedb
 
+def load_injections():
+    url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXuwLxht-9hnNHvNCYqQRQulTMk7ymE1gRTpo1LGHfey4HGaGqz0CqIFo8IBYevtVXsqj_9aitUD5t/pub?output=xlsx"
+    df = pd.read_excel(url, sheet_name="Injections")
+    df['start_time'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['start'].astype(str))
+    df['end_time'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['end'].astype(str))
+    return df
+    
+
 
 def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = []) -> pd.DataFrame:
+    if not Path(path_to_data).is_dir():
+        raise ValueError(f"Provided path {path_to_data} is not a valid directory. Please check the path and try again.")
     if optional_filelist:
         files = optional_filelist.copy()
     else:
@@ -78,6 +135,30 @@ def getDataFrameModule(df:pd.DataFrame, module:Union[str,list[str]]) -> pd.DataF
         dfret = df.loc[df['module'].isin(module)]
     return dfret
 
+def draw_injections_matplotplib(df:pd.DataFrame,):
+    for _, row in df.iterrows():
+        plt.axvspan(row.loc['start_time'], row.loc['end_time'], alpha=0.1, color='grey')
+        plt.text(
+            row['end_time']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*0.995,
+            f"{row['ppm']} ppm",
+            fontsize=12, color='black', va='top'
+        )
+
+def draw_injections_plotly(df: pd.DataFrame, fig: go.Figure):
+    for _, row in df.iterrows():
+        fig.add_vrect(
+            x0=row['start_time'], x1=row['end_time'],
+            fillcolor='grey', opacity=0.1, line_width=0,
+        )
+        fig.add_annotation(
+            x=row['end_time'] + pd.Timedelta("00:05:00"),
+            y=1,  # in paper coordinates (top of plot)
+            yref='paper',
+            text=f"{row['ppm']} ppm",
+            showarrow=False,
+            font=dict(size=12, color='black'),
+            yanchor='top'
+        )
 
 def plot_vs_time_per_channel(df:pd.DataFrame,
                              endpoint:int=0,
@@ -85,10 +166,13 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
                              module = '',
                              y='t3[ns]',
                              selection:Optional[Callable]=None,
-                             ylabel=r'$\tau_\text{slow}$ [ns]',
                              label:str = '',
                              showhours = False,
                              xlim = None,
+                             dotitle=False,
+                             autolabel = False,
+                             legendoutside = False,
+                             df_injections:Optional[pd.DataFrame] = None
                              ):
     """
     Plots a given variable vs time for a specific endpoint and channel, or for a specific module if provided.
@@ -99,7 +183,6 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
         - module: Module name to filter the data. If provided, endpoint and channel filters will be ignored.
         - y: Column name of the variable to plot on the y-axis.
         - selection: Optional function to further filter the DataFrame before plotting.
-        - ylabel: Label for the y-axis.
         - label: Label for the plot legend.
         - xlim: Tuple specifying the limits for the x-axis (start, end) in datetime format.
           Example: xlim = (pd.to_datetime('2024-07-29 10:00'), pd.to_datetime('2024-07-29 12:00'))
@@ -113,21 +196,31 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
             print(f"Module {module} not found in the data. Skipping plot.")
             return
         df_ch = df[df['module'] == module]
-        unch = dict_module_to_uniqch.get(module, UniqueChannel(endpoint, channel))
-        endpoint, channel = unch.endpoint, unch.channel
-    else:
+    elif endpoint != 0:
         df_ch = getDataFrameCh(df, endpoint, channel)
+        module = getModuleName(endpoint, channel)
+    else:
+        if len(df['module'].unique()) == 1:
+            module = df['module'].unique()[0]
+            df_ch = df.copy()
+        else:
+            raise ValueError("Multiple modules found in the data. Please specify a module or endpoint/channel to plot.")
+    unch = dict_module_to_uniqch.get(module, UniqueChannel(endpoint, channel))
+    endpoint, channel = unch.endpoint, unch.channel
 
     if df_ch.empty:
         print(f"No data found for endpoint {endpoint} and channel {channel}. Skipping plot.")
         return
 
+    modulename = getModuleName(endpoint, channel)
+    if autolabel:
+        label = f"{modulename}: {endpoint}-{channel}"
+    plt.errorbar(df_ch['time'], df_ch[y], ls='' , markersize=10, **get_style_module(modulename), label=label)
 
-
-    plt.errorbar(df_ch['time'], df_ch[y], fmt='o', markersize=5, linewidth=1.5, label=label)
-
+    xlabel, ylabel = define_labels('time', y)
     plt.ylabel(ylabel)
-    plt.title(f'{getModuleName(endpoint, channel)}: {endpoint}-{channel}')
+    if dotitle:
+        plt.title(f'{getModuleName(endpoint, channel)}: {endpoint}-{channel}')
     plt.grid(True, linestyle='--', alpha=0.5)
 
     ax = plt.gca()
@@ -143,25 +236,51 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
         plt.xlim(xlim)
 
     if label:
-        plt.legend()
+        if not legendoutside:
+            plt.legend()
+        else:
+            plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left", ncols=2)
+
+    if df_injections is not None:
+        draw_injections_matplotplib(df_injections)
     plt.tight_layout()
 
-def iplot_vs_time(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None):
+def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None):
     if selection:
         df = selection(df)
     if not fig:
         fig = go.Figure()
     list_of_modules = df['module'].unique()
+    unch = dict_module_to_uniqch[list_of_modules[0]]
+    ep, ch = unch.endpoint, unch.channel
     if len(list_of_modules) == 1 and not name:
-        unch = dict_module_to_uniqch[list_of_modules[0]]
-        ep, ch = unch.endpoint, unch.channel
         name = f"{list_of_modules[0]}: ({ep}-{ch})"
-    fig.add_trace(go.Scatter(x=df[x], y=df[y], mode='markers', name=name))
+
+    dictmarker = dict(size=8)
+    if ep in endpoint_channel_symbol and ch in endpoint_channel_symbol[ep]:
+        dictmarker['symbol'] = endpoint_channel_symbol[ep][ch]
+    if ep in endpoint_channel_colormap and ch in endpoint_channel_colormap[ep]:
+        dictmarker['color'] = endpoint_channel_colormap[ep][ch]
+    fig.add_trace(go.Scatter(x=df[x], y=df[y], mode='markers', name=name, marker=dictmarker))
+    labelx, labely = define_labels(x, y)
+    fig.update_layout(template="plotly_white",
+                  width=1200, height=600, showlegend=True,
+                      xaxis_title=labelx,
+                      yaxis_title=labely,
+                 )
+
+    if yaxis_range != [None, None]:
+        fig.update_yaxes(range=yaxis_range)
+
+    if df_injections is not None:
+        draw_injections_plotly(df_injections, fig)
+
     return fig
 
 
 def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwargs):
     available = df['module'].unique()
+    df_injections = kwargs.pop('df_injections', None)
 
     if not modules:
         modules_to_run = available
@@ -171,12 +290,17 @@ def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwarg
         modules_to_run = expand_modules(list(modules), list(available))
     
     for module in sorted(modules_to_run):
+        print(f"Processing module: {module}")
         if module not in available:
             continue
         df_ch = df[df['module'] == module]
         func_ch(df_ch, **kwargs)
 
-#Loader for conv/deconv plots
+    if df_injections is not None:
+        if 'fig' in kwargs:
+            draw_injections_plotly(df_injections, kwargs['fig'])
+        else:
+            draw_injections_matplotplib(df_injections)
 
 
 #Loader for conv/deconv plots

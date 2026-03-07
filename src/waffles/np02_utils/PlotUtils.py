@@ -36,7 +36,7 @@ tol_colors = [
     "#4DAF4A",  # green
     "#984EA3",  # purple
     "#FF7F00",  # orange
-    "#FFFF33",  # yellow
+    "#E7E70F",  # yellow
     "#A65628",  # brown
     "#F781BF"   # pink
 ]
