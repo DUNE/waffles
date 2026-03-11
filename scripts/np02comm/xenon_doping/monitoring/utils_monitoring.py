@@ -79,7 +79,6 @@ def expand_modules(modules: list[str], available: list[str]) -> list[str]:
     return list(expanded)
 
 def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['convolution', 'deconvolution']):
-    analysisname = 'analysis_results-hvieirad'
     ret = {}
     xedb = load_database()
     for typeofana in types:
