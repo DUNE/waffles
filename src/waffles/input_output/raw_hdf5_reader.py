@@ -130,9 +130,9 @@ def get_inv_map_id(det):
             '112': [13],
             '113': [14]
         }
-    elif det == 'VD_MembranePDS':
+    elif det == 'VD_Membrane_PDS':
         map_id = {'107': [700, 701, 51]}
-    elif det == 'VD_CathodePDS':
+    elif det == 'VD_Cathode_PDS':
         map_id = {'106': [723, 722, 721, 720, 21, 22, 23]}
     elif det == "VD_PMT_PDS":
         map_id = {'110': [710]}
@@ -215,6 +215,19 @@ def get_filepaths_from_rucio(rucio_filepath) -> list:
             ))
 
     return filepaths
+
+# This fuction is needed due to different labels in the daq tools.
+# subdetector can be retrieved as, for example, VD_Cathode_PDS or VD_CathodePDS
+# To be able to run different DAQ versions, we need to try both
+def get_subdetector_from_daq(opt1, opt2):
+    subdetector = detdataformats.DetID.string_to_subdetector(opt1)
+    if (detdataformats.DetID.subdetector_to_string(subdetector) != opt1):
+        # Failed, trying second options
+        subdetector = detdataformats.DetID.string_to_subdetector(opt2)
+        if (detdataformats.DetID.subdetector_to_string(subdetector) != opt2):
+            raise Exception(f"There were no match for {opt1} nor {opt2}")
+
+    return subdetector
 
 def WaveformSet_from_hdf5_files(filepath_list: List[str] = [],
                                 read_full_streaming_data: bool = False,
@@ -327,10 +340,6 @@ def WaveformSet_from_hdf5_file(filepath: str,
         WaveformSet: The WaveformSet of waveforms from the file.
     """
 
-    if det.startswith("VD_Membrane"):
-        det = "VD_MembranePDS"
-    elif det.startswith("VD_Cathode"):
-        det = "VD_CathodePDS"
     fUsedXRootD = False
     # Attempt local copy if outside known local paths
     if is_remote_path(filepath) or not os.path.isfile(filepath):
@@ -382,16 +391,22 @@ def WaveformSet_from_hdf5_file(filepath: str,
     detdaq = det
     # This is necessary to keep PMTs different from x-arapuca
     if detdaq == "VD_PMT_PDS": 
+        det = "VD_Membrane_PDS"
         detdaq = "VD_MembranePDS" 
+    if det.startswith("VD_Membrane"):
+        detdaq = "VD_MembranePDS"
+    elif det.startswith("VD_Cathode"):
+        detdaq = "VD_CathodePDS"
+
+    subdetector = get_subdetector_from_daq(detdaq, det)
+
     # Process records in chunks
     for chunk_start in range(0, len(records), record_chunk_size):
         chunk_end = chunk_start + record_chunk_size
         record_chunk = records[chunk_start:chunk_end]
 
         for r in record_chunk:
-            pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector(
-                r, detdataformats.DetID.string_to_subdetector(detdaq)
-            ))
+            pds_geo_ids = list(h5_file.get_geo_ids_for_subdetector( r, subdetector))
 
             try:
                 trig = h5_file.get_trh(r)
