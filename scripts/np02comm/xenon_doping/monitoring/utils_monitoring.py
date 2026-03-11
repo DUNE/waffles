@@ -78,11 +78,31 @@ def expand_modules(modules: list[str], available: list[str]) -> list[str]:
             expanded.add(m)  # exact match like "C1(1)"
     return list(expanded)
 
+def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['convolution', 'deconvolution']):
+    analysisname = 'analysis_results-hvieirad'
+    ret = {}
+    xedb = load_database()
+    for typeofana in types:
+        print(f"Loading {typeofana.upper()} ...")
+        sufix = 'conv' if typeofana == "convolution" else 'deconv'
+        dfres = load_fit_results(path_to_data=f"{path_with_analysis}/{analysisname}/{typeofana}", sufix=sufix)
+        df = pd.merge(dfres, xedb, on='run', how='inner')
+        c1 = set(dfres['run'].unique())
+        c2 = set(xedb['run'].unique())
 
-def load_database():
+        print("Runs not in the database:", ','.join(list(map(str, c1 - c2))))
+        print("Missing runs to process:", ','.join(list(map(str, c2 - c1))))
+        ret[sufix] = df.copy()
+    return ret
+
+def load_database(load_hv:bool = False) -> pd.DataFrame:
     ## Loading xenon data base
-    url = "https://docs.google.com/spreadsheets/d/1WtGkVkxM_4X4zdqMdCCIVsJ2cng8doSG2NC95fXmv-k/export?format=xlsx"
-    df = pd.read_excel(url, sheet_name="HV_studies")
+    if load_hv:
+        url = "https://docs.google.com/spreadsheets/d/1WtGkVkxM_4X4zdqMdCCIVsJ2cng8doSG2NC95fXmv-k/export?format=xlsx"
+        df = pd.read_excel(url, sheet_name="HV_studies")
+    else:
+        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXuwLxht-9hnNHvNCYqQRQulTMk7ymE1gRTpo1LGHfey4HGaGqz0CqIFo8IBYevtVXsqj_9aitUD5t/pub?output=xlsx"
+        df = pd.read_excel(url, sheet_name="Xe-PDS-only")
     xedb = df.drop(columns=['date', 'time'], axis=1)
     xedb['Efield'] = xedb['HV'] / 350.  # Assuming a drift distance of 3500 cm.
     return xedb
@@ -136,7 +156,14 @@ def getDataFrameModule(df:pd.DataFrame, module:Union[str,list[str]]) -> pd.DataF
     return dfret
 
 def draw_injections_matplotplib(df:pd.DataFrame,):
+    ax = plt.gca()
+    xmin, xmax = ax.get_xlim()
+    # matplotlib stores times as float internally, so convert
+    xmin = mdate.num2date(xmin).replace(tzinfo=None)
+    xmax = mdate.num2date(xmax).replace(tzinfo=None)
     for _, row in df.iterrows():
+        if row['end_time'] < xmin or row['start_time'] > xmax:
+            continue  # outside the plot range, skip
         plt.axvspan(row.loc['start_time'], row.loc['end_time'], alpha=0.1, color='grey')
         plt.text(
             row['end_time']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*0.995,
@@ -145,7 +172,21 @@ def draw_injections_matplotplib(df:pd.DataFrame,):
         )
 
 def draw_injections_plotly(df: pd.DataFrame, fig: go.Figure):
+   # Try to get range from layout, otherwise infer from the data
+
+    if 'axis' in fig.layout and fig.layout['axis']['range']:
+        xmin, xmax = fig.layout['axis']['range']
+    else:
+        x_values = []
+        for trace in fig.data:
+            if (v:= getattr(trace, 'x', None)) is not None:
+                x_values.extend(v)
+        if not x_values:
+            return  # no data, nothing to do
+        xmin, xmax = min(x_values), max(x_values)
     for _, row in df.iterrows():
+        if row['end_time'] < xmin or row['start_time'] > xmax:
+            continue  # outside the plot range, skip
         fig.add_vrect(
             x0=row['start_time'], x1=row['end_time'],
             fillcolor='grey', opacity=0.1, line_width=0,
@@ -290,17 +331,17 @@ def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwarg
         modules_to_run = expand_modules(list(modules), list(available))
     
     for module in sorted(modules_to_run):
-        print(f"Processing module: {module}")
         if module not in available:
             continue
         df_ch = df[df['module'] == module]
         func_ch(df_ch, **kwargs)
 
-    if df_injections is not None:
-        if 'fig' in kwargs:
-            draw_injections_plotly(df_injections, kwargs['fig'])
-        else:
-            draw_injections_matplotplib(df_injections)
+    if 'x' in kwargs and  kwargs['x'] in ['time', 'timestamp[ticks]', 'timestamp']:
+        if df_injections is not None:
+            if 'fig' in kwargs:
+                draw_injections_plotly(df_injections, kwargs['fig'])
+            else:
+                draw_injections_matplotplib(df_injections)
 
 
 #Loader for conv/deconv plots
