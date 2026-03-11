@@ -130,9 +130,9 @@ def get_inv_map_id(det):
             '112': [13],
             '113': [14]
         }
-    elif det == 'VD_Membrane_PDS':
+    elif det == 'VD_MembranePDS':
         map_id = {'107': [700, 701, 51]}
-    elif det == 'VD_Cathode_PDS':
+    elif det == 'VD_CathodePDS':
         map_id = {'106': [723, 722, 721, 720, 21, 22, 23]}
     elif det == "VD_PMT_PDS":
         map_id = {'110': [710]}
@@ -326,6 +326,11 @@ def WaveformSet_from_hdf5_file(filepath: str,
     Returns:
         WaveformSet: The WaveformSet of waveforms from the file.
     """
+
+    if det.startswith("VD_Membrane"):
+        det = "VD_MembranePDS"
+    elif det.startswith("VD_Cathode"):
+        det = "VD_CathodePDS"
     fUsedXRootD = False
     # Attempt local copy if outside known local paths
     if is_remote_path(filepath) or not os.path.isfile(filepath):
@@ -377,7 +382,7 @@ def WaveformSet_from_hdf5_file(filepath: str,
     detdaq = det
     # This is necessary to keep PMTs different from x-arapuca
     if detdaq == "VD_PMT_PDS": 
-        detdaq = "VD_Membrane_PDS" 
+        detdaq = "VD_MembranePDS" 
     # Process records in chunks
     for chunk_start in range(0, len(records), record_chunk_size):
         chunk_end = chunk_start + record_chunk_size
