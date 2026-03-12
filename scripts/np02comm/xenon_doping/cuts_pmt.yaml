@@ -1,13 +1,13 @@
 110: 
   0:
     cuts: &defaultPcut
-        1: { t0: 0, tf:   60, threshold:  75, type:   lower, filter:  8, npop: max }
-        2: { t0: 0, tf:   60, threshold:  -75, type:  higher, filter: 8, npop: min }
-        3: { t0: 75, tf:  85, threshold:  400, type: higher, filter: 8, npop: max }
-        # 4: { t0: 75, tf:  85, threshold:  6000, type: lower, filter:  8, npop: max }
-        # 5: { t0: 220, tf: 320, threshold: 2000, type: lower, filter:  8, npop: max }
-        # 6: { t0: 400, tf: 1024, threshold: 250, type: lower, filter:  8, npop: max }
-        # 7: { t0: 400, tf: 1024, threshold: -300, type: higher, filter:  8, npop: min }
+        1: { t0: 0, tf:   70, threshold:  75, type:   lower, filter:  8, npop: max }
+        2: { t0: 0, tf:   70, threshold:  -75, type:  higher, filter: 8, npop: min }
+        3: { t0: 70, tf:  72, threshold: 1000, type:  lower, filter: 8, npop: max }
+        4: { t0: 75, tf:  85, threshold:  400, type: higher, filter: 8, npop: min }
+        5: { t0: 76, tf:  80, threshold:  6000, type: lower, filter: 8, npop: max }
+        6: { t0: 130, tf:  300, threshold: 1500, type: lower, filter: 8, npop: max }
+        7: { t0: 300, tf:  1024, threshold: 350, type: lower, filter: 8, npop: max }
   2:
     cuts: {
       <<: *defaultPcut,
@@ -31,10 +31,13 @@
   14:
     cuts: {
       <<: *defaultPcut,
+      20: { t0: 300, tf:  1024, threshold: 100, type: lower, filter: 8, npop: max }
     }
   16:
     cuts: {
       <<: *defaultPcut,
+        3: {},
+        4: {},
     }
   17:
     cuts: {
@@ -43,6 +46,8 @@
   20:
     cuts: {
       <<: *defaultPcut,
+        3: {},
+        4: {},
     }
   22:
     cuts: {
@@ -71,6 +76,8 @@
   36:
     cuts: {
       <<: *defaultPcut,
+        3: {},
+        4: {},
     }
   37:
     cuts: {

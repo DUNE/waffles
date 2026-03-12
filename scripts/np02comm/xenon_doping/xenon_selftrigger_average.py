@@ -50,6 +50,8 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
     extractor = WaveformSelector(yamlfile=cutyaml)
 
     extractor.loadcuts()
+    if endpoint not in extractor.cutsdata:
+        raise ValueError(f"No cuts defined for endpoint {endpoint} in {cutyaml}. Please check the YAML file and make sure it contains cuts for the correct endpoint.")
     print("Applying cuts to waveforms...")
     wfset_clean = WaveformSet.from_filtered_WaveformSet(wfset_full, extractor.applycuts, show_progress=True)
     print(f"Original waveforms: {len(wfset_full.waveforms)}, after cut: {len(wfset_clean.waveforms)}")

@@ -59,7 +59,10 @@ def process_deconvfit(ep:int,
     if modulename[:2] == "M7" and cfitch.scinttype != "xe":
         oneexp = True
     setup_response_template(response, template, cfitch, slice_template, slice_response)
-    cfitch.generate_deconvolved_signal()
+    if ep != 110:
+        cfitch.generate_deconvolved_signal()
+    else:
+        cfitch.deconvolved = cfitch.response.copy()
     
     cfitch.fit(oneexp=oneexp, print_flag=print_flag)
 

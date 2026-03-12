@@ -114,11 +114,13 @@ def ch_read_template(template_folder:str = 'templates_multi_pe_normalized'):
     # file name is template_{reference_run}_{module}_{channel}.txt
     # getting module and channel from file name to create dictionary
     for tfile in template_files:
-        match = re.match(r'template_\d+_([CM][0-9])_([1,2])\.txt', tfile.name)
+        match = re.match(r'template_\d+_([CMP][0-9]?)_(\d+)\.txt', tfile.name)
         if not match:
             raise ValueError(f"Template file name {tfile} does not match expected pattern.")
 
         modulename = f"{match.group(1)}({match.group(2)})"
+        if match.group(1) == 'P':
+            modulename = f"P{match.group(2)}"
         uch = dict_module_to_uniqch[modulename]
         endpoint, channel = uch.endpoint, uch.channel
         with tfile.open('r') as f:

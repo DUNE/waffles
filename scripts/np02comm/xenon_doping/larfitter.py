@@ -17,7 +17,7 @@ import re
 from waffles.data_classes.EasyWaveformCreator import EasyWaveformCreator
 from waffles.np02_utils.PlotUtils import matplotlib_plot_WaveformSetGrid
 from waffles.np02_utils.AutoMap import dict_endpoints_channels_list, dict_module_to_uniqch, dict_uniqch_to_module, strUch, getModuleName
-from waffles.np02_utils.AutoMap import ordered_channels_cathode, ordered_channels_membrane, ordered_modules_cathode, ordered_modules_membrane
+from waffles.np02_utils.AutoMap import ordered_channels_cathode, ordered_channels_membrane, ordered_channels_pmt, ordered_modules_cathode, ordered_modules_membrane, ordered_modules_pmt
 from waffles.np02_utils.load_utils import ch_read_template, ch_show_avaliable_template_folders
 from waffles.utils.utils import print_colored
 from waffles.utils.numerical_utils import error_propagation
@@ -49,7 +49,9 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
         theresponsefolder = response_folder.parent 
         response_folder_user = theresponsefolder.parent / f"{theresponsefolder.name}-{userslogin}" / therunfolder
         if not response_folder_user.is_dir():
-            raise NotADirectoryError(f"{response_folder.as_posix()} and {response_folder_user.as_posix()} are not valid directories.")
+            # raise NotADirectoryError(f"{response_folder.as_posix()} and {response_folder_user.as_posix()} are not valid directories.")
+            print_colored(f"\nError: {response_folder.as_posix()} and {response_folder_user.as_posix()} are not valid directories. Please check the response folder name and make sure it exists.\n", 'ERROR')
+            return
         else:
             print_colored(f"\n\nWarning: {response_folder.as_posix()} is not a valid directory.\nUsing {response_folder_user.as_posix()} instead.\n\n", 'WARNING')
             response_folder = response_folder_user
@@ -76,8 +78,10 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
         endpoint = ep
         if ep == 106:
             list_ordered_chs = ordered_channels_cathode
-        else:
+        elif ep == 107:
             list_ordered_chs = ordered_channels_membrane
+        else:
+            list_ordered_chs = ordered_channels_pmt
     
     output[endpoint] = { k: tmpoutput[endpoint][k] for k in list_ordered_chs if k in tmpoutput[endpoint].keys() }
 
@@ -133,8 +137,12 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
         for ch, cfitch in chs.items():
             # Retrieving all results
             modulename = getModuleName(ep, ch)
-            submodulename = modulename[3]
-            moduletype = modulename[:2]
+            if modulename.startswith('P'):
+                moduletype = 'P'
+                submodulename = modulename[1:]
+            else:
+                submodulename = modulename[3]
+                moduletype = modulename[:2]
             nselected = chinfo[ep][ch]['counts']
             first_time = chinfo[ep][ch]['first_time']
             params_name_to_save = ['A', 'fp', 'fs', 't1', 't3', 'td', 't0', 'sigma']
@@ -203,6 +211,7 @@ def main(run:int = 39510,
          blacklist:list = [],
          cathode:bool = True,
          membrane:bool = True,
+         pmt:bool = False,
          method:str = "conv",
          dryrun:bool = False
          ):
@@ -222,6 +231,7 @@ def main(run:int = 39510,
 
     response_folder_cathode = rootdir / response / f'run{run:06d}_cathode_response'
     response_folder_membrane = rootdir / response / f'run{run:06d}_membrane_response'
+    response_folder_pmt = rootdir / response / f'run{run:06d}_pmt_response'
 
     fileparams = Path(analysisparams)
 
@@ -242,11 +252,14 @@ def main(run:int = 39510,
         endpoints_to_process += [ 106 ]
     if membrane:
         endpoints_to_process += [ 107 ]
+    if pmt:
+        endpoints_to_process += [ 110 ]
 
     channels = channels.copy()
     blacklist = blacklist.copy()
     gridcathode = cathode and len(channels) == 0
     gridmembrane = membrane and len(channels) == 0
+    gridpmt = pmt and len(channels) == 0
 
     dict_ep_ch_user_want = {}
     if len(channels) == 0: # Creates a list with all channels, excluding the ones in the blacklist
@@ -266,6 +279,7 @@ def main(run:int = 39510,
 
     cathode = cathode and 106 in dict_ep_ch_user_want.keys()
     membrane = membrane and 107 in dict_ep_ch_user_want.keys()
+    pmt = pmt and 110 in dict_ep_ch_user_want.keys()
 
     responses = {}
     chinfo = {}
@@ -276,6 +290,9 @@ def main(run:int = 39510,
     if membrane:
         retrieve_responses(response_folder_membrane, responses, chinfo)
         ep_to_analyze += [ 107 ]
+    if pmt:
+        retrieve_responses(response_folder_pmt, responses, chinfo)
+        ep_to_analyze += [ 110 ]
 
 
     # I can only analyze channels for which I have both the response and the
@@ -317,6 +334,7 @@ def main(run:int = 39510,
         print(f"Blacklist: {blacklist}")
         print(f"Cathode: {cathode}")
         print(f"Membrane: {membrane}")
+        print(f"Membrane: {pmt}")
         print(f"Parameters: {allparams}")
         ch_show_avaliable_template_folders()
 
@@ -372,6 +390,9 @@ def main(run:int = 39510,
     if gridmembrane:
         fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_membrane, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
         gridfigs['membrane'] = deepcopy(fig)
+    if gridpmt:
+        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_pmt, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
+        gridfigs['pmt'] = deepcopy(fig)
 
 
 
@@ -407,6 +428,7 @@ if __name__ == "__main__":
     argp.add_argument("--blacklist", nargs="+", type=int, default=[], help="List of channels to exclude from processing. Format: endpoint+channel, e.g. 10600 for endpoint 106 channel 0.")
     argp.add_argument("-c", "--cathode", action="store_true", help="If set, cathode channels will be processed. If both -c and -m are not set, all channels will be processed.")
     argp.add_argument("-m", "--membrane", action="store_true", help="If set, membrane channels will be processed. If both -c and -m are not set, all channels will be processed.")
+    argp.add_argument("-p", "--pmt", action="store_true", help="If set, pmt channels will be processed. If -p is set, -c and -m will be ignored.")
     argp.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
 
     args = argp.parse_args()
@@ -422,8 +444,13 @@ if __name__ == "__main__":
     blacklist = args.blacklist
     cathode = args.cathode
     membrane = args.membrane
+    pmt = args.pmt
     method = args.method
     dryrun = args.dryrun
+
+    if pmt:
+        cathode = False
+        membrane = False
 
     if method == "deconv" and analysisparams == "params_conv.yaml":
         raise ValueError("Default parameters file for convolution fit is 'params_conv.yaml'. Please specify it with --analysisparams or choose a different file.")
@@ -432,12 +459,12 @@ if __name__ == "__main__":
         print_colored(f"Error: invalid method {method}. Valid methods are 'conv' and 'deconv'.", 'ERROR')
         exit(0)
 
-    if not cathode and not membrane:
+    if not cathode and not membrane and not pmt:
         cathode = True
         membrane = True
     for run in runs:
         if not dryrun:
             print(f"Prossessing run {run} ...")
-        main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, method, dryrun)
+        main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, pmt, method, dryrun)
 
 
