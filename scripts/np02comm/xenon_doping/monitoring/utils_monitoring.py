@@ -1,5 +1,6 @@
 from typing import Callable, Optional, Union
 import pandas as pd
+from pandas._typing import MergeHow
 from glob import glob
 from tqdm import tqdm
 from pathlib import Path
@@ -9,6 +10,8 @@ import plotly.graph_objects as go
 import matplotlib.image as mpimg
 import re
 import os
+import subprocess
+from io import StringIO
 
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.np02_utils.AutoMap import getModuleName, dict_module_to_uniqch
@@ -61,13 +64,15 @@ def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, cols
 
 def expand_modules(modules: list[str], available: list[str]) -> list[str]:
     if modules == [""] or len(modules) == 0:
-        modules = ["C", "M"]
+        modules = ["C", "M", "P"]
     expanded = set()
     for m in modules:
         if m == "C":
             expanded.update(x for x in available if x.startswith("C"))
         elif m == "M":
             expanded.update(x for x in available if x.startswith("M"))
+        elif m == "P":
+            expanded.update(x for x in available if x.startswith("P"))
         elif m.startswith("C") and ")" not in m:
             # e.g. "C1" -> matches "C1(1)", "C1(2)"
             expanded.update(x for x in available if x.startswith(m) )
@@ -78,20 +83,33 @@ def expand_modules(modules: list[str], available: list[str]) -> list[str]:
             expanded.add(m)  # exact match like "C1(1)"
     return list(expanded)
 
-def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['convolution', 'deconvolution']):
+def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['convolution', 'deconvolution'], load_hv:bool = False, how:MergeHow = 'inner') -> dict[str, pd.DataFrame]:
     ret = {}
-    xedb = load_database()
+    xedb = load_database(load_hv=load_hv)
     for typeofana in types:
         print(f"Loading {typeofana.upper()} ...")
         sufix = 'conv' if typeofana == "convolution" else 'deconv'
-        dfres = load_fit_results(path_to_data=f"{path_with_analysis}/{analysisname}/{typeofana}", sufix=sufix)
-        df = pd.merge(dfres, xedb, on='run', how='inner')
+        dfres = load_fit_results(path_to_data=f"{path_with_analysis}/{analysisname}/{typeofana}", sufix=sufix, exists_ok=True)
+        if dfres.empty:
+            print(f"No fit results found for {typeofana} in {path_with_analysis}/{analysisname}/{typeofana}. Skipping this type.")
+            continue
+        df = pd.merge(dfres, xedb, on='run', how=how)
         c1 = set(dfres['run'].unique())
         c2 = set(xedb['run'].unique())
 
-        print("Runs not in the database:", ','.join(list(map(str, c1 - c2))))
-        print("Missing runs to process:", ','.join(list(map(str, c2 - c1))))
+        if c1 - c2:
+            print("Runs not in the database:", ','.join(list(map(str, c1 - c2))))
+        if c2 - c1:
+            print("Missing runs to process:", ','.join(list(map(str, c2 - c1))))
         ret[sufix] = df.copy()
+        print()
+
+    runsdeconv = set(ret['deconv']['run'].unique()) if 'deconv' in ret else set()
+    runsconv = set(ret['conv']['run'].unique()) if 'conv' in ret else set()
+    if runsdeconv - runsconv:
+        print("Runs with deconv results but no conv results:", ','.join(list(map(str, runsdeconv - runsconv))))
+    if runsconv - runsdeconv:
+        print("Runs with conv results but no deconv results:", ','.join(list(map(str, runsconv - runsdeconv))))
     return ret
 
 def load_database(load_hv:bool = False) -> pd.DataFrame:
@@ -115,23 +133,29 @@ def load_injections():
     
 
 
-def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = []) -> pd.DataFrame:
+def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = [], exists_ok:bool = False) -> pd.DataFrame:
+    # TODO: Add command bash to concaternate all files first.
     if not Path(path_to_data).is_dir():
+        if exists_ok:
+            print(f"Provided path {path_to_data} is not a valid directory. Returning empty DataFrame.")
+            return pd.DataFrame()
         raise ValueError(f"Provided path {path_to_data} is not a valid directory. Please check the path and try again.")
     if optional_filelist:
         files = optional_filelist.copy()
+        listdf = []
+        for file in tqdm(files, desc="Loading fit results"):
+            dftmp = pd.read_csv(file)
+            listdf.append(dftmp)
+        df = pd.concat(listdf, ignore_index=True)
+        print("All files loaded, concatenating into a single DataFrame...")
     else:
-        files = glob(f"{path_to_data}/{sufix}fit_output_*.csv")
-    if not files:
-        raise ValueError(f"No files found in {path_to_data} with sufix {sufix}. Please check the path and sufix.")
+        print("Running awk command to concatenate CSV files while skipping headers...")
+        result = subprocess.run("awk 'FNR==1 && NR!=1 {next} {print}'"+ f" {path_to_data}/{sufix}fit_output_*.csv", 
+                                shell=True, capture_output=True, text=True)
+        # print("Command executed, loading output into DataFrame...")
+        df = pd.read_csv(StringIO(result.stdout))
+        print("Loaded DataFrame with shape:", df.shape)
 
-    listdf = []
-    for file in tqdm(files, desc="Loading fit results"):
-        dftmp = pd.read_csv(file)
-        listdf.append(dftmp)
-
-    print("All files loaded, concatenating into a single DataFrame...")
-    df = pd.concat(listdf, ignore_index=True)
     df["timestamp"] = df['timestamp[ticks]'] * 16.e-9
     df["time"] = pd.to_datetime(df["timestamp"], unit='s')
     df['module'] = df.apply( lambda x: getModuleName(int(x['ep']), int(x['ch'])), axis = 1)
@@ -285,7 +309,7 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
         draw_injections_matplotplib(df_injections)
     plt.tight_layout()
 
-def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None):
+def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None, width=1200, heigth=600):
     if selection:
         df = selection(df)
     if not fig:
@@ -304,7 +328,7 @@ def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_ra
     fig.add_trace(go.Scatter(x=df[x], y=df[y], mode='markers', name=name, marker=dictmarker))
     labelx, labely = define_labels(x, y)
     fig.update_layout(template="plotly_white",
-                  width=1200, height=600, showlegend=True,
+                  width=width, height=heigth, showlegend=True,
                       xaxis_title=labelx,
                       yaxis_title=labely,
                  )
@@ -360,7 +384,7 @@ def load_module_images(path_to_data: str, run=None, modules:Union[None, list, st
             modules = [modules]
         all_png = glob(f"{path_to_data}/*_plot_run0{run}*.png")
         available = set()
-        pattern = re.compile(r"(C\d+_\d+|M\d+_\d+)")
+        pattern = re.compile(r"(C\d+_\d+|M\d+_\d+|P\d+)")  # Matches "C1_1", "M3_2", "P02", etc.
 
         for file in all_png:
             match = pattern.search(os.path.basename(file))
