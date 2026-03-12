@@ -2,7 +2,7 @@
 # Create a file: ~/.git-filters/strip-notebook-output
 # Add the following content to that file:
 # ```
-# # !/usr/bin/env python3
+# # #!/usr/bin/env python3
 # # import sys
 # # import json
 # # 
@@ -22,7 +22,7 @@
 # # sys.stdout.write("\n")
 # ```
 #
-# run the following commands:
+# run the following commands from your waffles repo:
 # chmod +x ~/.git-filters/strip-notebook-output
 # git config filter.strip-notebook-output.clean ~/.git-filters/strip-notebook-output
 # git config filter.strip-notebook-output.smudge cat
