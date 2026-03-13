@@ -702,11 +702,16 @@ def plot_averages(
             continue
 
         if save:
-
-            module_for_title = module_name[:2]
-            channel_for_title = module_name[3]
-
+            # C1(1)
+            if module_name.startswith ("P"):
+                module_for_title = module_name[0]
+                channel_for_title = module_name[1:]
+            else:
+                module_for_title = module_name[:2]
+                channel_for_title = module_name[3]
+            
             filename = f"template_{run}_{module_for_title}_{channel_for_title}.txt"
+            
             filepath = os.path.join(save_dir, filename)
 
             np.savetxt(
