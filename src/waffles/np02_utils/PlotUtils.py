@@ -677,6 +677,7 @@ def plot_averages(
         avg = average_wf_ch(wfch)
         time = np.arange(avg.size)
 
+        endpoint = uch.endpoint
         ch = uch.channel
         run = list(wfch.runs)[0]
         peak_avg = np.max(avg)
@@ -686,15 +687,18 @@ def plot_averages(
             continue
 
         if calibration_data:
-            if ch not in calibration_data[uch.endpoint]:
+            if endpoint not in calibration_data:
+                print(f"Endpoint {endpoint} not found in calibration file, normalization not possible. Remove 'calibration data' option")
+                continue            
+            if ch not in calibration_data[endpoint]:
                 print(f"Channel {ch} not found in calibration file")
                 continue
-            spe_amp = calibration_data[uch.endpoint][uch.channel]["SpeAmpl"]
+            spe_amp = calibration_data[endpoint][uch.channel]["SpeAmpl"]
             avg_norm = avg * (spe_amp / peak_avg )
         else:
             avg_norm = avg
         
-        key = f"{uch.endpoint}-{uch.channel}"
+        key = f"{endpoint}-{uch.channel}"
         module_name = dict_uniqch_to_module.get(key, None)
 
         if module_name is None:
