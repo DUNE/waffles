@@ -1076,38 +1076,39 @@ def plot_CalibrationHistogram(
     return fPlottedOneFit
 
 def plot_ChannelWsGrid( 
-    channel_ws_grid: ChannelWsGrid,
-    *args,
-    figure: Optional[pgo.Figure] = None,
-    share_x_scale: bool = False,
-    share_y_scale: bool = False,
-    mode: str = 'overlay',
-    wfs_per_axes: Union[None, int, Map] = 1,
-    analysis_label: Optional[str] = None,
-    plot_analysis_markers: bool = False,
-    show_baseline_limits: bool = False, 
-    show_baseline: bool = True,
-    show_general_integration_limits: bool = False,
-    show_general_amplitude_limits: bool = False,
-    show_spotted_peaks: bool = True,
-    show_peaks_integration_limits: bool = False,
-    time_bins: int = 512,
-    adc_bins: int = 100,
-    time_range_lower_limit: Optional[int] = None,
-    time_range_upper_limit: Optional[int] = None,
-    adc_range_above_baseline: Union[int, None] = 100,
-    adc_range_below_baseline: Union[int, None] = 200,
-    plot_peaks_fits: bool = False,
-    plot_sum_of_gaussians: bool = False,
-    detailed_label: bool = True,
-    plot_event: bool = False,
-    event_id: Optional[int] = 0,
-    yannotation: Optional[float] = 1.25,
-    verbose: bool = True,
-    filtering: float = 0,
-    zlog: bool = False,
-    **kwargs
-) -> pgo.Figure:
+                       channel_ws_grid: ChannelWsGrid,
+                       *args,
+                       figure: Optional[pgo.Figure] = None,
+                       share_x_scale: bool = False,
+                       share_y_scale: bool = False,
+                       mode: str = 'overlay',
+                       wfs_per_axes: Union[None, int, Map] = 1,
+                       analysis_label: Optional[str] = None,
+                       plot_analysis_markers: bool = False,
+                       show_baseline_limits: bool = False, 
+                       show_baseline: bool = True,
+                       show_general_integration_limits: bool = False,
+                       show_general_amplitude_limits: bool = False,
+                       show_spotted_peaks: bool = True,
+                       show_peaks_integration_limits: bool = False,
+                       time_bins: int = 512,
+                       adc_bins: int = 100,
+                       time_range_lower_limit: Optional[int] = None,
+                       time_range_upper_limit: Optional[int] = None,
+                       adc_range_above_baseline: Union[int, None] = 100,
+                       adc_range_below_baseline: Union[int, None] = 200,
+                       plot_peaks_fits: bool = False,
+                       plot_sum_of_gaussians: bool = False,
+                       detailed_label: bool = True,
+                       plot_event: bool = False,
+                       event_id: Optional[int] = 0,
+                       yannotation: Optional[float] = 1.25,
+                       verbose: bool = True,
+                       filtering: float = 0,
+                       zlog: bool = False,
+                       heatmap_chunk_size: int = 5000,
+                       **kwargs
+                       ) -> pgo.Figure:
     """This function returns a plotly.graph_objects.Figure 
     with a grid of subplots which are arranged according
     to the channel_ws_grid.ch_map attribute. The subplot at 
@@ -1709,25 +1710,23 @@ def plot_ChannelWsGrid(
                     time_range_upper_limit=time_range_upper_limit,
                     adc_range_above_baseline=adc_range_above_baseline,
                     adc_range_below_baseline=adc_range_below_baseline)
-                    
-                figure_ = wpu.__subplot_heatmap(
-                    channel_ws,
-                    figure_,
-                    aux_name,
-                    i + 1,
-                    j + 1,
-                    list(aux_idcs),
-                    analysis_label,
-                    time_bins,
-                    adc_bins,
-                    aux_ranges,
-                    # The color scale is not shown
-                    # since it may differ from one plot
-                    # to another.
-                    show_color_bar=False,
-                    filtering=filtering,
-                    zlog=zlog,
-                )
+
+                # Accumulate the 2D histogram over chunks
+                aux_idcs_list = list(aux_idcs)
+                accumulated = np.zeros((time_bins, adc_bins), dtype=np.float64)
+
+                for start in range(0, len(aux_idcs_list), heatmap_chunk_size):
+                    chunk = aux_idcs_list[start : start + heatmap_chunk_size]
+                    accumulated += wpu.__subplot_heatmap_histogram_only( 
+                        channel_ws, chunk, analysis_label,
+                        time_bins, adc_bins, aux_ranges, filtering)
+
+                # Plot the fully accumulated histogram once
+                figure_ = wpu.__subplot_heatmap_from_array(             
+                    accumulated, figure_, aux_name,
+                    i + 1, j + 1, aux_ranges,
+                    time_bins, adc_bins,
+                    show_color_bar=False, zlog=zlog)
 
                 ## There is a way to make the color scale match for     # https://community.plotly.com/t/trying-to-make-a-uniform-colorscale-for-each-of-the-subplots/32346
                 ## every plot in the grid, though, but comes at the

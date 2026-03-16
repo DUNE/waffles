@@ -228,6 +228,71 @@ def get_string_of_first_n_integers_if_available(
 
     return output
 
+def __subplot_heatmap_histogram_only(
+    waveform_set, wf_idcs, analysis_label,
+    time_bins, adc_bins, ranges, filtering
+) -> np.ndarray:
+    """Computes and returns the raw 2D histogram array for a chunk of waveforms."""
+
+    aux_x = np.hstack([
+        np.arange(0, waveform_set.points_per_wf, dtype=np.float32)
+        + waveform_set.waveforms[idx].time_offset
+        for idx in wf_idcs])
+
+    denoiser = Denoise()
+    try:
+        if filtering > 0:
+            aux_y = np.hstack([
+                denoiser.apply_denoise(
+                    waveform_set.waveforms[idx].adcs.astype(np.float32)
+                    - waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'],
+                    filter=filtering)
+                for idx in wf_idcs])
+        else:
+            aux_y = np.hstack([
+                waveform_set.waveforms[idx].adcs
+                - waveform_set.waveforms[idx].analyses[analysis_label].result['baseline']
+                for idx in wf_idcs])
+    except KeyError:
+        raise Exception(GenerateExceptionMessage(
+            1, '__subplot_heatmap()',
+            f"Either an analysis with the given analysis_label ({analysis_label}) "
+            "does not exist, or it does not compute the baseline under the 'baseline' key."))
+
+    return wun.histogram2d(
+        np.vstack((aux_x, aux_y)),
+        np.array((time_bins, adc_bins)),
+        ranges)
+
+
+def __subplot_heatmap_from_array(
+    accumulated: np.ndarray,
+    figure, name, row, col, ranges,
+    time_bins, adc_bins,
+    show_color_bar=False, zlog=False
+) -> pgo.Figure:
+    """Takes a fully accumulated 2D histogram array and plots it as a heatmap."""
+
+    time_step = (ranges[0, 1] - ranges[0, 0]) / time_bins
+    adc_step  = (ranges[1, 1] - ranges[1, 0]) / adc_bins
+
+    aux = accumulated.astype(float)
+    aux[aux == 0] = np.nan
+    if zlog:
+        aux = np.log10(aux)
+
+    heatmap = pgo.Heatmap(
+        z=aux,
+        x0=ranges[0, 0], dx=time_step,
+        y0=ranges[1, 0], dy=adc_step,
+        name=name,
+        transpose=True,
+        showscale=show_color_bar)
+
+    figure.add_trace(heatmap, row=row, col=col)
+    figure.update_xaxes(title_text="Time [ticks]", row=row, col=col)
+    figure.update_yaxes(title_text="Amplitude [ADCs]", row=row, col=1)
+    return figure
 
 def __subplot_heatmap(
     waveform_set: WaveformSet,
@@ -243,6 +308,7 @@ def __subplot_heatmap(
     show_color_bar: bool = False,
     filtering: float = 0,
     zlog: bool = False,
+    chunk_size: int = 5000,
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -258,20 +324,24 @@ def __subplot_heatmap(
     This function takes the given figure, and 
     plots on it the heatmap of the union of 
     the waveforms whose indices are contained 
-    within the given 'wf_idcs' list. The 
-    position of the subplot where this heatmap 
-    is plotted is given by the 'row' and 'col' 
-    parameters. Finally, this function returns 
-    the figure.
+    within the given 'wf_idcs' list. To keep
+    memory usage bounded, the 2D histogram is
+    computed incrementally over chunks of
+    'chunk_size' waveforms, and accumulated
+    into a single array before plotting.
+    The position of the subplot where this 
+    heatmap is plotted is given by the 'row' 
+    and 'col' parameters. Finally, this 
+    function returns the figure.
 
     Parameters
     ----------
     waveform_set: WaveformSet
         The WaveformSet object whose waveforms
-        will be plotted in the heatmap
+        will be plotted in the heatmap.
     figure: pgo.Figure
         The figure where the heatmap will be
-        plotted
+        plotted.
     name: str
         The name of the heatmap. It is given
         to the 'name' parameter of
@@ -300,10 +370,10 @@ def __subplot_heatmap(
         be raised.
     time_bins: int
         The number of bins for the horizontal axis
-        of the heatmap
+        of the heatmap.
     adc_bins: int
         The number of bins for the vertical axis
-        of the heatmap
+        of the heatmap.
     ranges: np.ndarray
         A 2x2 integer numpy array where ranges[0,0]
         (resp. ranges[0,1]) gives the lower (resp.
@@ -324,69 +394,36 @@ def __subplot_heatmap(
         denoising will be applied.
     zlog: bool
         If True, the z-axis of the heatmap will be
-        logarithmically scaled. 
+        logarithmically scaled.
+    chunk_size: int
+        The number of waveforms to process in each
+        chunk when accumulating the 2D histogram.
+        Larger values are faster but use more memory.
+        Smaller values are slower but keep memory
+        usage bounded. Defaults to 5000.
 
     Returns
     ----------
     figure_: plotly.graph_objects.Figure
         The figure whose subplot at position 
-        (row, col) has been filled with the heatmap
+        (row, col) has been filled with the heatmap.
     """
 
-    figure_ = figure
+    accumulated = np.zeros((time_bins, adc_bins), dtype=np.float64)
 
-    time_step = (ranges[0, 1] - ranges[0, 0]) / time_bins
-    adc_step = (ranges[1, 1] - ranges[1, 0]) / adc_bins
+    for start in range(0, len(wf_idcs), chunk_size):
+        chunk = wf_idcs[start : start + chunk_size]
+        accumulated += __subplot_heatmap_histogram_only(
+            waveform_set, chunk, analysis_label,
+            time_bins, adc_bins, ranges, filtering)
 
-    aux_x = np.hstack([np.arange(
-        0,
-        waveform_set.points_per_wf,
-        dtype=np.float32) + waveform_set.waveforms[idx].time_offset for idx in wf_idcs])
+    return __subplot_heatmap_from_array(
+        accumulated, figure, name,
+        row, col, ranges,
+        time_bins, adc_bins,
+        show_color_bar=show_color_bar,
+        zlog=zlog)
 
-    denoiser = Denoise()
-    try:
-        if filtering>0:
-            aux_y = np.hstack([
-                denoiser.apply_denoise((waveform_set.waveforms[idx].adcs).astype(np.float32) -
-                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'], filter=filtering) for idx in wf_idcs])
-        else:
-            aux_y = np.hstack([
-                waveform_set.waveforms[idx].adcs -
-                waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'] for idx in wf_idcs])
-
-    except KeyError:
-        raise Exception(GenerateExceptionMessage(
-            1,
-            '__subplot_heatmap()',
-            f"Either an analysis with the given analysis_label ({analysis_label}) does not exist for the waveforms in the given WaveformSet, or the analysis exists but it does not compute the baseline under the 'baseline' key."))
-
-    aux = wun.histogram2d(
-        np.vstack((aux_x, aux_y)),
-        np.array((time_bins, adc_bins)),
-        ranges)
-    
-    aux = aux.astype(float)
-    aux[aux == 0] = np.nan
-    if zlog:
-        aux = np.log10(aux)
-
-    heatmap = pgo.Heatmap(
-        z=aux,
-        x0=ranges[0, 0],
-        dx=time_step,
-        y0=ranges[1, 0],
-        dy=adc_step,
-        name=name,
-        transpose=True,
-        showscale=show_color_bar,
-    )
-
-    figure_.add_trace(heatmap,
-                      row=row,
-                      col=col)
-    figure_.update_xaxes(title_text="Time [ticks]", row=row, col=col)
-    figure_.update_yaxes(title_text="Amplitude [ADCs]", row=row, col=1)
-    return figure_
 
 
 def arrange_time_vs_ADC_ranges(
