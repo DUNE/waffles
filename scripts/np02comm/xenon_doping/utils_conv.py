@@ -73,8 +73,8 @@ def process_convfit(ep:int,
     modulename = getModuleName(ep, ch)
     print(f"Processing {ep}-{ch}: {modulename}")
 
-    if modulename[:2] == "M7" and cfitch.scinttype != "xe":
-        oneexp = True
+    # if modulename[:2] == "M7" and cfitch.scinttype != "xe":
+    #     oneexp = True
     setup_response_template(response, template, cfitch, slice_template, slice_response)
     cfitch.prepare_waveforms()
     cfitch.fit(scan=scan, print_flag=print_flag, oneexp=oneexp)

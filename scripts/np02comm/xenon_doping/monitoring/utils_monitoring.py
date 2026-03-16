@@ -14,7 +14,7 @@ import subprocess
 from io import StringIO
 
 from waffles.data_classes.UniqueChannel import UniqueChannel
-from waffles.np02_utils.AutoMap import getModuleName, dict_module_to_uniqch
+from waffles.np02_utils.AutoMap import getModuleName, dict_module_to_uniqch, expand_modules
 from waffles.np02_utils.PlotUtils import endpoint_channel_colormap, modules_colormap
 
 dict_axes_label_to_data = {
@@ -62,26 +62,6 @@ def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, cols
         df[f'{col} relative'] = df[col] / df['module'].map(baseline) # type: ignore
     return df
 
-def expand_modules(modules: list[str], available: list[str]) -> list[str]:
-    if modules == [""] or len(modules) == 0:
-        modules = ["C", "M", "P"]
-    expanded = set()
-    for m in modules:
-        if m == "C":
-            expanded.update(x for x in available if x.startswith("C"))
-        elif m == "M":
-            expanded.update(x for x in available if x.startswith("M"))
-        elif m == "P":
-            expanded.update(x for x in available if x.startswith("P"))
-        elif m.startswith("C") and ")" not in m:
-            # e.g. "C1" -> matches "C1(1)", "C1(2)"
-            expanded.update(x for x in available if x.startswith(m) )
-        elif m.startswith("M") and ")" not in m:
-            # e.g. "M3" -> matches "M3(1)", "M3(2)"
-            expanded.update(x for x in available if x.startswith(m) )
-        else:
-            expanded.add(m)  # exact match like "C1(1)"
-    return list(expanded)
 
 def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['convolution', 'deconvolution'], load_hv:bool = False, how:MergeHow = 'inner') -> dict[str, pd.DataFrame]:
     ret = {}

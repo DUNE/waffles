@@ -6,6 +6,7 @@ import logging
 from typing import List, Union
 from typing import Optional, Callable
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from typing import Optional
 import os
 
@@ -596,7 +597,14 @@ def plot_average_spe(wfset: WaveformSet,
     print(f"{maximum:.2f}")
 
 
-def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], plot_function:Callable, func_params:dict={}, figsize=(16,8), rows=0, cols=0):
+def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet,
+                                    detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]],
+                                    plot_function:Callable,
+                                    func_params:dict={},
+                                    figsize=(16,8),
+                                    rows=0,
+                                    cols=0
+                                    ) -> tuple[Figure, np.ndarray]:
 
     detChMap = generate_ChannelMap(detector, rows=rows, cols=cols)
     gridWs = ChannelWsGrid(detChMap, wfset)
