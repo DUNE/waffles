@@ -44,7 +44,9 @@ class DeconvFitterVDWrapper(DeconvFitter):
                                  })
 
         if newplot:
-            plt.figure()
+            fig = plt.figure()
+        else:
+            fig = plt.gcf()
 
         # Plot the deconvolved signal
         if hasattr(self, 'deconvolved') and self.deconvolved is not None:
@@ -92,4 +94,4 @@ class DeconvFitterVDWrapper(DeconvFitter):
         plt.ylabel('Amplitude [ADC]')
         plt.legend()
 
-        return plt
+        return fig

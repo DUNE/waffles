@@ -1,4 +1,3 @@
-    
 from copy import deepcopy
 from dataclasses import asdict
 from time import sleep
@@ -171,11 +170,11 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
                 f.write(f"{nselected},{cfitch.chi2}\n")
             
             # Saving plots
-            figplt = cfitch.plot(newplot=True)
-            figplt.legend()
-            figplt.title(f"{modulename}: {ep}-{ch}")
-            figplt.savefig( outputdir / f"{method}fit_plot_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.png" )
-            figplt.close()
+            fig = cfitch.plot(newplot=True)
+            plt.legend()
+            plt.title(f"{modulename}: {ep}-{ch}")
+            plt.savefig( outputdir / f"{method}fit_plot_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.png" )
+            plt.close(fig)
 
             # Saving parameters used:
             with open( outputdir / f"{method}fit_params_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.yaml", 'w') as f:
@@ -195,7 +194,7 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
                 yaml.dump(allparams_clean, f, sort_keys=False)
     for detector, fig in gridfigs.items():
         fig.savefig( outputdir / f"{method}fit_grid_run{run:06d}_{detector}.png" )
-        plt.close()
+        plt.close(fig)
 
 
 

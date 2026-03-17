@@ -596,6 +596,23 @@ def plot_average_spe(wfset: WaveformSet,
     maximum = np.max(spewf[maximum_begin:maximum_end])
     print(f"{maximum:.2f}")
 
+def matplotlib_plot_ChannelWsGrid(gridWs: ChannelWsGrid,
+                                  plot_function:Callable,
+                                  func_params:dict={},
+                                  figsize=(16,8),
+                                  ) -> tuple[Figure, np.ndarray]:
+
+    fig, axs = plt.subplots(gridWs.ch_map.rows, gridWs.ch_map.columns, figsize=figsize)
+    axs = np.atleast_2d(axs)
+
+    for (i, j), ax in np.ndenumerate(axs):
+        plt.sca(ax)
+        wfs = gridWs.get_channel_ws_by_ij_position_in_map(i,j)
+        if not wfs: continue
+        plot_function(wfs, **func_params)
+
+    return fig, axs
+
 
 def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet,
                                     detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]],
@@ -621,13 +638,12 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet,
     return fig, axs
 
 
-def plot_averages(
-                    fig:go.Figure, 
-                    g:ChannelWsGrid, 
-                    calibration_data: Optional[dict] = None, # Add this if you want to normalize the waveforms 
-                    save: bool = False, 
-                    save_dir: Optional[str] = None
-                    ):
+def plot_averages(fig:go.Figure, 
+                  g:ChannelWsGrid, 
+                  calibration_data: Optional[dict] = None, # Add this if you want to normalize the waveforms 
+                  save: bool = False, 
+                  save_dir: Optional[str] = None
+                  ):
 
     """
     Plot average or normalized average waveforms for each channel in a ChannelWsGrid.

@@ -170,7 +170,7 @@ def draw_injections_matplotplib(df:pd.DataFrame,):
         plt.axvspan(row.loc['start_time'], row.loc['end_time'], alpha=0.1, color='grey')
         plt.text(
             row['end_time']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*0.995,
-            f"{row['ppm']} ppm",
+            f"{row['ppm']:.01f} ppm",
             fontsize=12, color='black', va='top'
         )
 
@@ -198,7 +198,7 @@ def draw_injections_plotly(df: pd.DataFrame, fig: go.Figure):
             x=row['end_time'] + pd.Timedelta("00:05:00"),
             y=1,  # in paper coordinates (top of plot)
             yref='paper',
-            text=f"{row['ppm']} ppm",
+            text=f"{row['ppm']:.01f} ppm",
             showarrow=False,
             font=dict(size=12, color='black'),
             yanchor='top'

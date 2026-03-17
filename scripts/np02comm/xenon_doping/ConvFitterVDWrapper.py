@@ -63,8 +63,9 @@ class ConvFitterVDWrapper(ConvFitter):
         times  = np.linspace(0, tick_width*nticks, nticks,endpoint=False)
 
         if newplot:
-            # create new figure
-            plt.figure()
+            fig = plt.figure()
+        else:
+            fig = plt.gcf()
 
         # do the plot
         plt.plot(times, self.response,'-', lw=2 ,color='k', label='data')
@@ -104,5 +105,5 @@ class ConvFitterVDWrapper(ConvFitter):
         #get handles and labels
         handles, labels = plt.gca().get_legend_handles_labels()
 
-        return plt
+        return fig
 

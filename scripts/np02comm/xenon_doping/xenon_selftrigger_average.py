@@ -23,8 +23,10 @@ from utils import DEFAULT_RESPONSE, PATH_XE_AVERAGES
 from utils import make_standard_analysis_name, list_of_ints
 
 
-def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, nfiles=None, dryrun=False):
+def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, nfiles=None, channels=None, dryrun=False):
 
+    if channels is not None:
+        saveplots = False 
     endpoint = 106 if dettype == "cathode" else 107 if dettype == "membrane" else 110
             
     if outputdir.absolute().as_posix() == Path(PATH_XE_AVERAGES).as_posix():
@@ -39,7 +41,7 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
         return
 
 
-    wfset_full = open_processed(run, dettype, datadir, nwaveforms=nwaveforms, mergefiles=True, file_slice=slice(None,nfiles))
+    wfset_full = open_processed(run, dettype, datadir, nwaveforms=nwaveforms, mergefiles=True, file_slice=slice(None,nfiles), channels=channels, endpoints=endpoint)
 
     wfset_full = WaveformSet.from_filtered_WaveformSet(wfset_full, remove_extra_channels_membrane)
 
@@ -129,6 +131,8 @@ if __name__ == "__main__":
     argp.add_argument("--saveplots", action="store_true", help="Whether to save the persistence plots of the waveforms.")
     argp.add_argument("--analysisname", type=str, default=DEFAULT_RESPONSE, help="Name of the analysis, used to create a subdirectory in the output directory.")
     argp.add_argument("--nfiles", type=int, default=None, help="Maximum number of files to load for each channel.")
+    argp.add_argument("--channels", nargs="+", type=int, default=[], help="List of channels to process. If not specified, all channels will be processed.\
+        \n\tFormat: endpoint+channel, e.g. 10600 for endpoint 106 channel 0.")
     argp.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
 
     args = argp.parse_args()
@@ -140,9 +144,22 @@ if __name__ == "__main__":
     cutyaml = args.cutyaml
     saveplots = args.saveplots
     analysisname = args.analysisname
+    channels = args.channels
     nfiles = args.nfiles
 
     dettype = "membrane" if dettype == "m" else "cathode" if dettype == "c" else "pmt"
-
+    endpoint = 106 if dettype == "cathode" else 107 if dettype == "membrane" else 110
+    if channels:
+        outch = []
+        for epch in channels:
+            ep = epch // 100
+            ch = epch % 100
+            if ep != endpoint:
+                raise ValueError(f"Invalid channel format: {ep}. The endpoint must be {endpoint} for detector type {dettype}. Please check the --channels argument.")
+            outch.append(ch)
+        channels = outch
+    else:
+        channels = None
+        
     for run in runs:
-        main(run, dettype, datadir, analysisname, nwaveforms, outputdir=outputdir, cutyaml=cutyaml, saveplots=saveplots, nfiles=nfiles, dryrun=args.dryrun)
+        main(run, dettype, datadir, analysisname, nwaveforms, outputdir=outputdir, cutyaml=cutyaml, saveplots=saveplots, nfiles=nfiles, channels=channels, dryrun=args.dryrun)
