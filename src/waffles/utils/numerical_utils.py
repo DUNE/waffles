@@ -688,12 +688,13 @@ def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
 def skewed_gaussian(x, A, mu, sigma, alpha):
     return A * skewnorm.pdf(x, a=alpha, loc=mu, scale=sigma)
 
-def fit_skewed_gaussian(adc_values):
+def fit_skewed_gaussian(adc_values, maxfev=5000):
     
-    minb, maxb = np.quantile(adc_values, [0.01, 0.99])
+    minb, maxb = np.quantile(adc_values, [0.001, 0.999])
     adc_values_filtered = adc_values[(adc_values > minb) & (adc_values < maxb)]
 
     nbins = min(int(np.sqrt(len(adc_values_filtered))), 75)
+    #nbins = 150
     bins = np.linspace(minb, maxb, nbins + 1)
     counts, bins_edges = np.histogram(adc_values_filtered, bins=bins)
     binscenter = (bins_edges[1:] + bins_edges[:-1]) * 0.5
@@ -704,7 +705,7 @@ def fit_skewed_gaussian(adc_values):
     alpha_guess = stats.skew(adc_values_filtered)
     p0 = [A_guess, mu_guess, sigma_guess, alpha_guess]
 
-    popt, _ = curve_fit(skewed_gaussian, binscenter, counts, p0=p0, maxfev=5000)
+    popt, _ = curve_fit(skewed_gaussian, binscenter, counts, p0=p0, maxfev=maxfev)
     A, mu, sigma, alpha = popt
 
     x_range = np.linspace(minb, maxb, 1000)
@@ -715,10 +716,11 @@ def fit_skewed_gaussian(adc_values):
            'bins': bins,
            'x_range': x_range,
            'fit_y': fit_y,
-           'mpv': mpv
+           'mpv': mpv,
+           'sigma': sigma
             } 
 
-def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick=None):
+def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick=None, maxfev=5000):
     """
     Compute MPV at each tick for a channel.
     Possibility to specify a single tick.
@@ -739,6 +741,7 @@ def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick
 
     n_ticks = wfch.points_per_wf
     mpv_waveform = np.zeros(n_ticks) if specific_tick is None else np.zeros(1)
+    sigma = np.zeros(n_ticks) if specific_tick is None else np.zeros(1)
     
     print(f"Computing MPV for {len(wfch.waveforms)} waveforms...")
     range_for = range(n_ticks) if specific_tick is None else range(specific_tick, specific_tick+1)
@@ -748,8 +751,9 @@ def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick
             mpv_waveform[i] = np.nan
             continue
 
-        ret = fit_skewed_gaussian(adc_values)
-        
+        ret = fit_skewed_gaussian(adc_values, maxfev)
+
+        sigma[i] = ret['sigma']
         mpv_waveform[i] = ret['mpv']
 
     ret['mpv'] = mpv_waveform.copy()
