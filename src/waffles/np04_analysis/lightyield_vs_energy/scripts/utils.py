@@ -7,13 +7,16 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnchoredText
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.colors as mcolors
+
+from itertools import combinations
 
 import plotly.graph_objects as go
 import matplotlib.ticker as ticker
 import pickle 
 import click
-# from tqdm import tqdm
-from tqdm.notebook import tqdm
+from tqdm import tqdm
+# from tqdm.notebook import tqdm
 import json
 from pathlib import Path
 from scipy.optimize import minimize_scalar
@@ -22,6 +25,15 @@ from landaupy import langauss as lg
 
 from scipy.odr import ODR, Model, RealData
 
+from matplotlib.patches import Rectangle
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
+
+from matplotlib.colors import LinearSegmentedColormap
+
+import ast
+import copy
+
 
 from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from waffles.data_classes.Waveform import Waveform
@@ -29,15 +41,51 @@ from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.IPDict import IPDict
 
 from waffles.Exceptions import GenerateExceptionMessage
-from waffles.input_output.hdf5_structured import load_structured_waveformset
+# from waffles.input_output.hdf5_structured import load_structured_waveformset
 
-from waffles.utils.baseline.WindowBaseliner import WindowBaseliner
-from waffles.data_classes.ChannelWsGrid import ChannelWsGrid 
-from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
+# from waffles.utils.baseline.WindowBaseliner import WindowBaseliner
+# from waffles.data_classes.ChannelWsGrid import ChannelWsGrid 
+# from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 
 
-from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaPeak_NEW import MyAnaPeak_NEW
-from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaConvolution import MyAnaConvolution
+# from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaPeak_NEW import MyAnaPeak_NEW
+# from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaConvolution import MyAnaConvolution
+
+
+#####################################################################
+
+def inv_sqrt_model(B, x):
+        return B[0] / np.sqrt(x)
+
+
+#####################################################################
+
+def noise_term_fit_array(beta, x):
+    p0 = beta[0]   
+    return p0 / x
+
+
+#####################################################################
+def energy_resolution_fit(x, p0, p1,p2):
+    x = np.array(x)
+    return np.sqrt(p0**2+(p1/np.sqrt(x))**2+(p2/x)**2)
+
+def energy_resolution_fit_array(params, x):
+    p0, p1, p2 = params
+    x = np.array(x)
+    return energy_resolution_fit(x, p0, p1, p2)
+
+
+def make_energy_resolution_fit_p2_fixed(p2_fixed):
+    def energy_resolution_fit_p2_fixed(beta, x):
+        p0, p1 = beta
+        x = np.array(x)
+        return np.sqrt(
+            p0**2 +
+            (p1/np.sqrt(x))**2 +
+            (p2_fixed/x)**2
+        )
+    return energy_resolution_fit_p2_fixed
 
 
 #####################################################################
@@ -53,6 +101,10 @@ def linear_array(params, x):
 
 def gaussian(x, mu, sigma, A):
     return A * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+def gaussian_array(params, x):
+    mu, sigma, A = params
+    return gaussian(x,mu,sigma,A)
 
 #####################################################################
 
@@ -481,53 +533,53 @@ def plotting_overlap_wf_PEAK_NEW(wfset, n_wf: int = 50, show : bool = True, save
 #####################################################################    
 
    
-def reading_merge_hdf5(run_number, trigger, event_type, rucio_hdf5_dir, n_files_start, n_files_stop):
-    run_folder = os.path.join(rucio_hdf5_dir,f"run0{run_number}", trigger, event_type)
-    if not os.path.isdir(run_folder):
-        raise click.BadParameter(f"The folder {run_folder} does not exist")
+# def reading_merge_hdf5(run_number, trigger, event_type, rucio_hdf5_dir, n_files_start, n_files_stop):
+#     run_folder = os.path.join(rucio_hdf5_dir,f"run0{run_number}", trigger, event_type)
+#     if not os.path.isdir(run_folder):
+#         raise click.BadParameter(f"The folder {run_folder} does not exist")
 
-    # List all processed HDF5 files
-    all_files = sorted([f for f in os.listdir(run_folder) if f.endswith(".hdf5") and f.startswith("processed_")])
+#     # List all processed HDF5 files
+#     all_files = sorted([f for f in os.listdir(run_folder) if f.endswith(".hdf5") and f.startswith("processed_")])
 
-    if not all_files:
-        print(f"No processed HDF5 files found in {run_folder}")
-        return
-    else:
-        print(f"Found {len(all_files)} files to merge in {run_folder}\n")
+#     if not all_files:
+#         print(f"No processed HDF5 files found in {run_folder}")
+#         return
+#     else:
+#         print(f"Found {len(all_files)} files to merge in {run_folder}\n")
 
-        if n_files_start < 0:
-            n_files_start = 0
-        if n_files_stop > len(all_files):
-            n_files_stop = len(all_files)
-        if n_files_start > n_files_stop:
-            n_files_start = n_files_start-1
-        files_to_read = all_files[n_files_start:n_files_stop]
+#         if n_files_start < 0:
+#             n_files_start = 0
+#         if n_files_stop > len(all_files):
+#             n_files_stop = len(all_files)
+#         if n_files_start > n_files_stop:
+#             n_files_start = n_files_start-1
+#         files_to_read = all_files[n_files_start:n_files_stop]
 
-        print(f"Reaging {len(files_to_read)} files, from n° {n_files_start} to {n_files_stop}\n")
+#         print(f"Reaging {len(files_to_read)} files, from n° {n_files_start} to {n_files_stop}\n")
 
-        wfset = None
-        i_index = 0
-        i_index_error = 0
+#         wfset = None
+#         i_index = 0
+#         i_index_error = 0
 
-        for fname in tqdm(files_to_read, desc="Merging files", unit="file"):
-            filepath = os.path.join(run_folder, fname)
-            try:
-                current_wfset = load_structured_waveformset(filepath)  # load HDF5 structured waveform set
-                if i_index == 0:
-                    wfset = current_wfset
-                else:
-                    wfset.merge(current_wfset)
-                i_index += 1
-            except Exception as e:
-                print(f"Error loading {filepath}: {e}")
-                i_index_error += 1
-                continue
+#         for fname in tqdm(files_to_read, desc="Merging files", unit="file"):
+#             filepath = os.path.join(run_folder, fname)
+#             try:
+#                 current_wfset = load_structured_waveformset(filepath)  # load HDF5 structured waveform set
+#                 if i_index == 0:
+#                     wfset = current_wfset
+#                 else:
+#                     wfset.merge(current_wfset)
+#                 i_index += 1
+#             except Exception as e:
+#                 print(f"Error loading {filepath}: {e}")
+#                 i_index_error += 1
+#                 continue
 
-        print(f"\n# files read: {i_index}")
-        print(f"# files with errors: {i_index_error}")
-        print(f"# waveforms: {len(wfset.waveforms)}\n")
+#         print(f"\n# files read: {i_index}")
+#         print(f"# files with errors: {i_index_error}")
+#         print(f"# waveforms: {len(wfset.waveforms)}\n")
 
-        return wfset, files_to_read
+#         return wfset, files_to_read
     
 
 #####################################################################    
@@ -835,3 +887,269 @@ def chi2_func(y, y_fit, yerr, n_params):
     ndf = len(y) - n_params
     chi2_red = chi2_val / ndf
     return chi2_val, chi2_red, ndf
+
+
+#####################################################################
+
+"""Function to round results with error, and by using scientific notation"""
+
+def round_to_significant(value, error):
+    if not isinstance(error, (int, float, np.number)) or not np.isfinite(error) or error == 0:
+        return "N/A", "N/A"  # Restituisce una stringa se l'errore non è valido
+
+    error_order = int(np.log10(error))
+    significant_digits = 2  
+    rounded_error = round(error, -error_order + (significant_digits - 1))
+    rounded_value = round(value, -error_order + (significant_digits - 1))
+    return rounded_value, rounded_error
+
+
+'''
+# Per avere una sola significativa nell'errore
+
+def round_to_significant(value, error):
+    if not isinstance(error, (int, float, np.number)) or not np.isfinite(error) or error == 0:
+        return "N/A", "N/A"
+
+    error = abs(error)
+
+    # ordine di grandezza dell'errore
+    error_order = int(np.floor(np.log10(error)))
+
+    # prima cifra significativa dell'errore
+    first_digit = int(error / 10**error_order)
+
+    # regola standard: 1 cifra se >=3, altrimenti 2
+    significant_digits = 1 if first_digit >= 3 else 2
+
+    # posizione di arrotondamento
+    decimals = -error_order + (significant_digits - 1)
+
+    rounded_error = round(error, decimals)
+    rounded_value = round(value, decimals)
+
+    return rounded_value, rounded_error
+'''
+
+def to_scientific_notation(value, error):
+    # Controllo se il valore non è un numero valido
+    if not isinstance(value, (int, float, np.number)) or not np.isfinite(value):
+        return "N/A"  # Se il valore è NaN o infinito, restituisce "N/A"
+
+    if value == 0:
+        return "0"  # Caso speciale: zero non ha notazione scientifica
+
+    exponent = int(np.floor(np.log10(abs(value)))) if value != 0 else 0  # Evita log10(0)
+    mantissa_value = value / 10**exponent
+    mantissa_error = error / 10**exponent if error and np.isfinite(error) else 0  # Evita divisioni errate
+
+    mantissa_value, mantissa_error = round_to_significant(mantissa_value, mantissa_error)
+    
+    return rf"({mantissa_value} $\pm$ {mantissa_error}) $\times 10^{exponent}$" if mantissa_value != "N/A" else "N/A"
+
+
+def fmt(val, err):
+        if not isinstance(err, (int, float, np.number)) or not np.isfinite(err) or err == 0:
+            return "N/A"
+        # usa notazione scientifica solo se necessario
+        if abs(val) >= 1e3 or abs(val) <= 1e-2:
+            return to_scientific_notation(val, err)
+        v, e = round_to_significant(val, err)
+        return f"{v} ± {e}"
+
+
+#####################################################################
+
+# Using it in channel_photoelectron_distriution_json.ipynb and adjacent_channel_study.ipynb
+
+def load_energy_json_dict(energy: int, apa12_folder: str, output_dir: str) -> dict:
+    """
+    Legge tutti i JSON 'photoelectron_dic_{energy}GeV.json' nelle sottocartelle
+    '{start}_to_{stop}' di {energy}GeV e li raccoglie in un unico dizionario:
+
+        merged_dict["start_to_stop"] = contenuto_json
+
+    Inoltre concatena tutti i files_read.txt in un unico file
+    'files_read_ALL.txt' dentro output_dir.
+    """
+
+    energy_folder = Path(apa12_folder)
+
+    if not energy_folder.exists():
+        raise FileNotFoundError(f"Folder {energy_folder} doesn't exist")
+
+    merged_dict = {}
+    all_txt_lines = []
+
+    for subfolder in sorted(energy_folder.iterdir()):
+        # solo directory valide
+        if not subfolder.is_dir():
+            continue
+
+        # solo cartelle tipo {start}_to_{stop}
+        if "_to_" not in subfolder.name:
+            continue
+
+        json_file = subfolder / f"photoelectron_dic_{energy}GeV.json"
+        txt_file = subfolder / "files_read.txt"
+
+        # ---------- JSON ----------
+        if not json_file.exists():
+            print(f"⚠️ Missing JSON file: {json_file}")
+            continue
+
+        with json_file.open("r") as f:
+            data = json.load(f)
+
+        # salva il JSON sotto il nome della cartella
+        merged_dict[subfolder.name] = data
+
+        # ---------- TXT ----------
+        if txt_file.exists():
+            with txt_file.open("r") as f:
+                # pulisce newline e mantiene ordine
+                all_txt_lines.extend(line.rstrip() + "\n" for line in f)
+        else:
+            print(f"⚠️ Missing TXT file: {txt_file}")
+
+    if not merged_dict:
+        raise RuntimeError(f"No JSON files found for energy = {energy}")
+
+    # ---------- SCRITTURA FILE TXT UNICO ----------
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # rimuove eventuali duplicati mantenendo l'ordine
+    all_txt_lines = list(dict.fromkeys(all_txt_lines))
+
+    output_txt = output_dir / "files_read_ALL.txt"
+    with output_txt.open("w") as f:
+        f.writelines(all_txt_lines)
+
+    print(f"✅ Written merged txt file: {output_txt}")
+    print(f"✅ Total txt lines: {len(all_txt_lines)}")
+    print(f"✅ Total JSON blocks: {len(merged_dict)}\n")
+
+    return merged_dict
+
+
+####
+def adjacent_channel_info(): 
+    adiacent_channels_1 = [[{'apa' : 1, 'end': 104, 'ch': 7, 'ly' : 30.44279648, 'ly_err': 0.9273210415192022}, {'apa' : 1, 'end': 104, 'ch': 5 , 'ly' : 40.37354826, 'ly_err': 1.1806092066610088}],  # 1
+                        [{'apa' : 1, 'end': 104, 'ch': 5 , 'ly' : 40.37354826, 'ly_err': 1.1806092066610088}, {'apa' : 1, 'end': 104, 'ch': 2 , 'ly' : 47.12535466, 'ly_err': 1.15958222727287}],  # 1
+                        [{'apa' : 1, 'end': 104, 'ch': 2 , 'ly' : 47.12535466, 'ly_err': 1.15958222727287}, {'apa' : 1, 'end': 104, 'ch': 0 , 'ly' : 41.27424546, 'ly_err': 1.0679136553355928}],  # 1
+                        [{'apa' : 1, 'end': 104, 'ch': 1 , 'ly' : 38.98072494, 'ly_err': 2.1327739859549597}, {'apa' : 1, 'end': 104, 'ch': 3 , 'ly' : 45.20487447, 'ly_err': 1.1869000852324099}],  # 2
+                        [{'apa' : 1, 'end': 104, 'ch': 3 , 'ly' : 45.20487447, 'ly_err': 1.1869000852324099}, {'apa' : 1, 'end': 104, 'ch': 4 , 'ly' : 58.72405404, 'ly_err': 1.2991189797899554}],  # 2
+                        [{'apa' : 1, 'end': 104, 'ch': 4 , 'ly' : 58.72405404, 'ly_err': 1.2991189797899554}, {'apa' : 1, 'end': 104, 'ch': 6 , 'ly' : 48.25950909, 'ly_err': 1.8724407692495848}],  # 2
+                        [{'apa' : 1, 'end': 104, 'ch': 17 , 'ly' : 92.78697251, 'ly_err': 3.7816848718547518}, {'apa' : 1, 'end': 104, 'ch': 15 , 'ly' : 109.05330274, 'ly_err': 2.449493632284315}],  # 3
+                        [{'apa' : 1, 'end': 104, 'ch': 15 , 'ly' : 109.05330274, 'ly_err': 2.449493632284315}, {'apa' : 1, 'end': 104, 'ch': 12 , 'ly' : 108.89348459, 'ly_err': 3.5122386232258176}],  # 3
+                        [{'apa' : 1, 'end': 104, 'ch': 12 , 'ly' : 108.89348459, 'ly_err': 3.5122386232258176}, {'apa' : 1, 'end': 104, 'ch': 10 , 'ly' : 116.83621838, 'ly_err': 5.742501993787541}],  # 3
+                        [{'apa' : 1, 'end': 104, 'ch': 11 , 'ly' : 101.34080387, 'ly_err': 2.689821210147427}, {'apa' : 1, 'end': 104, 'ch': 13 , 'ly' : 118.20655528, 'ly_err': 3.1165405622418545}],  # 4
+                        [{'apa' : 1, 'end': 104, 'ch': 13 , 'ly' : 118.20655528, 'ly_err': 3.1165405622418545}, {'apa' : 1, 'end': 104, 'ch': 14 , 'ly' : 103.36793441, 'ly_err': 4.340257608825766}],  # 4
+                        [{'apa' : 1, 'end': 104, 'ch': 14 , 'ly' : 103.36793441, 'ly_err': 4.340257608825766}, {'apa' : 1, 'end': 104, 'ch': 16 , 'ly' : 92.98313468, 'ly_err': 5.036615910932509}],  # 4
+                        [{'apa' : 1, 'end': 105, 'ch': 7 , 'ly' : 87.312015, 'ly_err': 2.317803342434923}, {'apa' : 1, 'end': 105, 'ch': 5 , 'ly' : 117.31386478, 'ly_err': 3.387779920269546}],  # 5 
+                        [{'apa' : 1, 'end': 105, 'ch': 5 , 'ly' : 117.31386478, 'ly_err': 3.387779920269546}, {'apa' : 1, 'end': 105, 'ch': 2 , 'ly' : 90.97246823, 'ly_err': 3.5747908979307588}],  # 5 
+                        [{'apa' : 1, 'end': 105, 'ch': 2 , 'ly' : 90.97246823, 'ly_err': 3.5747908979307588}, {'apa' : 1, 'end': 105, 'ch': 0 , 'ly' : 89.53119499, 'ly_err': 4.531103328033819}],  # 5 
+                        [{'apa' : 1, 'end': 105, 'ch': 1 , 'ly' : 79.93694879, 'ly_err': 1.702966211248327}, {'apa' : 1, 'end': 105, 'ch': 3 , 'ly' : 93.11190323, 'ly_err': 2.5303282802683014}],  # 6
+                        [{'apa' : 1, 'end': 105, 'ch': 3 , 'ly' : 93.11190323, 'ly_err': 2.5303282802683014}, {'apa' : 1, 'end': 105, 'ch': 4 , 'ly' : 99.69944766, 'ly_err': 4.655990694031124}],  # 6 
+                        [{'apa' : 1, 'end': 105, 'ch': 4 , 'ly' : 99.69944766, 'ly_err': 4.655990694031124}, {'apa' : 1, 'end': 105, 'ch': 6 , 'ly' : 72.06117263, 'ly_err': 4.727299606198586}],  # 6 
+                        [{'apa' : 1, 'end': 105, 'ch': 26 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 1, 'end': 105, 'ch': 24 , 'ly' : np.nan, 'ly_err': np.nan}],  # 7
+                        [{'apa' : 1, 'end': 105, 'ch': 24 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 1, 'end': 105, 'ch': 23 , 'ly' : np.nan, 'ly_err': np.nan}],  # 7 
+                        [{'apa' : 1, 'end': 105, 'ch': 23 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 1, 'end': 105, 'ch': 21 , 'ly' : np.nan, 'ly_err': np.nan}],  # 7 
+                        [{'apa' : 1, 'end': 105, 'ch': 10 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 1, 'end': 105, 'ch': 12 , 'ly' : np.nan, 'ly_err': np.nan}],  # 8
+                        [{'apa' : 1, 'end': 105, 'ch': 12 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 1, 'end': 105, 'ch': 15 , 'ly' : 40.7653192, 'ly_err': 1.776237936610994}],  # 8 
+                        [{'apa' : 1, 'end': 105, 'ch': 15 , 'ly' : 40.7653192, 'ly_err': 1.776237936610994}, {'apa' : 1, 'end': 105, 'ch': 17 , 'ly' : 32.36634835, 'ly_err': 1.7519993830195832}],  # 8 
+                        ]
+
+    adiacent_channels_2 = [[{'apa' : 2, 'end': 109, 'ch': 27 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 25 , 'ly' : np.nan, 'ly_err': np.nan}],  # 1 
+                        [{'apa' : 2, 'end': 109, 'ch': 25 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 22 , 'ly' : np.nan, 'ly_err': np.nan}],  # 1 
+                        [{'apa' : 2, 'end': 109, 'ch': 22 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 20 , 'ly' : np.nan, 'ly_err': np.nan}],  # 1 
+                        [{'apa' : 2, 'end': 109, 'ch': 21 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 23 , 'ly' : np.nan, 'ly_err': np.nan}],  # 2
+                        [{'apa' : 2, 'end': 109, 'ch': 23 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 24 , 'ly' : np.nan, 'ly_err': np.nan}],  # 2 
+                        [{'apa' : 2, 'end': 109, 'ch': 24 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 26 , 'ly' : np.nan, 'ly_err': np.nan}],  # 2
+                        [{'apa' : 2, 'end': 109, 'ch': 37 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 35 , 'ly' : np.nan, 'ly_err': np.nan}],  # 3 
+                        [{'apa' : 2, 'end': 109, 'ch': 35 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 32 , 'ly' : np.nan, 'ly_err': np.nan}],  # 3 
+                        [{'apa' : 2, 'end': 109, 'ch': 32 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 30 , 'ly' : np.nan, 'ly_err': np.nan}],  # 3
+                        [{'apa' : 2, 'end': 109, 'ch': 31 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 33 , 'ly' : np.nan, 'ly_err': np.nan}],  # 4 
+                        [{'apa' : 2, 'end': 109, 'ch': 33 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 34 , 'ly' : np.nan, 'ly_err': np.nan}],  # 4 
+                        [{'apa' : 2, 'end': 109, 'ch': 34 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 36 , 'ly' : np.nan, 'ly_err': np.nan}],  # 4   
+                        [{'apa' : 2, 'end': 109, 'ch': 7 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 5 , 'ly' : np.nan, 'ly_err': np.nan}],  # 5 
+                        [{'apa' : 2, 'end': 109, 'ch': 5 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 2 , 'ly' : np.nan, 'ly_err': np.nan}],  # 5 
+                        [{'apa' : 2, 'end': 109, 'ch': 2 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 0 , 'ly' : np.nan, 'ly_err': np.nan}],  # 5 
+                        [{'apa' : 2, 'end': 109, 'ch': 1 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 3 , 'ly' : np.nan, 'ly_err': np.nan}],  # 6
+                        [{'apa' : 2, 'end': 109, 'ch': 3 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 4 , 'ly' : np.nan, 'ly_err': np.nan}],  # 6 
+                        [{'apa' : 2, 'end': 109, 'ch': 4 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 6 , 'ly' : np.nan, 'ly_err': np.nan}],  # 6
+                        [{'apa' : 2, 'end': 109, 'ch': 17 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 15 , 'ly' : np.nan, 'ly_err': np.nan}],  # 7 
+                        [{'apa' : 2, 'end': 109, 'ch': 15 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 12 , 'ly' : np.nan, 'ly_err': np.nan}],  # 7 
+                        [{'apa' : 2, 'end': 109, 'ch': 12 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 10 , 'ly' : np.nan, 'ly_err': np.nan}],  # 7
+                        [{'apa' : 2, 'end': 109, 'ch': 11 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 13 , 'ly' : np.nan, 'ly_err': np.nan}],  # 8 
+                        [{'apa' : 2, 'end': 109, 'ch': 13 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 14 , 'ly' : np.nan, 'ly_err': np.nan}],  # 8 
+                        [{'apa' : 2, 'end': 109, 'ch': 14 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 16 , 'ly' : np.nan, 'ly_err': np.nan}],  # 8
+                        [{'apa' : 2, 'end': 109, 'ch': 47 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 45 , 'ly' : np.nan, 'ly_err': np.nan}],  # 9 
+                        [{'apa' : 2, 'end': 109, 'ch': 45 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 42 , 'ly' : np.nan, 'ly_err': np.nan}],  # 9 
+                        [{'apa' : 2, 'end': 109, 'ch': 42 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 40 , 'ly' : np.nan, 'ly_err': np.nan}],  # 9 
+                        [{'apa' : 2, 'end': 109, 'ch': 41 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 43 , 'ly' : np.nan, 'ly_err': np.nan}],  # 10
+                        [{'apa' : 2, 'end': 109, 'ch': 43 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 44 , 'ly' : np.nan, 'ly_err': np.nan}],  # 10
+                        [{'apa' : 2, 'end': 109, 'ch': 44 , 'ly' : np.nan, 'ly_err': np.nan}, {'apa' : 2, 'end': 109, 'ch': 46 , 'ly' : np.nan, 'ly_err': np.nan}],  # 10  
+                        ]
+
+    channels_excluded = [{'end': 109, 'ch': 0},
+                        {'end': 109, 'ch': 2},
+                        {'end': 109, 'ch': 4},
+                        {'end': 109, 'ch': 6},
+                        {'end': 109, 'ch': 31},
+                        {'end': 109, 'ch': 34},
+                        {'end': 109, 'ch': 40},                       
+                        ]
+
+    return adiacent_channels_1, adiacent_channels_2, channels_excluded
+
+def all_channels_info_possible_pairs():
+    return list(combinations(channel_list_apa1(), 2)), [], []
+
+def channel_list_apa1():
+    channel_list_info = [ 
+    {'apa' : 1, 'end': 104, 'ch': 7, 'ly' : 30.44279648, 'ly_err': 0.9273210415192022}, #1
+    {'apa' : 1, 'end': 104, 'ch': 5 , 'ly' : 40.37354826, 'ly_err': 1.1806092066610088}, 
+    {'apa' : 1, 'end': 104, 'ch': 2 , 'ly' : 47.12535466, 'ly_err': 1.15958222727287},
+    {'apa' : 1, 'end': 104, 'ch': 0 , 'ly' : 41.27424546, 'ly_err': 1.0679136553355928},
+    {'apa' : 1, 'end': 104, 'ch': 1 , 'ly' : 38.98072494, 'ly_err': 2.1327739859549597}, #2
+    {'apa' : 1, 'end': 104, 'ch': 3 , 'ly' : 45.20487447, 'ly_err': 1.1869000852324099},
+    {'apa' : 1, 'end': 104, 'ch': 4 , 'ly' : 58.72405404, 'ly_err': 1.2991189797899554}, 
+    {'apa' : 1, 'end': 104, 'ch': 6 , 'ly' : 48.25950909, 'ly_err': 1.8724407692495848},
+    {'apa' : 1, 'end': 104, 'ch': 17 , 'ly' : 92.78697251, 'ly_err': 3.7816848718547518}, #3
+    {'apa' : 1, 'end': 104, 'ch': 15 , 'ly' : 109.05330274, 'ly_err': 2.449493632284315}, 
+    {'apa' : 1, 'end': 104, 'ch': 12 , 'ly' : 108.89348459, 'ly_err': 3.5122386232258176}, 
+    {'apa' : 1, 'end': 104, 'ch': 10 , 'ly' : 116.83621838, 'ly_err': 5.742501993787541},  
+    {'apa' : 1, 'end': 104, 'ch': 11 , 'ly' : 101.34080387, 'ly_err': 2.689821210147427}, #5
+    {'apa' : 1, 'end': 104, 'ch': 13 , 'ly' : 118.20655528, 'ly_err': 3.1165405622418545}, 
+    {'apa' : 1, 'end': 104, 'ch': 14 , 'ly' : 103.36793441, 'ly_err': 4.340257608825766}, 
+    {'apa' : 1, 'end': 104, 'ch': 16 , 'ly' : 92.98313468, 'ly_err': 5.036615910932509},  
+    {'apa' : 1, 'end': 105, 'ch': 7 , 'ly' : 87.312015, 'ly_err': 2.317803342434923}, #5
+    {'apa' : 1, 'end': 105, 'ch': 5 , 'ly' : 117.31386478, 'ly_err': 3.387779920269546},   
+    {'apa' : 1, 'end': 105, 'ch': 2 , 'ly' : 90.97246823, 'ly_err': 3.5747908979307588}, 
+    {'apa' : 1, 'end': 105, 'ch': 0 , 'ly' : 89.53119499, 'ly_err': 4.531103328033819},   
+    {'apa' : 1, 'end': 105, 'ch': 1 , 'ly' : 79.93694879, 'ly_err': 1.702966211248327}, #6
+    {'apa' : 1, 'end': 105, 'ch': 3 , 'ly' : 93.11190323, 'ly_err': 2.5303282802683014},  
+    {'apa' : 1, 'end': 105, 'ch': 4 , 'ly' : 99.69944766, 'ly_err': 4.655990694031124}, 
+    {'apa' : 1, 'end': 105, 'ch': 6 , 'ly' : 72.06117263, 'ly_err': 4.727299606198586},   
+    {'apa' : 1, 'end': 105, 'ch': 26 , 'ly' : 74.92851465, 'ly_err': 1.459814209023413}, #7
+    {'apa' : 1, 'end': 105, 'ch': 24 , 'ly' : 84.68736824, 'ly_err': 0.9293838571366848},  
+    {'apa' : 1, 'end': 105, 'ch': 23 , 'ly' : 71.26030192, 'ly_err': 3.5812201411203324}, 
+    {'apa' : 1, 'end': 105, 'ch': 21 , 'ly' : 91.37828259, 'ly_err': 5.559005442664104},   
+    {'apa' : 1, 'end': 105, 'ch': 10 , 'ly' : 37.10260122, 'ly_err': 0.8892024181673603}, #8
+    {'apa' : 1, 'end': 105, 'ch': 12 , 'ly' : 38.22011045, 'ly_err': 1.029763484557239},  
+    {'apa' : 1, 'end': 105, 'ch': 15 , 'ly' : 40.7653192, 'ly_err': 1.776237936610994}, 
+    {'apa' : 1, 'end': 105, 'ch': 17 , 'ly' : 32.36634835, 'ly_err': 1.7519993830195832}
+    ]
+
+    return channel_list_info
+
+def apa1_columns_channels():
+    channel_list_info = channel_list_apa1()
+    col1 = channel_list_info[0::4]  # indice 0, 4, 8, ...
+    col2 = channel_list_info[1::4]  # indice 1, 5, 9, ...
+    col3 = channel_list_info[2::4]  # indice 2, 6, 10, ...
+    col4 = channel_list_info[3::4]  # indice 3, 7, 11, ...
+
+    return {1: col1, 2: col2, 3: col3, 4: col4}

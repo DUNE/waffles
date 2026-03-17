@@ -27,10 +27,10 @@ def main(all_channel_data, input_folder, output_folder):
     conteggi_l = 0
     conteggi_g = 0
 
-    for apa in [1]: 
+    for apa in [1,2]:#,2]: 
         analysis_result_dict[apa] = {}
         APA_pdf_file = PdfPages(f"{output_folder}/APA{apa}_PE_study.pdf")
-        for endpoint in which_endpoints_in_the_APA(apa): #["104"]: #
+        for endpoint in which_endpoints_in_the_APA(apa): #[104]: 
             analysis_result_dict[apa][endpoint] = {}
             for channel in sorted(list(channel_vendor_map[endpoint].keys())): # channel_dict in channel_vendor_map[endpoint].items(): ["1","2","3","4","5","6"]: #
                 print(f"Processing APA {apa} - Endpoint {endpoint} - Channel {channel}")
@@ -185,7 +185,7 @@ def main(all_channel_data, input_folder, output_folder):
                         
   
                         # First fit with only y_err
-                        l_params_initial, l_covariance_initial = curve_fit(langauss, filtered_x_fit, filtered_y_fit, p0=l_initial_guess, sigma=filtered_y_error, absolute_sigma=True, bounds=(l_bounds_low, l_bounds_high), maxfev=30000, method='trf')
+                        l_params_initial, l_covariance_initial = curve_fit(langauss, filtered_x_fit, filtered_y_fit, p0=l_initial_guess, sigma=filtered_y_error, absolute_sigma=True, bounds=(l_bounds_low, l_bounds_high), maxfev=40000, method='trf')
 
                         # x_err propagation
                         epsilon = 1e-5
@@ -412,6 +412,10 @@ def main(all_channel_data, input_folder, output_folder):
 
                     # --- GAUSSIAN ANALYSIS 
 
+                    g_means = np.array([analysis_result_dict[apa][endpoint][channel][e]['gaussian']['mu'] for e in energies ])
+                    g_means_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['gaussian']['emu'] for e in energies])
+                    g_means_errors = g_means_errors + 0.05 * g_means
+
                     g_sigma = np.array([analysis_result_dict[apa][endpoint][channel][e]['gaussian']['sigma'] for e in energies ])
                     g_sigma_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['gaussian']['esigma'] for e in energies])
                     #g_sigma_errors = g_sigma_errors + 0.05 * g_means
@@ -424,16 +428,19 @@ def main(all_channel_data, input_folder, output_folder):
                     ax[i].errorbar(energies, g_y, xerr = ex, yerr=g_ey, fmt='o', color='deepskyblue', label='Gaussian $\dfrac{\sigma}{\mu}$', capsize=3, markersize=2)
 
                     # --- LANGAUSS ANALYSIS 
+                    l_peaks = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['peak'] for e in energies])
+                    l_peak_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['epeak'] for e in energies])
+                    l_peak_errors = l_peak_errors + 0.05 * l_peaks
+
                     l_sigma = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['sigma'] for e in energies ])
                     l_sigma_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['esigma'] for e in energies])
                     #l_sigma_errors = g_sigma_errors + 0.05 * g_means
 
                     x = energies
                     ex = energies_errors
-                    l_y = l_sigma / l_peak
+                    l_y = l_sigma / l_peaks
                     l_ey = l_y* np.sqrt((l_sigma_errors/l_sigma)**2 + (l_peak_errors/l_peak)**2)
-
-
+                    
                     ax[i].errorbar(x, l_y, xerr = ex, yerr=l_ey, fmt='o', color='fuchsia', label='Langauss $\dfrac{\sigma}{x_0}$', capsize=3, markersize=2)
 
                     ax[i].set_xlabel(r"$\langle E_{beam} \rangle$ [GeV]")

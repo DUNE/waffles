@@ -22,6 +22,8 @@ import pandas as pd
 
 from scipy.odr import ODR, Model, RealData
 
+from waffles.np04_analysis.lightyield_vs_energy.scripts.utils import *
+
 
 
 plt.rcParams.update({
@@ -319,12 +321,12 @@ for energy in [2, 3, 5, 7]:
 
 
     # --- Intersection point computation (if required)
-    # intersection_mask = (x_fit >= mpv) & (x_fit <= mu)
-    # x_sub  = x_fit[intersection_mask]
-    # y_g_sub  = y_g[intersection_mask]
-    # y_lg_sub = y_lg[intersection_mask]
-    # intersection_idx = np.argmin(np.abs(y_g_sub - y_lg_sub))
-    # x_intersection = x_sub[intersection_idx]
+    intersection_mask = (x_fit >= mpv) & (x_fit <= mu)
+    x_sub  = x_fit[intersection_mask]
+    y_g_sub  = y_g[intersection_mask]
+    y_lg_sub = y_lg[intersection_mask]
+    intersection_idx = np.argmin(np.abs(y_g_sub - y_lg_sub))
+    x_intersection = x_sub[intersection_idx]
 
     # --- Langauss peak position
     peak, error_peak = propagate_error(find_peak, params[:4], errors[:4], epsilon=1e-5)
@@ -341,7 +343,7 @@ for energy in [2, 3, 5, 7]:
     plt.plot(x_fit, y_fit, 'k-', lw=2, label='Langauss + Gaussian')
     plt.plot(x_fit, y_lg, 'r--', lw=1, label='Langauss')
     plt.plot(x_fit, y_g,  'b--', lw=1, label='Gaussian')
-    # plt.axvline(x_intersection, color='gold', linestyle='--', linewidth=1, label="Intersection")
+    plt.axvline(x_intersection, color='gold', linestyle='--', linewidth=1, label="Intersection")
 
 
     info_text = (
@@ -360,7 +362,7 @@ for energy in [2, 3, 5, 7]:
         f"R$^2$ = {r_squared:.3f}\n"
         f"$\chi^2_{{rid}}$ = {chi2_rid:.2f}\n\n"
 
-        #f"Intersection = {x_intersection:.0f}\n\n"
+        f"Intersection = {x_intersection:.0f}\n\n"
 
         f"bins width = {dict_info[energy]['bin width']:.0f}"
     )
@@ -386,7 +388,7 @@ for energy in [2, 3, 5, 7]:
          transform=plt.gca().transAxes,
          fontsize=11, ha='right', va='top')
 
-    plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/{energy}GeV.png')
+    plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/{energy}GeV.png', dpi=300)
     plt.close()
 
     # --- Saving data for next analysis 
@@ -545,7 +547,7 @@ plt.text(0.7, 0.95, r'$\bf{ProtoDUNE\!-\!HD}$ Preliminary',
          transform=plt.gca().transAxes,
          fontsize=11, ha='right', va='top')
 
-plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/{energy}GeV.png')
+plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/{energy}GeV.png', dpi=300)
 plt.close()
 
 # --- Saving data for next analysis 
@@ -579,9 +581,9 @@ else:
 means_errors = means_errors + 0.05 * means
 energies_errors = 0.05 * energies
 
-data_color = "#000000"
-linear_color = "#25E000"
-parab_color = "#001EFF"
+data_color = "#040C4D"
+parab_color  = "#25E000"
+linear_color = "#00BFFF"
 
 
 plt.figure(figsize=(8, 5))
@@ -601,7 +603,7 @@ chi2rid_1 = out_1.sum_square / (len(energies)-len(out_1.beta))
 r2_1 = r2_score(means, linear(energies,A_1, B_1))
 x_fit = np.linspace(min(energies)-0.5, max(energies)+0.5, 100)
 y_fit_1 = linear(x_fit, A_1, B_1)
-plt.plot(x_fit, y_fit_1, color=linear_color, linewidth=2, label=f'Fit: y = A + Bx \nA = {A_1:.2f} ± {eA_1:.2f} \nB = {B_1:.2f} ± {eB_1:.2f} \n$R^2$ = {r2_1:.3f}') #\n$\chi^{2}_{{rid}}$ = {chi2rid_1:.3f}
+plt.plot(x_fit, y_fit_1, color=linear_color, linewidth=2, label=f'Fit: y = A + Bx \nA = ({fmt(A_1,eA_1)}) [$N_{{PE}}$] \nB = ({fmt(B_1,eB_1)}) [$N_{{PE}}$/GeV] \n$R^2$ = {r2_1:.3f}') #\n$\chi^{2}_{{rid}}$ = {chi2rid_1:.3f}
 
 
 # --- Parabolic fit
@@ -614,17 +616,17 @@ ndf_2 = (len(energies) - len(out_2.beta))
 chi2rid_2 = out_2.sum_square / (len(energies)-len(out_2.beta))
 r2_2 = r2_score(means, parabola(energies,A_2, B_2, C_2 ))
 y_fit_2 = parabola(x_fit, A_2, B_2, C_2)
-plt.plot(x_fit, y_fit_2, color=parab_color, linewidth=2, label=f'Fit: y = A + Bx + Cx$^{2}$\nA = {A_2:.2f} ± {eA_2:.2f} \nB = {B_2:.2f} ± {eB_2:.2f} \nC = {C_2:.2f} ± {eC_2:.2f}\n$R^2$ = {r2_2:.3f}') #$\chi^{2}_{{rid}}$ = {chi2rid_2:.3f}
+# plt.plot(x_fit, y_fit_2, color=parab_color, linewidth=2, label=f'Fit: y = A + Bx + Cx$^{2}$\nA = {A_2:.2f} ± {eA_2:.2f} \nB = {B_2:.2f} ± {eB_2:.2f} \nC = {C_2:.2f} ± {eC_2:.2f}\n$R^2$ = {r2_2:.3f}') #$\chi^{2}_{{rid}}$ = {chi2rid_2:.3f}
 
 
-plt.text(0.7, 0.95, r'$\bf{ProtoDUNE\!-\!HD}$ Preliminary', transform=plt.gca().transAxes, fontsize=11, ha='right', va='top')
+plt.text(0.8, 0.95, r'$\bf{ProtoDUNE\!-\!HD}$ Preliminary', transform=plt.gca().transAxes, fontsize=11, ha='right', va='top')
 plt.xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
-plt.ylabel(r"Gaussian mean $\langle N_{\mathrm{PE}} \rangle$")
-plt.legend()
-plt.title('Calorimetric linearity')
+plt.ylabel(r"$\mu$ [$N_{\mathrm{PE}}$]")
+plt.legend(loc='upper left')
+# plt.title('Calorimetric linearity')
 plt.grid(True, linestyle='--', alpha=0.3)
 plt.tight_layout()
-plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/linearity.png')
+plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/linearity.png', dpi=300)
 plt.close()
 
 #####################################################################################
@@ -658,7 +660,7 @@ plt.legend()
 plt.title('Muon peak vs energy')
 plt.grid(True, linestyle='--', alpha=0.5)
 plt.tight_layout()
-plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/muon_validation.png')
+plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/muon_validation.png', dpi=300)
 plt.close()
 
 
@@ -730,7 +732,7 @@ plt.legend()
 plt.title('Energy resolution')
 plt.grid(True, linestyle='--', alpha=0.3)
 plt.tight_layout()
-plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/energy_resolution.png')
+plt.savefig(f'/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2/pedistribution_linearity/energy_resolution.png', dpi=300)
 plt.close()
 
 
