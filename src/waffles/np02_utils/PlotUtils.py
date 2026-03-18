@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from typing import Optional
 import os
+from glob import glob
 
+from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -24,7 +26,7 @@ from waffles.utils.baseline.baseline import SBaseline
 from waffles.utils.numerical_utils import average_wf_ch, skewed_gaussian, fit_skewed_gaussian, compute_mpv_waveforms
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, pmt_endpoint, membrane_endpoint
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map, cathode_endpoint
-from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
+from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch, getModuleName, expand_modules 
 from waffles.np02_utils.load_utils import ch_read_params
 
 import waffles.Exceptions as we
@@ -637,35 +639,22 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet,
 
     return fig, axs
 
-
-def plot_averages(fig:go.Figure, 
-                  g:ChannelWsGrid, 
-                  calibration_data: Optional[dict] = None, # Add this if you want to normalize the waveforms 
-                  save: bool = False, 
-                  save_dir: Optional[str] = None
-                  ):
+def plot_waveforms(fig:go.Figure, 
+                   g:ChannelWsGrid, 
+                   waveforms: dict[int, dict[int, np.ndarray]],
+                   line_color: str = ''
+                   ):
 
     """
-    Plot average or normalized average waveforms for each channel in a ChannelWsGrid.
+    Plot waveforms for each channel in a ChannelWsGrid.
 
-    For each valid channel in the grid, this function:
-      - Computes the average waveform.
-      - Normalizes it to a single photoelectron (SPE) amplitude.
-      - Plots the normalized waveform in the corresponding subplot.
-      - Optionally saves the normalized waveform to a text file for each channel.
-
-    Parameters
     ----------
     fig : go.Figure
         Plotly Figure object containing subplots for each channel.
     g : ChannelWsGrid
         Grid object containing waveform sets for multiple channels.
-    calibration_data : optional 
-        Calibration file containing the SPE amplitude
-    save : bool, optional
-        If True, normalized waveforms are saved to text files. Default is False.
-    save_dir : str, optional
-        Directory where normalized waveform files will be saved. Must be specified if `save` is True.
+    waveforms : dict[int, dict[int, np.ndarray]]
+        Dictionary mapping endpoints and channels to their corresponding waveforms.
 
     Returns
     -------
@@ -674,77 +663,168 @@ def plot_averages(fig:go.Figure,
 
     """
 
-    if save:
-        if save_dir is None:
-            raise ValueError("save_dir must be specified")
-        os.makedirs(save_dir, exist_ok=True)
-
-    max_row, max_col = 0, 0
-
     ncols = len(g.ch_map.data[0])    
 
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
+
+        subplot_idx = row * ncols + col
+
         row += 1
         col += 1
-
-        max_row = max(max_row, row)
-        max_col = max(max_col, col)
-
-        subplot_idx = (row - 1) * ncols + col
-       
         if str(uch) not in dict_uniqch_to_module:
             continue
         if uch.channel not in g.ch_wf_sets[uch.endpoint]:
             continue
             
         wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
-        avg = average_wf_ch(wfch)
-        time = np.arange(avg.size)
+        npoints = wfch.points_per_wf
 
         endpoint = uch.endpoint
         ch = uch.channel
-        run = list(wfch.runs)[0]
-        peak_avg = np.max(avg)
 
-        if peak_avg == 0 or np.isnan(peak_avg):
-            print(f"Zero or NaN peak for channel {ch}")
-            continue
+        module_name = dict_uniqch_to_module[str(uch)]
+        wfms = waveforms.get(endpoint, {}).get(ch, np.array([]))
+        time = np.arange(len(wfms))
+        dictline = {} if not line_color else { 'line_color' : line_color }
+        if len(wfms.shape) == 1:
+            wfms = np.atleast_2d(wfms)
+            if line_color:
+                dictline = { 'line_color' : line_color }
 
-        if calibration_data:
-            if endpoint not in calibration_data:
-                print(f"Endpoint {endpoint} not found in calibration file, normalization not possible. Remove 'calibration data' option")
-                continue            
-            if ch not in calibration_data[endpoint]:
-                print(f"Channel {ch} not found in calibration file")
-                continue
-            spe_amp = calibration_data[endpoint][uch.channel]["SpeAmpl"]
-            avg_norm = avg * (spe_amp / peak_avg )
+        for wfm in wfms:
+            fig.add_trace(
+                go.Scatter(
+                    x = time,
+                    y = wfm,
+                    mode = "lines",
+                    **dictline
+                ),
+                row=row, col=col
+            )
+
+        if subplot_idx < len(fig.layout.annotations):
+            fig.layout.annotations[subplot_idx].text = module_name
+
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        row += 1
+        col += 1
+        fig.update_yaxes(title_text="Amplitude [ADC]", row=row, col=1)
+        fig.update_xaxes(title_text="Time [ticks]", row=row, col=col)
+
+
+
+def __template_module_name(ep, ch):
+    # Build reverse lookup: channel integer -> module name formatted as C6_1
+    module_name = getModuleName(ep, ch)
+    label = module_name.replace("(", "_").replace(")", "")
+    return label 
+
+def __remove_existing_templates(wfsetch: dict[int, dict[int, ChannelWs]], template_outputdir: str, detector: List[str], dry_run: bool = False):
+
+    # Delete stale templates only if a DIFFERENT run exists for the same channel
+    removed = []
+
+    ep = list(wfsetch.keys())[0]
+
+    for ch in wfsetch[ep].keys():
+        run_num = list(wfsetch[ep][ch].runs)[0]
+        module = getModuleName(ep, ch)
+        if module in detector:
+            ch_label = __template_module_name(ep, ch)
+            stale = glob(template_outputdir + f"template_*_{ch_label}.txt")
+            for old_file in stale:
+                # Extract run number from filename e.g. "template_40807_C6_1.txt" -> 40807
+                old_run = int(os.path.basename(old_file).split("_")[1])
+                if old_run != run_num: # only delete if different run
+                    if not dry_run:
+                        os.remove(old_file)
+                    removed.append(os.path.basename(old_file))
+    for f in sorted(removed, key=lambda x: x.split("_", 2)[2]):
+        if dry_run:
+            print(f"Would remove stale template: {f}")
         else:
-            avg_norm = avg
-        
-        key = f"{endpoint}-{uch.channel}"
-        module_name = dict_uniqch_to_module.get(key, None)
+            print(f"Removed stale template: {f}")
 
-        if module_name is None:
-            print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
+def __generate_templates_info(wfsetch: dict[int, dict[int, ChannelWs]],
+                                  info_file:str,
+                                  detector: List[str],
+                                  peaks: dict[tuple[int,int], float]
+                                  ) -> dict[tuple[str,int], tuple[str,int,float]]:
+
+    data = {}
+
+    ep = list(wfsetch.keys())[0]
+    for ch in wfsetch[ep].keys():
+        run_num = list(wfsetch[ep][ch].runs)[0]
+        module = getModuleName(ep, ch)
+        if module in detector:
+            wfs = wfsetch[ep][ch]
+            endpoint_ch = f"{ep}-{ch}"
+            peak_ch = peaks[(ep,ch)]
+            data[(endpoint_ch, run_num)] = (module, len(wfs.waveforms), peak_ch)
+
+    if not os.path.exists(info_file):
+        return data
+
+    with open(info_file, "r") as f:
+        lines = f.readlines()
+        lines = [ line for line in lines if line.strip() ] 
+        for line in lines[1:]:  # Skip header line
+            # Split by comma to get the main parts
+            parts = line.split(", ")
+            if len(parts) >= 4:
+                # The first part contains "Module endpoint-channel"
+                module_and_endpointch = parts[0].strip()
+                # Split to separate module from endpoint-channel
+                split_parts = module_and_endpointch.rsplit(" ", 1)
+                split_parts = [ p.strip() for p in split_parts ]
+                if len(split_parts) == 2:
+                    module = split_parts[0]
+                    endpoint_ch = split_parts[1]
+                    run_num = int(parts[1])
+                    waveforms = int(parts[2])
+                    peak_ch = float(parts[3])
+                    if (endpoint_ch, run_num) not in data:
+                        data[(endpoint_ch, run_num)] = (module, waveforms, peak_ch)
+
+    return data
+
+
+def __yieldTemplateInfo(existing_data: dict[tuple[str,int], tuple[str,int,float]]):
+    for (endpoint_ch, run_num), (module, waveforms, peak_ch) in sorted(existing_data.items(), key=lambda x: x[1][0]):
+        yield f"{module} {endpoint_ch}, {run_num}, {waveforms}, {peak_ch:.1f}"
+
+
+def __savewaveforms(wfsetch: dict[int, dict[int, ChannelWs]],
+                    template_outputdir: str,
+                    detector: List[str],
+                    templates: dict[int, dict[int, np.ndarray]],
+                    dry_run: bool = False
+                    ):
+    ep = list(wfsetch.keys())[0]
+    for ch in wfsetch[ep].keys():
+        module_name = getModuleName(ep, ch)
+        if module_name not in detector:
             continue
-
-        if save:
-            # C1(1)
-            if module_name.startswith ("P"):
-                module_for_title = module_name[0]
-                channel_for_title = module_name[1:]
-            else:
-                module_for_title = module_name[:2]
-                channel_for_title = module_name[3]
-            
-            filename = f"template_{run}_{module_for_title}_{channel_for_title}.txt"
-            
-            filepath = os.path.join(save_dir, filename)
-
+        run = list(wfsetch[ep][ch].runs)[0]
+        # C1(1)
+        if module_name.startswith ("P"):
+            module_for_title = module_name[0]
+            channel_for_title = module_name[1:]
+        else:
+            module_for_title = module_name[:2]
+            channel_for_title = module_name[3]
+        
+        filename = f"template_{run}_{module_for_title}_{channel_for_title}.txt"
+        
+        filepath = os.path.join(template_outputdir, filename)
+        
+        if dry_run:
+            print(f"Dry run: Would save template for module {module_name}: {ep}-{ch} to {filepath}")
+        else:
             np.savetxt(
                 filepath,
-                avg_norm,
+                templates[ep][ch],
                 fmt="%.9e"
             )
 
@@ -752,150 +832,55 @@ def plot_averages(fig:go.Figure,
                 print(f"File saved: {filepath}")
             else:
                 print(f"Failed to save: {filepath}")
-        
-        fig.add_trace(
-            go.Scatter(
-                x = time,
-                y = avg_norm,
-                mode = "lines",
-            ),
-            row=row, col=col
-        )
 
-        if subplot_idx == 1:
-            xref = "x domain"
-            yref = "y domain"
-        else:
-            xref = f"x{subplot_idx} domain"
-            yref = f"y{subplot_idx} domain"
+def save_templates(wfsetch: dict[int, dict[int, ChannelWs]],
+                   template_name:str,
+                   cutyaml:str,
+                   detector: List[str],
+                   templates: dict[int, dict[int, np.ndarray]],
+                   peaks: dict[tuple[int,int], float],
+                   dry_run: bool = False
+                   ):
+    import waffles
+    if not template_name:
+        print("No template name provided, skipping template saving.")
+        return
 
-        fig.add_annotation(
-            x=0.98,
-            y=0.95,
-            xref=xref,
-            yref=yref,
-            text=(
-                f"{module_name}<br>"
-            ),
-            showarrow=False,
-            align="left",
-            font=dict(size=11),
-            bgcolor="rgba(255,255,255,0.7)"
-        )
+    if len(wfsetch.keys()) > 1:
+        print(f"Multiple endpoints found in the waveform set. Expected only one. Found endpoints: {list(wfsetch.keys())}")
+        return
+    ep = list(wfsetch.keys())[0]
 
-    for row in range(1, max_row + 1):
-        fig.update_yaxes(title_text="Amplitude [ADC]", row=row, col=1)
+    template_outputdir = waffles.__path__[0] + f"/np02_data/templates/{template_name}/"
 
-    for col in range(1, max_col + 1):
-        fig.update_xaxes(title_text="Time [ticks]", row=max_row, col=col)
+    available_modules = [ getModuleName(ep, ch) for ch in wfsetch[ep].keys() ]
+    detector = expand_modules(detector, available_modules)
 
-def plot_mpv_waveforms(
-                        fig:go.Figure, 
-                        g:ChannelWsGrid, 
-                        calibration_data: Optional[dict] = None, 
-                        save: bool = False, 
-                        save_dir: Optional[str] = None,
-                        maxfev = 8000
-                        ):
 
-    """
-    Plot normalized MPV waveforms for each channel in a ChannelWsGrid.
-    
-    """
-    if save:
-        if save_dir is None:
-            raise ValueError("save_dir must be specified")
-        os.makedirs(save_dir, exist_ok=True)
-    
-    max_row, max_col = 0, 0
-    ncols = len(g.ch_map.data[0])
-    
-    for (row, col), uch in np.ndenumerate(g.ch_map.data):
-        row += 1
-        col += 1
-        max_row = max(max_row, row)
-        max_col = max(max_col, col)
-        subplot_idx = (row - 1) * ncols + col
-        
-        if str(uch) not in dict_uniqch_to_module:
-            continue
-        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
-            continue
-        
-        print(f"Processing channel {uch.channel}...")
-        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
-        
-        fit_info = compute_mpv_waveforms(wfch, maxfev=maxfev)
-        mpv_waveform = fit_info["mpv"]
-        time = np.arange(len(mpv_waveform))
-        ch = uch.channel
-        run = list(wfch.runs)[0]
-        
-        peak_mpv = np.nanmax(mpv_waveform)
-        
-        if peak_mpv == 0 or np.isnan(peak_mpv):
-            print(f"Zero or NaN peak for channel {ch}")
-            continue
+    __remove_existing_templates(wfsetch, template_outputdir, detector, dry_run=dry_run)
 
-        if calibration_data:
-            if ch not in calibration_data[uch.endpoint]:
-                print(f"Channel {ch} not found in calibration file")
-                continue
-            spe_amp = calibration_data[uch.endpoint][ch]["SpeAmpl"]
-            mpv_norm = mpv_waveform * (spe_amp / peak_mpv)
-        else:
-            mpv_norm = mpv_waveform
-        
-        key = f"{uch.endpoint}-{uch.channel}"
-        module_name = dict_uniqch_to_module.get(key, None)
-        
-        if module_name is None:
-            print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
-            continue
-        
-        if save:
-            module_for_title = module_name[:2]
-            channel_for_title = module_name[3]
-            filename = f"template_{run}_{module_for_title}_{channel_for_title}.txt"
-            filepath = os.path.join(save_dir, filename)
-            np.savetxt(filepath, mpv_norm, fmt="%.9e")
-            
-            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                print(f"File saved: {filepath}")
-            else:
-                print(f"Failed to save: {filepath}")
-        
-        fig.add_trace(
-            go.Scatter(
-                x=time,
-                y=mpv_norm,
-                mode="lines",
-                showlegend=False
-            ),
-            row=row, col=col
-        )
-        
-        if subplot_idx == 1:
-            xref = "x domain"
-            yref = "y domain"
-        else:
-            xref = f"x{subplot_idx} domain"
-            yref = f"y{subplot_idx} domain"
-        
-        fig.add_annotation(
-            x=0.98,
-            y=0.95,
-            xref=xref,
-            yref=yref,
-            text=f"{module_name}<br>",
-            showarrow=False,
-            align="left",
-            font=dict(size=11),
-            bgcolor="rgba(255,255,255,0.7)"
-        )
-    
-    for row in range(1, max_row + 1):
-        fig.update_yaxes(title_text="Amplitude [ADC]", row=row, col=1)
-    for col in range(1, max_col + 1):
-        fig.update_xaxes(title_text="Time [ticks]", row=max_row, col=col)
+    dettype = "membrane" if ep == 107 else "cathode" if ep == 106 else "pmt"
+
+    info_file = template_outputdir + f"wfdetails_{dettype}.info"
+
+    existing_data = __generate_templates_info(wfsetch, info_file, detector, peaks)
+
+    if dry_run and existing_data:
+        print("Dry run mode: Existing templates info")
+        for template_info in __yieldTemplateInfo(existing_data):
+            print(template_info)
+
+    if not dry_run:
+        Path(template_outputdir).mkdir(parents=True, exist_ok=True)
+        # Write back to file
+        with open(info_file, "w") as f:
+            f.write("Module, endpoint-channel, run number, # of waveforms, amplitude(ADC)\n")
+            for template_info in __yieldTemplateInfo(existing_data):
+                f.write(f"{template_info}\n")
+
+        with open(template_outputdir+"cuts_used.yaml", "w") as f:
+                with open(cutyaml, "r") as fcuts:
+                    f.write(fcuts.read())
+
+    __savewaveforms(wfsetch, template_outputdir, detector, templates, dry_run=dry_run)
 
