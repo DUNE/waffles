@@ -16,7 +16,12 @@ from scipy.stats import skewnorm
 from waffles.utils.numerical_utils import skewed_gaussian, fit_skewed_gaussian, compute_mpv_waveforms
 
 
-def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None, rise_fall:bool = True):
+def plot_averages_w_peaks_rise_fall(peaks_all, 
+                                    fig:go.Figure, 
+                                    g:ChannelWsGrid, 
+                                    x_range=None, 
+                                    rise_fall:bool = True
+                                   ):
 
     """
     Plot average waveforms for each channel in a ChannelWsGrid with peak and rise/fall indicators.
@@ -50,7 +55,6 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
     """
 
     ncols = len(g.ch_map.data[0])  
-    max_row, max_col = 0, 0
 
     fig.data = []
     fig.layout.annotations = []
@@ -58,8 +62,6 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
         row += 1
         col += 1
-        max_row = max(max_row, row)
-        max_col = max(max_col, col)
 
         subplot_idx = (row - 1) * ncols + col
         
@@ -160,11 +162,11 @@ def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x
         if x_range is not None:
             fig.update_xaxes(range=[x_min, x_max])
 
-    for row in range(1, max_row + 1):
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        row += 1
+        col += 1
         fig.update_yaxes(title_text="Amplitude [ADC]", row=row, col=1)
-
-    for col in range(1, max_col + 1):
-        fig.update_xaxes(title_text="Time [ticks]", row=max_row, col=col)
+        fig.update_xaxes(title_text="Time [ticks]", row=row, col=col)
         
     return fig
 
@@ -259,114 +261,3 @@ def plot_tick_distributions_with_fit(fig:go.Figure, g:ChannelWsGrid, tick_index)
         fig.update_yaxes(title_text="Count", row=row, col=1)
     for col in range(1, max_col + 1):
         fig.update_xaxes(title_text="ADC", row=max_row, col=col)
-        
-        
-
-def plot_mpv_waveforms(
-                        fig:go.Figure, 
-                        g:ChannelWsGrid, 
-                        calibration_data: Optional[dict] = None, 
-                        save: bool = False, 
-                        save_dir: Optional[str] = None
-                        ):
-
-    """
-    Plot normalized MPV waveforms for each channel in a ChannelWsGrid.
-    
-    """
-    if save:
-        if save_dir is None:
-            raise ValueError("save_dir must be specified")
-        os.makedirs(save_dir, exist_ok=True)
-    
-    max_row, max_col = 0, 0
-    ncols = len(g.ch_map.data[0])
-    
-    for (row, col), uch in np.ndenumerate(g.ch_map.data):
-        row += 1
-        col += 1
-        max_row = max(max_row, row)
-        max_col = max(max_col, col)
-        subplot_idx = (row - 1) * ncols + col
-        
-        if str(uch) not in dict_uniqch_to_module:
-            continue
-        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
-            continue
-        
-        print(f"Processing channel {uch.channel}...")
-        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
-        
-        fit_info = compute_mpv_waveforms(wfch)
-        mpv_waveform = fit_info["mpv"]
-        time = np.arange(len(mpv_waveform))
-        ch = uch.channel
-        run = list(wfch.runs)[0]
-        
-        peak_mpv = np.nanmax(mpv_waveform)
-        
-        if peak_mpv == 0 or np.isnan(peak_mpv):
-            print(f"Zero or NaN peak for channel {ch}")
-            continue
-
-        if calibration_data:
-            if ch not in calibration_data[uch.endpoint]:
-                print(f"Channel {ch} not found in calibration file")
-                continue
-            spe_amp = calibration_data[uch.endpoint][ch]["SpeAmpl"]
-            mpv_norm = mpv_waveform * (spe_amp / peak_mpv)
-        else:
-            mpv_norm = mpv_waveform
-        
-        key = f"{uch.endpoint}-{uch.channel}"
-        module_name = dict_uniqch_to_module.get(key, None)
-        
-        if module_name is None:
-            print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
-            continue
-        
-        if save:
-            module_for_title = module_name[:2]
-            channel_for_title = module_name[3]
-            filename = f"template_{run}_{module_for_title}_{channel_for_title}.txt"
-            filepath = os.path.join(save_dir, filename)
-            np.savetxt(filepath, mpv_norm, fmt="%.9e")
-            
-            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                print(f"File saved: {filepath}")
-            else:
-                print(f"Failed to save: {filepath}")
-        
-        fig.add_trace(
-            go.Scatter(
-                x=time,
-                y=mpv_norm,
-                mode="lines",
-                showlegend=False
-            ),
-            row=row, col=col
-        )
-        
-        if subplot_idx == 1:
-            xref = "x domain"
-            yref = "y domain"
-        else:
-            xref = f"x{subplot_idx} domain"
-            yref = f"y{subplot_idx} domain"
-        
-        fig.add_annotation(
-            x=0.98,
-            y=0.95,
-            xref=xref,
-            yref=yref,
-            text=f"{module_name}<br>",
-            showarrow=False,
-            align="left",
-            font=dict(size=11),
-            bgcolor="rgba(255,255,255,0.7)"
-        )
-    
-    for row in range(1, max_row + 1):
-        fig.update_yaxes(title_text="Amplitude [ADC]", row=row, col=1)
-    for col in range(1, max_col + 1):
-        fig.update_xaxes(title_text="Time [ticks]", row=max_row, col=col)
