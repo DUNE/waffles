@@ -10,6 +10,7 @@ from matplotlib.figure import Figure
 from typing import Optional
 import os
 from glob import glob
+from importlib.resources import files
 
 from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -841,7 +842,6 @@ def save_templates(wfsetch: dict[int, dict[int, ChannelWs]],
                    peaks: dict[tuple[int,int], float],
                    dry_run: bool = False
                    ):
-    import waffles
     if not template_name:
         print("No template name provided, skipping template saving.")
         return
@@ -851,7 +851,8 @@ def save_templates(wfsetch: dict[int, dict[int, ChannelWs]],
         return
     ep = list(wfsetch.keys())[0]
 
-    template_outputdir = waffles.__path__[0] + f"/np02_data/templates/{template_name}/"
+    wafflespath = str(files("waffles"))
+    template_outputdir = wafflespath + f"/np02_data/templates/{template_name}/"
 
     available_modules = [ getModuleName(ep, ch) for ch in wfsetch[ep].keys() ]
     detector = expand_modules(detector, available_modules)
