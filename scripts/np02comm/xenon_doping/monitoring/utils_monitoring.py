@@ -289,7 +289,7 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
         draw_injections_matplotplib(df_injections)
     plt.tight_layout()
 
-def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None, width=1200, heigth=600):
+def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None, width=1200, heigth=600, autosymbol=True, color = ""):
     if selection:
         df = selection(df)
     if not fig:
@@ -301,10 +301,15 @@ def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_ra
         name = f"{list_of_modules[0]}: ({ep}-{ch})"
 
     dictmarker = dict(size=8)
-    if ep in endpoint_channel_symbol and ch in endpoint_channel_symbol[ep]:
-        dictmarker['symbol'] = endpoint_channel_symbol[ep][ch]
-    if ep in endpoint_channel_colormap and ch in endpoint_channel_colormap[ep]:
-        dictmarker['color'] = endpoint_channel_colormap[ep][ch]
+    if not autosymbol:
+        if ep in endpoint_channel_symbol and ch in endpoint_channel_symbol[ep]:
+            dictmarker['symbol'] = endpoint_channel_symbol[ep][ch]
+    if not color:
+        if ep in endpoint_channel_colormap and ch in endpoint_channel_colormap[ep]:
+            dictmarker['color'] = endpoint_channel_colormap[ep][ch]
+    else:
+        dictmarker['color'] = color
+
     fig.add_trace(go.Scatter(x=df[x], y=df[y], mode='markers', name=name, marker=dictmarker))
     labelx, labely = define_labels(x, y)
     fig.update_layout(template="plotly_white",
