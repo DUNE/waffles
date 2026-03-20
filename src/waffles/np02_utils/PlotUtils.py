@@ -24,7 +24,6 @@ from waffles.plotting.plot import plot_ChannelWsGrid, plot_CustomChannelGrid
 from waffles.plotting.plot import plot_CalibrationHistogram
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
 from waffles.utils.baseline.baseline import SBaseline
-from waffles.utils.numerical_utils import average_wf_ch, skewed_gaussian, fit_skewed_gaussian, compute_mpv_waveforms
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, pmt_endpoint, membrane_endpoint
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map, cathode_endpoint
 from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch, getModuleName, expand_modules 

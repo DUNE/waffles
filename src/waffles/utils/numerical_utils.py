@@ -688,13 +688,12 @@ def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
 def skewed_gaussian(x, A, mu, sigma, alpha):
     return A * skewnorm.pdf(x, a=alpha, loc=mu, scale=sigma)
 
-def fit_skewed_gaussian(adc_values, maxfev=5000):
+def fit_skewed_gaussian(adc_values, maxfev=5000, min_bins = 75):
     
     minb, maxb = np.quantile(adc_values, [0.001, 0.999])
     adc_values_filtered = adc_values[(adc_values > minb) & (adc_values < maxb)]
 
-    nbins = min(int(np.sqrt(len(adc_values_filtered))), 75)
-    #nbins = 150
+    nbins = min(int(np.sqrt(len(adc_values_filtered))), min_bins)
     bins = np.linspace(minb, maxb, nbins + 1)
     counts, bins_edges = np.histogram(adc_values_filtered, bins=bins)
     binscenter = (bins_edges[1:] + bins_edges[:-1]) * 0.5
@@ -720,7 +719,7 @@ def fit_skewed_gaussian(adc_values, maxfev=5000):
            'sigma': sigma
             } 
 
-def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick=None, maxfev=5000):
+def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick=None, maxfev=5000, min_bins=75) -> dict:
     """
     Compute MPV at each tick for a channel.
     Possibility to specify a single tick.
@@ -751,7 +750,7 @@ def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick
             mpv_waveform[i] = np.nan
             continue
 
-        ret = fit_skewed_gaussian(adc_values, maxfev)
+        ret = fit_skewed_gaussian(adc_values, maxfev, min_bins)
 
         sigma[i] = ret['sigma']
         mpv_waveform[i] = ret['mpv']

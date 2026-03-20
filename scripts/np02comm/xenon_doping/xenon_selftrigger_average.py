@@ -8,12 +8,13 @@ import matplotlib.pyplot as plt
 import os
 from pathlib import Path
 import argparse
+import re
 
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
-from waffles.utils.numerical_utils import average_wf_ch
+from waffles.utils.numerical_utils import average_wf_ch, compute_mpv_waveforms
 from waffles.utils.selector_waveforms import WaveformSelector
 from waffles.np02_utils.AutoMap import dict_uniqch_to_module, dict_module_to_uniqch, strUch, ordered_channels_membrane, ordered_channels_cathode, getModuleName
 from waffles.np02_utils.PlotUtils import runBasicWfAnaNP02, plot_detectors, wfset_remove_bad_baselines
@@ -23,7 +24,50 @@ from utils import DEFAULT_RESPONSE, PATH_XE_AVERAGES
 from utils import make_standard_analysis_name, list_of_ints
 
 
-def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, nfiles=None, channels=None, dryrun=False):
+def __generate_readme(wfsetch, endpoint, timestamps, averages_dir):
+
+    readmefile = averages_dir / "README.md"
+    ret = []
+    channels_info = {}
+
+    for ch, wfs in wfsetch.items():
+        channels_info[ch] = f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: nwaveforms {len(wfs.waveforms)} timestamp {timestamps[ch]} ticks\n"
+
+    if readmefile.exists():
+        pattern = r'(\S+)\s+(\d+)-(\d+):\s+nwaveforms\s+(\d+)\s+timestamp\s+(\d+)'
+        with open(readmefile, 'r') as f:
+            lines = f.readlines()
+            lines = [ l.strip() for l in lines if l[0] in ["C", "M", "P"]]
+            for line in lines:
+                match = re.match(pattern, line)
+                if match:
+                    ep = int(match.group(2))
+                    if ep != endpoint:
+                        raise ValueError(f"Endpoint in README {ep} does not match the current endpoint {endpoint}.")
+                    ch = int(match.group(3))
+                    if ch not in wfsetch:
+                        channels_info[ch] = line +"\n"
+
+    channels_info = { k: v for k, v in sorted(channels_info.items(), key=lambda x: getModuleName(endpoint, x[0])) }
+    for ch, info in channels_info.items():
+        ret.append(info)
+    return ret
+
+def create_response(wfsetch, avgmethod="mean", maxfev=100000, specific_tick=None):
+    averages = {}
+    timestamps = {}
+    for ch, wfs in wfsetch.items():
+        if avgmethod == "mean":
+            averages[ch] = average_wf_ch(wfs,show_progress=True)
+        elif avgmethod == "mpv":
+            fit_info = compute_mpv_waveforms(wfs, maxfev=maxfev, specific_tick=specific_tick)
+            averages[ch] = fit_info["mpv"]
+
+        timestamps[ch] = sorted( [ wf.timestamp for wf in wfs.waveforms ] )[0]
+    return averages, timestamps
+
+
+def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, nfiles=None, channels=None, avgmethod="mean", dryrun=False):
 
     if channels is not None:
         saveplots = False 
@@ -63,16 +107,14 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
 
     wfsetch = { k: v for k, v in sorted(wfsetch.items(), key=lambda x: getModuleName(endpoint, x[0])) }
 
-    averages = {}
-    timestamps = {}
-    for ch, wfs in wfsetch.items():
-        averages[ch] = average_wf_ch(wfs,show_progress=True)
-        timestamps[ch] = sorted( [ wf.timestamp for wf in wfs.waveforms ] )[0]
+    averages, timestamps = create_response(wfsetch, avgmethod=avgmethod)
 
     # Create with permission 775 to allow group members to read and write the files
     averages_dir.mkdir(exist_ok=True, parents=True)
     averages_dir.chmod(0o775) # apparently it needs to be done after
     averages_dir.parent.chmod(0o775)
+
+    channels_info = __generate_readme(wfsetch, endpoint, timestamps, averages_dir)
 
     # Create a README file with some information about the templates
     # Keep permisson restricted, so there is no overlap with other users
@@ -81,8 +123,8 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
         f.write(f"Run: {run}\n")
         f.write(f"Detector type: {dettype}\n")
         f.write(f"Number of waveforms averaged in each channel:\n")
-        for ch, wfs in wfsetch.items():
-            f.write(f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: nwaveforms {len(wfs.waveforms)} timestamp {timestamps[ch]} ticks\n")
+        for line in channels_info:
+            f.write(line)
 
     # Saves the yaml cuts used to select the waveforms as cuts_used.yaml in the same directory
     with open(averages_dir / "cuts_used.yaml", "w") as f:
@@ -130,6 +172,7 @@ if __name__ == "__main__":
     argp.add_argument("--cutyaml", type=str, default="cuts.yaml", help="YAML file containing the cuts to apply to the waveforms.")
     argp.add_argument("--saveplots", action="store_true", help="Whether to save the persistence plots of the waveforms.")
     argp.add_argument("--analysisname", type=str, default=DEFAULT_RESPONSE, help="Name of the analysis, used to create a subdirectory in the output directory.")
+    argp.add_argument("--average-method", type=str, default="mean", choices=["mean", "mpv"], help="Method to use for averaging the waveforms.")
     argp.add_argument("--nfiles", type=int, default=None, help="Maximum number of files to load for each channel.")
     argp.add_argument("--channels", nargs="+", type=int, default=[], help="List of channels to process. If not specified, all channels will be processed.\
         \n\tFormat: endpoint+channel, e.g. 10600 for endpoint 106 channel 0.")
@@ -145,6 +188,7 @@ if __name__ == "__main__":
     saveplots = args.saveplots
     analysisname = args.analysisname
     channels = args.channels
+    avgmethod = args.average_method
     nfiles = args.nfiles
 
     dettype = "membrane" if dettype == "m" else "cathode" if dettype == "c" else "pmt"
@@ -162,4 +206,4 @@ if __name__ == "__main__":
         channels = None
         
     for run in runs:
-        main(run, dettype, datadir, analysisname, nwaveforms, outputdir=outputdir, cutyaml=cutyaml, saveplots=saveplots, nfiles=nfiles, channels=channels, dryrun=args.dryrun)
+        main(run, dettype, datadir, analysisname, nwaveforms, outputdir=outputdir, cutyaml=cutyaml, saveplots=saveplots, nfiles=nfiles, channels=channels, avgmethod=avgmethod, dryrun=args.dryrun)
