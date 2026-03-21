@@ -96,7 +96,7 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
     pattern = r'(\S+)\s+(\d+)-(\d+):\s+nwaveforms\s+(\d+)\s+timestamp\s+(\d+)'
     with open(readmefile, 'r') as f:
         lines = f.readlines()
-        lines = [ l.strip() for l in lines if l[0] in ["C", "M"]]
+        lines = [ l.strip() for l in lines if l[0] in ["C", "M", "P"]]
         for line in lines:
             match = re.match(pattern, line)
             if match:

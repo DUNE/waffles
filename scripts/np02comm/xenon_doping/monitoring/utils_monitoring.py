@@ -107,8 +107,6 @@ def load_database(load_hv:bool = False) -> pd.DataFrame:
 def load_injections():
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXuwLxht-9hnNHvNCYqQRQulTMk7ymE1gRTpo1LGHfey4HGaGqz0CqIFo8IBYevtVXsqj_9aitUD5t/pub?output=xlsx"
     df = pd.read_excel(url, sheet_name="Injections")
-    df['start_time'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['start'].astype(str))
-    df['end_time'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['end'].astype(str))
     return df
     
 
@@ -165,11 +163,11 @@ def draw_injections_matplotplib(df:pd.DataFrame,):
     xmin = mdate.num2date(xmin).replace(tzinfo=None)
     xmax = mdate.num2date(xmax).replace(tzinfo=None)
     for _, row in df.iterrows():
-        if row['end_time'] < xmin or row['start_time'] > xmax:
+        if row['end'] < xmin or row['start'] > xmax:
             continue  # outside the plot range, skip
-        plt.axvspan(row.loc['start_time'], row.loc['end_time'], alpha=0.1, color='grey')
+        plt.axvspan(row.loc['start'], row.loc['end'], alpha=0.1, color='grey')
         plt.text(
-            row['end_time']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*0.995,
+            row['end']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*0.995,
             f"{row['ppm']:.01f} ppm",
             fontsize=12, color='black', va='top'
         )
@@ -188,14 +186,14 @@ def draw_injections_plotly(df: pd.DataFrame, fig: go.Figure):
             return  # no data, nothing to do
         xmin, xmax = min(x_values), max(x_values)
     for _, row in df.iterrows():
-        if row['end_time'] < xmin or row['start_time'] > xmax:
+        if row['end'] < xmin or row['start'] > xmax:
             continue  # outside the plot range, skip
         fig.add_vrect(
-            x0=row['start_time'], x1=row['end_time'],
+            x0=row['start'], x1=row['end'],
             fillcolor='grey', opacity=0.1, line_width=0,
         )
         fig.add_annotation(
-            x=row['end_time'] + pd.Timedelta("00:05:00"),
+            x=row['end'] + pd.Timedelta("00:05:00"),
             y=1,  # in paper coordinates (top of plot)
             yref='paper',
             text=f"{row['ppm']:.01f} ppm",
