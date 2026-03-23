@@ -571,7 +571,7 @@ def single_vgain_analysis(
     vgain: int,
     dict_params,
     period: int,  # 2025 o 2026
-    input_folder_data: str = "",  # obbligatorio se period == 2026
+    input_file: str = "",  # obbligatorio se period == 2026
     show: bool = False,
     save_pdf: bool = False,
     federico_limits: bool = False,
@@ -594,9 +594,9 @@ def single_vgain_analysis(
         )
 
     elif period == 2026:
-        if not input_folder_data:
-            raise ValueError("Per period=2026 devi specificare `input_folder_data`")
-        filename = input_folder_data
+        if not input_file:
+            raise ValueError("Per period=2026 devi specificare `input_file`")
+        filename = input_file
     else:
         raise ValueError("`period` deve essere 2025 oppure 2026")
 
@@ -624,7 +624,7 @@ def single_vgain_analysis(
 
     mean_wf = wfset_filtered.compute_mean_waveform()
 
-    aux_limits = get_pulse_window_limits(adcs_array = -mean_wf.adcs, baseline = 0, deviation_from_baseline = dict_params['deviation_from_baseline'], get_zero_crossing_upper_limit = False)
+    aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation = dict_params['deviation'])
     if federico_limits:
         aux_limits = (382, 406)
 
@@ -755,7 +755,7 @@ def vgain_analysis_parameters(vgain):
     dict[str, float|int]
         Keys:
         - 'baseline_timeticks_limit'
-        - 'deviation_from_baseline' 
+        - 'deviation' 
         - 'heatmap_min'
         - 'heatmap_max'
         - 'adcs_threshold'
@@ -792,11 +792,11 @@ def vgain_analysis_parameters(vgain):
     ch_span_fraction_around_peaks=0.05 
 
     baseline_timeticks_limit = 380
-    deviation_from_baseline = 0.6
+    deviation = 0.4
 
     return {
         'baseline_timeticks_limit': baseline_timeticks_limit,
-        'deviation_from_baseline': deviation_from_baseline,
+        'deviation': deviation,
         'heatmap_min': heatmap_min,
         'heatmap_max': heatmap_max,
         'adcs_threshold': adcs_threshold,
@@ -817,7 +817,7 @@ def channel_vgain_scan_analysis(
         bias: str, 
         vgain_list,
         external_dict_paramas: Optional[dict] = None,
-        federico_limits: bool = True,
+        federico_limits: bool = False,
         federico_conversion: bool = True,
         show: bool = False,
         save_pdf: bool = True,
@@ -876,3 +876,62 @@ def channel_vgain_scan_analysis(
             save_pdf = save_pdf
         )
         print("\ndone")
+
+
+##########################################################################################################
+
+
+def my_integration_window(
+    adcs_array: np.ndarray,
+    deviation: float,
+    lower_limit_window: int = 10
+) -> Tuple[int, int]:
+    """This function takes an unidimensional numpy array
+    representing the pulse signal, in ADCs, coming from an SiPM.
+    It returns a tuple of two integers representing the lower
+    and upper limits, respectively, of the SiPM pulse in the
+    given array. The lower and upper limits are computed looking
+    at the points at which adcs reach the threshold = deviation*peak
+
+    Parameters
+    ----------
+    adcs_array: numpy.ndarray
+        The input signal to analyze
+    deviation: float
+        It must be greater than 0.0 and smaller than 1.0. 
+
+    lower_limit_window: int = 10
+        Window before the peak where search for lower limit
+        
+    Returns
+    -------
+    Tuple[int, int]
+        A tuple containing the lower and upper limits of the
+        pulse window.
+    """
+    
+    idx_max = np.argmax(adcs_array)
+    peak = adcs_array[idx_max]
+    threshold = deviation * peak
+
+    start = idx_max - lower_limit_window
+    lower_window = adcs_array[start:idx_max]
+
+    candidates = np.where(lower_window >= threshold)[0]
+    if len(candidates) > 0:
+        lower_limit = start + candidates[0]
+    else:
+        lower_limit = start  
+
+    upper_window = adcs_array[idx_max:]
+    candidates = np.where(upper_window <= threshold)[0]
+    if len(candidates) > 0:
+        upper_limit = idx_max + candidates[0]
+    else:
+        upper_limit = len(adcs_array) - 1  
+
+    return (lower_limit, upper_limit)
+
+
+
+##########################################################################################################
