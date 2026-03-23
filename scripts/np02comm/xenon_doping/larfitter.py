@@ -243,6 +243,11 @@ def main(run:int = 39510,
 
     allparams:dict = allparamsClass.__dict__
 
+    if run > 43418:
+        if method == "conv":
+            allparams['cfitparams']['scinttype'] = "xe"
+        elif method == "deconv":
+            allparams['deconvparams']['scinttype'] = "xe"
 
     templates = ch_read_template(template_folder=template)
 
@@ -317,6 +322,7 @@ def main(run:int = 39510,
                         cfit[ep][ch] = DeconvFitterVDWrapper(**allparams['deconvparams'])
                     else:
                         raise ValueError(f"Invalid method {method}. Valid methods are 'conv' and 'deconv'.")
+
 
 
     if len(dict_ep_ch_with_both_signals) == 0:
