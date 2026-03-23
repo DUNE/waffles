@@ -64,7 +64,7 @@ def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, refh
         return 
     for col in cols:
         if relative_to == "ppm":
-            baseline = df[df[relative_to] == ref_value & df['HV'] == refhv_when_relative_ppm ].groupby('module')[col].mean()
+            baseline = df[(df[relative_to] == ref_value) & (df['HV'] == refhv_when_relative_ppm) ].groupby('module')[col].mean()
         else:
             baseline = df[df[relative_to] == ref_value ].groupby('module')[col].mean()
         df[f'{col} relative'] = df[col] / df['module'].map(baseline) # type: ignore
