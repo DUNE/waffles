@@ -17,6 +17,8 @@ from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.np02_utils.AutoMap import getModuleName, dict_module_to_uniqch, expand_modules
 from waffles.np02_utils.PlotUtils import endpoint_channel_colormap, modules_colormap
 
+black_list_pmt = [ 43164,43169,43170,43171,43172,43173,43174,43175,43176,43215,43222,43283,43287,43288 ]
+
 dict_axes_label_to_data = {
         'time': r'Time CET',
         't1[ns]': r'$\tau_\text{fast}\, \text{[ns]}$',
@@ -56,11 +58,16 @@ def get_style_module(modulename:str) -> dict:
 def define_labels(x, y):
     return dict_axes_label_to_data.get(x, x), dict_axes_label_to_data.get(y, y)
 
-def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, cols:list[str] = ['t1[ns]', 't3[ns]', 'td[ns]', 'fp', 'fs', 't0[ns]', 'sigma', 'chi2']) -> pd.DataFrame:
+def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, refhv_when_relative_ppm=0, cols:list[str] = ['t1[ns]', 't3[ns]', 'td[ns]', 'fp', 'fs', 't0[ns]', 'sigma', 'chi2']):
+    if df.empty:
+        print("DataFrame is empty. Cannot compute relative columns.")
+        return 
     for col in cols:
-        baseline = df[df[relative_to] == ref_value].groupby('module')[col].mean()
+        if relative_to == "ppm":
+            baseline = df[df[relative_to] == ref_value & df['HV'] == refhv_when_relative_ppm ].groupby('module')[col].mean()
+        else:
+            baseline = df[df[relative_to] == ref_value ].groupby('module')[col].mean()
         df[f'{col} relative'] = df[col] / df['module'].map(baseline) # type: ignore
-    return df
 
 
 def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['convolution', 'deconvolution'], load_hv:bool = False, how:MergeHow = 'inner') -> dict[str, pd.DataFrame]:
@@ -70,12 +77,16 @@ def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['c
         print(f"Loading {typeofana.upper()} ...")
         sufix = 'conv' if typeofana == "convolution" else 'deconv'
         dfres = load_fit_results(path_to_data=f"{path_with_analysis}/{analysisname}/{typeofana}", sufix=sufix, exists_ok=True)
+
         if dfres.empty:
             print(f"No fit results found for {typeofana} in {path_with_analysis}/{analysisname}/{typeofana}. Skipping this type.")
             continue
         df = pd.merge(dfres, xedb, on='run', how=how)
         c1 = set(dfres['run'].unique())
         c2 = set(xedb['run'].unique())
+
+        if not load_hv:
+            df = df.loc[~( df['run'].isin(black_list_pmt) & df['module'].str.startswith('P'))]
 
         if c1 - c2:
             print("Runs not in the database:", ','.join(list(map(str, c1 - c2))))
@@ -90,6 +101,7 @@ def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['c
         print("Runs with deconv results but no conv results:", ','.join(list(map(str, runsdeconv - runsconv))))
     if runsconv - runsdeconv:
         print("Runs with conv results but no deconv results:", ','.join(list(map(str, runsconv - runsdeconv))))
+
     return ret
 
 def load_database(load_hv:bool = False) -> pd.DataFrame:
@@ -287,7 +299,9 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
         draw_injections_matplotplib(df_injections)
     plt.tight_layout()
 
-def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None, width=1200, heigth=600, autosymbol=True, color = ""):
+def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None, width=1200, heigth=600, autosymbol=True, color:str = ""):
+    if df.empty:
+        return fig
     if selection:
         df = selection(df)
     if not fig:
@@ -299,7 +313,7 @@ def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_ra
         name = f"{list_of_modules[0]}: ({ep}-{ch})"
 
     dictmarker = dict(size=8)
-    if not autosymbol:
+    if autosymbol:
         if ep in endpoint_channel_symbol and ch in endpoint_channel_symbol[ep]:
             dictmarker['symbol'] = endpoint_channel_symbol[ep][ch]
     if not color:
@@ -326,6 +340,8 @@ def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_ra
 
 
 def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwargs):
+    if df.empty:
+        return
     available = df['module'].unique()
     df_injections = kwargs.pop('df_injections', None)
 
@@ -367,20 +383,22 @@ def load_module_images(path_to_data: str, run=None, modules:Union[None, list, st
             modules = [modules]
         all_png = glob(f"{path_to_data}/*_plot_run0{run}*.png")
         available = set()
-        pattern = re.compile(r"(C\d+_\d+|M\d+_\d+|P\d+)")  # Matches "C1_1", "M3_2", "P02", etc.
+        pattern = re.compile(r"(C\d+_\d+|M\d+_\d+|P_\d+)")  # Matches "C1_1", "M3_2", "P_02", etc.
 
         for file in all_png:
             match = pattern.search(os.path.basename(file))
             if match:
                 mod = match.group(1)           
-                mod = mod.replace("_", "(") + ")" 
+                if mod.startswith("C") or mod.startswith("M"):
+                    mod = mod.replace("_", "(") + ")" 
+                elif mod.startswith("P"):
+                    mod = mod.replace("_", "")
                 available.add(mod)
 
         expanded_modules = expand_modules(modules, list(available))
 
         expanded_filename_format = [
-            m.replace("(", "_").replace(")", "")
-            for m in expanded_modules
+            m.replace("(", "_").replace(")", "") if m.startswith("C") or m.startswith("M") else m.replace("P", "P_") for m in expanded_modules
         ]
 
         png_files = [
@@ -409,3 +427,4 @@ def show_images_grid(image_dict, forced_figsize=None):
         plt.gca().axis("off")
         plt.tight_layout()
         plt.show()
+

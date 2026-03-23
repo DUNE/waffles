@@ -31,7 +31,8 @@ def __generate_readme(wfsetch, endpoint, timestamps, averages_dir):
     channels_info = {}
 
     for ch, wfs in wfsetch.items():
-        channels_info[ch] = f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: nwaveforms {len(wfs.waveforms)} timestamp {timestamps[ch]} ticks\n"
+        if dict_uniqch_to_module.get(strUch(endpoint, ch), None) is not None:
+            channels_info[ch] = f"{dict_uniqch_to_module[strUch(endpoint, ch)]} {endpoint}-{ch}: nwaveforms {len(wfs.waveforms)} timestamp {timestamps[ch]} ticks\n"
 
     if readmefile.exists():
         pattern = r'(\S+)\s+(\d+)-(\d+):\s+nwaveforms\s+(\d+)\s+timestamp\s+(\d+)'

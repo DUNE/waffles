@@ -639,6 +639,28 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet,
 
     return fig, axs
 
+def plot_waveforms_wfset(wfset: WaveformSet,
+                         waveforms: dict[int, dict[int, np.ndarray]],
+                         line_color: str = '',
+                         detectors: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]] = [],
+                         rows=0,
+                         cols=0,
+                         fig = None,
+                         ):
+    detChMap = generate_ChannelMap(channels=detectors, rows=rows, cols=cols)
+    gridWs = ChannelWsGrid(detChMap, wfset)
+    if fig is None:
+        fig = psu.make_subplots(
+            rows=gridWs.ch_map.rows,
+            cols=gridWs.ch_map.columns,
+            subplot_titles=gridWs.titles,
+        )
+    plot_waveforms(fig, gridWs, waveforms, line_color=line_color)
+
+    return fig, gridWs
+
+
+
 def plot_waveforms(fig:go.Figure, 
                    g:ChannelWsGrid, 
                    waveforms: dict[int, dict[int, np.ndarray]],
