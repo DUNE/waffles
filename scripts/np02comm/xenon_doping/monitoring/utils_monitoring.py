@@ -69,6 +69,32 @@ def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, refh
             baseline = df[df[relative_to] == ref_value ].groupby('module')[col].mean()
         df[f'{col} relative'] = df[col] / df['module'].map(baseline) # type: ignore
 
+def __compare_runs(df_re:pd.DataFrame, df_xe:pd.DataFrame):
+    c1 = set(df_re['run'].unique())
+    c2 = set(df_xe['run'].unique())
+
+    if c1 - c2:
+        print("Runs not in the database:", ','.join(list(map(str, c1 - c2))))
+    if c2 - c1:
+        print("Missing runs to process:", ','.join(list(map(str, c2 - c1))))
+
+def check_health(dfres:pd.DataFrame, xedb:pd.DataFrame):
+    print(f"Number of runs in fit results: {len(dfres['run'].unique())}")
+    print(f"Number of runs in Xe database: {len(xedb['run'].unique())}")
+    __compare_runs(dfres, xedb)
+
+    df_membrane = dfres.loc[dfres['module'].str.startswith('M')]
+    df_cathode = dfres.loc[dfres['module'].str.startswith('C')]
+
+    print(f"\nChecking membrane for missing runs...")
+    __compare_runs(df_membrane, xedb)
+
+    print(f"\nChecking cathode for missing runs...")
+    __compare_runs(df_cathode, xedb)
+
+    print()
+
+
 
 def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['convolution', 'deconvolution'], load_hv:bool = False, how:MergeHow = 'inner') -> dict[str, pd.DataFrame]:
     ret = {}
@@ -81,17 +107,10 @@ def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['c
         if dfres.empty:
             print(f"No fit results found for {typeofana} in {path_with_analysis}/{analysisname}/{typeofana}. Skipping this type.")
             continue
-        df = pd.merge(dfres, xedb, on='run', how=how)
-        c1 = set(dfres['run'].unique())
-        c2 = set(xedb['run'].unique())
-
         if not load_hv:
-            df = df.loc[~( df['run'].isin(black_list_pmt) & df['module'].str.startswith('P'))]
-
-        if c1 - c2:
-            print("Runs not in the database:", ','.join(list(map(str, c1 - c2))))
-        if c2 - c1:
-            print("Missing runs to process:", ','.join(list(map(str, c2 - c1))))
+            dfres = dfres.loc[~( dfres['run'].isin(black_list_pmt) & dfres['module'].str.startswith('P'))]
+        df = pd.merge(dfres, xedb, on='run', how=how)
+        check_health(dfres, xedb)
         ret[sufix] = df.copy()
         print()
 
@@ -180,7 +199,7 @@ def draw_injections_matplotplib(df:pd.DataFrame,):
         plt.axvspan(row.loc['start'], row.loc['end'], alpha=0.1, color='grey')
         plt.text(
             row['end']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*0.995,
-            f"{row['ppm']:.01f} ppm",
+            f"{row['ppm']:.02f} ppm",
             fontsize=12, color='black', va='top'
         )
 
@@ -208,7 +227,7 @@ def draw_injections_plotly(df: pd.DataFrame, fig: go.Figure):
             x=row['end'] + pd.Timedelta("00:05:00"),
             y=1,  # in paper coordinates (top of plot)
             yref='paper',
-            text=f"{row['ppm']:.01f} ppm",
+            text=f"{row['ppm']:.02f} ppm",
             showarrow=False,
             font=dict(size=12, color='black'),
             yanchor='top'
