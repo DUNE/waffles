@@ -624,7 +624,7 @@ def single_vgain_analysis(
     wfset_filtered_meanwf = WaveformSet.from_filtered_WaveformSet(wfset_filtered, adcs_threshold_filter, time_range = [400,-1], adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
     mean_wf = wfset_filtered_meanwf.compute_mean_waveform()
 
-    aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation = dict_params['deviation'])
+    aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation_upper_limit=dict_params['deviation_upper_limit'])
     if federico_limits:
         aux_limits = (382, 406)
 
@@ -755,7 +755,7 @@ def vgain_analysis_parameters(vgain):
     dict[str, float|int]
         Keys:
         - 'baseline_timeticks_limit'
-        - 'deviation' 
+        - 'deviation_upper_limit' 
         - 'heatmap_min'
         - 'heatmap_max'
         - 'adcs_threshold'
@@ -796,7 +796,7 @@ def vgain_analysis_parameters(vgain):
 
     return {
         'baseline_timeticks_limit': baseline_timeticks_limit,
-        'deviation': deviation,
+        'deviation_upper_limit': deviation,
         'heatmap_min': heatmap_min,
         'heatmap_max': heatmap_max,
         'adcs_threshold': adcs_threshold,
@@ -883,7 +883,8 @@ def channel_vgain_scan_analysis(
 
 def my_integration_window(
     adcs_array: np.ndarray,
-    deviation: float,
+    deviation_upper_limit: float = 0.75,
+    deviation_lower_limit: float = 0.2,
     lower_limit_window: int = 10
 ) -> Tuple[int, int]:
     """This function takes an unidimensional numpy array
@@ -912,19 +913,20 @@ def my_integration_window(
     
     idx_max = np.argmax(adcs_array)
     peak = adcs_array[idx_max]
-    threshold = deviation * peak
+    lower_threshold = deviation_lower_limit * peak
+    upper_threshold = deviation_upper_limit * peak
 
     start = idx_max - lower_limit_window
     lower_window = adcs_array[start:idx_max]
 
-    candidates = np.where(lower_window >= threshold)[0]
+    candidates = np.where(lower_window >= lower_threshold)[0]
     if len(candidates) > 0:
         lower_limit = start + candidates[0]
     else:
         lower_limit = start  
 
     upper_window = adcs_array[idx_max:]
-    candidates = np.where(upper_window <= threshold)[0]
+    candidates = np.where(upper_window <= upper_threshold)[0]
     if len(candidates) > 0:
         upper_limit = idx_max + candidates[0]
     else:
@@ -965,9 +967,8 @@ def search_integration_window(
 
     i=1
     for deviation in deviation_list:
-        dict_params['deviation'] = deviation
         
-        aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation = dict_params['deviation'])
+        aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation_upper_limit = deviation)
 
         integration_analysis_label = 'integration_analysis'
         integrator_input_parameters = IPDict({'baseline_analysis': null_baseline_analysis_label, 'inversion': False, 'int_ll': aux_limits[0], 'int_ul': aux_limits[1], 'amp_ll': aux_limits[0], 'amp_ul': aux_limits[1]})
@@ -1003,36 +1004,39 @@ def search_integration_window(
         # if len(params['scale']) > 10:
         #     print(f"Warning: More than 10 peaks found for membrane {membrane}, channel {channel}, bias {bias}, vgain {vgain}.")
 
-        output_parameters = print_correlated_gaussians_fit_parameters(my_grid, federico_conversion=federico_conversion)
+        try: 
+            output_parameters = print_correlated_gaussians_fit_parameters(my_grid, federico_conversion=federico_conversion)
 
-        fig_calib = plot_ChannelWsGrid(
-            my_grid, 
-            mode='calibration',
-            plot_peaks_fits=True,           
-            plot_sum_of_gaussians=True      
+            fig_calib = plot_ChannelWsGrid(
+                my_grid, 
+                mode='calibration',
+                plot_peaks_fits=True,           
+                plot_sum_of_gaussians=True      
+                )
+            add_fig_to_subplot(fig_calib, big_fig_calib, i, 1)
+
+
+            annotation_text = build_calibration_annotation(
+                output_parameters,
+                hist_domain,
+                hist_nbins,
+                hist_bins_width
             )
-        add_fig_to_subplot(fig_calib, big_fig_calib, i, 1)
 
-
-        annotation_text = build_calibration_annotation(
-            output_parameters,
-            hist_domain,
-            hist_nbins,
-            hist_bins_width
-        )
-
-        big_fig_calib.add_annotation(
-            text=annotation_text,
-            xref = f"x{i} domain" if i > 1 else "x domain",
-            yref = f"y{i} domain" if i > 1 else "y domain",
-            x=0.98,
-            y=1,
-            showarrow=False,
-            align="left",
-            font=dict(size=9),  
-            bgcolor="rgba(255,255,255,0.85)",
-            borderwidth=1
-        )
+            big_fig_calib.add_annotation(
+                text=annotation_text,
+                xref = f"x{i} domain" if i > 1 else "x domain",
+                yref = f"y{i} domain" if i > 1 else "y domain",
+                x=0.98,
+                y=1,
+                showarrow=False,
+                align="left",
+                font=dict(size=9),  
+                bgcolor="rgba(255,255,255,0.85)",
+                borderwidth=1
+            )
+        except:
+            print('something went wrong with output_parameters computation')
 
         if show_meanwf:
             axes[i-1].plot(np.arange(1024), mean_wf.adcs, label="Mean wf")
@@ -1182,3 +1186,62 @@ def spe_amplitude_computation(wfset_filtered, channel, output_parameters, n_sigm
 
 
     return {'mean': (mu_fit, mu_err), 'sigma': (sigma_fit,sigma_err)}
+
+
+
+def dynamic_range_computation(spe_adc, daphne_range: int = 2**14): # no cold electronic saturation
+    return daphne_range/spe_adc
+
+##########################################################################################################
+
+def intersection_numeric(A1, mu1, sigma1, A2, mu2, sigma2):
+    def f(x):
+        return gauss(x, A1, mu1, sigma1) - gauss(x, A2, mu2, sigma2)
+    
+    try:
+        return brentq(f, mu1, mu2)  # cerca tra i due picchi
+    except ValueError:
+        return None
+
+def gaussian_intersections(output_parameters):
+    params = output_parameters["params"]
+
+    scales = [s[0] for s in params["scale"]]
+    means  = [m[0] for m in params["mean"]]
+    stds   = [s[0] for s in params["std"]]
+
+    intersections = []
+
+    for i in range(len(means) - 1):
+        x = intersection_numeric(
+            scales[i], means[i], stds[i],
+            scales[i+1], means[i+1], stds[i+1]
+        )
+        intersections.append(x)
+
+    return intersections
+
+def calibration_histogram_peak_counts(wfset_filtered, output_parameters, integration_analysis_label :str= 'integration_analysis'):
+    
+    bounds = [-10000]
+    bounds.extend(gaussian_intersections(output_parameters))
+    bounds.append(100000)
+
+    num_peaks = output_parameters['num_peaks']
+
+    for i_peak in range(num_peaks):
+        count = 0
+
+        if bounds[i_peak] is None:
+            continue
+        elif bounds[i_peak + 1] is None:
+            bounds[i_peak + 1] = 100000
+            break
+
+        for wf in wfset_filtered.waveforms:
+            val = wf.analyses[integration_analysis_label].result['integral']
+            
+            if bounds[i_peak] < val < bounds[i_peak + 1]:
+                count += 1
+
+        print(f"{i_peak} peak: {count} counts")
