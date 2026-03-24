@@ -622,7 +622,8 @@ def single_vgain_analysis(
 
     wfset_filtered = wfset_2
 
-    mean_wf = wfset_filtered.compute_mean_waveform()
+    wfset_filtered_meanwf = WaveformSet.from_filtered_WaveformSet(wfset_filtered, adcs_threshold_filter, time_range = [400,-1], adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
+    mean_wf = wfset_filtered_meanwf.compute_mean_waveform()
 
     aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation = dict_params['deviation'])
     if federico_limits:
@@ -935,3 +936,146 @@ def my_integration_window(
 
 
 ##########################################################################################################
+
+
+def search_integration_window(       
+        wfset,
+        dict_params,
+        channel: int,
+        cut_wfs_range = [400,-1],
+        deviation_range = (0.4,0.8),
+        null_baseline_analysis_label:str =  'null_baseliner',
+        show_meanwf : bool = True,
+        federico_conversion : bool = True,
+        deviation_step = 0.05): 
+    
+    deviation_list = np.arange(deviation_range[0], deviation_range[1], deviation_step)
+    
+    wfset_meanwf = WaveformSet.from_filtered_WaveformSet(wfset, adcs_threshold_filter, time_range = cut_wfs_range, adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
+    
+    mean_wf = wfset_meanwf.compute_mean_waveform()
+
+    if show_meanwf:
+        fig, axes = plt.subplots(len(deviation_list), 1, figsize=(12, 3*len(deviation_list)), sharex=True)
+
+    
+    subplot_titles = []
+    for deviation in deviation_list: 
+        subplot_titles.append(f"Calibration plot: integral threshold {deviation*100:.0f}% peak")
+    big_fig_calib = make_subplots(rows= len(deviation_list), cols=1, subplot_titles=subplot_titles)            
+
+    i=1
+    for deviation in deviation_list:
+        dict_params['deviation'] = deviation
+        
+        aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation = dict_params['deviation'])
+
+        integration_analysis_label = 'integration_analysis'
+        integrator_input_parameters = IPDict({'baseline_analysis': null_baseline_analysis_label, 'inversion': False, 'int_ll': aux_limits[0], 'int_ul': aux_limits[1], 'amp_ll': aux_limits[0], 'amp_ul': aux_limits[1]})
+        checks_kwargs = IPDict({ 'points_no': wfset.points_per_wf})
+        _ = wfset.analyse( integration_analysis_label, WindowIntegrator, integrator_input_parameters, checks_kwargs=checks_kwargs, overwrite=True)
+
+        hist_domain, hist_nbins, hist_bins_width = auto_histogram(wfset, integration_analysis_label, show_results=False)
+
+        my_grid = coldbox_single_channel_grid(wfset, config_channel=channel)
+
+        my_grid.compute_calib_histos(
+            bins_number=hist_nbins, 
+            domain=hist_domain, 
+            variable='integral',
+            analysis_label=integration_analysis_label
+        )
+
+        fit_peaks_of_ChannelWsGrid(
+            my_grid,
+            max_peaks=dict_params['max_peaks'], 
+            prominence=float(dict_params['prominence']), 
+            initial_percentage=dict_params['initial_percentage'],
+            percentage_step=dict_params['percentage_step'],
+            return_last_addition_if_fail=True,
+            fit_type='multigauss_iminuit',
+            weigh_fit_by_poisson_sigmas=True,
+            ch_span_fraction_around_peaks=dict_params['ch_span_fraction_around_peaks']
+        )
+
+        ch_id = my_grid.ch_map.data[0][0]
+        channel_ws = my_grid.ch_wf_sets[ch_id.endpoint][ch_id.channel]
+        params = channel_ws.calib_histo.gaussian_fits_parameters
+        # if len(params['scale']) > 10:
+        #     print(f"Warning: More than 10 peaks found for membrane {membrane}, channel {channel}, bias {bias}, vgain {vgain}.")
+
+        output_parameters = print_correlated_gaussians_fit_parameters(my_grid, federico_conversion=federico_conversion)
+
+        fig_calib = plot_ChannelWsGrid(
+            my_grid, 
+            mode='calibration',
+            plot_peaks_fits=True,           
+            plot_sum_of_gaussians=True      
+            )
+        add_fig_to_subplot(fig_calib, big_fig_calib, i, 1)
+
+
+        annotation_text = build_calibration_annotation(
+            output_parameters,
+            hist_domain,
+            hist_nbins,
+            hist_bins_width
+        )
+
+        big_fig_calib.add_annotation(
+            text=annotation_text,
+            xref = f"x{i} domain" if i > 1 else "x domain",
+            yref = f"y{i} domain" if i > 1 else "y domain",
+            x=0.98,
+            y=1,
+            showarrow=False,
+            align="left",
+            font=dict(size=9),  
+            bgcolor="rgba(255,255,255,0.85)",
+            borderwidth=1
+        )
+
+        if show_meanwf:
+            axes[i-1].plot(np.arange(1024), mean_wf.adcs, label="Mean wf")
+            
+            axes[i-1].axvline(aux_limits[0], linestyle="--", color="red",
+                    linewidth=1, label=f"Lower limit ({aux_limits[0]:.0f})")
+            axes[i-1].axvline(aux_limits[1], linestyle="--", color="blue",
+                    linewidth=1, label=f"Upper limit ({aux_limits[1]:.0f})")
+            
+            # soglia orizzontale basata su deviation
+            threshold = deviation * np.max(mean_wf.adcs)
+            axes[i-1].axhline(threshold, linestyle='--', color='orange',
+                    linewidth=1, label=f"Threshold ({deviation*100:.0f}% peak)")
+            
+            # baseline
+            axes[i-1].axhline(0, linestyle='--', color='yellow', linewidth=1, label="Baseline")
+            
+            axes[i-1].set_ylabel("Adcs")
+            axes[i-1].set_title(f"Mean waveform - Deviation = {deviation:.2f}")
+            axes[i-1].legend(fontsize=8)
+
+        i+=1
+
+   
+    big_fig_calib.update_layout(title=dict(
+        text=f"Integral window study", #{membrane} CH{channel} - Bias {bias} - {vgain} Vgain
+        x=0.5,                 
+        xanchor="center",
+        y=0.97,                
+        yanchor="top",
+        font=dict(size=18))
+    )
+
+    big_fig_calib.update_layout(
+    height=1000,
+    width=1000,
+    showlegend=False)
+
+    big_fig_calib.show()
+
+
+    if show_meanwf:
+        axes[-1].set_xlabel("Time ticks (AU)")
+        plt.tight_layout()
+        fig.show()
