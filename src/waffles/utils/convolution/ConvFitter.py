@@ -287,7 +287,7 @@ class ConvFitter:
 
         t1 = 35.
         t3 = 1200.
-        td = 50.
+        td = 500.
 
 
         m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3,td=td, fs=fs)
@@ -296,6 +296,7 @@ class ConvFitter:
         m.limits['fp'] = (0,1)
         m.limits['t1'] = (2,50)
         m.limits['t3'] = (500,2000)
+        m.limits['td'] = (10,2000)
         m.fixed['fp'] =True
         m.fixed['fs'] =True
         m.migrad()

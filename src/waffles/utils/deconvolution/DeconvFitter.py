@@ -177,7 +177,7 @@ class DeconvFitter(FFTWaffles):
 
             t1 = 35.
             t3 = 1200.
-            td = 50.
+            td = 500.
             sigma = 20.0
             m = Minuit(mcost, A=1e5, t1=10.0, fp=0.3, t3=1400.0, sigma=20.0, t0=t0_init, fs=0.6, td=200.0)
             m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3,td=td, fs=fs, sigma=sigma, t0=t0_init)
@@ -189,7 +189,7 @@ class DeconvFitter(FFTWaffles):
             m.limits['sigma'] = (5, 100)
             m.limits['t0'] = (0, nticks * self.dtime)
             m.limits['fs'] = (0, 1) 
-            m.limits['td'] = (50, 500)
+            m.limits['td'] = (10, 2000)
 
             m.fixed['fp'] = True
             m.fixed['fs'] = True
