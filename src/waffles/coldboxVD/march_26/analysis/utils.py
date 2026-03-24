@@ -1,5 +1,4 @@
-from waffles.coldboxVD.november_25.ab_coldbox.imports import *
-
+from waffles.coldboxVD.march_26.analysis.imports import *
 
 
 def plotting_overlap_wf(wfset, n_wf = None, index_list = None, show : bool = True, save : bool = False, 
@@ -1079,3 +1078,107 @@ def search_integration_window(
         axes[-1].set_xlabel("Time ticks (AU)")
         plt.tight_layout()
         fig.show()
+
+
+##########################################################################################################
+
+
+def gauss(x, A, mu, sigma):
+    return A * np.exp(-(x - mu)**2 / (2 * sigma**2))
+
+def chi2_func(y, y_fit, yerr, n_params):
+    """
+    Calcola chi-quadro e chi-quadro ridotto.
+    """
+    residuals = (y - y_fit) / yerr
+    chi2_val = np.sum(residuals**2)
+    ndf = len(y) - n_params
+    chi2_red = chi2_val / ndf
+    return chi2_val, chi2_red, ndf
+
+def r2_score(y, y_fit):
+    """
+    Calcola il coefficiente di determinazione R².
+    """
+    ss_res = np.sum((y - y_fit)**2)
+    ss_tot = np.sum((y - np.mean(y))**2)
+    r2 = 1 - ss_res / ss_tot
+    return r2
+
+
+##########################################################################################################
+
+def spe_filter_integral(
+    waveform: Waveform,
+    spe_integral_mean : float,
+    spe_integral_sigma : float, 
+    integration_analysis_label : str = 'integration_analysis',
+    n_sigma : float = 1
+    ) -> bool:
+    
+    if waveform.analyses[integration_analysis_label].result['integral'] > (spe_integral_mean-n_sigma*spe_integral_sigma) and waveform.analyses[integration_analysis_label].result['integral'] < (spe_integral_mean+n_sigma*spe_integral_sigma):
+        return True
+    else:
+        return False
+
+
+def spe_amplitude_computation(wfset_filtered, channel, output_parameters, n_sigma_spe_selection : float = 1., integration_analysis_label : str = 'integration_analysis', show_persistance: bool = False, show_spe_hist: bool = True):
+    wfset_spe = WaveformSet.from_filtered_WaveformSet(wfset_filtered, spe_filter_integral, spe_integral_mean = output_parameters['params']['mean'][1][0], spe_integral_sigma = output_parameters['params']['std'][1][0], integration_analysis_label = integration_analysis_label, n_sigma = n_sigma_spe_selection)
+
+    if show_persistance: 
+        persistance_plot_helper(wfset_spe, channel, ymin = -100, ymax = 100, adc_bins = 1000, show=show_persistance)
+
+    amplitude_list = []
+    for wf in wfset_spe.waveforms:
+        amplitude_list.append(wf.analyses[integration_analysis_label].result['amplitude'])
+
+    data = np.array(amplitude_list)
+
+    counts, bin_edges = np.histogram(data, bins=50)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    A0 = np.max(counts)
+    mu0 = np.mean(data)
+    sigma0 = np.std(data)
+
+    # Fit
+    popt, pcov = curve_fit(gauss, bin_centers, counts, p0=[A0, mu0, sigma0])
+
+    A_fit, mu_fit, sigma_fit = popt
+
+    perr = np.sqrt(np.diag(pcov))
+    A_err, mu_err, sigma_err = perr
+
+    if show_spe_hist: 
+        plt.figure()
+        plt.hist(data, bins=50, histtype='step', linewidth=1.5,
+                label=f"Data (entries = {len(data)})")
+
+
+        x = np.linspace(min(data), max(data), 1000)
+        y = gauss(x, *popt)
+
+        plt.plot(
+            x, y, linewidth=2,
+            label=(
+                "Gaussian fit\n"
+                f"A = {fmt(A_fit, A_err)}\n"
+                f"μ = {fmt(mu_fit, mu_err)}\n"
+                f"σ = {fmt(sigma_fit, sigma_err)}"
+            )
+        )
+
+        plt.xlabel("Amplitude (ADCs)")
+        plt.ylabel("Counts")
+        plt.legend()
+        plt.grid(alpha=0.3)
+
+        plt.show()
+
+    print(("SPE amplitude evalutation: \n"
+        f"A = {fmt(A_fit, A_err)}\n"
+        f"μ = {fmt(mu_fit, mu_err)}\n"
+        f"σ = {fmt(sigma_fit, sigma_err)}"))
+
+
+    return {'mean': (mu_fit, mu_err), 'sigma': (sigma_fit,sigma_err)}
