@@ -568,6 +568,7 @@ def single_vgain_analysis(
     channel: int,
     bias: str,
     vgain: int,
+    led: int,
     dict_params,
     period: int,  # 2025 o 2026
     input_file: str = "",  # obbligatorio se period == 2026
@@ -664,6 +665,9 @@ def single_vgain_analysis(
 
     output_parameters = print_correlated_gaussians_fit_parameters(my_grid, federico_conversion=federico_conversion)
 
+    spe_result = spe_amplitude_computation(wfset_filtered, channel, output_parameters, show_persistance = False, show_spe_hist = False)
+    dynamic_range = dynamic_range_computation(spe_result['mean'][0])
+
     if show or save_pdf:
         fig1 = persistance_plot_helper(wfset_original, channel, ymin = dict_params['heatmap_min'], ymax = dict_params['heatmap_max'], adc_bins = 1000)
         fig2 = persistance_plot_helper(wfset_1, channel, ymin = dict_params['heatmap_min'], ymax = dict_params['heatmap_max'], adc_bins = 1000)
@@ -736,6 +740,26 @@ def single_vgain_analysis(
 
         if show:
             big_fig.show()
+    
+    return {   
+        "vgain": vgain,
+        "channel": channel,                   
+        "led": led,
+        "bias": bias,                   
+        "mean_0": output_parameters["mean_0"],
+        "e_mean_0": output_parameters["e_mean_0"],
+        "std_0": output_parameters["std_0"],
+        "e_std_0": output_parameters["e_std_0"],
+        "gain": output_parameters["gain"],
+        "e_gain": output_parameters["e_gain"],
+        "snr": output_parameters["snr"],
+        "e_snr": output_parameters["e_snr"],
+        "delta_std": output_parameters["delta_std"],
+        "e_delta_std": output_parameters["e_delta_std"],
+        "spe_amplitude": spe_result["mean"][0],
+        "e_spe_amplitude": spe_result["mean"][1],
+        "dynamic range" : dynamic_range
+    }
 
 
 ##########################################################################################################
