@@ -74,9 +74,9 @@ def __compare_runs(df_re:pd.DataFrame, df_xe:pd.DataFrame):
     c2 = set(df_xe['run'].unique())
 
     if c1 - c2:
-        print("Runs not in the database:", ','.join(list(map(str, c1 - c2))))
+        print("Runs not in the database:", ','.join(sorted(list(map(str, c1 - c2)))))
     if c2 - c1:
-        print("Missing runs to process:", ','.join(list(map(str, c2 - c1))))
+        print("Missing runs to process:", ','.join(sorted(list(map(str, c2 - c1)))))
 
 def check_health(dfres:pd.DataFrame, xedb:pd.DataFrame):
     print(f"Number of runs in fit results: {len(dfres['run'].unique())}")
@@ -166,7 +166,8 @@ def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = [
         print("Loaded DataFrame with shape:", df.shape)
 
     df["timestamp"] = df['timestamp[ticks]'] * 16.e-9
-    df["time"] = pd.to_datetime(df["timestamp"], unit='s')
+    # Time is stored in UTC, convert to local time. This is needed to match the time of the injections, which are stored in local time.
+    df["time"] = pd.to_datetime(df["timestamp"], unit='s', utc=True).dt.tz_convert('Europe/Paris')
     df['module'] = df.apply( lambda x: getModuleName(int(x['ep']), int(x['ch'])), axis = 1)
     df = df.sort_values(by='time')
 
