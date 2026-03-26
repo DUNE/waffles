@@ -409,7 +409,7 @@ def auto_histogram(wfset: WaveformSet,
 
 ########################################################################################################## 
 
-def print_correlated_gaussians_fit_parameters(my_grid, federico_conversion: bool = False, show: bool = False):
+def print_correlated_gaussians_fit_parameters(my_grid, parameters_conversion: bool = False, show: bool = False):
     """
     Extract and compute Gaussian fit parameters for calibration from grid data.
 
@@ -420,7 +420,7 @@ def print_correlated_gaussians_fit_parameters(my_grid, federico_conversion: bool
     ----------
     my_grid : object
         Grid with `ch_map`, `ch_wf_sets`; accesses first channel's `calib_histo.gaussian_fits_parameters`.
-    federico_conversion : bool, default=False
+    parameters_conversion : bool, default=False
         Divide mean/std/gain by 16 if True.
     show : bool, default=False
         Print raw params (means/stds/scales) and formatted results.
@@ -455,7 +455,7 @@ def print_correlated_gaussians_fit_parameters(my_grid, federico_conversion: bool
     snr = gain / std_0
     e_snr = snr * np.sqrt((e_gain / gain)**2 + (e_std_0 / std_0)**2)
 
-    fg = 16 if federico_conversion else 1
+    fg = 16 if parameters_conversion else 1
 
     results = {
         "num_peaks": len(params["scale"]),
@@ -573,7 +573,7 @@ def single_vgain_analysis(
     input_file: str = "",
     show: bool = False,
     save_pdf: bool = False,
-    federico_conversion: bool = True,
+    parameters_conversion: bool = True,
     output_folder: str = "output",
     output_files_comment : str = ''
 ):
@@ -652,7 +652,7 @@ def single_vgain_analysis(
     if len(params['scale']) > 10:
         print(f"Warning: More than 10 peaks found for membrane {membrane}, channel {channel}, bias {bias}, vgain {vgain}.")
 
-    output_parameters = print_correlated_gaussians_fit_parameters(my_grid, federico_conversion=federico_conversion)
+    output_parameters = print_correlated_gaussians_fit_parameters(my_grid, parameters_conversion=parameters_conversion)
 
     spe_result = spe_amplitude_computation(wfset_filtered, channel, output_parameters, show_persistance = False, show_spe_hist = False)
     dynamic_range = dynamic_range_computation(spe_result['mean'][0])
@@ -725,7 +725,7 @@ def single_vgain_analysis(
         if save_pdf:
             if output_files_comment != '':
                 comment = '_' + output_files_comment
-            output_filename = f"{output_folder}/membrane{membrane}_channel{channel}_led{led}_vgain{vgain}{comment}.pdf"
+            output_filename = f"{output_folder}/membrane{membrane}_channel{channel}_led{led}_bias{bias}_vgain{vgain}{comment}.pdf"
             big_fig.write_image(output_filename)
             print(f"Pdf saved : {output_filename}\n")
 
@@ -842,7 +842,7 @@ def channel_vgain_scan_analysis(
         save_pdf: bool = True,
         output_folder: str = "output",
         output_files_comment: str = '', #additional str to add to the output filename 
-        federico_conversion: bool = True
+        parameters_conversion: bool = True
         ):
     """
     Sequential Vgain scan analysis for fixed membrane/channel/bias across vgain_list.
@@ -866,7 +866,7 @@ def channel_vgain_scan_analysis(
             led = led,
             dict_params = external_dict_paramas[vgain], #if external_dict_paramas is not None else vgain_analysis_parameters(vgain)),
             input_file= input_file, 
-            federico_conversion = federico_conversion,
+            parameters_conversion = parameters_conversion,
             output_folder = output_folder_analysis,
             output_files_comment = output_files_comment,
             show = show, 
@@ -881,7 +881,7 @@ def channel_vgain_scan_analysis(
     if output_files_comment != '':
         comment = '_' + output_files_comment
 
-    csv_filename = f"{output_folder_analysis}/membrane{membrane}_channel{channel}_led{led}_vgain_scan{comment}.csv"
+    csv_filename = f"{output_folder_analysis}/membrane{membrane}_channel{channel}_led{led}_bias{bias}_vgain_scan{comment}.csv"
     out_df.to_csv(csv_filename, index=False)
     print(f"Results in {output_folder_analysis}")
 
@@ -955,7 +955,7 @@ def search_integration_window(
         deviation_range = (0.4,0.8),
         null_baseline_analysis_label:str =  'null_baseliner',
         show_meanwf : bool = True,
-        federico_conversion : bool = True,
+        parameters_conversion : bool = True,
         deviation_step = 0.05): 
     
     deviation_list = np.arange(deviation_range[0], deviation_range[1], deviation_step)
@@ -1013,7 +1013,7 @@ def search_integration_window(
         #     print(f"Warning: More than 10 peaks found for membrane {membrane}, channel {channel}, bias {bias}, vgain {vgain}.")
 
         try: 
-            output_parameters = print_correlated_gaussians_fit_parameters(my_grid, federico_conversion=federico_conversion)
+            output_parameters = print_correlated_gaussians_fit_parameters(my_grid, parameters_conversion=parameters_conversion)
 
             fig_calib = plot_ChannelWsGrid(
                 my_grid, 
@@ -1347,13 +1347,16 @@ def validate_analysis_params(dict_params: Dict) -> None:
             raise ValueError(f"{k} must be a number")
 
     tr = dict_params["time_range_afterpulse_for_meanwf"]
+
     if (
         not isinstance(tr, tuple)
         or len(tr) != 2
-        or not all(isinstance(x, int) for x in tr)
+        or not isinstance(tr[0], int)
+        or not (isinstance(tr[1], int) and (tr[1] >= 0 or tr[1] == -1))
     ):
         raise ValueError(
-            "time_range_afterpulse_for_meanwf must be a tuple of two integers"
+            "time_range_afterpulse_for_meanwf must be a tuple of two integers, "
+            "where the second can be -1"
         )
 
     # ---- Logical rules
