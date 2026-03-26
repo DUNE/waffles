@@ -11,5 +11,19 @@
     "initial_percentage": 0.1,
     "percentage_step": 0.02,
     "ch_span_fraction_around_peaks": 0.05
+  },
+
+  "1000": {
+    "baseline_timeticks_limit": 120,
+    "deviation_from_baseline": 0.6,
+    "heatmap_min": -170,
+    "heatmap_max": 550,
+    "adcs_threshold": 50,
+    "n_std_baseline": 2,
+    "max_peaks": 7,
+    "prominence": 0.5,
+    "initial_percentage": 0.1,
+    "percentage_step": 0.02,
+    "ch_span_fraction_around_peaks": 0.05
   }
 }
