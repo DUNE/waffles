@@ -20,9 +20,10 @@ import os
 import json
 import numpy as np
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List, Dict
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy.optimize import curve_fit
 from scipy.optimize import brentq
+import pandas as pd

@@ -570,40 +570,28 @@ def single_vgain_analysis(
     vgain: int,
     led: int,
     dict_params,
-    period: int,  # 2025 o 2026
-    input_file: str = "",  # obbligatorio se period == 2026
+    input_file: str = "",
     show: bool = False,
     save_pdf: bool = False,
-    federico_limits: bool = False,
     federico_conversion: bool = True,
-    output_folder: str = "output"
+    output_folder: str = "output",
+    output_files_comment : str = ''
 ):
     """
     Analisi per un singolo valore di VGAIN.
     """
-    # --- Costruzione path ---
-    if period == 2025:
-        coldbox_folder = "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/November2025run/spy_buffer/VGAIN_SCAN"
-        
-        filename = os.path.join(
-            coldbox_folder,
-            membrane,
-            f"vgain_scan_{membrane}_DVbias_{bias}",
-            f"vgain_{vgain}",
-            f"channel_{channel}.dat"
-        )
 
-    elif period == 2026:
-        if not input_file:
-            raise ValueError("Per period=2026 devi specificare `input_file`")
-        filename = input_file
-    else:
-        raise ValueError("`period` deve essere 2025 oppure 2026")
+    # Check input parameters
+    validate_analysis_params(dict_params)
 
-    if not os.path.exists(filename):
-        raise FileNotFoundError(f"File non trovato: {filename}")
+    # Check existance of input file
+    if not os.path.exists(input_file):
+        raise FileNotFoundError(f"File non trovato: {input_file}")
 
-    wfset_original = create_waveform_set_from_spybuffer(filename=filename, WFs=40000, length=1024, config_channel=channel)
+    print(f"\n\n------------------------------------------------------------------------ \n\n------ Membrane: {membrane} - Channel: {channel} - Led: {led} - Bias: {bias} - Vgain: {vgain} ------\n")
+
+
+    wfset_original = create_waveform_set_from_spybuffer(filename=input_file, WFs=40000, length=1024, config_channel=channel)
 
     # Baseline removing
     baseliner_input_parameters = IPDict({'baseline_limits': (0,dict_params['baseline_timeticks_limit']), 'std_cut': 1., 'type': 'mean'})
@@ -622,12 +610,13 @@ def single_vgain_analysis(
 
     wfset_filtered = wfset_2
 
-    wfset_filtered_meanwf = WaveformSet.from_filtered_WaveformSet(wfset_filtered, adcs_threshold_filter, time_range = [400,-1], adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
-    mean_wf = wfset_filtered_meanwf.compute_mean_waveform()
-
-    aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation_upper_limit=dict_params['deviation_upper_limit'])
-    if federico_limits:
-        aux_limits = (382, 406)
+    if dict_params['fixed_integral_limits'] is not None: 
+        aux_limits = dict_params['fixed_integral_limits'] #(382, 406)
+    else: 
+        wfset_filtered_meanwf = WaveformSet.from_filtered_WaveformSet(wfset_filtered, adcs_threshold_filter, time_range = dict_params["time_range_afterpulse_for_meanwf"], adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
+        mean_wf = wfset_filtered_meanwf.compute_mean_waveform()
+        aux_limits = my_integration_window(adcs_array = mean_wf.adcs, deviation_upper_limit=dict_params['deviation_upper_limit'])
+    
 
     integration_analysis_label = 'integration_analysis'
     integrator_input_parameters = IPDict({'baseline_analysis': null_baseline_analysis_label, 'inversion': False, 'int_ll': aux_limits[0], 'int_ul': aux_limits[1], 'amp_ll': aux_limits[0], 'amp_ul': aux_limits[1]})
@@ -718,7 +707,7 @@ def single_vgain_analysis(
 
         big_fig.update_layout(
             title=dict(
-                text=f"{membrane} CH{channel} - Bias {bias} - {vgain} Vgain",
+                text=f"{membrane} CH{channel} - Led {led} - Bias {bias} - {vgain} Vgain",
                 x=0.5,                 
                 xanchor="center",
                 y=0.97,                
@@ -734,9 +723,11 @@ def single_vgain_analysis(
         )
 
         if save_pdf:
-            output_path = Path(output_folder) / membrane / str(channel) / bias
-            output_path.mkdir(parents=True, exist_ok=True)  
-            big_fig.write_image(output_path / f"{vgain}_vgain.pdf")
+            if output_files_comment != '':
+                comment = '_' + output_files_comment
+            output_filename = f"{output_folder}/membrane{membrane}_channel{channel}_led{led}_vgain{vgain}{comment}.pdf"
+            big_fig.write_image(output_filename)
+            print(f"Pdf saved : {output_filename}\n")
 
         if show:
             big_fig.show()
@@ -764,142 +755,136 @@ def single_vgain_analysis(
 
 ##########################################################################################################
 
-def vgain_analysis_parameters(vgain):
-    """
-    Compute Vgain-dependent parameters for waveform analysis pipeline.
+# NO MORE WORKING 26/03/2026
 
-    Returns config dict for analysis parameters.
+# def vgain_analysis_parameters(vgain):
+#     """
+#     Compute Vgain-dependent parameters for waveform analysis pipeline.
 
-    Parameters
-    ----------
-    vgain : int or float
+#     Returns config dict for analysis parameters.
 
-    Returns
-    -------
-    dict[str, float|int]
-        Keys:
-        - 'baseline_timeticks_limit'
-        - 'deviation_upper_limit' 
-        - 'heatmap_min'
-        - 'heatmap_max'
-        - 'adcs_threshold'
-        - 'n_std_baseline'
-        - 'max_peaks'
-        - 'prominence'
-        - 'initial_percentage'
-        - 'percentage_step'
-        - 'ch_span_fraction_around_peaks'
+#     Parameters
+#     ----------
+#     vgain : int or float
 
-    Notes
-    -----
-    - No input validation; assumes valid vgain ≥500.
-    - Used for dynamic thresholding in persistence/peak detection.
-    """
+#     Returns
+#     -------
+#     dict[str, float|int]
+#         Keys:
+#         - 'baseline_timeticks_limit'
+#         - 'deviation_upper_limit' 
+#         - 'heatmap_min'
+#         - 'heatmap_max'
+#         - 'adcs_threshold'
+#         - 'n_std_baseline'
+#         - 'max_peaks'
+#         - 'prominence'
+#         - 'initial_percentage'
+#         - 'percentage_step'
+#         - 'ch_span_fraction_around_peaks'
 
-    v_index = (vgain - 500) // 100
-    heatmap_min = (-200 + v_index * 10)
-    heatmap_max =( 700 - v_index * 50 if vgain <= 1600 else 100)
+#     Notes
+#     -----
+#     - No input validation; assumes valid vgain ≥500.
+#     - Used for dynamic thresholding in persistence/peak detection.
+#     """
 
-    adcs_threshold = (
-        90 - v_index * 10 if vgain <= 900 else
-        50 - (v_index-4) * 5  if vgain <= 1300 else
-        30 - (v_index-8) * 3  if vgain <= 1900 else
-        11
-    )
+#     v_index = (vgain - 500) // 100
+#     heatmap_min = (-200 + v_index * 10)
+#     heatmap_max =( 700 - v_index * 50 if vgain <= 1600 else 100)
+
+#     adcs_threshold = (
+#         90 - v_index * 10 if vgain <= 900 else
+#         50 - (v_index-4) * 5  if vgain <= 1300 else
+#         30 - (v_index-8) * 3  if vgain <= 1900 else
+#         11
+#     )
     
-    n_std_baseline = (1 if vgain <= 1800 else 1.1)
+#     n_std_baseline = (1 if vgain <= 1800 else 1.1)
 
-    max_peaks=  7
-    prominence= 0.5
-    initial_percentage=0.1
-    percentage_step=0.02
-    ch_span_fraction_around_peaks=0.05 
+#     max_peaks=  7
+#     prominence= 0.5
+#     initial_percentage=0.1
+#     percentage_step=0.02
+#     ch_span_fraction_around_peaks=0.05 
 
-    baseline_timeticks_limit = 380
-    deviation = 0.4
+#     baseline_timeticks_limit = 380
+#     deviation = 0.4
 
-    return {
-        'baseline_timeticks_limit': baseline_timeticks_limit,
-        'deviation_upper_limit': deviation,
-        'heatmap_min': heatmap_min,
-        'heatmap_max': heatmap_max,
-        'adcs_threshold': adcs_threshold,
-        'n_std_baseline': n_std_baseline,
-        'max_peaks': max_peaks, 
-        'prominence': prominence, 
-        'initial_percentage': initial_percentage,
-        'percentage_step': percentage_step,
-        'ch_span_fraction_around_peaks': ch_span_fraction_around_peaks
-    }
+#     return {
+#         'baseline_timeticks_limit': baseline_timeticks_limit,
+#         'deviation_upper_limit': deviation,
+#         'heatmap_min': heatmap_min,
+#         'heatmap_max': heatmap_max,
+#         'adcs_threshold': adcs_threshold,
+#         'n_std_baseline': n_std_baseline,
+#         'max_peaks': max_peaks, 
+#         'prominence': prominence, 
+#         'initial_percentage': initial_percentage,
+#         'percentage_step': percentage_step,
+#         'ch_span_fraction_around_peaks': ch_span_fraction_around_peaks
+#     }
 
 
 ##########################################################################################################
+
 
 def channel_vgain_scan_analysis(
         membrane: str, 
         channel: int, 
         bias: str, 
         vgain_list,
-        external_dict_paramas: Optional[dict] = None,
-        federico_limits: bool = False,
-        federico_conversion: bool = True,
+        led: int, 
+        input_filename_path_style: str, # Example of complete .dat filepath where between {} you use the exact name of the variables you need: = "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/2026March/20260324_sof_ch18to21_vgain_scan_led270_i830_800_930_920_biasmap_remote_r1/vgain_{vgain:04d}/afe2bias_0000/led_{led}_ch{channel}/channel_{channel}.dat"
+        input_filename_variable: List[str], # Example: ['vgain', 'led', 'channel'] i.e. list of the variable name to use in the filename path 
+        external_dict_paramas,# : Optional[dict] = None,
         show: bool = False,
         save_pdf: bool = True,
-        coldbox_folder: str = "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/November2025run/spy_buffer/VGAIN_SCAN",
-        output_folder: str = "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/coldboxVD/november_25/ab_coldbox/output"):
+        output_folder: str = "output",
+        output_files_comment: str = '', #additional str to add to the output filename 
+        federico_conversion: bool = True
+        ):
     """
     Sequential Vgain scan analysis for fixed membrane/channel/bias across vgain_list.
 
     Loops over vgain_list, calling single_vgain_analysis() with auto/override params. 
-    Prints progress; supports Federico scaling/limits and PDF export.
-
-    Parameters
-    ----------
-    membrane : str
-        Membrane identifier.
-    channel : int
-        Channel number.
-    bias : str
-        Bias configuration.
-    vgain_list : list[int|float]
-        Vgain values to analyze sequentially.
-    external_dict_paramas : Optional[dict[int|float, dict]], default=None
-        Per-vgain param overrides; else uses vgain_analysis_parameters(vgain).
-    federico_limits : bool, default=True
-        Apply Federico-specific limits in single_vgain_analysis.
-    federico_conversion : bool, default=True
-        Apply /16 scaling in fits.
-    show : bool, default=False
-        Enable intermediate plot displays.
-    save_pdf : bool, default=True
-        Save analysis outputs as PDF.
-    coldbox_folder : str, default=...
-        Input data path (ColdBox VGAIN_SCAN).
-    output_folder : str, default=...
-        Output directory for plots/PDFs.
-
-    Returns
-    -------
-    None
     """
 
-    for vgain in vgain_list:
-        print(f"\n\n------------------------ \n------ Vgain: {vgain} ------\n")
+    rows = []
+    output_folder_analysis = f"{output_folder}/membrane_{membrane}/channel_{channel}"
+    if not os.path.exists(output_folder_analysis):
+        os.makedirs(output_folder_analysis)
 
-        single_vgain_analysis(
+    for vgain in vgain_list:
+        input_file = _build_input_filepath(template=input_filename_path_style, variables=input_filename_variable, local_vars=locals())
+        
+        row = single_vgain_analysis(
             membrane=membrane,
             channel=channel,
             bias=bias,
             vgain=vgain,
-            dict_params = (external_dict_paramas[vgain] if external_dict_paramas is not None else vgain_analysis_parameters(vgain)),
-            federico_limits = federico_limits,
+            led = led,
+            dict_params = external_dict_paramas[vgain], #if external_dict_paramas is not None else vgain_analysis_parameters(vgain)),
+            input_file= input_file, 
             federico_conversion = federico_conversion,
-            coldbox_folder = coldbox_folder,
-            output_folder = output_folder,
+            output_folder = output_folder_analysis,
+            output_files_comment = output_files_comment,
             show = show, 
             save_pdf = save_pdf
         )
-        print("\ndone")
+
+        rows.append(row)
+
+    out_df = pd.DataFrame(rows)
+
+            
+    if output_files_comment != '':
+        comment = '_' + output_files_comment
+
+    csv_filename = f"{output_folder_analysis}/membrane{membrane}_channel{channel}_led{led}_vgain_scan{comment}.csv"
+    out_df.to_csv(csv_filename, index=False)
+    print(f"Results in {output_folder_analysis}")
+
 
 
 ##########################################################################################################
@@ -967,7 +952,6 @@ def search_integration_window(
         wfset,
         dict_params,
         channel: int,
-        cut_wfs_range = [400,-1],
         deviation_range = (0.4,0.8),
         null_baseline_analysis_label:str =  'null_baseliner',
         show_meanwf : bool = True,
@@ -976,7 +960,7 @@ def search_integration_window(
     
     deviation_list = np.arange(deviation_range[0], deviation_range[1], deviation_step)
     
-    wfset_meanwf = WaveformSet.from_filtered_WaveformSet(wfset, adcs_threshold_filter, time_range = cut_wfs_range, adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
+    wfset_meanwf = WaveformSet.from_filtered_WaveformSet(wfset, adcs_threshold_filter, time_range = dict_params["time_range_afterpulse_for_meanwf"], adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
     
     mean_wf = wfset_meanwf.compute_mean_waveform()
 
@@ -1203,10 +1187,10 @@ def spe_amplitude_computation(wfset_filtered, channel, output_parameters, n_sigm
 
         plt.show()
 
-    print(("SPE amplitude evalutation: \n"
-        f"A = {fmt(A_fit, A_err)}\n"
-        f"μ = {fmt(mu_fit, mu_err)}\n"
-        f"σ = {fmt(sigma_fit, sigma_err)}"))
+    # print(("SPE amplitude evalutation: \n"
+    #     f"A = {fmt(A_fit, A_err)}\n"
+    #     f"μ = {fmt(mu_fit, mu_err)}\n"
+    #     f"σ = {fmt(sigma_fit, sigma_err)}"))
 
 
     return {'mean': (mu_fit, mu_err), 'sigma': (sigma_fit,sigma_err)}
@@ -1269,3 +1253,124 @@ def calibration_histogram_peak_counts(wfset_filtered, output_parameters, integra
                 count += 1
 
         print(f"{i_peak} peak: {count} counts")
+
+
+##########################################################################################################
+
+def _build_input_filepath(template: str, variables: list[str], local_vars: dict) -> str:
+    format_dict = {v: local_vars[v] for v in variables}
+    return template.format(**format_dict)
+
+
+##########################################################################################################
+
+def validate_analysis_params(dict_params: Dict) -> None:
+    """
+    Validate the content of dict_params for channel_vgain_scan_analysis.
+        - "baseline_timeticks_limit" (int): Baseline is computed from timetick 0 to this limit.
+        - "deviation_upper_limit" (float or None): Percentage of the mean waveform peak amplitude used for integral computation. Must be set if `fixed_integral_limits` is None.
+        - "fixed_integral_limits" (tuple of 2 floats or None): Lower and upper limits for integral computation. Must be set if `deviation_upper_limit` is None.
+        - "heatmap_min" (float): Minimum amplitude (ADCs) for hitmap.
+        - "heatmap_max" (float): Maximum amplitude (ADCs) for hitmap.
+        - "adcs_threshold" (float): Max/min ADC acceptable in baseline range for waveform selection.
+        - "n_std_baseline" (float): Number of baseline standard deviations accepted in baseline range.
+        - "max_peaks" (int): Maximum peaks to consider in calibration histogram fit.
+        - "prominence" (float): Peak prominence in histogram fit.
+        - "initial_percentage" (float): Initial percentage used in histogram fit.
+        - "percentage_step" (float): Step percentage used in histogram fit.
+        - "ch_span_fraction_around_peaks" (float): Fraction of channel span around peaks used in fit.
+        - "time_range_afterpulse_for_meanwf" (tuple of 2 ints): Time region used to cut afterpulses when `deviation_upper_limit` is not None.
+
+    Raises
+    ------
+    ValueError
+        If any rule is violated.
+    """
+
+    required_keys = [
+        "baseline_timeticks_limit",
+        "deviation_upper_limit",
+        "fixed_integral_limits",
+        "heatmap_min",
+        "heatmap_max",
+        "adcs_threshold",
+        "n_std_baseline",
+        "max_peaks",
+        "prominence",
+        "initial_percentage",
+        "percentage_step",
+        "ch_span_fraction_around_peaks",
+        "time_range_afterpulse_for_meanwf",
+    ]
+
+    # ---- Check all keys exist
+    for key in required_keys:
+        if key not in dict_params:
+            raise ValueError(f"Missing required parameter: '{key}'")
+
+    # ---- Type checks
+    if not isinstance(dict_params["baseline_timeticks_limit"], int):
+        raise ValueError("baseline_timeticks_limit must be int")
+
+    if dict_params["deviation_upper_limit"] is not None:
+        if not isinstance(dict_params["deviation_upper_limit"], (int, float)):
+            raise ValueError("deviation_upper_limit must be float or None")
+
+    fil = dict_params["fixed_integral_limits"]
+    if fil is not None:
+        if (
+            not isinstance(fil, tuple)
+            or len(fil) != 2
+            or not all(isinstance(x, (int, float)) for x in fil)
+        ):
+            raise ValueError(
+                "fixed_integral_limits must be a tuple of two numbers (low, high) or None"
+            )
+
+    if not isinstance(dict_params["heatmap_min"], (int, float)):
+        raise ValueError("heatmap_min must be a number")
+
+    if not isinstance(dict_params["heatmap_max"], (int, float)):
+        raise ValueError("heatmap_max must be a number")
+
+    if not isinstance(dict_params["adcs_threshold"], (int, float)):
+        raise ValueError("adcs_threshold must be a number")
+
+    if not isinstance(dict_params["n_std_baseline"], (int, float)):
+        raise ValueError("n_std_baseline must be a number")
+
+    if not isinstance(dict_params["max_peaks"], int):
+        raise ValueError("max_peaks must be int")
+
+    for k in ["prominence", "initial_percentage", "percentage_step", "ch_span_fraction_around_peaks"]:
+        if not isinstance(dict_params[k], (int, float)):
+            raise ValueError(f"{k} must be a number")
+
+    tr = dict_params["time_range_afterpulse_for_meanwf"]
+    if (
+        not isinstance(tr, tuple)
+        or len(tr) != 2
+        or not all(isinstance(x, int) for x in tr)
+    ):
+        raise ValueError(
+            "time_range_afterpulse_for_meanwf must be a tuple of two integers"
+        )
+
+    # ---- Logical rules
+
+    # One of the two integration methods must be provided
+    if dict_params["deviation_upper_limit"] is None and fil is None:
+        raise ValueError(
+            "You must provide either 'deviation_upper_limit' or 'fixed_integral_limits'"
+        )
+
+    # They cannot be both set
+    if dict_params["deviation_upper_limit"] is not None and fil is not None:
+        raise ValueError(
+            "'deviation_upper_limit' and 'fixed_integral_limits' are mutually exclusive"
+        )
+
+    # Heatmap limits
+    if dict_params["heatmap_min"] >= dict_params["heatmap_max"]:
+        raise ValueError("heatmap_min must be smaller than heatmap_max")
+    
