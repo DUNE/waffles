@@ -45,29 +45,32 @@ class DeconvFitter(FFTWaffles):
     ##################################################
     # MATHEMATICAL MODELS 
     ##################################################
-    def expo_conv_gauss(self, x, A, tau, sigma, t0):
-        return ((A / tau) * np.exp(-(x - t0) / tau) * np.exp(sigma**2 / (2 * tau**2))) * \
+    def expo_conv_gauss(self, x, tau, sigma, t0):
+        return ( np.exp(-(x - t0) / tau) * np.exp(sigma**2 / (2 * tau**2))) * \
                     erfc(((t0 - x) / sigma + sigma / tau) / np.sqrt(2)) / 2.0
 
 
     def model_lar(self, x, A, fp, t1, t3, sigma, t0):
 
         
-        term_fast = self.expo_conv_gauss(x, fp, t1, sigma, t0)
+        term_fast = (fp / t1) * self.expo_conv_gauss(x, t1, sigma, t0)
                     
-        term_slow = self.expo_conv_gauss(x, 1 - fp, t3, sigma, t0)
+        term_slow = ((1-fp) / t3) * self.expo_conv_gauss(x, t3, sigma, t0)
                     
         return A * (term_fast + term_slow)
 
     def model_larxe(self, x, A, fp, fs, t1, t3, td, sigma, t0):
 
         
-        term_fast = self.expo_conv_gauss(x, fp, t1, sigma, t0)
-        term_slow = self.expo_conv_gauss(x, fs, t3, sigma, t0)
-                    
-        term_inter = self.expo_conv_gauss(x, 1 - fp- fs, td, sigma, t0)
-                     
-        return A * (term_fast + term_slow - term_inter)
+        term_fast = self.expo_conv_gauss(x, t1, sigma, t0)
+        term_slow = self.expo_conv_gauss(x, t3, sigma, t0)
+        term_inter = self.expo_conv_gauss(x, td, sigma, t0)
+
+        return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow + ((1-fp-fs) / td) * term_inter )
+        # if t3 != td:
+        #     return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow + ((1-fp-fs) / (t3-td)) * (term_slow - term_inter) )
+        # else:
+        #     return A * ( (fp / t1) * term_fast + (fs / t3) * term_slow )
 
     def generate_deconvolved_signal(self, response:np.ndarray = np.array([]), template:np.ndarray = np.array([])):
         if response.size > 0:
@@ -182,14 +185,15 @@ class DeconvFitter(FFTWaffles):
             m = Minuit(mcost, A=1e5, t1=10.0, fp=0.3, t3=1400.0, sigma=20.0, t0=t0_init, fs=0.6, td=200.0)
             m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3,td=td, fs=fs, sigma=sigma, t0=t0_init)
             
-            m.limits['A'] = (0, None)
-            m.limits['t1'] = (2, 50)
-            m.limits['fp'] = (0, 1) 
+            m.limits['A'] = (0,None)
+            m.limits['fp'] = (0,1)
+            m.limits['fs'] = (0,1)
+            m.limits['t1'] = (2,50)
             m.limits['t3'] = (500, 3500)
+            m.limits['td'] = (10,3500)
+
             m.limits['sigma'] = (5, 100)
             m.limits['t0'] = (0, nticks * self.dtime)
-            m.limits['fs'] = (0, 1) 
-            m.limits['td'] = (10, 2000)
 
             m.fixed['fp'] = True
             m.fixed['fs'] = True

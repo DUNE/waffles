@@ -294,9 +294,10 @@ class ConvFitter:
 
         m.limits['A'] = (0,None)
         m.limits['fp'] = (0,1)
+        m.limits['fs'] = (0,1)
         m.limits['t1'] = (2,50)
         m.limits['t3'] = (500, 3500)
-        m.limits['td'] = (10,2000)
+        m.limits['td'] = (10,3500)
         m.fixed['fp'] =True
         m.fixed['fs'] =True
         m.migrad()

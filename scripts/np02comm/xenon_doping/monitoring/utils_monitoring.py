@@ -121,6 +121,9 @@ def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['c
     if runsconv - runsdeconv:
         print("Runs with conv results but no deconv results:", ','.join(list(map(str, runsconv - runsdeconv))))
 
+    ret['deconv'] = ret.get('deconv', pd.DataFrame())
+    ret['conv'] = ret.get('conv', pd.DataFrame())
+
     return ret
 
 def load_database(load_hv:bool = False) -> pd.DataFrame:

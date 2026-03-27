@@ -76,7 +76,7 @@
         }
 
 106:
-    32: # C1(1), Mask 16, int 4000
+    32: # C1(1)
         cuts: &defaultCcut
           1: { t0: 0, tf:   60, threshold:  75, type:   lower, filter:  8, npop: max }
           2: { t0: 0, tf:   60, threshold:  -75, type:  higher, filter: 8, npop: min }
@@ -88,77 +88,77 @@
           8: { t0: 400, tf: 1024, threshold: -250, type: higher, filter:  8, npop: min }
           9: { t0: 125, tf: 150, threshold: 4300, type: lower, filter:  14, npop: max }
 
-    33: # C1(2), Mask 16, int 4000
+    33: # C1(2)
         cuts: {
             <<: *defaultCcut,
         }
                                                 
-    30: # C2(1), Mask 8, int 3000
+    30: # C2(1)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    31: # C2(2), Mask 8, int 3000
+    31: # C2(2)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    34: # C3(1), Mask 1, 2800
+    34: # C3(1)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    35: # C3(2), Mask 1, 2800
+    35: # C3(2)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    36: # C4(1), Mask 16, int 2400
+    36: # C4(1)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    37: # C4(2), Mask 16, int 2400
+    37: # C4(2)
         cuts: {
             <<: *defaultCcut,
         }
 
-    0: # C5(1), Mask 16, int 2400
+    0: # C5(1)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    2: # C5(2), Mask 16, int 2400
+    2: # C5(2)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    1: # C6(1), Mask 8, int 4000
+    1: # C6(1)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    3: # C6(2), Mask 8, int 4000
+    3: # C6(2)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    5: # C7(1), Mask 16, int 4000
+    5: # C7(1)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    7: # C7(2), Mask 16, int 4000
+    7: # C7(2)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    4: # C8(1), Mask 16, int 4000
+    4: # C8(1)
         cuts: {
             <<: *defaultCcut,
         }
                                         
-    6: # C8(2), Mask 16, int 4000
+    6: # C8(2)
         cuts: {
             <<: *defaultCcut,
         }
