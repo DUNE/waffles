@@ -1268,8 +1268,8 @@ def validate_analysis_params(dict_params: Dict) -> None:
     """
     Validate the content of dict_params for channel_vgain_scan_analysis.
         - "baseline_timeticks_limit" (int): Baseline is computed from timetick 0 to this limit.
-        - "deviation_upper_limit" (float or None): Percentage of the mean waveform peak amplitude used for integral computation. Must be set if `fixed_integral_limits` is None.
-        - "fixed_integral_limits" (tuple of 2 floats or None): Lower and upper limits for integral computation. Must be set if `deviation_upper_limit` is None.
+        - "deviation_upper_limit" (float or null/None): Percentage of the mean waveform peak amplitude used for integral computation. Must be set if `fixed_integral_limits` is null/None.
+        - "fixed_integral_limits" (tuple of 2 floats or null/None): Lower and upper limits for integral computation. Must be set if `deviation_upper_limit` is null/None.
         - "heatmap_min" (float): Minimum amplitude (ADCs) for hitmap.
         - "heatmap_max" (float): Maximum amplitude (ADCs) for hitmap.
         - "adcs_threshold" (float): Max/min ADC acceptable in baseline range for waveform selection.
@@ -1279,7 +1279,7 @@ def validate_analysis_params(dict_params: Dict) -> None:
         - "initial_percentage" (float): Initial percentage used in histogram fit.
         - "percentage_step" (float): Step percentage used in histogram fit.
         - "ch_span_fraction_around_peaks" (float): Fraction of channel span around peaks used in fit.
-        - "time_range_afterpulse_for_meanwf" (tuple of 2 ints): Time region used to cut afterpulses when `deviation_upper_limit` is not None.
+        - "time_range_afterpulse_for_meanwf" (list of 2 ints): Time region used to cut afterpulses when `deviation_upper_limit` is not None.
 
     Raises
     ------
@@ -1349,7 +1349,7 @@ def validate_analysis_params(dict_params: Dict) -> None:
     tr = dict_params["time_range_afterpulse_for_meanwf"]
 
     if (
-        not isinstance(tr, tuple)
+        not isinstance(tr, list)
         or len(tr) != 2
         or not isinstance(tr[0], int)
         or not (isinstance(tr[1], int) and (tr[1] >= 0 or tr[1] == -1))
