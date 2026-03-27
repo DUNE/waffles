@@ -66,7 +66,7 @@ class DeconvFitter(FFTWaffles):
         term_slow = self.expo_conv_gauss(x, t3, sigma, t0)
         term_inter = self.expo_conv_gauss(x, td, sigma, t0)
 
-        return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow + ((1-fp-fs) / td) * term_inter )
+        return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow - ((1-fp-fs) / td) * term_inter )
         # if t3 != td:
         #     return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow + ((1-fp-fs) / (t3-td)) * (term_slow - term_inter) )
         # else:
