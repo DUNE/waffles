@@ -233,36 +233,26 @@ def __subplot_heatmap_histogram_only(
     time_bins, adc_bins, ranges, filtering
 ) -> np.ndarray:
     """Computes and returns the raw 2D histogram array for a chunk of waveforms."""
+    accumulated = np.zeros((time_bins, adc_bins), dtype=np.float32)
+    denoiser = Denoise()  
+    x_base = np.arange(waveform_set.points_per_wf, dtype=np.float32)
 
-    aux_x = np.hstack([
-        np.arange(0, waveform_set.points_per_wf, dtype=np.float32)
-        + waveform_set.waveforms[idx].time_offset
-        for idx in wf_idcs])
+    for idx in wf_idcs:
+        wf = waveform_set.waveforms[idx]
+        baseline = wf.analyses[analysis_label].result['baseline']
+        aux_x = x_base + wf.time_offset
+        aux_y = wf.adcs.astype(np.float32) - baseline
 
-    denoiser = Denoise()
-    try:
         if filtering > 0:
-            aux_y = np.hstack([
-                denoiser.apply_denoise(
-                    waveform_set.waveforms[idx].adcs.astype(np.float32)
-                    - waveform_set.waveforms[idx].analyses[analysis_label].result['baseline'],
-                    filter=filtering)
-                for idx in wf_idcs])
-        else:
-            aux_y = np.hstack([
-                waveform_set.waveforms[idx].adcs
-                - waveform_set.waveforms[idx].analyses[analysis_label].result['baseline']
-                for idx in wf_idcs])
-    except KeyError:
-        raise Exception(GenerateExceptionMessage(
-            1, '__subplot_heatmap()',
-            f"Either an analysis with the given analysis_label ({analysis_label}) "
-            "does not exist, or it does not compute the baseline under the 'baseline' key."))
+            aux_y = denoiser.apply_denoise(aux_y, filter=filtering)
 
-    return wun.histogram2d(
-        np.vstack((aux_x, aux_y)),
-        np.array((time_bins, adc_bins)),
-        ranges)
+        wun.histogram2d_accumulate(
+            np.vstack((aux_x, aux_y)),
+            np.array((time_bins, adc_bins)),
+            ranges, accumulated)
+
+    return accumulated
+
 
 
 def __subplot_heatmap_from_array(

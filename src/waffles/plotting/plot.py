@@ -1691,7 +1691,7 @@ def plot_ChannelWsGrid(
                                     queried_no=2)
                     aux_name += ']'
 
-                if adc_range_above_baseline is None:
+                if adc_range_below_baseline is None:
                     adc_range_below_baseline = np.min([
                         waveform.adcs
                         - waveform.analyses[analysis_label].result['baseline']

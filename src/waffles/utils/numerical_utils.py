@@ -440,6 +440,29 @@ def histogram1d(
 
     return counts, deformatted_idcs
 
+# numba can cause some memory leaks if we return a numpy array which is created
+# within the numba function. So, in this case, we are creating the result array
+# outside the numba function and passing it as an argument, so that it is
+# written in-place within the numba function and returned as output of the
+# upper level histogram2d() function, which is not numba decorated and should
+# not perform very demanding operations.
+@numba.njit(nogil=True, parallel=False)
+def histogram2d_accumulate(
+    samples: np.ndarray,
+    bins: np.ndarray,
+    ranges: np.ndarray,
+    result: np.ndarray  # pre-allocated, written in-place
+) -> None:
+
+    inverse_step = 1. / ((ranges[:, 1] - ranges[:, 0]) / bins)
+
+    for t in range(samples.shape[1]):
+        i = (samples[0, t] - ranges[0, 0]) * inverse_step[0]
+        j = (samples[1, t] - ranges[1, 0]) * inverse_step[1]
+
+        if 0 <= i < bins[0] and 0 <= j < bins[1]:
+            result[int(i), int(j)] += 1
+
 
 @numba.njit(nogil=True, parallel=False)
 def histogram2d(
@@ -493,7 +516,20 @@ def histogram2d(
         # Using this condition is slightly faster than
         # using four nested if-conditions. For a dataset 
         # with 178993152 points, the average time (for 30
-        # calls to this function) gave ~1.06 s vs ~1.22 s
+        # calls to this function) gave ~1.06 s vs ~1.22 s -> sounds wrong
+        # Tested recently:
+        #
+        # Dataset : 150000 events × 1024 points = 153,600,000 total points
+        # Calls   : 5
+        
+        # Warming up Numba (JIT compile) ...
+        # Done.
+        
+        #                     mean       std       min       max
+        # ---------------------------------------------------
+        # Numba (custom)  1100.08ms    14.63ms  1083.22ms  1119.45ms
+        # NumPy           58519.59ms  4807.43ms  49263.72ms  63244.50ms
+
         if 0 <= i < bins[0] and 0 <= j < bins[1]:
             result[int(i), int(j)] += 1
 
@@ -660,7 +696,6 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False, 
     
     """
     
-    arrs = []
     for run in wfch.runs: 
         available_endpoints_and_channels = wfch.available_channels[run]
         if len(list(available_endpoints_and_channels.keys())) > 1:
@@ -669,14 +704,15 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False, 
             if len(list(channels)) > 1:
                 raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
 
+    mean = np.zeros(wfch.points_per_wf, dtype=np.float32)
+    counts = 0
     for wf in tqdm(wfch.waveforms[slice_to_process], disable=not show_progress, desc="Computing average waveform"):
-        adcs_float = np.asarray(wf.adcs).astype(np.float32)          
         if analysis_label in wf.analyses:
             baseline = wf.analyses[analysis_label].result["baseline"]
-            adcs_float = adcs_float - baseline                
-            arrs.append(adcs_float)
+            mean += wf.adcs - baseline                
+            counts += 1
             
-    return np.mean(arrs, axis=0)
+    return mean / counts if counts > 0 else mean
 
 
 def lar_response(t, A, fp, t1, t3) -> np.ndarray:
