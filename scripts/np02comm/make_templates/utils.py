@@ -42,14 +42,15 @@ def __remove_existing_templates(wfsetch: dict[int, dict[int, ChannelWs]], templa
             print(f"Removed stale template: {f}")
 
 def __generate_templates_info(wfsetch: dict[int, dict[int, ChannelWs]],
-                                  info_file:str,
-                                  detector: List[str],
-                                  peaks: dict[tuple[int,int], float]
-                                  ) -> dict[tuple[str,int], tuple[str,int,float]]:
+                              info_file:str,
+                              detector: List[str],
+                              peaks: dict[tuple[int,int], float]
+                              ) -> dict[tuple[str,int], tuple[str,int,float]]:
 
     data = {}
 
     ep = list(wfsetch.keys())[0]
+    epchannels_new = {}
     for ch in wfsetch[ep].keys():
         run_num = list(wfsetch[ep][ch].runs)[0]
         module = getModuleName(ep, ch)
@@ -58,6 +59,7 @@ def __generate_templates_info(wfsetch: dict[int, dict[int, ChannelWs]],
             endpoint_ch = f"{ep}-{ch}"
             peak_ch = peaks[(ep,ch)]
             data[(endpoint_ch, run_num)] = (module, len(wfs.waveforms), peak_ch)
+            epchannels_new[endpoint_ch] = 1
 
     if not os.path.exists(info_file):
         return data
@@ -77,6 +79,8 @@ def __generate_templates_info(wfsetch: dict[int, dict[int, ChannelWs]],
                 if len(split_parts) == 2:
                     module = split_parts[0]
                     endpoint_ch = split_parts[1]
+                    if endpoint_ch in epchannels_new:
+                        continue
                     run_num = int(parts[1])
                     waveforms = int(parts[2])
                     peak_ch = float(parts[3])
