@@ -725,6 +725,8 @@ def single_vgain_analysis(
         if save_pdf:
             if output_files_comment != '':
                 comment = '_' + output_files_comment
+            else: 
+                comment = output_files_comment
             output_filename = f"{output_folder}/membrane{membrane}_channel{channel}_led{led}_bias{bias}_vgain{vgain}{comment}.pdf"
             big_fig.write_image(output_filename)
             print(f"Pdf saved : {output_filename}\n")
@@ -755,75 +757,49 @@ def single_vgain_analysis(
 
 ##########################################################################################################
 
-# NO MORE WORKING 26/03/2026
+# NO MORE WORKING 26/03/2026 --> starting modifing it on 30/03/2026 to have possibility to use auto parameters or external ones passed as argument in a dict with vgain as key
 
-# def vgain_analysis_parameters(vgain):
-#     """
-#     Compute Vgain-dependent parameters for waveform analysis pipeline.
+def vgain_analysis_parameters(vgain):
 
-#     Returns config dict for analysis parameters.
+    v_index = (vgain - 500) // 100
+    heatmap_min = (-200 + v_index * 10)
+    heatmap_max =( 700 - v_index * 50 if vgain <= 1600 else 100)
 
-#     Parameters
-#     ----------
-#     vgain : int or float
-
-#     Returns
-#     -------
-#     dict[str, float|int]
-#         Keys:
-#         - 'baseline_timeticks_limit'
-#         - 'deviation_upper_limit' 
-#         - 'heatmap_min'
-#         - 'heatmap_max'
-#         - 'adcs_threshold'
-#         - 'n_std_baseline'
-#         - 'max_peaks'
-#         - 'prominence'
-#         - 'initial_percentage'
-#         - 'percentage_step'
-#         - 'ch_span_fraction_around_peaks'
-
-#     Notes
-#     -----
-#     - No input validation; assumes valid vgain ≥500.
-#     - Used for dynamic thresholding in persistence/peak detection.
-#     """
-
-#     v_index = (vgain - 500) // 100
-#     heatmap_min = (-200 + v_index * 10)
-#     heatmap_max =( 700 - v_index * 50 if vgain <= 1600 else 100)
-
-#     adcs_threshold = (
-#         90 - v_index * 10 if vgain <= 900 else
-#         50 - (v_index-4) * 5  if vgain <= 1300 else
-#         30 - (v_index-8) * 3  if vgain <= 1900 else
-#         11
-#     )
+    adcs_threshold = (
+        120 - v_index * 10 if vgain < 900 else
+        80 - (v_index-4) * 5  if vgain <= 1300 else
+        30 - (v_index-8) * 3  if vgain <= 1900 else
+        11
+    )
     
-#     n_std_baseline = (1 if vgain <= 1800 else 1.1)
+    n_std_baseline = (1.2 if vgain <= 800 else 1.5)
 
-#     max_peaks=  7
-#     prominence= 0.5
-#     initial_percentage=0.1
-#     percentage_step=0.02
-#     ch_span_fraction_around_peaks=0.05 
+    max_peaks=  7
+    prominence= 0.5
+    initial_percentage=0.1
+    percentage_step=0.02
+    ch_span_fraction_around_peaks=0.05 
 
-#     baseline_timeticks_limit = 380
-#     deviation = 0.4
+    baseline_timeticks_limit = 120
+    deviation = None
 
-#     return {
-#         'baseline_timeticks_limit': baseline_timeticks_limit,
-#         'deviation_upper_limit': deviation,
-#         'heatmap_min': heatmap_min,
-#         'heatmap_max': heatmap_max,
-#         'adcs_threshold': adcs_threshold,
-#         'n_std_baseline': n_std_baseline,
-#         'max_peaks': max_peaks, 
-#         'prominence': prominence, 
-#         'initial_percentage': initial_percentage,
-#         'percentage_step': percentage_step,
-#         'ch_span_fraction_around_peaks': ch_span_fraction_around_peaks
-#     }
+    return {
+        'baseline_timeticks_limit': baseline_timeticks_limit,
+        'deviation_upper_limit': None,
+        "fixed_integral_limits":[128,153],
+        'heatmap_min': heatmap_min,
+        'heatmap_max': heatmap_max,
+        'adcs_threshold': adcs_threshold,
+        'n_std_baseline': n_std_baseline,
+        'max_peaks': max_peaks, 
+        'prominence': prominence, 
+        'initial_percentage': initial_percentage,
+        'percentage_step': percentage_step,
+        'ch_span_fraction_around_peaks': ch_span_fraction_around_peaks,
+        "time_range_afterpulse_for_meanwf": [300,-1]
+    }
+
+
 
 
 ##########################################################################################################
@@ -837,7 +813,7 @@ def channel_vgain_scan_analysis(
         led: int, 
         input_filename_path_style: str, # Example of complete .dat filepath where between {} you use the exact name of the variables you need: = "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/2026March/20260324_sof_ch18to21_vgain_scan_led270_i830_800_930_920_biasmap_remote_r1/vgain_{vgain:04d}/afe2bias_0000/led_{led}_ch{channel}/channel_{channel}.dat"
         input_filename_variable: List[str], # Example: ['vgain', 'led', 'channel'] i.e. list of the variable name to use in the filename path 
-        external_dict_paramas,# : Optional[dict] = None,
+        external_dict_paramas : Optional[dict] = None,
         show: bool = False,
         save_pdf: bool = True,
         output_folder: str = "output",
@@ -864,7 +840,7 @@ def channel_vgain_scan_analysis(
             bias=bias,
             vgain=vgain,
             led = led,
-            dict_params = external_dict_paramas[vgain], #if external_dict_paramas is not None else vgain_analysis_parameters(vgain)),
+            dict_params = (external_dict_paramas[vgain] if external_dict_paramas is not None else vgain_analysis_parameters(vgain)),
             input_file= input_file, 
             parameters_conversion = parameters_conversion,
             output_folder = output_folder_analysis,
@@ -880,6 +856,8 @@ def channel_vgain_scan_analysis(
             
     if output_files_comment != '':
         comment = '_' + output_files_comment
+    else:
+        comment = output_files_comment
 
     csv_filename = f"{output_folder_analysis}/membrane{membrane}_channel{channel}_led{led}_bias{bias}_vgain_scan{comment}.csv"
     out_df.to_csv(csv_filename, index=False)
@@ -1319,12 +1297,12 @@ def validate_analysis_params(dict_params: Dict) -> None:
     fil = dict_params["fixed_integral_limits"]
     if fil is not None:
         if (
-            not isinstance(fil, tuple)
+            not isinstance(fil, list)
             or len(fil) != 2
             or not all(isinstance(x, (int, float)) for x in fil)
         ):
             raise ValueError(
-                "fixed_integral_limits must be a tuple of two numbers (low, high) or None"
+                "fixed_integral_limits must be a list of two numbers (low, high) or None"
             )
 
     if not isinstance(dict_params["heatmap_min"], (int, float)):
