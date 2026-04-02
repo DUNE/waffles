@@ -85,11 +85,13 @@ class ConvFitterVDWrapper(ConvFitter):
                 't1': '\\tau_\\text{fast}',
                 't3': '\\tau_\\text{slow}',
                 'td': '\\tau_\\text{delay}',
+                't0': 't_\\text{0}',
+                'sigma': '\\sigma',
             }
 
-            for p, v, e in zip(self.m.parameters, self.m.values, self.m.errors):
-                if p in mapnames:
-                    fit_info.append(f"${mapnames[p]}$ = ${v:.3f} \\pm {e:.3f}$")
+            for p in mapnames.keys():
+                if self.parameters_fit[p] is not None:
+                    fit_info.append(f"${mapnames[p]}$ = ${self.parameters_fit[p].value:.3f} \\pm {self.parameters_fit[p].error:.3f}$")
             plt.plot([],[], ' ', label='\n'.join(fit_info))
         
         else:

@@ -6,6 +6,7 @@ from iminuit.util import describe
 from iminuit.util import FMin
 from waffles.utils.fft.fftutils import FFTWaffles
 from waffles.utils.time_align_utils import find_threshold_crossing
+from waffles.np02_utils.LArXeFitUtils import FitResults, FitParameter
 
 
 class DeconvFitter(FFTWaffles):
@@ -27,6 +28,7 @@ class DeconvFitter(FFTWaffles):
         self.scinttype = scinttype
         self.chi2 = -1
         self.m: Minuit
+        self.parameters_fit = FitResults()
         super().__init__(filter_type=filter_type, cutoff_MHz=cutoff_MHz)
 
     ##################################################
@@ -39,15 +41,16 @@ class DeconvFitter(FFTWaffles):
 
     ##################################################
     def getFFTs(self):
-        self.templatefft = self.getFFT(self.template)
-        self.responsefft = self.getFFT(self.response)
+        self.templatefft, self.fft_len = self.getFFTFull(self.template)
+        self.responsefft, self.fft_len = self.getFFTFull(self.response)
 
     ##################################################
     # MATHEMATICAL MODELS 
     ##################################################
     def expo_conv_gauss(self, x, tau, sigma, t0):
-        return ( np.exp(-(x - t0) / tau) * np.exp(sigma**2 / (2 * tau**2))) * \
-                    erfc(((t0 - x) / sigma + sigma / tau) / np.sqrt(2)) / 2.0
+        log_term =  -(x - t0) / tau + sigma**2 / (2 * tau**2) # avoids overflow for large x, tau and sigma
+        term_erfc = (sigma / tau - (x - t0) / sigma) / np.sqrt(2)
+        return np.exp(np.clip(log_term, -500, 500)) * erfc(term_erfc) / 2.0
 
 
     def model_lar(self, x, A, fp, t1, t3, sigma, t0):
@@ -59,6 +62,10 @@ class DeconvFitter(FFTWaffles):
                     
         return A * (term_fast + term_slow)
 
+    def model_larxe_reparam(self, t, A, fp, t1, t3, td, fs_frac, sigma, t0):
+        fs = fs_frac * (1 - fp)   # guarantees fp + fs < 1 always
+        return self.model_larxe(t, A, fp, fs, t1, t3, td, sigma, t0)
+
     def model_larxe(self, x, A, fp, fs, t1, t3, td, sigma, t0):
 
         
@@ -66,22 +73,27 @@ class DeconvFitter(FFTWaffles):
         term_slow = self.expo_conv_gauss(x, t3, sigma, t0)
         term_inter = self.expo_conv_gauss(x, td, sigma, t0)
 
-        return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow - ((1-fp-fs) / td) * term_inter )
-        # if t3 != td:
-        #     return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow + ((1-fp-fs) / (t3-td)) * (term_slow - term_inter) )
-        # else:
-        #     return A * ( (fp / t1) * term_fast + (fs / t3) * term_slow )
+        # return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow - ((1-fp-fs) / td) * term_inter )
+        if t3 != td:
+            return A * ( (fp / t1) * term_fast + ( fs / t3 ) * term_slow + ((1-fp-fs) / (t3-td)) * (term_slow - term_inter) )
+        else:
+            return A * ( (fp / t1) * term_fast + (fs / t3) * term_slow )
 
-    def generate_deconvolved_signal(self, response:np.ndarray = np.array([]), template:np.ndarray = np.array([])):
+    def generate_deconvolved_signal(self, response: np.ndarray = np.array([]), template: np.ndarray = np.array([])):
         if response.size > 0:
             self.set_response_waveform(response)
         if template.size > 0:
             self.set_template_waveform(template)
 
-        self.deconvolved = self.backFFT(self.deconvolve(self.response, self.template))
+        deconv_fft = self.deconvolve(self.response, self.template)
+        self.deconvolved = self.backFFT(deconv_fft)[:len(self.response)]
+
         cross_template = find_threshold_crossing(self.template, 0.5)
-        self.shift = cross_template
-        self.deconvolved = np.roll(self.deconvolved, int(self.shift))
+        cross_response = find_threshold_crossing(self.response, 0.5) - 10
+        self.shift = int(cross_template)
+        self.deconvolved = np.roll(self.deconvolved, self.shift)
+        self.deconvolved = self.deconvolved - np.mean(self.deconvolved[:int(cross_response)])
+
 
     ##################################################
     # FIT
@@ -99,6 +111,14 @@ class DeconvFitter(FFTWaffles):
         if print_flag:
             print(f"Final Fit Params: {params} | Chi2: {chi2}")
 
+        fp_fit = self.m.values['fp']
+
+        for p in describe(self.model)[1:]:
+            param_name = 'fs' if p == 'fs_frac' else p
+            value = self.m.values['fs_frac'] * (1 - fp_fit) if p == 'fs_frac' else self.m.values[p]
+            error = self.m.errors['fs_frac'] * (1 - self.m.values['fp']) if p == 'fs_frac' else self.m.errors[p]
+            self.parameters_fit[param_name] = FitParameter(value=value, error=error)
+
         return params, chi2
 
     ##################################################
@@ -110,7 +130,7 @@ class DeconvFitter(FFTWaffles):
                  printresult: bool,
                  fit_limits_ns: list = [None, 10e3],
                  force_range: bool = False,
-                 tolerance: float = 1e-3
+                 tolerance: float = 2e-2
                  ):
 
 
@@ -120,6 +140,7 @@ class DeconvFitter(FFTWaffles):
 
         # t0 dynamically initialized at the maximum peak
         maxBin = np.argmax(signal_to_fit)
+        max_slow = signal_to_fit[maxBin+15] # Max plus 15 ticks (240 ns)
         t0_init = float(maxBin * self.dtime)
 
         xlim_min, xlim_max = fit_limits_ns
@@ -128,7 +149,7 @@ class DeconvFitter(FFTWaffles):
         if xlim_max is not None:
             xlim_max = int(xlim_max // self.dtime)
             if not force_range:
-                lim_attempt = np.argwhere(signal_to_fit[maxBin:xlim_max] < tolerance)
+                lim_attempt = np.argwhere(signal_to_fit[maxBin:xlim_max]/max_slow < tolerance)
                 if len(lim_attempt) > 0:
                     xlim_max = lim_attempt[0][0] + maxBin
 
@@ -172,22 +193,26 @@ class DeconvFitter(FFTWaffles):
 
         else: # Xenon + Argon
             self.model = self.model_larxe
+            self.model = self.model_larxe_reparam
             mcost = cost.LeastSquares(times, signal_to_fit, errors, self.model)
+
             
             A = 10e3
-            fp = 0.3
-            fs = 1-fp-0.1
+            fp = 0.1
+            fs = 0.8
 
             t1 = 35.
-            t3 = 1200.
-            td = 1200.
+            t3 = 2300.
+            td = 2300
             sigma = 20.0
-            m = Minuit(mcost, A=1e5, t1=10.0, fp=0.3, t3=1400.0, sigma=20.0, t0=t0_init, fs=0.6, td=200.0)
-            m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3,td=td, fs=fs, sigma=sigma, t0=t0_init)
-            
+
+            fs_frac_init = fs / (1 - fp) 
+
+            m = Minuit(mcost, A=A, fp=fp, t1=t1, t3=t3, td=td, fs_frac=fs_frac_init, sigma=sigma, t0=t0_init)
+
+            m.limits['fp']     = (0, 1)
+            m.limits['fs_frac'] = (0, 1)   # this + fp limit guarantees fp + fs < 1
             m.limits['A'] = (0,None)
-            m.limits['fp'] = (0,1)
-            m.limits['fs'] = (0,1)
             m.limits['t1'] = (2,50)
             m.limits['t3'] = (500, 3500)
             m.limits['td'] = (10,3500)
@@ -196,12 +221,18 @@ class DeconvFitter(FFTWaffles):
             m.limits['t0'] = (0, nticks * self.dtime)
 
             m.fixed['fp'] = True
-            m.fixed['fs'] = True
+            m.fixed['fs_frac'] = True
+            m.fixed['t1'] = True
+            # m.fixed['t3'] = True
+            # m.fixed['td'] = True
             m.migrad()
             m.migrad()
             m.migrad()
             m.fixed['fp'] = False
-            m.fixed['fs'] = False
+            m.fixed['fs_frac'] = False
+            m.fixed['t1'] = False
+            # m.fixed['t3'] = False
+            # m.fixed['td'] = False
             m.migrad()
             m.migrad()
             m.migrad()
@@ -210,6 +241,7 @@ class DeconvFitter(FFTWaffles):
         
         pars = describe(self.model)[1:]
         params = [m.values[p] for p in pars]
+
         
         self.m = m
         if printresult:

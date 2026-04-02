@@ -7,8 +7,15 @@ from iminuit.util import describe
 from iminuit.util import FMin
 from waffles.utils.fft.fftutils import FFTWaffles
 from waffles.utils.convolution.ConvUtils import *
+from waffles.np02_utils.LArXeFitUtils import FitResults, FitParameter
+
+
+
+
 
 from scipy import interpolate
+
+
 
 class ConvFitter:
     def __init__(self, 
@@ -76,6 +83,8 @@ class ConvFitter:
         self.chi2 = -1
         self.m: Minuit
 
+        self.parameters_fit = FitResults()
+
     ##################################################
     def set_template_waveform(self, wvf: np.ndarray):
         self.template = wvf.copy()
@@ -103,9 +112,7 @@ class ConvFitter:
             self.update_waveforms_fft()
 
     def update_waveforms_fft(self):
-        self.templatefft = FFTWaffles.getFFT(self.template)
-        self.response = FFTWaffles.backFFT(FFTWaffles.getFFT(self.response))
-        self.template = FFTWaffles.backFFT(FFTWaffles.getFFT(self.template))
+        self.templatefft, _ = FFTWaffles.getFFTFull(self.template)
 
     ##################################################
     def interpolate(self, wf:np.ndarray, interpolation_factor: int) -> np.ndarray:
@@ -178,6 +185,15 @@ class ConvFitter:
         self.fit_results = params
         self.chi2 = chi2
 
+        fp_fit = self.m.values['fp']
+        fs_fit = self.m.values['fs_frac'] * (1 - fp_fit)
+
+        for p in describe(self.model)[1:]:
+            param_name = 'fs' if p == 'fs_frac' else p
+            value = fs_fit if p == 'fs_frac' else self.m.values[p]
+            error = self.m.errors['fs_frac'] * (1 - self.m.values['fp']) if p == 'fs_frac' else self.m.errors[p]
+            self.parameters_fit[param_name] = FitParameter(value=value, error=error)
+
         if(print_flag): print(params, chi2, idxMinChi2)
 
 
@@ -189,9 +205,9 @@ class ConvFitter:
     ##################################################
     def lar_convolution_freq(self, t, A, fp, t1, t3):
         self.lar:np.ndarray = lar_response(t, A, fp, t1, t3)
-        larfreq = FFTWaffles.getFFT(self.lar)
-        res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
-        return np.real(res)
+        larfreq, fft_len = FFTWaffles.getFFTFull(self.lar)
+        res = FFTWaffles.backFFTFull(FFTWaffles.convolveFFT(self.templatefft, larfreq), fft_len)
+        return res[:len(self.lar)]
 
     ##################################################
     def minimize(self, printresult:bool, oneexp:bool=False):
@@ -252,6 +268,14 @@ class ConvFitter:
 
     #######  ADDED DUE TO XENON DOPING ON NP02 #######
 
+    def larxe_convolution_time_reparam(self, t, A, fp, fs_frac, t1, t3, td):
+        fs = fs_frac * (1 - fp)
+        return self.larxe_convolution_time(t, A, fp, fs, t1, t3, td)
+
+    def larxe_convolution_freq_reparam(self, t, A, fp, fs_frac, t1, t3, td):
+        fs = fs_frac * (1 - fp)
+        return self.larxe_convolution_freq(t, A, fp, fs, t1, t3, td)
+
 
     ##################################################
     def larxe_convolution_time(self, t, A, fp, fs, t1, t3, td):
@@ -261,9 +285,9 @@ class ConvFitter:
     ##################################################
     def larxe_convolution_freq(self, t, A, fp, fs, t1, t3, td):
         self.lar = lar_xe_response(t, A, fp, fs, t1, t3, td)
-        larfreq = FFTWaffles.getFFT(self.lar)
-        res = FFTWaffles.backFFT(convolveFFT(self.templatefft, larfreq))
-        return np.real(res)
+        larfreq, fft_len = FFTWaffles.getFFTFull(self.lar)
+        res = FFTWaffles.backFFTFull(FFTWaffles.convolveFFT(self.templatefft, larfreq), fft_len)
+        return res[:len(self.lar)]
 
     ##################################################
     def minimize_larxe(self, printresult:bool):
@@ -275,36 +299,40 @@ class ConvFitter:
         errors = np.ones(nticks)*self.error
 
         if self.convtype == 'time':
-            self.model = self.larxe_convolution_time
+            self.model = self.larxe_convolution_time_reparam
         elif self.convtype == 'fft':
-            self.model = self.larxe_convolution_freq
+            self.model = self.larxe_convolution_freq_reparam
         mcost = cost.LeastSquares(times, self.response, errors, self.model)
-        # mcost = self.mycost
-
+        
         A = 10e3
-        fp = 0.3
-        fs = 1-fp-0.1
+        fp = 0.1
+        fs = 0.8
 
         t1 = 35.
-        t3 = 1200.
-        td = 1200.
+        t3 = 2200.
+        td = 2200
 
+        fs_frac_init = fs / (1 - fp) 
 
-        m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3,td=td, fs=fs)
+        m = Minuit(mcost, A=A, fp=fp, t1=t1, t3=t3, td=td, fs_frac=fs_frac_init)
+        m.tol = 100
 
+        m.limits['fp']     = (0, 1)
+        m.limits['fs_frac'] = (0, 1)   # this + fp limit guarantees fp + fs < 1
         m.limits['A'] = (0,None)
-        m.limits['fp'] = (0,1)
-        m.limits['fs'] = (0,1)
         m.limits['t1'] = (2,50)
         m.limits['t3'] = (500, 3500)
         m.limits['td'] = (10,3500)
-        m.fixed['fp'] =True
-        m.fixed['fs'] =True
+
+        m.fixed['fp'] = True
+        m.fixed['fs_frac'] = True
+        m.fixed['t1'] = True
         m.migrad()
         m.migrad()
         m.migrad()
-        m.fixed['fp'] = False 
-        m.fixed['fs'] = False 
+        m.fixed['fp'] = False
+        m.fixed['fs_frac'] = False
+        m.fixed['t1'] = False
         m.migrad()
         m.migrad()
         m.migrad()
@@ -312,6 +340,7 @@ class ConvFitter:
 
         pars = describe(self.model)[1:]
         params = [m.values[p] for p in pars]
+
 
         self.m: Minuit = m
         if printresult:
@@ -321,4 +350,5 @@ class ConvFitter:
         if isinstance(m.fmin, FMin):
             chi2res = m.fmin.reduced_chi2
         self.chi2 = chi2res
+
         return params, chi2res

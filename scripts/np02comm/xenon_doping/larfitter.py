@@ -148,17 +148,17 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             params_to_save = {}
             errors = {}
             for param_name in params_name_to_save:
-                if param_name in cfitch.m.parameters:
-                    params_to_save[param_name] = cfitch.m.params[param_name].value
-                    errors[param_name] = cfitch.m.params[param_name].error
+                if param_name in cfitch.parameters_fit and cfitch.parameters_fit[param_name] is not None:
+                    params_to_save[param_name] = cfitch.parameters_fit[param_name].value
+                    errors[param_name] = cfitch.parameters_fit[param_name].error
                 else:
                     params_to_save[param_name] = 0
                     errors[param_name] = 0
 
-            params_to_save['fs'] = params_to_save['fs'] if 'fs' in cfitch.m.parameters else 1-params_to_save['fp']
-            params_to_save['td'] = params_to_save['td'] if 'td' in cfitch.m.parameters else 0
-            errors['fs'] = errors['fs'] if 'fs' in cfitch.m.parameters else error_propagation(1,0, params_to_save['fp'], errors['fp'],"sub")
-            errors['td'] = errors['td'] if 'td' in cfitch.m.parameters else 0
+            params_to_save['fs'] = params_to_save['fs'] if cfitch.parameters_fit['fs'] is not None else 1-params_to_save['fp']
+            params_to_save['td'] = params_to_save['td'] if cfitch.parameters_fit['td'] is not None else 0
+            errors['fs'] = errors['fs'] if cfitch.parameters_fit['fs'] is not None else error_propagation(1,0, params_to_save['fp'], errors['fp'],"sub")
+            errors['td'] = errors['td'] if cfitch.parameters_fit['td'] is not None else 0
             
             # Saving results
             with open( outputdir / f"{method}fit_output_run{run:06}_{moduletype}_{submodulename}_{ep}_{ch}.csv", 'w') as f:

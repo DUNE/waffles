@@ -242,6 +242,7 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
                              channel:int=0,
                              module = '',
                              y='t3[ns]',
+                             x='time', #not used.. but necessary
                              selection:Optional[Callable]=None,
                              label:str = '',
                              showhours = False,

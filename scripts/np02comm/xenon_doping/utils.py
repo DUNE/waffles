@@ -3,6 +3,8 @@ import numpy as np
 from typing import Union
 from pathlib import Path
 import yaml
+from scipy.signal import lfilter
+
 from waffles.utils.utils import print_colored
 from ConvFitterVDWrapper import ConvFitterVDWrapper
 from DeconvFitterVDWrapper import DeconvFitterVDWrapper
@@ -46,22 +48,34 @@ def makeslice(slicevalues:dict) -> slice:
     tf = int(tf) if isinstance(tf, int) else None
     return slice(t0,tf)
 
+
+def high_pass_filter_scipy(raw, frequency_cut_MHz, dt_ns):
+    RC = 1.0 / (2 * np.pi * frequency_cut_MHz)
+    alpha = RC / (RC + dt_ns*1e-3)
+    b = [alpha, -alpha]
+    a = [1, -(alpha)]
+    return lfilter(b, a, raw)
+
 def setup_response_template(
                     response:np.ndarray,
                     template:np.ndarray,
                     cfitch:Union[ConvFitterVDWrapper, DeconvFitterVDWrapper],
                     slice_template:slice = slice(200,240),
-                    slice_response:slice = slice(None,54)
+                    slice_response:slice = slice(None,54),
+                    high_pass_freq_MHz:float = 0,
                     ):
 
     wvft = (template).astype(np.float32)
     wvfr = (response).astype(np.float32)
+    if high_pass_freq_MHz > 0:
+        wvft:ndarray = high_pass_filter_scipy(wvft, high_pass_freq_MHz, 16) # type: ignore
+        wvfr:ndarray = high_pass_filter_scipy(wvfr, high_pass_freq_MHz, 16) # type: ignore
     if slice_template.start != 0 and slice_template.stop != 0: # If both are zero, no re-baseline
         wvft = wvft - np.mean(wvft[slice_template])
     if slice_response.start != 0 and slice_response.stop != 0: # if both are zero, no re-baseline
         wvfr = wvfr - np.mean(wvfr[slice_response])
 
-    cfitch.set_template_waveform(wvft)
+    cfitch.set_template_waveform(wvft) 
     cfitch.set_response_waveform(wvfr)
 
 

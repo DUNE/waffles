@@ -29,6 +29,9 @@ class DeconvFitterVDWrapper(DeconvFitter):
     def set_waveforms(self, wfresponse: np.ndarray, wftemplate: np.ndarray):
         self.set_response_waveform(wfresponse.astype(np.float32))
         self.set_template_waveform(wftemplate.astype(np.float32))
+         # Recompute filters if npoints changed
+        if len(wfresponse) != self.npoints:
+            self.setup_deconv_params(len(wfresponse), self.filter_type, self.sample_rate, self.cutoff)
 
 
 
@@ -80,9 +83,9 @@ class DeconvFitterVDWrapper(DeconvFitter):
                     'sigma': '\\sigma',
                 }
 
-                for p, v, e in zip(self.m.parameters, self.m.values, self.m.errors):
-                    if p in mapnames:
-                        fit_info.append(f"${mapnames[p]}$ = ${v:.3f} \\pm {e:.3f}$")
+                for p in mapnames.keys():
+                    if self.parameters_fit[p] is not None:
+                        fit_info.append(f"${mapnames[p]}$ = ${self.parameters_fit[p].value:.3f} \\pm {self.parameters_fit[p].error:.3f}$")
                 plt.plot([], [], ' ', label='\n'.join(fit_info))
         else:
             plt.plot(times, self.model(times, *modelparams.values()), color='r', zorder=100, label='Model')

@@ -50,7 +50,8 @@ def process_deconvfit(ep:int,
                       print_flag:bool=False,
                       oneexp:bool=False,
                       slice_template:slice = slice(200,240),
-                      slice_response:slice = slice(None,54)
+                      slice_response:slice = slice(None,54),
+                      high_pass_freq_MHz:float = 0.5,
                       ):
 
     modulename = getModuleName(ep, ch)
@@ -58,7 +59,9 @@ def process_deconvfit(ep:int,
 
     # if modulename[:2] == "M7" and cfitch.scinttype != "xe":
     #     oneexp = True
-    setup_response_template(response, template, cfitch, slice_template, slice_response)
+    if ep == 110:
+        high_pass_freq_MHz = 0.0 # No high pass filter for PMTs
+    setup_response_template(response, template, cfitch, slice_template, slice_response, high_pass_freq_MHz)
     if ep != 110:
         cfitch.generate_deconvolved_signal()
     else:
