@@ -16,4 +16,4 @@ slice_template:
     tf: 240
 slice_response:
     t0: null
-    tf: 54
+    tf: 50
