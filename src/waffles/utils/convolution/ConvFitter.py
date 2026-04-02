@@ -186,11 +186,10 @@ class ConvFitter:
         self.chi2 = chi2
 
         fp_fit = self.m.values['fp']
-        fs_fit = self.m.values['fs_frac'] * (1 - fp_fit)
 
         for p in describe(self.model)[1:]:
             param_name = 'fs' if p == 'fs_frac' else p
-            value = fs_fit if p == 'fs_frac' else self.m.values[p]
+            value = self.m.values['fs_frac'] * (1 - self.m.values['fp']) if p == 'fs_frac' else self.m.values[p]
             error = self.m.errors['fs_frac'] * (1 - self.m.values['fp']) if p == 'fs_frac' else self.m.errors[p]
             self.parameters_fit[param_name] = FitParameter(value=value, error=error)
 
