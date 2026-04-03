@@ -30,7 +30,7 @@
     },
     "1700":  {
         "baseline_timeticks_limit": 120, 
-        "deviation_upper_limit": 0.9, 
+        "deviation_upper_limit": 0.85, 
         "fixed_integral_limits" : null,
         "heatmap_min": -170,
         "heatmap_max": 550,
@@ -60,7 +60,7 @@
     },
     "1900":  {
         "baseline_timeticks_limit": 120, 
-        "deviation_upper_limit": 0.85, 
+        "deviation_upper_limit": 0.9, 
         "fixed_integral_limits" : null,
         "heatmap_min": -170,
         "heatmap_max": 550,
@@ -90,7 +90,7 @@
     },
     "2100":  {
         "baseline_timeticks_limit": 120, 
-        "deviation_upper_limit": 0.9, 
+        "deviation_upper_limit": 0.85, 
         "fixed_integral_limits" : null,
         "heatmap_min": -170,
         "heatmap_max": 550,
@@ -105,7 +105,7 @@
     },
     "2200":  {
         "baseline_timeticks_limit": 120, 
-        "deviation_upper_limit": 0.9, 
+        "deviation_upper_limit": 0.85, 
         "fixed_integral_limits" : null,
         "heatmap_min": -170,
         "heatmap_max": 550,
