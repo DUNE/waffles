@@ -1,0 +1,32 @@
+{"1500" : {
+        "baseline_timeticks_limit": 120, 
+        "deviation_upper_limit": 0.9, 
+        "fixed_integral_limits" : null,
+        "heatmap_min": -170,
+        "heatmap_max": 550,
+        "adcs_threshold": 70, 
+        "n_std_baseline": 3, 
+        "max_peaks": 7,
+        "prominence": 0.5,
+        "initial_percentage": 0.1,
+        "percentage_step": 0.02,
+        "ch_span_fraction_around_peaks": 0.05,
+        "time_range_afterpulse_for_meanwf": [200,-1]
+    },
+    "800":  {
+        "baseline_timeticks_limit": 115, 
+        "deviation_upper_limit": 0.8, 
+        "fixed_integral_limits" : null,
+        "heatmap_min": -170,
+        "heatmap_max": 550,
+        "adcs_threshold": 50, 
+        "n_std_baseline": 2, 
+        "max_peaks": 7,
+        "prominence": 0.5,
+        "initial_percentage": 0.1,
+        "percentage_step": 0.02,
+        "ch_span_fraction_around_peaks": 0.05,
+        "time_range_afterpulse_for_meanwf": [200,-1]
+    }
+
+}
