@@ -440,6 +440,7 @@ def print_correlated_gaussians_fit_parameters(my_grid, parameters_conversion: bo
     ch_id = my_grid.ch_map.data[0][0]
     channel_ws = my_grid.ch_wf_sets[ch_id.endpoint][ch_id.channel]
     params = channel_ws.calib_histo.gaussian_fits_parameters
+
     
     mean_0 = params['mean'][0][0]
     e_mean_0 = params['mean'][0][1]
@@ -766,13 +767,13 @@ def vgain_analysis_parameters(vgain):
     heatmap_max =( 700 - v_index * 50 if vgain <= 1600 else 100)
 
     adcs_threshold = (
-        120 - v_index * 10 if vgain < 900 else
+        100 - v_index * 10 if vgain < 900 else
         80 - (v_index-4) * 5  if vgain <= 1300 else
         30 - (v_index-8) * 3  if vgain <= 1900 else
         11
     )
     
-    n_std_baseline = (1.2 if vgain <= 800 else 1.5)
+    n_std_baseline = (1 if vgain <= 800 else 1.5)
 
     max_peaks=  7
     prominence= 0.5
@@ -786,7 +787,7 @@ def vgain_analysis_parameters(vgain):
     return {
         'baseline_timeticks_limit': baseline_timeticks_limit,
         'deviation_upper_limit': None,
-        "fixed_integral_limits":[128,153],
+        "fixed_integral_limits":[126,150],
         'heatmap_min': heatmap_min,
         'heatmap_max': heatmap_max,
         'adcs_threshold': adcs_threshold,
@@ -830,10 +831,15 @@ def channel_vgain_scan_analysis(
     output_folder_analysis = f"{output_folder}/membrane_{membrane}/channel_{channel}"
     if not os.path.exists(output_folder_analysis):
         os.makedirs(output_folder_analysis)
-
+    print(vgain_list)
     for vgain in vgain_list:
-        input_file = _build_input_filepath(template=input_filename_path_style, variables=input_filename_variable, local_vars=locals())
-        
+        input_file = _build_input_filepath(
+            input_filename_path_style,
+            bias=bias,
+            vgain=vgain,
+            led=led,
+            channel=channel,
+        )
         row = single_vgain_analysis(
             membrane=membrane,
             channel=channel,
@@ -1235,9 +1241,8 @@ def calibration_histogram_peak_counts(wfset_filtered, output_parameters, integra
 
 ##########################################################################################################
 
-def _build_input_filepath(template: str, variables: list[str], local_vars: dict) -> str:
-    format_dict = {v: local_vars[v] for v in variables}
-    return template.format(**format_dict)
+def _build_input_filepath(template: str, **kwargs) -> str:
+    return template.format(**kwargs)
 
 
 ##########################################################################################################
