@@ -646,6 +646,7 @@ def plot_waveforms_wfset(wfset: WaveformSet,
                          rows=0,
                          cols=0,
                          fig = None,
+                         **kargs_subplots,
                          ):
     detChMap = generate_ChannelMap(channels=detectors, rows=rows, cols=cols)
     gridWs = ChannelWsGrid(detChMap, wfset)
@@ -654,6 +655,7 @@ def plot_waveforms_wfset(wfset: WaveformSet,
             rows=gridWs.ch_map.rows,
             cols=gridWs.ch_map.columns,
             subplot_titles=gridWs.titles,
+            **kargs_subplots
         )
     plot_waveforms(fig, gridWs, waveforms, line_color=line_color)
 
