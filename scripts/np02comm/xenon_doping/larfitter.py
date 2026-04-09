@@ -11,6 +11,8 @@ from glob import glob
 import argparse
 import os
 import re
+from enum import Enum, auto
+from collections import defaultdict
 
 
 from waffles.data_classes.EasyWaveformCreator import EasyWaveformCreator
@@ -39,6 +41,38 @@ plt.rcParams.update({'font.size': 20,
                      'figure.figsize': [14,6]
                      })
 
+class ProcessStatus(Enum):
+    COMPLETED  = auto()  # ran and processed successfully
+    SKIPPED    = auto()  # already done, nothing to do
+    FAILED     = auto()  # attempted to run but failed with an error
+    NOT_ASKED  = auto()  # module not asked to be processed
+
+def __print_summary(results: dict[int, dict[str, ProcessStatus]], dryrun: bool) -> None:
+    grouped_module = defaultdict(lambda: defaultdict(list))
+    for run, statuses in results.items():
+        for module, status in statuses.items():
+            if status != ProcessStatus.NOT_ASKED:
+                grouped_module[module][status].append(f"{run}")
+
+    if dryrun:
+        for module, grouped in  grouped_module.items(): 
+            print(f"{module}:")
+            if grouped[ProcessStatus.COMPLETED]:
+                print_colored("Runs that will be processed: " + ", ".join(grouped[ProcessStatus.COMPLETED]), color="INFO")
+            if grouped[ProcessStatus.SKIPPED]:
+                print_colored("Runs already there: " + ", ".join(grouped[ProcessStatus.SKIPPED]), color="WARNING")
+            if grouped[ProcessStatus.FAILED]:
+                print_colored("Runs that will fail: " + ", ".join(grouped[ProcessStatus.FAILED]), color="ERROR")
+    else:
+        for module, grouped in  grouped_module.items(): 
+            print(f"{module}:")
+            if grouped[ProcessStatus.COMPLETED]:
+                print_colored("Runs processed: " + ", ".join(grouped[ProcessStatus.COMPLETED]), color="SUCCESS")
+            if grouped[ProcessStatus.SKIPPED]:
+                print_colored("Runs already there: " + ", ".join(grouped[ProcessStatus.SKIPPED]), color="WARNING")
+            if grouped[ProcessStatus.FAILED]:
+                print_colored("Runs failed: " + ", ".join(grouped[ProcessStatus.FAILED]), color="ERROR")
+    
 def retrieve_responses(response_folder:Path, output={}, chinfo={}):
 
     if not response_folder.is_dir():
@@ -50,7 +84,7 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
         if not response_folder_user.is_dir():
             # raise NotADirectoryError(f"{response_folder.as_posix()} and {response_folder_user.as_posix()} are not valid directories.")
             print_colored(f"\nError: {response_folder.as_posix()} and {response_folder_user.as_posix()} are not valid directories. Please check the response folder name and make sure it exists.\n", 'ERROR')
-            return
+            return ProcessStatus.FAILED
         else:
             print_colored(f"\n\nWarning: {response_folder.as_posix()} is not a valid directory.\nUsing {response_folder_user.as_posix()} instead.\n\n", 'WARNING')
             response_folder = response_folder_user
@@ -126,6 +160,7 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
                     print(f"Warning: Count for endpoint {ep} channel {ch} is zero. This might indicate that the README.md file is incomplete or not properly formatted.")
         if haszeros:
             raise ValueError("Some counts are zero. Please check the README.md file in the response folder.")
+    return ProcessStatus.COMPLETED
 
 def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], allparams:dict, run:int, method:str, gridfigs:dict[str, Figure], savefigs:bool=True):
     outputdir.mkdir(parents=True, exist_ok=True)
@@ -198,9 +233,16 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             fig.savefig( outputdir / f"{method}fit_grid_run{run:06d}_{detector}.png" )
             plt.close(fig)
 
+def check_processed_modules(module, suffix, run, outputdir, force, response_folder, responses, chinfo):
+    if glob(str(Path(outputdir) / f"*run0{run}_{suffix}*")) and not force:
+        print(f"{module} already processed. Skipping run {run}. Use --force to overwrite.")
+        status = ProcessStatus.SKIPPED
+    else:
+        status = retrieve_responses(response_folder, responses, chinfo)
 
-
-
+    return status
+    
+    
 def main(run:int = 39510,
          rootdir:Union[Path,str] = PATH_XE_AVERAGES,
          response:str = DEFAULT_RESPONSE,
@@ -215,6 +257,7 @@ def main(run:int = 39510,
          pmt:bool = False,
          method:str = "conv",
          savefigs:bool = True,
+         force:bool = False,
          dryrun:bool = False
          ):
 
@@ -291,15 +334,23 @@ def main(run:int = 39510,
     responses = {}
     chinfo = {}
     ep_to_analyze = []
+    status_c = ProcessStatus.NOT_ASKED
+    status_m = ProcessStatus.NOT_ASKED
+    status_p = ProcessStatus.NOT_ASKED
+    
     if cathode:
-        retrieve_responses(response_folder_cathode, responses, chinfo)
-        ep_to_analyze += [ 106 ] 
+        status_c = check_processed_modules("Cathode", "C", run, outputdir, force, response_folder_cathode, responses, chinfo)
+        if status_c != ProcessStatus.SKIPPED:
+            ep_to_analyze += [ 106 ] 
     if membrane:
-        retrieve_responses(response_folder_membrane, responses, chinfo)
-        ep_to_analyze += [ 107 ]
+        status_m = check_processed_modules("Membrane", "M", run, outputdir, force, response_folder_membrane, responses, chinfo)
+        if status_m != ProcessStatus.SKIPPED:
+            ep_to_analyze += [ 107 ]
     if pmt:
-        retrieve_responses(response_folder_pmt, responses, chinfo)
-        ep_to_analyze += [ 110 ]
+        status_p = check_processed_modules("PMT", "P", run, outputdir, force, response_folder_pmt, responses, chinfo)
+        if status_p != ProcessStatus.SKIPPED:
+            ep_to_analyze += [ 110 ]
+    
 
 
     # I can only analyze channels for which I have both the response and the
@@ -353,7 +404,8 @@ def main(run:int = 39510,
                     print(f"Endpoint {ep} Channel {ch}: {getModuleName(ep, ch)}")
         else:
             print_colored("No channels will be processed. Please check the parameters and the availability of the response and template files.", 'ERROR')
-        return
+       
+        return {'Cathode': status_c, 'Membrane': status_m, 'PMT': status_p}
 
     for ep, chs in dict_ep_ch_with_both_signals.items():
         for ch in chs:
@@ -420,7 +472,8 @@ def main(run:int = 39510,
                 if ep not in templates.keys() or ch not in templates[ep].keys():
                     print_colored(f"\tReason: template not found.", 'WARNING')
 
-
+    
+    return {'Cathode': status_c, 'Membrane': status_m, 'PMT': status_p}
 
 if __name__ == "__main__":
     argp = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="Fit a template waveform to a response waveform using a convolution model of LAr/Xe response.")
@@ -439,6 +492,7 @@ if __name__ == "__main__":
     argp.add_argument("-m", "--membrane", action="store_true", help="If set, membrane channels will be processed. If both -c and -m are not set, all channels will be processed.")
     argp.add_argument("-p", "--pmt", action="store_true", help="If set, pmt channels will be processed. If -p is set, -c and -m will be ignored.")
     argp.add_argument("-nf", "--no-savefigs", action="store_true", help="If set, the fit plots will not be saved.")
+    argp.add_argument("--force", action="store_true", help="If set, the script will overwrite existing output directories. Use with caution.")
     argp.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
 
     args = argp.parse_args()
@@ -457,6 +511,7 @@ if __name__ == "__main__":
     pmt = args.pmt
     method = args.method
     savefigs = not args.no_savefigs
+    force = args.force
     dryrun = args.dryrun
 
     if pmt:
@@ -473,9 +528,13 @@ if __name__ == "__main__":
     if not cathode and not membrane and not pmt:
         cathode = True
         membrane = True
+        
+    results: dict[int, ProcessStatus] = {}
+
     for run in runs:
         if not dryrun:
-            print(f"Prossessing run {run} ...")
-        main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, pmt, method, savefigs, dryrun)
+            print(f"Processing run {run} ...")
+        results[run] = main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, pmt, method, savefigs, force, dryrun)
 
+    __print_summary(results, dryrun=args.dryrun)
 
