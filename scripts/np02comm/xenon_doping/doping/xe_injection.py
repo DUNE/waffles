@@ -62,7 +62,7 @@ def linear_fit(input_file:str, offset:str, time_fit_min:str, time_fit_max:str):
     ax.set_ylabel("Xenon bottle weight [kg]")
     ax.legend()
     plt.tight_layout()
-    plt.savefig("linear_fit.png")
+    plt.savefig(f"fit_{input_file}.png")
 
 
 def main():
