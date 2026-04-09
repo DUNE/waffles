@@ -3,6 +3,7 @@ import yaml
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
 
+from waffles.np02_utils.LArXeFitUtils import FitInitParams
 from waffles.np02_utils.AutoMap import getModuleName
 from waffles.utils.utils import print_colored
 
@@ -77,5 +78,10 @@ def process_convfit(ep:int,
     #     oneexp = True
     setup_response_template(response, template, cfitch, slice_template, slice_response)
     cfitch.prepare_waveforms()
-    cfitch.fit(scan=scan, print_flag=print_flag, oneexp=oneexp)
+
+    init = FitInitParams.for_larxe() if cfitch.scinttype == 'xe' else FitInitParams.for_lar_oneexp() if oneexp else FitInitParams.for_lar()
+    if modulename[:2] == "M7" and cfitch.scinttype == "xe":
+        init.t3 = 2800
+
+    cfitch.fit(scan=scan, print_flag=print_flag, oneexp=oneexp, init=init)
 

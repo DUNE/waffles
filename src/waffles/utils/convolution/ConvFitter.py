@@ -7,7 +7,7 @@ from iminuit.util import describe
 from iminuit.util import FMin
 from waffles.utils.fft.fftutils import FFTWaffles
 from waffles.utils.convolution.ConvUtils import *
-from waffles.np02_utils.LArXeFitUtils import FitResults, FitParameter
+from waffles.np02_utils.LArXeFitUtils import FitInitParams, FitResults, FitParameter
 
 
 
@@ -136,8 +136,13 @@ class ConvFitter:
         return wf
 
     ##################################################
-    def fit(self, scan: int = 0, print_flag: bool = False, oneexp: bool = False):
+    def fit(self, scan: int = 0, print_flag: bool = False, oneexp: bool = False, init: FitInitParams = FitInitParams()):
         xenon_fit = False if self.scinttype == 'lar' else True
+        if not init.initialized:
+            init = FitInitParams.for_lar() if not xenon_fit else FitInitParams.for_larxe()
+            if oneexp:
+                init = FitInitParams.for_lar_oneexp()
+
 
         idxMinChi2 = 0
         # scan over offsets to minimize the chi2 between the response and the template x model
@@ -158,9 +163,9 @@ class ConvFitter:
                 self.template = temp_original[offset:]
                 self.update_waveforms_fft()
                 if not xenon_fit:
-                    params, chi2 = self.minimize(printresult=False, oneexp=oneexp)
+                    params, chi2 = self.minimize(printresult=False, oneexp=oneexp, init=init)
                 else:
-                    params, chi2 = self.minimize_larxe(printresult=False)
+                    params, chi2 = self.minimize_larxe(printresult=False, init=init)
                 mfmin: FMin = self.m.fmin
                 if not mfmin.is_valid:
                     chi2 *= 10 # Penalize invalid fits by doubling the chi2
@@ -179,9 +184,9 @@ class ConvFitter:
 
         # recompute parameters for the minimum chi2
         if not xenon_fit:
-            params, chi2 = self.minimize(printresult=print_flag, oneexp=oneexp)
+            params, chi2 = self.minimize(printresult=print_flag, oneexp=oneexp, init=init)
         else:
-            params, chi2 = self.minimize_larxe(printresult=False)
+            params, chi2 = self.minimize_larxe(printresult=False, init=init)
         self.fit_results = params
         self.chi2 = chi2
 
@@ -209,7 +214,7 @@ class ConvFitter:
         return res[:len(self.lar)]
 
     ##################################################
-    def minimize(self, printresult:bool, oneexp:bool=False):
+    def minimize(self, printresult:bool, oneexp:bool=False, init: FitInitParams = FitInitParams()):
 
         tick_width = self.dtime if not self.dointerpolation else self.dtime/self.interpolation_factor
         nticks = len(self.response)
@@ -224,13 +229,10 @@ class ConvFitter:
         mcost = cost.LeastSquares(times, self.response, errors, self.model)
         # mcost = self.mycost
 
-        A = 10e3
-        fp = 0.3 if not oneexp else 1
-        t1 = 35.
-        t3 = 1600.
-        if oneexp:
-            t3 = 35
-            fp = 0.95
+        A = init.A
+        fp = init.fp
+        t1 = init.t1
+        t3 = init.t3
 
         m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3)
 
@@ -289,7 +291,7 @@ class ConvFitter:
         return res[:len(self.lar)]
 
     ##################################################
-    def minimize_larxe(self, printresult:bool):
+    def minimize_larxe(self, printresult:bool, init: FitInitParams = FitInitParams()):
 
         tick_width = self.dtime if not self.dointerpolation else self.dtime/self.interpolation_factor
         nticks = len(self.response)
@@ -303,35 +305,36 @@ class ConvFitter:
             self.model = self.larxe_convolution_freq_reparam
         mcost = cost.LeastSquares(times, self.response, errors, self.model)
         
-        A = 10e3
-        fp = 0.1
-        fs = 0.8
-
-        t1 = 35.
-        t3 = 2200.
-        td = 2200
-
-        fs_frac_init = fs / (1 - fp) 
+        A = init.A
+        fp = init.fp
+        fs_frac_init = init.fs_frac
+        t1 = init.t1
+        t3 = init.t3
+        td = init.td
 
         m = Minuit(mcost, A=A, fp=fp, t1=t1, t3=t3, td=td, fs_frac=fs_frac_init)
-        m.tol = 100
+        # m.tol = 10
 
-        m.limits['fp']     = (0, 1)
-        m.limits['fs_frac'] = (0, 1)   # this + fp limit guarantees fp + fs < 1
-        m.limits['A'] = (0,None)
-        m.limits['t1'] = (2,50)
-        m.limits['t3'] = (500, 3500)
-        m.limits['td'] = (10,3500)
+        m.limits['A'] = init.A_limits
+        m.limits['fp'] = init.fp_limits
+        m.limits['fs_frac'] = init.fs_frac_limits
+        m.limits['t1'] = init.t1_limits
+        m.limits['t3'] = init.t3_limits
+        m.limits['td'] = init.td_limits
 
         m.fixed['fp'] = True
         m.fixed['fs_frac'] = True
         m.fixed['t1'] = True
+        m.fixed['t3'] = True
+        m.fixed['td'] = True
         m.migrad()
         m.migrad()
         m.migrad()
         m.fixed['fp'] = False
         m.fixed['fs_frac'] = False
         m.fixed['t1'] = False
+        m.fixed['t3'] = False
+        m.fixed['td'] = False
         m.migrad()
         m.migrad()
         m.migrad()

@@ -2,8 +2,8 @@ import numpy as np
 import yaml
 from pathlib import Path
 from DeconvFitterVDWrapper import DeconvFitterVDWrapper
+from waffles.np02_utils.LArXeFitUtils import FitInitParams
 from waffles.np02_utils.AutoMap import getModuleName
-from waffles.utils.time_align_utils import find_threshold_crossing
 from dataclasses import dataclass, field, asdict
 from waffles.utils.utils import print_colored
 
@@ -66,6 +66,10 @@ def process_deconvfit(ep:int,
         cfitch.generate_deconvolved_signal()
     else:
         cfitch.deconvolved = cfitch.response.copy()
+
+    init = FitInitParams.for_larxe() if cfitch.scinttype == 'xe' else FitInitParams.for_lar_oneexp() if oneexp else FitInitParams.for_lar()
+    if modulename[:2] == "M7" and cfitch.scinttype == "xe":
+        init.t3 = 2800
     
-    cfitch.fit(oneexp=oneexp, print_flag=print_flag)
+    cfitch.fit(oneexp=oneexp, print_flag=print_flag, init=init)
 

@@ -34,6 +34,10 @@ def __remove_existing_templates(wfsetch: dict[int, dict[int, ChannelWs]], templa
                 if old_run != run_num: # only delete if different run
                     if not dry_run:
                         os.remove(old_file)
+                        if os.path.exists(old_file):
+                            raise Exception(f"Failed to remove stale template: {old_file}")
+
+
                     removed.append(os.path.basename(old_file))
     for f in sorted(removed, key=lambda x: x.split("_", 2)[2]):
         if dry_run:

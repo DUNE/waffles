@@ -6,7 +6,7 @@ from iminuit.util import describe
 from iminuit.util import FMin
 from waffles.utils.fft.fftutils import FFTWaffles
 from waffles.utils.time_align_utils import find_threshold_crossing
-from waffles.np02_utils.LArXeFitUtils import FitResults, FitParameter
+from waffles.np02_utils.LArXeFitUtils import FitResults, FitParameter, FitInitParams
 
 
 class DeconvFitter(FFTWaffles):
@@ -128,9 +128,10 @@ class DeconvFitter(FFTWaffles):
                  signal_to_fit: np.ndarray,
                  oneexp: bool,
                  printresult: bool,
-                 fit_limits_ns: list = [None, 10e3],
+                 fit_limits_ns: list = [None, 8.e3],
                  force_range: bool = False,
-                 tolerance: float = 2e-2
+                 tolerance: float = 2e-2,
+                 init: FitInitParams = FitInitParams()
                  ):
 
 
@@ -159,27 +160,28 @@ class DeconvFitter(FFTWaffles):
         signal_to_fit = signal_to_fit[slice_lim]
         errors = errors[slice_lim]
 
+        if not init.initialized:
+            init = FitInitParams.for_lar() if self.scinttype == 'lar' else FitInitParams.for_larxe()
+            if oneexp:
+                init = FitInitParams.for_lar_oneexp()
+
         if self.scinttype == 'lar':
             self.model = self.model_lar
             mcost = cost.LeastSquares(times, signal_to_fit, errors, self.model)
             
-            A = 10e3
-            fp = 0.3 if not oneexp else 1
-            t1 = 25.
-            t3 = 1600.
-            if oneexp:
-                t3 = 35
-                fp = 0.95
-            sigma = 40.0
+            A = init.A
+            fp = init.fp
+            t1 = init.t1
+            t3 = init.t3
+            sigma = init.sigma
+
             m = Minuit(mcost,A=A,fp=fp,t1=t1,t3=t3,sigma=sigma,t0=t0_init)
             
-            m.limits['A'] = (0, None)
-            m.limits['t1'] = (2, 50)
-            m.limits['fp'] = (0, 1) 
-            m.limits['t3'] = (500, 2000)
-            if oneexp:
-                m.limits['t3'] = (0,100)
-            m.limits['sigma'] = (5, 100)
+            m.limits['A'] = init.A_limits
+            m.limits['fp'] = init.fp_limits
+            m.limits['t1'] = init.t1_limits
+            m.limits['t3'] = init.t3_limits
+            m.limits['sigma'] = init.sigma_limits
             m.limits['t0'] = (t0_init-100, nticks * self.dtime)
 
             m.fixed['fp'] = True
@@ -196,43 +198,39 @@ class DeconvFitter(FFTWaffles):
             self.model = self.model_larxe_reparam
             mcost = cost.LeastSquares(times, signal_to_fit, errors, self.model)
 
-            
-            A = 10e3
-            fp = 0.1
-            fs = 0.8
-
-            t1 = 35.
-            t3 = 2300.
-            td = 2300
-            sigma = 20.0
-
-            fs_frac_init = fs / (1 - fp) 
+            A = init.A
+            fp = init.fp
+            fs_frac_init = init.fs_frac
+            t1 = init.t1
+            t3 = init.t3
+            td = init.td
+            sigma = init.sigma
 
             m = Minuit(mcost, A=A, fp=fp, t1=t1, t3=t3, td=td, fs_frac=fs_frac_init, sigma=sigma, t0=t0_init)
 
-            m.limits['fp']     = (0, 1)
-            m.limits['fs_frac'] = (0, 1)   # this + fp limit guarantees fp + fs < 1
-            m.limits['A'] = (0,None)
-            m.limits['t1'] = (2,50)
-            m.limits['t3'] = (500, 3500)
-            m.limits['td'] = (10,3500)
+            m.limits['A'] = init.A_limits
+            m.limits['fp'] = init.fp_limits
+            m.limits['fs_frac'] = init.fs_frac_limits
+            m.limits['t1'] = init.t1_limits
+            m.limits['t3'] = init.t3_limits
+            m.limits['td'] = init.td_limits
+            m.limits['sigma'] = init.sigma_limits
 
-            m.limits['sigma'] = (5, 100)
             m.limits['t0'] = (0, nticks * self.dtime)
 
             m.fixed['fp'] = True
             m.fixed['fs_frac'] = True
             m.fixed['t1'] = True
-            # m.fixed['t3'] = True
-            # m.fixed['td'] = True
+            m.fixed['t3'] = True
+            m.fixed['td'] = True
             m.migrad()
             m.migrad()
             m.migrad()
             m.fixed['fp'] = False
             m.fixed['fs_frac'] = False
             m.fixed['t1'] = False
-            # m.fixed['t3'] = False
-            # m.fixed['td'] = False
+            m.fixed['t3'] = False
+            m.fixed['td'] = False
             m.migrad()
             m.migrad()
             m.migrad()

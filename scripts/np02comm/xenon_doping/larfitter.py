@@ -127,7 +127,7 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
         if haszeros:
             raise ValueError("Some counts are zero. Please check the README.md file in the response folder.")
 
-def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], response:str, template:str, allparams:dict, run:int, method:str, gridfigs:dict[str, Figure]):
+def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], chinfo:dict[int, dict[int,dict]], allparams:dict, run:int, method:str, gridfigs:dict[str, Figure], savefigs:bool=True):
     outputdir.mkdir(parents=True, exist_ok=True)
     outputdir.chmod(0o775)
     outputdir.parent.chmod(0o775)
@@ -169,12 +169,13 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
                     f.write(f"{params_to_save[pname]},{errors[pname]},")
                 f.write(f"{nselected},{cfitch.chi2}\n")
             
-            # Saving plots
-            fig = cfitch.plot(newplot=True)
-            plt.legend()
-            plt.title(f"{modulename}: {ep}-{ch}")
-            plt.savefig( outputdir / f"{method}fit_plot_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.png" )
-            plt.close(fig)
+            if savefigs:
+                # Saving plots
+                fig = cfitch.plot(newplot=True)
+                plt.legend()
+                plt.title(f"{modulename}: {ep}-{ch}")
+                plt.savefig( outputdir / f"{method}fit_plot_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.png" )
+                plt.close(fig)
 
             # Saving parameters used:
             with open( outputdir / f"{method}fit_params_run{run:06d}_{moduletype}_{submodulename}_ep{ep}_ch{ch}.yaml", 'w') as f:
@@ -192,9 +193,10 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
                 }
 
                 yaml.dump(allparams_clean, f, sort_keys=False)
-    for detector, fig in gridfigs.items():
-        fig.savefig( outputdir / f"{method}fit_grid_run{run:06d}_{detector}.png" )
-        plt.close(fig)
+    if savefigs:
+        for detector, fig in gridfigs.items():
+            fig.savefig( outputdir / f"{method}fit_grid_run{run:06d}_{detector}.png" )
+            plt.close(fig)
 
 
 
@@ -212,6 +214,7 @@ def main(run:int = 39510,
          membrane:bool = True,
          pmt:bool = False,
          method:str = "conv",
+         savefigs:bool = True,
          dryrun:bool = False
          ):
 
@@ -389,20 +392,21 @@ def main(run:int = 39510,
     }
     gridfigs = {}
 
-    if gridcathode:
-        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_cathode, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
-        gridfigs['cathode'] = deepcopy(fig)
-    if gridmembrane:
-        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_membrane, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
-        gridfigs['membrane'] = deepcopy(fig)
-    if gridpmt:
-        fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_pmt, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
-        gridfigs['pmt'] = deepcopy(fig)
+    if savefigs:
+        if gridcathode:
+            fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_cathode, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
+            gridfigs['cathode'] = deepcopy(fig)
+        if gridmembrane:
+            fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_membrane, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
+            gridfigs['membrane'] = deepcopy(fig)
+        if gridpmt:
+            fig, _ = matplotlib_plot_WaveformSetGrid(wfset, detector=ordered_modules_pmt, plot_function=plot_fit, func_params=funcparams, cols=4, figsize=(32,32))
+            gridfigs['pmt'] = deepcopy(fig)
 
 
 
     print("Saving output...")
-    write_output(outputdir, cfit, chinfo, response, template, allparams, run, method, gridfigs)
+    write_output(outputdir, cfit, chinfo, allparams, run, method, gridfigs, savefigs)
 
 
     # Warning the user about the were requested but there is no response or
@@ -434,6 +438,7 @@ if __name__ == "__main__":
     argp.add_argument("-c", "--cathode", action="store_true", help="If set, cathode channels will be processed. If both -c and -m are not set, all channels will be processed.")
     argp.add_argument("-m", "--membrane", action="store_true", help="If set, membrane channels will be processed. If both -c and -m are not set, all channels will be processed.")
     argp.add_argument("-p", "--pmt", action="store_true", help="If set, pmt channels will be processed. If -p is set, -c and -m will be ignored.")
+    argp.add_argument("-nf", "--no-savefigs", action="store_true", help="If set, the fit plots will not be saved.")
     argp.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
 
     args = argp.parse_args()
@@ -451,6 +456,7 @@ if __name__ == "__main__":
     membrane = args.membrane
     pmt = args.pmt
     method = args.method
+    savefigs = not args.no_savefigs
     dryrun = args.dryrun
 
     if pmt:
@@ -470,6 +476,6 @@ if __name__ == "__main__":
     for run in runs:
         if not dryrun:
             print(f"Prossessing run {run} ...")
-        main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, pmt, method, dryrun)
+        main(run, rootdir, response, template, outputdir, analysisname, analysisparams, channels, blacklist, cathode, membrane, pmt, method, savefigs, dryrun)
 
 

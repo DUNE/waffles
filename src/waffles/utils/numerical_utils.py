@@ -719,11 +719,11 @@ def lar_response(t, A, fp, t1, t3) -> np.ndarray:
     return A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
 
 def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
-    return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
-    # if t3 != td:
-    #     return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 + (1-fp-fs)*(np.exp(-t/t3) - np.exp(-t/td))/(t3-td))
-    # else:
-    #     return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3)
+    # return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
+    if t3 != td:
+        return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 + (1-fp-fs)*(np.exp(-t/t3) - np.exp(-t/td))/(t3-td))
+    else:
+        return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3)
 
 
 def skewed_gaussian(x, A, mu, sigma, alpha):
