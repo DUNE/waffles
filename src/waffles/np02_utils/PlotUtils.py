@@ -252,7 +252,7 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
 def __update_dict(dictd, dictup, key):
         dictd[key] = dictup.get(key, dictd[key])
 
-def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True, onlyoptimal=True, onlyonerun=True):
+def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True, onlyoptimal=True, onlyonerun=True, label='std'):
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
     if not params:
@@ -287,7 +287,8 @@ def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_pro
                           amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
                           show_progress=show_progress,
                           onlyoptimal=onlyoptimal,
-                          configyaml=params
+                          configyaml=params,
+                          label=label
                           )
 
 def process_by_channel(
@@ -529,7 +530,8 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       onlyoptimal: bool = True,
                       filtering: int = 2,
                       show_progress: bool = True,
-                      configyaml:Union[str,dict] = 'ch_snr_parameters.yaml'
+                      configyaml:Union[str,dict] = 'ch_snr_parameters.yaml',
+                      label='std'
                       ):
     
     params = {}
@@ -550,7 +552,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
         amplitude_method="max_minus_baseline"
     )
     if show_progress: print("Processing waveform set with BasicWfAna")
-    _ = wfset.analyse("std", BasicWfAna, ip,
+    _ = wfset.analyse(label, BasicWfAna, ip,
                       analysis_kwargs={},
                       checks_kwargs=dict(points_no=wfset.points_per_wf),
                       overwrite=True,
