@@ -828,10 +828,10 @@ def channel_vgain_scan_analysis(
     """
 
     rows = []
-    output_folder_analysis = f"{output_folder}/membrane_{membrane}/channel_{channel}"
+    output_folder_analysis = f"output/membrane_{membrane}/channel_{channel}/bias_{bias:04d}"
     if not os.path.exists(output_folder_analysis):
         os.makedirs(output_folder_analysis)
-    print(vgain_list)
+
     for vgain in vgain_list:
         input_file = _build_input_filepath(
             input_filename_path_style,
