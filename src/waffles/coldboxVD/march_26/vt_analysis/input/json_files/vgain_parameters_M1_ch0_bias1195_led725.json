@@ -109,7 +109,7 @@
         "fixed_integral_limits" : [130,162],
         "heatmap_min": -170,
         "heatmap_max": 550,
-        "adcs_threshold": 50, 
+        "adcs_threshold": 40, 
         "n_std_baseline": 3, 
         "max_peaks": 3,
         "prominence": 0.9,
