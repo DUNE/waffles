@@ -12,7 +12,7 @@ mplhep.style.use(mplhep.style.ROOT)
 plt.rcParams.update({
                      'font.size': 14,
                      'grid.linestyle': '--',
-                     'axes.grid': True,
+                     'axes.grid': False,
                      'figure.autolayout': True,
                      'figure.figsize': [14,6],
 })
@@ -61,13 +61,10 @@ def match_weight_to_temperature(weight_df: pd.DataFrame, temp_df: pd.DataFrame,)
 
     Returns a DataFrame with columns: time, weight, temperature.
     """
-    
-    weight_timestamps = weight_df["time"].values.astype("int64") // 1_000_000_000
-    temp_timestamps = temp_df["time"].values.astype("int64") // 1_000_000_000
+    weight_timestamps = weight_df["time"].values.astype("datetime64[s]").astype("int64")
+    temp_timestamps = temp_df["time"].values.astype("datetime64[s]").astype("int64")
 
-    closest_temp_indices = np.argmin(
-        np.abs(weight_timestamps[:, None] - temp_timestamps[None, :]), axis=1
-    )
+    closest_temp_indices = np.argmin(np.abs(weight_timestamps[:, None] - temp_timestamps[None, :]), axis=1)
     time_deltas = np.abs(weight_timestamps - temp_timestamps[closest_temp_indices])
 
     valid_mask = time_deltas <= MAX_TIME_DELTA_SECONDS
@@ -87,23 +84,58 @@ def plot(weight_filepath: str, temp_df: pd.DataFrame) -> None:
     weight_df = read_weight(weight_filepath)
     matched_df = match_weight_to_temperature(weight_df, temp_df)
 
-    # --- Plot 1: temperature and weight vs time ---
-    matched_timestamps = matched_df["time"].apply(lambda x: x.timestamp())
-    all_timestamps = weight_df["time"].apply(lambda x: x.timestamp())
+    t0 = matched_df["time"].iloc[0]
+    matched_hours = (matched_df["time"] - t0).dt.total_seconds() / 3600.0
+    all_hours = (weight_df["time"] - t0).dt.total_seconds() / 3600.0
 
-    fig, ax1 = plt.subplots()
-    ax1.plot(matched_timestamps, matched_df["temperature"], color="C1")
-    ax1.set_ylabel("Temperature [°C]")
-    ax1.set_xlabel("Timestamp [s]")
+    ORANGE = "#F96B2D"
+    BLUE_LIGHT = "#7CAED5"
+    BLUE_DARK = "#2e86c1"
 
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+    fig.patch.set_facecolor("#f9f9f9")
+    ax1.set_facecolor("#f9f9f9")
+
+    # Temperature
+    ax1.plot(matched_hours, matched_df["temperature"], color=ORANGE, linewidth=1.5, label="Temperature")
+    ax1.set_ylabel("Temperature [°C]", fontsize=12)
+    ax1.set_xlabel("Elapsed time [h]", fontsize=12)
+    ax1.tick_params(axis="y", color=ORANGE, which="both", labelcolor=ORANGE)
+    ax1.yaxis.label.set_color(ORANGE)
+    ax1.spines["left"].set_color(ORANGE)
+    ax1.spines["left"].set_linewidth(1.5)
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax1.tick_params(axis="x", color="black", labelcolor="black", top=False)
+    ax1.spines["bottom"].set_color("black")
+
+    # Weight
     ax2 = ax1.twinx()
-    ax2.tick_params(axis="y", color="C2")
-    ax2.plot(all_timestamps, weight_df["weight"], ls="--", color="C3")
-    ax2.plot(matched_timestamps, matched_df["weight"], color="C2")
-    ax2.set_ylabel("Weight [kg]")
+    ax2.plot(all_hours, weight_df["weight"], ls="--", color=BLUE_DARK, linewidth=1.0, alpha=0.5, label="Weight (all)")
+    ax2.plot(matched_hours, matched_df["weight"], color=BLUE_LIGHT, linewidth=1.5, label="Weight (matched)")
+    ax2.set_ylabel("Weight [kg]", fontsize=12)
+    ax2.tick_params(axis="y", color=BLUE_LIGHT, which="both", labelcolor=BLUE_LIGHT)
+    ax2.yaxis.label.set_color(BLUE_LIGHT)
+    ax2.spines["right"].set_color(BLUE_LIGHT)
+    ax2.spines["right"].set_linewidth(1.5)
+    ax2.spines["left"].set_visible(False)
+
+    # Legend
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    
+    ax1.legend(
+    lines1 + lines2, labels1 + labels2,
+    frameon=False,
+    fontsize=10,
+    loc="upper left",
+    bbox_to_anchor=(0.1, 0.95),
+)
+
+    ax1.grid(axis="x", color="#dddddd", linewidth=0.7, linestyle="--")
 
     plt.tight_layout()
-    plt.savefig("temp_weight_vs_time.png")
+    plt.savefig("temp_weight_vs_time.png", dpi=150, bbox_inches="tight")
 
     # --- Plot 2: weight vs temperature with linear fit ---
     temp = matched_df["temperature"].values
