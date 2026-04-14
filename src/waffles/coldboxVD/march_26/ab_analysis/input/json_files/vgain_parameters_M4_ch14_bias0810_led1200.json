@@ -157,10 +157,10 @@
     "adcs_threshold": 60, 
     "n_std_baseline": 1.5, 
     "max_peaks": 7,
-    "prominence": 0.4,
+    "prominence": 0.2,
     "initial_percentage": 0.01,
     "percentage_step": 0.02,
-    "ch_span_fraction_around_peaks": 0.01,
+    "ch_span_fraction_around_peaks": 0.1,
     "time_range_afterpulse_for_meanwf": [500,-1]
     },
 "1600":  {

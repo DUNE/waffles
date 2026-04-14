@@ -1,4 +1,18 @@
-{
+{"500" : {
+    "baseline_timeticks_limit": 125, 
+    "deviation_upper_limit": null, 
+    "fixed_integral_limits" : [127,156],
+    "heatmap_min": -170,
+    "heatmap_max": 550,
+    "adcs_threshold": 100, 
+    "n_std_baseline": 1.2, 
+    "max_peaks": 5,
+    "prominence": 0.2,
+    "initial_percentage": 0.1,
+    "percentage_step": 0.1,
+    "ch_span_fraction_around_peaks": 0.1,
+    "time_range_afterpulse_for_meanwf": [500,-1]
+    },
     "700" : {
         "baseline_timeticks_limit": 125, 
         "deviation_upper_limit": null, 
