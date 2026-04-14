@@ -235,7 +235,7 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
 
 def check_processed_modules(module, suffix, run, outputdir, force, response_folder, responses, chinfo):
     if glob(str(Path(outputdir) / f"*run0{run}_{suffix}*")) and not force:
-        print(f"{module} already processed. Skipping run {run}. Use --force to overwrite.")
+        print_colored(f"{module} already processed. Skipping run {run}. Use --force to overwrite.", 'WARNING')
         status = ProcessStatus.SKIPPED
     else:
         status = retrieve_responses(response_folder, responses, chinfo)
@@ -259,7 +259,7 @@ def main(run:int = 39510,
          savefigs:bool = True,
          force:bool = False,
          dryrun:bool = False
-         ):
+         ) -> dict[str, ProcessStatus]:
 
     outputdir = Path(outputdir)
     rootdir = Path(rootdir)
@@ -378,6 +378,8 @@ def main(run:int = 39510,
                         raise ValueError(f"Invalid method {method}. Valid methods are 'conv' and 'deconv'.")
 
 
+    if (cathode == (status_c == ProcessStatus.SKIPPED) and membrane == (status_m == ProcessStatus.SKIPPED) and pmt == (status_p == ProcessStatus.SKIPPED)):
+        return {'Cathode': status_c, 'Membrane': status_m, 'PMT': status_p}
 
     if len(dict_ep_ch_with_both_signals) == 0:
         dryrun = True
@@ -393,7 +395,7 @@ def main(run:int = 39510,
         print(f"Blacklist: {blacklist}")
         print(f"Cathode: {cathode}")
         print(f"Membrane: {membrane}")
-        print(f"Membrane: {pmt}")
+        print(f"PMT: {pmt}")
         print(f"Parameters: {allparams}")
         ch_show_avaliable_template_folders()
 
@@ -529,7 +531,7 @@ if __name__ == "__main__":
         cathode = True
         membrane = True
         
-    results: dict[int, ProcessStatus] = {}
+    results: dict[int, dict[str, ProcessStatus]] = {}
 
     for run in runs:
         if not dryrun:

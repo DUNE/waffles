@@ -52,10 +52,12 @@ def process_deconvfit(ep:int,
                       slice_template:slice = slice(200,240),
                       slice_response:slice = slice(None,54),
                       high_pass_freq_MHz:float = 0.5,
+                      dofit:bool = True 
                       ):
 
     modulename = getModuleName(ep, ch)
-    print(f"Processing {ep}-{ch}: {modulename}")
+    if dofit:
+        print(f"Processing {ep}-{ch}: {modulename}")
 
     # if modulename[:2] == "M7" and cfitch.scinttype != "xe":
     #     oneexp = True
@@ -66,6 +68,9 @@ def process_deconvfit(ep:int,
         cfitch.generate_deconvolved_signal()
     else:
         cfitch.deconvolved = cfitch.response.copy()
+
+    if not dofit:
+        return
 
     init = FitInitParams.for_larxe() if cfitch.scinttype == 'xe' else FitInitParams.for_lar_oneexp() if oneexp else FitInitParams.for_lar()
     if modulename[:2] == "M7" and cfitch.scinttype == "xe":
