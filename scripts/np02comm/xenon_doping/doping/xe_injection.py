@@ -18,7 +18,7 @@ plt.rcParams.update({
 })
 
 
-TEMP_CORRECTION_COEFF = 0.0483
+TEMP_CORRECTION_COEFF = 0.042
 WEIGHT_TIME_FORMAT = "%Y/%m/%d %H:%M:%S.%f"
 
 
@@ -80,6 +80,7 @@ def main() -> None:
     parser.add_argument("--offset", type=str, default=None, help="Start time (format: '2026/03/24 15:03:00.000')")
     parser.add_argument("--fit-min", type=str, default=None, help="Lower time bound for fit (format: '2026/03/24 15:03:00.000')")
     parser.add_argument("--fit-max", type=str, default=None, help="Upper time bound for fit (format: '2026/03/24 15:03:00.000')")
+    parser.add_argument("--skip-temp", action="store_true", help="Skip temperature correction")
     args = parser.parse_args()
 
     input_filepath = Path(args.file)
@@ -89,7 +90,10 @@ def main() -> None:
     print(f"Reading: {input_filepath}")
     weight_df = read_weight(args.file)
 
-    temp_df = read_temperature()
+    if not args.skip_temp:
+        temp_df = read_temperature()
+    else:
+        temp_df = None
     if temp_df is not None:
         matched_df = match_weight_to_temperature(weight_df, temp_df)
         if len(matched_df) > 1:
