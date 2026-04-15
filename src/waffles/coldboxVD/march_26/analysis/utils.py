@@ -655,7 +655,9 @@ def single_vgain_analysis(
 
     output_parameters = print_correlated_gaussians_fit_parameters(my_grid, parameters_conversion=parameters_conversion)
 
-    spe_result = spe_amplitude_computation(wfset_filtered, channel, output_parameters, show_persistance = False, show_spe_hist = False)
+    # spe_result = spe_amplitude_computation(wfset_filtered, channel, output_parameters, show_persistance = False, show_spe_hist = False, n_sigma_spe_selection=0.2)
+    spe_result = spe_amplitude_computation_NEW(wfset_filtered=wfset_filtered, channel= channel, output_parameters=output_parameters, dict_params =dict_params,  n_sigma_spe_selection=1)
+
     dynamic_range = dynamic_range_computation(spe_result['mean'][0])
 
     if show or save_pdf:
@@ -1178,6 +1180,39 @@ def spe_amplitude_computation(wfset_filtered, channel, output_parameters, n_sigm
 
 
     return {'mean': (mu_fit, mu_err), 'sigma': (sigma_fit,sigma_err)}
+
+def spe_amplitude_computation_NEW(wfset_filtered, channel, output_parameters, dict_params, n_sigma_spe_selection, baseline_analysis_label : str = 'baseline', integration_analysis_label : str = 'integration_analysis', show_persistance: bool = False, show_spe_meanwf: bool = False, debug_output : bool = False):
+    wfset_filtered_spe_1 = WaveformSet.from_filtered_WaveformSet(wfset_filtered, adcs_threshold_filter, time_range = dict_params["time_range_afterpulse_for_meanwf"], adcs_minimum_threshold=-dict_params['adcs_threshold'], adcs_maximum_threshold=dict_params['adcs_threshold'])
+    wfset_filtered_spe_2 = WaveformSet.from_filtered_WaveformSet(wfset_filtered_spe_1, baseline_std_selection, baseline_analysis_label, compute_average_baseline_std(wfset_filtered_spe_1, baseline_analysis_label), 1) # New wfset filter on baseline std for better spe selection
+    wfset_spe = WaveformSet.from_filtered_WaveformSet(wfset_filtered_spe_2, spe_filter_integral, spe_integral_mean = output_parameters['params']['mean'][1][0], spe_integral_sigma = output_parameters['params']['std'][1][0], integration_analysis_label = integration_analysis_label, n_sigma = n_sigma_spe_selection)
+
+    if debug_output:
+        print(f"Original filtered wfset: {len(wfset_filtered.waveforms)}")
+        print(f"After adcs threshold cut (after peak) for mean wf selection: {len(wfset_filtered_spe_1.waveforms)}")
+        print(f"After baseline std cut for spe selection (1std): {len(wfset_filtered_spe_2.waveforms)}")
+        print(f"SPE-selected waveforms: {len(wfset_spe.waveforms)}")
+
+    if show_persistance: 
+        persistance_plot_helper(wfset_filtered, channel, ymin = -100, ymax = 100, adc_bins = 1000, show=show_persistance)
+        persistance_plot_helper(wfset_spe, channel, ymin = -100, ymax = 100, adc_bins = 1000, show=show_persistance)
+
+    # Compute mean waveform for SPE-selected waveforms
+    mean_wf_spe = wfset_spe.compute_mean_waveform()
+
+    spe = np.max(mean_wf_spe.adcs)
+
+    if show_spe_meanwf:
+        plt.figure()
+        plt.plot(np.arange(len(mean_wf_spe.adcs)), mean_wf_spe.adcs, label="Mean SPE waveform - MAX {spe:.2f} ADCs".format(spe=spe))
+        plt.xlabel("Time ticks (AU)")
+        plt.ylabel("Amplitude (ADCs)")
+        plt.title("Mean waveform of SPE-selected waveforms")
+        plt.legend()
+        plt.grid(alpha=0.3)
+        plt.show()
+
+    
+    return {'mean': (spe,0), 'sigma': (0,0)}
 
 
 
