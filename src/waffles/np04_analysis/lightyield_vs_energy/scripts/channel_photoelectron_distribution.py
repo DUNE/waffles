@@ -16,7 +16,7 @@ plt.rcParams.update({
 })
 
 
-def main(all_channel_data, input_folder, output_folder):
+def main(all_channel_data, input_folder, output_folder, weighted_kinetic_energy: bool = False):
     bin_enrgy_dic = {1: 5, 2: 5, 3: 8, 5: 10, 7: 15}  # Photoelectron width of the histogram at different energies
     # bin_enrgy_dic = {1: 10, 2: 10, 3: 10, 5: 10, 7: 10}
     analysis_result_dict = {}
@@ -27,9 +27,13 @@ def main(all_channel_data, input_folder, output_folder):
     conteggi_l = 0
     conteggi_g = 0
 
-    for apa in [1,2]:#,2]: 
+    for apa in [1]:#,2]: 
         analysis_result_dict[apa] = {}
-        APA_pdf_file = PdfPages(f"{output_folder}/APA{apa}_PE_study.pdf")
+        if weighted_kinetic_energy:
+            APA_pdf_file = PdfPages(f"{output_folder}/APA{apa}_PE_study_weighted_kinetic_energy.pdf")
+        else: 
+            APA_pdf_file = PdfPages(f"{output_folder}/APA{apa}_PE_study.pdf")
+
         for endpoint in which_endpoints_in_the_APA(apa): #[104]: 
             analysis_result_dict[apa][endpoint] = {}
             for channel in sorted(list(channel_vendor_map[endpoint].keys())): # channel_dict in channel_vendor_map[endpoint].items(): ["1","2","3","4","5","6"]: #
@@ -307,6 +311,16 @@ def main(all_channel_data, input_folder, output_folder):
     
                 energies = np.asarray(list(analysis_result_dict[apa][endpoint][channel].keys()))
                 energies_errors = 0.05 * energies
+                
+
+                # weighted mean - kinetic enrgy
+                if weighted_kinetic_energy:
+                    x, e_x = calcola_metrica_fascio(energies)
+                else: 
+                    #classic
+                    x = energies
+                    e_x = energies_errors
+                    
 
                 if len(energies) > 2:
 
@@ -321,26 +335,26 @@ def main(all_channel_data, input_folder, output_folder):
                     g_means_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['gaussian']['emu'] for e in energies])
                     g_means_errors = g_means_errors + 0.05 * g_means
 
-                    ax[i].errorbar(energies, g_means, xerr = energies_errors, yerr=g_means_errors, fmt='o', color='deepskyblue', label='Gaussian $\mu$', capsize=3, markersize=2)
+                    ax[i].errorbar(x, g_means, xerr = e_x, yerr=g_means_errors, fmt='o', color='deepskyblue', label='Gaussian $\mu$', capsize=3, markersize=2)
 
-                    g_data = RealData(energies, g_means, sx=energies_errors, sy=g_means_errors)
+                    g_data = RealData(x, g_means, sx=e_x, sy=g_means_errors)
                     g_model = Model(linear_array)
-                    g_odr = ODR(g_data, g_model, beta0=curve_fit(linear, energies, g_means, sigma=g_means_errors, absolute_sigma=True)[0])
+                    g_odr = ODR(g_data, g_model, beta0=curve_fit(linear, x, g_means, sigma=g_means_errors, absolute_sigma=True)[0])
                     g_out = g_odr.run()
                     g_popt =  g_out.beta
                     g_popt_error = g_out.sd_beta
 
-                    # g_popt, g_pcov = curve_fit(linear, energies, g_means, sigma=g_means_errors, absolute_sigma=True)
+                    # g_popt, g_pcov = curve_fit(linear, x, g_means, sigma=g_means_errors, absolute_sigma=True)
                     # g_popt_error = np.sqrt(np.diag(g_pcov))
 
                     g_A, g_B = g_popt
                     g_eA, g_eB = g_popt_error
 
-                    g_r_squared = r2_score(g_means, linear(energies, *g_popt))
-                    g_chi2rid = g_out.sum_square / (len(energies)-len(g_popt))
-                    #g_chi2rid = (np.sum(((g_means - linear(energies, *g_popt)) / g_means_errors) ** 2)) / (len(energies) - 2)
+                    g_r_squared = r2_score(g_means, linear(x, *g_popt))
+                    g_chi2rid = g_out.sum_square / (len(x)-len(g_popt))
+                    #g_chi2rid = (np.sum(((g_means - linear(x, *g_popt)) / g_means_errors) ** 2)) / (len(x) - 2)
 
-                    x_fit = np.linspace(min(energies)-0.5, max(energies)+0.5, 100)
+                    x_fit = np.linspace(min(x)-0.5, max(x)+0.5, 100)
                     y_fit = linear(x_fit, g_A, g_B)
                     ax[i].plot(x_fit, y_fit, 'b-', label=f'Gaussian fit: y = A + Bx\nA = {g_A:.2f} ± {g_eA:.2f} \nB = {g_B:.2f} ± {g_eB:.2f} \n$R^2$ = {g_r_squared:.2f}') #\n$\\chi^2_{{rid}}$ = {g_chi2rid:.2f} 
 
@@ -349,31 +363,31 @@ def main(all_channel_data, input_folder, output_folder):
                     l_peak_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['epeak'] for e in energies])
                     l_peak_errors = l_peak_errors + 0.05 * l_peaks
 
-                    ax[i].errorbar(energies, l_peaks, xerr = energies_errors, yerr=l_peak_errors, fmt='o', color='fuchsia', label='Langauss peak $x_0$', capsize=3, markersize=2)
+                    ax[i].errorbar(x, l_peaks, xerr = e_x, yerr=l_peak_errors, fmt='o', color='fuchsia', label='Langauss peak $x_0$', capsize=3, markersize=2)
 
-                    l_data = RealData(energies, l_peaks, sx=energies_errors, sy=l_peak_errors)
+                    l_data = RealData(x, l_peaks, sx=e_x, sy=l_peak_errors)
                     l_model = Model(linear_array)
-                    l_odr = ODR(l_data, l_model, beta0=curve_fit(linear, energies, l_peaks, sigma=l_peak_errors, absolute_sigma=True)[0])
+                    l_odr = ODR(l_data, l_model, beta0=curve_fit(linear, x, l_peaks, sigma=l_peak_errors, absolute_sigma=True)[0])
                     l_out = l_odr.run()
                     l_popt =  l_out.beta
                     l_popt_error = l_out.sd_beta
 
-                    #l_popt, l_pcov = curve_fit(linear, energies, l_peaks, sigma=l_peak_errors, absolute_sigma=True)
+                    #l_popt, l_pcov = curve_fit(linear, x, l_peaks, sigma=l_peak_errors, absolute_sigma=True)
                     # l_popt_error = np.sqrt(np.diag(l_pcov))
 
                     l_A, l_B = l_popt
                     l_eA, l_eB = l_popt_error
 
-                    l_r_squared = r2_score(l_peaks, linear(energies, *l_popt))
-                    l_chi2rid = l_out.sum_square / (len(energies)-len(l_popt))
-                    # l_chi2rid = (np.sum(((l_peaks - linear(energies, *l_popt)) / l_peak_errors) ** 2)) / (len(energies) - 2)
+                    l_r_squared = r2_score(l_peaks, linear(x, *l_popt))
+                    l_chi2rid = l_out.sum_square / (len(x)-len(l_popt))
+                    # l_chi2rid = (np.sum(((l_peaks - linear(x, *l_popt)) / l_peak_errors) ** 2)) / (len(x) - 2)
 
-                    x_fit = np.linspace(min(energies)-0.5, max(energies)+0.5, 100)
+                    x_fit = np.linspace(min(x)-0.5, max(x)+0.5, 100)
                     y_fit = linear(x_fit, l_A, l_B)
                     ax[i].plot(x_fit, y_fit, 'm-', label=f'Langauss fit: y = A + Bx\nA = {l_A:.2f} ± {l_eA:.2f} \nB = {l_B:.2f} ± {l_eB:.2f} \n$R^2$ = {l_r_squared:.2f}') #\n$\\chi^2_{{rid}}$ = {l_chi2rid:.2f}
                     
 
-                    ax[i].set_xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
+                    ax[i].set_xlabel(r"$\langle K_{beam} \rangle$ [GeV]")
                     ax[i].set_ylabel(r'$\langle N_{\mathrm{PE}} \rangle$ [AU]')
                     ax[i].legend()
                     ax[i].set_title('Calorimetric linearity')
@@ -401,7 +415,7 @@ def main(all_channel_data, input_folder, output_folder):
                     analysis_result_dict[apa][endpoint][channel]['linearity']['langauss']['eB'] = l_eB
 
 
-                    df_rows.append({'APA':apa, 'Endpoint':endpoint, 'Channel':channel, 'Energies':energies, 'Gaussian mu':g_means, 'Gaussian emu':g_means_errors, 'Gaussian params':g_popt, 'Gaussian eparams': g_popt_error.tolist(), 'Gaussian chi2rid':g_chi2rid, 'Langauss peak': l_peaks, 'Langauss epeak':l_peak_errors, 'Langauss params':l_popt, 'Langauss eparams':l_popt_error.tolist(), 'Langauss chi2rid':l_chi2rid})
+                    df_rows.append({'APA':apa, 'Endpoint':endpoint, 'Channel':channel, 'Energies':x, 'Gaussian mu':g_means, 'Gaussian emu':g_means_errors, 'Gaussian params':g_popt, 'Gaussian eparams': g_popt_error.tolist(), 'Gaussian chi2rid':g_chi2rid, 'Langauss peak': l_peaks, 'Langauss epeak':l_peak_errors, 'Langauss params':l_popt, 'Langauss eparams':l_popt_error.tolist(), 'Langauss chi2rid':l_chi2rid})
 
                     i+=1
 
@@ -420,12 +434,10 @@ def main(all_channel_data, input_folder, output_folder):
                     g_sigma_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['gaussian']['esigma'] for e in energies])
                     #g_sigma_errors = g_sigma_errors + 0.05 * g_means
 
-                    x = energies
-                    ex = energies_errors
                     g_y = g_sigma / g_means
                     g_ey = g_y* np.sqrt((g_sigma_errors/g_sigma)**2 + (g_means_errors/g_means)**2)
 
-                    ax[i].errorbar(energies, g_y, xerr = ex, yerr=g_ey, fmt='o', color='deepskyblue', label='Gaussian $\dfrac{\sigma}{\mu}$', capsize=3, markersize=2)
+                    ax[i].errorbar(x, g_y, xerr = e_x, yerr=g_ey, fmt='o', color='deepskyblue', label='Gaussian $\dfrac{\sigma}{\mu}$', capsize=3, markersize=2)
 
                     # --- LANGAUSS ANALYSIS 
                     l_peaks = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['peak'] for e in energies])
@@ -436,14 +448,12 @@ def main(all_channel_data, input_folder, output_folder):
                     l_sigma_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['esigma'] for e in energies])
                     #l_sigma_errors = g_sigma_errors + 0.05 * g_means
 
-                    x = energies
-                    ex = energies_errors
                     l_y = l_sigma / l_peaks
                     l_ey = l_y* np.sqrt((l_sigma_errors/l_sigma)**2 + (l_peak_errors/l_peak)**2)
                     
-                    ax[i].errorbar(x, l_y, xerr = ex, yerr=l_ey, fmt='o', color='fuchsia', label='Langauss $\dfrac{\sigma}{x_0}$', capsize=3, markersize=2)
+                    ax[i].errorbar(x, l_y, xerr = e_x, yerr=l_ey, fmt='o', color='fuchsia', label='Langauss $\dfrac{\sigma}{x_0}$', capsize=3, markersize=2)
 
-                    ax[i].set_xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
+                    ax[i].set_xlabel(r"$\langle K_{beam} \rangle$ [GeV]")
                     ax[i].set_ylabel(r'$\dfrac{\sigma_N}{N_{PE}}$')
                     ax[i].legend()
                     ax[i].set_title('Energy resolution')
@@ -463,16 +473,16 @@ def main(all_channel_data, input_folder, output_folder):
                     g_sigma_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['gaussian']['esigma'] for e in energies])
                     #g_sigma_errors = g_sigma_errors + 0.05 * g_means
 
-                    ax[i].errorbar(energies, g_sigma, xerr = energies_errors, yerr=g_sigma_errors, fmt='o', color='deepskyblue', label='Gaussian $\sigma$', capsize=3, markersize=2)
+                    ax[i].errorbar(x, g_sigma, xerr = e_x, yerr=g_sigma_errors, fmt='o', color='deepskyblue', label='Gaussian $\sigma$', capsize=3, markersize=2)
 
                     # --- LANGAUSS ANALYSIS 
                     l_sigma = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['sigma'] for e in energies ])
                     l_sigma_errors = np.array([analysis_result_dict[apa][endpoint][channel][e]['langauss']['esigma'] for e in energies])
                     #l_sigma_errors = g_sigma_errors + 0.05 * g_means
 
-                    ax[i].errorbar(energies, l_sigma, xerr = energies_errors, yerr=l_sigma_errors, fmt='o', color='fuchsia', label='Langauss $\sigma$', capsize=3, markersize=2)
+                    ax[i].errorbar(x, l_sigma, xerr = e_x, yerr=l_sigma_errors, fmt='o', color='fuchsia', label='Langauss $\sigma$', capsize=3, markersize=2)
 
-                    ax[i].set_xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
+                    ax[i].set_xlabel(r"$\langle K_{beam} \rangle$ [GeV]")
                     ax[i].set_ylabel(r'$\sigma$')
                     ax[i].legend()
                     ax[i].set_title('Energy resolution')
@@ -485,18 +495,24 @@ def main(all_channel_data, input_folder, output_folder):
 
         APA_pdf_file.close()
 
-        print(f"conteggi landau migliore: {conteggi_l}")
-        print(f"conteggi gaussian migliore: {conteggi_g}")
-        print()
+        # print(f"conteggi landau migliore: {conteggi_l}")
+        # print(f"conteggi gaussian migliore: {conteggi_g}")
+        # print()
 
     analysis_result_df = pd.concat([analysis_result_df, pd.DataFrame(df_rows)], ignore_index=True)
-    analysis_result_df.to_csv(f"{output_folder}/PE_study_results.csv", index=False)
 
+    if weighted_kinetic_energy:
+        csv_output_filepath = f"{output_folder}/PE_study_results_weighted_kinetic_energy.csv"
+    else: 
+        csv_output_filepath = f"{output_folder}/PE_study_results.csv"
+    analysis_result_df.to_csv(csv_output_filepath, index=False)
 
     
-
-
-    with open(f"{output_folder}/PE_study_results.json", "w") as f:
+    if weighted_kinetic_energy:
+        json_output_filepath = f"{output_folder}/PE_study_results_weighted_kinetic_energy.json"
+    else: 
+        json_output_filepath = f"{output_folder}/PE_study_results.json"
+    with open(json_output_filepath, "w") as f:
         json.dump(analysis_result_dict, f, indent=4)
 
 
@@ -509,4 +525,4 @@ if __name__ == "__main__":
         with open(f"{input_folder}/{energy}GeV/channel_study/channels_data.json", "r") as f:
             all_channel_data[energy] = json.load(f)
 
-    main(all_channel_data, input_folder, output_folder)
+    main(all_channel_data, input_folder, output_folder, weighted_kinetic_energy = True)

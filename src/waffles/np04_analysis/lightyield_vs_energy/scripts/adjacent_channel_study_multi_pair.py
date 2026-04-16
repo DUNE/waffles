@@ -1,6 +1,6 @@
 from utils import *
 
-def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_map, strategies, pairs, p2_evaluation = False):
+def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_map, strategies, pairs, p2_evaluation = False, weighted_kinetic_energy: bool = False):
     energy_dict =  {1: 0, 2: 118, 3: 119, 5: 175, 7: 253} # Crossing point between langauss and gaussian distribution - to use for beam event selection trigger 
 
     all_data = {}
@@ -93,7 +93,12 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
 
     energies = np.array(energies)
 
-    APA_pdf_file = PdfPages(f"{output_folder}/multi_pair_analysis_{pairs}_pairs.pdf")
+    if weighted_kinetic_energy:
+        APA_pdf_file = PdfPages(f"{output_folder}/multi_pair_analysis_{pairs}_pairs_weighted_kinetic_energy.pdf")  
+    else: 
+        APA_pdf_file = PdfPages(f"{output_folder}/multi_pair_analysis_{pairs}_pairs.pdf")
+
+    
 
     df_calibration = pd.read_csv(f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data/calibration/calibration_final.csv")
     df_calibration = df_calibration[
@@ -346,8 +351,14 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
             else:
                 if p2_evaluation:
                     ax = axes[0, -1]
-                    x= np.array(valid_energies)
-                    ex = 0.05*x
+
+                    # weighted mean - kinetic enrgy
+                    if weighted_kinetic_energy:
+                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                    else: 
+                        #classic
+                        x= np.array(valid_energies)
+                        ex = 0.05*x
 
                     row0 = df_calibration[(df_calibration['endpoint'] == ch_pairs[0]["end"]) & (df_calibration['channel'] == ch_pairs[0]["ch"])]
                     row1 = df_calibration[(df_calibration['endpoint'] == ch_pairs[1]["end"]) & (df_calibration['channel'] == ch_pairs[1]["ch"])]
@@ -430,7 +441,7 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
                     y_plot = noise_term_fit_array(out.beta, x_plot)
                     ax.plot(x_plot, y_plot, label=y_fit_label, color = 'fuchsia')
 
-                    ax.set_xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
+                    ax.set_xlabel(r"$\langle K_{beam} \rangle$ [GeV]")
                     ax.set_ylabel(label_p2)
                     ax.set_title(f"Noise term", fontsize=13)
                     ax.grid(True)
@@ -442,8 +453,14 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
 
                     ax = axes[i+1, -1]
 
-                    x = np.array(valid_energies)
-                    ex = 0.05*x
+                    # weighted mean - kinetic enrgy
+                    if weighted_kinetic_energy:
+                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                    else: 
+                        #classic
+                        x= np.array(valid_energies)
+                        ex = 0.05*x
+
 
                     all_sigma[residual_strategy] = np.array(all_sigma[residual_strategy])
                     all_sigma_err[residual_strategy] = np.array(all_sigma_err[residual_strategy])
@@ -544,7 +561,7 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
                         ax.plot(x_plot_n, y_plot_n, label=y_fit_label_n)
 
 
-                    ax.set_xlabel(r"$\langle E_{beam} \rangle$ [GeV]")
+                    ax.set_xlabel(r"$\langle K_{beam} \rangle$ [GeV]")
                     ax.set_ylabel(y_label)
                     ax.set_title(f"Energy Resolution", fontsize=13)
                     ax.grid(True)
@@ -592,7 +609,13 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
 
     APA_pdf_file.close()
 
-    with open(f"{output_folder}/data_{pairs}_pairs.pkl", "wb") as f:
+    
+    if weighted_kinetic_energy:
+        json_output_filename = f"{output_folder}/data_{pairs}_pairs_weighted_kinetic_energy.pkl"
+    else: 
+        json_output_filename = f"{output_folder}/data_{pairs}_pairs.pkl"
+
+    with open(json_output_filename, "wb") as f:
         pickle.dump(all_results, f)
 
 
@@ -608,9 +631,9 @@ if __name__ == "__main__":
     pairs = 'adjacent' # 'adjacent' or 'all'
 
     strategies = [
-        'N1-N2',
+        # 'N1-N2',
         '(N1-N2)/((N1+N2)/2)',
-        '(N1/<N1>) - (N2/<N2>)'
+        # '(N1/<N1>) - (N2/<N2>)'
     ]
 
     input_folder = f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output"
@@ -635,4 +658,4 @@ if __name__ == "__main__":
 
 
 
-    main(energies, apa_studied, input_folder, output_folder, adiacent_channels_map, strategies, pairs, p2_evaluation= True)
+    main(energies, apa_studied, input_folder, output_folder, adiacent_channels_map, strategies, pairs, p2_evaluation= True, weighted_kinetic_energy = True)

@@ -66,7 +66,7 @@ from utils import *
 #         all_data[energy] = {apa: apa_trigger_data}      
 # 
 
-def main(energies, apa_studied, input_folder, output_folder, strategies, p2_evaluation= False):
+def main(energies, apa_studied, input_folder, output_folder, strategies, p2_evaluation= False, weighted_kinetic_energy: bool = False):
 
     energy_dict = {1: 0, 2: 118, 3: 119, 5: 175, 7: 253}
 
@@ -213,7 +213,14 @@ def main(energies, apa_studied, input_folder, output_folder, strategies, p2_eval
 
     energies = np.array(energies)
 
-    APA_pdf_file = PdfPages(f"{output_folder}/adjacent_column_analysis.pdf")
+    
+
+    if weighted_kinetic_energy:
+        APA_pdf_file = PdfPages(f"{output_folder}/adjacent_column_analysis_weighted_kinetic_energy.pdf")  
+    else: 
+        APA_pdf_file = PdfPages(f"{output_folder}/adjacent_column_analysis.pdf")
+
+    
 
     df_calibration = pd.read_csv(f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data/calibration/calibration_final.csv")
     df_calibration = df_calibration[
@@ -488,8 +495,12 @@ def main(energies, apa_studied, input_folder, output_folder, strategies, p2_eval
             else:
                 if p2_evaluation:
                     ax = axes[0, -1]
-                    x = np.array(valid_energies)
-                    ex = 0.05 * x
+                    if weighted_kinetic_energy:
+                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                    else: 
+                        #classic
+                        x= np.array(valid_energies)
+                        ex = 0.05*x
 
                     y = np.zeros_like(x, dtype=float)
                     z_err = np.zeros_like(x, dtype=float)
@@ -603,8 +614,12 @@ def main(energies, apa_studied, input_folder, output_folder, strategies, p2_eval
 
                     ax = axes[i+1, -1]
 
-                    x = np.array(valid_energies)
-                    ex = 0.05*x
+                    if weighted_kinetic_energy:
+                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                    else: 
+                        #classic
+                        x= np.array(valid_energies)
+                        ex = 0.05*x
 
                     all_sigma[residual_strategy] = np.array(all_sigma[residual_strategy])
                     all_sigma_err[residual_strategy] = np.array(all_sigma_err[residual_strategy])
@@ -777,4 +792,4 @@ if __name__ == "__main__":
     input_folder = f"/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/output"
     output_folder= f"{input_folder}/adjacent_chanels_study"
 
-    main(energies, apa_studied, input_folder, output_folder, strategies, p2_evaluation= True)
+    main(energies, apa_studied, input_folder, output_folder, strategies, p2_evaluation= True, weighted_kinetic_energy=True)

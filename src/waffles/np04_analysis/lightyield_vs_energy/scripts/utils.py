@@ -45,7 +45,7 @@ from waffles.Exceptions import GenerateExceptionMessage
 
 # from waffles.utils.baseline.WindowBaseliner import WindowBaseliner
 # from waffles.data_classes.ChannelWsGrid import ChannelWsGrid 
-# from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
+from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 
 
 # from waffles.np04_analysis.lightyield_vs_energy.scripts.MyAnaPeak_NEW import MyAnaPeak_NEW
@@ -1153,3 +1153,49 @@ def apa1_columns_channels():
     col4 = channel_list_info[3::4]  # indice 3, 7, 11, ...
 
     return {1: col1, 2: col2, 3: col3, 4: col4}
+
+#####################################################################
+
+def calcola_metrica_fascio(momenti, 
+                           file_comp : str = "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data/np02_beam_particle_content.csv", 
+                           file_kin: str = "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data/beam_particle_kinetic_energy.csv"):
+    df_c = pd.read_csv(file_comp)
+    df_k = pd.read_csv(file_kin)
+
+    e_media = []
+    e_errore = []
+
+    for p in momenti:
+        row_c = df_c[df_c['Momentum [GeV/c]'] == p].iloc[0]
+        row_k = df_k[df_k['Momentum [GeV/c]'] == p].iloc[0]
+
+        particelle = ['e', 'K', 'p', 'pi'] #escludo muoni
+        f_raw = []
+        for part in particelle:
+            val = row_c[f"{part} [%]"]
+            f_raw.append(float(val))
+        
+        f = np.array(f_raw)
+        f = f / f.sum() # Rinormalizzazione senza muoni
+
+        tk = np.array([
+            row_k['e [GeV]'],
+            row_k['K [GeV]'],
+            row_k['p [GeV]'],
+            row_k['pi [GeV]']
+        ])
+
+        media = np.sum(f * tk)
+        dispersione =  np.sqrt(np.sum(f * tk**2) - media**2) 
+       
+        
+        # Incertezza sistematica (5% sul momento)
+        syst = 0.05 * media
+        
+        # Errore totale
+        errore_tot = np.sqrt(dispersione**2 + syst**2)
+
+        e_media.append(media)
+        e_errore.append(errore_tot)
+
+    return np.array(e_media), np.array(e_errore)
