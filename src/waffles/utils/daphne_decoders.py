@@ -9,7 +9,7 @@ names. This module centralizes the dispatch so other code can stay concise.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from daqdataformats import FragmentType
@@ -95,6 +95,34 @@ def decode_fragment_arrays(
     return raw_channels, adcs, timestamps
 
 
+def decode_peak_descriptor_arrays(
+    fragment,
+    decoder: FragmentDecoder,
+) -> Optional[Mapping[str, np.ndarray]]:
+    """Return ETH peak-descriptor arrays for self-triggered fragments when available."""
+    if decoder.is_stream:
+        return None
+
+    module = decoder.module
+    helper_names = {
+        'peak_found': 'np_array_peak_found',
+        'peak_num_subpeaks': 'np_array_peak_num_subpeaks',
+        'peak_adc_integral': 'np_array_peak_adc_integral',
+        'peak_adc_max': 'np_array_peak_adc_max',
+        'peak_sample_max': 'np_array_peak_sample_max',
+        'peak_samples_over_baseline': 'np_array_peak_samples_over_baseline',
+        'peak_sample_start': 'np_array_peak_sample_start',
+    }
+
+    if any(not hasattr(module, helper_name) for helper_name in helper_names.values()):
+        return None
+
+    return {
+        field_name: np.asarray(getattr(module, helper_name)(fragment))
+        for field_name, helper_name in helper_names.items()
+    }
+
+
 def extract_daq_link(fragment, decoder: FragmentDecoder) -> Tuple[int, int, int, int]:
     """Return (det, crate, slot, stream) identifiers from the first frame header."""
     payload = fragment.get_data_bytes()
@@ -105,7 +133,7 @@ def extract_daq_link(fragment, decoder: FragmentDecoder) -> Tuple[int, int, int,
     det_id = int(daq_header.det_id)
     crate_id = int(daq_header.crate_id)
     slot_id = int(daq_header.slot_id)
-    stream_id = int(getattr(daq_header, "stream_id", getattr(daq_header, "link_id", 0)))
+    stream_id = int(getattr(daq_header, 'stream_id', getattr(daq_header, 'link_id', 0)))
     return det_id, crate_id, slot_id, stream_id
 
 

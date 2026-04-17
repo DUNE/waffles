@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import importlib
-from typing import Iterable, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -32,6 +32,7 @@ from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.utils.daphne_decoders import (
     decode_fragment_arrays,
+    decode_peak_descriptor_arrays,
     extract_daq_link,
     get_fragment_decoder,
 )
@@ -59,24 +60,35 @@ def _ensure_daphne_header_compat() -> None:
     Older rawdatautils versions expect DAPHNEEt.get_header(), newer
     fddetdataformats builds renamed it to get_daqheader(). Patch in an alias.
     """
-    for module_name in ("fddetdataformats",):
+    for module_name in ('fddetdataformats',):
         try:
             module = importlib.import_module(module_name)
         except ModuleNotFoundError:
             continue
 
         candidates = [module]
-        submodule = getattr(module, "_daq_fddetdataformats_py", None)
+        submodule = getattr(module, '_daq_fddetdataformats_py', None)
         if submodule is not None:
             candidates.append(submodule)
 
         for candidate in candidates:
-            for type_name in ("DAPHNEEt", "DAPHNEEthFrame"):
+            for type_name in ('DAPHNEEt', 'DAPHNEEthFrame'):
                 target = getattr(candidate, type_name, None)
-                _alias_method(target, "get_header", "get_daqheader")
+                _alias_method(target, 'get_header', 'get_daqheader')
 
 
 _ensure_daphne_header_compat()
+
+
+_PEAK_FIELD_NAMES = (
+    'peak_found',
+    'peak_num_subpeaks',
+    'peak_adc_integral',
+    'peak_adc_max',
+    'peak_sample_max',
+    'peak_samples_over_baseline',
+    'peak_sample_start',
+)
 
 
 def _ensure_logger(logger: Optional[logging.Logger]) -> logging.Logger:
@@ -96,10 +108,83 @@ def _ensure_logger(logger: Optional[logging.Logger]) -> logging.Logger:
     return logger
 
 
+def _extract_peak_row(peak_arrays, field_name: str, index: int) -> Optional[np.ndarray]:
+    values = peak_arrays.get(field_name) if peak_arrays is not None else None
+    if values is None:
+        return None
+
+    values = np.asarray(values)
+    if values.ndim == 0 or index >= values.shape[0]:
+        return None
+
+    row = np.array(values[index], copy=True)
+    if row.ndim == 0:
+        row = row.reshape(1)
+    return row.reshape(-1)
+
+
+def _attach_peak_descriptor_attrs(
+    waveform: Waveform,
+    peak_arrays,
+    index: int,
+) -> None:
+    if peak_arrays is None:
+        return
+
+    peak_rows = {
+        field_name: _extract_peak_row(peak_arrays, field_name, index)
+        for field_name in _PEAK_FIELD_NAMES
+    }
+    if any(row is None for row in peak_rows.values()):
+        return
+
+    peak_found = peak_rows['peak_found'].astype(bool, copy=False)
+    peak_num_subpeaks = peak_rows['peak_num_subpeaks'].astype(np.int64, copy=False)
+    peak_adc_integral = peak_rows['peak_adc_integral'].astype(np.int64, copy=False)
+    peak_adc_max = peak_rows['peak_adc_max'].astype(np.int64, copy=False)
+    peak_sample_max = peak_rows['peak_sample_max'].astype(np.int64, copy=False)
+    peak_samples_over_baseline = peak_rows['peak_samples_over_baseline'].astype(
+        np.int64,
+        copy=False,
+    )
+    peak_sample_start = peak_rows['peak_sample_start'].astype(np.int64, copy=False)
+
+    waveform.peak_found = peak_found
+    waveform.peak_num_subpeaks = peak_num_subpeaks
+    waveform.peak_adc_integral = peak_adc_integral
+    waveform.peak_adc_max = peak_adc_max
+    waveform.peak_sample_max = peak_sample_max
+    waveform.peak_samples_over_baseline = peak_samples_over_baseline
+    waveform.peak_sample_start = peak_sample_start
+
+    n_peaks = min(
+        len(peak_found),
+        len(peak_num_subpeaks),
+        len(peak_adc_integral),
+        len(peak_adc_max),
+        len(peak_sample_max),
+        len(peak_samples_over_baseline),
+        len(peak_sample_start),
+    )
+    waveform.peak_descriptors = [
+        {
+            'peak_index': peak_index,
+            'found': bool(peak_found[peak_index]),
+            'num_subpeaks': int(peak_num_subpeaks[peak_index]),
+            'adc_integral': int(peak_adc_integral[peak_index]),
+            'adc_max': int(peak_adc_max[peak_index]),
+            'sample_max': int(peak_sample_max[peak_index]),
+            'samples_over_baseline': int(peak_samples_over_baseline[peak_index]),
+            'sample_start': int(peak_sample_start[peak_index]),
+        }
+        for peak_index in range(n_peaks)
+    ]
+
+
 def load_daphne_eth_waveforms(
     filepath: str,
     *,
-    detector: str = "HD_PDS",
+    detector: str = 'HD_PDS',
     channel_map: Optional[str] = None,
     max_waveforms: Optional[int] = None,
     max_records: Optional[int] = None,
@@ -143,7 +228,7 @@ def load_daphne_eth_waveforms(
     except Exception as err:
         raise Exception(GenerateExceptionMessage(
             1,
-            "load_daphne_eth_waveforms()",
+            'load_daphne_eth_waveforms()',
             f"Failed to parse detector '{detector}': {err}",
         )) from err
 
@@ -151,7 +236,7 @@ def load_daphne_eth_waveforms(
     records = list(h5_file.get_all_record_ids())
     selected_records = select_records(records, skip_records, max_records)
 
-    channel_map_plugin = channel_map or "SimplePDSChannelMap"
+    channel_map_plugin = channel_map or 'SimplePDSChannelMap'
     channel_mapper = None
     if channel_map_plugin:
         try:
@@ -169,14 +254,14 @@ def load_daphne_eth_waveforms(
         try:
             geo_ids = list(h5_file.get_geo_ids_for_subdetector(record, det_enum))
         except Exception as err:
-            log.warning("Skipping record %s: unable to resolve geo IDs (%s)", record, err)
+            log.warning('Skipping record %s: unable to resolve geo IDs (%s)', record, err)
             continue
 
         for geo_id in geo_ids:
             try:
                 fragment = h5_file.get_frag(record, geo_id)
             except Exception as err:
-                log.warning("Skipping fragment (record=%s, geo_id=%s): %s", record, geo_id, err)
+                log.warning('Skipping fragment (record=%s, geo_id=%s): %s', record, geo_id, err)
                 continue
 
             if fragment.get_data_size() == 0:
@@ -197,12 +282,23 @@ def load_daphne_eth_waveforms(
                 )
             except Exception as err:
                 log.warning(
-                    "Skipping fragment (record=%s, geo_id=%s): failed to decode (%s)",
+                    'Skipping fragment (record=%s, geo_id=%s): failed to decode (%s)',
                     record,
                     geo_id,
                     err,
                 )
                 continue
+
+            try:
+                peak_arrays = decode_peak_descriptor_arrays(fragment, decoder)
+            except Exception as err:
+                log.debug(
+                    'Unable to decode peak descriptors for record=%s geo_id=%s: %s',
+                    record,
+                    geo_id,
+                    err,
+                )
+                peak_arrays = None
 
             if raw_channels.size == 0 or adcs_matrix.size == 0:
                 continue
@@ -223,7 +319,7 @@ def load_daphne_eth_waveforms(
                 det_id, crate_id, slot_id, stream_id = extract_daq_link(fragment, decoder)
             except Exception as err:
                 log.warning(
-                    "Skipping fragment (record=%s, geo_id=%s): unable to parse DAQ header (%s)",
+                    'Skipping fragment (record=%s, geo_id=%s): unable to parse DAQ header (%s)',
                     record,
                     geo_id,
                     err,
@@ -271,21 +367,22 @@ def load_daphne_eth_waveforms(
                 wf.stream_id = int(stream_id)
                 wf.detector_id = int(det_id)
                 wf.crate_id = int(crate_id)
+                _attach_peak_descriptor_attrs(wf, peak_arrays, idx)
                 waveforms.append(wf)
 
                 if max_waveforms is not None and len(waveforms) >= max_waveforms:
-                    log.info("Reached max_waveforms=%s; returning early", max_waveforms)
+                    log.info('Reached max_waveforms=%s; returning early', max_waveforms)
                     return WaveformSet(*waveforms)
 
     if not waveforms:
-        log.warning("No DAPHNE Ethernet waveforms found in %s", filepath)
+        log.warning('No DAPHNE Ethernet waveforms found in %s', filepath)
         return None
 
     lengths = {len(wf.adcs) for wf in waveforms}
     if len(lengths) > 1:
         min_len = min(lengths)
         log.warning(
-            "Waveforms have non-uniform lengths %s; truncating all to %d samples",
+            'Waveforms have non-uniform lengths %s; truncating all to %d samples',
             sorted(lengths),
             min_len,
         )
