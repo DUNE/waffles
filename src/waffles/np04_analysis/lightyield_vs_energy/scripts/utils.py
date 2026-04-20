@@ -1156,46 +1156,35 @@ def apa1_columns_channels():
 
 #####################################################################
 
-def calcola_metrica_fascio(momenti, 
-                           file_comp : str = "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data/np02_beam_particle_content.csv", 
-                           file_kin: str = "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data/beam_particle_kinetic_energy.csv"):
-    df_c = pd.read_csv(file_comp)
-    df_k = pd.read_csv(file_kin)
+def weighted_mean_kinetic_energy_function(beam_momentum_list, 
+                                          beam_composition_filepath : str = "/afs/cern.ch/work/a/anbalbon/private/waffles/src/waffles/np04_analysis/lightyield_vs_energy/data/np04_beam_particle_content.csv",
+                                          particles_dict = {'e' : 0.92828, 'pi' : 139.6, 'p': 938.28, 'k': 493.67} # {particle : mass} in MeV/c2
+                                          ):
+    
+    df_composition = pd.read_csv(beam_composition_filepath)
+    df_composition.columns = (df_composition.columns.str.replace(r'\s*\[.*?\]', '', regex=True).str.strip().str.lower())
+    df_composition['for_normalization'] = df_composition[particles_dict.keys()].sum(axis=1)
 
-    e_media = []
-    e_errore = []
+    weighted_mean_kinetic_energy_list, weighted_mean_kinetic_energy_error_list = [], []
 
-    for p in momenti:
-        row_c = df_c[df_c['Momentum [GeV/c]'] == p].iloc[0]
-        row_k = df_k[df_k['Momentum [GeV/c]'] == p].iloc[0]
+    for momentum in beam_momentum_list:
+        w_K = 0
+        w_K_e = 0
+        var_K = 0
+        row_composition = df_composition[df_composition['momentum'] == momentum].iloc[0]
 
-        particelle = ['e', 'K', 'p', 'pi'] #escludo muoni
-        f_raw = []
-        for part in particelle:
-            val = row_c[f"{part} [%]"]
-            f_raw.append(float(val))
+        # Weighted mean value + error
+        for particle, mass in particles_dict.items():
+            w_p = row_composition[particle] / row_composition['for_normalization']
+            K_p = np.sqrt(momentum**2 + (mass/1000)**2) - (mass/1000)
         
-        f = np.array(f_raw)
-        f = f / f.sum() # Rinormalizzazione senza muoni
-
-        tk = np.array([
-            row_k['e [GeV]'],
-            row_k['K [GeV]'],
-            row_k['p [GeV]'],
-            row_k['pi [GeV]']
-        ])
-
-        media = np.sum(f * tk)
-        dispersione =  np.sqrt(np.sum(f * tk**2) - media**2) 
-       
+            w_K += w_p * K_p
+            var_K+= w_p * (K_p**2)
         
-        # Incertezza sistematica (5% sul momento)
-        syst = 0.05 * media
-        
-        # Errore totale
-        errore_tot = np.sqrt(dispersione**2 + syst**2)
+        sigma_K = np.sqrt(var_K - w_K**2)
+        w_K_e = np.sqrt((sigma_K)**2 + (w_K*0.05)**2)
 
-        e_media.append(media)
-        e_errore.append(errore_tot)
+        weighted_mean_kinetic_energy_list.append(w_K)
+        weighted_mean_kinetic_energy_error_list.append(w_K_e)
 
-    return np.array(e_media), np.array(e_errore)
+    return weighted_mean_kinetic_energy_list, weighted_mean_kinetic_energy_error_list

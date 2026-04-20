@@ -496,7 +496,7 @@ def main(energies, apa_studied, input_folder, output_folder, strategies, p2_eval
                 if p2_evaluation:
                     ax = axes[0, -1]
                     if weighted_kinetic_energy:
-                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                        x, ex = weighted_mean_kinetic_energy_function(np.array(valid_energies))
                     else: 
                         #classic
                         x= np.array(valid_energies)
@@ -615,7 +615,7 @@ def main(energies, apa_studied, input_folder, output_folder, strategies, p2_eval
                     ax = axes[i+1, -1]
 
                     if weighted_kinetic_energy:
-                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                        x, ex = weighted_mean_kinetic_energy_function(np.array(valid_energies))
                     else: 
                         #classic
                         x= np.array(valid_energies)

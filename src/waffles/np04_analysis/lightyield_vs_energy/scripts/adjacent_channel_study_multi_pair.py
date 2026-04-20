@@ -354,7 +354,7 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
 
                     # weighted mean - kinetic enrgy
                     if weighted_kinetic_energy:
-                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                        x, ex = weighted_mean_kinetic_energy_function(np.array(valid_energies))
                     else: 
                         #classic
                         x= np.array(valid_energies)
@@ -455,7 +455,7 @@ def main(energies, apa_studied, input_folder, output_folder, adiacent_channels_m
 
                     # weighted mean - kinetic enrgy
                     if weighted_kinetic_energy:
-                        x, ex = calcola_metrica_fascio(np.array(valid_energies))
+                        x, ex = weighted_mean_kinetic_energy_function(np.array(valid_energies))
                     else: 
                         #classic
                         x= np.array(valid_energies)

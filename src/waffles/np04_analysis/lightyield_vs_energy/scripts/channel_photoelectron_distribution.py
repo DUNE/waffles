@@ -315,7 +315,7 @@ def main(all_channel_data, input_folder, output_folder, weighted_kinetic_energy:
 
                 # weighted mean - kinetic enrgy
                 if weighted_kinetic_energy:
-                    x, e_x = calcola_metrica_fascio(energies)
+                    x, e_x = weighted_mean_kinetic_energy_function(energies)
                 else: 
                     #classic
                     x = energies
