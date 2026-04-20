@@ -73,14 +73,48 @@ def linear_fit(
     plt.tight_layout()
     plt.savefig(f"fit_{Path(input_filepath).stem}.png")
 
+def rate_evaluation(
+    weight_df: pd.DataFrame,
+    start_time: str,
+    stop_time: str,
+    start_weight: float,
+    stop_weight: float,
+) -> float:
+    
+    """Compute the weight-loss rate between two timestamps.
+
+    The two weights provided from the command line are corrected for the
+    temperature measured at the closest available sample to each timestamp.
+    """
+    t_start = pd.to_datetime(start_time, format=WEIGHT_TIME_FORMAT)
+    t_stop  = pd.to_datetime(stop_time,  format=WEIGHT_TIME_FORMAT)
+    Delta_t = (t_stop - t_start).total_seconds() / 3600.0
+
+    if "temperature" in weight_df.columns:
+        idx_start = (weight_df["time"] - t_start).abs().idxmin()
+        idx_stop  = (weight_df["time"] - t_stop).abs().idxmin()
+        temp_start = weight_df.loc[idx_start, "temperature"]
+        temp_stop  = weight_df.loc[idx_stop,  "temperature"]
+    else:
+        temp_start = temp_stop = 0.0
+
+    pi = start_weight - TEMP_CORRECTION_COEFF * temp_start
+    pf = stop_weight  - TEMP_CORRECTION_COEFF * temp_stop
+
+    return (pf - pi) / Delta_t
+    
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, help="File with weight data")
-    parser.add_argument("--offset", type=str, default=None, help="Start time (format: '2026/03/24 15:03:00.000')")
+    parser.add_argument("--offset", type=str, default=None, help="Offset time (format: '2026/03/24 15:03:00.000')")
+    parser.add_argument("--start-time", type=str, default=None, help="Start time (format: '2026/03/24 15:03:00.000')")
+    parser.add_argument("--stop-time", type=str, default=None, help="End time (format: '2026/03/24 15:03:00.000')")
     parser.add_argument("--fit-min", type=str, default=None, help="Lower time bound for fit (format: '2026/03/24 15:03:00.000')")
     parser.add_argument("--fit-max", type=str, default=None, help="Upper time bound for fit (format: '2026/03/24 15:03:00.000')")
     parser.add_argument("--skip-temp", action="store_true", help="Skip temperature correction")
+    parser.add_argument("--start-weight", type=float, help="Bottle weight when the inkection starts")
+    parser.add_argument("--stop-weight", type=float, help="Bottle weight when the injection ends")
     args = parser.parse_args()
 
     input_filepath = Path(args.file)
@@ -102,6 +136,12 @@ def main() -> None:
         print("No temperature data found.")
 
     linear_fit(weight_df, args.offset, args.fit_min, args.fit_max, args.file)
+
+    if args.start_weight is not None and args.stop_weight is not None:
+        if args.start_time is None or args.stop_time is None:
+            raise ValueError("Not enough parameters")
+        rate = rate_evaluation(weight_df, args.start_time, args.stop_time, args.start_weight, args.stop_weight)
+        print(f"Injection rate: {rate:.6f} kg/h")
 
 
 if __name__ == "__main__":
