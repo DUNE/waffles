@@ -1,5 +1,6 @@
 from typing import Callable, Optional, Union
 import pandas as pd
+import numpy as np
 from pandas._typing import MergeHow
 from glob import glob
 from tqdm import tqdm
@@ -452,3 +453,105 @@ def show_images_grid(image_dict, forced_figsize=None):
         plt.tight_layout()
         plt.show()
 
+LAr_mass = 748
+
+def load_info_inj() -> pd.DataFrame:
+    df_injections = pd.DataFrame([
+    {"start": "2026-03-23 17:03:00", "end": "2026-03-23 23:07:00", "rate": 0.9*1.22},
+    {"start": "2026-03-24 9:15:00", "end": "2026-03-24 10:15:00", "rate": 1.8*1.22},
+    {"start": "2026-03-24 10:15:00", "end": "2026-03-24 12:15:00", "rate": 0.9*1.22},
+    {"start": "2026-03-24 15:03:00", "end": "2026-03-25 11:03:00", "rate": 35.1},
+    {"start": "2026-03-30 17:00:00", "end": "2026-03-31 14:45:00", "rate": 34.2},
+    {"start": "2026-04-07 16:37:00", "end": "2026-04-08 13:37:00", "rate": 33.2},
+    {"start": "2026-04-11 16:05:00", "end": "2026-04-13 10:43:00", "rate": 27.5},
+    {"start": "2026-04-13 10:44:00", "end": "2026-04-13 20:33:00", "rate": 34.7},
+    {"start": "2026-04-17 13:32:00", "end": "2026-04-19 12:02:00", "rate": 33.8}
+    ], columns=["start", "end", "rate" ])
+    
+    df_injections['start'] = pd.to_datetime(df_injections['start'])
+    df_injections['end']   = pd.to_datetime(df_injections['end'])
+
+    return df_injections
+
+def database_injections() -> pd.DataFrame:
+    url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXuwLxht-9hnNHvNCYqQRQulTMk7ymE1gRTpo1LGHfey4HGaGqz0CqIFo8IBYevtVXsqj_9aitUD5t/pub?output=xlsx"
+    df = pd.read_excel(url, sheet_name="Xe-PDS-only")
+    
+    df_injections = load_info_inj()
+    
+    df['datetime'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['time'].astype(str).str.replace('.', ':', regex=False), format='mixed')
+    dftest = df.sort_values('datetime')
+    if np.any(df["run"].to_numpy() != dftest["run"].to_numpy()):
+        raise Exception("Nooooooo....")
+   
+    df['rate [g/h]']   = 0.0
+    df['delta [h]']   = 0.0
+    df['injected [g]']   = 0.0
+    df['injected [ppm]'] = 0.0
+
+    last_inj_idx = None 
+    last_rate    = None
+    need_relax = False
+    
+    prev_injection_time = {}  # {inj_idx: last t_run of that inj}
+
+    for idx, row in df.iterrows():
+        t_run  = row['datetime']
+        status = row['status']
+        if status == 'injection':
+            need_relax = True
+            mask   = (df_injections['start'] <= t_run) & (df_injections['end'] >= t_run)
+            active = df_injections[mask]
+            
+            if active.empty:
+                raise Exception("This shouldn't happen!")
+            
+            inj     = active.iloc[0]
+            inj_idx = active.index[0]
+            rate    = inj['rate'] 
+            last_inj_idx = inj_idx
+            last_rate    = rate
+
+            if inj_idx not in prev_injection_time:
+                t_ref = inj['start']
+            else:
+                t_ref = prev_injection_time[inj_idx] 
+
+            delta_t      = (t_run - t_ref).total_seconds() / 3600
+            injected_g   = rate * delta_t
+            injected_ppm = injected_g / LAr_mass
+
+            df.at[idx, 'rate [g/h]']   = rate
+            df.at[idx, 'delta [h]']   = delta_t
+            df.at[idx, 'injected [g]']   = injected_g
+            df.at[idx, 'injected [ppm]'] = injected_ppm
+            
+            prev_injection_time[inj_idx] = t_run
+            
+        elif status == "relaxation" and need_relax:
+            t_end    = df_injections.loc[last_inj_idx, 'end']
+            t_last   = prev_injection_time[last_inj_idx]
+            delta_t  = (t_end - t_last).total_seconds() / 3600
+            injected_g   = last_rate * delta_t
+            injected_ppm = injected_g / LAr_mass
+            
+            df.at[idx, 'injected [g]']   = injected_g
+            df.at[idx, 'injected [ppm]'] = injected_ppm
+            
+            need_relax = False
+
+    df['total [g]'] = df['injected [g]'].cumsum()
+    df['total [ppm]'] = df['injected [ppm]'].cumsum()
+    
+    df_sorted = df.sort_values('datetime')
+    df = df_sorted
+    df = df.drop(columns=['date', 'time', 'HV'])
+    df = df[['run', 'datetime', 'ppm', 'status', 'rate [g/h]', 'delta [h]', 'injected [g]', 'injected [ppm]', 'total [g]', 'total [ppm]']]
+    
+    return df
+
+def merge_database(df_1, df_2) -> pd.DataFrame:
+    new_df = df_1.merge(df_2[['run', 'total [ppm]']], on='run', how='left')
+    return new_df
+
+    
