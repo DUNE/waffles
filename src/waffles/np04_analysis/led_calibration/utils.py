@@ -2159,8 +2159,7 @@ def next_subsample(
         # quantity, then return the best-case scenario which is
         # still proposed_subsample = 1
 
-<<<<<<< HEAD
-        return proposed_subsamplie
+        return proposed_subsample
 
 # START: auxiliar vgain scan functions
 def load_waveformSet_from_tar_gz(tar_path: str | Path, member_path: str):
@@ -2183,7 +2182,6 @@ def load_waveformSet_from_tar_gz(tar_path: str | Path, member_path: str):
             del obj
             return WaveformSet(*waveforms)
 # END: auxiliar vgain scan functions
-=======
         return proposed_subsample
     
 def get_nbins_and_channel_wise_domain(
@@ -3056,4 +3054,3 @@ def get_SPE_grid_plot(
             )
 
     return persistence_figure
->>>>>>> main
