@@ -1,0 +1,9 @@
+{
+    "rucio_dir": "/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-II/PDS_Commissioning/waffles/1_rucio_paths/",
+    "output_dir": "/eos/home-f/fegalizz/ProtoDUNE_HD/SelfTrigger/files/",
+    "save_single_file": true,
+    "max_files":4,
+    "det": "HD_PDS",
+    "external_trigger_filter": true,
+    "run_ch_dict_file": "size0.csv"
+}

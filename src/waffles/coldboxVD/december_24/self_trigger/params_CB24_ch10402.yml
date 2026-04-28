@@ -1,0 +1,66 @@
+# File.csv containing (at least) the columns:
+# Run, Threshold, LED
+# Run: run number
+# Threshold: threshold in exadecimal
+# LED: LED intensity
+run_info_file: "./configs/ColdboxDec24_ST_RunInfo.csv"
+
+# File.csv stored in ana_folder containing (at least) the columns:
+# SiPMChannel, IntLow, IntUp, PrepulseTicks, BaselineRMS, SpeCharge, SNR, SpeAmpl
+# SiPMChannel: SiPM channel number (e.g. 11121)
+# IntLow: lower integration limit (in ticks)
+# IntUp: upper integration limit (in ticks)
+# PrepulseTicks: number of ticks before the signal to compute the baseline
+# BaselineRMS: baseline RMS (in ADC counts)
+# SpeCharge: SPE charge (in ADC x ticks)
+# SpeAmpl: SPE amplitude (in ADC counts)
+calibration_file: "/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/SelfTrigger_Calibration.csv"
+
+# Path to the hdf5 files with name:
+# Run_XXXXXX_ChSiPM_YYYYY_ChST_ZZZZZ_structured.hdf5 
+file_folder: "/eos/experiment/neutplatform/protodune/experiments/ColdBoxVD/December2024run/Daphne_DAQ/hdf5s_M4_SelfTriggerData/"
+
+# SiPM channel to analyze
+SiPM_channel: 10402
+
+# Do you want to save all the png of the Total/Passed histograms?
+save_pngs: False
+
+# List of runs to analyze
+runs : [34985,
+  34986,
+  34987,
+  34988,
+  34989,
+  34990,
+  34992,
+  34993,
+  34994,
+  34995,
+  34997,
+  34998,
+  34999,
+  35000,
+  35001,
+  35003,
+  35005,
+  35006,
+  35007,
+  35008,
+  35011,
+  35012,
+  35013,
+  35014,
+  35015,
+  35016,
+  35017,
+  35018,
+  35019,
+  35020,
+  35021,
+  35022,
+  35023,
+  35025,
+  35028,
+  35029,
+  35030]

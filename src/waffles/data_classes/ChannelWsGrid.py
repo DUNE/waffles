@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 from waffles.data_classes.UniqueChannel import UniqueChannel
 from waffles.data_classes.WaveformSet import WaveformSet
@@ -362,10 +362,11 @@ class ChannelWsGrid:
     
     def compute_calib_histos(
         self,
-        bins_number: int,
-        domain: np.ndarray,
+        bins_number: Union[int, Dict[int, Dict[int, int]]],
+        domain: Union[np.ndarray, Dict[int, Dict[int, np.ndarray]]],
         variable: str,
         analysis_label: Optional[str] = None,
+        average_fallback: bool = False,
         verbose: bool = False
     ) -> None:
         """This method iterates through all of the endpoint and
@@ -375,14 +376,27 @@ class ChannelWsGrid:
 
         Parameters
         ----------
-        bins_number: int
-            The number of bins that the calibration histograms
-            will have. It must be greater than 1.
-        domain: np.ndarray
-            A 2x1 numpy array where (domain[0], domain[1])
-            gives the range to consider for the
-            calibration histograms. Any sample which falls
-            outside this range is ignored.
+        bins_number: Union[int, Dict[int, Dict[int, int]]],
+            If it is an integer, then it is the number of bins
+            that the calibration histograms (for every channel)
+            will have. If it is a dictionary, then it must have
+            the same structure as the self.__ch_wf_sets
+            attribute, and the value for a certain endpoint and
+            channel will be the number of bins that the
+            calibration histogram for such channel will have.
+            Regardless the format, the number of bins must be
+            greater than 1.
+        domain: Union[np.ndarray, Dict[int, Dict[int, np.ndarray]]]
+            If it is an array, its shape should be 2x1, where
+            (domain[0], domain[1]) gives the range to consider for
+            the calibration histograms (for every channel). Any
+            sample which falls outside this range is ignored. If
+            it is a dictionary, then it must have the same
+            structure as the self.__ch_wf_sets attribute, and the
+            value for a certain endpoint and channel will be a
+            2x1 numpy array where (domain[0], domain[1]) gives
+            the range to consider for the calibration histogram
+            of such channel. 
         variable: str
             It is eventually given to the 'variable'
             positional argument of the
@@ -408,6 +422,22 @@ class ChannelWsGrid:
             analyses attribute will be the used one. If
             there is not even one analysis, then an
             exception will be raised.
+        average_fallback: bool
+            This parameter makes a difference only if
+            bins_number and/or domain are given as
+            dictionaries and one or more channels
+            in the current ChannelWsGrid object do not
+            have an entry in such dictionaries. If that's
+            the case, and this parameter is set to True,
+            then the average of the bins_number and/or
+            domain values from the other channels will be
+            used for those channels which do not have an
+            entry in the corresponding dictionary. If
+            this parameter is set to False, then those
+            channels which do not have an entry in the
+            corresponding dictionary will be skipped, and
+            no calibration histogram will be computed for
+            them.
         verbose: bool
             Whether to print functioning related messages
 
@@ -416,12 +446,101 @@ class ChannelWsGrid:
         None
         """
 
+        fUniformBinning = False
+        if isinstance(bins_number, int):
+            fUniformBinning = True
+            bins_number_ = bins_number
+
+        fUniformDomain = False
+        if isinstance(domain, np.ndarray):
+            fUniformDomain = True
+            domain_ = domain
+
+        average_bins_number = None
+        average_domain = None
+
+        if average_fallback:
+            if not fUniformBinning:
+                average_bins_number = round(
+                    np.mean([
+                        bins_number[endpoint][channel]
+                        for endpoint in bins_number.keys()
+                        for channel in bins_number[endpoint].keys()
+                    ])
+                )
+
+            if not fUniformDomain:
+                average_domain = np.mean(
+                    [
+                        domain[endpoint][channel]
+                        for endpoint in domain.keys()
+                        for channel in domain[endpoint].keys()
+                    ],
+                    axis=0
+                )
+
         for endpoint in self.__ch_wf_sets.keys():
             for channel in self.__ch_wf_sets[endpoint].keys():
+
+                if not fUniformBinning:
+                    try:
+                        bins_number_ = bins_number[endpoint][channel]
+
+                    except KeyError:
+                        if verbose:
+                            print(
+                                "In method ChannelWsGrid.compute_calib_histos(): "
+                                "The number of bins for the calibration histogram "
+                                f"for channel {endpoint}-{channel} was not given."
+                            )
+
+                        if average_fallback:
+                            bins_number_ = average_bins_number
+                            if verbose:
+                                print(
+                                    "In method ChannelWsGrid.compute_calib_histos(): "
+                                    f"Using the average number of bins {average_bins_number} "
+                                    f"for channel {endpoint}-{channel}."
+                                )
+                        else:
+                            if verbose:
+                                print(
+                                    "In method ChannelWsGrid.compute_calib_histos(): "
+                                    f"Skipping channel {endpoint}-{channel}."
+                                )
+                            continue
+
+                if not fUniformDomain:
+                    try:
+                        domain_ = domain[endpoint][channel]
+
+                    except KeyError:
+                        if verbose:
+                            print(
+                                "In method ChannelWsGrid.compute_calib_histos(): "
+                                "The domain for the calibration histogram "
+                                f"for channel {endpoint}-{channel} was not given."
+                            )
+
+                        if average_fallback:
+                            domain_ = average_domain
+                            if verbose:
+                                print(
+                                    "In method ChannelWsGrid.compute_calib_histos(): "
+                                    f"Using the average domain {average_domain} "
+                                    f"for channel {endpoint}-{channel}."
+                                )
+                        else:
+                            if verbose:
+                                print(
+                                    "In method ChannelWsGrid.compute_calib_histos(): "
+                                    f"Skipping channel {endpoint}-{channel}."
+                                )
+                            continue
                 try:
                     self.__ch_wf_sets[endpoint][channel].compute_calib_histo(
-                        bins_number,
-                        domain,
+                        bins_number_,
+                        domain_,
                         variable,
                         analysis_label=analysis_label
                     )
@@ -435,7 +554,6 @@ class ChannelWsGrid:
                             "samples fell into the specified "
                             f"domain (={domain}). Skipping this channel."
                         )
-
         return
 
     # Before 2024/06/27, this method was used in 

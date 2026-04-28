@@ -96,3 +96,8 @@ class NonExistentDirectory(WafflesBaseException):
 class EmptyCalibrationHistogram(WafflesBaseException):
     """Exception raised when a calibration histogram 
     has no entries."""
+
+class MissingColumnsInDataFrame(WafflesBaseException):
+    """Exception raised when a pandas DataFrame is
+    missing some of the required columns."""
+    pass
