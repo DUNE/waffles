@@ -15,7 +15,7 @@ batches: [3192]
 apas: [3] # 1, 2, 3, 4
 
 # Photon detection efficiency
-pdes: [0.4] # 0.40, 0.45, 0.50
+pdes: [0.45] # 0.40, 0.45, 0.50
 
 channel_to_analyze: 11120
 
@@ -35,6 +35,8 @@ excluded_channels_filepath: './configs/vgain_scan_excluded_channels_database.csv
 # high-pass filter coefficients
 # to be applied after the baseline subtraction.
 hpf_filter_coefficients: './configs/hpf_filter_coefficients.json'
+
+boxcar_window_size: 24 # in samplesi
 
 # Lower limit (inclusive) of the boxcar filter
 # window size to be tested
