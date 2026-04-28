@@ -514,3 +514,69 @@ def fit_peaks_of_ChannelWsGrid(
                 )
 
     return output
+
+def auto_domain_from_grid(grid: ChannelWsGrid, analysis_label: str, variable: str = "integral",
+                          q_low: float = 0.001, q_high: float = 0.999,
+                          pad_frac: float = 0.05):
+    
+    """This function computes an automatic domain for the given variable
+    based on the values of such variable for all the channels in the given
+    ChannelWsGrid object, grid, for which the given analysis_label is present.
+    The domain is computed as the quantile range given by the q_low and q_high
+    parameters, plus a padding given by the pad_frac parameter. The variable
+    values are extracted from the result attribute of the analysis with the
+    given analysis_label, which is expected to be a dictionary containing the
+    variable as one of its keys. If the result attribute is not a dictionary, it
+    is expected to be an object with the variable as one of its attributes. If
+    the variable is not found in the result, or if the analysis with the given
+    analysis_label is not found, or if the result is not found, then the channel
+    is skipped. If no valid values are found for any channel, a RuntimeError is
+    raised."""
+    
+    vals = []
+
+    for i in range(grid.ch_map.rows):
+        for j in range(grid.ch_map.columns):
+            try:
+                chws = grid.ch_wf_sets[grid.ch_map.data[i][j].endpoint][grid.ch_map.data[i][j].channel]
+            except KeyError:
+                continue
+
+            v_list = []
+            for wf in getattr(chws, "waveforms", []):
+                try:
+                    ana = wf.get_analysis(analysis_label)
+                    if ana is None:
+                        continue
+                    res = getattr(ana, "result", None)
+                    if res is None:
+                        continue
+
+                    if isinstance(res, dict):
+                        val = res.get(variable, np.nan)
+                    else:
+
+                        val = getattr(res, variable, np.nan)
+
+                    if val is None:
+                        continue
+                    val = float(val)
+                except Exception:
+                    continue
+
+                if np.isfinite(val):
+                    v_list.append(val)
+
+            if not v_list:
+                continue
+            vals.append(np.asarray(v_list, dtype=float))
+
+    if not vals:
+        raise RuntimeError("auto_domain_from_grid: No valid values found in the grid for the specified analysis and variable.")
+
+    x = np.concatenate(vals)
+    lo, hi = np.quantile(x, [q_low, q_high])
+
+    span = max(hi - lo, 1e-12)
+    pad = pad_frac * span
+    return float(lo - pad), float(hi + pad)

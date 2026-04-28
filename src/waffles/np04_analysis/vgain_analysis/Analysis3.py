@@ -294,6 +294,19 @@ class Analysis3(WafflesAnalysis):
                 "'correlated_gaussians' or 'independent_gaussians'."
             )
 
+            weigh_fit_by_poisson_sigmas: bool = Field(
+                default=True,
+                description="Whether to weigh the least squares fit by "
+                "the Poisson standard deviation of each bin "
+                "in the charge histogram"
+            )
+
+            min_distance_between_neighbouring_peaks: int = Field(
+                default=4,
+                description="Minimum distance, in number of bins, "
+                "between neighbouring peaks in the charge histogram"
+            )
+
             half_points_to_fit: int = Field(
                 default=2,
                 description="Only used if fit_type is set "
@@ -996,19 +1009,34 @@ class Analysis3(WafflesAnalysis):
             verbose=self.params.verbose
         )
 
+        # fit_peaks_of_ChannelWsGrid( 
+        #     self.grid_apa,
+        #     self.params.max_peaks,
+        #     self.params.prominence,
+        #     self.params.initial_percentage,
+        #     self.params.percentage_step,
+        #     return_last_addition_if_fail=True,
+        #     fit_type=self.params.fit_type,
+        #     half_points_to_fit=self.params.half_points_to_fit,
+        #     std_increment_seed_fallback=self.params.std_increment_seed_fallback,
+        #     ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
+        #     verbose=self.params.verbose,
+        #     use_bkg=True
+        # )
+
         fit_peaks_of_ChannelWsGrid( 
             self.grid_apa,
             self.params.max_peaks,
             self.params.prominence,
-            self.params.initial_percentage,
-            self.params.percentage_step,
+            initial_percentage=self.params.initial_percentage,
+            percentage_step=self.params.percentage_step,
             return_last_addition_if_fail=True,
             fit_type=self.params.fit_type,
+            weigh_fit_by_poisson_sigmas=self.params.weigh_fit_by_poisson_sigmas,
             half_points_to_fit=self.params.half_points_to_fit,
             std_increment_seed_fallback=self.params.std_increment_seed_fallback,
             ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
-            verbose=self.params.verbose,
-            use_bkg=True
+            verbose=self.params.verbose
         )
         # Check which waveforms are within 2 std from the mean of the second peak
         #create a array of empty list with the same shape as the grid

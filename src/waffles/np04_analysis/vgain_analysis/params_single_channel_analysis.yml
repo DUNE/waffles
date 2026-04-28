@@ -133,7 +133,9 @@ calib_histo_upper_limit: 65.
 
 ## Parameters for peak fitting
 # Maximum number of peaks to fit
-max_peaks: 4
+max_peaks: 7
+
+min_distance_between_neighbouring_peaks: 4
 
 # Minimal prominence, as a fraction
 # of the y-range, for a peak to be detected
@@ -148,12 +150,16 @@ prominence: 0.15 # [0.10 - 0.2]
 # function defined in 
 # utils/fit_peaks/fit_peaks_utils.py
 initial_percentage: 0.15
+
 percentage_step: 0.05
 
 # It can be either 'correlated_gaussians'
 # or 'independent_gaussians'
 # or 'multigauss_iminuit'
-fit_type: 'multigauss_iminuit'
+fit_type: 'correlated_gaussians'
+
+
+weigh_fit_by_poisson_sigmas: true
 
 # Only used if fit_type is set to 'independent_gaussians'.
 # The number of points to fit on either side
@@ -169,6 +175,10 @@ half_points_to_fit: 2 # [2 - 3]
 # incompatible with our fitting function. In this case,
 # the seed for the standard deviation increment is set
 # to this value.
+
+# Whether to weigh the least squares fit by
+# the Poisson standard deviation of each bin
+# in the charge histogram
 std_increment_seed_fallback: 100.
 
 # Only used if fit_type is set to 'correlated_gaussians'.
@@ -179,7 +189,7 @@ std_increment_seed_fallback: 100.
 # (resp. plus) this fraction of the full range of the
 # calibration histogram. For 50% (resp. 40%) PDE, this value
 # should not be greater than 0.05 (resp. 0.04).
-ch_span_fraction_around_peaks: 0.03
+ch_span_fraction_around_peaks: 0.06
 
 # Whether to save the persistence heatmaps of the
 # integrated waveforms or not
