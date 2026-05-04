@@ -35,7 +35,11 @@ if __name__ == "__main__":
     # --- LOOP OVER RUNS --------------------------------------------
     files = [raw_ana_folder+f for f in os.listdir(raw_ana_folder) if f.endswith("time_resolution.root")]
     for file in files:
-        root_file = uproot.open(file)
+        print("Processing file ", file)
+        try:
+            root_file = uproot.open(file)
+        except:
+            continue
         root_dirs = root_file.keys()
 
         out_root_file_name = file.replace(raw_ana_folder, single_ana_folder).replace(".root", "_plots.root")

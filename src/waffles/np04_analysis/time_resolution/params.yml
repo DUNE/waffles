@@ -1,16 +1,18 @@
 # Runs to be analyzed
-runs : [30666]
+runs : [30658]
 
 # File.csv with an OfflineCh <-> RMS mapping for a given
 # VGain and Integrators ON/OFF configuration
-noise_results_file : "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/FFT_sets/OfflineCh_RMS_Config_31.csv"
+# NOW USELESS! These files are in np04_utils, and the mapping is done in the code
+# noise_results_file : "/eos/home-f/fegalizz/ProtoDUNE_HD/Noise_Studies/analysis/FFT_sets/OfflineCh_RMS_Config_31.csv"
 
 # File.csv with the calibration results 
-calibration_file : "/eos/home-f/fegalizz/ProtoDUNE_HD/TimeResolution/analysis/TimeResolutionCalib_golden_runs.csv"
+calibration_file : "/eos/home-f/fegalizz/ProtoDUNE_HD/TimeResolution/analysis/golden_runs_analysis/TimeResolutionCalib_golden_runs.csv"
 
 # If empty, all the calibrated channels will be analyzed
 channels  : []
 
+# Used only if these parametersa re not found in the calibration file
 prepulse_ticks : 125
 int_low : 130
 int_up : 155
@@ -18,7 +20,7 @@ postpulse_ticks : 155
 
 min_pes : 5
 
-methods : ["amplitude", "integral", "denoise"]
+methods : ["amplitude", "integral"]
 
 relative_thrs : [0.5]
 
