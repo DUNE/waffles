@@ -19,12 +19,16 @@ from waffles.np02_utils.AutoMap import getModuleName, dict_module_to_uniqch, exp
 from waffles.np02_utils.PlotUtils import endpoint_channel_colormap, modules_colormap
 
 black_list_pmt = [ 43164,43169,43170,43171,43172,43173,43174,43175,43176,43215,43222,43283,43287,43288 ]
+ignore_runs_membrane = [43737,43738,43739,43740,43741,43742,43743,43744,43745,43746,43747,43748,43749,43750, 43941]
+ignore_runs_cathode = []
 
 dict_axes_label_to_data = {
         'time': r'Time CET',
         't1[ns]': r'$\tau_\text{fast}\, \text{[ns]}$',
         't3[ns]': r'$\tau_\text{slow}\, \text{[ns]}$',
         'td[ns]': r'$\tau_\text{delay}\, \text{[ns]}$',
+        'tta': r'$\tau_\text{TA}\, [\mu\text{s}]$',
+        'ttx': r'$\tau_\text{TX}\, [\mu\text{s}]$',
         'fp' : r'$A_\text{fast}$',
         'fs' : r'$A_\text{slow}$',
         't0[ns]' : r'$t_0\, \text{[ns]}$',
@@ -62,7 +66,7 @@ def define_labels(x, y):
 def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, refhv_when_relative_ppm=0, cols:list[str] = ['t1[ns]', 't3[ns]', 'td[ns]', 'fp', 'fs', 't0[ns]', 'sigma', 'chi2']):
     if df.empty:
         print("DataFrame is empty. Cannot compute relative columns.")
-        return 
+        return
     for col in cols:
         if relative_to == "ppm":
             baseline = df[(df[relative_to] == ref_value) & (df['HV'] == refhv_when_relative_ppm) ].groupby('module')[col].mean()
@@ -70,28 +74,34 @@ def make_relative_cols(df:pd.DataFrame, relative_to = "ppm", ref_value = 0, refh
             baseline = df[df[relative_to] == ref_value ].groupby('module')[col].mean()
         df[f'{col} relative'] = df[col] / df['module'].map(baseline) # type: ignore
 
-def __compare_runs(df_re:pd.DataFrame, df_xe:pd.DataFrame):
+def __compare_runs(df_re:pd.DataFrame, df_xe:pd.DataFrame, ignore_runs = []):
     c1 = set(df_re['run'].unique())
     c2 = set(df_xe['run'].unique())
+    c1 = c1 - set(ignore_runs)
+    c2 = c2 - set(ignore_runs)
 
     if c1 - c2:
         print("Runs not in the database:", ','.join(sorted(list(map(str, c1 - c2)))))
     if c2 - c1:
         print("Missing runs to process:", ','.join(sorted(list(map(str, c2 - c1)))))
 
-def check_health(dfres:pd.DataFrame, xedb:pd.DataFrame):
+def check_health(dfres:pd.DataFrame, xedb:pd.DataFrame, split_modules=True):
     print(f"Number of runs in fit results: {len(dfres['run'].unique())}")
     print(f"Number of runs in Xe database: {len(xedb['run'].unique())}")
-    __compare_runs(dfres, xedb)
+    ignore_runs = [] if split_modules else ignore_runs_membrane + ignore_runs_cathode
+    __compare_runs(dfres, xedb, ignore_runs=ignore_runs)
+
+    if not split_modules:
+        return
 
     df_membrane = dfres.loc[dfres['module'].str.startswith('M')]
     df_cathode = dfres.loc[dfres['module'].str.startswith('C')]
 
     print(f"\nChecking membrane for missing runs...")
-    __compare_runs(df_membrane, xedb)
+    __compare_runs(df_membrane, xedb, ignore_runs=ignore_runs_membrane)
 
     print(f"\nChecking cathode for missing runs...")
-    __compare_runs(df_cathode, xedb)
+    __compare_runs(df_cathode, xedb, ignore_runs=ignore_runs_cathode)
 
     print()
 
@@ -127,7 +137,7 @@ def load_results(analysisname:str, path_with_analysis:str, types:list[str] = ['c
 
     return ret
 
-def load_database(load_hv:bool = False) -> pd.DataFrame:
+def load_database(load_hv:bool = False, drop_date=True) -> pd.DataFrame:
     ## Loading xenon data base
     if load_hv:
         url = "https://docs.google.com/spreadsheets/d/1WtGkVkxM_4X4zdqMdCCIVsJ2cng8doSG2NC95fXmv-k/export?format=xlsx"
@@ -135,7 +145,10 @@ def load_database(load_hv:bool = False) -> pd.DataFrame:
     else:
         url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXuwLxht-9hnNHvNCYqQRQulTMk7ymE1gRTpo1LGHfey4HGaGqz0CqIFo8IBYevtVXsqj_9aitUD5t/pub?output=xlsx"
         df = pd.read_excel(url, sheet_name="Xe-PDS-only")
-    xedb = df.drop(columns=['date', 'time'], axis=1)
+
+    if drop_date:
+        df = df.drop(columns=['date', 'time'], axis=1)
+    xedb = df
     xedb['Efield'] = xedb['HV'] / 350.  # Assuming a drift distance of 3500 cm.
     return xedb
 
@@ -143,7 +156,7 @@ def load_injections():
     url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXuwLxht-9hnNHvNCYqQRQulTMk7ymE1gRTpo1LGHfey4HGaGqz0CqIFo8IBYevtVXsqj_9aitUD5t/pub?output=xlsx"
     df = pd.read_excel(url, sheet_name="Injections")
     return df
-    
+
 
 
 def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = [], exists_ok:bool = False) -> pd.DataFrame:
@@ -163,7 +176,7 @@ def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = [
         print("All files loaded, concatenating into a single DataFrame...")
     else:
         print("Running awk command to concatenate CSV files while skipping headers...")
-        result = subprocess.run("awk 'FNR==1 && NR!=1 {next} {print}'"+ f" {path_to_data}/{sufix}fit_output_*.csv", 
+        result = subprocess.run("awk 'FNR==1 && NR!=1 {next} {print}'"+ f" {path_to_data}/{sufix}fit_output_*.csv",
                                 shell=True, capture_output=True, text=True)
         # print("Command executed, loading output into DataFrame...")
         df = pd.read_csv(StringIO(result.stdout))
@@ -172,6 +185,7 @@ def load_fit_results(path_to_data:str, sufix:str = 'conv', optional_filelist = [
     df["timestamp"] = df['timestamp[ticks]'] * 16.e-9
     # Time is stored in UTC, convert to local time. This is needed to match the time of the injections, which are stored in local time.
     df["time"] = pd.to_datetime(df["timestamp"], unit='s', utc=True).dt.tz_convert('Europe/Paris')
+    df["time"] = df["time"].dt.tz_localize(None) # remove timezone information, we will work with naive datetime in local time
     df['module'] = df.apply( lambda x: getModuleName(int(x['ep']), int(x['ch'])), axis = 1)
     df = df.sort_values(by='time')
 
@@ -202,8 +216,13 @@ def draw_injections_matplotplib(df:pd.DataFrame,):
         if row['end'] < xmin or row['start'] > xmax:
             continue  # outside the plot range, skip
         plt.axvspan(row.loc['start'], row.loc['end'], alpha=0.1, color='grey')
+        yscale = 0.95
+        # if row['ppm'] < 0.5:
+        #     continue
+        if  row['end'] > xmax:
+            continue
         plt.text(
-            row['end']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*0.995,
+            row['end']+pd.Timedelta("00:05:00"), plt.gca().get_ylim()[1]*yscale,
             f"{row['ppm']:.02f} ppm",
             fontsize=12, color='black', va='top'
         )
@@ -243,15 +262,19 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
                              channel:int=0,
                              module = '',
                              y='t3[ns]',
-                             x='time', #not used.. but necessary
+                             x='time', #not used.. but necessary,
+                             withError=True,
                              selection:Optional[Callable]=None,
                              label:str = '',
                              showhours = False,
                              xlim = None,
+                             interval = 0,
                              dotitle=False,
                              autolabel = False,
+                             autocolor = True,
                              legendoutside = False,
-                             df_injections:Optional[pd.DataFrame] = None
+                             df_injections:Optional[pd.DataFrame] = None,
+                             kwargs_errorbar = {}
                              ):
     """
     Plots a given variable vs time for a specific endpoint and channel, or for a specific module if provided.
@@ -294,7 +317,14 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
     modulename = getModuleName(endpoint, channel)
     if autolabel:
         label = f"{modulename}: {endpoint}-{channel}"
-    plt.errorbar(df_ch['time'], df_ch[y], ls='' , markersize=10, **get_style_module(modulename), label=label)
+    if autocolor:
+        kwargs_errorbar.update(get_style_module(modulename))
+    yerr = df_ch[f'err{y}'] if f'err{y}' in df_ch.columns else None
+    if not withError:
+        yerr = None
+
+        
+    plt.errorbar(df_ch['time'], df_ch[y], yerr=yerr, ls='' , markersize=10, **kwargs_errorbar, label=label)
 
     xlabel, ylabel = define_labels('time', y)
     plt.ylabel(ylabel)
@@ -307,6 +337,8 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
     xaxis = getattr(ax, 'xaxis', None)
     if xaxis:
         xaxis.set_major_formatter(mdate.DateFormatter(timefmt))
+        if interval > 0:
+            xaxis.set_major_locator(mdate.HourLocator(interval=interval))
     plt.xticks(rotation=25)
 
     # Example xlim:
@@ -324,7 +356,21 @@ def plot_vs_time_per_channel(df:pd.DataFrame,
         draw_injections_matplotplib(df_injections)
     plt.tight_layout()
 
-def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_range =[None,None], selection=None, df_injections = None, width=1200, heigth=600, autosymbol=True, color:str = ""):
+def iplot(df:pd.DataFrame,
+          fig:go.Figure,
+          x='time',
+          y='tau_s',
+          name='',
+          yaxis_range =[None,None],
+          selection=None,
+          df_injections = None,
+          width=1200,
+          heigth=600,
+          autosymbol=True,
+          color:str = "",
+          withError=False,
+          fontsize=14
+          ):
     if df.empty:
         return fig
     if selection:
@@ -332,8 +378,11 @@ def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_ra
     if not fig:
         fig = go.Figure()
     list_of_modules = df['module'].unique()
-    unch = dict_module_to_uniqch[list_of_modules[0]]
-    ep, ch = unch.endpoint, unch.channel
+    if list_of_modules[0] in dict_module_to_uniqch:
+        unch = dict_module_to_uniqch[list_of_modules[0]]
+        ep, ch = unch.endpoint, unch.channel
+    else:
+        ep, ch = None, None
     if len(list_of_modules) == 1 and not name:
         name = f"{list_of_modules[0]}: ({ep}-{ch})"
 
@@ -347,12 +396,16 @@ def iplot(df:pd.DataFrame, fig:go.Figure, x='time', y='tau_s', name='', yaxis_ra
     else:
         dictmarker['color'] = color
 
-    fig.add_trace(go.Scatter(x=df[x], y=df[y], mode='markers', name=name, marker=dictmarker))
+    error_x = dict(type='data', array=df[f'err{x}'], visible=withError) if f'err{x}' in df.columns else None
+    error_y = dict(type='data', array=df[f'err{y}'], visible=withError) if f'err{y}' in df.columns else None
+    fig.add_trace(go.Scatter(x=df[x], y=df[y], error_x=error_x, error_y=error_y, mode='markers', name=name, marker=dictmarker))
     labelx, labely = define_labels(x, y)
     fig.update_layout(template="plotly_white",
                   width=width, height=heigth, showlegend=True,
                       xaxis_title=labelx,
                       yaxis_title=labely,
+                      font=dict(size=fontsize)
+                      
                  )
 
     if yaxis_range != [None, None]:
@@ -376,7 +429,7 @@ def execute_by_module(df:pd.DataFrame, func_ch:Callable, modules = None, **kwarg
         if isinstance(modules, str):
             modules = [modules]
         modules_to_run = expand_modules(list(modules), list(available))
-    
+
     for module in sorted(modules_to_run):
         if module not in available:
             continue
@@ -413,9 +466,9 @@ def load_module_images(path_to_data: str, run=None, modules:Union[None, list, st
         for file in all_png:
             match = pattern.search(os.path.basename(file))
             if match:
-                mod = match.group(1)           
+                mod = match.group(1)
                 if mod.startswith("C") or mod.startswith("M"):
-                    mod = mod.replace("_", "(") + ")" 
+                    mod = mod.replace("_", "(") + ")"
                 elif mod.startswith("P"):
                     mod = mod.replace("_", "")
                 available.add(mod)
@@ -440,7 +493,7 @@ def load_module_images(path_to_data: str, run=None, modules:Union[None, list, st
     return images
 
 def show_images_grid(image_dict, forced_figsize=None):
-    if not image_dict:  
+    if not image_dict:
         return
 
     for path, image in image_dict.items():
@@ -455,7 +508,7 @@ def show_images_grid(image_dict, forced_figsize=None):
 
 LAr_mass = 748
 
-def load_info_inj() -> pd.DataFrame:
+def create_info_inj() -> pd.DataFrame:
     df_injections = pd.DataFrame([
     {"start": "2026-03-23 17:03:00", "end": "2026-03-23 23:07:00", "rate": 0.9*1.22},
     {"start": "2026-03-24 9:15:00", "end": "2026-03-24 10:15:00", "rate": 1.8*1.22},
@@ -463,9 +516,10 @@ def load_info_inj() -> pd.DataFrame:
     {"start": "2026-03-24 15:03:00", "end": "2026-03-25 11:03:00", "rate": 35.1},
     {"start": "2026-03-30 17:00:00", "end": "2026-03-31 14:45:00", "rate": 34.2},
     {"start": "2026-04-07 16:37:00", "end": "2026-04-08 13:37:00", "rate": 33.2},
-    {"start": "2026-04-11 16:05:00", "end": "2026-04-13 10:43:00", "rate": 27.5},
+    {"start": "2026-04-11 16:05:00", "end": "2026-04-13 10:43:00", "rate": 27.6},
     {"start": "2026-04-13 10:44:00", "end": "2026-04-13 20:33:00", "rate": 34.7},
-    {"start": "2026-04-17 13:32:00", "end": "2026-04-19 12:02:00", "rate": 33.8}
+    {"start": "2026-04-17 13:32:00", "end": "2026-04-19 12:02:00", "rate": 33.8},
+    {"start": "2026-04-23 17:05:00", "end": "2026-04-27 14:15:00", "rate": 24.1}
     ], columns=["start", "end", "rate" ])
     
     df_injections['start'] = pd.to_datetime(df_injections['start'])
@@ -473,17 +527,17 @@ def load_info_inj() -> pd.DataFrame:
 
     return df_injections
 
-def database_injections() -> pd.DataFrame:
-    url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXuwLxht-9hnNHvNCYqQRQulTMk7ymE1gRTpo1LGHfey4HGaGqz0CqIFo8IBYevtVXsqj_9aitUD5t/pub?output=xlsx"
-    df = pd.read_excel(url, sheet_name="Xe-PDS-only")
+def database_injections_per_run() -> pd.DataFrame:
+    df = load_database(load_hv=False, drop_date=False) 
     
-    df_injections = load_info_inj()
+    df_injections = create_info_inj()
     
-    df['datetime'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['time'].astype(str).str.replace('.', ':', regex=False), format='mixed')
-    dftest = df.sort_values('datetime')
+    df['datetime'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['time'].astype(str), format='mixed')
+
+    dftest = df.sort_values('datetime') # verify that the runs are in the same order as in the injections dataframe, otherwise we need to fix the spreadsheet
     if np.any(df["run"].to_numpy() != dftest["run"].to_numpy()):
         raise Exception("Nooooooo....")
-   
+
     df['rate [g/h]']   = 0.0
     df['delta [h]']   = 0.0
     df['injected [g]']   = 0.0
@@ -543,15 +597,17 @@ def database_injections() -> pd.DataFrame:
     df['total [g]'] = df['injected [g]'].cumsum()
     df['total [ppm]'] = df['injected [ppm]'].cumsum()
     
-    df_sorted = df.sort_values('datetime')
-    df = df_sorted
+    df = df.sort_values('datetime')
     df = df.drop(columns=['date', 'time', 'HV'])
-    df = df[['run', 'datetime', 'ppm', 'status', 'rate [g/h]', 'delta [h]', 'injected [g]', 'injected [ppm]', 'total [g]', 'total [ppm]']]
+    df = df.reindex(columns=['run', 'datetime', 'ppm', 'status', 'rate [g/h]', 'delta [h]', 'injected [g]', 'injected [ppm]', 'total [g]', 'total [ppm]'])
     
     return df
 
-def merge_database(df_1, df_2) -> pd.DataFrame:
-    new_df = df_1.merge(df_2[['run', 'total [ppm]']], on='run', how='left')
-    return new_df
+def add_ppm_per_run(df) -> pd.DataFrame:
+    dfinj = database_injections_per_run()
+
+    df = df.merge(dfinj[['run', 'total [ppm]']], on='run', how='left')
+    df.rename(columns={'total [ppm]': 'ppm'}, inplace=True)
+    return df
 
     
