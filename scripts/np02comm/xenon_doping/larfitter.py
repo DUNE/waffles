@@ -58,20 +58,20 @@ def __print_summary(results: dict[int, dict[str, ProcessStatus]], dryrun: bool) 
         for module, grouped in  grouped_module.items(): 
             print(f"{module}:")
             if grouped[ProcessStatus.COMPLETED]:
-                print_colored("Runs that will be processed: " + ", ".join(grouped[ProcessStatus.COMPLETED]), color="INFO")
+                print_colored("Runs that will be processed: " + ",".join(grouped[ProcessStatus.COMPLETED]), color="INFO")
             if grouped[ProcessStatus.SKIPPED]:
-                print_colored("Runs already there: " + ", ".join(grouped[ProcessStatus.SKIPPED]), color="WARNING")
+                print_colored("Runs already there: " + ",".join(grouped[ProcessStatus.SKIPPED]), color="WARNING")
             if grouped[ProcessStatus.FAILED]:
-                print_colored("Runs that will fail: " + ", ".join(grouped[ProcessStatus.FAILED]), color="ERROR")
+                print_colored("Runs that will fail: " + ",".join(grouped[ProcessStatus.FAILED]), color="ERROR")
     else:
         for module, grouped in  grouped_module.items(): 
             print(f"{module}:")
             if grouped[ProcessStatus.COMPLETED]:
-                print_colored("Runs processed: " + ", ".join(grouped[ProcessStatus.COMPLETED]), color="SUCCESS")
+                print_colored("Runs processed: " + ",".join(grouped[ProcessStatus.COMPLETED]), color="SUCCESS")
             if grouped[ProcessStatus.SKIPPED]:
-                print_colored("Runs already there: " + ", ".join(grouped[ProcessStatus.SKIPPED]), color="WARNING")
+                print_colored("Runs already there: " + ",".join(grouped[ProcessStatus.SKIPPED]), color="WARNING")
             if grouped[ProcessStatus.FAILED]:
-                print_colored("Runs failed: " + ", ".join(grouped[ProcessStatus.FAILED]), color="ERROR")
+                print_colored("Runs failed: " + ",".join(grouped[ProcessStatus.FAILED]), color="ERROR")
     
 def retrieve_responses(response_folder:Path, output={}, chinfo={}):
 
@@ -123,7 +123,7 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
     if not readmefile.exists():
         raise FileNotFoundError(f"README.md file not found in {response_folder.as_posix()}.\n\
                                 This file is required to retrieve the number of waveforms averaged for each channel.\n\
-                                If neeeded, you can create an empty README.md file, and then number of waveofrms will be set to 1 for all channels.")
+                                If neeeded, you can create an empty README.md file, and then number of waveforms will be set to 1 for all channels.")
 
     # pattern to match:
     # M1(1) 107-47: nwaveforms 46961 timestamp 109892117694173128 ticks
@@ -233,9 +233,9 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             fig.savefig( outputdir / f"{method}fit_grid_run{run:06d}_{detector}.png" )
             plt.close(fig)
 
-def check_processed_modules(module, suffix, run, outputdir, force, response_folder, responses, chinfo):
-    if glob(str(Path(outputdir) / f"*run0{run}_{suffix}*")) and not force:
-        print_colored(f"{module} already processed. Skipping run {run}. Use --force to overwrite.", 'WARNING')
+def check_processed_modules(module:str, run, outputdir, force, response_folder, responses, chinfo):
+    if glob(str(Path(outputdir) / f"*run0{run}_{module[0].lower()}*")) and not force:
+        print_colored(f"{module.upper()} already processed. Skipping run {run}. Use --force to overwrite.", 'WARNING')
         status = ProcessStatus.SKIPPED
     else:
         status = retrieve_responses(response_folder, responses, chinfo)
@@ -339,15 +339,15 @@ def main(run:int = 39510,
     status_p = ProcessStatus.NOT_ASKED
     
     if cathode:
-        status_c = check_processed_modules("Cathode", "C", run, outputdir, force, response_folder_cathode, responses, chinfo)
+        status_c = check_processed_modules("cathode", run, outputdir, force, response_folder_cathode, responses, chinfo)
         if status_c != ProcessStatus.SKIPPED:
             ep_to_analyze += [ 106 ] 
     if membrane:
-        status_m = check_processed_modules("Membrane", "M", run, outputdir, force, response_folder_membrane, responses, chinfo)
+        status_m = check_processed_modules("membrane", run, outputdir, force, response_folder_membrane, responses, chinfo)
         if status_m != ProcessStatus.SKIPPED:
             ep_to_analyze += [ 107 ]
     if pmt:
-        status_p = check_processed_modules("PMT", "P", run, outputdir, force, response_folder_pmt, responses, chinfo)
+        status_p = check_processed_modules("pmt", run, outputdir, force, response_folder_pmt, responses, chinfo)
         if status_p != ProcessStatus.SKIPPED:
             ep_to_analyze += [ 110 ]
     

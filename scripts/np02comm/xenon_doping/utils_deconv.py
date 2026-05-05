@@ -40,7 +40,7 @@ class DeconvFitParams:
             if k in self.__dict__.keys():
                 setattr(self, k, v)
             else:
-                print_colored(f"Warning: {k} is not a valid parameter for ConvFitParams. Ignoring it.", 'WARNING')
+                print_colored(f"Warning: {k} is not a valid parameter for DeconvFitterVDWrapper. Ignoring it.", 'WARNING')
 
 def process_deconvfit(ep:int,
                       ch:int,

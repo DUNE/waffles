@@ -614,6 +614,13 @@ def __cluster_integers_by_contiguity(
     return extremals
 
 
+def derivative(raw: np.ndarray, mult_factor=12) -> np.ndarray:
+    adcs = np.astype(raw, np.float32)
+    derivative = np.zeros_like(raw, dtype=np.float32) 
+    derivative[1:-1] = mult_factor*(adcs[2:] - adcs[:-2])*0.5 
+    return derivative
+
+
 def cluster_integers_by_contiguity(
         increasingly_sorted_integers: np.ndarray
 ) -> List[List[int]]:

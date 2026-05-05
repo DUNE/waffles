@@ -79,7 +79,7 @@ class DeconvFitter(FFTWaffles):
         else:
             return A * ( (fp / t1) * term_fast + (fs / t3) * term_slow )
 
-    def generate_deconvolved_signal(self, response: np.ndarray = np.array([]), template: np.ndarray = np.array([])):
+    def generate_deconvolved_signal(self, response: np.ndarray = np.array([]), template: np.ndarray = np.array([]), shift_back: bool = True, remove_baseline: bool = True):
         if response.size > 0:
             self.set_response_waveform(response)
         if template.size > 0:
@@ -88,11 +88,14 @@ class DeconvFitter(FFTWaffles):
         deconv_fft = self.deconvolve(self.response, self.template)
         self.deconvolved = self.backFFT(deconv_fft)[:len(self.response)]
 
-        cross_template = find_threshold_crossing(self.template, 0.5)
-        cross_response = find_threshold_crossing(self.response, 0.5) - 10
-        self.shift = int(cross_template)
-        self.deconvolved = np.roll(self.deconvolved, self.shift)
-        self.deconvolved = self.deconvolved - np.mean(self.deconvolved[:int(cross_response)])
+        if shift_back:
+            cross_template = find_threshold_crossing(self.template, 0.5)
+            self.shift = int(cross_template)
+            self.deconvolved = np.roll(self.deconvolved, self.shift)
+
+        if remove_baseline:
+            cross_response = find_threshold_crossing(self.response, 0.5) - 10
+            self.deconvolved = self.deconvolved - np.mean(self.deconvolved[:int(cross_response)])
 
 
     ##################################################
