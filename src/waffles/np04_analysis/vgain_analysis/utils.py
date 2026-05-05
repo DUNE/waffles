@@ -794,7 +794,9 @@ def next_subsample(
         return proposed_subsamplie
 
 # START: auxiliar vgain scan functions
-def load_waveformSet_from_tar_gz(tar_path: str | Path, member_path: str):
+from pathlib import Path
+from typing import Union
+def load_waveformSet_from_tar_gz(tar_path: Union[str, Path], member_path: str):
     """
     tar_path: path to the .tar (e.g., 'vgain_3126.tar')
     member_path: full path inside the tar to the .gz file
@@ -818,7 +820,7 @@ def load_waveformSet_from_tar_gz(tar_path: str | Path, member_path: str):
             else:
                 return None
 
-def iter_waveformsets_streaming(tar_path: str | Path, batch: int, pde: float, run: int):
+def iter_waveformsets_streaming(tar_path: Union[str, Path], batch: int, pde: float, run: int):
     pde_map = {0.4:"40p", 0.45:"45p", 0.5:"50p"}
     pde_str = pde_map[pde]
     prefix = f"vgain_{batch}/{pde_str}/run_{run}/data_endpoint_"
@@ -845,14 +847,14 @@ def iter_waveformsets_streaming(tar_path: str | Path, batch: int, pde: float, ru
                 waveforms = [w for wvs in obj for w in wvs]
                 yield waveforms  # or build your WaveformSet here
 
-def get_vgain_scan_waveformSet_streaming(path: str | Path, batch: int, pde: float, run: int):
+def get_vgain_scan_waveformSet_streaming(path: Union[str, Path], batch: int, pde: float, run: int):
     tar_path = Path(path) / f"vgain_{batch}.tar"
     all_waves = []
     for waves in iter_waveformsets_streaming(tar_path, batch, pde, run):
         all_waves.extend(waves)
     return WaveformSet(*all_waves) if all_waves else None
 
-def get_input_filepaths_for_vgain_scan_run(path: str | Path, batch: int, pde: float, run: int):
+def get_input_filepaths_for_vgain_scan_run(path: Union[str, Path], batch: int, pde: float, run: int, endpoints_to_read: set[int]):
     """
         path: path to the location sof the vgain scans tar files.
         batch: i.e. vgain parameter.
@@ -868,12 +870,13 @@ def get_input_filepaths_for_vgain_scan_run(path: str | Path, batch: int, pde: fl
     filepaths = []
     tar_path = Path(path) / f"vgain_{batch}.tar"
     search_string = f"vgain_{batch}/{pde_str}/run_{run}/data_endpoint_"
+    endpoint_strs = {f"data_endpoint_{endpoint}" for endpoint in endpoints_to_read}
     with tarfile.open(tar_path, mode = "r:*") as tar:
         list_of_names = tar.getnames()
-        matches = [name for name in list_of_names if name.startswith(search_string)]
+        matches = [name for name in list_of_names if (name.startswith(search_string) and any(name.find(endpoint_str) != -1 for endpoint_str in endpoint_strs))]
     return(matches)
 
-def get_vgain_scan_waveformSet(path: str | Path, batch: int,pickle_paths: list[str]):
+def get_vgain_scan_waveformSet(path: Union[str, Path], batch: int,pickle_paths: list[str]):
     """
         batch:  i.e. VGAIN
         pickle_paths: list of relative paths of the pickle files in the tar file.
