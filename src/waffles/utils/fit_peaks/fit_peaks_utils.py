@@ -567,6 +567,9 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 std_increment_seed,
                 *scaling_factors_seed,
             ]
+
+            aux_lower_bounds = [-std_0_seed, std_0_seed,    std_0_seed/3., std_increment_seed/5., *([0.] * peaks_n_to_fit)]
+            aux_upper_bounds = [std_0_seed,  20*std_0_seed, 3*std_0_seed,  5*std_increment_seed,  *([np.inf] * peaks_n_to_fit)]
         
         else:
 
@@ -594,6 +597,9 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 std_0_seed,
                 scaling_0_seed,
             ]
+
+            aux_lower_bounds = [mean_0_seed - 3*std_0_seed, std_0_seed/3., 0.]
+            aux_upper_bounds = [mean_0_seed + 3*std_0_seed, 3*std_0_seed, np.inf]
 
         # Prevent the fit limits from going out of bounds
         # of the calibration_histogram arrays
@@ -641,6 +647,7 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 fit_y,
                 p0=aux_seeds,
                 sigma=sigma,
+                bounds=(aux_lower_bounds, aux_upper_bounds) if peaks_n_to_fit >= 2 else ([-np.inf]*len(aux_seeds), [np.inf]*len(aux_seeds)),
                 absolute_sigma=weigh_fit_by_poisson_sigmas
             )
             
