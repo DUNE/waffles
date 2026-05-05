@@ -580,3 +580,51 @@ def auto_domain_from_grid(grid: ChannelWsGrid, analysis_label: str, variable: st
     span = max(hi - lo, 1e-12)
     pad = pad_frac * span
     return float(lo - pad), float(hi + pad)
+
+def auto_domain_from_grid_dict(grid: ChannelWsGrid, analysis_label: str, variable: str = "integral",
+                          q_low: float = 0.001, q_high: float = 0.999,
+                          pad_frac: float = 0.05):
+    """Same as auto_domain_from_grid but it returns a dictionary with the following structure:
+    {endpoint: {channel: (lo, hi)}}"""
+    domain_dict = {}
+    for i in range(grid.ch_map.rows):
+        for j in range(grid.ch_map.columns):
+            try:
+                chws = grid.ch_wf_sets[grid.ch_map.data[i][j].endpoint][grid.ch_map.data[i][j].channel]
+            except KeyError:
+                continue
+
+            v_list = []
+            for wf in getattr(chws, "waveforms", []):
+                try:
+                    ana = wf.get_analysis(analysis_label)
+                    if ana is None:
+                        continue
+                    res = getattr(ana, "result", None)
+                    if res is None:
+                        continue
+
+                    if isinstance(res, dict):
+                        val = res.get(variable, np.nan)
+                    else:
+
+                        val = getattr(res, variable, np.nan)
+
+                    if val is None:
+                        continue
+                    val = float(val)
+                except Exception:
+                    continue
+
+                if np.isfinite(val):
+                    v_list.append(val)
+
+            if not v_list:
+                continue
+            x = np.asarray(v_list, dtype=float)
+            lo, hi = np.quantile(x, [q_low, q_high])
+            span = max(hi - lo, 1e-12)
+            pad = pad_frac * span
+            domain_dict.setdefault(grid.ch_map.data[i][j].endpoint, {})[grid.ch_map.data[i][j].channel] = (float(lo - pad), float(hi + pad))
+    
+    return domain_dict
