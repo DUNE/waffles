@@ -568,8 +568,9 @@ def __fit_correlated_gaussians_to_calibration_histogram(
                 *scaling_factors_seed,
             ]
 
-            aux_lower_bounds = [-std_0_seed, std_0_seed,    std_0_seed/3., std_increment_seed/5., *([0.] * peaks_n_to_fit)]
-            aux_upper_bounds = [std_0_seed,  20*std_0_seed, 3*std_0_seed,  5*std_increment_seed,  *([np.inf] * peaks_n_to_fit)]
+            max_counts = np.max(calibration_histogram.counts)
+            aux_lower_bounds = [-std_0_seed, std_0_seed,    std_0_seed/3., std_increment_seed/5., *([max_counts*0.05] * peaks_n_to_fit)]
+            aux_upper_bounds = [std_0_seed,  20*std_0_seed, 3*std_0_seed,  5*std_increment_seed,  *([max_counts*1.10] * peaks_n_to_fit)]
         
         else:
 
