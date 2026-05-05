@@ -2,22 +2,23 @@
 # ------- General parameters -------
 
 # Path to the folder containing the data
-input_path: '/mnt/exthdd/complete_data'
+# input_path: '/mnt/exthdd/complete_data'
+input_path: '/eos/user/e/ecristal/NP04/data/vgain_scan'
 
 # Path to the output
 output_path: 'output/vgain_scan_debug'
 
 # VGAIN-batch number
 #batches: [3192, 2926, 2793, 2660, 2527, 2394, 2261, 2128, 1995, 1862, 1729, 1596, 1463, 1330, 1197, 1064, 931]
-batches: [2128]
+batches: [1330, 2660, 3192]
 
 # APA number
 apas: [3]
 
 # Photon detection efficiency
-pdes: [0.45]
+pdes: [0.4, 0.45, 0.5]
 
-channel_to_analyze: 0 # Set to 0 to analyze all the channels
+channels_to_analyze: [] # Set to [] to analyze all the channels
 
 filter_type: ['Bessel'] # 'Bessel', 'Butter', 'Cheby_I', 'Cheby_II', 'Elliptic'
 #hpf_cutoff_frequency: ['10khz', '20khz', '30khz', '40khz', '50khz', '60khz','70khz', '80khz', '90khz', '100khz', '110khz', '120khz', '130khz', '140khz', '150khz', '160khz', '170khz', '180khz', '190khz', '200khz'] # 10khz:100khz:200khz
@@ -75,8 +76,10 @@ baseliner_std_cut: 3.
 baseliner_type: 'mean'
 
 ## Parameters for the coarse selection cut
-lower_limit_wrt_baseline: -200.
-upper_limit_wrt_baseline: 40.
+#  Leave them == 0. if you want this selection to be don:
+#  based on noise results.
+lower_limit_wrt_baseline: 0.
+upper_limit_wrt_baseline: 0.
 
 ## Parameters for the fine selection cut
 baseline_i_up:
@@ -119,9 +122,10 @@ calib_histo_bins_number:
     0.50:
         120
 
-# Lower and upper limits for the calibration histogram
-calib_histo_lower_limit: -10.
-calib_histo_upper_limit: 50.
+## Lower and upper limits for the calibration histogram
+# Leave them == 0. if you want the limits to be automatically
+calib_histo_lower_limit: 0.
+calib_histo_upper_limit: 0.
 
 ## Parameters for peak fitting
 # Maximum number of peaks to fit
@@ -129,7 +133,7 @@ max_peaks: 7
 
 # Minimal prominence, as a fraction
 # of the y-range, for a peak to be detected
-prominence: 0.15 # [0.10 - 0.2]
+prominence: 0.25 # [0.10 - 0.2]
 
 # These parameters have to do with the peak
 # detection in the calibration histogram. For
@@ -163,7 +167,7 @@ half_points_to_fit: 2 # [2 - 3]
 # incompatible with our fitting function. In this case,
 # the seed for the standard deviation increment is set
 # to this value.
-std_increment_seed_fallback: 100.
+std_increment_seed_fallback: 1.
 
 # Only used if fit_type is set to 'correlated_gaussians'.
 # It determines the limits of the subrange of the
