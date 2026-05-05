@@ -28,7 +28,8 @@ def linear_fit(
     time_fit_min: Optional[str],
     time_fit_max: Optional[str],
     input_filepath: str,
-) -> None:
+    temp_correction_coeff: float = TEMP_CORRECTION_COEFF
+    ) -> tuple[float, float, float, float]:
     
     """Fit a linear model to the weight data and save the resulting plot."""
 
@@ -40,7 +41,7 @@ def linear_fit(
 
     # Apply temperature correction if the column is present
     if "temperature" in weight_df.columns:
-        weight_df["weight"] -= TEMP_CORRECTION_COEFF * weight_df["temperature"]
+        weight_df["weight"] -= temp_correction_coeff * weight_df["temperature"]
 
     # Select the subset used for fitting
     fit_df = weight_df.copy()
@@ -72,6 +73,7 @@ def linear_fit(
     ax.legend()
     plt.tight_layout()
     plt.savefig(f"fit_{Path(input_filepath).stem}.png")
+    return intercept, slope, intercept_err, slope_err
 
 def rate_evaluation(
     weight_df: pd.DataFrame,
@@ -79,6 +81,7 @@ def rate_evaluation(
     stop_time: str,
     start_weight: float,
     stop_weight: float,
+    temp_correction_coeff: float = TEMP_CORRECTION_COEFF
 ) -> float:
     
     """Compute the weight-loss rate between two timestamps.
@@ -98,8 +101,8 @@ def rate_evaluation(
     else:
         temp_start = temp_stop = 0.0
 
-    pi = start_weight - TEMP_CORRECTION_COEFF * temp_start
-    pf = stop_weight  - TEMP_CORRECTION_COEFF * temp_stop
+    pi = start_weight - temp_correction_coeff * temp_start
+    pf = stop_weight  - temp_correction_coeff * temp_stop
 
     return (pf - pi) / Delta_t
     
@@ -108,6 +111,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, help="File with weight data")
     parser.add_argument("--offset", type=str, default=None, help="Offset time (format: '2026/03/24 15:03:00.000')")
+    parser.add_argument("--temp-factor", type=float, default=TEMP_CORRECTION_COEFF, help="Temperature correction coefficient (kg/°C)")
     parser.add_argument("--start-time", type=str, default=None, help="Start time (format: '2026/03/24 15:03:00.000')")
     parser.add_argument("--stop-time", type=str, default=None, help="End time (format: '2026/03/24 15:03:00.000')")
     parser.add_argument("--fit-min", type=str, default=None, help="Lower time bound for fit (format: '2026/03/24 15:03:00.000')")
@@ -135,12 +139,14 @@ def main() -> None:
     else:
         print("No temperature data found.")
 
-    linear_fit(weight_df, args.offset, args.fit_min, args.fit_max, args.file)
+    intercept, slope, intercept_err, slope_err = linear_fit(weight_df, args.offset, args.fit_min, args.fit_max, args.file, args.temp_factor)
+    print(f"Fitted slope: {slope:.6f} ± {slope_err:.6f} kg/h")
+    
 
     if args.start_weight is not None and args.stop_weight is not None:
         if args.start_time is None or args.stop_time is None:
             raise ValueError("Not enough parameters")
-        rate = rate_evaluation(weight_df, args.start_time, args.stop_time, args.start_weight, args.stop_weight)
+        rate = rate_evaluation(weight_df, args.start_time, args.stop_time, args.start_weight, args.stop_weight, args.temp_factor)
         print(f"Injection rate: {rate:.6f} kg/h")
 
 
