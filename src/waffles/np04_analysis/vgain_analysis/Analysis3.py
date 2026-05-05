@@ -4,6 +4,8 @@ import gc
 import weakref
 import math
 
+from waffles.np04_utils.utils import get_average_baseline_std_from_file
+
 def list_defaultdict():
     return defaultdict(list)
 
@@ -50,10 +52,10 @@ class Analysis3(WafflesAnalysis):
                 example=[0.4]
             )
 
-            channel_to_analyze: int = Field(
+            channels_to_analyze: list[int] = Field(
                 ...,
-                description="Single channel to analyze",
-                example=10413
+                description="List of channels to analyze",
+                example=[10413, 10417, 10421, 10446]
             )
 
             filter_type: list[str] = Field(
@@ -520,15 +522,16 @@ class Analysis3(WafflesAnalysis):
         
         for i, run in enumerate(targeted_runs):
 
-            channels = led_utils.parse_numeric_list(
+            available_channels = led_utils.parse_numeric_list(
                 self.channels_per_run[
                     self.channels_per_run['run'] == run
                 ]['aimed_channels'].values[0]
             )
-            
-            channel_to_analyze_ = self.params.channel_to_analyze
-            if channel_to_analyze_ != 0:
-                channels = [ch for ch in channels if ch == channel_to_analyze_]
+
+            if len(self.params.channels_to_analyze) == 0:
+                channels = available_channels
+            else:
+                channels = [ch for ch in available_channels if ch in self.params.channels_to_analyze]
                 
             if self.params.verbose:
                 print(
@@ -562,12 +565,15 @@ class Analysis3(WafflesAnalysis):
             #        target_extension='.pkl',
             #        verbose=self.params.verbose
             #)
+
             try:
+                endpoints_to_read = set([ch//100 for ch in channels])
                 input_filepaths = led_utils.get_input_filepaths_for_vgain_scan_run(
                         self.params.input_path,
                         self.batch,
                         self.pde,
-                        run)
+                        run,
+                        endpoints_to_read)
 
                 new_wfset = led_utils.get_vgain_scan_waveformSet(
                         self.params.input_path,
@@ -585,17 +591,24 @@ class Analysis3(WafflesAnalysis):
             # the input pickles were already filtered
             # when copied from the original HDF5 files
             try:
-                new_wfset = WaveformSet.from_filtered_WaveformSet(
+                self.wfset = WaveformSet.from_filtered_WaveformSet(
                     new_wfset,
                     led_utils.comes_from_channel,
                     channels
                 )
+                self.vgain_analyze()
+                self.vgain_write_output(run)
 
-                if fFirstRun:
-                    self.wfset = new_wfset
-                    fFirstRun = False
-                else:
-                    self.wfset.merge(new_wfset)
+                del new_wfset
+                del self.wfset
+
+                
+
+                # if fFirstRun:
+                #     self.wfset = new_wfset
+                #     fFirstRun = False
+                # else:
+                #     self.wfset.merge(new_wfset)
             except Exception as e:
                 print(f"Empty waveformSet in run {run} with exception: {e}")
                 self.output_log_file.write(
@@ -605,6 +618,10 @@ class Analysis3(WafflesAnalysis):
         return True
 
     def analyze(self) -> bool:
+        print("This is called by main.py")
+        return True
+
+    def vgain_analyze(self) -> bool:
         """ Implements the WafflesAnalysis.analyze() abstract
         method. It performs the analysis of the waveforms contained
         in the self.wfset attribute, which consists of the following
@@ -707,6 +724,16 @@ class Analysis3(WafflesAnalysis):
             )
 
         len_before_coarse_selection = len(self.wfset.waveforms)
+        print(f"Found {len_before_coarse_selection} waveforms before the coarse selection cut.")
+
+        if self.params.lower_limit_wrt_baseline == 0.:
+            average_baseline_std = get_average_baseline_std_from_file(
+                    run=self.wfset.waveforms[0].run_number,
+                    endpoint=self.wfset.waveforms[0].endpoint,
+                    channel=self.wfset.waveforms[0].channel
+            )
+            self.params.lower_limit_wrt_baseline = average_baseline_std * 60
+            self.params.upper_limit_wrt_baseline = average_baseline_std * 20
 
         self.wfset = WaveformSet.from_filtered_WaveformSet(
             self.wfset,
@@ -763,10 +790,11 @@ class Analysis3(WafflesAnalysis):
                         end=''
                     )
 
-                average_baseline_std = led_utils.compute_average_baseline_std(
-                    self.grid_apa.ch_wf_sets[endpoint][channel],
-                    self.params.baseline_analysis_label
-                )
+                if self.params.lower_limit_wrt_baseline != 0.:
+                    average_baseline_std = led_utils.compute_average_baseline_std(
+                        self.grid_apa.ch_wf_sets[endpoint][channel],
+                        self.params.baseline_analysis_label
+                    )
 
                 if self.params.verbose:
                     print(f"Found {average_baseline_std:.2f} ADCs.")
@@ -985,25 +1013,29 @@ class Analysis3(WafflesAnalysis):
                 end=''
             )
         
-        calib_histo_lower_limit_, calib_histo_upper_limit_ = auto_domain_from_grid(
-            self.grid_apa,
-            analysis_label=self.params.integration_analysis_label,
-            variable="integral",
-            q_low=0.03,
-            q_high=0.97,
-            pad_frac=0.05,
-        )
+        # calib_histo_lower_limit_, calib_histo_upper_limit_ = auto_domain_from_grid(
+        #     self.grid_apa,
+        #     analysis_label=self.params.integration_analysis_label,
+        #     variable="integral",
+        #     q_low=0.03,
+        #     q_high=0.97,
+        #     pad_frac=0.05,
+        # )
+
+        domain_ = np.array([self.params.calib_histo_lower_limit, self.params.calib_histo_upper_limit])
+        if self.params.calib_histo_lower_limit == 0. and self.params.calib_histo_upper_limit == 0.:
+            domain_ = auto_domain_from_grid_dict(
+                self.grid_apa,
+                analysis_label=self.params.integration_analysis_label,
+                variable="integral",
+                q_low=0.03,
+                q_high=0.97,
+                pad_frac=0.05,
+            )
 
         self.grid_apa.compute_calib_histos(
             self.params.calib_histo_bins_number[self.pde],
-            domain=np.array(
-                (
-                    self.params.calib_histo_lower_limit,
-                    self.params.calib_histo_upper_limit
-                    #calib_histo_lower_limit_,
-                    #calib_histo_upper_limit_
-                )
-            ),
+            domain=domain_,
             variable='integral',
             analysis_label=self.params.integration_analysis_label,
             verbose=self.params.verbose
@@ -1114,6 +1146,10 @@ class Analysis3(WafflesAnalysis):
         return True
 
     def write_output(self) -> bool:
+        print("This write_output is called by main.py")
+        return True
+
+    def vgain_write_output(self, run: int) -> bool:
         """Implements the WafflesAnalysis.write_output() abstract
         method. It plots the calibration histograms for each channel
         (and optionally the persistence heatmaps) and saves the
@@ -1125,7 +1161,7 @@ class Analysis3(WafflesAnalysis):
         bool
             True if the method ends execution
         """
-        output_path_ = f"{self.params.output_path}/vgain_run_{self.batch}/{self.pde}/apa_{self.apa}"
+        output_path_ = f"{self.params.output_path}/vgain_{self.batch}/{self.pde}/apa_{self.apa}/run_{run}/"
         Path(f"{output_path_}/data").mkdir(parents=True, exist_ok=True)
         Path(f"{output_path_}/plotcal1").mkdir(parents=True, exist_ok=True)
         Path(f"{output_path_}/plotcal2").mkdir(parents=True, exist_ok=True)
