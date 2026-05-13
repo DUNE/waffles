@@ -1070,7 +1070,8 @@ class Analysis3(WafflesAnalysis):
             half_points_to_fit=self.params.half_points_to_fit,
             std_increment_seed_fallback=self.params.std_increment_seed_fallback,
             ch_span_fraction_around_peaks=self.params.ch_span_fraction_around_peaks,
-            verbose=self.params.verbose
+            verbose=self.params.verbose,
+            force_3_peaks_fit=True
         )
         # Check which waveforms are within 2 std from the mean of the second peak
         #create a array of empty list with the same shape as the grid
@@ -1242,7 +1243,7 @@ class Analysis3(WafflesAnalysis):
             )
     
         figure.write_image(f"{fig_path}", width=figure_width, height=figure_height, engine="kaleido")
-        figure.write_html(f"{fig_path}.html")
+        # figure.write_html(f"{fig_path}.html")
 
         if self.params.verbose:
             print("Finished.")
@@ -1288,7 +1289,7 @@ class Analysis3(WafflesAnalysis):
                 subplot_fig.update_yaxes(title_standoff=12)
                 subplot_path = f"{base_file_path_plotcal2}_subplot_calibration_{i+1}_{j+1}.png"
                 subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height, engine="kaleido")
-                subplot_fig.write_html(f"{subplot_path}.html")
+                # subplot_fig.write_html(f"{subplot_path}.html")
                 self._clear_plotly_figure(subplot_fig)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
@@ -1351,7 +1352,7 @@ class Analysis3(WafflesAnalysis):
                 subplot_fig.update_yaxes(title_standoff=12)
                 subplot_path = f"{base_file_path_plotmean1}_subplot_{i+1}_{j+1}.png"
                 subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height, engine="kaleido")
-                subplot_fig.write_html(f"{subplot_path}.html")
+                # subplot_fig.write_html(f"{subplot_path}.html")
                 self._clear_plotly_figure(subplot_fig)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
@@ -1414,7 +1415,7 @@ class Analysis3(WafflesAnalysis):
                 subplot_fig.update_yaxes(title_standoff=12)
                 subplot_path = f"{base_file_path_plotmean2}_subplot_SPE_{i+1}_{j+1}.png"
                 subplot_fig.write_image(subplot_path, width=subfigure_width, height=subfigure_height, engine="kaleido")
-                subplot_fig.write_html(f"{subplot_path}.html")
+                # subplot_fig.write_html(f"{subplot_path}.html")
                 self._clear_plotly_figure(subplot_fig)
                 if self.params.verbose:
                     print(f"Saved subplot ({i+1},{j+1}) to {subplot_path}")
