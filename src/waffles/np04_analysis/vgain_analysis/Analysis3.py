@@ -726,21 +726,23 @@ class Analysis3(WafflesAnalysis):
         len_before_coarse_selection = len(self.wfset.waveforms)
         print(f"Found {len_before_coarse_selection} waveforms before the coarse selection cut.")
 
-        if self.params.lower_limit_wrt_baseline == 0.:
+        lower_limit_wrt_baseline = self.params.lower_limit_wrt_baseline
+        upper_limit_wrt_baseline = self.params.upper_limit_wrt_baseline
+        if lower_limit_wrt_baseline == 0.:
             average_baseline_std = get_average_baseline_std_from_file(
                     run=self.wfset.waveforms[0].run_number,
                     endpoint=self.wfset.waveforms[0].endpoint,
                     channel=self.wfset.waveforms[0].channel
             )
-            self.params.lower_limit_wrt_baseline = average_baseline_std * 60
-            self.params.upper_limit_wrt_baseline = average_baseline_std * 20
+            lower_limit_wrt_baseline = average_baseline_std * 60
+            upper_limit_wrt_baseline = average_baseline_std * 20
 
         self.wfset = WaveformSet.from_filtered_WaveformSet(
             self.wfset,
             coarse_selection_for_led_calibration,
             self.params.baseline_analysis_label,
-            self.params.lower_limit_wrt_baseline,
-            self.params.upper_limit_wrt_baseline
+            lower_limit_wrt_baseline,
+            upper_limit_wrt_baseline
         )
 
         len_after_coarse_selection = len(self.wfset.waveforms)
