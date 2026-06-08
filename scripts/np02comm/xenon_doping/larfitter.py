@@ -73,7 +73,7 @@ def __print_summary(results: dict[int, dict[str, ProcessStatus]], dryrun: bool) 
             if grouped[ProcessStatus.FAILED]:
                 print_colored("Runs failed: " + ",".join(grouped[ProcessStatus.FAILED]), color="ERROR")
     
-def retrieve_responses(response_folder:Path, output={}, chinfo={}):
+def retrieve_responses(response_folder:Path, output={}, chinfo={}, loadfile=True):
 
     if not response_folder.is_dir():
         # Trying to add user name to the path, in case the response folder was created with the -user tag
@@ -101,7 +101,10 @@ def retrieve_responses(response_folder:Path, output={}, chinfo={}):
         ep = int(fname_fragments[2])
         ch = int(fname_fragments[4].split('.')[0])
         tmpoutput[ep] = tmpoutput.get(ep, {})
-        tmpoutput[ep][ch] = np.loadtxt(file, dtype=np.float32)
+        if loadfile:
+            tmpoutput[ep][ch] = np.loadtxt(file, dtype=np.float32)
+        else:
+            tmpoutput[ep][ch] = np.array([])
 
         chinfo[ep] = chinfo.get(ep, {})
         chinfo[ep][ch] = {
@@ -233,12 +236,12 @@ def write_output(outputdir:Path, cfit:dict[int, dict[int,ConvFitterVDWrapper]], 
             fig.savefig( outputdir / f"{method}fit_grid_run{run:06d}_{detector}.png" )
             plt.close(fig)
 
-def check_processed_modules(module:str, run, outputdir, force, response_folder, responses, chinfo):
+def check_processed_modules(module:str, run, outputdir, force, response_folder, responses, chinfo, loadfile=True):
     if glob(str(Path(outputdir) / f"*run0{run}_{module[0].lower()}*")) and not force:
         print_colored(f"{module.upper()} already processed. Skipping run {run}. Use --force to overwrite.", 'WARNING')
         status = ProcessStatus.SKIPPED
     else:
-        status = retrieve_responses(response_folder, responses, chinfo)
+        status = retrieve_responses(response_folder, responses, chinfo, loadfile)
 
     return status
     

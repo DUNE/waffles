@@ -212,13 +212,17 @@ def draw_injections_matplotplib(df:pd.DataFrame,):
     # matplotlib stores times as float internally, so convert
     xmin = mdate.num2date(xmin).replace(tzinfo=None)
     xmax = mdate.num2date(xmax).replace(tzinfo=None)
+    skip_lowppm = False
+    df_filtered = df[(df['end'] >= xmin) & (df['start'] <= xmax)]
+    if (df_filtered['ppm'] > 1.5).any():
+        skip_lowppm = True
     for _, row in df.iterrows():
         if row['end'] < xmin or row['start'] > xmax:
             continue  # outside the plot range, skip
         plt.axvspan(row.loc['start'], row.loc['end'], alpha=0.1, color='grey')
         yscale = 0.95
-        # if row['ppm'] < 0.5:
-        #     continue
+        if row['ppm'] < 0.5 and skip_lowppm:
+            continue
         if  row['end'] > xmax:
             continue
         plt.text(

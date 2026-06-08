@@ -19,6 +19,7 @@ from waffles.utils.utils import print_colored
 
 from utils import PATH_XE_AVERAGES, PATH_XE_OUTPUTS, list_of_ints, make_standard_analysis_name
 from GlobalFitter import GlobalFitter
+from monitoring.utils_monitoring import add_ppm_per_run, load_database
 from larfitter import check_processed_modules, ProcessStatus
 
 
@@ -60,6 +61,8 @@ def write_output(gFit, results, run:int, list_of_modules:list, outputdir:Path, s
         save_plot(run, gFit, genkeys([ v for v in list_of_modules if v.startswith("C") ]), suffix, "cathode", outputdir=outputdir)
         save_plot(run, gFit, genkeys([ v for v in list_of_modules if v.startswith("P") ]), suffix, "pmt", outputdir=outputdir)
 
+    tf = results['tf'].value*1e-3
+    errtf = results['tf'].error*1e-3
     tta = results['tta'].value*1e-3
     errtta = results['tta'].error*1e-3
     ttx = results['ttx'].value*1e-3
@@ -69,16 +72,22 @@ def write_output(gFit, results, run:int, list_of_modules:list, outputdir:Path, s
 
 
     with open( outputdir / f"global_fit_output_run{run:06d}.csv", "w") as f:
-        f.write(f"timestamp[ticks],run,ep,ch,B,errB,C,errC,tta,errtta,ttx,errttx,nselected,chi2,nmodules\n")
+        f.write(f"timestamp[ticks],run,ep,ch,A,errA,B,errB,C,errC,t0,errt0,sigma,errsigma,tf,errtf,tta,errtta,ttx,errttx,nselected,chi2,nmodules\n")
         for (ep, ch) in results.modules.keys():
             key = (ep, ch)
+            A = results.modules[key]['A'].value
+            errA = results.modules[key]['A'].error
             B = results.modules[key]['B'].value
             errB = results.modules[key]['B'].error
             C = results.modules[key]['C'].value
             errC = results.modules[key]['C'].error
+            t0 = results.modules[key]['t0'].value
+            errt0 = results.modules[key]['t0'].error
+            sigma = results.modules[key]['sigma'].value
+            errsigma = results.modules[key]['sigma'].error
             nselected = chinfo.get(ep, {}).get(ch, {}).get('counts', np.nan)
             nmodules = len(results.modules)
-            f.write(f"{firsttime},{run},{ep},{ch},{B},{errB},{C},{errC},{tta},{errtta},{ttx},{errttx},{nselected},{chi2},{nmodules}\n")
+            f.write(f"{firsttime},{run},{ep},{ch},{A},{errA},{B},{errB},{C},{errC},{t0},{errt0},{sigma},{errsigma},{tf},{errtf},{tta},{errtta},{ttx},{errttx},{nselected},{chi2},{nmodules}\n")
             
 
 def __print_summary(results: dict[int, ProcessStatus], dryrun: bool) -> None:
@@ -118,8 +127,10 @@ def main(run: int,
          analysisname: str = "global_analysis_results",
          force:bool = False,
          savefig:bool = True,
+         ppm: float = 0.0,
          dryrun:bool = False
         ):
+
 
     outputdir = Path(outputdir)
     analysisname = make_standard_analysis_name(outputdir, analysisname)
@@ -138,7 +149,7 @@ def main(run: int,
     chinfo = {}
     for dettype in dettypes:
         response_folder = data_folder / deconvolved_name / f"run{run:06d}_{dettype}_response"
-        status = check_processed_modules(dettype, run, outputdir, force=True, response_folder=response_folder, responses=responses, chinfo=chinfo) # Force true because I am not actually creaing it
+        status = check_processed_modules(dettype, run, outputdir, force=True, response_folder=response_folder, responses=responses, chinfo=chinfo, loadfile=not dryrun) # Force true because I am not actually creaing it
         if status != ProcessStatus.COMPLETED:
             print_colored(f"Failed to process {dettype} for run {run}.", "ERROR")
             return status
@@ -146,7 +157,10 @@ def main(run: int,
     datasetfull = {}
     for ep, rch in responses.items():
         for ch, wf in rch.items():
-            datasetfull[(ep, ch)] = wf
+            if not dryrun:
+                datasetfull[(ep, ch)] = wf - np.mean(wf[:40])
+            else:
+                datasetfull[(ep, ch)] = wf
 
     keys_fit = genkeys(list_of_modules)
     dataset_fit = {k: w for k, w in sorted(datasetfull.items(), key=lambda x: getModuleName(x[0][0], x[0][1])) if k in keys_fit}
@@ -167,13 +181,12 @@ def main(run: int,
 
 
 
-
     oneexp = True if run < 43418 else False
-    gFit = GlobalFitter(datasets=dataset_fit, offset_t0=320, penalty_strength=300, error=0.5)
+    gFit = GlobalFitter(datasets=dataset_fit, offset_t0=320, penalty_strength=100, error=1)
 
 
     print("Performing global fit...")
-    results = gFit.minimize(fit_limit_ns=None, oneexp=oneexp, )
+    results = gFit.minimize(fit_limit_ns=12500, oneexp=oneexp, ppm=ppm)
     if not gFit.minuit or gFit.minuit.fmin is None:
         print_colored(f"Fit failed for run {run}.", "ERROR")
         return ProcessStatus.FAILED
@@ -199,11 +212,21 @@ if __name__ == "__main__":
     force = args.force
     analysisname = args.analysisname
 
+    df = load_database()
+    df = add_ppm_per_run(df.drop(columns=["ppm"]))
+    df = df.set_index("run")
+
 
     results: dict[int, ProcessStatus] = {}
     for run in runs:
+        if run not in df.index:
+            print_colored(f"Run {run} not found in database. Skipping.", "ERROR")
+            results[run] = ProcessStatus.FAILED
+            continue
+        ppm = df.loc[run, 'ppm']
+        print("----------------------------------------")
         print("Prossessing run:", run)
-        status = main(run=run, list_of_modules=list_of_modules, analysisname=analysisname, force=force, outputdir=args.outputdir, savefig=args.savefig, dryrun=args.dryrun)
+        status = main(run=run, list_of_modules=list_of_modules, analysisname=analysisname, force=force, outputdir=args.outputdir, savefig=args.savefig, dryrun=args.dryrun, ppm=ppm)
         results[run] = status
 
     __print_summary(results, dryrun=args.dryrun)

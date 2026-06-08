@@ -483,7 +483,18 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             errgain = hInt.iminuit.params[3].error
         snr = gain / baseline_stddev
     except:
-        print(f"Could not fit for {dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)),'')}")
+        print(
+            f"{list(wfset.runs)[0]},",
+            f"{endpoint},",
+            f"{channel},",
+            f"{dict_uniqch_to_module.get(strUch(endpoint,channel), 'None')},",
+            f"{0},",
+            f"{0},",
+            f"{0},",
+            f"{0},",
+            f"{0}",
+        )
+
 
     plot_CalibrationHistogram(
         hInt,
@@ -628,10 +639,12 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet,
                                     ) -> tuple[Figure, np.ndarray]:
 
     detChMap = generate_ChannelMap(detector, rows=rows, cols=cols)
+
     gridWs = ChannelWsGrid(detChMap, wfset)
 
     fig, axs = plt.subplots(gridWs.ch_map.rows, gridWs.ch_map.columns, figsize=figsize)
-    axs = np.atleast_2d(axs)
+    # Handle all cases: scalar (1x1), 1D row/col, and 2D
+    axs = np.array(axs).reshape(gridWs.ch_map.rows, gridWs.ch_map.columns)
 
     for (i, j), ax in np.ndenumerate(axs):
         plt.sca(ax)
