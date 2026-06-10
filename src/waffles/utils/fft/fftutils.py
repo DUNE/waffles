@@ -30,7 +30,7 @@ class FFTWaffles:
     def set_filters(self, cutoff_MHz:float):
         self.gauss_sigma = cutoff_MHz/ (np.sqrt(np.log(2))) # This way, gain of 1/sqrt(2) at cutoff frequency
         if self.filter_type == 'Gauss':
-            self.gauss_filter = self.gauss_filter(self.x_freq, self.gauss_sigma)
+            self.gauss_filter_arr = self.gauss_filter(self.x_freq, self.gauss_sigma)
 
     @classmethod
     def getXFreq(cls, sample_rate, npoints): 
@@ -55,6 +55,25 @@ class FFTWaffles:
         return np.fft.irfft(yf, n=len(yf)*2-2).real
 
     @classmethod
+    def getFFTFull(cls, waveform: np.ndarray) -> tuple[np.ndarray, int]:
+        """ 
+        Performs Fast Fourier Transform on the given waveform.
+        Uses only half+1 of the spectrum. This is done because for real input,
+        the negative frequencies are the same
+        The +1 is to perfect get the fft back
+        Does not generate x_freq, as this can be done only once. Check `getXFreq` method.
+
+        """
+        len_waveform = len(waveform)
+        len_fft = 1 << (2 * len_waveform - 1).bit_length() # Next power of 2 for zero-padding
+        yf = np.fft.rfft(waveform, n=len_fft)
+        return yf, len_fft
+    @classmethod
+    def backFFTFull(cls, yf: np.ndarray, npoints:int):
+        # Inverse FFT to get back to time domain
+        return np.fft.irfft(yf, n=npoints).real
+
+    @classmethod
     def convolveFFT(cls, yf1:np.ndarray, yf2:np.ndarray) -> np.ndarray:
         return yf1 * yf2 
 
@@ -71,7 +90,7 @@ class FFTWaffles:
         templatefft = self.getFFT(template)
         deconv_signal:np.ndarray =  signalfft/templatefft
         if self.filter_type == 'Gauss':
-            deconv_signal = deconv_signal*self.gauss_filter
+            deconv_signal = deconv_signal*self.gauss_filter_arr
 
         return deconv_signal
 

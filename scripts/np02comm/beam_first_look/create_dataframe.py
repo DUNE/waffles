@@ -7,13 +7,6 @@ import os
 import mplhep
 from glob import glob
 import argparse
-mplhep.style.use(mplhep.style.ROOT)
-plt.rcParams.update({'font.size': 16,
-                        'grid.linestyle': '--',
-                        'axes.grid': True,
-                        'figure.autolayout': True,
-                        'figure.figsize': [14,6]
-                        })
 
 
 def create_df(runs=[], datadir="/eos/experiment/neutplatform/protodune/experiments/ProtoDUNE-VD/beam_csv_files/", blacklist=[]):

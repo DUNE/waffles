@@ -1,0 +1,144 @@
+110: 
+  0:
+    cuts: &defaultPcut
+        1: { t0: 0, tf: 255, threshold: 80, type:   lower, filter: 8, npop: max }
+        2: { t0: 0, tf: 1024, threshold: -150, type:  higher, filter: 8, npop: min }
+        3: { t0: 277, tf: 400, threshold: 2300, type: lower, filter: 8, npop: max }
+        4: { t0: 550, tf: 1024, threshold: 400, type: lower, filter: 8, npop: max } 
+        5: { t0: 360, tf: 600, threshold: 580, type: lower, filter:  8, npop: max }
+        6: { t0: 380, tf: 600, threshold: 400, type: lower, filter: 8, npop: max }
+        7: { t0: 300, tf: 600, threshold: 680, type: lower, filter: 8, npop: max }
+        8: { t0: 277, tf: 400, threshold: 750, type: lower, filter: 8, npop: max }
+  26: 
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 3000, type: lower, filter: 8, npop: max }
+    }
+  6:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 2300, type: lower, filter: 8, npop: max }
+    }
+  37:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1560, type: lower, filter: 8, npop: max }
+    }
+  22:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1500, type: lower, filter: 8, npop: max },
+        6: { t0: 380, tf: 600, threshold: 450, type: lower, filter: 8, npop: max }
+    }
+  14:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1560, type: lower, filter: 8, npop: max },
+        8: { t0: 277, tf: 400, threshold: 330, type: lower, filter: 8, npop: max }
+    }
+  42: #bad
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 2600, type: lower, filter: 8, npop: max }
+    }
+  46:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1500, type: lower, filter: 8, npop: max },
+        9: { t0: 340, tf: 400, threshold: 460, type: lower, filter: 8, npop: max }
+      }
+  44: #bad
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1700, type: lower, filter: 8, npop: max }
+    }
+  30:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 250, tf: 275, threshold: 2000, type: lower, filter: 8, npop: max },
+        # 6: { t0: 380, tf: 600, threshold: 500, type: lower, filter: 8, npop: max }
+    }
+  20:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1400, type: lower, filter: 8, npop: max }
+    }
+  24:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1250, type: lower, filter: 8, npop: max }
+    }
+  32:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1560, type: lower, filter: 8, npop: max }
+    }
+  36: #big
+      cuts: 
+        1: { t0: 0, tf: 225, threshold: 500, type:   lower, filter: 8, npop: max }
+        3: { t0: 250, tf: 275, threshold: 6100, type: lower, filter: 8, npop: max }
+        2: { t0: 0, tf: 255, threshold: -250, type:  higher, filter: 8, npop: min }
+        9: { t0: 280, tf: 1024, threshold: -200, type:  higher, filter: 8, npop: min}
+        4: { t0: 450, tf: 1024, threshold: 1400, type: lower, filter: 8, npop: max } 
+        5: { t0: 290, tf: 1024, threshold: 2000, type: lower, filter: 8, npop: max } 
+        # 5: { t0: 0, tf: 1, threshold: 0.0001, type: higher, filter: 0, npop: max }
+        6: { t0: 0, tf: 1, threshold: 0.0001, type: higher, filter: 0, npop: max }
+        # 7: { t0: 0, tf: 1, threshold: 0.0001, type: higher, filter: 0, npop: max }
+        # 8: { t0: 0, tf: 1, threshold: 0.0001, type: higher, filter: 0, npop: max }
+        7: { t0: 275, tf: 300, threshold: 2600, type: lower, filter: 8, npop: max }
+        8: { t0: 345, tf: 500, threshold: 1600, type: lower, filter: 0, npop: max }
+    
+  7:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1450, type: lower, filter: 8, npop: max },
+        9: { t0: 305, tf: 370, threshold: 430, type: lower, filter: 8, npop: max }
+    }
+  10:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 2000, type: lower, filter: 8, npop: max },
+        9: { t0: 305, tf: 370, threshold: 430, type: lower, filter: 8, npop: max }
+    }
+  34:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 2200, type: lower, filter: 8, npop: max }
+    }
+  40:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1250, type: lower, filter: 8, npop: max },
+        9: { t0: 305, tf: 370, threshold: 400, type: lower, filter: 8, npop: max }
+    }
+  16: 
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1900, type: lower, filter: 8, npop: max },
+        9: { t0: 305, tf: 370, threshold: 460, type: lower, filter: 8, npop: max }
+    }
+  2:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 2500, type: lower, filter: 8, npop: max },
+        9: { t0: 305, tf: 370, threshold: 490, type: lower, filter: 8, npop: max }
+    }
+  17: 
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 1560, type: lower, filter: 8, npop: max },
+        9: { t0: 340, tf: 400, threshold: 400, type: lower, filter: 8, npop: max }
+    }
+  12:
+    cuts: {
+      <<: *defaultPcut,
+        3: { t0: 257, tf: 270, threshold: 2460, type: lower, filter: 8, npop: max }
+    }
+
+
+
+
+
+
+            
+  

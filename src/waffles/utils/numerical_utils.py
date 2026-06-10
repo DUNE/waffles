@@ -7,6 +7,10 @@ from tqdm import tqdm
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.Exceptions import GenerateExceptionMessage
 
+from scipy import stats
+from scipy.stats import skewnorm
+from scipy.optimize import curve_fit
+
 
 def gaussian(
         x: float,
@@ -436,6 +440,29 @@ def histogram1d(
 
     return counts, deformatted_idcs
 
+# numba can cause some memory leaks if we return a numpy array which is created
+# within the numba function. So, in this case, we are creating the result array
+# outside the numba function and passing it as an argument, so that it is
+# written in-place within the numba function and returned as output of the
+# upper level histogram2d() function, which is not numba decorated and should
+# not perform very demanding operations.
+@numba.njit(nogil=True, parallel=False)
+def histogram2d_accumulate(
+    samples: np.ndarray,
+    bins: np.ndarray,
+    ranges: np.ndarray,
+    result: np.ndarray  # pre-allocated, written in-place
+) -> None:
+
+    inverse_step = 1. / ((ranges[:, 1] - ranges[:, 0]) / bins)
+
+    for t in range(samples.shape[1]):
+        i = (samples[0, t] - ranges[0, 0]) * inverse_step[0]
+        j = (samples[1, t] - ranges[1, 0]) * inverse_step[1]
+
+        if 0 <= i < bins[0] and 0 <= j < bins[1]:
+            result[int(i), int(j)] += 1
+
 
 @numba.njit(nogil=True, parallel=False)
 def histogram2d(
@@ -489,7 +516,20 @@ def histogram2d(
         # Using this condition is slightly faster than
         # using four nested if-conditions. For a dataset 
         # with 178993152 points, the average time (for 30
-        # calls to this function) gave ~1.06 s vs ~1.22 s
+        # calls to this function) gave ~1.06 s vs ~1.22 s -> sounds wrong
+        # Tested recently:
+        #
+        # Dataset : 150000 events × 1024 points = 153,600,000 total points
+        # Calls   : 5
+        
+        # Warming up Numba (JIT compile) ...
+        # Done.
+        
+        #                     mean       std       min       max
+        # ---------------------------------------------------
+        # Numba (custom)  1100.08ms    14.63ms  1083.22ms  1119.45ms
+        # NumPy           58519.59ms  4807.43ms  49263.72ms  63244.50ms
+
         if 0 <= i < bins[0] and 0 <= j < bins[1]:
             result[int(i), int(j)] += 1
 
@@ -574,6 +614,13 @@ def __cluster_integers_by_contiguity(
     return extremals
 
 
+def derivative(raw: np.ndarray, mult_factor=12) -> np.ndarray:
+    adcs = np.astype(raw, np.float32)
+    derivative = np.zeros_like(raw, dtype=np.float32) 
+    derivative[1:-1] = mult_factor*(adcs[2:] - adcs[:-2])*0.5 
+    return derivative
+
+
 def cluster_integers_by_contiguity(
         increasingly_sorted_integers: np.ndarray
 ) -> List[List[int]]:
@@ -628,7 +675,7 @@ def cluster_integers_by_contiguity(
     return __cluster_integers_by_contiguity(increasingly_sorted_integers)
 
 
-def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) -> np.ndarray:
+def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False, slice_to_process:slice = slice(None, None)) -> np.ndarray:
     """
     Compute the average waveform for a single channel after baseline subtraction.
 
@@ -656,7 +703,6 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) 
     
     """
     
-    arrs = []
     for run in wfch.runs: 
         available_endpoints_and_channels = wfch.available_channels[run]
         if len(list(available_endpoints_and_channels.keys())) > 1:
@@ -665,13 +711,98 @@ def average_wf_ch(wfch: WaveformSet, analysis_label="std", show_progress=False) 
             if len(list(channels)) > 1:
                 raise Exception("WaveformSet must contain exactly one endpoint and one channel.")
 
-    for wf in tqdm(wfch.waveforms, disable=not show_progress, desc="Computing average waveform"):
-        adcs_float = np.asarray(wf.adcs).astype(float)          
+    mean = np.zeros(wfch.points_per_wf, dtype=np.float32)
+    counts = 0
+    for wf in tqdm(wfch.waveforms[slice_to_process], disable=not show_progress, desc="Computing average waveform"):
         if analysis_label in wf.analyses:
             baseline = wf.analyses[analysis_label].result["baseline"]
-            adcs_float = adcs_float - baseline                
-            arrs.append(adcs_float)
+            mean += wf.adcs - baseline                
+            counts += 1
             
-    return np.mean(arrs, axis=0)
+    return mean / counts if counts > 0 else mean
 
 
+def lar_response(t, A, fp, t1, t3) -> np.ndarray:
+    return A*(fp*np.exp(-t/t1)/t1 + (1-fp)*np.exp(-t/t3)/t3)
+
+def lar_xe_response(t, A, fp, fs, t1, t3, td) -> np.ndarray:
+    # return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 - (1-fp-fs)*np.exp(-t/td)/td)
+    if t3 != td:
+        return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3 + (1-fp-fs)*(np.exp(-t/t3) - np.exp(-t/td))/(t3-td))
+    else:
+        return A*(fp*np.exp(-t/t1)/t1 + fs*np.exp(-t/t3)/t3)
+
+
+def skewed_gaussian(x, A, mu, sigma, alpha):
+    return A * skewnorm.pdf(x, a=alpha, loc=mu, scale=sigma)
+
+def fit_skewed_gaussian(adc_values, maxfev=5000, min_bins = 75):
+    
+    minb, maxb = np.quantile(adc_values, [0.001, 0.999])
+    adc_values_filtered = adc_values[(adc_values > minb) & (adc_values < maxb)]
+
+    nbins = min(int(np.sqrt(len(adc_values_filtered))), min_bins)
+    bins = np.linspace(minb, maxb, nbins + 1)
+    counts, bins_edges = np.histogram(adc_values_filtered, bins=bins)
+    binscenter = (bins_edges[1:] + bins_edges[:-1]) * 0.5
+
+    A_guess = np.max(counts)
+    mu_guess = binscenter[np.argmax(counts)]
+    sigma_guess = np.std(adc_values_filtered)
+    alpha_guess = stats.skew(adc_values_filtered)
+    p0 = [A_guess, mu_guess, sigma_guess, alpha_guess]
+
+    popt, _ = curve_fit(skewed_gaussian, binscenter, counts, p0=p0, maxfev=maxfev)
+    A, mu, sigma, alpha = popt
+
+    x_range = np.linspace(minb, maxb, 1000)
+    fit_y = skewed_gaussian(x_range, A, mu, sigma, alpha)
+    mpv = x_range[np.argmax(fit_y)]
+
+    return {'adc_values': adc_values_filtered,
+           'bins': bins,
+           'x_range': x_range,
+           'fit_y': fit_y,
+           'mpv': mpv,
+           'sigma': sigma
+            } 
+
+def compute_mpv_waveforms(wfch: WaveformSet, analysis_label="std", specific_tick=None, maxfev=5000, min_bins=75) -> dict:
+    """
+    Compute MPV at each tick for a channel.
+    Possibility to specify a single tick.
+    """
+    ret = {}
+    all_adc_values = []
+    for wf in wfch.waveforms:
+        adcs_float = wf.adcs.astype(np.float32)
+        if analysis_label in wf.analyses:
+            baseline = wf.analyses[analysis_label].result["baseline"]
+            adcs_float = adcs_float - baseline
+        else:
+            continue
+        all_adc_values.append(adcs_float)  
+    
+    all_adc_values = np.array(all_adc_values)
+            
+
+    n_ticks = wfch.points_per_wf
+    mpv_waveform = np.zeros(n_ticks) if specific_tick is None else np.zeros(1)
+    sigma = np.zeros(n_ticks) if specific_tick is None else np.zeros(1)
+    
+    print(f"Computing MPV for {len(wfch.waveforms)} waveforms...")
+    range_for = range(n_ticks) if specific_tick is None else range(specific_tick, specific_tick+1)
+    for i, tick in enumerate(tqdm(range_for, desc="Processing ticks")):
+        adc_values = all_adc_values[:, tick]
+        if len(adc_values) == 0:
+            mpv_waveform[i] = np.nan
+            continue
+
+        ret = fit_skewed_gaussian(adc_values, maxfev, min_bins)
+
+        sigma[i] = ret['sigma']
+        mpv_waveform[i] = ret['mpv']
+
+    ret['mpv'] = mpv_waveform.copy()
+    
+    return ret

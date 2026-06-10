@@ -108,7 +108,7 @@ class WaveformSelector:
                     continue
                 elif isinstance(cuts, dict):
                     # If cuts is a dict, convert it to a list of dicts
-                    self.cutsdata[ep][ch]['cuts'] = [ v for k, v in cuts.items() ]
+                    self.cutsdata[ep][ch]['cuts'] = [ v for k, v in cuts.items() if v ]
                     
 
         

@@ -1,1 +1,32 @@
+# In order for this to work: 
+# Create a file: ~/.git-filters/strip-notebook-output
+# Add the following content to that file:
+# ```
+# # #!/usr/bin/env python3
+# # import sys
+# # import json
+# # 
+# # notebook = json.load(sys.stdin)
+# # 
+# # for cell in notebook.get("cells", []):
+# #     cell["outputs"] = []
+# #     cell["execution_count"] = None
+# # 
+# # # Strip noisy kernel/environment metadata
+# # metadata = notebook.get("metadata", {})
+# # metadata.pop("kernelspec", None)  # removes display_name, name
+# # language_info = metadata.get("language_info", {})
+# # language_info.pop("version", None)  # removes Python version
+# # 
+# # json.dump(notebook, sys.stdout, indent=1)
+# # sys.stdout.write("\n")
+# ```
+#
+# run the following commands from your waffles repo:
+# chmod +x ~/.git-filters/strip-notebook-output
+# git config filter.strip-notebook-output.clean ~/.git-filters/strip-notebook-output
+# git config filter.strip-notebook-output.smudge cat
+# git config filter.strip-notebook-output.required true
+#
 *.ipynb filter=strip-notebook-output  
+

@@ -1,0 +1,27 @@
+# Parameters for ConvFitterVDWrapper
+cfitparams:
+    threshold_align_template: 0.27
+    threshold_align_response: 0.2
+    error: 20
+    dointerpolation: False
+    interpolation_factor: 8
+    align_waveforms :  True
+    dtime: 16
+    convtype: 'fft'
+    usemplhep: True
+    scinttype: 'lar'
+
+# Number of offsets changes during convolution
+scan: 8
+
+# If true, print minuit fit results
+print_flag: False
+
+# Slice used to recompute baseline on the templates
+# Set both to zero to not compute baseline
+slice_template:
+    t0: 200
+    tf: 240
+slice_response:
+    t0: null
+    tf: 50

@@ -6,9 +6,13 @@ import logging
 from typing import List, Union
 from typing import Optional, Callable
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from typing import Optional
 import os
+from glob import glob
+from importlib.resources import files
 
+from waffles.data_classes.ChannelWs import ChannelWs
 from waffles.data_classes.WaveformSet import WaveformSet
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
@@ -20,10 +24,9 @@ from waffles.plotting.plot import plot_ChannelWsGrid, plot_CustomChannelGrid
 from waffles.plotting.plot import plot_CalibrationHistogram
 from waffles.utils.fit_peaks.fit_peaks import fit_peaks_of_CalibrationHistogram
 from waffles.utils.baseline.baseline import SBaseline
-from waffles.utils.numerical_utils import average_wf_ch
 from waffles.np02_data.ProtoDUNE_VD_maps import mem_geometry_map, pmt_endpoint, membrane_endpoint
 from waffles.np02_data.ProtoDUNE_VD_maps import cat_geometry_map, cathode_endpoint
-from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch
+from waffles.np02_utils.AutoMap import generate_ChannelMap, dict_uniqch_to_module, dict_module_to_uniqch, ordered_modules_cathode, ordered_modules_membrane, strUch, getModuleName, expand_modules 
 from waffles.np02_utils.load_utils import ch_read_params
 
 import waffles.Exceptions as we
@@ -36,7 +39,7 @@ tol_colors = [
     "#4DAF4A",  # green
     "#984EA3",  # purple
     "#FF7F00",  # orange
-    "#FFFF33",  # yellow
+    "#E7E70F",  # yellow
     "#A65628",  # brown
     "#F781BF"   # pink
 ]
@@ -63,6 +66,14 @@ def get_style_module(modulename:str) -> dict:
         "color": modules_colormap[modulename],
         **style_map_matplotlib[ch_num]
     }
+
+def remove_bad_baselines(waveform:Waveform, analysislabel='std') -> bool:
+    if waveform.analyses[analysislabel].result['amplitude'] is np.nan:
+        return False
+    return True
+
+def wfset_remove_bad_baselines(wfset:WaveformSet) -> WaveformSet:
+    return WaveformSet.from_filtered_WaveformSet(wfset, remove_bad_baselines)
 
 
 def np02_resolve_detectors(wfset, detectors: Union[List[str], List[UniqueChannel], List[Union[UniqueChannel, str]]], rows=0, cols=1) -> dict[str, ChannelWsGrid]:
@@ -241,7 +252,7 @@ def genhist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = None):
 def __update_dict(dictd, dictup, key):
         dictd[key] = dictup.get(key, dictd[key])
 
-def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True, onlyoptimal=True, onlyonerun=True):
+def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_progress: bool, params: dict = {}, configyaml = "", doprocess:bool = True, onlyoptimal=True, onlyonerun=True, label='std'):
     endpoint = wfset.waveforms[0].endpoint
     channel = wfset.waveforms[0].channel
     if not params:
@@ -276,7 +287,8 @@ def runBasicWfAnaNP02Updating(wfset: WaveformSet, updatethreshold:bool, show_pro
                           amp_ul=params[endpoint][channel]['fit'].get('amp_ul', 270),
                           show_progress=show_progress,
                           onlyoptimal=onlyoptimal,
-                          configyaml=params
+                          configyaml=params,
+                          label=label
                           )
 
 def process_by_channel(
@@ -442,6 +454,7 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
         fit_type           = fit_type,
         force_max_peaks    = force_max_peaks,
         fit_limits         = fit_limits,
+        compute_crosstalk  = False
     )
     if verbosemultigauss:
         print(getattr(hInt, "iminuit", None))
@@ -470,7 +483,18 @@ def fithist(wfset:WaveformSet, figure:go.Figure, row, col, wf_func = {}):
             errgain = hInt.iminuit.params[3].error
         snr = gain / baseline_stddev
     except:
-        print(f"Could not fit for {dict_uniqch_to_module.get(str(UniqueChannel(wfset.waveforms[0].endpoint, wfset.waveforms[0].channel)),'')}")
+        print(
+            f"{list(wfset.runs)[0]},",
+            f"{endpoint},",
+            f"{channel},",
+            f"{dict_uniqch_to_module.get(strUch(endpoint,channel), 'None')},",
+            f"{0},",
+            f"{0},",
+            f"{0},",
+            f"{0},",
+            f"{0}",
+        )
+
 
     plot_CalibrationHistogram(
         hInt,
@@ -515,8 +539,10 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
                       baselinestart:int = 0,
                       minimumfrac: float = 0.67,
                       onlyoptimal: bool = True,
+                      filtering: int = 2,
                       show_progress: bool = True,
-                      configyaml:Union[str,dict] = 'ch_snr_parameters.yaml'
+                      configyaml:Union[str,dict] = 'ch_snr_parameters.yaml',
+                      label='std'
                       ):
     
     params = {}
@@ -525,7 +551,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
     elif isinstance(configyaml, str):
         if configyaml is not None and configyaml != "":
             params = ch_read_params(configyaml)
-    baseline = SBaseline(threshold=threshold, baselinestart=baselinestart, baselinefinish=baselinefinish, default_filtering=2, minimumfrac=minimumfrac, data_base=params)
+    baseline = SBaseline(threshold=threshold, baselinestart=baselinestart, baselinefinish=baselinefinish, default_filtering=filtering, minimumfrac=minimumfrac, data_base=params)
 
     ip = IPDict(
         baseline_method="SBaseline",      # ← NEW (or "Mean", "Fit", …)
@@ -537,7 +563,7 @@ def runBasicWfAnaNP02(wfset: WaveformSet,
         amplitude_method="max_minus_baseline"
     )
     if show_progress: print("Processing waveform set with BasicWfAna")
-    _ = wfset.analyse("std", BasicWfAna, ip,
+    _ = wfset.analyse(label, BasicWfAna, ip,
                       analysis_kwargs={},
                       checks_kwargs=dict(points_no=wfset.points_per_wf),
                       overwrite=True,
@@ -585,11 +611,11 @@ def plot_average_spe(wfset: WaveformSet,
     maximum = np.max(spewf[maximum_begin:maximum_end])
     print(f"{maximum:.2f}")
 
-
-def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]], plot_function:Callable, func_params:dict={}, figsize=(16,8), rows=0, cols=0):
-
-    detChMap = generate_ChannelMap(detector, rows=rows, cols=cols)
-    gridWs = ChannelWsGrid(detChMap, wfset)
+def matplotlib_plot_ChannelWsGrid(gridWs: ChannelWsGrid,
+                                  plot_function:Callable,
+                                  func_params:dict={},
+                                  figsize=(16,8),
+                                  ) -> tuple[Figure, np.ndarray]:
 
     fig, axs = plt.subplots(gridWs.ch_map.rows, gridWs.ch_map.columns, figsize=figsize)
     axs = np.atleast_2d(axs)
@@ -600,229 +626,74 @@ def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet, detector: Union[List[Uni
         if not wfs: continue
         plot_function(wfs, **func_params)
 
-
-def plot_averages(fig:go.Figure, g:ChannelWsGrid):
-    """
-    Plot average waveforms for all valid channels in a channel grid.
-
-    This function iterates over the channel map stored in a `ChannelWsGrid`,
-    computes the average waveform for each available channel using
-    `average_wf_ch`, and adds it as a line trace to the corresponding subplot
-    in a Plotly figure.
-
-    Only channels that are present in `dict_uniqch_to_module` and for which
-    waveform data are available are plotted.
-
-    Parameters
-    ----------
-    fig : go.Figure
-        Plotly figure with a predefined subplot layout. 
-    g : ChannelWsGrid
-        Channel grid object containing the channel mapping and the associated
-        waveform sets (`ch_wf_sets`).
-
-    Returns
-    -------
-    None
-        The function modifies the input figure in place by adding traces.
+    return fig, axs
 
 
-    Example
-    --------
-    fig = make_subplots(rows=1, cols=2)
-    gt = np02_gen_grids(mywfset, detector=["M3(1)", "M3(2)"])
-    plot_averages(fig, gt["Custom"])
-    fig.show()
-    """
+def matplotlib_plot_WaveformSetGrid(wfset: WaveformSet,
+                                    detector: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]],
+                                    plot_function:Callable,
+                                    func_params:dict={},
+                                    figsize=(16,8),
+                                    rows=0,
+                                    cols=0
+                                    ) -> tuple[Figure, np.ndarray]:
 
-    for (row, col), uch in np.ndenumerate(g.ch_map.data):
-        row += 1
-        col += 1
-        
-        if str(uch) not in dict_uniqch_to_module:
-            continue
-        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
-            continue
-        wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
-        avg = average_wf_ch(wfch)
-        time = np.arange(avg.size)
+    detChMap = generate_ChannelMap(detector, rows=rows, cols=cols)
 
-        fig.add_trace(
-            go.Scatter(
-                x = time,
-                y = avg,
-                mode = "lines",
-            ),
-            row=row, col=col
+    gridWs = ChannelWsGrid(detChMap, wfset)
+
+    fig, axs = plt.subplots(gridWs.ch_map.rows, gridWs.ch_map.columns, figsize=figsize)
+    # Handle all cases: scalar (1x1), 1D row/col, and 2D
+    axs = np.array(axs).reshape(gridWs.ch_map.rows, gridWs.ch_map.columns)
+
+    for (i, j), ax in np.ndenumerate(axs):
+        plt.sca(ax)
+        wfs = gridWs.get_channel_ws_by_ij_position_in_map(i,j)
+        if not wfs: continue
+        plot_function(wfs, **func_params)
+
+    return fig, axs
+
+def plot_waveforms_wfset(wfset: WaveformSet,
+                         waveforms: dict[int, dict[int, np.ndarray]],
+                         line_color: str = '',
+                         detectors: Union[List[UniqueChannel], List[str], List[Union[UniqueChannel, str]]] = [],
+                         rows=0,
+                         cols=0,
+                         fig = None,
+                         **kargs_subplots,
+                         ):
+    detChMap = generate_ChannelMap(channels=detectors, rows=rows, cols=cols)
+    gridWs = ChannelWsGrid(detChMap, wfset)
+    if fig is None:
+        fig = psu.make_subplots(
+            rows=gridWs.ch_map.rows,
+            cols=gridWs.ch_map.columns,
+            subplot_titles=gridWs.titles,
+            **kargs_subplots
         )
+    plot_waveforms(fig, gridWs, waveforms, line_color=line_color)
 
-def plot_averages_w_peaks_rise_fall(peaks_all, fig:go.Figure, g:ChannelWsGrid, x_range=None, rise_fall:bool = True):
+    return fig, gridWs
 
-    """
-    Plot average waveforms for each channel in a ChannelWsGrid with peak and rise/fall indicators.
 
-    For each valid channel in the grid, this function:
-      - Plots the averaged waveform in the corresponding subplot.
-      - Optionally restricts the x-axis to a specified range.
-      - Optionally adds vertical dashed lines at key points: t10 and t90 of rise, t90 and t10 of fall.
-      - Annotates each subplot with channel info, peak amplitude, and optionally rise/fall times.
 
-    Parameters
-    ----------
-    peaks_all : dict
-        Dictionary returned by `compute_peaks_rise_fall_ch`. Keys are (endpoint, channel),
-        values contain peak, rise/fall times, and averaged waveform data.
-    fig : go.Figure
-        Plotly Figure object containing the subplots where waveforms will be plotted.
-    g : ChannelWsGrid
-        Grid object containing the channel waveform sets.
-    x_range : tuple of two floats, optional
-        (min, max) time range to display on the x-axis for all subplots. 
-        If None, the full waveform is shown.
-    rise_fall : bool, True by default.
-        If True the rise and fall time dashed lines are shown and the values are added in the legend
-
-    Returns
-    -------
-    go.Figure
-        The updated Plotly Figure with all average waveforms plotted, vertical lines for 
-        rise/fall times, and annotations with peak and timing information.
-    """
-
-    ncols = len(g.ch_map.data[0])    
-
-    fig.data = []
-    fig.layout.annotations = []
-
-    for (row, col), uch in np.ndenumerate(g.ch_map.data):
-        row += 1
-        col += 1
-
-        subplot_idx = (row - 1) * ncols + col
-        
-        if str(uch) not in dict_uniqch_to_module:
-            continue
-        if uch.channel not in g.ch_wf_sets[uch.endpoint]:
-            continue
-
-        vals = peaks_all[(uch.endpoint, uch.channel)]
-        time = vals["time"]
-        avg = vals["avg"]
-        peak_time = vals["peak_time"]
-        peak_value = vals["peak_value"]
-
-        if x_range is not None:
-            x_min, x_max = x_range
-            mask = (time >= x_min) & (time <= x_max)
-            time = time[mask]
-            avg = avg[mask]
-        
-        fig.add_trace(
-            go.Scatter(
-                x=time,
-                y=avg,
-                mode="lines",
-                name=f"{uch.endpoint}-{uch.channel}"
-            ),
-            row=row, col=col
-        )
-
-        if rise_fall:
-
-            for t, color, label in [
-                (vals["t_low"], "green", "t10 rise"),
-                (vals["t_high"], "blue", "t90 rise"),
-                (vals["t_high_fall"], "orange", "t90 fall"),
-                (vals["t_low_fall"], "purple", "t10 fall"),
-            ]:
-                fig.add_trace(
-                    go.Scatter(
-                        x=[t, t],
-                        y=[0, peak_value], 
-                        mode="lines",
-                        line=dict(color=color, dash="dash"),
-                        showlegend=False,  
-                    ),
-                    row=row, col=col
-                ) 
-                    
-        if subplot_idx == 1:
-            xref = "x domain"
-            yref = "y domain"
-        else:
-            xref = f"x{subplot_idx} domain"
-            yref = f"y{subplot_idx} domain"
-
-        key = f"{uch.endpoint}-{uch.channel}"
-        module_name = dict_uniqch_to_module.get(key, None)
-
-        if rise_fall:
-            fig.add_annotation(
-                x=0.98,
-                y=0.95,
-                xref=xref,
-                yref=yref,
-                text=(
-                    f"{module_name}<br>"
-                    f"Peak = {peak_value:.1f} ADC<br>"
-                    f"Rise time = {vals['rise_time']:.0f} ticks<br>"
-                    f"Fall time = {vals['fall_time']:.0f} ticks"
-                ),
-                showarrow=False,
-                align="left",
-                font=dict(size=11),
-                bgcolor="rgba(255,255,255,0.7)",
-                bordercolor="black",
-                borderwidth=1
-            )
-
-        else:
-            fig.add_annotation(
-                x=0.98,
-                y=0.95,
-                xref=xref,
-                yref=yref,
-                text=(
-                    f"{module_name}<br>"
-                    f"Peak = {peak_value:.1f} ADC<br>"
-                ),
-                showarrow=False,
-                align="left",
-                font=dict(size=11),
-                bgcolor="rgba(255,255,255,0.7)",
-                bordercolor="black",
-                borderwidth=1
-            )
-
-        if x_range is not None:
-            fig.update_xaxes(range=[x_min, x_max])
-        
-    return fig
-
-def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, save: bool = False, save_dir: Optional[str] = None):
+def plot_waveforms(fig:go.Figure, 
+                   g:ChannelWsGrid, 
+                   waveforms: dict[int, dict[int, np.ndarray]],
+                   line_color: str = ''
+                   ):
 
     """
-    Plot normalized average waveforms for each channel in a ChannelWsGrid.
+    Plot waveforms for each channel in a ChannelWsGrid.
 
-    For each valid channel in the grid, this function:
-      - Computes the average waveform.
-      - Normalizes it to a single photoelectron (SPE) amplitude.
-      - Plots the normalized waveform in the corresponding subplot.
-      - Optionally saves the normalized waveform to a text file for each channel.
-
-    Parameters
     ----------
     fig : go.Figure
         Plotly Figure object containing subplots for each channel.
     g : ChannelWsGrid
         Grid object containing waveform sets for multiple channels.
-    spe_by_channel : dict
-        Dictionary mapping channel numbers to single photoelectron (SPE) amplitudes.
-        Used for normalizing the waveform.
-    save : bool, optional
-        If True, normalized waveforms are saved to text files. Default is False.
-    save_dir : str, optional
-        Directory where normalized waveform files will be saved. Must be specified if `save` is True.
+    waveforms : dict[int, dict[int, np.ndarray]]
+        Dictionary mapping endpoints and channels to their corresponding waveforms.
 
     Returns
     -------
@@ -831,68 +702,52 @@ def plot_averages_normalized(fig:go.Figure, g:ChannelWsGrid, spe_by_channel, sav
 
     """
 
-    if save:
-        if save_dir is None:
-            raise ValueError("save_dir must be specified")
-        os.makedirs(save_dir, exist_ok=True)
+    ncols = len(g.ch_map.data[0])    
 
     for (row, col), uch in np.ndenumerate(g.ch_map.data):
+
+        subplot_idx = row * ncols + col
+
         row += 1
         col += 1
-        
         if str(uch) not in dict_uniqch_to_module:
             continue
         if uch.channel not in g.ch_wf_sets[uch.endpoint]:
             continue
             
         wfch = g.ch_wf_sets[uch.endpoint][uch.channel]
-        avg = average_wf_ch(wfch)
-        time = np.arange(avg.size)
+        npoints = wfch.points_per_wf
 
+        endpoint = uch.endpoint
         ch = uch.channel
-        if ch not in spe_by_channel:
-            print(f"Missing calibration for channel {ch}")
-            continue
 
-        spe_amp = spe_by_channel[ch]
-        peak_avg = np.max(avg)
+        module_name = dict_uniqch_to_module[str(uch)]
+        wfms = waveforms.get(endpoint, {}).get(ch, np.array([]))
+        time = np.arange(len(wfms))
+        dictline = {} if not line_color else { 'line_color' : line_color }
+        if len(wfms.shape) == 1:
+            wfms = np.atleast_2d(wfms)
+            if line_color:
+                dictline = { 'line_color' : line_color }
 
-        if peak_avg == 0:
-            print(f"Zero peak for channel {ch}")
-            continue
-
-        avg_norm = avg * (spe_amp / peak_avg )
-
-        if save:
-            key = f"{uch.endpoint}-{uch.channel}"
-            module_name = dict_uniqch_to_module.get(key, None)
-
-            if module_name is None:
-                print(f"No module mapping found for endpoint {uch.endpoint}, channel {uch.channel}")
-                continue
-
-            module_for_title = module_name[:2]
-            channel_for_title = module_name[3]
-
-            filename = f"template_{module_for_title}_{channel_for_title}.txt"
-            filepath = os.path.join(save_dir, filename)
-
-            np.savetxt(
-                filepath,
-                avg_norm,
-                fmt="%.9e"
+        for wfm in wfms:
+            fig.add_trace(
+                go.Scatter(
+                    x = time,
+                    y = wfm,
+                    mode = "lines",
+                    **dictline
+                ),
+                row=row, col=col
             )
 
-            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                print(f"File saved: {filepath}")
-            else:
-                print(f"Failed to save: {filepath}")
-        
-        fig.add_trace(
-            go.Scatter(
-                x = time,
-                y = avg_norm,
-                mode = "lines",
-            ),
-            row=row, col=col
-        )
+        if subplot_idx < len(fig.layout.annotations):
+            fig.layout.annotations[subplot_idx].text = module_name
+
+    for (row, col), uch in np.ndenumerate(g.ch_map.data):
+        row += 1
+        col += 1
+        fig.update_yaxes(title_text="Amplitude [ADC]", row=row, col=1)
+        fig.update_xaxes(title_text="Time [ticks]", row=row, col=col)
+
+
