@@ -4,6 +4,7 @@ from waffles.data_classes.WaveformAdcs import WaveformAdcs
 from enum import IntEnum
 
 # Fallback enum, in case the real TriggerCandidateData.Type isn't usable directly
+# Reference: https://github.com/DUNE-DAQ/trgdataformats/blob/develop/include/trgdataformats/TriggerCandidateData.hpp
 class TriggerType(IntEnum):
     kUnknown = 0
     kTiming = 1
