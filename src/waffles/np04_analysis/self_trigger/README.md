@@ -32,9 +32,10 @@ params.yml
 Be also sure you have the necessary infos about the run you are analysing in `./configs/SelfTrigger_RunInfo.csv`
 and the calibration results in `./configs/SelfTrigger_Calibration.csv`.
 
-*STEP 1:* dump raw data in meaningful ROOT TTrees by running `./dump_raw_to_meta.py`.
-*STEP 2:* run `./ana_self_trigger.py` to perform trigger efficiency studies.
-*STEP 3:* run `./jitter.py` to perform time resolution studies. You can also run `./jitter_analyzer.py` to plot
++ *STEP 1:* dump raw data in meaningful ROOT TTrees by running `dump_raw_to_meta.py`.
++ *STEP 2:* run `ana_self_trigger.py` to perform trigger efficiency studies.
++ *STEP 3:* run `jitter.py` to perform time resolution studies.
++ *STEP 4:* run `result_analyzer.py` and `jitter_analyzer.py` to plot create meaningful plots and store them in ROOT files.
 the results in ROOT TGraphs.
 
 ### I would have loved to, but I never...
