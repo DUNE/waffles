@@ -17,6 +17,7 @@ if __name__ == "__main__":
         steering_config = yaml.safe_load(stream)
 
     params_file_name = steering_config.get("params_file", "params.yml")
+    run_info_file    = steering_config.get("run_info_file")
     ana_folder       = steering_config.get("ana_folder")
     if not os.path.exists(ana_folder):
         os.makedirs(ana_folder)
@@ -28,7 +29,6 @@ if __name__ == "__main__":
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
 
-    run_info_file    = user_config.get("run_info_file")
     calibration_file = user_config.get("calibration_file")
     file_folder      = user_config.get("file_folder")
     SiPM_channel     = user_config.get("SiPM_channel")
