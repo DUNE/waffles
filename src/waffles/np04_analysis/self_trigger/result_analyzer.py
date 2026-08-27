@@ -2,19 +2,19 @@ import pandas as pd
 import numpy as np
 from ROOT import TFile, TGraphErrors, TMultiGraph
 
-# channel = 10403
-channel = 10441
+channel = 10403
+# channel = 10441
 # channel = 10903
 # channel = 10945
 # channel = 11121
 # channel = 11221
-merged = True
+merged = False
 if merged:
     merged = "_merged"
 else:
     merged = ""
-result_file = f"~/CERN/PDHD/Self_trigger/analysis/Ch_{channel}/SelfTrigger_Results_Ch_{channel}{merged}.csv"
-out_file_name = f"~/PhD/plotter/projects/NP04_PDS_article/SelfTrigger/SelfTrigger_Results_Graphs_Ch_{channel}{merged}.root"
+result_file = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/Ch_{channel}{merged}/SelfTrigger_Results_Ch_{channel}{merged}.csv"
+out_file_name = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/SelfTrigger_Results_Ch_{channel}{merged}.root"
 # result_file   = f"~/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/Ch_10403/SelfTrigger_Results_Ch_{channel}.csv"
 # out_file_name = f"~/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/SelfTrigger_Results_Graphs_Ch_{channel}{merged}.root"
 
@@ -131,6 +131,7 @@ def g_normalize_trigger_rate_2pe(g_trigger_rate):
 if __name__ == "__main__":
 
     df_result = pd.read_csv(result_file, sep=",")
+    print(df_result.head(5))
     out_root_file = TFile(out_file_name, "RECREATE")
     out_root_file.cd()
 
@@ -138,7 +139,7 @@ if __name__ == "__main__":
     identifier = "LED"
     its = df_result[identifier].to_numpy(dtype=int)
     its = np.unique(its)
-    if merged:
+    if merged == "_merged":
         identifier = "SiPMChannel"
         its = df_result[identifier].to_numpy(dtype=int)
         its = np.unique(its)

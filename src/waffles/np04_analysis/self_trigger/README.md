@@ -36,7 +36,6 @@ and the calibration results in `./configs/SelfTrigger_Calibration.csv`.
 + *STEP 2:* run `ana_self_trigger.py` to perform trigger efficiency studies.
 + *STEP 3:* run `jitter.py` to perform time resolution studies.
 + *STEP 4:* run `result_analyzer.py` and `jitter_analyzer.py` to plot create meaningful plots and store them in ROOT files.
-the results in ROOT TGraphs.
 
 ### I would have loved to, but I never...
 I would have loved to do more accurate analysis using also non-LED-illuminated channels to perform deadtim studies

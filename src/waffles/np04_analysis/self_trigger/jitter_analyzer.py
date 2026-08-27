@@ -2,13 +2,14 @@ import pandas as pd
 import numpy as np
 from ROOT import TFile, TGraphErrors
 
+channel = 10403
 # channel = 10441
 # channel = 10903
 # channel = 10945
-channel = 11121
+# channel = 11121
 # channel = 11221
-result_file = f"~/CERN/PDHD/Self_trigger/analysis/Jitter_Ch_{channel}.csv"
-out_file_name = f"~/PhD/plotter/projects/NP04_PDS_article/SelfTrigger/Jitter_Results_Ch_{channel}.root"
+result_file = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/Jitter_Ch_{channel}.csv"
+out_file_name = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/Jitter_Results_Ch_{channel}.root"
 
 if __name__ == "__main__":
 

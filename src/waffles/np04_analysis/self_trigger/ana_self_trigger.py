@@ -116,6 +116,8 @@ if __name__ == "__main__":
         st.create_efficiency_histos()
         st.fit_efficiency()
 
+        effnpem1, errup_effnpem1, errlow_eff_npem1    = get_efficiency_at(st.he_STEfficiency_quantized,npe_of_interest-1)
+        eff_fitm1, err_eff_fitm1, up_errm1, low_errm1 = st.get_efficiency_at_fit(npe_of_interest-1)
         effnpe, errup_eff_npe, errlow_eff_npe         = get_efficiency_at(st.he_STEfficiency_quantized, npe_of_interest)
         eff_fit, err_eff_fit, up_err, low_err         = st.get_efficiency_at_fit(npe_of_interest)
         effnpep1, errup_effnpep1, errlow_eff_npep1    = get_efficiency_at(st.he_STEfficiency_quantized,npe_of_interest+1)
@@ -147,6 +149,14 @@ if __name__ == "__main__":
             "TwentyEffPoint": st.twenty,
             "ErrTwentyEffPoint": 0.01,
             "Chi2NDF": st.chi2ndf,
+            f"EffAt{npe_of_interest-1}PE": effnpem1,
+            f"ErrEffAt{npe_of_interest-1}PE": (errup_effnpem1 + errlow_eff_npem1)/2,
+            f"UpErrEffAt{npe_of_interest-1}PE": errup_effnpem1,
+            f"LowErrEffAt{npe_of_interest-1}PE": errlow_eff_npem1,
+            f"EffAt{npe_of_interest-1}PEFit": eff_fitm1,
+            f"ErrEffAt{npe_of_interest-1}PEFit": err_eff_fitm1,
+            f"UpErrEffAt{npe_of_interest-1}PEFit": up_errm1,
+            f"LowErrEffAt{npe_of_interest-1}PEFit": low_errm1,
             f"EffAt{npe_of_interest}PE": effnpe,
             f"ErrEffAt{npe_of_interest}PE": (errup_eff_npe + errlow_eff_npe)/2,
             f"UpErrEffAt{npe_of_interest}PE": errup_eff_npe,
