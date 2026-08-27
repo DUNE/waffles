@@ -110,14 +110,14 @@ if __name__ == "__main__":
             out_df_rows.append({
                                "Threshold": threshold,
                                "PE": nspe,
-                               "MeanTrgPos"   : st.f_STpeak.GetParameter(1),
-                               "ErrMeanTrgPos": st.f_STpeak.GetParError(1),
-                               "SigmaTrg"     : st.f_STpeak.GetParameter(2),
-                               "ErrSigmaTrg"  : st.f_STpeak.GetParError(2),
+                               "MeanTrgPos"   : st.f_STpeak.GetParameter(1) if fit_ok else float('nan'), 
+                               "ErrMeanTrgPos": st.f_STpeak.GetParError(1)  if fit_ok else float('nan'),
+                               "SigmaTrg"     : st.f_STpeak.GetParameter(2) if fit_ok else float('nan'),
+                               "ErrSigmaTrg"  : st.f_STpeak.GetParError(2)  if fit_ok else float('nan'),
                                "FitOK": fit_ok,
                                "IntegralTrg": st.f_STpeak.Integral(st.f_STpeak.GetParameter(1) - 3 * st.f_STpeak.GetParameter(2),
                                                                    st.f_STpeak.GetParameter(1) + 3 * st.f_STpeak.GetParameter(2),
-                                                                   1e-4),
+                                                                   1e-4) if fit_ok else float('nan'),
             })
 
     out_df = pd.DataFrame(out_df_rows)

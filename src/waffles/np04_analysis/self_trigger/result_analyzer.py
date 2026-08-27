@@ -1,22 +1,13 @@
 import pandas as pd
 import numpy as np
+import yaml
 from ROOT import TFile, TGraphErrors, TMultiGraph
 
-channel = 10403
-# channel = 10441
-# channel = 10903
-# channel = 10945
-# channel = 11121
-# channel = 11221
-merged = False
+merged = True
 if merged:
     merged = "_merged"
 else:
     merged = ""
-result_file = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/Ch_{channel}{merged}/SelfTrigger_Results_Ch_{channel}{merged}.csv"
-out_file_name = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/SelfTrigger_Results_Ch_{channel}{merged}.root"
-# result_file   = f"~/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/Ch_10403/SelfTrigger_Results_Ch_{channel}.csv"
-# out_file_name = f"~/CERN/M1/cb_nov_24/cb/Daphne_DAQ/SelfTrigger/SelfTrigger_Results_Graphs_Ch_{channel}{merged}.root"
 
 def column_where_to_array(df, column_name, condition_column, condition_value):
     """
@@ -129,9 +120,19 @@ def g_normalize_trigger_rate_2pe(g_trigger_rate):
 
 
 if __name__ == "__main__":
+    with open("steering.yml", 'r') as stream:
+        steering_config = yaml.safe_load(stream)
+    params_file_name = steering_config.get("params_file", "params.yml")
 
+    with open(params_file_name, 'r') as stream:
+        user_config = yaml.safe_load(stream)
+    ana_folder       = user_config.get("ana_folder")
+    SiPM_channel     = user_config.get("SiPM_channel")
+    
+    result_file = ana_folder+"Ch_"+str(SiPM_channel)+"/SelfTrigger_Results_Ch_"+str(SiPM_channel)+".csv"
     df_result = pd.read_csv(result_file, sep=",")
-    print(df_result.head(5))
+    
+    out_file_name = f"{ana_folder}SelfTrigger_Results_Graphs_Ch_{SiPM_channel}{merged}.root"
     out_root_file = TFile(out_file_name, "RECREATE")
     out_root_file.cd()
 
@@ -139,7 +140,7 @@ if __name__ == "__main__":
     identifier = "LED"
     its = df_result[identifier].to_numpy(dtype=int)
     its = np.unique(its)
-    if merged == "_merged":
+    if merged:
         identifier = "SiPMChannel"
         its = df_result[identifier].to_numpy(dtype=int)
         its = np.unique(its)
@@ -152,8 +153,10 @@ if __name__ == "__main__":
     gm_10to90_ThrCal = TMultiGraph("gm_10to90_ThrCal", "10 to 90% Window Upper Edge vs Threshold Set;Threshold Set [a.u.];10 to 90% Window Upper Edge [p.e.]")
     gm_10to90Fit_ThrCal = TMultiGraph("gm_10to90Fit_ThrCal", "10 to 90% Window Upper Edge Fit vs Threshold Set;Threshold Set [a.u.];10 to 90% Window Upper Edge Fit [p.e.]")
     gm_fifty_ThrCal = TMultiGraph("gm_fifty_ThrCal", "Fifty vs Threshold Set;Threshold Set [a.u.];Fifty [p.e.]")
+    gm_effAt1pe_ThrCal = TMultiGraph("gm_effAt1pe_ThrCal", "Efficiency at 1 PE vs Threshold Set;Threshold Set [a.u.];Efficiency at 1 PE [%]")
     gm_effAt2pe_ThrCal = TMultiGraph("gm_effAt2pe_ThrCal", "Efficiency at 2 PE vs Threshold Set;Threshold Set [a.u.];Efficiency at 2 PE [%]")
     gm_effAt3pe_ThrCal = TMultiGraph("gm_effAt3pe_ThrCal", "Efficiency at 3 PE vs Threshold Set;Threshold Set [a.u.];Efficiency at 3 PE [%]")
+    gm_effAt1peFit_ThrCal = TMultiGraph("gm_effAt1peFit_ThrCal", "Efficiency at 1 PE Fit vs Threshold Set;Threshold Set [a.u.];Efficiency at 1 PE Fit [%]")
     gm_effAt2peFit_ThrCal = TMultiGraph("gm_effAt2peFit_ThrCal", "Efficiency at 2 PE Fit vs Threshold Set;Threshold Set [a.u.];Efficiency at 2 PE Fit [%]")
     gm_effAt3peFit_ThrCal = TMultiGraph("gm_effAt3peFit_ThrCal", "Efficiency at 3 PE Fit vs Threshold Set;Threshold Set [a.u.];Efficiency at 3 PE Fit [%]")
 
@@ -199,6 +202,12 @@ if __name__ == "__main__":
             g_fifty_ThrCal.Write()
             gm_fifty_ThrCal.Add(g_fifty_ThrCal)
 
+        # Efficiency at 1 PE vs FiftyCalibrated
+        g_effAt1pe_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt1PE", None, "ErrEffAt1PE", f"g_effAt1pe_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 1 PE [%]")
+        if not g_effAt1pe_ThrCal == None:
+            g_effAt1pe_ThrCal.Write()
+            gm_effAt1pe_ThrCal.Add(g_effAt1pe_ThrCal)
+
         # Efficiency at 2 PE vs FiftyCalibrated
         g_effAt2pe_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt2PE", None, "ErrEffAt2PE", f"g_effAt2pe_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 2 PE [%]")
         if not g_effAt2pe_ThrCal == None:
@@ -210,6 +219,11 @@ if __name__ == "__main__":
         if not g_effAt3pe_ThrCal == None:
             g_effAt3pe_ThrCal.Write()
             gm_effAt3pe_ThrCal.Add(g_effAt3pe_ThrCal)
+
+        g_effAt1peFit_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt1PEFit", None, "ErrEffAt1PEFit", f"g_effAt1peFit_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 1 PE Fit [%]")
+        if not g_effAt1peFit_ThrCal == None:
+            g_effAt1peFit_ThrCal.Write()
+            gm_effAt1peFit_ThrCal.Add(g_effAt1peFit_ThrCal)
 
         # Efficiency at 2 PE Fit vs FiftyCalibrated
         g_effAt2peFit_ThrCal = dataframe_columns_to_tgraph(df_result, identifier, it, "FiftyCalibrated", "EffAt2PEFit", None, "ErrEffAt2PEFit", f"g_effAt2peFit_ThrCal_it_{it}", "Threshold Set [a.u.]", "Efficiency at 2 PE Fit [%]")
@@ -233,8 +247,10 @@ if __name__ == "__main__":
         gm_10to90_ThrCal.Write()
         gm_10to90Fit_ThrCal.Write()
         gm_fifty_ThrCal.Write()
+        gm_effAt1pe_ThrCal.Write()
         gm_effAt2pe_ThrCal.Write()
         gm_effAt3pe_ThrCal.Write()
+        gm_effAt1peFit_ThrCal.Write()
         gm_effAt2peFit_ThrCal.Write()
         gm_effAt3peFit_ThrCal.Write()
 

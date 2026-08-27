@@ -213,6 +213,10 @@ class SelfTrigger:
                         self.window_low = x_second_peak - i
                         break
 
+        # If less than 100 between window_low and window_up or y_hST_max<10, then we don't have enough statistics to fit the distribution: return
+        if self.h_st.Integral(self.window_low, self.window_up) < 100 or y_hST_max < 10:
+            print(f"Not enough statistics to fit the self-trigger distribution: {self.h_st.Integral(self.window_low, self.window_up)} counts between {self.window_low} and {self.window_up}, maximum bin content {y_hST_max}")
+            return (self.h_st, False)
 
         right_peak_candidate = False
         # Right scan

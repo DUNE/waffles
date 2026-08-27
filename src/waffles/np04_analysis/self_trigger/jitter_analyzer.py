@@ -1,17 +1,22 @@
 import pandas as pd
 import numpy as np
+import yaml
 from ROOT import TFile, TGraphErrors
 
-channel = 10403
-# channel = 10441
-# channel = 10903
-# channel = 10945
-# channel = 11121
-# channel = 11221
-result_file = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/Jitter_Ch_{channel}.csv"
-out_file_name = f"/eos/home-f/fegalizz/ColdBox_VD/December24/Daphne_DAQ/SelfTrigger/ana/Jitter_Results_Ch_{channel}.root"
-
 if __name__ == "__main__":
+    with open("steering.yml", 'r') as stream:
+        steering_config = yaml.safe_load(stream)
+    params_file_name = steering_config.get("params_file", "params.yml")
+
+    with open(params_file_name, 'r') as stream:
+        user_config = yaml.safe_load(stream)
+    ana_folder       = user_config.get("ana_folder")
+    SiPM_channel     = user_config.get("SiPM_channel")
+    
+    result_file = f"{ana_folder}Jitter_Ch_{SiPM_channel}.csv"
+    df_result = pd.read_csv(result_file, sep=",")
+    
+    out_file_name = f"{ana_folder}Jitter_Results_Ch_{SiPM_channel}.root"
 
     df_result = pd.read_csv(result_file, sep=",")
     df_result = df_result[df_result["IntegralTrg"] > 500]
@@ -38,17 +43,35 @@ if __name__ == "__main__":
         g_SigmaTrg_PE.GetYaxis().SetTitle("Sigma Trigger [ticks]")
         g_SigmaTrg_PE.Write()
 
+        # MeanTrgPos vs PE
+        mean_trg_pos = np.array(df_result[df_result["Threshold"] == thr]["MeanTrgPos"], dtype=float)
+        err_mean_trg_pos = np.array(df_result[df_result["Threshold"] == thr]["ErrMeanTrgPos"], dtype=float)
+        
+        g_MeanTrgPos_PE = TGraphErrors(len(pe), pe, mean_trg_pos, err_zeros, err_mean_trg_pos)
+        g_MeanTrgPos_PE.SetName(f"g_MeanTrgPos_PE_Thr_{thr}")
+        g_MeanTrgPos_PE.SetTitle(f"g_MeanTrgPos_PE_Thr_{thr}")
+        g_MeanTrgPos_PE.GetXaxis().SetTitle("PE")
+        g_MeanTrgPos_PE.GetYaxis().SetTitle("Mean Trigger Position [ticks]")
+        g_MeanTrgPos_PE.Write()
+
     # Take the "PE" columns and convert it in a numpy array of unique values
     pe = np.array(df_result["PE"], dtype=float)
     pe = np.unique(pe)
     err_zeros = np.zeros_like(pe, dtype=float)
-    # For each pe value, take the mean of the SigmaTrg and compute the standard deviation
+    # For each pe value, take the mean of the SigmaTrg and MeanTrgPos, then compute their standard deviation
     mean_sigma_trg = []
     std_sigma_trg = []
+    mean_mean_trg_pos = []
+    std_mean_trg_pos = []
     for p in pe:
         sigma_trg = np.array(df_result[df_result["PE"] == p]["SigmaTrg"], dtype=float)
         mean_sigma_trg.append(np.mean(sigma_trg))
         std_sigma_trg.append(np.std(sigma_trg))
+
+        mean_trg_pos = np.array(df_result[df_result["PE"] == p]["MeanTrgPos"], dtype=float)
+        mean_mean_trg_pos.append(np.mean(mean_trg_pos))
+        std_mean_trg_pos.append(np.std(mean_trg_pos))
+        
 
     g_SigmaTrg_PE_mean = TGraphErrors(len(pe), pe, np.array(mean_sigma_trg), err_zeros, np.array(std_sigma_trg))
     g_SigmaTrg_PE_mean.SetName(f"g_SigmaTrg_PE_Mean")
@@ -56,5 +79,12 @@ if __name__ == "__main__":
     g_SigmaTrg_PE_mean.GetXaxis().SetTitle("PE")
     g_SigmaTrg_PE_mean.GetYaxis().SetTitle("Sigma Trigger [ticks]")
     g_SigmaTrg_PE_mean.Write()
+
+    g_MeanTrgPos_PE_mean = TGraphErrors(len(pe), pe, np.array(mean_mean_trg_pos), err_zeros, np.array(std_mean_trg_pos))
+    g_MeanTrgPos_PE_mean.SetName(f"g_MeanTrgPos_PE_Mean")
+    g_MeanTrgPos_PE_mean.SetTitle(f"g_MeanTrgPos_PE_Mean")
+    g_MeanTrgPos_PE_mean.GetXaxis().SetTitle("PE")
+    g_MeanTrgPos_PE_mean.GetYaxis().SetTitle("Mean Trigger Position [ticks]")
+    g_MeanTrgPos_PE_mean.Write()
 
     out_root_file.Close()
