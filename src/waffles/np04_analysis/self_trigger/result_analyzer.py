@@ -123,16 +123,18 @@ if __name__ == "__main__":
     with open("steering.yml", 'r') as stream:
         steering_config = yaml.safe_load(stream)
     params_file_name = steering_config.get("params_file", "params.yml")
+    ana_folder       = steering_config.get("ana_folder")
+    run_by_run       = steering_config.get("run_by_run", False)
+    merged_string = "" if run_by_run else "_merged" 
 
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
-    ana_folder       = user_config.get("ana_folder")
     SiPM_channel     = user_config.get("SiPM_channel")
     
-    result_file = ana_folder+"Ch_"+str(SiPM_channel)+"/SelfTrigger_Results_Ch_"+str(SiPM_channel)+".csv"
+    result_file = f"{ana_folder}Ch_{SiPM_channel}{merged_string}/SelfTrigger_Results_Ch_{SiPM_channel}{merged_string}.csv"
     df_result = pd.read_csv(result_file, sep=",")
     
-    out_file_name = f"{ana_folder}SelfTrigger_Results_Graphs_Ch_{SiPM_channel}{merged}.root"
+    out_file_name = f"{ana_folder}SelfTrigger_Results_Graphs_Ch_{SiPM_channel}{merged_string}.root"
     out_root_file = TFile(out_file_name, "RECREATE")
     out_root_file.cd()
 

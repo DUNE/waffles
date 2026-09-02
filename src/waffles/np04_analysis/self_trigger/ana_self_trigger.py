@@ -214,7 +214,6 @@ if __name__ == "__main__":
         out_df_filename += "_merged"
     if not chi2cut:
         print("\n\nWarning: Less than 5 points left after Chi2NDF cut. Using all points for calibration.\n\n")
-        out_df_filename += "_NoChi2cut"
-        os.rename(out_root_file_name+".root", out_root_file_name+"_NoChi2cut.root")
+        os.rename(out_root_file_name+".root", out_root_file_name+".root")
     
     out_df.to_csv(out_df_filename+".csv", index=False)

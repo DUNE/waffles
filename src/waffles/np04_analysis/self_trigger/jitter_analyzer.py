@@ -7,10 +7,10 @@ if __name__ == "__main__":
     with open("steering.yml", 'r') as stream:
         steering_config = yaml.safe_load(stream)
     params_file_name = steering_config.get("params_file", "params.yml")
+    ana_folder       = steering_config.get("ana_folder")
 
     with open(params_file_name, 'r') as stream:
         user_config = yaml.safe_load(stream)
-    ana_folder       = user_config.get("ana_folder")
     SiPM_channel     = user_config.get("SiPM_channel")
     
     result_file = f"{ana_folder}Jitter_Ch_{SiPM_channel}.csv"
