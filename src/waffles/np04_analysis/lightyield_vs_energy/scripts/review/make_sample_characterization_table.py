@@ -205,6 +205,18 @@ def formatted_range(mean, std, minimum, maximum, integer_range=False):
     )
 
 
+def latex_formatted_range(mean, std, minimum, maximum, integer_range=False):
+    """Stessa formattazione, usando comandi siunitx e intervallo [min,max]."""
+    decimals = rounding_decimals(std)
+    minimum_text = f"{minimum:.0f}" if integer_range else rounded_text(minimum, decimals)
+    maximum_text = f"{maximum:.0f}" if integer_range else rounded_text(maximum, decimals)
+    return (
+        rf"$\num{{{rounded_text(mean, decimals)}}}\pm"
+        rf"\num{{{rounded_text(std, decimals)}}}\,["
+        rf"\num{{{minimum_text}}},\num{{{maximum_text}}}]$"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input-dir", type=Path, required=True)
@@ -391,11 +403,38 @@ def main():
         "| " + " | ".join(header) + " |",
         "|---:|---:|---:|---:|---:|---:|",
     ]
+    if args.block == "0_to_10":
+        latex_subsample = "the first ten input files"
+    else:
+        latex_block = args.block.replace("_", r"\_")
+        latex_subsample = rf"the \texttt{{{latex_block}}} input-file block"
+
     tex_lines = [
-        r"\begin{tabular}{rrrrrr}",
-        r"\hline",
-        "Momento & Canali con WF APA 1 / trigger & Canali ST APA 2 / trigger & Media PE/canale APA 1 & Media PE/canale APA 2 & FS senza APA 2 \\\\",
-        r"\hline",
+        r"% Required packages: booktabs, multirow, makecell, graphicx, siunitx, glossaries",
+        r"\begin{table}[htbp]",
+        r"\centering",
+        r"\caption{%",
+        rf"Characterization of the \gls{{pds}} subsample obtained from {latex_subsample} at each beam \gls{{momentum}}.",
+        r"For triggers with matched \gls{apa}~1 \gls{fs} and \gls{apa}~2 \gls{st} information, the table reports the number of distinct channels with an associated \gls{waveform} and the mean \gls{pe} response per contributing channel.",
+        r"The \gls{apa}~1-only fraction is the percentage of \gls{fs} event identities without an associated \gls{apa}~2 \gls{st} \gls{waveform}.",
+        r"Values are reported as $\mu\pm\sigma\,[\min,\max]$, where $\mu$ and $\sigma$ are the mean and population standard deviation across triggers.",
+        r"The \gls{pe} averages include only channels with an available template and a valid fit; noisy channels without a reliable template are excluded.",
+        r"No particle-species selection is applied.",
+        r"}",
+        r"\label{tab:pds_fs_st_sample_characterization}",
+        r"\resizebox{\textwidth}{!}{%",
+        r"\begin{tabular}{c c c c c c}",
+        r"\toprule",
+        r"\multirow{2}{*}{Beam \gls{momentum} [\si{\GeV/c}]} &",
+        r"\multicolumn{3}{c}{\gls{apa}~1} &",
+        r"\multicolumn{2}{c}{\gls{apa}~2} \\",
+        r"\cmidrule(lr){2-4}\cmidrule(lr){5-6}",
+        r"& \makecell{Channels with a\\\gls{waveform} per trigger}",
+        r"& \makecell{Mean \gls{pe}\\per channel}",
+        r"& \makecell{\gls{apa}~1-only\\triggers [\si{\percent}]}",
+        r"& \makecell{Channels with a\\\gls{waveform} per trigger}",
+        r"& \makecell{Mean \gls{pe}\\per channel} \\",
+        r"\midrule",
     ]
     for row in results:
         cells = [
@@ -423,9 +462,37 @@ def main():
             f"{row['fs_without_st_percent']:.1f}%",
         ]
         md_lines.append("| " + " | ".join(cells) + " |")
-        tex_cells = [cell.replace("±", r"$\pm$").replace("%", r"\%") for cell in cells]
+        tex_cells = [
+            rf"\num{{{row['momentum_GeV_c']}}}",
+            latex_formatted_range(
+                row["apa1_unique_channels_per_paired_trigger_mean"],
+                row["apa1_unique_channels_per_paired_trigger_population_std"],
+                row["apa1_unique_channels_per_paired_trigger_minimum"],
+                row["apa1_unique_channels_per_paired_trigger_maximum"], integer_range=True),
+            latex_formatted_range(
+                row["apa1_mean_pe_across_triggers"],
+                row["apa1_mean_pe_across_triggers_population_std"],
+                row["apa1_mean_pe_across_triggers_minimum"],
+                row["apa1_mean_pe_across_triggers_maximum"]),
+            rf"\num{{{row['fs_without_st_percent']:.1f}}}",
+            latex_formatted_range(
+                row["apa2_unique_channels_per_paired_trigger_mean"],
+                row["apa2_unique_channels_per_paired_trigger_population_std"],
+                row["apa2_unique_channels_per_paired_trigger_minimum"],
+                row["apa2_unique_channels_per_paired_trigger_maximum"], integer_range=True),
+            latex_formatted_range(
+                row["apa2_mean_pe_across_triggers"],
+                row["apa2_mean_pe_across_triggers_population_std"],
+                row["apa2_mean_pe_across_triggers_minimum"],
+                row["apa2_mean_pe_across_triggers_maximum"]),
+        ]
         tex_lines.append(" & ".join(tex_cells) + " \\\\")
-    tex_lines += [r"\hline", r"\end{tabular}"]
+    tex_lines += [
+        r"\bottomrule",
+        r"\end{tabular}%",
+        r"}",
+        r"\end{table}",
+    ]
     note = (
         f"Blocco analizzato per ogni momento: {args.block}. Le prime quattro quantità sono "
         "calcolate sui trigger associati FS–ST; la percentuale usa tutte le identità evento FS. "
@@ -434,7 +501,7 @@ def main():
     (args.output_dir / "sample_characterization_table.md").write_text(
         "\n".join(md_lines) + "\n\n" + note + "\n", encoding="utf-8")
     (args.output_dir / "sample_characterization_table.tex").write_text(
-        "\n".join(tex_lines) + "\n% " + note + "\n", encoding="utf-8")
+        "\n".join(tex_lines) + "\n", encoding="utf-8")
 
     created = datetime.now(timezone.utc)
     manifest = {
