@@ -12,14 +12,15 @@ INPUT
     --input-file: apa12_trigger_data.csv prodotto da
     prepare_apa12_trigger_data.py.
     --momenta: momenti da rappresentare (default: 1 2 3 5 7 GeV/c).
-    --output-dir: nuova cartella per risultati e figure; non viene sovrascritta.
+    --output-dir: cartella per risultati e figure. Può essere riutilizzata:
+    vengono sovrascritti soltanto gli output appartenenti a questo script.
     Per l'istogramma di ciascuna APA sono usate tutte le righe con la relativa
     media valida. Per lo scatter sono usate soltanto le righe both_apa_valid=1.
 
 OUTPUT
-    apa1_hist_<momento>GeV.png e .pdf: distribuzione di APA 1;
-    apa2_hist_<momento>GeV.png e .pdf: distribuzione di APA 2;
-    apa12_pe_distribution_<momento>GeV.png e .pdf: scatter trigger per trigger;
+    apa1_hist_<momento>GeV.png: distribuzione di APA 1;
+    apa2_hist_<momento>GeV.png: distribuzione di APA 2;
+    apa12_pe_distribution_<momento>GeV.png: scatter trigger per trigger;
     plot_summary.csv: conteggi e statistiche descrittive;
     histogram_bins.json: bordi esatti dei bin;
     anomalies.csv: incoerenze del dataset di input;
@@ -27,6 +28,8 @@ OUTPUT
     manifest.json: configurazione, versioni e SHA-256 dell'input.
     I bin sono determinati separatamente con la regola di Freedman–Diaconis e
     non devono essere interpretati come intervalli di fit.
+    Le vecchie figure PNG/PDF prodotte da questo script vengono rimosse prima
+    di scrivere i nuovi risultati; eventuali altri file non vengono toccati.
     Codice di uscita: 0 = figure create; 2 = errore, figure non create.
 
 ESECUZIONE (dalla cartella scripts/review su LXPlus)
@@ -82,6 +85,8 @@ SUMMARY_FIELDS = [
     "apa1_p99",
     "apa1_maximum",
     "apa1_histogram_bins",
+    "apa1_display_maximum",
+    "apa1_entries_above_display_maximum",
     "apa2_minimum",
     "apa2_p01",
     "apa2_p05",
@@ -92,6 +97,8 @@ SUMMARY_FIELDS = [
     "apa2_p99",
     "apa2_maximum",
     "apa2_histogram_bins",
+    "apa2_display_maximum",
+    "apa2_entries_above_display_maximum",
     "pearson_r",
 ]
 
@@ -112,6 +119,32 @@ def write_csv(path, fields, rows):
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def clear_owned_outputs(output_dir):
+    """Rimuove soltanto file prodotti da questo script in esecuzioni precedenti."""
+    static_names = (
+        "plot_summary.csv",
+        "histogram_bins.json",
+        "anomalies.csv",
+        "report.txt",
+        "manifest.json",
+    )
+    for name in static_names:
+        path = output_dir / name
+        if path.is_file():
+            path.unlink()
+    for momentum in (1, 2, 3, 5, 7):
+        for stem in (
+            f"apa1_hist_{momentum}GeV",
+            f"apa2_hist_{momentum}GeV",
+            f"apa12_pe_distribution_{momentum}GeV",
+            f"diagnostic_{momentum}GeV",
+        ):
+            for suffix in (".png", ".pdf"):
+                path = output_dir / f"{stem}{suffix}"
+                if path.is_file():
+                    path.unlink()
 
 
 def parse_flag(raw):
@@ -251,6 +284,22 @@ def histogram_edges(values, np):
     return np.array([center - half_width, center + half_width], dtype=float)
 
 
+def display_maximum(values, np):
+    """Limite grafico robusto; non modifica né seleziona i dati analizzati."""
+    q1, q3 = np.percentile(values, [25, 75])
+    iqr = q3 - q1
+    if iqr > 0:
+        far_out_fence = q3 + 5.0 * iqr
+        candidate = max(float(np.percentile(values, 99)), float(far_out_fence))
+    else:
+        candidate = float(np.max(values))
+    maximum = float(np.max(values))
+    if maximum <= candidate:
+        return maximum * 1.03 if maximum > 0 else 1.0, 0
+    limit = candidate * 1.03
+    return limit, int(np.count_nonzero(values > limit))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -268,8 +317,8 @@ def main():
 
     if not args.input_file.is_file():
         parser.error(f"File input inesistente: {args.input_file}")
-    if args.output_dir.exists():
-        parser.error(f"La cartella output esiste già: {args.output_dir}")
+    if args.output_dir.exists() and not args.output_dir.is_dir():
+        parser.error(f"Il percorso output esiste ma non è una cartella: {args.output_dir}")
 
     try:
         import matplotlib
@@ -317,6 +366,8 @@ def main():
 
             edges1 = histogram_edges(apa1, np)
             edges2 = histogram_edges(apa2, np)
+            display_max1, above_display1 = display_maximum(apa1, np)
+            display_max2, above_display2 = display_maximum(apa2, np)
             stats1 = descriptive(apa1, np)
             stats2 = descriptive(apa2, np)
             if len(paired) > 1 and np.std(paired_apa1) > 0 and np.std(paired_apa2) > 0:
@@ -332,6 +383,10 @@ def main():
                 "scatter_entries": len(paired),
                 "apa1_histogram_bins": len(edges1) - 1,
                 "apa2_histogram_bins": len(edges2) - 1,
+                "apa1_display_maximum": display_max1,
+                "apa1_entries_above_display_maximum": above_display1,
+                "apa2_display_maximum": display_max2,
+                "apa2_entries_above_display_maximum": above_display2,
                 "pearson_r": pearson,
             }
             for key, value in stats1.items():
@@ -343,21 +398,27 @@ def main():
                 "apa1": [float(value) for value in edges1],
                 "apa2": [float(value) for value in edges2],
             }
-            prepared[momentum] = (apa1, apa2, paired_apa1, paired_apa2,
-                                  edges1, edges2, pearson)
+            prepared[momentum] = (
+                apa1, apa2, paired_apa1, paired_apa2, edges1, edges2, pearson,
+                display_max1, display_max2, above_display1, above_display2,
+            )
 
     errors = sum(item["severity"] == "error" for item in anomalies)
-    args.output_dir.mkdir(parents=True, exist_ok=False)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    clear_owned_outputs(args.output_dir)
     write_csv(args.output_dir / "anomalies.csv", ANOMALY_FIELDS, anomalies)
 
     if not errors:
         plt.rcParams.update({
             "font.size": 11,
-            "axes.titlesize": 12,
-            "axes.labelsize": 11,
+            "axes.titlesize": 14,
+            "axes.labelsize": 13,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
             "legend.fontsize": 10,
             "figure.dpi": 150,
             "savefig.dpi": 300,
+            "axes.linewidth": 1.0,
         })
         def add_preliminary_label(axis):
             axis.text(
@@ -372,13 +433,21 @@ def main():
 
         def save_figure(fig, stem):
             fig.savefig(stem.with_suffix(".png"), dpi=300, bbox_inches="tight")
-            fig.savefig(stem.with_suffix(".pdf"), bbox_inches="tight")
             plt.close(fig)
 
-        for momentum in args.momenta:
-            apa1, apa2, paired1, paired2, edges1, edges2, pearson = prepared[momentum]
+        def finish_axis(axis, grid_axis="y"):
+            axis.tick_params(direction="in", which="both", top=True, right=True)
+            axis.grid(
+                True, axis=grid_axis, linestyle="--", linewidth=0.5, alpha=0.35
+            )
 
-            fig, axis = plt.subplots(figsize=(10, 5))
+        for momentum in args.momenta:
+            (
+                apa1, apa2, paired1, paired2, edges1, edges2, pearson,
+                display_max1, display_max2, above_display1, above_display2,
+            ) = prepared[momentum]
+
+            fig, axis = plt.subplots(figsize=(9, 5.2))
             axis.hist(
                 apa1,
                 bins=edges1,
@@ -386,21 +455,30 @@ def main():
                 alpha=0.7,
                 edgecolor="black",
                 linewidth=0.5,
+                histtype="stepfilled",
                 label=f"{len(apa1)} triggers",
             )
-            axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle$ on APA 1")
-            axis.set_ylabel("Counts")
+            axis.set_xlim(0, display_max1)
+            axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$")
+            axis.set_ylabel("Triggers / bin")
             axis.set_title(
                 rf"Photoelectron distribution — APA 1 — $p_{{\rm beam}}={momentum}$ GeV/$c$"
             )
-            axis.xaxis.set_major_locator(ticker.MultipleLocator(50))
-            axis.grid(True, linestyle="--", linewidth=0.5, alpha=0.5)
-            axis.legend(loc="upper left")
+            axis.xaxis.set_major_locator(ticker.MaxNLocator(nbins=9, min_n_ticks=5))
+            axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=8, integer=True))
+            finish_axis(axis)
+            axis.legend(loc="upper left", frameon=False)
             add_preliminary_label(axis)
+            if above_display1:
+                axis.text(
+                    0.98, 0.86,
+                    f"{above_display1} triggers above displayed range",
+                    transform=axis.transAxes, ha="right", va="top", fontsize=9,
+                )
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa1_hist_{momentum}GeV")
 
-            fig, axis = plt.subplots(figsize=(10, 5))
+            fig, axis = plt.subplots(figsize=(9, 5.2))
             axis.hist(
                 apa2,
                 bins=edges2,
@@ -408,40 +486,51 @@ def main():
                 alpha=0.7,
                 edgecolor="black",
                 linewidth=0.5,
+                histtype="stepfilled",
                 label=f"{len(apa2)} triggers",
             )
-            axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle$ on APA 2")
-            axis.set_ylabel("Counts")
+            axis.set_xlim(0, display_max2)
+            axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,2}}$")
+            axis.set_ylabel("Triggers / bin")
             axis.set_title(
                 rf"Photoelectron distribution — APA 2 — $p_{{\rm beam}}={momentum}$ GeV/$c$"
             )
-            axis.xaxis.set_major_locator(ticker.MultipleLocator(50))
-            axis.grid(True, linestyle="--", linewidth=0.5, alpha=0.5)
-            axis.legend(loc="upper left")
+            axis.xaxis.set_major_locator(ticker.MaxNLocator(nbins=9, min_n_ticks=5))
+            axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=8, integer=True))
+            finish_axis(axis)
+            axis.legend(loc="upper left", frameon=False)
             add_preliminary_label(axis)
+            if above_display2:
+                axis.text(
+                    0.98, 0.86,
+                    f"{above_display2} triggers above displayed range",
+                    transform=axis.transAxes, ha="right", va="top", fontsize=9,
+                )
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa2_hist_{momentum}GeV")
 
-            fig, axis = plt.subplots(figsize=(12, 4))
+            fig, axis = plt.subplots(figsize=(8, 6))
             axis.scatter(
                 paired1,
                 paired2,
                 c="dodgerblue",
-                s=7,
-                alpha=0.7,
+                s=8,
+                alpha=0.4,
                 edgecolors="none",
                 rasterized=True,
                 label=f"{len(paired1)} triggers",
             )
-            axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle$ on APA 1")
-            axis.set_ylabel(r"$\langle N_{\mathrm{PE}} \rangle$ on APA 2")
+            axis.set_xlim(0, display_max1)
+            axis.set_ylim(0, display_max2)
+            axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$")
+            axis.set_ylabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,2}}$")
             axis.set_title(
                 rf"APA 1–APA 2 photoelectron response — $p_{{\rm beam}}={momentum}$ GeV/$c$"
             )
-            axis.xaxis.set_major_locator(ticker.MultipleLocator(50))
-            axis.yaxis.set_major_locator(ticker.MultipleLocator(50))
-            axis.grid(True, linestyle="--", linewidth=0.5, alpha=0.5)
-            axis.legend(loc="upper left")
+            axis.xaxis.set_major_locator(ticker.MaxNLocator(nbins=8, min_n_ticks=5))
+            axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=8, min_n_ticks=5))
+            finish_axis(axis, grid_axis="both")
+            axis.legend(loc="upper left", frameon=False)
             axis.text(
                 0.98,
                 0.84,
@@ -450,6 +539,15 @@ def main():
                 ha="right",
                 va="top",
             )
+            paired_above_display = int(np.count_nonzero(
+                (paired1 > display_max1) | (paired2 > display_max2)
+            ))
+            if paired_above_display:
+                axis.text(
+                    0.98, 0.76,
+                    f"{paired_above_display} triggers outside displayed range",
+                    transform=axis.transAxes, ha="right", va="top", fontsize=9,
+                )
             add_preliminary_label(axis)
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa12_pe_distribution_{momentum}GeV")
@@ -472,8 +570,17 @@ def main():
             "output_dir": str(args.output_dir),
             "momenta": args.momenta,
             "histogram_binning": "Freedman-Diaconis, independently for each APA and momentum",
+            "display_range": (
+                "0 to max(99th percentile, Q3 + 5*IQR), with 3% upper margin; "
+                "the full sample remains in all calculations"
+            ),
             "cuts": "none",
             "fits": "none",
+            "figure_format": "PNG only",
+            "output_policy": (
+                "The output directory may be reused; only files owned by this script "
+                "are replaced. Legacy PDF outputs with the same stems are removed."
+            ),
         },
         "input": {
             "bytes": len(input_bytes),
@@ -519,7 +626,9 @@ def main():
         "COME LEGGERE LE FIGURE",
         "Gli istogrammi usano tutti i valori validi della rispettiva APA.",
         "Lo scatter usa soltanto trigger con entrambe le medie valide.",
-        "Gli assi mostrano l'intero intervallo dei dati: non sono rimossi outlier.",
+        "Tutti i dati sono conservati nelle statistiche; nessun outlier viene rimosso.",
+        "Il limite superiore mostrato è max(P99, Q3 + 5 IQR), con margine del 3%.",
+        "Gli eventi oltre il limite sono conservati e il loro numero è annotato nella figura.",
         "Il coefficiente di Pearson è descrittivo e non definisce una selezione.",
         "Il binning diagnostico non stabilisce il binning o l'intervallo del fit.",
         "A 1 GeV/c non viene assunta la presenza di due popolazioni separabili.",
