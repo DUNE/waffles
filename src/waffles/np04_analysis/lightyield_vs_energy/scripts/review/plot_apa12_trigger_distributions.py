@@ -7,9 +7,10 @@ SCOPO
     medie. Per 2, 3, 5 e 7 GeV/c adatta la distribuzione di APA 1 con la somma
     di una Langauss (popolazione muonica) e una Gaussiana (popolazione non
     muonica). La soglia candidata è l'intersezione delle due componenti tra il
-    massimo della Langauss e la media della Gaussiana. A 1 GeV/c il fit misto
-    non viene eseguito perché le popolazioni non sono separabili in modo
-    affidabile. Non applica la soglia agli eventi e non rimuove outlier.
+    massimo della Langauss e la media della Gaussiana. A 1 GeV/c esegue un fit
+    con una sola Gaussiana nell'intervallo 10--150 PE, senza interpretarlo come
+    separazione di popolazioni e senza ricavare una soglia. Non applica le
+    soglie agli eventi e non rimuove outlier.
 
 INPUT
     --input-file: apa12_trigger_data.csv prodotto da
@@ -25,8 +26,8 @@ OUTPUT
     apa1_hist_<momento>GeV.png: distribuzione di APA 1;
     apa2_hist_<momento>GeV.png: distribuzione di APA 2;
     apa12_pe_distribution_<momento>GeV.png: scatter trigger per trigger;
-    apa1_population_fit_<momento>GeV.png: fit Langauss + Gaussiana di APA 1
-    (solo 2, 3, 5 e 7 GeV/c);
+    apa1_population_fit_<momento>GeV.png: fit gaussiano di APA 1 a 1 GeV/c e
+    fit Langauss + Gaussiana a 2, 3, 5 e 7 GeV/c;
     apa1_population_fit_results.csv: parametri, incertezze statistiche locali,
     qualità del fit e intersezione delle componenti;
     plot_summary.csv: conteggi e statistiche descrittive;
@@ -37,8 +38,9 @@ OUTPUT
     report.txt: descrizione dei risultati e dei limiti;
     manifest.json: configurazione, versioni e SHA-256 dell'input.
     I bin diagnostici sono determinati con la regola di Freedman–Diaconis. I
-    fit usano larghezze fissate per momento e tutti i bin, inclusi quelli vuoti,
-    nell'intervallo robusto P0.5--P99.5 riportato negli output.
+    fit usano larghezze fissate per momento e tutti i bin, inclusi quelli vuoti.
+    A 1 GeV/c il range è 10--150 PE; per gli altri momenti è l'intervallo
+    robusto P0.5--P99.5 riportato negli output.
     Le vecchie figure PNG/PDF prodotte da questo script vengono rimosse prima
     di scrivere i nuovi risultati; eventuali altri file non vengono toccati.
     Codice di uscita: 0 = figure create; 2 = errore, figure non create.
@@ -149,6 +151,19 @@ EXTREME_FIELDS = [
 
 VALID_CATEGORIES = {"both_valid", "apa1_only", "apa2_only", "neither_valid"}
 
+# Palette Okabe--Ito: leggibile, sobria e distinguibile anche con deficit
+# comuni della visione dei colori.
+COLORS = {
+    "apa1": "#D55E00",
+    "apa2": "#0072B2",
+    "scatter": "#56B4E9",
+    "langauss": "#D55E00",
+    "gaussian": "#0072B2",
+    "intersection": "#CC79A7",
+    "total": "#222222",
+    "data": "#D9D9D9",
+}
+
 # Le larghezze e gli anchor riprendono la scala osservata nel programma storico.
 # L'anchor identifica le componenti durante il fit (MPV < anchor < media
 # gaussiana), ma non è la soglia finale: questa viene ricavata dall'intersezione.
@@ -160,7 +175,7 @@ FIT_CONFIGURATION = {
 }
 
 FIT_FIELDS = [
-    "momentum_GeV_c", "status", "message", "entries_total",
+    "momentum_GeV_c", "model", "status", "message", "entries_total",
     "entries_in_fit_range", "entries_below_fit_range", "entries_above_fit_range",
     "fit_minimum", "fit_maximum", "bin_width", "histogram_bins",
     "component_anchor", "mpv", "mpv_error", "eta", "eta_error",
@@ -170,7 +185,8 @@ FIT_FIELDS = [
     "gaussian_yield_error", "langauss_peak", "langauss_peak_error",
     "intersection", "intersection_error", "poisson_deviance", "ndf",
     "deviance_per_ndf", "deviance_p_value", "pearson_chi2",
-    "pearson_chi2_per_ndf", "optimizer_success", "optimizer_status",
+    "pearson_chi2_per_ndf", "r_squared", "langauss_integration_points",
+    "optimizer_success", "optimizer_status",
     "optimizer_attempts", "function_evaluations", "jacobian_rank",
     "covariance_valid", "parameters_near_bounds",
 ]
@@ -444,7 +460,209 @@ def poisson_deviance_residuals(observed, expected, np):
     return np.sign(observed - expected) * np.sqrt(np.maximum(2.0 * term, 0.0))
 
 
-def fit_apa1_population(values, momentum, np, lg, least_squares, chi2_distribution):
+def langauss_integration_points(eta, sigma):
+    """Passi sufficienti a risolvere la scala Landau nella convoluzione."""
+    if eta <= 0 or sigma <= 0:
+        return 0
+    return min(50000, max(400, int(math.ceil(120.0 * sigma / eta))))
+
+
+def stable_langauss_pdf(x, mpv, eta, sigma, np, landau):
+    """Convoluzione Landau--Gauss a midpoint, valutata a blocchi.
+
+    landaupy usa circa 3 punti per eta quando sigma >> eta; questa versione ne
+    usa almeno 12 ed evita le oscillazioni numeriche osservate a 3 GeV/c.
+    """
+    x_array = np.atleast_1d(np.asarray(x, dtype=float))
+    original_shape = x_array.shape
+    flat_x = x_array.reshape(-1)
+    n_points = langauss_integration_points(float(eta), float(sigma))
+    if n_points <= 0:
+        return np.full(original_shape, np.nan, dtype=float)
+
+    step = 10.0 * float(sigma) / n_points
+    offsets = -5.0 * float(sigma) + (np.arange(n_points) + 0.5) * step
+    gaussian_weights = np.exp(-0.5 * (offsets / sigma) ** 2)
+    gaussian_weights /= float(sigma) * math.sqrt(2.0 * math.pi)
+    result = np.empty_like(flat_x)
+    chunk_size = 64
+    for start in range(0, len(flat_x), chunk_size):
+        stop = min(start + chunk_size, len(flat_x))
+        convolution_axis = flat_x[None, start:stop] + offsets[:, None]
+        landau_values = np.asarray(
+            landau.pdf(
+                convolution_axis.reshape(-1),
+                float(mpv),
+                float(eta),
+            ),
+            dtype=float,
+        ).reshape(convolution_axis.shape)
+        result[start:stop] = step * np.sum(
+            landau_values * gaussian_weights[:, None], axis=0
+        )
+    return result.reshape(original_shape)
+
+
+def fit_apa1_gaussian(values, np, least_squares, chi2_distribution):
+    """Fit binned Poisson con una sola Gaussiana per il campione a 1 GeV/c."""
+    momentum = 1
+    width = 2.0
+    fit_minimum = 10.0
+    fit_maximum = 150.0
+    edges = np.arange(fit_minimum, fit_maximum + width, width, dtype=float)
+    observed, edges = np.histogram(values, bins=edges)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    in_range = (values >= edges[0]) & (values <= edges[-1])
+    sample = values[in_range]
+    if len(sample) < 20:
+        raise RuntimeError(
+            f"Campione insufficiente nel range 10--150 PE: {len(sample)} eventi."
+        )
+
+    q25, median, q75 = np.percentile(sample, [25, 50, 75])
+    robust_sigma = max(float((q75 - q25) / 1.349), width)
+    initial = np.asarray([float(median), robust_sigma, float(len(sample))])
+    lower_bounds = np.asarray([50.0, 5.0, 0.01])
+    upper_bounds = np.asarray([100.0, 25.0, float(len(values) * 10)])
+    initial = np.minimum(
+        np.maximum(initial, lower_bounds + 1.0e-6), upper_bounds - 1.0e-6
+    )
+
+    def gaussian_density(parameters, x):
+        mean, sigma, yield_g = parameters
+        density = np.exp(-0.5 * ((x - mean) / sigma) ** 2)
+        density /= sigma * math.sqrt(2.0 * math.pi)
+        return yield_g * density
+
+    def expected_counts(parameters):
+        return width * gaussian_density(parameters, centers)
+
+    def objective(parameters):
+        return poisson_deviance_residuals(observed, expected_counts(parameters), np)
+
+    starts = [initial]
+    for mean_start in (float(np.mean(sample)), float(median)):
+        for sigma_scale in (0.75, 1.0, 1.35):
+            candidate = initial.copy()
+            candidate[0] = mean_start
+            candidate[1] = robust_sigma * sigma_scale
+            starts.append(np.minimum(
+                np.maximum(candidate, lower_bounds + 1.0e-6),
+                upper_bounds - 1.0e-6,
+            ))
+    attempts = []
+    for start in starts:
+        try:
+            candidate_result = least_squares(
+                objective,
+                start,
+                bounds=(lower_bounds, upper_bounds),
+                method="trf",
+                x_scale="jac",
+                max_nfev=30000,
+            )
+            if np.isfinite(candidate_result.cost):
+                attempts.append(candidate_result)
+        except (ValueError, FloatingPointError):
+            continue
+    if not attempts:
+        raise RuntimeError(
+            "Nessuna inizializzazione del fit gaussiano ha prodotto un risultato finito."
+        )
+
+    result = min(attempts, key=lambda candidate_result: candidate_result.cost)
+    parameters = result.x
+    expected = expected_counts(parameters)
+    residuals = poisson_deviance_residuals(observed, expected, np)
+    deviance = float(np.sum(residuals ** 2))
+    ndf = int(len(observed) - len(parameters))
+    jacobian_rank = int(np.linalg.matrix_rank(result.jac))
+    covariance_valid = bool(
+        result.success and ndf > 0 and jacobian_rank == len(parameters)
+    )
+    parameter_errors = np.full(len(parameters), np.nan)
+    if covariance_valid:
+        try:
+            covariance = np.linalg.inv(result.jac.T @ result.jac)
+            diagonal = np.diag(covariance)
+            covariance_valid = bool(
+                np.all(np.isfinite(covariance)) and np.all(diagonal >= 0)
+            )
+            if covariance_valid:
+                parameter_errors = np.sqrt(diagonal)
+        except np.linalg.LinAlgError:
+            covariance_valid = False
+
+    pearson_chi2 = float(np.sum(
+        (observed - expected) ** 2 / np.clip(expected, 1.0e-12, None)
+    ))
+    sum_squared_residuals = float(np.sum((observed - expected) ** 2))
+    total_sum_squares = float(np.sum((observed - np.mean(observed)) ** 2))
+    r_squared = (
+        1.0 - sum_squared_residuals / total_sum_squares
+        if total_sum_squares > 0 else math.nan
+    )
+    names = ("gaussian_mean", "gaussian_sigma", "gaussian_yield")
+    bound_tolerance = 1.0e-3 * (upper_bounds - lower_bounds)
+    near_bounds = [
+        name
+        for name, value, lower, upper, tolerance in zip(
+            names, parameters, lower_bounds, upper_bounds, bound_tolerance
+        )
+        if value - lower <= tolerance or upper - value <= tolerance
+    ]
+    row = {
+        "momentum_GeV_c": momentum,
+        "model": "gaussian",
+        "status": "success" if result.success else "optimizer_failed",
+        "message": result.message,
+        "entries_total": len(values),
+        "entries_in_fit_range": int(np.count_nonzero(in_range)),
+        "entries_below_fit_range": int(np.count_nonzero(values < edges[0])),
+        "entries_above_fit_range": int(np.count_nonzero(values > edges[-1])),
+        "fit_minimum": float(edges[0]),
+        "fit_maximum": float(edges[-1]),
+        "bin_width": width,
+        "histogram_bins": len(observed),
+        "component_anchor": "",
+        "poisson_deviance": deviance,
+        "ndf": ndf,
+        "deviance_per_ndf": deviance / ndf if ndf > 0 else math.nan,
+        "deviance_p_value": (
+            float(chi2_distribution.sf(deviance, ndf)) if ndf > 0 else math.nan
+        ),
+        "pearson_chi2": pearson_chi2,
+        "pearson_chi2_per_ndf": pearson_chi2 / ndf if ndf > 0 else math.nan,
+        "r_squared": r_squared,
+        "langauss_integration_points": "",
+        "optimizer_success": int(result.success),
+        "optimizer_status": result.status,
+        "optimizer_attempts": len(attempts),
+        "function_evaluations": result.nfev,
+        "jacobian_rank": jacobian_rank,
+        "covariance_valid": int(covariance_valid),
+        "parameters_near_bounds": ";".join(near_bounds),
+    }
+    for name, value, error in zip(names, parameters, parameter_errors):
+        row[name] = float(value)
+        row[f"{name}_error"] = float(error)
+
+    return {
+        "row": row,
+        "edges": edges,
+        "centers": centers,
+        "observed": observed,
+        "expected": expected,
+        "residuals": residuals,
+        "parameters": parameters,
+        "gaussian_density": gaussian_density,
+    }
+
+
+def fit_apa1_population(
+    values, momentum, np, landau, least_squares, minimize_scalar, brentq,
+    chi2_distribution,
+):
     """Fit binned Poisson Langauss + Gaussiana per un singolo momento."""
     configuration = FIT_CONFIGURATION[momentum]
     width = configuration["bin_width"]
@@ -512,7 +730,9 @@ def fit_apa1_population(values, momentum, np, lg, least_squares, chi2_distributi
 
     def components(parameters, x):
         mpv, eta, sigma_lg, yield_lg, mean_g, sigma_g, yield_g = parameters
-        langauss_density = np.asarray(lg.pdf(x, mpv, eta, sigma_lg), dtype=float)
+        langauss_density = stable_langauss_pdf(
+            x, mpv, eta, sigma_lg, np, landau
+        )
         langauss_density = np.nan_to_num(
             langauss_density, nan=0.0, posinf=0.0, neginf=0.0
         )
@@ -590,25 +810,51 @@ def fit_apa1_population(values, momentum, np, lg, least_squares, chi2_distributi
             covariance_valid = False
 
     pearson_chi2 = float(np.sum((observed - expected) ** 2 / np.clip(expected, 1.0e-12, None)))
+    sum_squared_residuals = float(np.sum((observed - expected) ** 2))
+    total_sum_squares = float(np.sum((observed - np.mean(observed)) ** 2))
+    r_squared = (
+        1.0 - sum_squared_residuals / total_sum_squares
+        if total_sum_squares > 0 else math.nan
+    )
 
     def derived_quantities(parameter_values):
-        dense_x = np.linspace(edges[0], edges[-1], 20001)
-        langauss_density, gaussian_density = components(parameter_values, dense_x)
-        peak_index = int(np.argmax(langauss_density))
-        langauss_peak = float(dense_x[peak_index])
+        peak_result = minimize_scalar(
+            lambda coordinate: -float(
+                components(parameter_values, np.asarray([coordinate]))[0][0]
+            ),
+            bounds=(edges[0], min(anchor, edges[-1])),
+            method="bounded",
+            options={"xatol": 1.0e-5},
+        )
+        if not peak_result.success:
+            raise RuntimeError("Ricerca numerica del picco Langauss non riuscita.")
+        langauss_peak = float(peak_result.x)
         gaussian_mean = float(parameter_values[4])
-        between = (dense_x >= langauss_peak) & (dense_x <= gaussian_mean)
-        candidate_x = dense_x[between]
-        difference = (langauss_density - gaussian_density)[between]
-        if len(candidate_x) < 2:
+        candidate_x = np.linspace(langauss_peak, gaussian_mean, 401)
+        langauss_density, gaussian_density = components(parameter_values, candidate_x)
+        difference = langauss_density - gaussian_density
+        if len(candidate_x) < 2 or not np.all(np.isfinite(difference)):
             raise RuntimeError("Intervallo vuoto tra picco Langauss e media Gaussiana.")
         crossings = np.flatnonzero(difference[:-1] * difference[1:] <= 0)
         if not len(crossings):
             raise RuntimeError("Le componenti non si intersecano tra i rispettivi picchi.")
         index = int(crossings[0])
         x0, x1 = candidate_x[index], candidate_x[index + 1]
-        y0, y1 = difference[index], difference[index + 1]
-        intersection = float(x0 if y1 == y0 else x0 - y0 * (x1 - x0) / (y1 - y0))
+        if difference[index] == 0:
+            intersection = float(x0)
+        else:
+            def component_difference(coordinate):
+                values_lg, values_g = components(
+                    parameter_values, np.asarray([coordinate])
+                )
+                return float(values_lg[0] - values_g[0])
+
+            intersection = float(brentq(
+                component_difference,
+                x0,
+                x1,
+                xtol=1.0e-7,
+            ))
         return langauss_peak, intersection
 
     langauss_peak, intersection = derived_quantities(parameters)
@@ -638,6 +884,7 @@ def fit_apa1_population(values, momentum, np, lg, least_squares, chi2_distributi
 
     row = {
         "momentum_GeV_c": momentum,
+        "model": "langauss_plus_gaussian",
         "status": "success" if result.success else "optimizer_failed",
         "message": result.message,
         "entries_total": len(values),
@@ -655,6 +902,10 @@ def fit_apa1_population(values, momentum, np, lg, least_squares, chi2_distributi
         "deviance_p_value": float(chi2_distribution.sf(deviance, ndf)) if ndf > 0 else math.nan,
         "pearson_chi2": pearson_chi2,
         "pearson_chi2_per_ndf": pearson_chi2 / ndf if ndf > 0 else math.nan,
+        "r_squared": r_squared,
+        "langauss_integration_points": langauss_integration_points(
+            parameters[1], parameters[2]
+        ),
         "optimizer_success": int(result.success),
         "optimizer_status": result.status,
         "optimizer_attempts": len(attempts),
@@ -733,16 +984,25 @@ def main():
         momentum for momentum in args.momenta
         if momentum in FIT_CONFIGURATION and not args.skip_fits
     ]
-    lg = least_squares = chi2_distribution = None
-    if fit_momenta:
+    fit_one_gev = 1 in args.momenta and not args.skip_fits
+    landau = least_squares = minimize_scalar = brentq = chi2_distribution = None
+    if fit_momenta or fit_one_gev:
         try:
-            from landaupy import langauss as lg
             from scipy.optimize import least_squares
             from scipy.stats import chi2 as chi2_distribution
         except ImportError as exc:
             parser.error(
                 "Dipendenza necessaria per i fit mancante nell'ambiente Python: "
                 f"{exc}. Usare --skip-fits soltanto per rigenerare le diagnostiche."
+            )
+    if fit_momenta:
+        try:
+            from landaupy import landau
+            from scipy.optimize import brentq, minimize_scalar
+        except ImportError as exc:
+            parser.error(
+                "Dipendenza necessaria per i fit Langauss mancante nell'ambiente "
+                f"Python: {exc}."
             )
 
     rows, anomalies = load_rows(args.input_file, set(args.momenta))
@@ -825,14 +1085,22 @@ def main():
                 display_max1, display_max2, above_display1, above_display2,
             )
 
-        for momentum in fit_momenta:
+        requested_fits = ([1] if fit_one_gev else []) + fit_momenta
+        for momentum in requested_fits:
             if momentum not in prepared:
                 continue
             try:
-                result = fit_apa1_population(
-                    prepared[momentum][0], momentum, np, lg,
-                    least_squares, chi2_distribution,
-                )
+                if momentum == 1:
+                    result = fit_apa1_gaussian(
+                        prepared[momentum][0], np, least_squares,
+                        chi2_distribution,
+                    )
+                else:
+                    result = fit_apa1_population(
+                        prepared[momentum][0], momentum, np, landau,
+                        least_squares, minimize_scalar, brentq,
+                        chi2_distribution,
+                    )
                 fit_rows.append(result["row"])
                 if result["row"]["optimizer_success"]:
                     fit_results[momentum] = result
@@ -866,9 +1134,25 @@ def main():
                             f"{result['row']['parameters_near_bounds']}."
                         ),
                     })
+                if result["row"]["deviance_p_value"] < 0.01:
+                    anomalies.append({
+                        "severity": "warning",
+                        "code": "low_fit_p_value",
+                        "csv_row": "",
+                        "momentum_GeV_c": momentum,
+                        "trigger_time": "",
+                        "detail": (
+                            "p-value asintotico della devianza di Poisson "
+                            f"={result['row']['deviance_p_value']:.4g} < 0.01."
+                        ),
+                    })
             except (RuntimeError, ValueError, FloatingPointError) as exc:
                 fit_rows.append({
                     "momentum_GeV_c": momentum,
+                    "model": (
+                        "gaussian" if momentum == 1
+                        else "langauss_plus_gaussian"
+                    ),
                     "status": "failed",
                     "message": str(exc),
                     "entries_total": len(prepared[momentum][0]),
@@ -920,6 +1204,13 @@ def main():
                 True, axis=grid_axis, linestyle="--", linewidth=0.5, alpha=0.35
             )
 
+        def format_estimate(value, error, digits=2):
+            if math.isfinite(value) and math.isfinite(error):
+                return f"{value:.{digits}f} ± {error:.{digits}f}"
+            if math.isfinite(value):
+                return f"{value:.{digits}f}"
+            return "not available"
+
         for momentum in args.momenta:
             (
                 apa1, apa2, paired1, paired2, edges1, edges2, pearson,
@@ -930,7 +1221,7 @@ def main():
             axis.hist(
                 apa1,
                 bins=edges1,
-                color="tomato",
+                color=COLORS["apa1"],
                 alpha=0.7,
                 edgecolor="black",
                 linewidth=0.5,
@@ -961,7 +1252,7 @@ def main():
             axis.hist(
                 apa2,
                 bins=edges2,
-                color="dodgerblue",
+                color=COLORS["apa2"],
                 alpha=0.7,
                 edgecolor="black",
                 linewidth=0.5,
@@ -992,7 +1283,7 @@ def main():
             axis.scatter(
                 paired1,
                 paired2,
-                c="dodgerblue",
+                c=COLORS["scatter"],
                 s=8,
                 alpha=0.4,
                 edgecolors="none",
@@ -1040,61 +1331,176 @@ def main():
                 fit_residuals = fit_result["residuals"]
                 fit_parameters = fit_result["parameters"]
                 dense_x = np.linspace(fit_edges[0], fit_edges[-1], 3000)
-                langauss_density, gaussian_density = fit_result["components"](
-                    fit_parameters, dense_x
-                )
                 fit_width = fit_row["bin_width"]
-                langauss_counts = fit_width * langauss_density
-                gaussian_counts = fit_width * gaussian_density
-                total_counts = langauss_counts + gaussian_counts
+                if fit_row["model"] == "gaussian":
+                    gaussian_counts = fit_width * fit_result["gaussian_density"](
+                        fit_parameters, dense_x
+                    )
+                    total_counts = gaussian_counts
+                else:
+                    langauss_density, gaussian_density = fit_result["components"](
+                        fit_parameters, dense_x
+                    )
+                    langauss_counts = fit_width * langauss_density
+                    gaussian_counts = fit_width * gaussian_density
+                    total_counts = langauss_counts + gaussian_counts
 
-                fig, (axis, residual_axis) = plt.subplots(
+                fig = plt.figure(figsize=(11.2, 6.8))
+                grid = fig.add_gridspec(
                     2,
-                    1,
-                    figsize=(9, 6.8),
-                    sharex=True,
-                    gridspec_kw={"height_ratios": (3.3, 1.0), "hspace": 0.06},
+                    2,
+                    height_ratios=(3.3, 1.0),
+                    width_ratios=(4.0, 1.45),
+                    hspace=0.06,
+                    wspace=0.18,
                 )
+                axis = fig.add_subplot(grid[0, 0])
+                residual_axis = fig.add_subplot(grid[1, 0], sharex=axis)
+                information_axis = fig.add_subplot(grid[:, 1])
+                information_axis.axis("off")
                 axis.stairs(
                     fit_observed,
                     fit_edges,
                     fill=True,
-                    color="0.82",
-                    edgecolor="black",
+                    color=COLORS["data"],
+                    edgecolor=COLORS["total"],
                     linewidth=0.8,
                     label=f"Data ({fit_row['entries_in_fit_range']} triggers)",
                 )
-                axis.plot(dense_x, total_counts, color="black", linewidth=1.8,
-                          label="Langauss + Gaussian")
-                axis.plot(dense_x, langauss_counts, color="firebrick", linestyle="--",
-                          linewidth=1.5, label="Langauss (muon population)")
-                axis.plot(dense_x, gaussian_counts, color="royalblue", linestyle="--",
-                          linewidth=1.5, label="Gaussian (non-muon population)")
-                axis.axvline(
-                    fit_row["intersection"], color="darkgoldenrod", linestyle=":",
-                    linewidth=1.8,
-                    label=rf"Intersection = {fit_row['intersection']:.1f} PE",
-                )
+                if fit_row["model"] == "gaussian":
+                    axis.plot(
+                        dense_x, gaussian_counts, color=COLORS["gaussian"],
+                        linewidth=2.0, label="Gaussian fit",
+                    )
+                else:
+                    axis.plot(
+                        dense_x, total_counts, color=COLORS["total"],
+                        linewidth=1.8, label="Langauss + Gaussian",
+                    )
+                    axis.plot(
+                        dense_x, langauss_counts, color=COLORS["langauss"],
+                        linestyle="--", linewidth=1.5,
+                        label="Langauss (muon population)",
+                    )
+                    axis.plot(
+                        dense_x, gaussian_counts, color=COLORS["gaussian"],
+                        linestyle="--", linewidth=1.5,
+                        label="Gaussian (non-muon population)",
+                    )
+                    axis.axvline(
+                        fit_row["intersection"], color=COLORS["intersection"],
+                        linestyle=":", linewidth=1.8,
+                        label=rf"Intersection = {fit_row['intersection']:.1f} PE",
+                    )
                 axis.set_ylabel("Triggers / bin")
-                axis.set_title(
-                    rf"APA 1 population fit — $p_{{\rm beam}}={momentum}$ GeV/$c$"
+                title = (
+                    "APA 1 Gaussian fit" if fit_row["model"] == "gaussian"
+                    else "APA 1 population fit"
                 )
+                axis.set_title(rf"{title} — $p_{{\rm beam}}={momentum}$ GeV/$c$")
                 axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=7, integer=True))
                 finish_axis(axis)
-                axis.legend(loc="upper left", frameon=False, ncol=2, fontsize=8.5)
+                axis.legend(loc="upper left", frameon=False, ncol=1, fontsize=8.3)
                 add_preliminary_label(axis)
-                axis.text(
-                    0.98,
-                    0.72,
+
+                information_axis.text(
+                    0.0, 0.98, "Fit parameters", ha="left", va="top",
+                    fontsize=11, fontweight="bold",
+                )
+                if fit_row["model"] != "gaussian":
+                    information_axis.text(
+                        0.0, 0.91, "Langauss", ha="left", va="top",
+                        fontsize=10, fontweight="bold", color=COLORS["langauss"],
+                    )
+                    information_axis.text(
+                        0.0,
+                        0.87,
+                        (
+                            "MPV = " + format_estimate(
+                                fit_row["mpv"], fit_row["mpv_error"]
+                            ) + " PE\n"
+                            + r"$\eta$ = " + format_estimate(
+                                fit_row["eta"], fit_row["eta_error"]
+                            ) + " PE\n"
+                            + r"$\sigma_{\rm LG}$ = " + format_estimate(
+                                fit_row["langauss_sigma"],
+                                fit_row["langauss_sigma_error"],
+                            ) + " PE\n"
+                            + r"$N_{\rm LG}$ = " + format_estimate(
+                                fit_row["langauss_yield"],
+                                fit_row["langauss_yield_error"], digits=0,
+                            ) + "\n"
+                            + r"$x_{\rm peak}$ = " + format_estimate(
+                                fit_row["langauss_peak"],
+                                fit_row["langauss_peak_error"],
+                            ) + " PE"
+                        ),
+                        ha="left", va="top", fontsize=8.7, linespacing=1.35,
+                    )
+                gaussian_heading_y = 0.91 if fit_row["model"] == "gaussian" else 0.61
+                gaussian_values_y = 0.87 if fit_row["model"] == "gaussian" else 0.57
+                information_axis.text(
+                    0.0, gaussian_heading_y, "Gaussian", ha="left", va="top",
+                    fontsize=10, fontweight="bold", color=COLORS["gaussian"],
+                )
+                information_axis.text(
+                    0.0,
+                    gaussian_values_y,
                     (
-                        rf"$D/\mathrm{{ndf}}={fit_row['deviance_per_ndf']:.2f}$"
-                        "\n"
-                        rf"$p={fit_row['deviance_p_value']:.3g}$"
+                        r"$\mu$ = " + format_estimate(
+                            fit_row["gaussian_mean"],
+                            fit_row["gaussian_mean_error"],
+                        ) + " PE\n"
+                        + r"$\sigma_{\rm G}$ = " + format_estimate(
+                            fit_row["gaussian_sigma"],
+                            fit_row["gaussian_sigma_error"],
+                        ) + " PE\n"
+                        + r"$N_{\rm G}$ = " + format_estimate(
+                            fit_row["gaussian_yield"],
+                            fit_row["gaussian_yield_error"],
+                            digits=0,
+                        )
                     ),
-                    transform=axis.transAxes,
-                    ha="right",
+                    ha="left",
                     va="top",
-                    fontsize=9,
+                    fontsize=8.7,
+                    linespacing=1.35,
+                )
+                if fit_row["model"] != "gaussian":
+                    information_axis.text(
+                        0.0, 0.40, "Selection threshold", ha="left", va="top",
+                        fontsize=10, fontweight="bold",
+                        color=COLORS["intersection"],
+                    )
+                    information_axis.text(
+                        0.0, 0.36,
+                        "Intersection = " + format_estimate(
+                            fit_row["intersection"], fit_row["intersection_error"]
+                        ) + " PE",
+                        ha="left", va="top", fontsize=8.7,
+                    )
+                goodness_heading_y = 0.61 if fit_row["model"] == "gaussian" else 0.27
+                goodness_values_y = 0.57 if fit_row["model"] == "gaussian" else 0.23
+                information_axis.text(
+                    0.0, goodness_heading_y, "Goodness of fit", ha="left", va="top",
+                    fontsize=10, fontweight="bold",
+                )
+                information_axis.text(
+                    0.0,
+                    goodness_values_y,
+                    (
+                        rf"Poisson $D/\mathrm{{ndf}}$ = {fit_row['deviance_per_ndf']:.2f}"
+                        "\n"
+                        rf"$p$-value = {fit_row['deviance_p_value']:.3g}"
+                        "\n"
+                        rf"Pearson $\chi^2/\mathrm{{ndf}}$ = {fit_row['pearson_chi2_per_ndf']:.2f}"
+                        "\n"
+                        rf"$R^2$ (descriptive) = {fit_row['r_squared']:.3f}"
+                    ),
+                    ha="left",
+                    va="top",
+                    fontsize=8.7,
+                    linespacing=1.4,
                 )
 
                 residual_axis.axhline(0.0, color="black", linewidth=0.8)
@@ -1111,7 +1517,6 @@ def main():
                 )
                 residual_axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=5))
                 finish_axis(residual_axis, grid_axis="both")
-                fig.tight_layout()
                 save_figure(
                     fig, args.output_dir / f"apa1_population_fit_{momentum}GeV"
                 )
@@ -1156,17 +1561,23 @@ def main():
             "cuts": "none",
             "fits": (
                 "skipped by command-line option" if args.skip_fits else
+                "APA 1 at 1 GeV/c: single normalized Gaussian in 10--150 PE; "
                 "APA 1 at 2, 3, 5 and 7 GeV/c when requested: normalized "
-                "Langauss + Gaussian fitted to all histogram bins, including empty "
-                "bins, with signed Poisson-deviance residuals"
+                "Langauss + Gaussian. All fits include empty histogram bins and "
+                "use signed Poisson-deviance residuals"
             ),
             "fit_range": (
-                "Bin-aligned interval spanning P0.5 to P99.5; entries outside are "
-                "reported and retained in the source dataset"
+                "1 GeV/c: fixed 10--150 PE interval, following the historical "
+                "analysis; 2, 3, 5 and 7 GeV/c: bin-aligned interval spanning "
+                "P0.5 to P99.5. Entries outside are reported and retained in the "
+                "source dataset"
             ),
             "fit_bin_widths_PE": {
-                str(momentum): configuration["bin_width"]
-                for momentum, configuration in FIT_CONFIGURATION.items()
+                "1": 2.0,
+                **{
+                    str(momentum): configuration["bin_width"]
+                    for momentum, configuration in FIT_CONFIGURATION.items()
+                },
             },
             "fit_component_anchors_PE": {
                 str(momentum): configuration["component_anchor"]
@@ -1179,6 +1590,15 @@ def main():
             "threshold_definition": (
                 "First Langauss-Gaussian intersection between the numerical "
                 "Langauss peak and the fitted Gaussian mean"
+            ),
+            "langauss_evaluation": (
+                "Explicit midpoint convolution of landaupy.landau.pdf with a "
+                "Gaussian over +/-5 sigma; at least 12 integration points per "
+                "fitted Landau eta, evaluated in memory-bounded chunks"
+            ),
+            "goodness_of_fit": (
+                "Poisson deviance/ndf with asymptotic p-value and Pearson "
+                "chi-square/ndf; R-squared is reported as descriptive only"
             ),
             "figure_format": "PNG only",
             "output_policy": (
@@ -1195,7 +1615,8 @@ def main():
         "numpy_version": np.__version__,
         "matplotlib_version": matplotlib.__version__,
         "scipy_version": (
-            __import__("scipy").__version__ if fit_momenta else None
+            __import__("scipy").__version__
+            if fit_momenta or fit_one_gev else None
         ),
         "figures_created": not errors,
     }
@@ -1205,10 +1626,17 @@ def main():
 
     if args.skip_fits:
         fit_description = "Fit APA 1: non eseguiti (--skip-fits)."
-    elif fit_momenta:
+    elif fit_momenta or fit_one_gev:
+        descriptions = []
+        if fit_one_gev:
+            descriptions.append("Gaussiana singola a 1 GeV/c nel range 10--150 PE")
+        if fit_momenta:
+            descriptions.append(
+                f"Langauss + Gaussiana ai momenti {fit_momenta} GeV/c"
+            )
         fit_description = (
-            f"Fit APA 1: Langauss + Gaussiana ai momenti {fit_momenta} GeV/c; "
-            "funzione obiettivo basata sulla devianza di Poisson."
+            "Fit APA 1: " + "; ".join(descriptions)
+            + "; funzione obiettivo basata sulla devianza di Poisson."
         )
     else:
         fit_description = "Fit APA 1: nessun momento adatto richiesto."
@@ -1236,16 +1664,28 @@ def main():
         )
     if not args.skip_fits:
         lines += ["", "RISULTATI FIT APA 1"]
-        if 1 in args.momenta:
-            lines.append(
-                "1 GeV/c: fit misto non eseguito; le due popolazioni non sono "
-                "separabili in modo affidabile."
-            )
         for row in fit_rows:
             momentum = row["momentum_GeV_c"]
             if row["status"] != "success":
                 lines.append(
                     f"{momentum} GeV/c: FIT NON RIUSCITO — {row['message']}"
+                )
+                continue
+            if row["model"] == "gaussian":
+                lines.append(
+                    f"{momentum} GeV/c: Gaussiana singola; media="
+                    f"{row['gaussian_mean']:.2f} ± {row['gaussian_mean_error']:.2f} PE, "
+                    f"sigma={row['gaussian_sigma']:.2f} ± "
+                    f"{row['gaussian_sigma_error']:.2f} PE, "
+                    f"N={row['gaussian_yield']:.1f} ± "
+                    f"{row['gaussian_yield_error']:.1f}; "
+                    f"D/ndf={row['deviance_per_ndf']:.3f}, "
+                    f"p={row['deviance_p_value']:.4g}; "
+                    f"Pearson chi2/ndf={row['pearson_chi2_per_ndf']:.3f}, "
+                    f"R2={row['r_squared']:.4f}; "
+                    f"range=[{row['fit_minimum']:.1f}, "
+                    f"{row['fit_maximum']:.1f}] PE, "
+                    f"bin={row['bin_width']:.1f} PE."
                 )
                 continue
             intersection_error = row["intersection_error"]
@@ -1259,8 +1699,11 @@ def main():
                 f"± {row['gaussian_mean_error']:.2f} PE; "
                 f"D/ndf={row['deviance_per_ndf']:.3f}, "
                 f"p={row['deviance_p_value']:.4g}; "
+                f"Pearson chi2/ndf={row['pearson_chi2_per_ndf']:.3f}, "
+                f"R2={row['r_squared']:.4f}; "
                 f"range=[{row['fit_minimum']:.1f}, {row['fit_maximum']:.1f}] PE, "
-                f"bin={row['bin_width']:.1f} PE."
+                f"bin={row['bin_width']:.1f} PE, "
+                f"integrazione Langauss={row['langauss_integration_points']} punti."
             )
     lines += ["", "ANOMALIE PER TIPO"]
     counts = Counter(item["code"] for item in anomalies)
@@ -1291,6 +1734,7 @@ def main():
         "La soglia candidata è l'intersezione tra Langauss e Gaussiana compresa tra i picchi.",
         "Le incertezze sono statistiche locali e condizionate a modello, binning e range.",
         "Il p-value della devianza è una valutazione asintotica della qualità del fit.",
+        "A 1 GeV/c il fit è una singola Gaussiana e non definisce una soglia.",
         "A 1 GeV/c non viene assunta la presenza di due popolazioni separabili.",
         "APA 2 non viene adattata: la risposta self-trigger dipende dai canali contribuenti.",
         "",
