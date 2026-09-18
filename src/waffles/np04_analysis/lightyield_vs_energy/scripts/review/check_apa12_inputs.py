@@ -12,7 +12,9 @@ INPUT
     --input-dir: cartella apa1_vs_apa2 contenente, per ciascun momento p,
     <p>GeV/<start>_to_<stop>/photoelectron_dataframe_<p>GeV.csv.
     Colonne richieste: trigger_time e, per apa1/apa2, list, mean, std, n_events.
-    Le liste devono contenere numeri; [] e liste con nan/inf vengono gestite.
+    Le liste possono contenere numeri semplici o np.float64(...)/numpy.float64(...).
+    [] e liste con nan/inf vengono gestite, anche dentro questi involucri.
+    Gli involucri sono letti come testo: non viene eseguito codice del CSV.
     files_read.txt è facoltativo: viene controllato se presente, ma non è
     considerato una prova che tutti i file siano stati letti correttamente.
     --momenta: momenti nominali in GeV/c (default: 1 2 3 5 7).
@@ -29,10 +31,10 @@ OUTPUT
     Codice di uscita: 0 = nessuna anomalia rilevata; 1 = anomalie da esaminare;
     2 = errore di esecuzione. Anche il codice 0 NON certifica i trigger DAQ.
 
-ESECUZIONE (dalla radice della repository su LXPlus)
-    python3 src/waffles/np04_analysis/lightyield_vs_energy/scripts/review/check_apa12_inputs.py \
-        --input-dir src/waffles/np04_analysis/lightyield_vs_energy/output/apa1_vs_apa2 \
-        --output-dir src/waffles/np04_analysis/lightyield_vs_energy/output/review/check_inputs_01
+ESECUZIONE (dalla cartella scripts/review su LXPlus)
+    python check_apa12_inputs.py \
+        --input-dir ../../output/apa1_vs_apa2 \
+        --output-dir ../../output/review/check_inputs_01
 
     Per una prima prova su un solo momento aggiungere: --momenta 1
     std viene ricalcolata con ddof=0; confronti numerici: rtol=1e-9, atol=1e-9.
@@ -85,6 +87,15 @@ def parse_number_list(raw):
             return float(node.id)
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
             return (-1 if isinstance(node.op, ast.USub) else 1) * number(node.operand)
+        # Rappresentazione presente nei CSV storici: leggiamo solo l'argomento
+        # numerico di float64, senza importare NumPy o chiamare la funzione.
+        if (isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in ("np", "numpy")
+                and node.func.attr == "float64"
+                and len(node.args) == 1 and not node.keywords):
+            return number(node.args[0])
         raise ValueError("La lista contiene un elemento non numerico.")
 
     return [number(node) for node in tree.elts]
