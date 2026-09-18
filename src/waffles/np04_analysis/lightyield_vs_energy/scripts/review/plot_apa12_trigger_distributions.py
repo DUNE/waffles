@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-r"""Crea figure diagnostiche APA 1–APA 2 senza fit o selezioni.
+r"""Crea figure diagnostiche APA 1–APA 2 e adatta le popolazioni di APA 1.
 
 SCOPO
     Per ogni momento nominale disegna la distribuzione di apa1_mean, la
     distribuzione di apa2_mean e lo scatter plot trigger per trigger tra le due
-    medie. Le figure servono a osservare le popolazioni prima di scegliere un
-    modello o un intervallo di fit. Non applica soglie, tagli muonici, fit o
-    rimozione di outlier.
+    medie. Per 2, 3, 5 e 7 GeV/c adatta la distribuzione di APA 1 con la somma
+    di una Langauss (popolazione muonica) e una Gaussiana (popolazione non
+    muonica). La soglia candidata è l'intersezione delle due componenti tra il
+    massimo della Langauss e la media della Gaussiana. A 1 GeV/c il fit misto
+    non viene eseguito perché le popolazioni non sono separabili in modo
+    affidabile. Non applica la soglia agli eventi e non rimuove outlier.
 
 INPUT
     --input-file: apa12_trigger_data.csv prodotto da
@@ -14,6 +17,7 @@ INPUT
     --momenta: momenti da rappresentare (default: 1 2 3 5 7 GeV/c).
     --output-dir: cartella per risultati e figure. Può essere riutilizzata:
     vengono sovrascritti soltanto gli output appartenenti a questo script.
+    --skip-fits: crea soltanto le figure diagnostiche, senza eseguire i fit.
     Per l'istogramma di ciascuna APA sono usate tutte le righe con la relativa
     media valida. Per lo scatter sono usate soltanto le righe both_apa_valid=1.
 
@@ -21,6 +25,10 @@ OUTPUT
     apa1_hist_<momento>GeV.png: distribuzione di APA 1;
     apa2_hist_<momento>GeV.png: distribuzione di APA 2;
     apa12_pe_distribution_<momento>GeV.png: scatter trigger per trigger;
+    apa1_population_fit_<momento>GeV.png: fit Langauss + Gaussiana di APA 1
+    (solo 2, 3, 5 e 7 GeV/c);
+    apa1_population_fit_results.csv: parametri, incertezze statistiche locali,
+    qualità del fit e intersezione delle componenti;
     plot_summary.csv: conteggi e statistiche descrittive;
     histogram_bins.json: bordi esatti dei bin;
     extreme_events.csv: provenienza e valori degli eventi oltre almeno un
@@ -28,8 +36,9 @@ OUTPUT
     anomalies.csv: incoerenze del dataset di input;
     report.txt: descrizione dei risultati e dei limiti;
     manifest.json: configurazione, versioni e SHA-256 dell'input.
-    I bin sono determinati separatamente con la regola di Freedman–Diaconis e
-    non devono essere interpretati come intervalli di fit.
+    I bin diagnostici sono determinati con la regola di Freedman–Diaconis. I
+    fit usano larghezze fissate per momento e tutti i bin, inclusi quelli vuoti,
+    nell'intervallo robusto P0.5--P99.5 riportato negli output.
     Le vecchie figure PNG/PDF prodotte da questo script vengono rimosse prima
     di scrivere i nuovi risultati; eventuali altri file non vengono toccati.
     Codice di uscita: 0 = figure create; 2 = errore, figure non create.
@@ -42,8 +51,10 @@ ESECUZIONE (dalla cartella scripts/review su LXPlus)
 INTERPRETAZIONE
     apa1_mean e apa2_mean sono medie PE per canale contribuente, non somme
     sull'intera APA. Il coefficiente di Pearson è soltanto descrittivo e non è
-    usato per selezionare eventi. Il campione a 1 GeV/c viene rappresentato ma
-    non viene forzata una separazione tra popolazioni.
+    usato per selezionare eventi. Le incertezze del fit sono statistiche locali
+    e condizionate al modello, al binning e all'intervallo scelti. APA 2 non
+    viene adattata con il modello misto perché il self-trigger e il numero
+    variabile di canali contribuenti ne modificano la distribuzione.
 """
 
 import argparse
@@ -138,6 +149,32 @@ EXTREME_FIELDS = [
 
 VALID_CATEGORIES = {"both_valid", "apa1_only", "apa2_only", "neither_valid"}
 
+# Le larghezze e gli anchor riprendono la scala osservata nel programma storico.
+# L'anchor identifica le componenti durante il fit (MPV < anchor < media
+# gaussiana), ma non è la soglia finale: questa viene ricavata dall'intersezione.
+FIT_CONFIGURATION = {
+    2: {"bin_width": 2.0, "component_anchor": 110.0},
+    3: {"bin_width": 4.0, "component_anchor": 150.0},
+    5: {"bin_width": 5.0, "component_anchor": 190.0},
+    7: {"bin_width": 8.0, "component_anchor": 200.0},
+}
+
+FIT_FIELDS = [
+    "momentum_GeV_c", "status", "message", "entries_total",
+    "entries_in_fit_range", "entries_below_fit_range", "entries_above_fit_range",
+    "fit_minimum", "fit_maximum", "bin_width", "histogram_bins",
+    "component_anchor", "mpv", "mpv_error", "eta", "eta_error",
+    "langauss_sigma", "langauss_sigma_error", "langauss_yield",
+    "langauss_yield_error", "gaussian_mean", "gaussian_mean_error",
+    "gaussian_sigma", "gaussian_sigma_error", "gaussian_yield",
+    "gaussian_yield_error", "langauss_peak", "langauss_peak_error",
+    "intersection", "intersection_error", "poisson_deviance", "ndf",
+    "deviance_per_ndf", "deviance_p_value", "pearson_chi2",
+    "pearson_chi2_per_ndf", "optimizer_success", "optimizer_status",
+    "optimizer_attempts", "function_evaluations", "jacobian_rank",
+    "covariance_valid", "parameters_near_bounds",
+]
+
 
 def write_csv(path, fields, rows):
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -150,6 +187,7 @@ def clear_owned_outputs(output_dir):
     """Rimuove soltanto file prodotti da questo script in esecuzioni precedenti."""
     static_names = (
         "plot_summary.csv",
+        "apa1_population_fit_results.csv",
         "histogram_bins.json",
         "extreme_events.csv",
         "anomalies.csv",
@@ -165,6 +203,7 @@ def clear_owned_outputs(output_dir):
             f"apa1_hist_{momentum}GeV",
             f"apa2_hist_{momentum}GeV",
             f"apa12_pe_distribution_{momentum}GeV",
+            f"apa1_population_fit_{momentum}GeV",
             f"diagnostic_{momentum}GeV",
         ):
             for suffix in (".png", ".pdf"):
@@ -391,6 +430,271 @@ def collect_extreme_events(rows, display_max1, display_max2):
     return output
 
 
+def poisson_deviance_residuals(observed, expected, np):
+    """Residui con segno della devianza di Poisson, definiti anche per N=0."""
+    expected = np.clip(expected, 1.0e-12, None)
+    term = np.empty_like(expected)
+    positive = observed > 0
+    term[positive] = (
+        expected[positive]
+        - observed[positive]
+        + observed[positive] * np.log(observed[positive] / expected[positive])
+    )
+    term[~positive] = expected[~positive]
+    return np.sign(observed - expected) * np.sqrt(np.maximum(2.0 * term, 0.0))
+
+
+def fit_apa1_population(values, momentum, np, lg, least_squares, chi2_distribution):
+    """Fit binned Poisson Langauss + Gaussiana per un singolo momento."""
+    configuration = FIT_CONFIGURATION[momentum]
+    width = configuration["bin_width"]
+    anchor = configuration["component_anchor"]
+
+    lower_quantile, upper_quantile = np.percentile(values, [0.5, 99.5])
+    fit_minimum = max(0.0, math.floor(lower_quantile / width) * width)
+    fit_maximum = math.ceil(upper_quantile / width) * width
+    if fit_maximum <= fit_minimum or not fit_minimum < anchor < fit_maximum:
+        raise RuntimeError(
+            f"Intervallo [{fit_minimum}, {fit_maximum}] incompatibile con anchor={anchor}."
+        )
+
+    edges = np.arange(fit_minimum, fit_maximum + 0.5 * width, width, dtype=float)
+    if edges[-1] < fit_maximum:
+        edges = np.append(edges, fit_maximum)
+    observed, edges = np.histogram(values, bins=edges)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    in_range = (values >= edges[0]) & (values <= edges[-1])
+    low_sample = values[in_range & (values < anchor)]
+    high_sample = values[in_range & (values >= anchor)]
+    if len(low_sample) < 20 or len(high_sample) < 20:
+        raise RuntimeError(
+            f"Campioni iniziali insufficienti: basso={len(low_sample)}, alto={len(high_sample)}."
+        )
+
+    low_counts, low_edges = np.histogram(low_sample, bins=edges[edges <= anchor])
+    if not len(low_counts):
+        raise RuntimeError("Nessun bin disponibile per inizializzare la Langauss.")
+    low_centers = 0.5 * (low_edges[:-1] + low_edges[1:])
+    mpv_initial = float(low_centers[int(np.argmax(low_counts))])
+    high_q25, high_q50, high_q75 = np.percentile(high_sample, [25, 50, 75])
+    low_q25, _, low_q75 = np.percentile(low_sample, [25, 50, 75])
+    robust_low_sigma = max(float((low_q75 - low_q25) / 1.349), width)
+    robust_high_sigma = max(float((high_q75 - high_q25) / 1.349), width)
+
+    initial = np.asarray([
+        min(max(mpv_initial, fit_minimum + width), anchor - width),
+        3.0,
+        max(width, robust_low_sigma / 2.0),
+        float(len(low_sample)),
+        min(max(float(high_q50), anchor + width), fit_maximum - width),
+        robust_high_sigma,
+        float(len(high_sample)),
+    ])
+    lower_bounds = np.asarray([
+        fit_minimum,
+        0.1,
+        0.2,
+        0.01,
+        anchor,
+        max(0.5, width / 4.0),
+        0.01,
+    ])
+    upper_bounds = np.asarray([
+        anchor,
+        max(30.0, width * 5.0),
+        max(anchor - fit_minimum, width * 4.0),
+        float(len(values) * 10),
+        fit_maximum,
+        max(fit_maximum - fit_minimum, width * 4.0),
+        float(len(values) * 10),
+    ])
+    initial = np.minimum(np.maximum(initial, lower_bounds + 1.0e-6), upper_bounds - 1.0e-6)
+
+    def components(parameters, x):
+        mpv, eta, sigma_lg, yield_lg, mean_g, sigma_g, yield_g = parameters
+        langauss_density = np.asarray(lg.pdf(x, mpv, eta, sigma_lg), dtype=float)
+        langauss_density = np.nan_to_num(
+            langauss_density, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        gaussian_density = np.exp(-0.5 * ((x - mean_g) / sigma_g) ** 2)
+        gaussian_density /= sigma_g * math.sqrt(2.0 * math.pi)
+        return yield_lg * langauss_density, yield_g * gaussian_density
+
+    def expected_counts(parameters):
+        langauss_density, gaussian_density = components(parameters, centers)
+        return width * (langauss_density + gaussian_density)
+
+    def objective(parameters):
+        return poisson_deviance_residuals(observed, expected_counts(parameters), np)
+
+    alternative_starts = [initial]
+    for eta_start in (1.0, 6.0):
+        candidate = initial.copy()
+        candidate[1] = eta_start
+        alternative_starts.append(candidate)
+    candidate = initial.copy()
+    candidate[4] = float(np.mean(high_sample))
+    alternative_starts.append(candidate)
+    for scale in (0.65, 1.50):
+        candidate = initial.copy()
+        candidate[5] *= scale
+        alternative_starts.append(candidate)
+    alternative_starts = [
+        np.minimum(
+            np.maximum(candidate, lower_bounds + 1.0e-6),
+            upper_bounds - 1.0e-6,
+        )
+        for candidate in alternative_starts
+    ]
+    attempts = []
+    for start in alternative_starts:
+        try:
+            candidate_result = least_squares(
+                objective,
+                start,
+                bounds=(lower_bounds, upper_bounds),
+                method="trf",
+                x_scale="jac",
+                max_nfev=30000,
+            )
+            if np.isfinite(candidate_result.cost):
+                attempts.append(candidate_result)
+        except (ValueError, FloatingPointError):
+            continue
+    if not attempts:
+        raise RuntimeError(
+            "Nessuna inizializzazione del fit ha prodotto un risultato finito."
+        )
+    result = min(attempts, key=lambda candidate_result: candidate_result.cost)
+    parameters = result.x
+    expected = expected_counts(parameters)
+    residuals = poisson_deviance_residuals(observed, expected, np)
+    deviance = float(np.sum(residuals ** 2))
+    ndf = int(len(observed) - len(parameters))
+    jacobian_rank = int(np.linalg.matrix_rank(result.jac))
+    covariance_valid = bool(
+        result.success and ndf > 0 and jacobian_rank == len(parameters)
+    )
+    covariance = None
+    parameter_errors = np.full(len(parameters), np.nan)
+    if covariance_valid:
+        try:
+            covariance = np.linalg.inv(result.jac.T @ result.jac)
+            diagonal = np.diag(covariance)
+            covariance_valid = bool(np.all(np.isfinite(covariance)) and np.all(diagonal >= 0))
+            if covariance_valid:
+                parameter_errors = np.sqrt(diagonal)
+            else:
+                covariance = None
+        except np.linalg.LinAlgError:
+            covariance_valid = False
+
+    pearson_chi2 = float(np.sum((observed - expected) ** 2 / np.clip(expected, 1.0e-12, None)))
+
+    def derived_quantities(parameter_values):
+        dense_x = np.linspace(edges[0], edges[-1], 20001)
+        langauss_density, gaussian_density = components(parameter_values, dense_x)
+        peak_index = int(np.argmax(langauss_density))
+        langauss_peak = float(dense_x[peak_index])
+        gaussian_mean = float(parameter_values[4])
+        between = (dense_x >= langauss_peak) & (dense_x <= gaussian_mean)
+        candidate_x = dense_x[between]
+        difference = (langauss_density - gaussian_density)[between]
+        if len(candidate_x) < 2:
+            raise RuntimeError("Intervallo vuoto tra picco Langauss e media Gaussiana.")
+        crossings = np.flatnonzero(difference[:-1] * difference[1:] <= 0)
+        if not len(crossings):
+            raise RuntimeError("Le componenti non si intersecano tra i rispettivi picchi.")
+        index = int(crossings[0])
+        x0, x1 = candidate_x[index], candidate_x[index + 1]
+        y0, y1 = difference[index], difference[index + 1]
+        intersection = float(x0 if y1 == y0 else x0 - y0 * (x1 - x0) / (y1 - y0))
+        return langauss_peak, intersection
+
+    langauss_peak, intersection = derived_quantities(parameters)
+    derived_errors = np.full(2, np.nan)
+    if covariance_valid:
+        gradient = np.zeros((2, len(parameters)))
+        for index, value in enumerate(parameters):
+            step = max(abs(float(value)) * 1.0e-4, 1.0e-4)
+            plus = parameters.copy()
+            minus = parameters.copy()
+            plus[index] = min(value + step, upper_bounds[index] - 1.0e-8)
+            minus[index] = max(value - step, lower_bounds[index] + 1.0e-8)
+            denominator = plus[index] - minus[index]
+            if denominator <= 0:
+                continue
+            try:
+                gradient[:, index] = (
+                    np.asarray(derived_quantities(plus))
+                    - np.asarray(derived_quantities(minus))
+                ) / denominator
+            except RuntimeError:
+                gradient[:, index] = np.nan
+        if np.all(np.isfinite(gradient)):
+            derived_variance = np.diag(gradient @ covariance @ gradient.T)
+            if np.all(derived_variance >= 0):
+                derived_errors = np.sqrt(derived_variance)
+
+    row = {
+        "momentum_GeV_c": momentum,
+        "status": "success" if result.success else "optimizer_failed",
+        "message": result.message,
+        "entries_total": len(values),
+        "entries_in_fit_range": int(np.count_nonzero(in_range)),
+        "entries_below_fit_range": int(np.count_nonzero(values < edges[0])),
+        "entries_above_fit_range": int(np.count_nonzero(values > edges[-1])),
+        "fit_minimum": float(edges[0]),
+        "fit_maximum": float(edges[-1]),
+        "bin_width": width,
+        "histogram_bins": len(observed),
+        "component_anchor": anchor,
+        "poisson_deviance": deviance,
+        "ndf": ndf,
+        "deviance_per_ndf": deviance / ndf if ndf > 0 else math.nan,
+        "deviance_p_value": float(chi2_distribution.sf(deviance, ndf)) if ndf > 0 else math.nan,
+        "pearson_chi2": pearson_chi2,
+        "pearson_chi2_per_ndf": pearson_chi2 / ndf if ndf > 0 else math.nan,
+        "optimizer_success": int(result.success),
+        "optimizer_status": result.status,
+        "optimizer_attempts": len(attempts),
+        "function_evaluations": result.nfev,
+        "jacobian_rank": jacobian_rank,
+        "covariance_valid": int(covariance_valid),
+    }
+    names = (
+        "mpv", "eta", "langauss_sigma", "langauss_yield",
+        "gaussian_mean", "gaussian_sigma", "gaussian_yield",
+    )
+    for name, value, error in zip(names, parameters, parameter_errors):
+        row[name] = float(value)
+        row[f"{name}_error"] = float(error)
+    bound_tolerance = 1.0e-3 * (upper_bounds - lower_bounds)
+    near_bounds = [
+        name
+        for name, value, lower, upper, tolerance in zip(
+            names, parameters, lower_bounds, upper_bounds, bound_tolerance
+        )
+        if value - lower <= tolerance or upper - value <= tolerance
+    ]
+    row["parameters_near_bounds"] = ";".join(near_bounds)
+    row["langauss_peak"] = langauss_peak
+    row["langauss_peak_error"] = float(derived_errors[0])
+    row["intersection"] = intersection
+    row["intersection_error"] = float(derived_errors[1])
+
+    return {
+        "row": row,
+        "edges": edges,
+        "centers": centers,
+        "observed": observed,
+        "expected": expected,
+        "residuals": residuals,
+        "parameters": parameters,
+        "components": components,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -400,6 +704,11 @@ def main():
     parser.add_argument(
         "--momenta", nargs="+", type=int, choices=(1, 2, 3, 5, 7),
         default=[1, 2, 3, 5, 7]
+    )
+    parser.add_argument(
+        "--skip-fits",
+        action="store_true",
+        help="Crea le sole figure diagnostiche senza eseguire i fit di APA 1.",
     )
     args = parser.parse_args()
     args.input_file = args.input_file.expanduser().resolve()
@@ -420,12 +729,30 @@ def main():
     except ImportError as exc:
         parser.error(f"Dipendenza mancante nell'ambiente Python: {exc}")
 
+    fit_momenta = [
+        momentum for momentum in args.momenta
+        if momentum in FIT_CONFIGURATION and not args.skip_fits
+    ]
+    lg = least_squares = chi2_distribution = None
+    if fit_momenta:
+        try:
+            from landaupy import langauss as lg
+            from scipy.optimize import least_squares
+            from scipy.stats import chi2 as chi2_distribution
+        except ImportError as exc:
+            parser.error(
+                "Dipendenza necessaria per i fit mancante nell'ambiente Python: "
+                f"{exc}. Usare --skip-fits soltanto per rigenerare le diagnostiche."
+            )
+
     rows, anomalies = load_rows(args.input_file, set(args.momenta))
     summaries = []
     bins_manifest = {}
     extreme_events = []
     errors = sum(item["severity"] == "error" for item in anomalies)
     prepared = {}
+    fit_results = {}
+    fit_rows = []
 
     if not errors:
         for momentum in args.momenta:
@@ -497,6 +824,63 @@ def main():
                 apa1, apa2, paired_apa1, paired_apa2, edges1, edges2, pearson,
                 display_max1, display_max2, above_display1, above_display2,
             )
+
+        for momentum in fit_momenta:
+            if momentum not in prepared:
+                continue
+            try:
+                result = fit_apa1_population(
+                    prepared[momentum][0], momentum, np, lg,
+                    least_squares, chi2_distribution,
+                )
+                fit_rows.append(result["row"])
+                if result["row"]["optimizer_success"]:
+                    fit_results[momentum] = result
+                else:
+                    anomalies.append({
+                        "severity": "warning",
+                        "code": "fit_optimizer_failed",
+                        "csv_row": "",
+                        "momentum_GeV_c": momentum,
+                        "trigger_time": "",
+                        "detail": result["row"]["message"],
+                    })
+                if not result["row"]["covariance_valid"]:
+                    anomalies.append({
+                        "severity": "warning",
+                        "code": "fit_covariance_unavailable",
+                        "csv_row": "",
+                        "momentum_GeV_c": momentum,
+                        "trigger_time": "",
+                        "detail": "Matrice di covarianza non invertibile o non definita positiva.",
+                    })
+                if result["row"]["parameters_near_bounds"]:
+                    anomalies.append({
+                        "severity": "warning",
+                        "code": "fit_parameter_near_bound",
+                        "csv_row": "",
+                        "momentum_GeV_c": momentum,
+                        "trigger_time": "",
+                        "detail": (
+                            "Parametri entro lo 0.1% del range ammesso: "
+                            f"{result['row']['parameters_near_bounds']}."
+                        ),
+                    })
+            except (RuntimeError, ValueError, FloatingPointError) as exc:
+                fit_rows.append({
+                    "momentum_GeV_c": momentum,
+                    "status": "failed",
+                    "message": str(exc),
+                    "entries_total": len(prepared[momentum][0]),
+                })
+                anomalies.append({
+                    "severity": "warning",
+                    "code": "apa1_population_fit_failed",
+                    "csv_row": "",
+                    "momentum_GeV_c": momentum,
+                    "trigger_time": "",
+                    "detail": str(exc),
+                })
 
     errors = sum(item["severity"] == "error" for item in anomalies)
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -647,7 +1031,97 @@ def main():
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa12_pe_distribution_{momentum}GeV")
 
+            if momentum in fit_results:
+                fit_result = fit_results[momentum]
+                fit_row = fit_result["row"]
+                fit_edges = fit_result["edges"]
+                fit_centers = fit_result["centers"]
+                fit_observed = fit_result["observed"]
+                fit_residuals = fit_result["residuals"]
+                fit_parameters = fit_result["parameters"]
+                dense_x = np.linspace(fit_edges[0], fit_edges[-1], 3000)
+                langauss_density, gaussian_density = fit_result["components"](
+                    fit_parameters, dense_x
+                )
+                fit_width = fit_row["bin_width"]
+                langauss_counts = fit_width * langauss_density
+                gaussian_counts = fit_width * gaussian_density
+                total_counts = langauss_counts + gaussian_counts
+
+                fig, (axis, residual_axis) = plt.subplots(
+                    2,
+                    1,
+                    figsize=(9, 6.8),
+                    sharex=True,
+                    gridspec_kw={"height_ratios": (3.3, 1.0), "hspace": 0.06},
+                )
+                axis.stairs(
+                    fit_observed,
+                    fit_edges,
+                    fill=True,
+                    color="0.82",
+                    edgecolor="black",
+                    linewidth=0.8,
+                    label=f"Data ({fit_row['entries_in_fit_range']} triggers)",
+                )
+                axis.plot(dense_x, total_counts, color="black", linewidth=1.8,
+                          label="Langauss + Gaussian")
+                axis.plot(dense_x, langauss_counts, color="firebrick", linestyle="--",
+                          linewidth=1.5, label="Langauss (muon population)")
+                axis.plot(dense_x, gaussian_counts, color="royalblue", linestyle="--",
+                          linewidth=1.5, label="Gaussian (non-muon population)")
+                axis.axvline(
+                    fit_row["intersection"], color="darkgoldenrod", linestyle=":",
+                    linewidth=1.8,
+                    label=rf"Intersection = {fit_row['intersection']:.1f} PE",
+                )
+                axis.set_ylabel("Triggers / bin")
+                axis.set_title(
+                    rf"APA 1 population fit — $p_{{\rm beam}}={momentum}$ GeV/$c$"
+                )
+                axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=7, integer=True))
+                finish_axis(axis)
+                axis.legend(loc="upper left", frameon=False, ncol=2, fontsize=8.5)
+                add_preliminary_label(axis)
+                axis.text(
+                    0.98,
+                    0.72,
+                    (
+                        rf"$D/\mathrm{{ndf}}={fit_row['deviance_per_ndf']:.2f}$"
+                        "\n"
+                        rf"$p={fit_row['deviance_p_value']:.3g}$"
+                    ),
+                    transform=axis.transAxes,
+                    ha="right",
+                    va="top",
+                    fontsize=9,
+                )
+
+                residual_axis.axhline(0.0, color="black", linewidth=0.8)
+                residual_axis.scatter(
+                    fit_centers, fit_residuals, s=14, color="black", zorder=3
+                )
+                residual_axis.set_xlim(fit_edges[0], fit_edges[-1])
+                residual_axis.set_ylabel("Poisson\nresidual")
+                residual_axis.set_xlabel(
+                    r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$"
+                )
+                residual_axis.xaxis.set_major_locator(
+                    ticker.MaxNLocator(nbins=9, min_n_ticks=5)
+                )
+                residual_axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=5))
+                finish_axis(residual_axis, grid_axis="both")
+                fig.tight_layout()
+                save_figure(
+                    fig, args.output_dir / f"apa1_population_fit_{momentum}GeV"
+                )
+
         write_csv(args.output_dir / "plot_summary.csv", SUMMARY_FIELDS, summaries)
+        write_csv(
+            args.output_dir / "apa1_population_fit_results.csv",
+            FIT_FIELDS,
+            fit_rows,
+        )
         extreme_events.sort(
             key=lambda row: (row["momentum_GeV_c"], row["trigger_time"])
         )
@@ -680,7 +1154,32 @@ def main():
                 "events are reported but not removed from calculations."
             ),
             "cuts": "none",
-            "fits": "none",
+            "fits": (
+                "skipped by command-line option" if args.skip_fits else
+                "APA 1 at 2, 3, 5 and 7 GeV/c when requested: normalized "
+                "Langauss + Gaussian fitted to all histogram bins, including empty "
+                "bins, with signed Poisson-deviance residuals"
+            ),
+            "fit_range": (
+                "Bin-aligned interval spanning P0.5 to P99.5; entries outside are "
+                "reported and retained in the source dataset"
+            ),
+            "fit_bin_widths_PE": {
+                str(momentum): configuration["bin_width"]
+                for momentum, configuration in FIT_CONFIGURATION.items()
+            },
+            "fit_component_anchors_PE": {
+                str(momentum): configuration["component_anchor"]
+                for momentum, configuration in FIT_CONFIGURATION.items()
+            },
+            "fit_component_anchor_meaning": (
+                "Value used to initialize and identify the lower Langauss and upper "
+                "Gaussian components; it is not the selected threshold"
+            ),
+            "threshold_definition": (
+                "First Langauss-Gaussian intersection between the numerical "
+                "Langauss peak and the fitted Gaussian mean"
+            ),
             "figure_format": "PNG only",
             "output_policy": (
                 "The output directory may be reused; only files owned by this script "
@@ -695,19 +1194,34 @@ def main():
         "python_version": sys.version,
         "numpy_version": np.__version__,
         "matplotlib_version": matplotlib.__version__,
+        "scipy_version": (
+            __import__("scipy").__version__ if fit_momenta else None
+        ),
         "figures_created": not errors,
     }
     (args.output_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
 
+    if args.skip_fits:
+        fit_description = "Fit APA 1: non eseguiti (--skip-fits)."
+    elif fit_momenta:
+        fit_description = (
+            f"Fit APA 1: Langauss + Gaussiana ai momenti {fit_momenta} GeV/c; "
+            "funzione obiettivo basata sulla devianza di Poisson."
+        )
+    else:
+        fit_description = "Fit APA 1: nessun momento adatto richiesto."
+
     lines = [
-        "FIGURE DIAGNOSTICHE APA 1–APA 2",
+        "FIGURE DIAGNOSTICHE E FIT APA 1–APA 2",
         f"Input: {args.input_file}",
         f"Output: {args.output_dir}",
         f"Momenti nominali (GeV/c): {args.momenta}",
         "Binning: Freedman–Diaconis, separato per APA e momento.",
-        "Tagli: nessuno. Fit e soglie: nessuno.",
+        "Tagli applicati agli eventi: nessuno.",
+        fit_description,
+        "Fit misto APA 2: non eseguito.",
         "",
         "RISULTATI PER MOMENTO",
     ]
@@ -720,6 +1234,34 @@ def main():
             f"bin APA1={summary['apa1_histogram_bins']}, "
             f"bin APA2={summary['apa2_histogram_bins']}."
         )
+    if not args.skip_fits:
+        lines += ["", "RISULTATI FIT APA 1"]
+        if 1 in args.momenta:
+            lines.append(
+                "1 GeV/c: fit misto non eseguito; le due popolazioni non sono "
+                "separabili in modo affidabile."
+            )
+        for row in fit_rows:
+            momentum = row["momentum_GeV_c"]
+            if row["status"] != "success":
+                lines.append(
+                    f"{momentum} GeV/c: FIT NON RIUSCITO — {row['message']}"
+                )
+                continue
+            intersection_error = row["intersection_error"]
+            error_text = (
+                f" ± {intersection_error:.2f}" if math.isfinite(intersection_error)
+                else " (incertezza non disponibile)"
+            )
+            lines.append(
+                f"{momentum} GeV/c: intersezione={row['intersection']:.2f}"
+                f"{error_text} PE; media Gaussiana={row['gaussian_mean']:.2f} "
+                f"± {row['gaussian_mean_error']:.2f} PE; "
+                f"D/ndf={row['deviance_per_ndf']:.3f}, "
+                f"p={row['deviance_p_value']:.4g}; "
+                f"range=[{row['fit_minimum']:.1f}, {row['fit_maximum']:.1f}] PE, "
+                f"bin={row['bin_width']:.1f} PE."
+            )
     lines += ["", "ANOMALIE PER TIPO"]
     counts = Counter(item["code"] for item in anomalies)
     if counts:
@@ -743,7 +1285,14 @@ def main():
         "Gli eventi oltre il limite sono conservati e il loro numero è annotato nella figura.",
         "Il coefficiente di Pearson è descrittivo e non definisce una selezione.",
         "Il binning diagnostico non stabilisce il binning o l'intervallo del fit.",
+        "Il fit usa anche i bin vuoti e minimizza residui della devianza di Poisson.",
+        "Il range di fit copre P0.5--P99.5 ed è allineato ai bordi dei bin.",
+        "I punti fuori dal range di fit non sono cancellati dal dataset.",
+        "La soglia candidata è l'intersezione tra Langauss e Gaussiana compresa tra i picchi.",
+        "Le incertezze sono statistiche locali e condizionate a modello, binning e range.",
+        "Il p-value della devianza è una valutazione asintotica della qualità del fit.",
         "A 1 GeV/c non viene assunta la presenza di due popolazioni separabili.",
+        "APA 2 non viene adattata: la risposta self-trigger dipende dai canali contribuenti.",
         "",
         ("Figure create." if not errors else "Figure NON create a causa degli errori sopra elencati."),
     ]
