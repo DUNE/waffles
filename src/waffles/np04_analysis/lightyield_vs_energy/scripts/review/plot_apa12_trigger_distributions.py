@@ -23,6 +23,8 @@ OUTPUT
     apa12_pe_distribution_<momento>GeV.png: scatter trigger per trigger;
     plot_summary.csv: conteggi e statistiche descrittive;
     histogram_bins.json: bordi esatti dei bin;
+    extreme_events.csv: provenienza e valori degli eventi oltre almeno un
+    limite superiore mostrato nelle figure;
     anomalies.csv: incoerenze del dataset di input;
     report.txt: descrizione dei risultati e dei limiti;
     manifest.json: configurazione, versioni e SHA-256 dell'input.
@@ -62,8 +64,12 @@ REQUIRED_FIELDS = {
     "source_csv_row",
     "trigger_time",
     "apa1_mean",
+    "apa1_std",
+    "apa1_n_events",
     "apa1_valid",
     "apa2_mean",
+    "apa2_std",
+    "apa2_n_events",
     "apa2_valid",
     "both_apa_valid",
     "validity_category",
@@ -111,6 +117,25 @@ ANOMALY_FIELDS = [
     "detail",
 ]
 
+EXTREME_FIELDS = [
+    "momentum_GeV_c",
+    "trigger_time",
+    "block",
+    "source_file",
+    "source_csv_row",
+    "validity_category",
+    "apa1_mean",
+    "apa1_std",
+    "apa1_n_events",
+    "apa2_mean",
+    "apa2_std",
+    "apa2_n_events",
+    "apa1_display_maximum",
+    "apa2_display_maximum",
+    "outside_apa1_display",
+    "outside_apa2_display",
+]
+
 VALID_CATEGORIES = {"both_valid", "apa1_only", "apa2_only", "neither_valid"}
 
 
@@ -126,6 +151,7 @@ def clear_owned_outputs(output_dir):
     static_names = (
         "plot_summary.csv",
         "histogram_bins.json",
+        "extreme_events.csv",
         "anomalies.csv",
         "report.txt",
         "manifest.json",
@@ -164,6 +190,13 @@ def parse_optional_finite(raw, is_valid):
     if raw.strip():
         raise ValueError("valore dichiarato non valido ma campo non vuoto")
     return None
+
+
+def parse_nonnegative_integer(raw):
+    value = int(raw)
+    if value < 0 or str(value) != raw.strip():
+        raise ValueError("atteso un intero non negativo in forma canonica")
+    return value
 
 
 def load_rows(path, requested_momenta):
@@ -211,6 +244,11 @@ def load_rows(path, requested_momenta):
                     both_valid = parse_flag(record["both_apa_valid"])
                     apa1_mean = parse_optional_finite(record["apa1_mean"], apa1_valid)
                     apa2_mean = parse_optional_finite(record["apa2_mean"], apa2_valid)
+                    apa1_std = parse_optional_finite(record["apa1_std"], apa1_valid)
+                    apa2_std = parse_optional_finite(record["apa2_std"], apa2_valid)
+                    apa1_n_events = parse_nonnegative_integer(record["apa1_n_events"])
+                    apa2_n_events = parse_nonnegative_integer(record["apa2_n_events"])
+                    source_csv_row = parse_nonnegative_integer(record["source_csv_row"])
                 except (ValueError, OverflowError) as exc:
                     issue("invalid_value", csv_row, record.get("momentum_GeV_c", ""),
                           record.get("trigger_time", ""), str(exc))
@@ -219,6 +257,18 @@ def load_rows(path, requested_momenta):
                 if momentum not in (1, 2, 3, 5, 7) or trigger < 0:
                     issue("invalid_identity", csv_row, momentum, trigger,
                           "Momento non previsto oppure trigger_time negativo.")
+                    continue
+                if (
+                    bool(apa1_n_events) != bool(apa1_valid)
+                    or bool(apa2_n_events) != bool(apa2_valid)
+                ):
+                    issue(
+                        "inconsistent_valid_count",
+                        csv_row,
+                        momentum,
+                        trigger,
+                        "n_events deve essere positivo esattamente quando la media è valida.",
+                    )
                     continue
                 expected_both = int(apa1_valid and apa2_valid)
                 if both_valid != expected_both:
@@ -248,8 +298,16 @@ def load_rows(path, requested_momenta):
                     rows.append({
                         "momentum": momentum,
                         "trigger": trigger,
+                        "block": record["block"],
+                        "source_file": record["source_file"],
+                        "source_csv_row": source_csv_row,
+                        "validity_category": category,
                         "apa1_mean": apa1_mean,
+                        "apa1_std": apa1_std,
+                        "apa1_n_events": apa1_n_events,
                         "apa2_mean": apa2_mean,
+                        "apa2_std": apa2_std,
+                        "apa2_n_events": apa2_n_events,
                         "apa1_valid": apa1_valid,
                         "apa2_valid": apa2_valid,
                         "both_valid": both_valid,
@@ -300,6 +358,39 @@ def display_maximum(values, np):
     return limit, int(np.count_nonzero(values > limit))
 
 
+def collect_extreme_events(rows, display_max1, display_max2):
+    """Seleziona per il solo riepilogo gli eventi oltre i limiti grafici."""
+    output = []
+    for row in rows:
+        outside1 = bool(
+            row["apa1_valid"] and row["apa1_mean"] > display_max1
+        )
+        outside2 = bool(
+            row["apa2_valid"] and row["apa2_mean"] > display_max2
+        )
+        if not (outside1 or outside2):
+            continue
+        output.append({
+            "momentum_GeV_c": row["momentum"],
+            "trigger_time": row["trigger"],
+            "block": row["block"],
+            "source_file": row["source_file"],
+            "source_csv_row": row["source_csv_row"],
+            "validity_category": row["validity_category"],
+            "apa1_mean": "" if row["apa1_mean"] is None else row["apa1_mean"],
+            "apa1_std": "" if row["apa1_std"] is None else row["apa1_std"],
+            "apa1_n_events": row["apa1_n_events"],
+            "apa2_mean": "" if row["apa2_mean"] is None else row["apa2_mean"],
+            "apa2_std": "" if row["apa2_std"] is None else row["apa2_std"],
+            "apa2_n_events": row["apa2_n_events"],
+            "apa1_display_maximum": display_max1,
+            "apa2_display_maximum": display_max2,
+            "outside_apa1_display": int(outside1),
+            "outside_apa2_display": int(outside2),
+        })
+    return output
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -332,6 +423,7 @@ def main():
     rows, anomalies = load_rows(args.input_file, set(args.momenta))
     summaries = []
     bins_manifest = {}
+    extreme_events = []
     errors = sum(item["severity"] == "error" for item in anomalies)
     prepared = {}
 
@@ -370,6 +462,9 @@ def main():
             display_max2, above_display2 = display_maximum(apa2, np)
             stats1 = descriptive(apa1, np)
             stats2 = descriptive(apa2, np)
+            extreme_events.extend(
+                collect_extreme_events(selected, display_max1, display_max2)
+            )
             if len(paired) > 1 and np.std(paired_apa1) > 0 and np.std(paired_apa2) > 0:
                 pearson = float(np.corrcoef(paired_apa1, paired_apa2)[0, 1])
             else:
@@ -553,6 +648,12 @@ def main():
             save_figure(fig, args.output_dir / f"apa12_pe_distribution_{momentum}GeV")
 
         write_csv(args.output_dir / "plot_summary.csv", SUMMARY_FIELDS, summaries)
+        extreme_events.sort(
+            key=lambda row: (row["momentum_GeV_c"], row["trigger_time"])
+        )
+        write_csv(
+            args.output_dir / "extreme_events.csv", EXTREME_FIELDS, extreme_events
+        )
         (args.output_dir / "histogram_bins.json").write_text(
             json.dumps({
                 "method": "numpy.histogram_bin_edges with bins='fd'",
@@ -573,6 +674,10 @@ def main():
             "display_range": (
                 "0 to max(99th percentile, Q3 + 5*IQR), with 3% upper margin; "
                 "the full sample remains in all calculations"
+            ),
+            "extreme_events_definition": (
+                "Valid APA mean above the corresponding displayed upper limit; "
+                "events are reported but not removed from calculations."
             ),
             "cuts": "none",
             "fits": "none",
@@ -621,6 +726,13 @@ def main():
         lines.extend(f"{code}: {count}" for code, count in sorted(counts.items()))
     else:
         lines.append("Nessuna anomalia rilevata.")
+    if not errors:
+        lines += [
+            "",
+            "EVENTI OLTRE L'INTERVALLO MOSTRATO",
+            f"Eventi distinti elencati in extreme_events.csv: {len(extreme_events)}.",
+            "Sono segnalazioni diagnostiche: nessun evento è escluso dai calcoli.",
+        ]
     lines += [
         "",
         "COME LEGGERE LE FIGURE",
