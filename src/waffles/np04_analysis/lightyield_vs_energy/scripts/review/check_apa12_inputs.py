@@ -18,6 +18,10 @@ INPUT
     files_read.txt è facoltativo: viene controllato se presente, ma non è
     considerato una prova che tutti i file siano stati letti correttamente.
     --momenta: momenti nominali in GeV/c (default: 1 2 3 5 7).
+    --exclude-block BLOCCO MOTIVO: esclude esplicitamente una cartella relativa
+    a --input-dir, ad esempio 2GeV/0_to_1, con una motivazione obbligatoria.
+    L'opzione è ripetibile; la cartella deve esistere e appartenere ai momenti
+    richiesti. Senza questa opzione non viene escluso nessun blocco.
     Non occorrono pandas, scipy, waffles o i dati grezzi: solo Python >= 3.9.
 
 OUTPUT
@@ -26,6 +30,8 @@ OUTPUT
       anomalies.csv: dettagli, file sorgente e riga CSV (intestazione = 1);
       report.txt: spiegazione dei risultati, impostazioni e limiti;
       manifest.json: percorsi, SHA-256 degli input letti e configurazione.
+    Rapporto e manifest registrano i blocchi esclusi e le motivazioni;
+    summary.csv e anomalies.csv riguardano soltanto i blocchi inclusi.
     Nessuna figura: questo primo passo controlla soltanto gli input.
     Senza --output-dir crea output/review/check_apa12_inputs_<data UTC>.
     Codice di uscita: 0 = nessuna anomalia rilevata; 1 = anomalie da esaminare;
@@ -37,6 +43,8 @@ ESECUZIONE (dalla cartella scripts/review su LXPlus)
         --output-dir ../../output/review/check_inputs_01
 
     Per una prima prova su un solo momento aggiungere: --momenta 1
+    Per escludere il blocco ridondante a 2 GeV/c aggiungere:
+        --momenta 2 --exclude-block 2GeV/0_to_1 "28 righe identiche gia presenti in 0_to_10"
     std viene ricalcolata con ddof=0; confronti numerici: rtol=1e-9, atol=1e-9.
     start/stop sono interpretati come intervalli [start, stop), come nel vecchio
     lettore. Tempi vicini: distanza <= 200 tick, solo segnalazione diagnostica.
@@ -122,6 +130,7 @@ def write_csv(path, fields, rows):
 
 def check_inputs(args):
     anomalies, summaries, manifest = [], [], []
+    excluded_blocks = {block for block, reason in args.exclude_block}
 
     def issue(severity, code, p, block="", source="", row="", trigger="", apa="",
               related_file="", related_row="", detail=""):
@@ -151,6 +160,8 @@ def check_inputs(args):
         else:
             for sub in sorted(folder.iterdir()):
                 if not sub.is_dir() or "_to_" not in sub.name:
+                    continue
+                if f"{p}GeV/{sub.name}" in excluded_blocks:
                     continue
                 match = re.fullmatch(r"(\d+)_to_(\d+)", sub.name)
                 if not match:
@@ -298,7 +309,8 @@ def check_inputs(args):
                       related_file=old_path, related_row=old_row,
                       detail=f"Tempi candidati distinti distanti {current - previous} tick; verificare sulle waveform.")
         if not blocks:
-            issue("error", "no_blocks", p, source=folder, detail="Nessun blocco <start>_to_<stop> trovato.")
+            issue("error", "no_blocks", p, source=folder,
+                  detail="Nessun blocco <start>_to_<stop> disponibile dopo le eventuali esclusioni.")
         for summary in block_summaries:
             relevant = [a for a in anomalies if a["momentum_GeV_c"] == p and a["block"] == summary["block"]]
             for severity in ("error", "warning"):
@@ -325,6 +337,9 @@ def main():
     parser.add_argument("--input-dir", type=Path, default=base / "output/apa1_vs_apa2")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--momenta", nargs="+", type=int, choices=(1, 2, 3, 5, 7), default=[1, 2, 3, 5, 7])
+    parser.add_argument("--exclude-block", nargs=2, action="append", default=[],
+                        metavar=("BLOCCO", "MOTIVO"),
+                        help="Cartella relativa a input-dir e motivo, ad esempio 2GeV/0_to_1 'Blocco ridondante'. Ripetibile.")
     parser.add_argument("--near-ticks", type=int, default=200, help="Distanza diagnostica, non una regola di associazione.")
     parser.add_argument("--rtol", type=float, default=1e-9)
     parser.add_argument("--atol", type=float, default=1e-9)
@@ -340,6 +355,23 @@ def main():
         parser.error(f"Cartella input inesistente: {args.input_dir}")
     if output.exists():
         parser.error(f"La cartella output esiste già; scegliere un nuovo nome: {output}")
+    exclusions = []
+    seen_exclusions = set()
+    for block, reason in args.exclude_block:
+        match = re.fullmatch(r"(1|2|3|5|7)GeV/(\d+)_to_(\d+)", block)
+        if not match or int(match[2]) >= int(match[3]):
+            parser.error(f"Blocco da escludere non valido: {block}. Atteso, ad esempio, 2GeV/0_to_1.")
+        if int(match[1]) not in args.momenta:
+            parser.error(f"Il blocco {block} non appartiene ai momenti richiesti.")
+        if block in seen_exclusions:
+            parser.error(f"Esclusione ripetuta: {block}.")
+        if not reason.strip():
+            parser.error(f"Specificare una motivazione non vuota per {block}.")
+        path = args.input_dir / block
+        if not path.is_dir():
+            parser.error(f"La cartella da escludere non esiste: {path}")
+        seen_exclusions.add(block)
+        exclusions.append({"block": block, "path": str(path), "reason": reason.strip()})
     summaries, anomalies, manifest = check_inputs(args)
     output.mkdir(parents=True, exist_ok=False)
     write_csv(output / "summary.csv", SUMMARY_FIELDS, summaries)
@@ -348,15 +380,22 @@ def main():
     (output / "manifest.json").write_text(json.dumps({
         "created_utc": created.isoformat(), "configuration": config,
         "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "python_version": sys.version, "inputs": manifest,
+        "python_version": sys.version, "inputs": manifest, "excluded_blocks": exclusions,
     }, indent=2) + "\n", encoding="utf-8")
     lines = [
         "CONTROLLO INPUT APA 1–APA 2", f"Input: {args.input_dir}", f"Output: {output}",
         f"Momenti nominali (GeV/c): {args.momenta}",
         f"Tolleranze statistiche: rtol={args.rtol}, atol={args.atol}; ddof=0.",
         f"Tempi vicini: <= {args.near_ticks} tick; confrontate coppie consecutive di tempi distinti.",
-        "", "RISULTATI PER MOMENTO",
+        "", "BLOCCHI ESCLUSI ESPLICITAMENTE",
     ]
+    if exclusions:
+        for item in exclusions:
+            lines.append(f"{item['block']} — {item['reason']}\n  Percorso: {item['path']}")
+        lines.append("I blocchi esclusi non sono letti né conteggiati; i file originali restano invariati.")
+    else:
+        lines.append("Nessuno.")
+    lines += ["", "RISULTATI PER MOMENTO"]
     for s in summaries:
         if s["scope"] == "momentum":
             lines.append(f"{s['momentum_GeV_c']} GeV/c: {s['rows']} righe, "
