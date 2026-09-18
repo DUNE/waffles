@@ -4,14 +4,14 @@ r"""Crea una tabella semplice di caratterizzazione dei campioni PDS.
 SCOPO
     Analizza lo stesso blocco (default: 0_to_10) per ciascun momento nominale
     e calcola cinque quantità descrittive:
-      1. numero medio di waveform APA 1 per trigger associato FS-ST;
-      2. numero medio di waveform APA 2 per trigger associato FS-ST;
+      1. numero medio di canali distinti con waveform APA 1 per trigger FS-ST;
+      2. numero medio di canali distinti con waveform APA 2 per trigger FS-ST;
       3. media, tra i trigger validi, di apa1_mean;
       4. media, tra i trigger validi, di apa2_mean;
       5. percentuale di identità evento FS senza alcuna waveform ST.
-    Per le prime quattro quantità salva anche la deviazione standard della
-    popolazione analizzata (ddof=0). Non modifica gli input e non applica tagli
-    muone/non muone.
+    Per le prime quattro quantità salva deviazione standard della popolazione
+    (ddof=0), minimo e massimo. Conta separatamente eventuali waveform duplicate
+    dello stesso canale. Non modifica gli input e non applica tagli muone/non muone.
 
 INPUT
     --input-dir: cartella apa1_vs_apa2 contenente
@@ -75,12 +75,32 @@ OUTPUT_FIELDS = [
     "fs_event_identities_without_st", "fs_without_st_percent",
     "apa1_waveforms_per_paired_trigger_mean",
     "apa1_waveforms_per_paired_trigger_population_std",
+    "apa1_waveforms_per_paired_trigger_minimum",
+    "apa1_waveforms_per_paired_trigger_maximum",
     "apa2_waveforms_per_paired_trigger_mean",
     "apa2_waveforms_per_paired_trigger_population_std",
+    "apa2_waveforms_per_paired_trigger_minimum",
+    "apa2_waveforms_per_paired_trigger_maximum",
+    "apa1_unique_channels_per_paired_trigger_mean",
+    "apa1_unique_channels_per_paired_trigger_population_std",
+    "apa1_unique_channels_per_paired_trigger_minimum",
+    "apa1_unique_channels_per_paired_trigger_maximum",
+    "apa2_unique_channels_per_paired_trigger_mean",
+    "apa2_unique_channels_per_paired_trigger_population_std",
+    "apa2_unique_channels_per_paired_trigger_minimum",
+    "apa2_unique_channels_per_paired_trigger_maximum",
+    "apa1_triggers_with_duplicate_channel_waveforms",
+    "apa2_triggers_with_duplicate_channel_waveforms",
+    "apa1_duplicate_channel_waveforms",
+    "apa2_duplicate_channel_waveforms",
     "apa1_mean_pe_valid_triggers", "apa1_mean_pe_across_triggers",
     "apa1_mean_pe_across_triggers_population_std",
+    "apa1_mean_pe_across_triggers_minimum",
+    "apa1_mean_pe_across_triggers_maximum",
     "apa2_mean_pe_valid_triggers", "apa2_mean_pe_across_triggers",
     "apa2_mean_pe_across_triggers_population_std",
+    "apa2_mean_pe_across_triggers_minimum",
+    "apa2_mean_pe_across_triggers_maximum",
 ]
 ANOMALY_FIELDS = [
     "severity", "code", "momentum_GeV_c", "csv_row", "trigger_time", "detail",
@@ -157,11 +177,32 @@ def select_waveforms(entries, times, trigger, delta):
 
 
 def describe(values):
-    return statistics.mean(values), statistics.pstdev(values)
+    return statistics.mean(values), statistics.pstdev(values), min(values), max(values)
 
 
-def formatted(mean, std, decimals=2):
-    return f"{mean:.{decimals}f} ± {std:.{decimals}f}"
+def rounding_decimals(std, significant_digits=2):
+    """Cifre decimali necessarie per al massimo due cifre significative in std."""
+    if std == 0:
+        return 2
+    exponent = math.floor(math.log10(abs(std)))
+    return significant_digits - 1 - exponent
+
+
+def rounded_text(value, decimals):
+    rounded = round(value, decimals)
+    if decimals > 0:
+        return f"{rounded:.{decimals}f}"
+    return f"{rounded:.0f}"
+
+
+def formatted_range(mean, std, minimum, maximum, integer_range=False):
+    decimals = rounding_decimals(std)
+    minimum_text = f"{minimum:.0f}" if integer_range else rounded_text(minimum, decimals)
+    maximum_text = f"{maximum:.0f}" if integer_range else rounded_text(maximum, decimals)
+    return (
+        f"{rounded_text(mean, decimals)} ± {rounded_text(std, decimals)} "
+        f"[{minimum_text}–{maximum_text}]"
+    )
 
 
 def main():
@@ -239,12 +280,25 @@ def main():
                         "Il tempo compare più volte nel CSV del blocco.")
 
         fs_counts, st_counts = [], []
+        fs_channel_counts, st_channel_counts = [], []
+        fs_duplicate_triggers = st_duplicate_triggers = 0
+        fs_duplicate_waveforms = st_duplicate_waveforms = 0
         apa1_pe, apa2_pe = [], []
         for csv_row, trigger, row in csv_rows:
             fs = select_waveforms(fs_entries, fs_times, trigger, args.delta_ticks)
             st = select_waveforms(st_entries, st_times, trigger, args.delta_ticks)
             fs_counts.append(len(fs))
             st_counts.append(len(st))
+            fs_channels = {(wf.endpoint, wf.channel) for wf in fs.values()}
+            st_channels = {(wf.endpoint, wf.channel) for wf in st.values()}
+            fs_channel_counts.append(len(fs_channels))
+            st_channel_counts.append(len(st_channels))
+            fs_duplicates = len(fs) - len(fs_channels)
+            st_duplicates = len(st) - len(st_channels)
+            fs_duplicate_waveforms += fs_duplicates
+            st_duplicate_waveforms += st_duplicates
+            fs_duplicate_triggers += int(fs_duplicates > 0)
+            st_duplicate_triggers += int(st_duplicates > 0)
             if not fs:
                 anomaly("error", "missing_fs_waveforms", momentum, csv_row, trigger,
                         "Nessuna waveform FS nella finestra temporale.")
@@ -265,13 +319,21 @@ def main():
 
         if not csv_rows or not fs_counts or not st_counts or not apa1_pe or not apa2_pe:
             raise ValueError(f"Campione vuoto o privo di medie PE valide per {momentum} GeV/c.")
-        fs_mean, fs_std = describe(fs_counts)
-        st_mean, st_std = describe(st_counts)
-        apa1_mean, apa1_std = describe(apa1_pe)
-        apa2_mean, apa2_std = describe(apa2_pe)
+        fs_mean, fs_std, fs_min, fs_max = describe(fs_counts)
+        st_mean, st_std, st_min, st_max = describe(st_counts)
+        fs_ch_mean, fs_ch_std, fs_ch_min, fs_ch_max = describe(fs_channel_counts)
+        st_ch_mean, st_ch_std, st_ch_min, st_ch_max = describe(st_channel_counts)
+        apa1_mean, apa1_std, apa1_min, apa1_max = describe(apa1_pe)
+        apa2_mean, apa2_std, apa2_min, apa2_max = describe(apa2_pe)
         shared_identities = fs_identities & st_identities
         fs_without_st = fs_identities - st_identities
         missing_percent = 100 * len(fs_without_st) / len(fs_identities) if fs_identities else math.nan
+        if fs_duplicate_waveforms:
+            anomaly("warning", "duplicate_apa1_channel_waveforms", momentum,
+                    detail=f"{fs_duplicate_waveforms} waveform duplicate in {fs_duplicate_triggers} trigger associati.")
+        if st_duplicate_waveforms:
+            anomaly("warning", "duplicate_apa2_channel_waveforms", momentum,
+                    detail=f"{st_duplicate_waveforms} waveform duplicate in {st_duplicate_triggers} trigger associati.")
         if st_identities - fs_identities:
             anomaly("warning", "st_event_identity_without_fs", momentum,
                     detail=f"Identità ST non presenti in FS: {len(st_identities-fs_identities)}.")
@@ -285,14 +347,34 @@ def main():
             "fs_without_st_percent": missing_percent,
             "apa1_waveforms_per_paired_trigger_mean": fs_mean,
             "apa1_waveforms_per_paired_trigger_population_std": fs_std,
+            "apa1_waveforms_per_paired_trigger_minimum": fs_min,
+            "apa1_waveforms_per_paired_trigger_maximum": fs_max,
             "apa2_waveforms_per_paired_trigger_mean": st_mean,
             "apa2_waveforms_per_paired_trigger_population_std": st_std,
+            "apa2_waveforms_per_paired_trigger_minimum": st_min,
+            "apa2_waveforms_per_paired_trigger_maximum": st_max,
+            "apa1_unique_channels_per_paired_trigger_mean": fs_ch_mean,
+            "apa1_unique_channels_per_paired_trigger_population_std": fs_ch_std,
+            "apa1_unique_channels_per_paired_trigger_minimum": fs_ch_min,
+            "apa1_unique_channels_per_paired_trigger_maximum": fs_ch_max,
+            "apa2_unique_channels_per_paired_trigger_mean": st_ch_mean,
+            "apa2_unique_channels_per_paired_trigger_population_std": st_ch_std,
+            "apa2_unique_channels_per_paired_trigger_minimum": st_ch_min,
+            "apa2_unique_channels_per_paired_trigger_maximum": st_ch_max,
+            "apa1_triggers_with_duplicate_channel_waveforms": fs_duplicate_triggers,
+            "apa2_triggers_with_duplicate_channel_waveforms": st_duplicate_triggers,
+            "apa1_duplicate_channel_waveforms": fs_duplicate_waveforms,
+            "apa2_duplicate_channel_waveforms": st_duplicate_waveforms,
             "apa1_mean_pe_valid_triggers": len(apa1_pe),
             "apa1_mean_pe_across_triggers": apa1_mean,
             "apa1_mean_pe_across_triggers_population_std": apa1_std,
+            "apa1_mean_pe_across_triggers_minimum": apa1_min,
+            "apa1_mean_pe_across_triggers_maximum": apa1_max,
             "apa2_mean_pe_valid_triggers": len(apa2_pe),
             "apa2_mean_pe_across_triggers": apa2_mean,
             "apa2_mean_pe_across_triggers_population_std": apa2_std,
+            "apa2_mean_pe_across_triggers_minimum": apa2_min,
+            "apa2_mean_pe_across_triggers_maximum": apa2_max,
         })
         del fs_entries, st_entries
         gc.collect()
@@ -302,8 +384,8 @@ def main():
     write_csv(args.output_dir / "anomalies.csv", ANOMALY_FIELDS, anomalies)
 
     header = [
-        "Momento", "WF APA 1 / trigger", "WF APA 2 / trigger",
-        "Media PE APA 1", "Media PE APA 2", "FS senza APA 2",
+        "Momento", "Canali con WF APA 1 / trigger", "Canali ST APA 2 / trigger",
+        "Media PE/canale APA 1", "Media PE/canale APA 2", "FS senza APA 2",
     ]
     md_lines = [
         "| " + " | ".join(header) + " |",
@@ -312,16 +394,32 @@ def main():
     tex_lines = [
         r"\begin{tabular}{rrrrrr}",
         r"\hline",
-        "Momento & WF APA 1 / trigger & WF APA 2 / trigger & Media PE APA 1 & Media PE APA 2 & FS senza APA 2 \\\\",
+        "Momento & Canali con WF APA 1 / trigger & Canali ST APA 2 / trigger & Media PE/canale APA 1 & Media PE/canale APA 2 & FS senza APA 2 \\\\",
         r"\hline",
     ]
     for row in results:
         cells = [
             f"{row['momentum_GeV_c']} GeV/c",
-            formatted(row["apa1_waveforms_per_paired_trigger_mean"], row["apa1_waveforms_per_paired_trigger_population_std"]),
-            formatted(row["apa2_waveforms_per_paired_trigger_mean"], row["apa2_waveforms_per_paired_trigger_population_std"]),
-            formatted(row["apa1_mean_pe_across_triggers"], row["apa1_mean_pe_across_triggers_population_std"]),
-            formatted(row["apa2_mean_pe_across_triggers"], row["apa2_mean_pe_across_triggers_population_std"]),
+            formatted_range(
+                row["apa1_unique_channels_per_paired_trigger_mean"],
+                row["apa1_unique_channels_per_paired_trigger_population_std"],
+                row["apa1_unique_channels_per_paired_trigger_minimum"],
+                row["apa1_unique_channels_per_paired_trigger_maximum"], integer_range=True),
+            formatted_range(
+                row["apa2_unique_channels_per_paired_trigger_mean"],
+                row["apa2_unique_channels_per_paired_trigger_population_std"],
+                row["apa2_unique_channels_per_paired_trigger_minimum"],
+                row["apa2_unique_channels_per_paired_trigger_maximum"], integer_range=True),
+            formatted_range(
+                row["apa1_mean_pe_across_triggers"],
+                row["apa1_mean_pe_across_triggers_population_std"],
+                row["apa1_mean_pe_across_triggers_minimum"],
+                row["apa1_mean_pe_across_triggers_maximum"]),
+            formatted_range(
+                row["apa2_mean_pe_across_triggers"],
+                row["apa2_mean_pe_across_triggers_population_std"],
+                row["apa2_mean_pe_across_triggers_minimum"],
+                row["apa2_mean_pe_across_triggers_maximum"]),
             f"{row['fs_without_st_percent']:.1f}%",
         ]
         md_lines.append("| " + " | ".join(cells) + " |")
@@ -363,7 +461,8 @@ def main():
         lines.append("Nessuna anomalia rilevata dai controlli implementati.")
     lines += [
         "", "LIMITI",
-        "La media PE è la media tra trigger di apa1_mean o apa2_mean; non è la somma dei PE dell'APA.",
+        "Le colonne dei canali contano coppie endpoint-canale distinte; eventuali waveform duplicate sono registrate soltanto nel CSV completo.",
+        "La media PE/canale è la media tra trigger di apa1_mean o apa2_mean; non è la somma dei PE dell'APA.",
         "Le medie PE usano soltanto canali dotati di template e con fit valido; i canali rumorosi esclusi dai template non sono trattati come PE nulli.",
         "I trigger con media PE NaN sono esclusi soltanto dalla relativa media PE.",
         "Il campione contiene la miscela di particelle del fascio e non rappresenta la sola popolazione non muonica.",
