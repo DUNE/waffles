@@ -1248,12 +1248,14 @@ def main():
                 True, axis=grid_axis, linestyle="--", linewidth=0.5, alpha=0.35
             )
 
-        def format_estimate(value, error, digits=2):
+        def format_estimate(value, error, digits=2, unit=None):
             if math.isfinite(value) and math.isfinite(error):
-                return f"{value:.{digits}f} ± {error:.{digits}f}"
-            if math.isfinite(value):
-                return f"{value:.{digits}f}"
-            return "not available"
+                estimate = f"{value:.{digits}f} ± {error:.{digits}f}"
+            elif math.isfinite(value):
+                estimate = f"{value:.{digits}f}"
+            else:
+                return "not available"
+            return f"({estimate}) {unit}" if unit else estimate
 
         for momentum in args.momenta:
             (
@@ -1387,15 +1389,29 @@ def main():
                     gaussian_counts = fit_width * gaussian_density
                     total_counts = langauss_counts + gaussian_counts
 
+                # Mostra anche i dati a sinistra del range adattato; il fit
+                # continua a usare esclusivamente i bin originali fit_edges.
+                plot_minimum = max(
+                    0.0,
+                    math.floor(
+                        (fit_edges[0] - 0.12 * (fit_edges[-1] - fit_edges[0]))
+                        / fit_width
+                    ) * fit_width,
+                )
+                plot_edges = np.arange(
+                    plot_minimum, fit_edges[-1] + 0.5 * fit_width,
+                    fit_width, dtype=float,
+                )
+                plot_observed, _ = np.histogram(apa1, bins=plot_edges)
                 fig, axis = plt.subplots(figsize=(8, 5))
                 axis.stairs(
-                    fit_observed,
-                    fit_edges,
+                    plot_observed,
+                    plot_edges,
                     fill=True,
                     color=COLORS["data"],
                     edgecolor=COLORS["total"],
                     linewidth=0.8,
-                    label=f"Data ({fit_row['entries_in_fit_range']} triggers)",
+                    label=f"Data ({int(np.sum(plot_observed))} triggers shown)",
                 )
                 if fit_row["model"] == "langauss":
                     axis.plot(
@@ -1410,19 +1426,22 @@ def main():
                     axis.plot(
                         dense_x, langauss_counts, color=COLORS["langauss"],
                         linestyle="--", linewidth=1.5,
-                        label="Langauss (muon population)",
+                        label="Langauss (muon-like population)",
                     )
                     axis.plot(
                         dense_x, gaussian_counts, color=COLORS["gaussian"],
                         linestyle="--", linewidth=1.5,
-                        label="Gaussian (non-muon population)",
+                        label="Gaussian (non-muon-like population)",
                     )
                     axis.axvline(
                         fit_row["intersection"], color=COLORS["intersection"],
                         linestyle=":", linewidth=1.8,
-                        label=rf"Intersection = {fit_row['intersection']:.1f} PE",
+                        label="Intersection = " + format_estimate(
+                            fit_row["intersection"],
+                            fit_row["intersection_error"], unit="PE",
+                        ),
                     )
-                axis.set_ylabel("Triggers / bin")
+                axis.set_ylabel("Trigger counts")
                 title = (
                     "APA 1 Langauss fit" if fit_row["model"] == "langauss"
                     else "APA 1 population fit"
@@ -1430,37 +1449,40 @@ def main():
                 axis.set_title(rf"{title} — $p_{{\rm beam}}={momentum}$ GeV/$c$")
                 axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=7, integer=True))
                 axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$")
-                axis.set_xlim(fit_edges[0], fit_edges[-1])
-                axis.set_ylim(0, max(fit_observed) * 1.22)
+                axis.set_xlim(plot_edges[0], plot_edges[-1])
+                axis.set_ylim(0, max(plot_observed) * 1.22)
                 finish_axis(axis, grid_axis="both")
-                axis.legend(loc="upper left", frameon=False, fontsize=8.3)
+                legend = axis.legend(
+                    loc="upper left", frameon=True, facecolor="white",
+                    framealpha=1.0, edgecolor="0.75", fontsize=8.3,
+                )
+                legend.set_zorder(5)
 
                 quality_text = (
-                    rf"Poisson $D/\mathrm{{ndf}}$ = {fit_row['deviance_per_ndf']:.2f}"
-                    "\n" + rf"$p$-value = {fit_row['deviance_p_value']:.3g}"
-                    "\n" + rf"Pearson $\chi^2/\mathrm{{ndf}}$ = "
-                    f"{fit_row['pearson_chi2_per_ndf']:.2f}"
-                    "\n" + rf"$R^2$ (descriptive) = {fit_row['r_squared']:.3f}"
+                    rf"$\chi^2/\mathrm{{ndf}}$ = "
+                    f"{fit_row['pearson_chi2']:.1f}/{fit_row['ndf']}"
+                    f" = {fit_row['pearson_chi2_per_ndf']:.2f}"
+                    "\n" + rf"$R^2$ = {fit_row['r_squared']:.3f}"
                 )
                 langauss_text = (
                         "MPV = " + format_estimate(
-                            fit_row["mpv"], fit_row["mpv_error"]
-                        ) + " PE\n"
+                            fit_row["mpv"], fit_row["mpv_error"], unit="PE"
+                        ) + "\n"
                         + r"$\eta$ = " + format_estimate(
-                            fit_row["eta"], fit_row["eta_error"]
-                        ) + " PE\n"
+                            fit_row["eta"], fit_row["eta_error"], unit="PE"
+                        ) + "\n"
                         + r"$\sigma_{\rm LG}$ = " + format_estimate(
                             fit_row["langauss_sigma"],
-                            fit_row["langauss_sigma_error"],
-                        ) + " PE\n"
+                            fit_row["langauss_sigma_error"], unit="PE",
+                        ) + "\n"
                         + r"$N_{\rm LG}$ = " + format_estimate(
                             fit_row["langauss_yield"],
                             fit_row["langauss_yield_error"], digits=0,
                         ) + "\n"
                         + r"$x_{\rm peak}$ = " + format_estimate(
                             fit_row["langauss_peak"],
-                            fit_row["langauss_peak_error"],
-                        ) + " PE"
+                            fit_row["langauss_peak_error"], unit="PE",
+                        )
                 )
                 if fit_row["model"] == "langauss":
                     info_text = "Langauss:\n" + langauss_text + "\n\n" + quality_text
@@ -1468,12 +1490,12 @@ def main():
                     gaussian_text = (
                         r"$\mu$ = " + format_estimate(
                             fit_row["gaussian_mean"],
-                            fit_row["gaussian_mean_error"],
-                        ) + " PE\n"
+                            fit_row["gaussian_mean_error"], unit="PE",
+                        ) + "\n"
                         + r"$\sigma_{\rm G}$ = " + format_estimate(
                             fit_row["gaussian_sigma"],
-                            fit_row["gaussian_sigma_error"],
-                        ) + " PE\n"
+                            fit_row["gaussian_sigma_error"], unit="PE",
+                        ) + "\n"
                         + r"$N_{\rm G}$ = " + format_estimate(
                             fit_row["gaussian_yield"],
                             fit_row["gaussian_yield_error"], digits=0,
@@ -1483,8 +1505,9 @@ def main():
                         "Langauss:\n" + langauss_text + "\n\nGaussian:\n"
                         + gaussian_text + "\n\n" + quality_text
                         + "\n\nIntersection = " + format_estimate(
-                            fit_row["intersection"], fit_row["intersection_error"]
-                        ) + " PE"
+                            fit_row["intersection"],
+                            fit_row["intersection_error"], unit="PE",
+                        )
                     )
                 info_box = AnchoredText(
                     info_text, loc="upper right", frameon=True,
@@ -1495,8 +1518,8 @@ def main():
                 info_box.patch.set_edgecolor("0.65")
                 axis.add_artist(info_box)
                 axis.text(
-                    0.62, 0.97, r"$\bf{ProtoDUNE\!-\!HD}$ Preliminary",
-                    transform=axis.transAxes, fontsize=10,
+                    0.52, 0.97, r"$\bf{ProtoDUNE\!-\!HD}$ Preliminary",
+                    transform=axis.transAxes, fontsize=9,
                     ha="center", va="top",
                 )
                 fig.tight_layout()
