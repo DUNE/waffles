@@ -1411,7 +1411,7 @@ def main():
                     color=COLORS["data"],
                     edgecolor=COLORS["total"],
                     linewidth=0.8,
-                    label=f"Data ({int(np.sum(plot_observed))} triggers shown)",
+                    label="Data",
                 )
                 if fit_row["model"] == "langauss":
                     axis.plot(
@@ -1442,11 +1442,6 @@ def main():
                         ),
                     )
                 axis.set_ylabel("Trigger counts")
-                title = (
-                    "APA 1 Langauss fit" if fit_row["model"] == "langauss"
-                    else "APA 1 population fit"
-                )
-                axis.set_title(rf"{title} — $p_{{\rm beam}}={momentum}$ GeV/$c$")
                 axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=7, integer=True))
                 axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$")
                 axis.set_xlim(plot_edges[0], plot_edges[-1])
@@ -1504,11 +1499,12 @@ def main():
                     info_text = (
                         "Langauss:\n" + langauss_text + "\n\nGaussian:\n"
                         + gaussian_text + "\n\n" + quality_text
-                        + "\n\nIntersection = " + format_estimate(
-                            fit_row["intersection"],
-                            fit_row["intersection_error"], unit="PE",
-                        )
                     )
+                info_text = (
+                    f"Data @ {momentum} GeV/c "
+                    f"({int(np.sum(plot_observed))} triggers shown)\n\n"
+                    + info_text
+                )
                 info_box = AnchoredText(
                     info_text, loc="upper right", frameon=True,
                     prop={"size": 7.7}, borderpad=0.5,
