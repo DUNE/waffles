@@ -14,12 +14,14 @@ ESECUZIONE (da scripts/review):
       --composition ../../data/np04_beam_particle_content.csv \
       --relative-momentum-error 0.05
 
-La barra x propaga il 5% del momento tramite la derivata della media K.
+La barra x rappresenta la dispersione efficace in energia cinetica del campione:
+la dispersione tra specie e il contributo del 5% sul momento sono combinati
+in quadratura. Il contributo del momento e' propagato tramite la derivata
+della media K.
 Il PDF descrive +/-5% come accettanza di momento, non come errore gaussiano
 1-sigma: qui si usa conservativamente come incertezza efficace 1-sigma.
-La dispersione fisica tra specie e' riportata separatamente: non e' errore
-sulla media. L'incertezza dei pesi simulati non e' fornita e non viene
-inventata. Le incertezze dei fit PE sono statistiche locali e condizionate.
+L'incertezza dei pesi simulati non e' fornita e non viene inventata. Le
+incertezze dei fit PE sono statistiche locali e condizionate.
 """
 
 import argparse
@@ -41,7 +43,7 @@ MOMENTA = (1, 2, 3, 5, 7)
 
 
 def weighted_kinetic_energy(momentum, rates, relative_p_error):
-    """Restituisce media K, errore dal momento e RMS fisico della miscela."""
+    """Restituisce K_eff, contributo dal momento, RMS tra specie e totale."""
     species = tuple(MASS_GEV)
     values = np.array([float(rates[s]) for s in species])
     if not np.all(np.isfinite(values)) or np.any(values < 0) or values.sum() <= 0:
@@ -55,7 +57,10 @@ def weighted_kinetic_energy(momentum, rates, relative_p_error):
     mixture_var = float(weights @ (kinetic - mean)**2)
     derivative = float(weights @ (momentum / np.sqrt(momentum**2 + masses**2)))
     momentum_var = (derivative * momentum * relative_p_error)**2
-    return mean, math.sqrt(momentum_var), math.sqrt(mixture_var)
+    momentum_error = math.sqrt(momentum_var)
+    mixture_rms = math.sqrt(mixture_var)
+    effective_spread = math.hypot(momentum_error, mixture_rms)
+    return mean, momentum_error, mixture_rms, effective_spread
 
 
 def read_points(args):
@@ -76,15 +81,20 @@ def read_points(args):
                              f"{row['status']}, {row['model']}")
         rates = {species: composition[momentum][f"{species} [Hz]"]
                  for species in MASS_GEV}
-        x, sx, mixture_rms = weighted_kinetic_energy(
+        x, momentum_error, mixture_rms, effective_spread = weighted_kinetic_energy(
             momentum, rates, args.relative_momentum_error)
         y_column = "langauss_peak" if momentum == 1 else "gaussian_mean"
         y = float(row[y_column])
         sy = float(row[y_column + "_error"])
-        if not all(map(math.isfinite, (x, sx, y, sy))) or sx <= 0 or sy <= 0:
+        if not all(map(math.isfinite,
+                       (x, momentum_error, mixture_rms, effective_spread, y, sy))):
+            raise ValueError(f"Valori non finiti a {momentum} GeV/c")
+        if effective_spread <= 0 or sy <= 0:
             raise ValueError(f"Incertezze non valide a {momentum} GeV/c")
         points.append(dict(momentum_GeV_c=momentum, kinetic_mean_GeV=x,
-                           kinetic_mean_error_GeV=sx, mixture_rms_GeV=mixture_rms,
+                           momentum_error_GeV=momentum_error,
+                           mixture_rms_GeV=mixture_rms,
+                           effective_kinetic_energy_spread_GeV=effective_spread,
                            response_PE=y,
                            response_error_PE=sy, response_estimator=y_column))
     return points
@@ -92,7 +102,7 @@ def read_points(args):
 
 def fit_line(points, label):
     x = np.array([p["kinetic_mean_GeV"] for p in points])
-    sx = np.array([p["kinetic_mean_error_GeV"] for p in points])
+    sx = np.array([p["effective_kinetic_energy_spread_GeV"] for p in points])
     y = np.array([p["response_PE"] for p in points])
     sy = np.array([p["response_error_PE"] for p in points])
     initial = np.polyfit(x, y, 1)
@@ -132,7 +142,7 @@ def draw(points, fit_all, fit_four, destination):
     axis = fig.add_subplot(layout[0])
     residual_axis = fig.add_subplot(layout[1], sharex=axis)
     x = np.array([p["kinetic_mean_GeV"] for p in points])
-    sx = np.array([p["kinetic_mean_error_GeV"] for p in points])
+    sx = np.array([p["effective_kinetic_energy_spread_GeV"] for p in points])
     y = np.array([p["response_PE"] for p in points])
     sy = np.array([p["response_error_PE"] for p in points])
     grid = np.linspace(max(0, x.min() - 0.35), x.max() + 0.35, 300)
@@ -220,11 +230,12 @@ def main():
                      f"{args.relative_momentum_error:g}\n")
         handle.write("I tassi sono previsioni simulate H4-VLE, Tabella IV, non "
                      "conteggi di eventi: nessuna incertezza Poisson viene "
-                     "attribuita ai pesi. Le barre x propagano solo il 5% sul "
-                     "momento; la sua origine nel paper e' un'accettanza +/-5%, "
-                     "qui usata come incertezza efficace conservativa 1-sigma. "
-                     "La dispersione tra specie è nel CSV dei punti, "
-                     "ma non nelle barre x.\n")
+                     "attribuita ai pesi. Le barre x sono la dispersione "
+                     "efficace sqrt(sigma_mixture^2 + sigma_Keff,p^2): la "
+                     "prima componente e' la RMS tra specie, la seconda "
+                     "propaga il 5% sul momento comune. L'origine del 5% nel "
+                     "paper e' un'accettanza +/-5%, qui usata come incertezza "
+                     "efficace conservativa 1-sigma.\n")
         handle.write("Il punto a 1 GeV/c è il massimo Langauss, gli altri sono medie "
                      "gaussiane: il fit su cinque punti è un controllo di sensibilità.\n")
         handle.write("La composizione dell'intero fascio può differire da quella degli "
