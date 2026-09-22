@@ -127,12 +127,11 @@ def draw(points, fit_all, fit_four, destination):
     plt.rcParams.update({"font.size": 11, "axes.labelsize": 13,
                          "xtick.labelsize": 11, "ytick.labelsize": 11,
                          "axes.linewidth": 1.0, "savefig.dpi": 300})
-    fig = plt.figure(figsize=(11.4, 7.0))
-    layout = fig.add_gridspec(2, 2, width_ratios=[3.4, 1.35],
-                             height_ratios=[3.3, 1], wspace=0.12, hspace=0.06)
-    axis = fig.add_subplot(layout[0, 0])
-    residual_axis = fig.add_subplot(layout[1, 0], sharex=axis)
-    info_axis = fig.add_subplot(layout[:, 1])
+    fig = plt.figure(figsize=(10.8, 8.3))
+    layout = fig.add_gridspec(3, 1, height_ratios=[1.5, 3.6, 1], hspace=0.08)
+    info_axis = fig.add_subplot(layout[0])
+    axis = fig.add_subplot(layout[1])
+    residual_axis = fig.add_subplot(layout[2], sharex=axis)
     info_axis.set_axis_off()
     x = np.array([p["kinetic_mean_GeV"] for p in points])
     sx = np.array([p["kinetic_mean_error_GeV"] for p in points])
@@ -141,28 +140,19 @@ def draw(points, fit_all, fit_four, destination):
     grid = np.linspace(max(0, x.min() - 0.35), x.max() + 0.35, 300)
     line_all = fit_all["slope_PE_per_GeV"] * grid + fit_all["intercept_PE"]
     line_four = fit_four["slope_PE_per_GeV"] * grid + fit_four["intercept_PE"]
-    axis.plot(grid, line_all, color="#272b30", linewidth=2.1,
+    axis.plot(grid, line_all, color="#D55E00", linewidth=2.1,
               label="Linear fit: 1–7 GeV/c")
-    axis.plot(grid, line_four, color="#0072B2", linewidth=2.0,
+    axis.plot(grid, line_four, color="#173F6B", linewidth=2.2,
               linestyle="--", label="Linear fit: 2–7 GeV/c")
     axis.errorbar(x[1:], y[1:], xerr=sx[1:], yerr=sy[1:], fmt="o",
                   markersize=7, capsize=3, color="#0072B2", ecolor="#0072B2",
                   label="Gaussian mean (2–7 GeV/c)", zorder=4)
     axis.errorbar(x[:1], y[:1], xerr=sx[:1], yerr=sy[:1], fmt="D",
-                  markersize=7, capsize=3, color="#D55E00", ecolor="#D55E00",
+                  markersize=7, capsize=3, color="#C33232", ecolor="#C33232",
                   label="Langauss peak (1 GeV/c)", zorder=5)
-    offsets = {1: (5, 10), 2: (5, 9), 3: (5, 9), 5: (5, 9),
-               7: (-8, 10)}
-    for point in points:
-        momentum = point["momentum_GeV_c"]
-        axis.annotate(f"{point['momentum_GeV_c']} GeV/c",
-                      (point["kinetic_mean_GeV"], point["response_PE"]),
-                      xytext=offsets[momentum], textcoords="offset points",
-                      ha="right" if momentum == 7 else "left",
-                      fontsize=8.5, color="0.25")
-    info_axis.text(0.02, 0.97, r"$\bf{ProtoDUNE\!-\!HD}$" "\nWork in Progress",
-                   transform=info_axis.transAxes, ha="left", va="top", fontsize=12)
-    axis.set_ylabel(r"$\langle N_{\mathrm{PE}}\rangle_{\mathrm{APA\,1}}$ (PE/channel)")
+    info_axis.text(0.98, 0.96, r"$\bf{ProtoDUNE\!-\!HD}$ Work in Progress",
+                   transform=info_axis.transAxes, ha="right", va="top", fontsize=12)
+    axis.set_ylabel(r"$\langle N_{\mathrm{PE}}\rangle_{\mathrm{APA\,1}}$")
     axis.legend(loc="upper left", facecolor="white", framealpha=1,
                 edgecolor="0.7", fontsize=9)
     axis.set_xlim(grid[0], grid[-1])
@@ -178,31 +168,26 @@ def draw(points, fit_all, fit_four, destination):
             rf"{fit['chi2_per_ndf']:.2f}$" "\n"
             rf"$R^2 = {fit['r_squared']:.3f}$"
         )
-    info_axis.text(0.02, 0.77, "Linear fits", transform=info_axis.transAxes,
-                   fontsize=12, fontweight="bold", va="top")
-    info_axis.text(0.02, 0.70, "Including 1 GeV/c", transform=info_axis.transAxes,
-                   fontsize=11, fontweight="bold", color="#272b30", va="top")
-    info_axis.text(0.02, 0.65, fit_text(fit_all), transform=info_axis.transAxes,
-                   fontsize=10, linespacing=1.5, va="top")
-    info_axis.text(0.02, 0.43, "Excluding 1 GeV/c", transform=info_axis.transAxes,
-                   fontsize=11, fontweight="bold", color="#0072B2", va="top")
-    info_axis.text(0.02, 0.38, fit_text(fit_four), transform=info_axis.transAxes,
-                   fontsize=10, linespacing=1.5, va="top")
-    info_axis.text(0.02, 0.11,
-                   "1 GeV/c: Langauss peak\n2–7 GeV/c: Gaussian mean\n"
-                   "Mean PE per contributing\nchannel and trigger",
-                   transform=info_axis.transAxes, fontsize=8.7, color="0.35",
-                   linespacing=1.4, va="top")
+    info_axis.text(0.02, 0.74, "Fit including 1 GeV/c",
+                   transform=info_axis.transAxes, fontsize=11,
+                   fontweight="bold", color="#D55E00", va="top")
+    info_axis.text(0.02, 0.59, fit_text(fit_all), transform=info_axis.transAxes,
+                   fontsize=10, linespacing=1.4, va="top")
+    info_axis.text(0.52, 0.74, "Fit excluding 1 GeV/c",
+                   transform=info_axis.transAxes, fontsize=11,
+                   fontweight="bold", color="#173F6B", va="top")
+    info_axis.text(0.52, 0.59, fit_text(fit_four), transform=info_axis.transAxes,
+                   fontsize=10, linespacing=1.4, va="top")
     residual_all = y - (fit_all["slope_PE_per_GeV"] * x + fit_all["intercept_PE"])
     residual_four = y[1:] - (fit_four["slope_PE_per_GeV"] * x[1:] + fit_four["intercept_PE"])
     residual_axis.axhline(0, color="0.3", linewidth=1)
     residual_axis.errorbar(x, residual_all, xerr=sx, yerr=sy, fmt="o", capsize=2,
-                           color="#272b30", label="1–7 GeV/c")
+                           color="#D55E00", label="1–7 GeV/c")
     residual_axis.errorbar(x[1:], residual_four, xerr=sx[1:], yerr=sy[1:],
                            fmt="s", markerfacecolor="white", capsize=2,
-                           color="#0072B2", label="2–7 GeV/c")
-    residual_axis.set_ylabel("Residual (PE)")
-    residual_axis.set_xlabel("Weighted mean beam kinetic energy (GeV)")
+                           color="#173F6B", label="2–7 GeV/c")
+    residual_axis.set_ylabel("Residual [PE]")
+    residual_axis.set_xlabel(r"$K_{\mathrm{eff}}$ [GeV]")
     residual_axis.legend(loc="upper left", frameon=True, facecolor="white",
                          framealpha=1, fontsize=8)
     for panel in (axis, residual_axis):
