@@ -4,20 +4,19 @@ r"""Analisi della linearita' calorimetrica canale per canale per APA 1 e APA 2.
 SCOPO
     Seleziona i trigger non-muon-like con la media PE di APA 1 e studia la
     distribuzione di N_PE per ogni canale, APA e momento nominale. Per ogni
-    distribuzione esegue un fit Gaussiano binned con devianza di Poisson.
-    La media del fit viene quindi adattata in funzione di K_eff con ODR,
-    includendo gli errori sia su x sia su y.
+    distribuzione esegue un fit Langauss binned con devianza di Poisson. Il
+    picco numerico della convoluzione viene adattato in funzione di K_eff con
+    ODR, includendo gli errori sia su x sia su y.
 
     A 1 GeV/c non esiste una soglia di discriminazione: sono usati i trigger
     validi dell'APA corrispondente e il punto e' marcato come ``unselected''.
-    I fit lineari 2--7 GeV/c sono il risultato principale; quelli 1--7 GeV/c
-    sono un controllo di sensibilita'.
+    Il fit lineare richiede punti validi a tutti i cinque momenti e include
+    sempre il punto a 1 GeV/c.
 
     Per valutare il sistematico della selezione il programma ripete l'intera
     analisi per T - sigma_T, T e T + sigma_T. I PDF sono prodotti per tutte le
-    configurazioni. La scelta del modello resta una Gaussiana per tutti i
-    canali e momenti: un fit di qualita' debole viene segnalato, ma non viene
-    automaticamente sostituito da una Langauss.
+    configurazioni. La stessa Langauss e' usata per tutti i canali e momenti; un fit di
+    qualita' debole viene segnalato nei CSV per l'ispezione.
 
 INPUT
     --input-dir: cartella apa1_vs_apa2 con sottocartelle 1GeV, ..., 7GeV;
@@ -74,8 +73,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy import odr
-from scipy.optimize import least_squares
-from scipy.special import ndtr
+from scipy.optimize import least_squares, minimize_scalar
+from landaupy import landau
 from scipy.stats import chi2 as chi2_distribution
 
 
@@ -89,10 +88,10 @@ MASS_GEV = {
 COLORS = {
     "data": "#D9D9D9",
     "edge": "#333333",
-    "gaussian": "#0072B2",
+    "langauss": "#D55E00",
     "one_gev": "#C33232",
     "fit_all": "#D55E00",
-    "fit_high": "#173F6B",
+    "point_high": "#0072B2",
     "text": "#222222",
 }
 
@@ -103,18 +102,22 @@ DISTRIBUTION_FIELDS = [
     "triggers_selected", "channel_values_available", "entries_total",
     "entries_in_fit_range", "entries_below_fit_range", "entries_above_fit_range",
     "model", "status", "message", "fit_minimum_PE", "fit_maximum_PE",
-    "bin_width_PE", "histogram_bins", "mu_PE", "mu_error_PE", "sigma_PE",
-    "sigma_error_PE", "yield", "yield_error", "poisson_deviance", "ndf",
+    "bin_width_PE", "histogram_bins", "mpv_PE", "mpv_error_PE", "eta_PE",
+    "eta_error_PE", "langauss_sigma_PE", "langauss_sigma_error_PE", "yield",
+    "yield_error", "peak_PE", "peak_error_PE", "poisson_deviance", "ndf",
     "chi2_per_ndf", "p_value", "pearson_chi2", "pearson_chi2_per_ndf",
-    "r_squared", "optimizer_success", "optimizer_status", "function_evaluations",
-    "jacobian_rank", "covariance_valid", "parameters_near_bounds", "quality_flag",
+    "r_squared", "langauss_integration_points", "optimizer_success",
+    "optimizer_status", "function_evaluations", "jacobian_rank",
+    "jacobian_condition_number", "covariance_valid", "parameters_near_bounds",
+    "quality_flag",
 ]
 LINEARITY_FIELDS = [
     "threshold_scenario", "threshold_sigma_multiplier", "apa", "endpoint",
-    "channel", "fit_range", "required_momenta_GeV_c", "available_momenta_GeV_c",
-    "status", "message", "points", "slope_PE_per_GeV",
-    "slope_error_PE_per_GeV", "intercept_PE", "intercept_error_PE", "chi2",
-    "ndf", "chi2_per_ndf", "p_value", "r_squared", "odr_info", "odr_stopreason",
+    "channel", "fit_range", "response_estimator", "required_momenta_GeV_c",
+    "available_momenta_GeV_c", "status", "message", "points",
+    "slope_PE_per_GeV", "slope_error_PE_per_GeV", "intercept_PE",
+    "intercept_error_PE", "chi2", "ndf", "chi2_per_ndf", "p_value",
+    "r_squared", "odr_info", "odr_stopreason",
 ]
 SYSTEMATIC_FIELDS = [
     "apa", "endpoint", "channel", "fit_range", "nominal_status",
@@ -184,7 +187,8 @@ def clear_owned_outputs(output_dir: Path) -> None:
     names = (
         "selection_thresholds.csv", "channel_distribution_fit_results.csv",
         "channel_linearity_fit_results.csv", "channel_linearity_threshold_systematics.csv",
-        "skipped_or_flagged_channels.csv", "report.txt", "manifest.json",
+        "channel_availability.csv", "skipped_or_flagged_channels.csv", "report.txt",
+        "manifest.json",
     )
     for name in names:
         path = output_dir / name
@@ -426,80 +430,150 @@ def histogram_edges(values: np.ndarray) -> np.ndarray:
     return edges
 
 
-def failed_fit(values: np.ndarray, status: str, message: str) -> dict:
+def failed_fit(values: np.ndarray, status: str, message: str, edges: np.ndarray | None = None) -> dict:
+    observed = None
+    entries_in_fit_range = 0
+    entries_below_fit_range = 0
+    entries_above_fit_range = 0
+    bin_width = math.nan
+    histogram_bins = 0
+    fit_minimum = math.nan
+    fit_maximum = math.nan
+    if edges is not None and len(edges) >= 2:
+        observed, edges = np.histogram(values, bins=edges)
+        entries_in_fit_range = int(np.count_nonzero((values >= edges[0]) & (values <= edges[-1])))
+        entries_below_fit_range = int(np.count_nonzero(values < edges[0]))
+        entries_above_fit_range = int(np.count_nonzero(values > edges[-1]))
+        bin_width = float(np.median(np.diff(edges)))
+        histogram_bins = len(observed)
+        fit_minimum = float(edges[0])
+        fit_maximum = float(edges[-1])
     return {
         "status": status, "message": message, "entries_total": len(values),
-        "entries_in_fit_range": 0, "entries_below_fit_range": 0,
-        "entries_above_fit_range": 0, "fit_minimum_PE": math.nan,
-        "fit_maximum_PE": math.nan, "bin_width_PE": math.nan, "histogram_bins": 0,
-        "mu_PE": math.nan, "mu_error_PE": math.nan, "sigma_PE": math.nan,
-        "sigma_error_PE": math.nan, "yield": math.nan, "yield_error": math.nan,
+        "entries_in_fit_range": entries_in_fit_range,
+        "entries_below_fit_range": entries_below_fit_range,
+        "entries_above_fit_range": entries_above_fit_range,
+        "fit_minimum_PE": fit_minimum, "fit_maximum_PE": fit_maximum,
+        "bin_width_PE": bin_width, "histogram_bins": histogram_bins,
+        "mpv_PE": math.nan, "mpv_error_PE": math.nan, "eta_PE": math.nan,
+        "eta_error_PE": math.nan, "langauss_sigma_PE": math.nan,
+        "langauss_sigma_error_PE": math.nan, "yield": math.nan,
+        "yield_error": math.nan, "peak_PE": math.nan, "peak_error_PE": math.nan,
         "poisson_deviance": math.nan, "ndf": 0, "chi2_per_ndf": math.nan,
         "p_value": math.nan, "pearson_chi2": math.nan,
         "pearson_chi2_per_ndf": math.nan, "r_squared": math.nan,
-        "optimizer_success": 0, "optimizer_status": "", "function_evaluations": 0,
-        "jacobian_rank": 0, "covariance_valid": 0, "parameters_near_bounds": "",
-        "quality_flag": "not_fitted", "edges": None, "observed": None,
-        "expected": None,
+        "langauss_integration_points": 0, "optimizer_success": 0,
+        "optimizer_status": "", "function_evaluations": 0, "jacobian_rank": 0,
+        "jacobian_condition_number": math.nan, "covariance_valid": 0,
+        "parameters_near_bounds": "", "quality_flag": "not_fitted",
+        "edges": edges, "observed": observed, "expected": None,
+        "parameters": None,
     }
 
 
-def fit_gaussian(values: np.ndarray, minimum_entries: int) -> dict:
-    if len(values) < minimum_entries:
-        return failed_fit(values, "insufficient_entries", f"Servono almeno {minimum_entries} valori")
+def langauss_integration_points(eta: float, sigma: float) -> int:
+    if eta <= 0 or sigma <= 0:
+        return 0
+    return min(50000, max(400, int(math.ceil(120.0 * sigma / eta))))
+
+
+def stable_langauss_pdf(x: np.ndarray, mpv: float, eta: float, sigma: float) -> np.ndarray:
+    x_array = np.atleast_1d(np.asarray(x, dtype=float))
+    original_shape = x_array.shape
+    flat_x = x_array.reshape(-1)
+    n_points = langauss_integration_points(float(eta), float(sigma))
+    if n_points <= 0:
+        return np.full(original_shape, np.nan, dtype=float)
+    step = 10.0 * float(sigma) / n_points
+    offsets = -5.0 * float(sigma) + (np.arange(n_points) + 0.5) * step
+    gaussian_weights = np.exp(-0.5 * (offsets / sigma) ** 2)
+    gaussian_weights /= float(sigma) * math.sqrt(2.0 * math.pi)
+    result = np.empty_like(flat_x)
+    chunk_size = max(8, min(128, int(4_000_000 / n_points)))
+    for first in range(0, len(flat_x), chunk_size):
+        last = min(first + chunk_size, len(flat_x))
+        convolution_axis = flat_x[None, first:last] + offsets[:, None]
+        landau_values = np.asarray(
+            landau.pdf(convolution_axis.reshape(-1), float(mpv), float(eta)),
+            dtype=float,
+        ).reshape(convolution_axis.shape)
+        if not np.all(np.isfinite(landau_values)):
+            return np.full(original_shape, np.nan, dtype=float)
+        result[first:last] = step * np.sum(landau_values * gaussian_weights[:, None], axis=0)
+    return result.reshape(original_shape)
+
+
+def fit_langauss(values: np.ndarray, minimum_entries: int) -> dict:
+    if len(values) == 0:
+        return failed_fit(values, "insufficient_entries", f"Servono almeno {minimum_entries} trigger")
     try:
         edges = histogram_edges(values)
+        if len(values) < minimum_entries:
+            return failed_fit(values, "insufficient_entries", f"Servono almeno {minimum_entries} trigger", edges)
         observed, edges = np.histogram(values, bins=edges)
         in_range = (values >= edges[0]) & (values <= edges[-1])
         sample = values[in_range]
-        if len(sample) < minimum_entries:
-            return failed_fit(values, "insufficient_entries_in_fit_range", "Campione centrale insufficiente")
+        minimum_in_range = max(20, int(math.floor(0.98 * minimum_entries)))
+        if len(sample) < minimum_in_range:
+            return failed_fit(values, "insufficient_entries_in_fit_range", "Campione centrale insufficiente", edges)
         centers = 0.5 * (edges[:-1] + edges[1:])
         width = float(np.median(np.diff(edges)))
-        q25, median, q75 = np.percentile(sample, [25, 50, 75])
-        robust_sigma = max(float((q75 - q25) / 1.349), width * 0.75)
-        fraction_initial = ndtr((edges[-1] - median) / robust_sigma) - ndtr((edges[0] - median) / robust_sigma)
-        initial = np.asarray([median, robust_sigma, len(sample) / max(fraction_initial, 0.05)])
+        q25, _, q75 = np.percentile(sample, [25, 50, 75])
+        robust_width = max(float((q75 - q25) / 1.349), width)
+        mode = float(centers[int(np.argmax(observed))])
         span = float(edges[-1] - edges[0])
-        lower_bounds = np.asarray([edges[0], width * 0.2, len(sample) * 0.20])
-        upper_bounds = np.asarray([edges[-1], span * 2.0, len(values) * 10.0])
-        initial = np.minimum(np.maximum(initial, lower_bounds + 1.0e-8), upper_bounds - 1.0e-8)
+        initial = np.asarray([mode, max(0.25 * robust_width, 0.30 * width), max(0.55 * robust_width, 0.45 * width), float(len(sample))])
+        lower = np.asarray([edges[0] - 0.25 * span, max(0.05, 0.05 * width), max(0.05, 0.05 * width), max(1.0, 0.20 * len(sample))])
+        upper = np.asarray([edges[-1], max(span, width), max(span, width), max(10.0, 10.0 * len(values))])
+        initial = np.minimum(np.maximum(initial, lower + 1.0e-8), upper - 1.0e-8)
 
         def expected_counts(parameters: np.ndarray) -> np.ndarray:
-            mu, sigma, yield_value = parameters
-            probabilities = ndtr((edges[1:] - mu) / sigma) - ndtr((edges[:-1] - mu) / sigma)
-            return yield_value * np.clip(probabilities, 1.0e-15, None)
+            density = stable_langauss_pdf(centers, *parameters[:3])
+            if not np.all(np.isfinite(density)) or np.any(density < 0):
+                return np.full_like(centers, np.nan, dtype=float)
+            return width * parameters[3] * density
 
         def objective(parameters: np.ndarray) -> np.ndarray:
-            return poisson_deviance_residuals(observed, expected_counts(parameters))
+            expected = expected_counts(parameters)
+            if not np.all(np.isfinite(expected)):
+                return np.full(len(observed), 1.0e6, dtype=float)
+            return poisson_deviance_residuals(observed, expected)
 
         starts = [initial]
-        for mean_shift in (-0.25, 0.25):
-            for sigma_scale in (0.7, 1.4):
-                candidate = initial.copy()
-                candidate[0] += mean_shift * robust_sigma
-                candidate[1] *= sigma_scale
-                starts.append(np.minimum(np.maximum(candidate, lower_bounds + 1.0e-8), upper_bounds - 1.0e-8))
+        for mpv_shift, eta_scale, sigma_scale in ((-0.25, 0.50, 0.75), (0.25, 0.50, 0.75), (0.00, 1.00, 1.25)):
+            candidate = initial.copy()
+            candidate[0] += mpv_shift * robust_width
+            candidate[1] *= eta_scale
+            candidate[2] *= sigma_scale
+            starts.append(np.minimum(np.maximum(candidate, lower + 1.0e-8), upper - 1.0e-8))
         attempts = []
-        for start in starts:
-            result = least_squares(objective, start, bounds=(lower_bounds, upper_bounds), method="trf", x_scale="jac", max_nfev=10000)
-            if np.isfinite(result.cost):
+        for guess in starts:
+            try:
+                result = least_squares(objective, guess, bounds=(lower, upper), method="trf", x_scale="jac", max_nfev=4000)
+            except (ValueError, FloatingPointError):
+                continue
+            if np.isfinite(result.cost) and np.all(np.isfinite(result.x)):
                 attempts.append(result)
         if not attempts:
-            return failed_fit(values, "optimizer_failed", "Nessuna inizializzazione finita")
-        result = min(attempts, key=lambda candidate: candidate.cost)
+            return failed_fit(values, "optimizer_failed", "Nessuna inizializzazione Langauss finita", edges)
+        result = min(attempts, key=lambda item: item.cost)
         parameters = result.x
         expected = expected_counts(parameters)
+        if not np.all(np.isfinite(expected)):
+            return failed_fit(values, "optimizer_failed", "Valore atteso Langauss non finito", edges)
         residuals = poisson_deviance_residuals(observed, expected)
         deviance = float(np.sum(residuals ** 2))
         ndf = int(len(observed) - len(parameters))
         rank = int(np.linalg.matrix_rank(result.jac))
-        covariance_valid = bool(result.success and ndf > 0 and rank == len(parameters))
+        condition_number = math.inf
         covariance = None
-        errors = np.full(3, math.nan)
+        errors = np.full(len(parameters), math.nan)
+        covariance_valid = bool(result.success and ndf > 0 and rank == len(parameters))
         if covariance_valid:
             try:
-                covariance = np.linalg.inv(result.jac.T @ result.jac)
+                information = result.jac.T @ result.jac
+                condition_number = float(np.linalg.cond(information))
+                covariance = np.linalg.inv(information)
                 diagonal = np.diag(covariance)
                 covariance_valid = bool(np.all(np.isfinite(covariance)) and np.all(diagonal >= 0))
                 if covariance_valid:
@@ -508,45 +582,78 @@ def fit_gaussian(values: np.ndarray, minimum_entries: int) -> dict:
                     covariance = None
             except np.linalg.LinAlgError:
                 covariance_valid = False
+
+        def peak_coordinate(parameter_values: np.ndarray) -> float:
+            peak_result = minimize_scalar(
+                lambda coordinate: -float(parameter_values[3] * stable_langauss_pdf(np.asarray([coordinate]), *parameter_values[:3])[0]),
+                bounds=(edges[0], edges[-1]), method="bounded",
+                options={"xatol": max(1.0e-4, width * 1.0e-4)},
+            )
+            if not peak_result.success or not math.isfinite(peak_result.fun):
+                raise RuntimeError("Ricerca numerica del picco Langauss non riuscita")
+            return float(peak_result.x)
+
+        peak = math.nan
+        peak_error = math.nan
+        try:
+            peak = peak_coordinate(parameters)
+            if covariance_valid and covariance is not None:
+                gradient = np.zeros(len(parameters))
+                for index, value in enumerate(parameters):
+                    step = max(abs(float(value)) * 1.0e-4, 1.0e-4)
+                    plus = parameters.copy()
+                    minus = parameters.copy()
+                    plus[index] = min(value + step, upper[index] - 1.0e-8)
+                    minus[index] = max(value - step, lower[index] + 1.0e-8)
+                    denominator = plus[index] - minus[index]
+                    gradient[index] = math.nan if denominator <= 0 else (peak_coordinate(plus) - peak_coordinate(minus)) / denominator
+                if np.all(np.isfinite(gradient)):
+                    variance = float(gradient @ covariance @ gradient)
+                    if variance >= 0 and math.isfinite(variance):
+                        peak_error = math.sqrt(variance)
+        except (RuntimeError, FloatingPointError, ValueError):
+            pass
+
         pearson = float(np.sum((observed - expected) ** 2 / np.clip(expected, 1.0e-12, None)))
         ss_res = float(np.sum((observed - expected) ** 2))
         ss_tot = float(np.sum((observed - np.mean(observed)) ** 2))
         r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else math.nan
-        tolerance = 1.0e-3 * (upper_bounds - lower_bounds)
-        names = ("mu", "sigma", "yield")
-        near_bounds = [name for name, value, lower, upper, delta in zip(names, parameters, lower_bounds, upper_bounds, tolerance) if value - lower <= delta or upper - value <= delta]
+        tolerance = 1.0e-3 * (upper - lower)
+        names = ("mpv", "eta", "langauss_sigma", "yield")
+        near_bounds = [name for name, value, lower_value, upper_value, delta in zip(names, parameters, lower, upper, tolerance) if value - lower_value <= delta or upper_value - value <= delta]
         quality = "good"
-        if not covariance_valid or near_bounds or not result.success:
+        if not covariance_valid or not math.isfinite(peak_error) or near_bounds or not result.success or condition_number > 1.0e10:
             quality = "review_optimizer_or_covariance"
         elif ndf <= 0 or deviance / ndf > 2.0 or (math.isfinite(r_squared) and r_squared < 0.8):
             quality = "review_shape"
+        status = "success" if result.success and covariance_valid and math.isfinite(peak_error) else "optimizer_or_covariance_invalid"
         return {
-            "status": "success" if result.success and covariance_valid else "optimizer_or_covariance_invalid",
-            "message": str(result.message), "entries_total": len(values),
+            "status": status, "message": str(result.message), "entries_total": len(values),
             "entries_in_fit_range": len(sample), "entries_below_fit_range": int(np.count_nonzero(values < edges[0])),
             "entries_above_fit_range": int(np.count_nonzero(values > edges[-1])),
             "fit_minimum_PE": float(edges[0]), "fit_maximum_PE": float(edges[-1]),
-            "bin_width_PE": width, "histogram_bins": len(observed), "mu_PE": float(parameters[0]),
-            "mu_error_PE": float(errors[0]), "sigma_PE": float(parameters[1]),
-            "sigma_error_PE": float(errors[1]), "yield": float(parameters[2]),
-            "yield_error": float(errors[2]), "poisson_deviance": deviance, "ndf": ndf,
-            "chi2_per_ndf": deviance / ndf if ndf > 0 else math.nan,
+            "bin_width_PE": width, "histogram_bins": len(observed),
+            "mpv_PE": float(parameters[0]), "mpv_error_PE": float(errors[0]),
+            "eta_PE": float(parameters[1]), "eta_error_PE": float(errors[1]),
+            "langauss_sigma_PE": float(parameters[2]), "langauss_sigma_error_PE": float(errors[2]),
+            "yield": float(parameters[3]), "yield_error": float(errors[3]), "peak_PE": peak, "peak_error_PE": peak_error,
+            "poisson_deviance": deviance, "ndf": ndf, "chi2_per_ndf": deviance / ndf if ndf > 0 else math.nan,
             "p_value": float(chi2_distribution.sf(deviance, ndf)) if ndf > 0 else math.nan,
             "pearson_chi2": pearson, "pearson_chi2_per_ndf": pearson / ndf if ndf > 0 else math.nan,
-            "r_squared": r_squared, "optimizer_success": int(result.success),
-            "optimizer_status": result.status, "function_evaluations": result.nfev,
-            "jacobian_rank": rank, "covariance_valid": int(covariance_valid),
-            "parameters_near_bounds": ";".join(near_bounds), "quality_flag": quality,
-            "edges": edges, "observed": observed, "expected": expected,
+            "r_squared": r_squared, "langauss_integration_points": langauss_integration_points(parameters[1], parameters[2]),
+            "optimizer_success": int(result.success), "optimizer_status": result.status,
+            "function_evaluations": result.nfev, "jacobian_rank": rank, "jacobian_condition_number": condition_number,
+            "covariance_valid": int(covariance_valid), "parameters_near_bounds": ";".join(near_bounds),
+            "quality_flag": quality, "edges": edges, "observed": observed, "expected": expected, "parameters": parameters,
         }
     except (FloatingPointError, ValueError, np.linalg.LinAlgError) as exc:
-        return failed_fit(values, "fit_exception", str(exc))
-
+        return failed_fit(values, "fit_exception", str(exc), histogram_edges(values) if len(values) else None)
 
 def fit_linearity(points: list[dict], scenario: str, multiplier: float, apa: int, endpoint: int, channel: int, fit_range: str, required: tuple[int, ...]) -> dict:
     base = {
         "threshold_scenario": scenario, "threshold_sigma_multiplier": multiplier,
         "apa": apa, "endpoint": endpoint, "channel": channel, "fit_range": fit_range,
+        "response_estimator": "langauss_peak_PE",
         "required_momenta_GeV_c": ";".join(map(str, required)),
         "available_momenta_GeV_c": ";".join(str(point["momentum_GeV_c"]) for point in points),
         "status": "", "message": "", "points": len(points), "slope_PE_per_GeV": math.nan,
@@ -556,12 +663,12 @@ def fit_linearity(points: list[dict], scenario: str, multiplier: float, apa: int
         "odr_info": "", "odr_stopreason": "",
     }
     if len(points) != len(required):
-        base.update(status="insufficient_valid_momenta", message="Uno o piu' fit Gaussiani non sono validi")
+        base.update(status="insufficient_valid_momenta", message="Uno o piu' fit Langauss non sono validi")
         return base
     x = np.asarray([point["kinetic_mean_GeV"] for point in points])
     sx = np.asarray([point["effective_spread_GeV"] for point in points])
-    y = np.asarray([point["mu_PE"] for point in points])
-    sy = np.asarray([point["mu_error_PE"] for point in points])
+    y = np.asarray([point["peak_PE"] for point in points])
+    sy = np.asarray([point["peak_error_PE"] for point in points])
     if not np.all(np.isfinite(np.concatenate((x, sx, y, sy)))) or np.any(sx <= 0) or np.any(sy <= 0):
         base.update(status="invalid_point_uncertainty", message="Punto o incertezza non finita")
         return base
@@ -579,90 +686,73 @@ def fit_linearity(points: list[dict], scenario: str, multiplier: float, apa: int
         ndf = len(points) - 2
         ss_total = float(np.sum((y - np.mean(y)) ** 2))
         r_squared = 1.0 - float(np.sum((y - prediction) ** 2)) / ss_total if ss_total > 0 else math.nan
-        base.update(
-            status="success", message="; ".join(result.stopreason), slope_PE_per_GeV=slope,
-            slope_error_PE_per_GeV=float(errors[0]), intercept_PE=intercept,
-            intercept_error_PE=float(errors[1]), chi2=chi_square, ndf=ndf,
-            chi2_per_ndf=chi_square / ndf if ndf > 0 else math.nan,
-            p_value=float(chi2_distribution.sf(chi_square, ndf)) if ndf > 0 else math.nan,
-            r_squared=r_squared, odr_info=result.info, odr_stopreason="; ".join(result.stopreason),
-        )
+        base.update(status="success", message="; ".join(result.stopreason), slope_PE_per_GeV=slope, slope_error_PE_per_GeV=float(errors[0]), intercept_PE=intercept, intercept_error_PE=float(errors[1]), chi2=chi_square, ndf=ndf, chi2_per_ndf=chi_square / ndf if ndf > 0 else math.nan, p_value=float(chi2_distribution.sf(chi_square, ndf)) if ndf > 0 else math.nan, r_squared=r_squared, odr_info=result.info, odr_stopreason="; ".join(result.stopreason))
         return base
     except (ValueError, FloatingPointError, np.linalg.LinAlgError) as exc:
         base.update(status="odr_exception", message=str(exc))
         return base
 
+def add_work_in_progress(axis: plt.Axes) -> None:
+    axis.text(0.98, 0.98, r"$\bf{ProtoDUNE\!-!HD}$ Work in Progress", transform=axis.transAxes, ha="right", va="top", fontsize=5.6, color=COLORS["text"], zorder=10)
 
-def draw_distribution(axis: plt.Axes, fit: dict, momentum: int, selection_text: str) -> None:
+
+def draw_distribution(axis: plt.Axes, fit: dict, momentum: int) -> None:
     axis.set_title(f"{momentum} GeV/c", fontsize=10, loc="left")
     if fit["edges"] is None:
-        axis.text(0.5, 0.55, f"{fit['entries_total']} values\n{fit['status']}", transform=axis.transAxes, ha="center", va="center", fontsize=9)
+        axis.text(0.5, 0.50, f"{fit['entries_total']} triggers\n{fit['status']}", transform=axis.transAxes, ha="center", va="center", fontsize=8)
     else:
-        axis.stairs(fit["observed"], fit["edges"], fill=True, color=COLORS["data"], edgecolor=COLORS["edge"], linewidth=0.9)
+        axis.stairs(fit["observed"], fit["edges"], fill=True, color=COLORS["data"], edgecolor=COLORS["edge"], linewidth=0.9, label=f"Data @ {momentum} GeV/c ({fit['entries_total']} triggers)")
         if fit["status"] == "success":
             grid = np.linspace(fit["edges"][0], fit["edges"][-1], 500)
-            density = fit["yield"] * np.exp(-0.5 * ((grid - fit["mu_PE"]) / fit["sigma_PE"]) ** 2) / (fit["sigma_PE"] * math.sqrt(2.0 * math.pi))
-            axis.plot(grid, density * fit["bin_width_PE"], color=COLORS["gaussian"], linewidth=1.8)
-            summary = (
-                rf"$\mu = ({fit['mu_PE']:.1f} \pm {fit['mu_error_PE']:.1f})$ PE" "\n"
-                rf"$\sigma = ({fit['sigma_PE']:.1f} \pm {fit['sigma_error_PE']:.1f})$ PE" "\n"
-                rf"$\chi^2/\mathrm{{ndf}} = {fit['poisson_deviance']:.1f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}$"
-            )
-            axis.text(0.97, 0.96, summary, transform=axis.transAxes, ha="right", va="top", fontsize=7.2, linespacing=1.2, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.92, "boxstyle": "square,pad=0.28"})
-        if fit["entries_below_fit_range"] or fit["entries_above_fit_range"]:
-            axis.text(0.03, 0.05, f"{fit['entries_below_fit_range'] + fit['entries_above_fit_range']} values outside fit range", transform=axis.transAxes, ha="left", va="bottom", fontsize=6.5)
-    axis.text(0.03, 0.96, selection_text, transform=axis.transAxes, ha="left", va="top", fontsize=6.6, color="0.30")
+            parameters = fit["parameters"]
+            density = parameters[3] * stable_langauss_pdf(grid, *parameters[:3])
+            axis.plot(grid, density * fit["bin_width_PE"], color=COLORS["langauss"], linewidth=1.8, label="Langauss fit")
+            summary = ("Fit results\n" + rf"MPV = ({fit['mpv_PE']:.1f} $\pm$ {fit['mpv_error_PE']:.1f}) PE" "\n" + rf"$\eta$ = ({fit['eta_PE']:.1f} $\pm$ {fit['eta_error_PE']:.1f}) PE" "\n" + rf"$\sigma_{{\rm LG}}$ = ({fit['langauss_sigma_PE']:.1f} $\pm$ {fit['langauss_sigma_error_PE']:.1f}) PE" "\n" + rf"$N_{{\rm LG}}$ = {fit['yield']:.0f} $\pm$ {fit['yield_error']:.0f}" "\n" + rf"$x_{{\rm peak}}$ = ({fit['peak_PE']:.1f} $\pm$ {fit['peak_error_PE']:.1f}) PE" "\n" + rf"$\chi^2/\mathrm{{ndf}}$ = {fit['poisson_deviance']:.1f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}")
+        else:
+            summary = "Fit results\nnot available\n" + fit["message"]
+        axis.text(0.97, 0.04, summary, transform=axis.transAxes, ha="right", va="bottom", fontsize=6.15, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.94, "boxstyle": "square,pad=0.27"})
+        axis.legend(loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=6.4)
+    add_work_in_progress(axis)
     axis.set_xlabel(r"$N_{\mathrm{PE}}$ [PE]", fontsize=9)
-    axis.set_ylabel("Trigger counts", fontsize=9)
+    axis.set_ylabel("Counts", fontsize=9)
     axis.tick_params(direction="in", top=True, right=True, labelsize=8)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.35)
 
 
 def format_fit_text(fit: dict) -> str:
     if fit["status"] != "success":
-        return f"{fit['fit_range']}\n{fit['status']}"
-    return (
-        rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm {fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n"
-        rf"$q = ({fit['intercept_PE']:.1f} \pm {fit['intercept_error_PE']:.1f})$ PE" "\n"
-        rf"$\chi^2/\mathrm{{ndf}} = {fit['chi2']:.2f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}$" "\n"
-        rf"$R^2 = {fit['r_squared']:.3f}$"
-    )
+        return "Fit results\nnot available\n" + fit["message"]
+    return ("Fit results\n" + rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm {fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n" + rf"$q = ({fit['intercept_PE']:.1f} \pm {fit['intercept_error_PE']:.1f})$ PE" "\n" + rf"$\chi^2/\mathrm{{ndf}} = {fit['chi2']:.2f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}$" "\n" + rf"$R^2 = {fit['r_squared']:.3f}")
 
 
-def draw_linearity(axis: plt.Axes, point_rows: dict[int, dict], linearity_all: dict, linearity_high: dict, scenario: str) -> None:
+def draw_linearity(axis: plt.Axes, point_rows: dict[int, dict], linearity_fit: dict) -> None:
     usable = [point_rows[momentum] for momentum in MOMENTA if point_rows[momentum]["status"] == "success"]
     if not usable:
-        axis.text(0.5, 0.5, "No valid Gaussian fits", transform=axis.transAxes, ha="center", va="center")
+        axis.text(0.5, 0.5, "No valid Langauss fits", transform=axis.transAxes, ha="center", va="center", fontsize=8)
+        add_work_in_progress(axis)
         return
     x = np.asarray([row["kinetic_mean_GeV"] for row in usable])
-    y = np.asarray([row["mu_PE"] for row in usable])
-    sx = np.asarray([row["effective_spread_GeV"] for row in usable])
-    sy = np.asarray([row["mu_error_PE"] for row in usable])
-    if linearity_all["status"] == "success":
+    if linearity_fit["status"] == "success":
         grid = np.linspace(max(0.0, x.min() - 0.3), x.max() + 0.3, 200)
-        axis.plot(grid, linearity_all["slope_PE_per_GeV"] * grid + linearity_all["intercept_PE"], color=COLORS["fit_all"], linewidth=2.0, label="Linear fit: 1–7 GeV/c")
-    if linearity_high["status"] == "success":
-        grid = np.linspace(max(0.0, x.min() - 0.3), x.max() + 0.3, 200)
-        axis.plot(grid, linearity_high["slope_PE_per_GeV"] * grid + linearity_high["intercept_PE"], color=COLORS["fit_high"], linewidth=2.0, linestyle="--", label="Linear fit: 2–7 GeV/c")
+        axis.plot(grid, linearity_fit["slope_PE_per_GeV"] * grid + linearity_fit["intercept_PE"], color=COLORS["fit_all"], linewidth=2.0, label="Linear fit: 1–7 GeV/c")
     for momentum, row in point_rows.items():
         if row["status"] != "success":
             continue
         is_one = momentum == 1
-        color = COLORS["one_gev"] if is_one else COLORS["gaussian"]
+        color = COLORS["one_gev"] if is_one else COLORS["point_high"]
         marker = "D" if is_one else "o"
-        label = "Gaussian mean (1 GeV/c, unselected)" if is_one else "Gaussian mean (2–7 GeV/c)"
-        axis.errorbar(row["kinetic_mean_GeV"], row["mu_PE"], xerr=row["effective_spread_GeV"], yerr=row["mu_error_PE"], fmt=marker, color=color, ecolor=color, capsize=2.5, markersize=5.5, label=label)
+        label = "Langauss peak (1 GeV/c)" if is_one else "Langauss peak (2–7 GeV/c)"
+        axis.errorbar(row["kinetic_mean_GeV"], row["peak_PE"], xerr=row["effective_spread_GeV"], yerr=row["peak_error_PE"], fmt=marker, color=color, ecolor=color, capsize=2.5, markersize=5.5, label=label)
     handles, labels = axis.get_legend_handles_labels()
     unique = dict(zip(labels, handles))
     axis.legend(unique.values(), unique.keys(), loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=6.8)
-    summary = "Fit including 1 GeV/c\n" + format_fit_text(linearity_all) + "\n\nFit excluding 1 GeV/c\n" + format_fit_text(linearity_high)
-    axis.text(0.98, 0.04, summary, transform=axis.transAxes, ha="right", va="bottom", fontsize=6.6, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.95, "boxstyle": "square,pad=0.35"})
+    axis.text(0.98, 0.04, format_fit_text(linearity_fit), transform=axis.transAxes, ha="right", va="bottom", fontsize=6.6, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.95, "boxstyle": "square,pad=0.35"})
+    add_work_in_progress(axis)
     axis.set_xlabel(r"$K_{\mathrm{eff}}$ [GeV]", fontsize=9)
-    axis.set_ylabel(r"$\mu$ [PE]", fontsize=9)
-    axis.set_title(f"Channel linearity — {scenario}", fontsize=10, loc="left")
+    axis.set_ylabel(r"$x_{\mathrm{peak}}$ [PE]", fontsize=9)
+    axis.set_title("Channel linearity", fontsize=10, loc="left")
     axis.tick_params(direction="in", top=True, right=True, labelsize=8)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.35)
-
 
 def write_pdfs(output_dir: Path, scenarios: list[tuple[str, float]], channels: dict[int, list[tuple[int, int]]], distribution_objects: dict, linearity_rows: dict) -> None:
     for scenario, multiplier in scenarios:
@@ -671,25 +761,17 @@ def write_pdfs(output_dir: Path, scenarios: list[tuple[str, float]], channels: d
             with PdfPages(pdf_path) as pdf:
                 for endpoint, channel in channels[apa]:
                     figure, axes = plt.subplots(2, 3, figsize=(11.7, 8.3))
-                    figure.subplots_adjust(left=0.065, right=0.985, bottom=0.075, top=0.91, wspace=0.28, hspace=0.33)
-                    figure.text(0.065, 0.965, f"APA {apa} — Endpoint {endpoint}, channel {channel}", ha="left", va="top", fontsize=14)
-                    figure.text(0.985, 0.965, r"$\bf{ProtoDUNE\!-!HD}$ Work in Progress", ha="right", va="top", fontsize=11)
+                    figure.subplots_adjust(left=0.065, right=0.985, bottom=0.075, top=0.935, wspace=0.28, hspace=0.33)
+                    figure.text(0.065, 0.975, f"APA {apa} — Endpoint {endpoint}, channel {channel}", ha="left", va="top", fontsize=12)
                     point_rows = {}
                     for panel, momentum in zip(axes.flat[:5], MOMENTA):
                         fit = distribution_objects[(scenario, apa, endpoint, channel, momentum)]
                         point_rows[momentum] = fit
-                        selected = fit["triggers_selected"]
-                        if momentum == 1:
-                            selection_text = f"unselected; {selected} valid triggers"
-                        else:
-                            selection_text = f"APA 1 mean > {fit['threshold_applied_PE']:.1f} PE; {selected} triggers"
-                        draw_distribution(panel, fit, momentum, selection_text)
-                    all_fit = linearity_rows[(scenario, apa, endpoint, channel, "including_1_GeV_c")]
-                    high_fit = linearity_rows[(scenario, apa, endpoint, channel, "excluding_1_GeV_c")]
-                    draw_linearity(axes.flat[5], point_rows, all_fit, high_fit, scenario)
+                        draw_distribution(panel, fit, momentum)
+                    line_fit = linearity_rows[(scenario, apa, endpoint, channel, "1_to_7_GeV_c")]
+                    draw_linearity(axes.flat[5], point_rows, line_fit)
                     pdf.savefig(figure)
                     plt.close(figure)
-
 
 def main() -> int:
     here = Path(__file__).resolve().parent
@@ -700,7 +782,7 @@ def main() -> int:
     parser.add_argument("--population-fit-results", type=Path, default=analysis_dir / "output/review/apa12_trigger_distributions_01/apa1_population_fit_results.csv")
     parser.add_argument("--composition", type=Path, default=analysis_dir / "data/np04_beam_particle_content.csv")
     parser.add_argument("--output-dir", type=Path, default=analysis_dir / "output/review/channel_calorimetric_linearity_01")
-    parser.add_argument("--minimum-entries", type=int, default=50)
+    parser.add_argument("--minimum-entries", type=int, default=150)
     parser.add_argument("--relative-momentum-error", type=float, default=0.05)
     parser.add_argument("--threshold-sigma-multipliers", nargs="+", type=float, default=[-1.0, 0.0, 1.0])
     args = parser.parse_args()
@@ -752,8 +834,9 @@ def main() -> int:
                     available = raw_records[momentum][apa].get((endpoint, channel), [])
                     selected = selected_key_cache[(scenario, momentum, apa)]
                     values = np.asarray([value for key, value in available if key in selected], dtype=float)
-                    fit = fit_gaussian(values, args.minimum_entries)
+                    fit = fit_langauss(values, args.minimum_entries)
                     fit.update({
+                        "model": "langauss_binned_poisson_deviance",
                         "threshold_scenario": scenario,
                         "threshold_sigma_multiplier": multiplier,
                         "apa": apa, "endpoint": endpoint, "channel": channel,
@@ -780,19 +863,20 @@ def main() -> int:
                         flagged_rows.append({
                             "threshold_scenario": scenario, "apa": apa, "endpoint": endpoint,
                             "channel": channel, "momentum_GeV_c": momentum,
-                            "kind": fit["quality_flag"], "detail": "Gaussian fit completed; inspect PDF before physics use.",
+                            "kind": fit["quality_flag"], "detail": "Langauss fit completed; inspect PDF before physics use.",
                         })
                     point_lookup[momentum] = fit
-                for range_name, required in (("including_1_GeV_c", MOMENTA), ("excluding_1_GeV_c", (2, 3, 5, 7))):
-                    points = [point_lookup[momentum] for momentum in required if point_lookup[momentum]["status"] == "success"]
-                    line_fit = fit_linearity(points, scenario, multiplier, apa, endpoint, channel, range_name, required)
-                    linearity_rows[(scenario, apa, endpoint, channel, range_name)] = line_fit
-                    if line_fit["status"] != "success":
-                        flagged_rows.append({
-                            "threshold_scenario": scenario, "apa": apa, "endpoint": endpoint,
-                            "channel": channel, "momentum_GeV_c": "", "kind": line_fit["status"],
-                            "detail": f"{range_name}: {line_fit['message']}",
-                        })
+                range_name = "1_to_7_GeV_c"
+                required = MOMENTA
+                points = [point_lookup[momentum] for momentum in required if point_lookup[momentum]["status"] == "success"]
+                line_fit = fit_linearity(points, scenario, multiplier, apa, endpoint, channel, range_name, required)
+                linearity_rows[(scenario, apa, endpoint, channel, range_name)] = line_fit
+                if line_fit["status"] != "success":
+                    flagged_rows.append({
+                        "threshold_scenario": scenario, "apa": apa, "endpoint": endpoint,
+                        "channel": channel, "momentum_GeV_c": "", "kind": line_fit["status"],
+                        "detail": f"{range_name}: {line_fit['message']}",
+                    })
 
     linearity_output = [linearity_rows[key] for key in sorted(linearity_rows)]
     systematics: list[dict] = []
@@ -801,7 +885,7 @@ def main() -> int:
     plus_scenario = scenario_name(1.0) if 1.0 in args.threshold_sigma_multipliers else None
     for apa in (1, 2):
         for endpoint, channel in channels[apa]:
-            for fit_range in ("including_1_GeV_c", "excluding_1_GeV_c"):
+            for fit_range in ("1_to_7_GeV_c",):
                 central = linearity_rows[(nominal, apa, endpoint, channel, fit_range)] if nominal in {name for name, _ in scenarios} else None
                 minus = linearity_rows.get((minus_scenario, apa, endpoint, channel, fit_range)) if minus_scenario else None
                 plus = linearity_rows.get((plus_scenario, apa, endpoint, channel, fit_range)) if plus_scenario else None
@@ -845,7 +929,7 @@ def main() -> int:
         f"Fit popolazioni: {args.population_fit_results}",
         f"Output: {args.output_dir}",
         f"Momenti [GeV/c]: {list(MOMENTA)}",
-        f"Minimo valori per fit Gaussiano: {args.minimum_entries}",
+        f"Minimo trigger per fit Langauss: {args.minimum_entries}",
         f"Incertezza relativa efficace sul momento: {args.relative_momentum_error:g}",
         f"Scenari soglia: {', '.join(name for name, _ in scenarios)}",
         "",
@@ -855,12 +939,12 @@ def main() -> int:
         "Per APA 2 a 2--7 GeV/c il tag del trigger e' sempre definito da APA 1.",
         "",
         "FIT",
-        "Le distribuzioni sono adattate con una Gaussiana binned e devianza di Poisson.",
+        "Le distribuzioni sono adattate con una Langauss binned e devianza di Poisson.",
         "Il range del fit e' P0.5--P99.5 della distribuzione; i valori esterni sono contati nel CSV.",
         "Una qualita' marcata review non cambia automaticamente il modello: il PDF va ispezionato.",
         "I JSON storici conservano una sola osservazione per endpoint-canale e trigger.",
         "Se esistono waveform duplicate dello stesso canale, occorre rigenerare gli input con una lista per canale.",
-        "I fit lineari usano ODR con sigma_Keff = sqrt(sigma_Keff,p^2 + sigma_mix^2).",
+        "I fit lineari 1--7 GeV/c usano il picco Langauss e ODR con sigma_Keff = sqrt(sigma_Keff,p^2 + sigma_mix^2).",
         f"Canali trovati: APA1={len(channels[1])}; APA2={len(channels[2])}.",
         f"Fit di distribuzione riusciti: {successful_distribution}/{len(distribution_rows)}.",
         f"Fit lineari riusciti: {successful_linearity}/{len(linearity_output)}.",
@@ -868,7 +952,7 @@ def main() -> int:
         "",
         "SISTEMATICO DELLA SOGLIA",
         "Per ogni canale il CSV dedicato riporta l'inviluppo max(|risultato +/-1sigma - nominale|).",
-        "Il punto a 1 GeV/c non varia con la soglia perche' e' unselected.",
+        "Il punto a 1 GeV/c non varia con la soglia perche' non e' selezionato dalla soglia APA 1.",
     ]
     (args.output_dir / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
     manifest = {
@@ -882,7 +966,7 @@ def main() -> int:
             "minimum_entries": args.minimum_entries,
             "relative_momentum_error": args.relative_momentum_error,
             "threshold_sigma_multipliers": args.threshold_sigma_multipliers,
-            "fit_model": "gaussian_binned_poisson_deviance",
+            "fit_model": "langauss_binned_poisson_deviance",
         },
         "inputs": [file_info(path) for path in [args.trigger_data, args.population_fit_results, args.composition, *json_inputs]],
     }
