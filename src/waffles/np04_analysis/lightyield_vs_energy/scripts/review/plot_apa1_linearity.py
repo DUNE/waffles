@@ -127,9 +127,13 @@ def draw(points, fit_all, fit_four, destination):
     plt.rcParams.update({"font.size": 11, "axes.labelsize": 13,
                          "xtick.labelsize": 11, "ytick.labelsize": 11,
                          "axes.linewidth": 1.0, "savefig.dpi": 300})
-    fig, (axis, residual_axis) = plt.subplots(
-        2, 1, figsize=(9.2, 7.2), sharex=True,
-        gridspec_kw={"height_ratios": [3.3, 1], "hspace": 0.06})
+    fig = plt.figure(figsize=(11.4, 7.0))
+    layout = fig.add_gridspec(2, 2, width_ratios=[3.4, 1.35],
+                             height_ratios=[3.3, 1], wspace=0.12, hspace=0.06)
+    axis = fig.add_subplot(layout[0, 0])
+    residual_axis = fig.add_subplot(layout[1, 0], sharex=axis)
+    info_axis = fig.add_subplot(layout[:, 1])
+    info_axis.set_axis_off()
     x = np.array([p["kinetic_mean_GeV"] for p in points])
     sx = np.array([p["kinetic_mean_error_GeV"] for p in points])
     y = np.array([p["response_PE"] for p in points])
@@ -137,7 +141,7 @@ def draw(points, fit_all, fit_four, destination):
     grid = np.linspace(max(0, x.min() - 0.35), x.max() + 0.35, 300)
     line_all = fit_all["slope_PE_per_GeV"] * grid + fit_all["intercept_PE"]
     line_four = fit_four["slope_PE_per_GeV"] * grid + fit_four["intercept_PE"]
-    axis.plot(grid, line_all, color="#272b30", linewidth=2.0,
+    axis.plot(grid, line_all, color="#272b30", linewidth=2.1,
               label="Linear fit: 1–7 GeV/c")
     axis.plot(grid, line_four, color="#0072B2", linewidth=2.0,
               linestyle="--", label="Linear fit: 2–7 GeV/c")
@@ -147,31 +151,48 @@ def draw(points, fit_all, fit_four, destination):
     axis.errorbar(x[:1], y[:1], xerr=sx[:1], yerr=sy[:1], fmt="D",
                   markersize=7, capsize=3, color="#D55E00", ecolor="#D55E00",
                   label="Langauss peak (1 GeV/c)", zorder=5)
+    offsets = {1: (5, 10), 2: (5, 9), 3: (5, 9), 5: (5, 9),
+               7: (-8, 10)}
     for point in points:
+        momentum = point["momentum_GeV_c"]
         axis.annotate(f"{point['momentum_GeV_c']} GeV/c",
                       (point["kinetic_mean_GeV"], point["response_PE"]),
-                      xytext=(6, 8), textcoords="offset points", fontsize=9)
-    axis.text(0.98, 0.96, r"$\bf{ProtoDUNE\!-\!HD}$ Work in Progress",
-              transform=axis.transAxes, ha="right", va="top", fontsize=11)
-    axis.set_ylabel(r"$\langle N_{\mathrm{PE}}\rangle_{\mathrm{APA\,1}}$ (PE/channel/trigger)")
+                      xytext=offsets[momentum], textcoords="offset points",
+                      ha="right" if momentum == 7 else "left",
+                      fontsize=8.5, color="0.25")
+    info_axis.text(0.02, 0.97, r"$\bf{ProtoDUNE\!-\!HD}$" "\nWork in Progress",
+                   transform=info_axis.transAxes, ha="left", va="top", fontsize=12)
+    axis.set_ylabel(r"$\langle N_{\mathrm{PE}}\rangle_{\mathrm{APA\,1}}$ (PE/channel)")
     axis.legend(loc="upper left", facecolor="white", framealpha=1,
                 edgecolor="0.7", fontsize=9)
     axis.set_xlim(grid[0], grid[-1])
-    axis.set_ylim(bottom=0)
-    axis.text(0.03, 0.50,
-              "Including 1 GeV/c:  "
-              rf"$m=({fit_all['slope_PE_per_GeV']:.1f}\pm{fit_all['slope_error_PE_per_GeV']:.1f})$ PE/GeV, "
-              rf"$q=({fit_all['intercept_PE']:.1f}\pm{fit_all['intercept_error_PE']:.1f})$ PE" "\n"
-              rf"$\chi^2/\mathrm{{ndf}}={fit_all['chi2']:.1f}/{fit_all['ndf']}={fit_all['chi2_per_ndf']:.2f}$, "
-              rf"$R^2={fit_all['r_squared']:.3f}$" "\n"
-              "Excluding 1 GeV/c:  "
-              rf"$m=({fit_four['slope_PE_per_GeV']:.1f}\pm{fit_four['slope_error_PE_per_GeV']:.1f})$ PE/GeV, "
-              rf"$q=({fit_four['intercept_PE']:.1f}\pm{fit_four['intercept_error_PE']:.1f})$ PE" "\n"
-              rf"$\chi^2/\mathrm{{ndf}}={fit_four['chi2']:.1f}/{fit_four['ndf']}={fit_four['chi2_per_ndf']:.2f}$, "
-              rf"$R^2={fit_four['r_squared']:.3f}$",
-              transform=axis.transAxes, ha="left", va="top", fontsize=8.6,
-              bbox={"facecolor": "white", "edgecolor": "0.75", "alpha": 0.96,
-                    "boxstyle": "round,pad=0.45"})
+    axis.set_ylim(0, max(y) * 1.13)
+    def fit_text(fit):
+        return (
+            rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm "
+            rf"{fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n"
+            rf"$q = ({fit['intercept_PE']:.1f} \pm "
+            rf"{fit['intercept_error_PE']:.1f})$ PE" "\n"
+            rf"$\chi^2/\mathrm{{ndf}} = "
+            rf"{fit['chi2']:.2f}/{fit['ndf']} = "
+            rf"{fit['chi2_per_ndf']:.2f}$" "\n"
+            rf"$R^2 = {fit['r_squared']:.3f}$"
+        )
+    info_axis.text(0.02, 0.77, "Linear fits", transform=info_axis.transAxes,
+                   fontsize=12, fontweight="bold", va="top")
+    info_axis.text(0.02, 0.70, "Including 1 GeV/c", transform=info_axis.transAxes,
+                   fontsize=11, fontweight="bold", color="#272b30", va="top")
+    info_axis.text(0.02, 0.65, fit_text(fit_all), transform=info_axis.transAxes,
+                   fontsize=10, linespacing=1.5, va="top")
+    info_axis.text(0.02, 0.43, "Excluding 1 GeV/c", transform=info_axis.transAxes,
+                   fontsize=11, fontweight="bold", color="#0072B2", va="top")
+    info_axis.text(0.02, 0.38, fit_text(fit_four), transform=info_axis.transAxes,
+                   fontsize=10, linespacing=1.5, va="top")
+    info_axis.text(0.02, 0.11,
+                   "1 GeV/c: Langauss peak\n2–7 GeV/c: Gaussian mean\n"
+                   "Mean PE per contributing\nchannel and trigger",
+                   transform=info_axis.transAxes, fontsize=8.7, color="0.35",
+                   linespacing=1.4, va="top")
     residual_all = y - (fit_all["slope_PE_per_GeV"] * x + fit_all["intercept_PE"])
     residual_four = y[1:] - (fit_four["slope_PE_per_GeV"] * x[1:] + fit_four["intercept_PE"])
     residual_axis.axhline(0, color="0.3", linewidth=1)
@@ -187,6 +208,7 @@ def draw(points, fit_all, fit_four, destination):
     for panel in (axis, residual_axis):
         panel.tick_params(direction="in", top=True, right=True)
         panel.grid(axis="both", linestyle="--", linewidth=0.5, alpha=0.35)
+    axis.tick_params(labelbottom=False)
     fig.savefig(destination, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
