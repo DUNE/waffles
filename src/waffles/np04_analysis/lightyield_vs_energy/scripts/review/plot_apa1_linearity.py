@@ -127,12 +127,10 @@ def draw(points, fit_all, fit_four, destination):
     plt.rcParams.update({"font.size": 11, "axes.labelsize": 13,
                          "xtick.labelsize": 11, "ytick.labelsize": 11,
                          "axes.linewidth": 1.0, "savefig.dpi": 300})
-    fig = plt.figure(figsize=(10.8, 8.3))
-    layout = fig.add_gridspec(3, 1, height_ratios=[1.5, 3.6, 1], hspace=0.08)
-    info_axis = fig.add_subplot(layout[0])
-    axis = fig.add_subplot(layout[1])
-    residual_axis = fig.add_subplot(layout[2], sharex=axis)
-    info_axis.set_axis_off()
+    fig = plt.figure(figsize=(10.8, 7.5))
+    layout = fig.add_gridspec(2, 1, height_ratios=[3.6, 1], hspace=0.08)
+    axis = fig.add_subplot(layout[0])
+    residual_axis = fig.add_subplot(layout[1], sharex=axis)
     x = np.array([p["kinetic_mean_GeV"] for p in points])
     sx = np.array([p["kinetic_mean_error_GeV"] for p in points])
     y = np.array([p["response_PE"] for p in points])
@@ -150,8 +148,9 @@ def draw(points, fit_all, fit_four, destination):
     axis.errorbar(x[:1], y[:1], xerr=sx[:1], yerr=sy[:1], fmt="D",
                   markersize=7, capsize=3, color="#C33232", ecolor="#C33232",
                   label="Langauss peak (1 GeV/c)", zorder=5)
-    info_axis.text(0.98, 0.96, r"$\bf{ProtoDUNE\!-\!HD}$ Work in Progress",
-                   transform=info_axis.transAxes, ha="right", va="top", fontsize=12)
+    axis.text(0.55, 0.97, r"$\bf{ProtoDUNE\!-\!HD}$ Work in Progress",
+              transform=axis.transAxes, ha="left", va="top", fontsize=11,
+              bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.9})
     axis.set_ylabel(r"$\langle N_{\mathrm{PE}}\rangle_{\mathrm{APA\,1}}$")
     axis.legend(loc="upper left", facecolor="white", framealpha=1,
                 edgecolor="0.7", fontsize=9)
@@ -168,16 +167,14 @@ def draw(points, fit_all, fit_four, destination):
             rf"{fit['chi2_per_ndf']:.2f}$" "\n"
             rf"$R^2 = {fit['r_squared']:.3f}$"
         )
-    info_axis.text(0.02, 0.74, "Fit including 1 GeV/c",
-                   transform=info_axis.transAxes, fontsize=11,
-                   fontweight="bold", color="#D55E00", va="top")
-    info_axis.text(0.02, 0.59, fit_text(fit_all), transform=info_axis.transAxes,
-                   fontsize=10, linespacing=1.4, va="top")
-    info_axis.text(0.52, 0.74, "Fit excluding 1 GeV/c",
-                   transform=info_axis.transAxes, fontsize=11,
-                   fontweight="bold", color="#173F6B", va="top")
-    info_axis.text(0.52, 0.59, fit_text(fit_four), transform=info_axis.transAxes,
-                   fontsize=10, linespacing=1.4, va="top")
+    fit_summary = (
+        "Fit including 1 GeV/c\n" + fit_text(fit_all) +
+        "\n\nFit excluding 1 GeV/c\n" + fit_text(fit_four)
+    )
+    axis.text(0.98, 0.04, fit_summary, transform=axis.transAxes,
+              ha="right", va="bottom", fontsize=9.5, linespacing=1.25,
+              bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.98,
+                    "boxstyle": "square,pad=0.55"}, zorder=6)
     residual_all = y - (fit_all["slope_PE_per_GeV"] * x + fit_all["intercept_PE"])
     residual_four = y[1:] - (fit_four["slope_PE_per_GeV"] * x[1:] + fit_four["intercept_PE"])
     residual_axis.axhline(0, color="0.3", linewidth=1)
