@@ -10,8 +10,8 @@ SCOPO
 
     A 1 GeV/c non esiste una soglia di discriminazione: sono usati i trigger
     validi dell'APA corrispondente e il punto e' marcato come ``unselected''.
-    Il fit lineare richiede punti validi a tutti i cinque momenti e include
-    sempre il punto a 1 GeV/c.
+    Il fit lineare usa tutti i punti validi disponibili, purché siano almeno
+    tre, e include il punto a 1 GeV/c quando il suo fit è valido.
 
     Per valutare il sistematico della selezione il programma ripete l'intera
     analisi per T - sigma_T, T e T + sigma_T. I PDF sono prodotti per tutte le
@@ -63,6 +63,7 @@ import json
 import math
 import sys
 from collections import Counter, defaultdict
+from copy import deepcopy
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -79,6 +80,8 @@ from scipy.stats import chi2 as chi2_distribution
 
 
 MOMENTA = (1, 2, 3, 5, 7)
+BIN_WIDTH_SCALE = 0.90
+MAX_HISTOGRAM_BINS = 90
 MASS_GEV = {
     "e": 0.00051099895,
     "k": 0.493677,
@@ -108,8 +111,8 @@ DISTRIBUTION_FIELDS = [
     "chi2_per_ndf", "p_value", "pearson_chi2", "pearson_chi2_per_ndf",
     "r_squared", "langauss_integration_points", "optimizer_success",
     "optimizer_status", "function_evaluations", "jacobian_rank",
-    "jacobian_condition_number", "covariance_valid", "parameters_near_bounds",
-    "quality_flag",
+    "jacobian_condition_number", "covariance_valid", "covariance_method",
+    "fit_drawable", "response_valid", "parameters_near_bounds", "quality_flag",
 ]
 LINEARITY_FIELDS = [
     "threshold_scenario", "threshold_sigma_multiplier", "apa", "endpoint",
@@ -418,9 +421,9 @@ def histogram_edges(values: np.ndarray) -> np.ndarray:
     q25, q75 = np.percentile(values, [25, 75])
     iqr = float(q75 - q25)
     width = 2.0 * iqr / len(values) ** (1.0 / 3.0) if iqr > 0 else (upper - lower) / 30.0
-    width = max(width, (upper - lower) / 80.0, 0.05)
+    width = max(BIN_WIDTH_SCALE * width, (upper - lower) / MAX_HISTOGRAM_BINS, 0.05)
     bins = int(math.ceil((upper - lower) / width))
-    bins = min(80, max(20, bins))
+    bins = min(MAX_HISTOGRAM_BINS, max(20, bins))
     width = (upper - lower) / bins
     start = math.floor(lower / width) * width
     stop = math.ceil(upper / width) * width
@@ -465,6 +468,7 @@ def failed_fit(values: np.ndarray, status: str, message: str, edges: np.ndarray 
         "langauss_integration_points": 0, "optimizer_success": 0,
         "optimizer_status": "", "function_evaluations": 0, "jacobian_rank": 0,
         "jacobian_condition_number": math.nan, "covariance_valid": 0,
+        "covariance_method": "", "fit_drawable": 0, "response_valid": 0,
         "parameters_near_bounds": "", "quality_flag": "not_fitted",
         "edges": edges, "observed": observed, "expected": None,
         "parameters": None,
@@ -503,7 +507,11 @@ def stable_langauss_pdf(x: np.ndarray, mpv: float, eta: float, sigma: float) -> 
     return result.reshape(original_shape)
 
 
-def fit_langauss(values: np.ndarray, minimum_entries: int) -> dict:
+def fit_langauss(
+    values: np.ndarray,
+    minimum_entries: int,
+    warm_start: np.ndarray | None = None,
+) -> dict:
     if len(values) == 0:
         return failed_fit(values, "insufficient_entries", f"Servono almeno {minimum_entries} trigger")
     try:
@@ -539,28 +547,55 @@ def fit_langauss(values: np.ndarray, minimum_entries: int) -> dict:
                 return np.full(len(observed), 1.0e6, dtype=float)
             return poisson_deviance_residuals(observed, expected)
 
-        starts = [initial]
+        def bounded_guess(candidate: np.ndarray) -> np.ndarray:
+            return np.minimum(np.maximum(candidate, lower + 1.0e-8), upper - 1.0e-8)
+
+        fallback_starts = []
         for mpv_shift, eta_scale, sigma_scale in ((-0.25, 0.50, 0.75), (0.25, 0.50, 0.75), (0.00, 1.00, 1.25)):
             candidate = initial.copy()
             candidate[0] += mpv_shift * robust_width
             candidate[1] *= eta_scale
             candidate[2] *= sigma_scale
-            starts.append(np.minimum(np.maximum(candidate, lower + 1.0e-8), upper - 1.0e-8))
-        attempts = []
-        for guess in starts:
+            fallback_starts.append(bounded_guess(candidate))
+
+        primary = initial
+        if warm_start is not None:
+            candidate = np.asarray(warm_start, dtype=float)
+            if candidate.shape == initial.shape and np.all(np.isfinite(candidate)):
+                primary = bounded_guess(candidate)
+                fallback_starts.insert(0, initial)
+
+        def optimize(guess: np.ndarray, max_evaluations: int):
             try:
-                result = least_squares(objective, guess, bounds=(lower, upper), method="trf", x_scale="jac", max_nfev=4000)
+                result = least_squares(
+                    objective, guess, bounds=(lower, upper), method="trf",
+                    x_scale="jac", max_nfev=max_evaluations,
+                )
             except (ValueError, FloatingPointError):
-                continue
-            if np.isfinite(result.cost) and np.all(np.isfinite(result.x)):
+                return None
+            return result if np.isfinite(result.cost) and np.all(np.isfinite(result.x)) else None
+
+        attempts = []
+        primary_result = optimize(primary, 1500)
+        if primary_result is not None:
+            attempts.append(primary_result)
+        if primary_result is None or not primary_result.success:
+            for guess in fallback_starts:
+                result = optimize(guess, 2500)
+                if result is None:
+                    continue
                 attempts.append(result)
+                if result.success:
+                    break
         if not attempts:
             return failed_fit(values, "optimizer_failed", "Nessuna inizializzazione Langauss finita", edges)
-        result = min(attempts, key=lambda item: item.cost)
+        converged_attempts = [item for item in attempts if item.success]
+        result = min(converged_attempts or attempts, key=lambda item: item.cost)
         parameters = result.x
         expected = expected_counts(parameters)
         if not np.all(np.isfinite(expected)):
             return failed_fit(values, "optimizer_failed", "Valore atteso Langauss non finito", edges)
+        fit_drawable = True
         residuals = poisson_deviance_residuals(observed, expected)
         deviance = float(np.sum(residuals ** 2))
         ndf = int(len(observed) - len(parameters))
@@ -568,20 +603,26 @@ def fit_langauss(values: np.ndarray, minimum_entries: int) -> dict:
         condition_number = math.inf
         covariance = None
         errors = np.full(len(parameters), math.nan)
-        covariance_valid = bool(result.success and ndf > 0 and rank == len(parameters))
-        if covariance_valid:
+        covariance_valid = False
+        covariance_method = ""
+        if ndf > 0 and rank == len(parameters):
             try:
                 information = result.jac.T @ result.jac
                 condition_number = float(np.linalg.cond(information))
-                covariance = np.linalg.inv(information)
-                diagonal = np.diag(covariance)
-                covariance_valid = bool(np.all(np.isfinite(covariance)) and np.all(diagonal >= 0))
-                if covariance_valid:
-                    errors = np.sqrt(diagonal)
-                else:
-                    covariance = None
+                for method, solver in (("inverse", np.linalg.inv), ("pseudoinverse", np.linalg.pinv)):
+                    try:
+                        candidate = solver(information)
+                    except np.linalg.LinAlgError:
+                        continue
+                    diagonal = np.diag(candidate)
+                    if np.all(np.isfinite(candidate)) and np.all(diagonal >= 0):
+                        covariance = candidate
+                        covariance_valid = True
+                        covariance_method = method
+                        errors = np.sqrt(diagonal)
+                        break
             except np.linalg.LinAlgError:
-                covariance_valid = False
+                pass
 
         def peak_coordinate(parameter_values: np.ndarray) -> float:
             peak_result = minimize_scalar(
@@ -599,7 +640,9 @@ def fit_langauss(values: np.ndarray, minimum_entries: int) -> dict:
             peak = peak_coordinate(parameters)
             if covariance_valid and covariance is not None:
                 gradient = np.zeros(len(parameters))
-                for index, value in enumerate(parameters):
+                gradient[0] = 1.0
+                for index in (1, 2):
+                    value = parameters[index]
                     step = max(abs(float(value)) * 1.0e-4, 1.0e-4)
                     plus = parameters.copy()
                     minus = parameters.copy()
@@ -622,11 +665,13 @@ def fit_langauss(values: np.ndarray, minimum_entries: int) -> dict:
         names = ("mpv", "eta", "langauss_sigma", "yield")
         near_bounds = [name for name, value, lower_value, upper_value, delta in zip(names, parameters, lower, upper, tolerance) if value - lower_value <= delta or upper_value - value <= delta]
         quality = "good"
-        if not covariance_valid or not math.isfinite(peak_error) or near_bounds or not result.success or condition_number > 1.0e10:
+        if (not covariance_valid or covariance_method != "inverse" or not math.isfinite(peak_error)
+                or near_bounds or not result.success or condition_number > 1.0e10):
             quality = "review_optimizer_or_covariance"
         elif ndf <= 0 or deviance / ndf > 2.0 or (math.isfinite(r_squared) and r_squared < 0.8):
             quality = "review_shape"
-        status = "success" if result.success and covariance_valid and math.isfinite(peak_error) else "optimizer_or_covariance_invalid"
+        response_valid = bool(result.success and covariance_valid and math.isfinite(peak) and math.isfinite(peak_error) and peak_error > 0)
+        status = "success" if response_valid else "response_uncertainty_invalid"
         return {
             "status": status, "message": str(result.message), "entries_total": len(values),
             "entries_in_fit_range": len(sample), "entries_below_fit_range": int(np.count_nonzero(values < edges[0])),
@@ -643,7 +688,9 @@ def fit_langauss(values: np.ndarray, minimum_entries: int) -> dict:
             "r_squared": r_squared, "langauss_integration_points": langauss_integration_points(parameters[1], parameters[2]),
             "optimizer_success": int(result.success), "optimizer_status": result.status,
             "function_evaluations": result.nfev, "jacobian_rank": rank, "jacobian_condition_number": condition_number,
-            "covariance_valid": int(covariance_valid), "parameters_near_bounds": ";".join(near_bounds),
+            "covariance_valid": int(covariance_valid), "covariance_method": covariance_method,
+            "fit_drawable": int(fit_drawable), "response_valid": int(response_valid),
+            "parameters_near_bounds": ";".join(near_bounds),
             "quality_flag": quality, "edges": edges, "observed": observed, "expected": expected, "parameters": parameters,
         }
     except (FloatingPointError, ValueError, np.linalg.LinAlgError) as exc:
@@ -662,8 +709,8 @@ def fit_linearity(points: list[dict], scenario: str, multiplier: float, apa: int
         "chi2_per_ndf": math.nan, "p_value": math.nan, "r_squared": math.nan,
         "odr_info": "", "odr_stopreason": "",
     }
-    if len(points) != len(required):
-        base.update(status="insufficient_valid_momenta", message="Uno o piu' fit Langauss non sono validi")
+    if len(points) < 3:
+        base.update(status="insufficient_valid_momenta", message="Servono almeno tre fit Langauss con picco e incertezza validi")
         return base
     x = np.asarray([point["kinetic_mean_GeV"] for point in points])
     sx = np.asarray([point["effective_spread_GeV"] for point in points])
@@ -679,7 +726,9 @@ def fit_linearity(points: list[dict], scenario: str, multiplier: float, apa: int
         if result.info not in (1, 2, 3, 4):
             base.update(status="odr_failed", message="; ".join(result.stopreason), odr_info=result.info, odr_stopreason="; ".join(result.stopreason))
             return base
-        errors = np.sqrt(np.diag(result.cov_beta))
+        errors = np.asarray(result.sd_beta, dtype=float)
+        if not np.all(np.isfinite(errors)) or np.any(errors <= 0):
+            errors = np.sqrt(np.diag(result.cov_beta * result.res_var))
         slope, intercept = map(float, result.beta)
         prediction = slope * x + intercept
         chi_square = float(np.sum((y - prediction) ** 2 / (sy ** 2 + (slope * sx) ** 2)))
@@ -693,7 +742,32 @@ def fit_linearity(points: list[dict], scenario: str, multiplier: float, apa: int
         return base
 
 def add_work_in_progress(axis: plt.Axes) -> None:
-    axis.text(0.98, 0.98, r"$\bf{ProtoDUNE\!-!HD}$ Work in Progress", transform=axis.transAxes, ha="right", va="top", fontsize=5.6, color=COLORS["text"], zorder=10)
+    axis.text(0.98, 0.98, r"$\bf{ProtoDUNE\!-\!HD}$" "\nWork in Progress", transform=axis.transAxes, ha="right", va="top", fontsize=5.6, linespacing=1.0, color=COLORS["text"], zorder=10)
+
+
+def format_value_with_error(value: float, error: float, precision: int = 1) -> str:
+    if math.isfinite(value) and math.isfinite(error):
+        return rf"({value:.{precision}f} $\pm$ {error:.{precision}f})"
+    if math.isfinite(value):
+        return f"{value:.{precision}f} (uncertainty unavailable)"
+    return "not available"
+
+
+def format_distribution_text(fit: dict) -> str:
+    if not fit.get("fit_drawable", 0):
+        return "Fit results\nnot available\n" + fit["message"]
+    text = (
+        "Fit results\n"
+        + f"MPV = {format_value_with_error(fit['mpv_PE'], fit['mpv_error_PE'])} PE\n"
+        + rf"$\eta$ = {format_value_with_error(fit['eta_PE'], fit['eta_error_PE'])} PE" + "\n"
+        + rf"$\sigma_{{\rm LG}}$ = {format_value_with_error(fit['langauss_sigma_PE'], fit['langauss_sigma_error_PE'])} PE" + "\n"
+        + rf"$N_{{\rm LG}}$ = {format_value_with_error(fit['yield'], fit['yield_error'], 0)}" + "\n"
+        + rf"$x_{{\rm peak}}$ = {format_value_with_error(fit['peak_PE'], fit['peak_error_PE'])} PE" + "\n"
+        + rf"$\chi^2/\mathrm{{ndf}}$ = {fit['poisson_deviance']:.1f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}"
+    )
+    if fit["quality_flag"] != "good":
+        text += "\nReview fit quality"
+    return text
 
 
 def draw_distribution(axis: plt.Axes, fit: dict, momentum: int) -> None:
@@ -702,16 +776,18 @@ def draw_distribution(axis: plt.Axes, fit: dict, momentum: int) -> None:
         axis.text(0.5, 0.50, f"{fit['entries_total']} triggers\n{fit['status']}", transform=axis.transAxes, ha="center", va="center", fontsize=8)
     else:
         axis.stairs(fit["observed"], fit["edges"], fill=True, color=COLORS["data"], edgecolor=COLORS["edge"], linewidth=0.9, label=f"Data @ {momentum} GeV/c ({fit['entries_total']} triggers)")
-        if fit["status"] == "success":
-            grid = np.linspace(fit["edges"][0], fit["edges"][-1], 500)
-            parameters = fit["parameters"]
-            density = parameters[3] * stable_langauss_pdf(grid, *parameters[:3])
-            axis.plot(grid, density * fit["bin_width_PE"], color=COLORS["langauss"], linewidth=1.8, label="Langauss fit")
-            summary = ("Fit results\n" + rf"MPV = ({fit['mpv_PE']:.1f} $\pm$ {fit['mpv_error_PE']:.1f}) PE" "\n" + rf"$\eta$ = ({fit['eta_PE']:.1f} $\pm$ {fit['eta_error_PE']:.1f}) PE" "\n" + rf"$\sigma_{{\rm LG}}$ = ({fit['langauss_sigma_PE']:.1f} $\pm$ {fit['langauss_sigma_error_PE']:.1f}) PE" "\n" + rf"$N_{{\rm LG}}$ = {fit['yield']:.0f} $\pm$ {fit['yield_error']:.0f}" "\n" + rf"$x_{{\rm peak}}$ = ({fit['peak_PE']:.1f} $\pm$ {fit['peak_error_PE']:.1f}) PE" "\n" + rf"$\chi^2/\mathrm{{ndf}}$ = {fit['poisson_deviance']:.1f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}")
-        else:
-            summary = "Fit results\nnot available\n" + fit["message"]
+        if fit.get("fit_drawable", 0):
+            centers = 0.5 * (fit["edges"][:-1] + fit["edges"][1:])
+            label = "Langauss fit" if fit["status"] == "success" else "Langauss fit (review)"
+            axis.plot(centers, fit["expected"], color=COLORS["langauss"], linewidth=1.8, label=label)
+        summary = format_distribution_text(fit)
         axis.text(0.97, 0.04, summary, transform=axis.transAxes, ha="right", va="bottom", fontsize=6.15, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.94, "boxstyle": "square,pad=0.27"})
         axis.legend(loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=6.4)
+        x_span = float(fit["edges"][-1] - fit["edges"][0])
+        x_padding = max(0.03 * x_span, 0.05)
+        top = max(float(np.max(fit["observed"])), float(np.max(fit["expected"])) if fit.get("fit_drawable", 0) else 0.0, 1.0)
+        axis.set_xlim(fit["edges"][0] - x_padding, fit["edges"][-1] + x_padding)
+        axis.set_ylim(0.0, 1.13 * top)
     add_work_in_progress(axis)
     axis.set_xlabel(r"$N_{\mathrm{PE}}$ [PE]", fontsize=9)
     axis.set_ylabel("Counts", fontsize=9)
@@ -722,27 +798,34 @@ def draw_distribution(axis: plt.Axes, fit: dict, momentum: int) -> None:
 def format_fit_text(fit: dict) -> str:
     if fit["status"] != "success":
         return "Fit results\nnot available\n" + fit["message"]
-    return ("Fit results\n" + rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm {fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n" + rf"$q = ({fit['intercept_PE']:.1f} \pm {fit['intercept_error_PE']:.1f})$ PE" "\n" + rf"$\chi^2/\mathrm{{ndf}} = {fit['chi2']:.2f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}$" "\n" + rf"$R^2 = {fit['r_squared']:.3f}")
+    momenta = fit["available_momenta_GeV_c"].replace(";", ", ")
+    return ("Fit results\n" + f"Points: {momenta} GeV/c\n" + rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm {fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n" + rf"$q = ({fit['intercept_PE']:.1f} \pm {fit['intercept_error_PE']:.1f})$ PE" "\n" + rf"$\chi^2/\mathrm{{ndf}} = {fit['chi2']:.2f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}$" "\n" + rf"$R^2 = {fit['r_squared']:.3f}$")
 
 
 def draw_linearity(axis: plt.Axes, point_rows: dict[int, dict], linearity_fit: dict) -> None:
-    usable = [point_rows[momentum] for momentum in MOMENTA if point_rows[momentum]["status"] == "success"]
+    usable = [point_rows[momentum] for momentum in MOMENTA if point_rows[momentum].get("response_valid", 0)]
     if not usable:
         axis.text(0.5, 0.5, "No valid Langauss fits", transform=axis.transAxes, ha="center", va="center", fontsize=8)
         add_work_in_progress(axis)
         return
     x = np.asarray([row["kinetic_mean_GeV"] for row in usable])
+    sx = np.asarray([row["effective_spread_GeV"] for row in usable])
+    y = np.asarray([row["peak_PE"] for row in usable])
+    sy = np.asarray([row["peak_error_PE"] for row in usable])
+    x_low, x_high = float(np.min(x - sx)), float(np.max(x + sx))
+    y_low, y_high = float(np.min(y - sy)), float(np.max(y + sy))
+    x_span = max(x_high - x_low, 0.1)
+    y_span = max(y_high - y_low, 1.0)
+    axis.set_xlim(max(0.0, x_low - 0.05 * x_span), x_high + 0.05 * x_span)
+    axis.set_ylim(max(0.0, y_low - 0.08 * y_span), y_high + 0.15 * y_span)
     if linearity_fit["status"] == "success":
-        grid = np.linspace(max(0.0, x.min() - 0.3), x.max() + 0.3, 200)
-        axis.plot(grid, linearity_fit["slope_PE_per_GeV"] * grid + linearity_fit["intercept_PE"], color=COLORS["fit_all"], linewidth=2.0, label="Linear fit: 1–7 GeV/c")
+        limits = axis.get_xlim()
+        grid = np.linspace(limits[0], limits[1], 200)
+        axis.plot(grid, linearity_fit["slope_PE_per_GeV"] * grid + linearity_fit["intercept_PE"], color=COLORS["fit_all"], linewidth=2.0, label="Linear fit")
     for momentum, row in point_rows.items():
-        if row["status"] != "success":
+        if not row.get("response_valid", 0):
             continue
-        is_one = momentum == 1
-        color = COLORS["one_gev"] if is_one else COLORS["point_high"]
-        marker = "D" if is_one else "o"
-        label = "Langauss peak (1 GeV/c)" if is_one else "Langauss peak (2–7 GeV/c)"
-        axis.errorbar(row["kinetic_mean_GeV"], row["peak_PE"], xerr=row["effective_spread_GeV"], yerr=row["peak_error_PE"], fmt=marker, color=color, ecolor=color, capsize=2.5, markersize=5.5, label=label)
+        axis.errorbar(row["kinetic_mean_GeV"], row["peak_PE"], xerr=row["effective_spread_GeV"], yerr=row["peak_error_PE"], fmt="o", color=COLORS["point_high"], ecolor=COLORS["point_high"], capsize=2.5, markersize=5.5, label="Langauss peak")
     handles, labels = axis.get_legend_handles_labels()
     unique = dict(zip(labels, handles))
     axis.legend(unique.values(), unique.keys(), loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=6.8)
@@ -809,7 +892,9 @@ def main() -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     clear_owned_outputs(args.output_dir)
 
-    scenarios = [(scenario_name(multiplier), multiplier) for multiplier in args.threshold_sigma_multipliers]
+    requested_scenarios = [(scenario_name(multiplier), multiplier) for multiplier in args.threshold_sigma_multipliers]
+    scenarios = [item for item in requested_scenarios if math.isclose(item[1], 0.0)]
+    scenarios.extend(item for item in requested_scenarios if not math.isclose(item[1], 0.0))
     channels = {
         apa: sorted({channel_key for momentum in MOMENTA for channel_key in raw_records[momentum][apa]})
         for apa in (1, 2)
@@ -821,6 +906,8 @@ def main() -> int:
     distribution_objects: dict[tuple, dict] = {}
     linearity_rows: dict[tuple, dict] = {}
     selected_key_cache: dict[tuple, set] = {}
+    one_gev_fit_cache: dict[tuple[int, int, int], dict] = {}
+    nominal_parameters: dict[tuple[int, int, int, int], np.ndarray] = {}
 
     for scenario, multiplier in scenarios:
         for momentum in MOMENTA:
@@ -834,7 +921,16 @@ def main() -> int:
                     available = raw_records[momentum][apa].get((endpoint, channel), [])
                     selected = selected_key_cache[(scenario, momentum, apa)]
                     values = np.asarray([value for key, value in available if key in selected], dtype=float)
-                    fit = fit_langauss(values, args.minimum_entries)
+                    cache_key = (apa, endpoint, channel)
+                    if momentum == 1 and cache_key in one_gev_fit_cache:
+                        fit = deepcopy(one_gev_fit_cache[cache_key])
+                    else:
+                        warm_start = nominal_parameters.get((apa, endpoint, channel, momentum)) if scenario != "nominal" else None
+                        fit = fit_langauss(values, args.minimum_entries, warm_start)
+                        if momentum == 1:
+                            one_gev_fit_cache[cache_key] = deepcopy(fit)
+                    if scenario == "nominal" and fit.get("parameters") is not None:
+                        nominal_parameters[(apa, endpoint, channel, momentum)] = np.asarray(fit["parameters"], dtype=float).copy()
                     fit.update({
                         "model": "langauss_binned_poisson_deviance",
                         "threshold_scenario": scenario,
@@ -868,7 +964,7 @@ def main() -> int:
                     point_lookup[momentum] = fit
                 range_name = "1_to_7_GeV_c"
                 required = MOMENTA
-                points = [point_lookup[momentum] for momentum in required if point_lookup[momentum]["status"] == "success"]
+                points = [point_lookup[momentum] for momentum in required if point_lookup[momentum].get("response_valid", 0)]
                 line_fit = fit_linearity(points, scenario, multiplier, apa, endpoint, channel, range_name, required)
                 linearity_rows[(scenario, apa, endpoint, channel, range_name)] = line_fit
                 if line_fit["status"] != "success":
@@ -944,7 +1040,7 @@ def main() -> int:
         "Una qualita' marcata review non cambia automaticamente il modello: il PDF va ispezionato.",
         "I JSON storici conservano una sola osservazione per endpoint-canale e trigger.",
         "Se esistono waveform duplicate dello stesso canale, occorre rigenerare gli input con una lista per canale.",
-        "I fit lineari 1--7 GeV/c usano il picco Langauss e ODR con sigma_Keff = sqrt(sigma_Keff,p^2 + sigma_mix^2).",
+        "I fit lineari usano tutti i punti validi disponibili (almeno tre), il picco Langauss e ODR con sigma_Keff = sqrt(sigma_Keff,p^2 + sigma_mix^2).",
         f"Canali trovati: APA1={len(channels[1])}; APA2={len(channels[2])}.",
         f"Fit di distribuzione riusciti: {successful_distribution}/{len(distribution_rows)}.",
         f"Fit lineari riusciti: {successful_linearity}/{len(linearity_output)}.",
