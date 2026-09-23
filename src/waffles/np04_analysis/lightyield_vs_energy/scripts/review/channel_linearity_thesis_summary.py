@@ -339,14 +339,11 @@ def latex_systematic_number(value: float) -> str:
 
 def table_preamble(caption: str, label: str, columns: str, header: str) -> list[str]:
     return [
-        "% Requires the booktabs and graphicx packages.",
+        "% Requires the booktabs and adjustbox packages.",
         r"\begin{table}[p]",
         r"\centering",
-        r"\small",
         r"\setlength{\tabcolsep}{3.5pt}",
-        f"\\caption{{{caption}}}",
-        f"\\label{{{label}}}",
-        r"\resizebox{\textwidth}{!}{%",
+        r"\begin{adjustbox}{max width=\textwidth}",
         f"\\begin{{tabular}}{{{columns}}}",
         r"\toprule",
         header,
@@ -354,11 +351,13 @@ def table_preamble(caption: str, label: str, columns: str, header: str) -> list[
     ]
 
 
-def table_postamble() -> list[str]:
+def table_postamble(caption: str, label: str) -> list[str]:
     return [
         r"\bottomrule",
-        r"\end{tabular}%",
-        r"}",
+        r"\end{tabular}",
+        r"\end{adjustbox}",
+        f"\\caption{{{caption}}}",
+        f"\\label{{{label}}}",
         r"\end{table}",
         "",
     ]
@@ -391,7 +390,7 @@ def write_peak_table(path: Path, apa: int, records: list[dict]) -> None:
             lines.append(f"{record['endpoint']} & {record['channel']} & {peak_cells} " + r"\\")
     else:
         lines.append(r"\multicolumn{7}{c}{No channel satisfies the selection criteria.} \\")
-    lines.extend(table_postamble())
+    lines.extend(table_postamble(caption, f"tab:apa{apa}_channel_peak_results"))
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -414,7 +413,7 @@ def write_linearity_table(path: Path, apa: int, records: list[dict]) -> None:
             lines.append(f"{record['endpoint']} & {record['channel']} & {slope} & {intercept} " + r"\\")
     else:
         lines.append(r"\multicolumn{4}{c}{No channel satisfies the selection criteria.} \\")
-    lines.extend(table_postamble())
+    lines.extend(table_postamble(caption, f"tab:apa{apa}_channel_linearity_results"))
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
