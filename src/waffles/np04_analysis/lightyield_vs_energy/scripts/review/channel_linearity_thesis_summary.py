@@ -468,11 +468,11 @@ def draw_light_yield_map(records: dict[int, list[dict]], output_dir: Path, dpi: 
                 )
                 axis.add_patch(patch)
                 label = rf"$ {latex_number(record['slope'])} \pm {latex_number(record['slope_error'])} $"
-                axis.text(x_left + 0.5 * cell_width, y_centre, label, ha="center", va="center", fontsize=7.2, color=COLORS["text"], zorder=3)
-            axis.text(x_left + 0.5 * cell_width, y_centre - 12.5, f"END {endpoint} - CH {channel}", ha="center", va="center", fontsize=5.5, color="#333333", zorder=3)
+                axis.text(x_left + 0.5 * cell_width, y_centre, label, ha="center", va="center", fontsize=8.2, color=COLORS["text"], zorder=3)
+            axis.text(x_left + 0.5 * cell_width, y_centre - 13.5, f"END {endpoint} - CH {channel}", ha="center", va="center", fontsize=7.5, color="#333333", zorder=3)
 
-    axis.text(9.0, 603.5, "APA 1", ha="left", va="bottom", fontsize=11, fontweight="bold")
-    axis.text(259.0, 603.5, "APA 2", ha="left", va="bottom", fontsize=11, fontweight="bold")
+    axis.text(9.0, 600, "APA 1", ha="left", va="bottom", fontsize=15, fontweight="bold")
+    axis.text(259.0, 600, "APA 2", ha="left", va="bottom", fontsize=15, fontweight="bold")
     add_work_in_progress(axis)
 
     axis.set_xlim(-12.0, 475.0)
