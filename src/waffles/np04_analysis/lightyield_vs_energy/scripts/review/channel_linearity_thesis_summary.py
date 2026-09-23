@@ -49,7 +49,7 @@ MOMENTA = (1, 2, 3, 5, 7)
 NOMINAL_SCENARIO = "nominal"
 CURRENT_FIT_RANGE = "1_to_7_GeV_c"
 LEGACY_FIT_RANGE = "including_1_GeV_c"
-MINIMUM_LINEARITY_POINTS = 3
+MINIMUM_LINEARITY_POINTS = 4
 COLORS = {
     "text": "#222222",
     "missing": "#E8E8E8",
