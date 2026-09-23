@@ -3,9 +3,9 @@ r"""Create thesis-ready channel-linearity tables and the APA 1--APA 2 light-yiel
 
 The program is a post-processing step.  It reads the CSV files created by
 ``channel_calorimetric_linearity.py`` and never refits any distribution.
-Only channels with all five successful nominal Langauss response fits, a
-successful nominal 1--7 GeV/c linear fit, and finite threshold-selection
-systematics are used in the thesis products.
+Only channels with three or more successful nominal Langauss response fits, a
+successful nominal 1--7 GeV/c linear fit using those response points, and
+finite threshold-selection systematics are used in the thesis products.
 
 Output files
 ------------
@@ -18,9 +18,9 @@ Output files
     channel_linearity_thesis_channel_selection.csv
     channel_linearity_thesis_summary.txt
 
-The first uncertainty in the map and linear-fit tables is the ODR fit
-uncertainty.  The second is the selection-threshold systematic, evaluated as
-the envelope of the threshold variations produced by the channel analysis.
+The map reports the ODR fit uncertainty.  The linear-fit tables additionally
+report the selection-threshold systematic, evaluated as the envelope of the
+threshold variations produced by the channel analysis.
 
 Run from ``scripts/review`` on LXPlus, after the channel analysis:
 
@@ -49,6 +49,7 @@ MOMENTA = (1, 2, 3, 5, 7)
 NOMINAL_SCENARIO = "nominal"
 CURRENT_FIT_RANGE = "1_to_7_GeV_c"
 LEGACY_FIT_RANGE = "including_1_GeV_c"
+MINIMUM_LINEARITY_POINTS = 3
 COLORS = {
     "text": "#222222",
     "missing": "#E8E8E8",
@@ -153,7 +154,7 @@ def collect_records(
     systematic_rows: list[dict[str, str]],
     fit_range: str,
 ) -> tuple[dict[int, list[dict]], list[dict[str, object]]]:
-    """Build strict, reusable channel records for the four thesis tables."""
+    """Build reusable records for channels with a valid linear fit of at least three points."""
     distributions: dict[tuple[int, int, int, int], dict[str, str]] = {}
     duplicate_distributions: set[tuple[int, int, int, int]] = set()
     for row in distribution_rows:
@@ -198,19 +199,20 @@ def collect_records(
             continue
         key = (apa, endpoint, channel)
         reasons: list[str] = []
+        response_notes: list[str] = []
         peaks: dict[int, tuple[float, float]] = {}
         quality_flags: list[str] = []
         for momentum in MOMENTA:
             distribution_key = (*key, momentum)
             row = distributions.get(distribution_key)
             if distribution_key in duplicate_distributions:
-                reasons.append(f"duplicate nominal {momentum} GeV/c response row")
+                response_notes.append(f"duplicate nominal {momentum} GeV/c response row")
                 continue
             if row is None:
-                reasons.append(f"missing nominal {momentum} GeV/c response")
+                response_notes.append(f"missing nominal {momentum} GeV/c response")
                 continue
             if not status_is_success(row, response=True):
-                reasons.append(f"invalid nominal {momentum} GeV/c response ({row.get('status', '')})")
+                response_notes.append(f"invalid nominal {momentum} GeV/c response ({row.get('status', '')})")
                 continue
             try:
                 peak = as_finite_float(row["peak_PE"])
@@ -218,7 +220,7 @@ def collect_records(
                 if peak_error <= 0:
                     raise ValueError("non-positive peak uncertainty")
             except ValueError as exc:
-                reasons.append(f"invalid nominal {momentum} GeV/c peak ({exc})")
+                response_notes.append(f"invalid nominal {momentum} GeV/c peak ({exc})")
                 continue
             peaks[momentum] = (peak, peak_error)
             quality_flag = row.get("quality_flag", "").strip()
@@ -232,8 +234,14 @@ def collect_records(
             reasons.append("missing nominal linear fit")
         elif not status_is_success(linearity_row):
             reasons.append(f"invalid nominal linear fit ({linearity_row.get('status', '')})")
-        elif parse_momenta(linearity_row["available_momenta_GeV_c"]) != MOMENTA:
-            reasons.append("nominal linear fit does not use all five momenta")
+        else:
+            fit_momenta = parse_momenta(linearity_row["available_momenta_GeV_c"])
+            if len(fit_momenta) < MINIMUM_LINEARITY_POINTS:
+                reasons.append(
+                    f"nominal linear fit uses fewer than {MINIMUM_LINEARITY_POINTS} valid momenta"
+                )
+            elif fit_momenta != tuple(sorted(peaks)):
+                reasons.append("nominal linear-fit momenta do not match the valid response points")
 
         systematic_row = systematics.get(key)
         if key in duplicate_systematics:
@@ -263,13 +271,15 @@ def collect_records(
             except ValueError as exc:
                 reasons.append(f"invalid threshold systematic ({exc})")
 
-        included = not reasons and len(peaks) == len(MOMENTA)
+        included = not reasons and len(peaks) >= MINIMUM_LINEARITY_POINTS
         selection_rows.append({
             "apa": apa,
             "endpoint": endpoint,
             "channel": channel,
             "included_in_thesis_products": int(included),
             "reason": "; ".join(reasons),
+            "response_notes": "; ".join(response_notes),
+            "available_momenta_GeV_c": ";".join(str(momentum) for momentum in sorted(peaks)),
             "quality_flags_nominal": "; ".join(quality_flags),
             "slope_PE_per_GeV": slope,
             "slope_fit_error_PE_per_GeV": slope_error,
@@ -359,8 +369,9 @@ def write_peak_table(path: Path, apa: int, records: list[dict]) -> None:
         f"Numerical Langauss peak positions for APA~{apa} channels used in the "
         "channel-by-channel linearity analysis. The nominal selection is used; "
         r"at $1~\mathrm{GeV}/c$ no muon-like selection is applied. The uncertainty "
-        "is obtained from the Langauss fit. Only channels with successful response "
-        "fits at all beam momenta and finite threshold-selection variations are reported."
+        "is obtained from the Langauss fit. Channels with a successful linear fit at "
+        "three or more beam momenta and finite threshold-selection variations are reported; "
+        "unavailable peak fits are indicated by --."
     )
     header = (
         r"Endpoint & Channel & $x_{\mathrm{peak}}(1~\mathrm{GeV}/c)$ [PE] & "
@@ -372,7 +383,11 @@ def write_peak_table(path: Path, apa: int, records: list[dict]) -> None:
     lines = table_preamble(caption, f"tab:apa{apa}_channel_peak_results", "rrccccc", header)
     if records:
         for record in records:
-            peak_cells = " & ".join(latex_value_error(*record["peaks"][momentum]) for momentum in MOMENTA)
+            peak_cells = " & ".join(
+                latex_value_error(*record["peaks"][momentum])
+                if momentum in record["peaks"] else r"\text{--}"
+                for momentum in MOMENTA
+            )
             lines.append(f"{record['endpoint']} & {record['channel']} & {peak_cells} " + r"\\")
     else:
         lines.append(r"\multicolumn{7}{c}{No channel satisfies the selection criteria.} \\")
@@ -385,8 +400,8 @@ def write_linearity_table(path: Path, apa: int, records: list[dict]) -> None:
         f"Nominal linear-fit parameters for APA~{apa}. The numerical Langauss peak "
         r"is fitted as a function of $K_{\mathrm{eff}}$. Each cell is given as the "
         r"central value $\pm$ ODR fit uncertainty $\pm$ threshold-selection systematic. "
-        "Only channels with successful response fits at all beam momenta and finite "
-        "threshold-selection variations are reported."
+        "Only channels with a successful linear fit at three or more beam momenta and "
+        "finite threshold-selection variations are reported."
     )
     header = (
         r"Endpoint & Channel & $m$ [PE/GeV] & $q$ [PE] \\"
@@ -489,8 +504,8 @@ def write_summary(path: Path, records: dict[int, list[dict]], selection_rows: li
         "THESIS-READY CHANNEL LINEARITY OUTPUTS",
         "",
         "The table and map selection requires:",
-        "  * successful nominal Langauss response fits at 1, 2, 3, 5, and 7 GeV/c;",
-        "  * a successful nominal ODR fit using all five momenta;",
+        f"  * successful nominal Langauss response fits at {MINIMUM_LINEARITY_POINTS} or more beam momenta;",
+        f"  * a successful nominal ODR fit using the same {MINIMUM_LINEARITY_POINTS} or more response points;",
         "  * finite threshold-selection systematics for slope and intercept.",
         "",
         "No automatic chi-square or quality-flag rejection is applied.",
@@ -536,6 +551,7 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     selection_fields = [
         "apa", "endpoint", "channel", "included_in_thesis_products", "reason",
+        "response_notes", "available_momenta_GeV_c",
         "quality_flags_nominal", "slope_PE_per_GeV", "slope_fit_error_PE_per_GeV",
         "slope_threshold_systematic_PE_per_GeV", "intercept_PE", "intercept_fit_error_PE",
         "intercept_threshold_systematic_PE",
