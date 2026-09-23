@@ -37,6 +37,11 @@ OUTPUT
     channel_linearity_threshold_systematics.csv
     channel_availability.csv
     skipped_or_flagged_channels.csv
+    thesis_channel_plots/
+        apa1_high_channel_{1,2,3,5,7}gev.{pdf,png}
+        apa1_high_channel_linearity.{pdf,png}
+        apa1_low_channel_{1,2,3,5,7}gev.{pdf,png}
+        apa1_low_channel_linearity.{pdf,png}
     report.txt
     manifest.json
 
@@ -97,6 +102,11 @@ COLORS = {
     "point_high": "#0072B2",
     "text": "#222222",
 }
+THESIS_CHANNELS = {
+    "high": (1, 104, 10),
+    "low": (1, 104, 7),
+}
+THESIS_PLOT_DPI = 300
 
 DISTRIBUTION_FIELDS = [
     "threshold_scenario", "threshold_sigma_multiplier", "apa", "endpoint",
@@ -741,8 +751,8 @@ def fit_linearity(points: list[dict], scenario: str, multiplier: float, apa: int
         base.update(status="odr_exception", message=str(exc))
         return base
 
-def add_work_in_progress(axis: plt.Axes) -> None:
-    axis.text(0.98, 0.98, r"$\bf{ProtoDUNE\!-\!HD}$" "\nWork in Progress", transform=axis.transAxes, ha="right", va="top", fontsize=5.6, linespacing=1.0, color=COLORS["text"], zorder=10)
+def add_work_in_progress(axis: plt.Axes, fontsize: float = 5.6) -> None:
+    axis.text(0.98, 0.98, r"$\bf{ProtoDUNE\!-\!HD}$" "\nWork in Progress", transform=axis.transAxes, ha="right", va="top", fontsize=fontsize, linespacing=1.0, color=COLORS["text"], zorder=10)
 
 
 def format_value_with_error(value: float, error: float, precision: int = 1) -> str:
@@ -770,8 +780,20 @@ def format_distribution_text(fit: dict) -> str:
     return text
 
 
-def draw_distribution(axis: plt.Axes, fit: dict, momentum: int) -> None:
-    axis.set_title(f"{momentum} GeV/c", fontsize=10, loc="left")
+def draw_distribution(
+    axis: plt.Axes,
+    fit: dict,
+    momentum: int,
+    *,
+    show_title: bool = True,
+    standalone: bool = False,
+) -> None:
+    text_size = 8.8 if standalone else 6.15
+    legend_size = 9.2 if standalone else 6.4
+    label_size = 11 if standalone else 9
+    tick_size = 9.5 if standalone else 8
+    if show_title:
+        axis.set_title(f"{momentum} GeV/c", fontsize=10, loc="left")
     if fit["edges"] is None:
         axis.text(0.5, 0.50, f"{fit['entries_total']} triggers\n{fit['status']}", transform=axis.transAxes, ha="center", va="center", fontsize=8)
     else:
@@ -781,17 +803,17 @@ def draw_distribution(axis: plt.Axes, fit: dict, momentum: int) -> None:
             label = "Langauss fit" if fit["status"] == "success" else "Langauss fit (review)"
             axis.plot(centers, fit["expected"], color=COLORS["langauss"], linewidth=1.8, label=label)
         summary = format_distribution_text(fit)
-        axis.text(0.97, 0.04, summary, transform=axis.transAxes, ha="right", va="bottom", fontsize=6.15, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.94, "boxstyle": "square,pad=0.27"})
-        axis.legend(loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=6.4)
+        axis.text(0.97, 0.04, summary, transform=axis.transAxes, ha="right", va="bottom", fontsize=text_size, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.94, "boxstyle": "square,pad=0.27"})
+        axis.legend(loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=legend_size)
         x_span = float(fit["edges"][-1] - fit["edges"][0])
         x_padding = max(0.03 * x_span, 0.05)
         top = max(float(np.max(fit["observed"])), float(np.max(fit["expected"])) if fit.get("fit_drawable", 0) else 0.0, 1.0)
         axis.set_xlim(fit["edges"][0] - x_padding, fit["edges"][-1] + x_padding)
         axis.set_ylim(0.0, 1.13 * top)
-    add_work_in_progress(axis)
-    axis.set_xlabel(r"$N_{\mathrm{PE}}$ [PE]", fontsize=9)
-    axis.set_ylabel("Counts", fontsize=9)
-    axis.tick_params(direction="in", top=True, right=True, labelsize=8)
+    add_work_in_progress(axis, fontsize=8.2 if standalone else 5.6)
+    axis.set_xlabel(r"$N_{\mathrm{PE}}$ [PE]", fontsize=label_size)
+    axis.set_ylabel("Counts", fontsize=label_size)
+    axis.tick_params(direction="in", top=True, right=True, labelsize=tick_size)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.35)
 
 
@@ -802,11 +824,22 @@ def format_fit_text(fit: dict) -> str:
     return ("Fit results\n" + f"Points: {momenta} GeV/c\n" + rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm {fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n" + rf"$q = ({fit['intercept_PE']:.1f} \pm {fit['intercept_error_PE']:.1f})$ PE" "\n" + rf"$\chi^2/\mathrm{{ndf}} = {fit['chi2']:.2f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}$" "\n" + rf"$R^2 = {fit['r_squared']:.3f}$")
 
 
-def draw_linearity(axis: plt.Axes, point_rows: dict[int, dict], linearity_fit: dict) -> None:
+def draw_linearity(
+    axis: plt.Axes,
+    point_rows: dict[int, dict],
+    linearity_fit: dict,
+    *,
+    show_title: bool = True,
+    standalone: bool = False,
+) -> None:
+    text_size = 9.5 if standalone else 6.6
+    legend_size = 9.4 if standalone else 6.8
+    label_size = 11 if standalone else 9
+    tick_size = 9.5 if standalone else 8
     usable = [point_rows[momentum] for momentum in MOMENTA if point_rows[momentum].get("response_valid", 0)]
     if not usable:
         axis.text(0.5, 0.5, "No valid Langauss fits", transform=axis.transAxes, ha="center", va="center", fontsize=8)
-        add_work_in_progress(axis)
+        add_work_in_progress(axis, fontsize=8.2 if standalone else 5.6)
         return
     x = np.asarray([row["kinetic_mean_GeV"] for row in usable])
     sx = np.asarray([row["effective_spread_GeV"] for row in usable])
@@ -828,13 +861,14 @@ def draw_linearity(axis: plt.Axes, point_rows: dict[int, dict], linearity_fit: d
         axis.errorbar(row["kinetic_mean_GeV"], row["peak_PE"], xerr=row["effective_spread_GeV"], yerr=row["peak_error_PE"], fmt="o", color=COLORS["point_high"], ecolor=COLORS["point_high"], capsize=2.5, markersize=5.5, label="Langauss peak")
     handles, labels = axis.get_legend_handles_labels()
     unique = dict(zip(labels, handles))
-    axis.legend(unique.values(), unique.keys(), loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=6.8)
-    axis.text(0.98, 0.04, format_fit_text(linearity_fit), transform=axis.transAxes, ha="right", va="bottom", fontsize=6.6, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.95, "boxstyle": "square,pad=0.35"})
-    add_work_in_progress(axis)
-    axis.set_xlabel(r"$K_{\mathrm{eff}}$ [GeV]", fontsize=9)
-    axis.set_ylabel(r"$x_{\mathrm{peak}}$ [PE]", fontsize=9)
-    axis.set_title("Channel linearity", fontsize=10, loc="left")
-    axis.tick_params(direction="in", top=True, right=True, labelsize=8)
+    axis.legend(unique.values(), unique.keys(), loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=legend_size)
+    axis.text(0.98, 0.04, format_fit_text(linearity_fit), transform=axis.transAxes, ha="right", va="bottom", fontsize=text_size, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.95, "boxstyle": "square,pad=0.35"})
+    add_work_in_progress(axis, fontsize=8.2 if standalone else 5.6)
+    axis.set_xlabel(r"$K_{\mathrm{eff}}$ [GeV]", fontsize=label_size)
+    axis.set_ylabel(r"$x_{\mathrm{peak}}$ [PE]", fontsize=label_size)
+    if show_title:
+        axis.set_title("Channel linearity", fontsize=10, loc="left")
+    axis.tick_params(direction="in", top=True, right=True, labelsize=tick_size)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.35)
 
 def write_pdfs(output_dir: Path, scenarios: list[tuple[str, float]], channels: dict[int, list[tuple[int, int]]], distribution_objects: dict, linearity_rows: dict) -> None:
@@ -855,6 +889,45 @@ def write_pdfs(output_dir: Path, scenarios: list[tuple[str, float]], channels: d
                     draw_linearity(axes.flat[5], point_rows, line_fit)
                     pdf.savefig(figure)
                     plt.close(figure)
+
+
+def save_figure(figure: plt.Figure, path_stem: Path) -> None:
+    """Write matching thesis-ready vector and raster versions of one plot."""
+    figure.savefig(path_stem.with_suffix(".pdf"), bbox_inches="tight")
+    figure.savefig(path_stem.with_suffix(".png"), dpi=THESIS_PLOT_DPI, bbox_inches="tight")
+    plt.close(figure)
+
+
+def write_thesis_channel_plots(output_dir: Path, distribution_objects: dict, linearity_rows: dict) -> Path:
+    """Export standalone, title-free plots for the two APA 1 thesis examples."""
+    plot_dir = output_dir / "thesis_channel_plots"
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    scenario = "nominal"
+    fit_range = "1_to_7_GeV_c"
+    for illumination, (apa, endpoint, channel) in THESIS_CHANNELS.items():
+        point_rows: dict[int, dict] = {}
+        for momentum in MOMENTA:
+            key = (scenario, apa, endpoint, channel, momentum)
+            if key not in distribution_objects:
+                raise ValueError(
+                    f"Missing nominal distribution for APA {apa}, endpoint {endpoint}, "
+                    f"channel {channel}, {momentum} GeV/c"
+                )
+            fit = distribution_objects[key]
+            point_rows[momentum] = fit
+            figure, axis = plt.subplots(figsize=(7.2, 5.2), constrained_layout=True)
+            draw_distribution(axis, fit, momentum, show_title=False, standalone=True)
+            save_figure(figure, plot_dir / f"apa{apa}_{illumination}_channel_{momentum}gev")
+
+        linearity_key = (scenario, apa, endpoint, channel, fit_range)
+        if linearity_key not in linearity_rows:
+            raise ValueError(
+                f"Missing nominal linearity fit for APA {apa}, endpoint {endpoint}, channel {channel}"
+            )
+        figure, axis = plt.subplots(figsize=(7.2, 5.2), constrained_layout=True)
+        draw_linearity(axis, point_rows, linearity_rows[linearity_key], show_title=False, standalone=True)
+        save_figure(figure, plot_dir / f"apa{apa}_{illumination}_channel_linearity")
+    return plot_dir
 
 def main() -> int:
     here = Path(__file__).resolve().parent
@@ -1015,6 +1088,7 @@ def main() -> int:
     write_csv(args.output_dir / "channel_linearity_threshold_systematics.csv", SYSTEMATIC_FIELDS, systematics)
     write_csv(args.output_dir / "skipped_or_flagged_channels.csv", FLAGGED_FIELDS, flagged_rows)
     write_pdfs(args.output_dir, scenarios, channels, distribution_objects, linearity_rows)
+    thesis_plot_dir = write_thesis_channel_plots(args.output_dir, distribution_objects, linearity_rows)
 
     successful_distribution = sum(row["status"] == "success" for row in distribution_rows)
     successful_linearity = sum(row["status"] == "success" for row in linearity_output)
@@ -1041,6 +1115,7 @@ def main() -> int:
         "I JSON storici conservano una sola osservazione per endpoint-canale e trigger.",
         "Se esistono waveform duplicate dello stesso canale, occorre rigenerare gli input con una lista per canale.",
         "I fit lineari usano tutti i punti validi disponibili (almeno tre), il picco Langauss e ODR con sigma_Keff = sqrt(sigma_Keff,p^2 + sigma_mix^2).",
+        f"Grafici singoli per la tesi: {thesis_plot_dir}",
         f"Canali trovati: APA1={len(channels[1])}; APA2={len(channels[2])}.",
         f"Fit di distribuzione riusciti: {successful_distribution}/{len(distribution_rows)}.",
         f"Fit lineari riusciti: {successful_linearity}/{len(linearity_output)}.",
