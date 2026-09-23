@@ -47,7 +47,8 @@ from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 
 MOMENTA = (1, 2, 3, 5, 7)
 NOMINAL_SCENARIO = "nominal"
-FIT_RANGE = "1_to_7_GeV_c"
+CURRENT_FIT_RANGE = "1_to_7_GeV_c"
+LEGACY_FIT_RANGE = "including_1_GeV_c"
 COLORS = {
     "text": "#222222",
     "missing": "#E8E8E8",
@@ -117,6 +118,24 @@ def parse_momenta(value: str) -> tuple[int, ...]:
         return ()
 
 
+def choose_fit_range(linearity_rows: list[dict[str, str]], systematic_rows: list[dict[str, str]]) -> str:
+    """Select one coherent analysis version when legacy rows share the CSV.
+
+    Some review directories contain rows from the old ``including_1_GeV_c``
+    output together with the current ``1_to_7_GeV_c`` output.  They must not
+    be merged channel by channel.  The current name is preferred whenever it
+    is present in both source files; the legacy name is used only as fallback.
+    """
+    linearity_ranges = {row["fit_range"].strip() for row in linearity_rows}
+    systematic_ranges = {row["fit_range"].strip() for row in systematic_rows}
+    for candidate in (CURRENT_FIT_RANGE, LEGACY_FIT_RANGE):
+        if candidate in linearity_ranges and candidate in systematic_ranges:
+            return candidate
+    raise ValueError(
+        "No compatible 1--7 GeV/c fit range is available in both the linearity and systematic CSV files"
+    )
+
+
 def map_channels() -> dict[int, dict[tuple[int, int], tuple[int, int]]]:
     """Return the row and column of every APA 1 and APA 2 endpoint-channel."""
     output: dict[int, dict[tuple[int, int], tuple[int, int]]] = {1: {}, 2: {}}
@@ -132,6 +151,7 @@ def collect_records(
     distribution_rows: list[dict[str, str]],
     linearity_rows: list[dict[str, str]],
     systematic_rows: list[dict[str, str]],
+    fit_range: str,
 ) -> tuple[dict[int, list[dict]], list[dict[str, object]]]:
     """Build strict, reusable channel records for the four thesis tables."""
     distributions: dict[tuple[int, int, int, int], dict[str, str]] = {}
@@ -152,7 +172,7 @@ def collect_records(
     for row in linearity_rows:
         if row["threshold_scenario"].strip() != NOMINAL_SCENARIO:
             continue
-        if row["fit_range"].strip() != FIT_RANGE:
+        if row["fit_range"].strip() != fit_range:
             continue
         key = (as_int(row["apa"]), as_int(row["endpoint"]), as_int(row["channel"]))
         if key in linearity:
@@ -162,7 +182,7 @@ def collect_records(
     systematics: dict[tuple[int, int, int], dict[str, str]] = {}
     duplicate_systematics: set[tuple[int, int, int]] = set()
     for row in systematic_rows:
-        if row["fit_range"].strip() != FIT_RANGE:
+        if row["fit_range"].strip() != fit_range:
             continue
         key = (as_int(row["apa"]), as_int(row["endpoint"]), as_int(row["channel"]))
         if key in systematics:
@@ -292,8 +312,19 @@ def latex_number(value: float, precision: int = 1) -> str:
 def latex_value_error(value: float, error: float, systematic: float | None = None) -> str:
     core = rf"{latex_number(value)} \pm {latex_number(error)}"
     if systematic is not None:
-        core += rf" \pm {latex_number(systematic)}"
+        core += rf" \pm {latex_systematic_number(systematic)}"
     return f"${core}$"
+
+
+def latex_systematic_number(value: float) -> str:
+    """Retain visible non-zero threshold systematics in the fit-result tables."""
+    if not math.isfinite(value):
+        return r"\text{--}"
+    if abs(value) < 0.01:
+        return f"{value:.3f}"
+    if abs(value) < 1.0:
+        return f"{value:.2f}"
+    return f"{value:.1f}"
 
 
 def table_preamble(caption: str, label: str, columns: str, header: str) -> list[str]:
@@ -421,16 +452,12 @@ def draw_light_yield_map(records: dict[int, list[dict]], output_dir: Path, dpi: 
                     linewidth=0.9, zorder=2,
                 )
                 axis.add_patch(patch)
-                label = (
-                    rf"$ {record['slope']:.0f} \pm {record['slope_error']:.0f} "
-                    rf"\pm {record['slope_systematic']:.0f} $"
-                )
-                axis.text(x_left + 0.5 * cell_width, y_centre, label, ha="center", va="center", fontsize=5.6, color=COLORS["text"], zorder=3)
-            axis.text(x_left + 0.5 * cell_width, y_centre - 12.5, f"EP{endpoint}--CH{channel}", ha="center", va="center", fontsize=4.45, color="#333333", zorder=3)
+                label = rf"$ {latex_number(record['slope'])} \pm {latex_number(record['slope_error'])} $"
+                axis.text(x_left + 0.5 * cell_width, y_centre, label, ha="center", va="center", fontsize=7.2, color=COLORS["text"], zorder=3)
+            axis.text(x_left + 0.5 * cell_width, y_centre - 12.5, f"END {endpoint} - CH {channel}", ha="center", va="center", fontsize=5.5, color="#333333", zorder=3)
 
     axis.text(9.0, 603.5, "APA 1", ha="left", va="bottom", fontsize=11, fontweight="bold")
     axis.text(259.0, 603.5, "APA 2", ha="left", va="bottom", fontsize=11, fontweight="bold")
-    axis.text(0.015, 0.965, r"Cell: $m \pm \sigma_{m,\mathrm{fit}} \pm \delta m_{\mathrm{thr}}$", transform=axis.transAxes, ha="left", va="top", fontsize=8.4, color="#444444")
     add_work_in_progress(axis)
 
     axis.set_xlim(-12.0, 475.0)
@@ -439,12 +466,11 @@ def draw_light_yield_map(records: dict[int, list[dict]], output_dir: Path, dpi: 
     axis.set_ylabel(r"$y$ direction [cm]", fontsize=13)
     axis.tick_params(direction="in", top=True, right=True, labelsize=10)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.28, zorder=0)
-    axis.set_title("Channel light-yield map", fontsize=16, pad=9)
 
     mapper = cm.ScalarMappable(norm=norm, cmap=colour_map)
     mapper.set_array([])
     colour_bar = figure.colorbar(mapper, ax=axis, pad=0.035, fraction=0.046)
-    colour_bar.set_label(r"Effective detected light yield, $m$ [PE/GeV]", fontsize=12)
+    colour_bar.set_label(r"Effective detected light yield ($m$) [PE/GeV]", fontsize=12)
     colour_bar.ax.tick_params(labelsize=10)
 
     png_path = output_dir / "apa12_channel_light_yield_map.png"
@@ -455,7 +481,7 @@ def draw_light_yield_map(records: dict[int, list[dict]], output_dir: Path, dpi: 
     return png_path, pdf_path
 
 
-def write_summary(path: Path, records: dict[int, list[dict]], selection_rows: list[dict[str, object]], map_paths: tuple[Path, Path]) -> None:
+def write_summary(path: Path, records: dict[int, list[dict]], selection_rows: list[dict[str, object]], map_paths: tuple[Path, Path], fit_range: str) -> None:
     included = sum(bool(row["included_in_thesis_products"]) for row in selection_rows)
     excluded = len(selection_rows) - included
     reviewed = sum(bool(row["quality_flags_nominal"]) for row in selection_rows if row["included_in_thesis_products"])
@@ -469,6 +495,7 @@ def write_summary(path: Path, records: dict[int, list[dict]], selection_rows: li
         "",
         "No automatic chi-square or quality-flag rejection is applied.",
         "Quality flags remain available in channel_linearity_thesis_channel_selection.csv.",
+        f"Fit-range source used: {fit_range}",
         "",
         f"APA 1 included channels: {len(records[1])}",
         f"APA 2 included channels: {len(records[2])}",
@@ -477,7 +504,7 @@ def write_summary(path: Path, records: dict[int, list[dict]], selection_rows: li
         f"Included channels with a nominal visual-review flag: {reviewed}",
         "",
         "Map colour: nominal slope m.",
-        "Map cell: m +/- ODR fit uncertainty +/- threshold-selection systematic.",
+        "Map cell: m +/- ODR fit uncertainty. Threshold-selection systematics are reported in the LaTeX tables.",
         f"Map PNG: {map_paths[0].name}",
         f"Map PDF: {map_paths[1].name}",
     ]
@@ -501,7 +528,8 @@ def main() -> int:
     distribution_rows = read_csv(results_dir / "channel_distribution_fit_results.csv", DISTRIBUTION_REQUIRED)
     linearity_rows = read_csv(results_dir / "channel_linearity_fit_results.csv", LINEARITY_REQUIRED)
     systematic_rows = read_csv(results_dir / "channel_linearity_threshold_systematics.csv", SYSTEMATIC_REQUIRED)
-    records, selection_rows = collect_records(distribution_rows, linearity_rows, systematic_rows)
+    fit_range = choose_fit_range(linearity_rows, systematic_rows)
+    records, selection_rows = collect_records(distribution_rows, linearity_rows, systematic_rows, fit_range)
     if not records[1] and not records[2]:
         raise ValueError("No channel satisfies the complete thesis-selection criteria")
 
@@ -518,7 +546,7 @@ def main() -> int:
     write_linearity_table(output_dir / "apa1_channel_linearity_results.tex", 1, records[1])
     write_linearity_table(output_dir / "apa2_channel_linearity_results.tex", 2, records[2])
     map_paths = draw_light_yield_map(records, output_dir, args.dpi)
-    write_summary(output_dir / "channel_linearity_thesis_summary.txt", records, selection_rows, map_paths)
+    write_summary(output_dir / "channel_linearity_thesis_summary.txt", records, selection_rows, map_paths, fit_range)
     print(output_dir)
     return 0
 
