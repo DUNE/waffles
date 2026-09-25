@@ -362,16 +362,33 @@ def default_pairs(apa: int) -> list[Pair]:
     return pairs
 
 
-def add_panel_brand(axis: plt.Axes, location: str) -> None:
-    """Add the preliminary-status label above an individual panel."""
+def add_panel_brand(axis: plt.Axes, location: str, standalone: bool = False) -> None:
+    """Add the preliminary-status label inside an individual panel."""
 
-    axis.set_title(
+    horizontal_alignment = "right" if location == "right" else "left"
+    x_position = 0.975 if location == "right" else 0.025
+    axis.text(
+        x_position,
+        0.965,
         r"$\mathbf{ProtoDUNE\!-\!HD}$" + "\nWork in Progress",
-        loc=location,
-        fontsize=5.3,
-        fontweight="normal",
-        pad=3.0,
+        transform=axis.transAxes,
+        ha=horizontal_alignment,
+        va="top",
+        fontsize=9.2 if standalone else 5.3,
+        linespacing=0.93,
+        zorder=10,
     )
+
+
+def format_panel_axis(axis: plt.Axes, standalone: bool) -> None:
+    """Use a readable but compact style for PDF panels and standalone PNGs."""
+
+    if standalone:
+        axis.tick_params(labelsize=11.5)
+        axis.xaxis.label.set_size(13.0)
+        axis.yaxis.label.set_size(13.0)
+    else:
+        axis.tick_params(labelsize=7.0)
 
 
 def display_limits(values: np.ndarray, fit_low: float, fit_high: float) -> tuple[float, float]:
@@ -401,17 +418,28 @@ def response_limits(values_a: np.ndarray, values_b: np.ndarray) -> tuple[tuple[f
     return limits(values_a), limits(values_b)
 
 
-def plot_correlation_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
+def plot_correlation_panel(
+    axis: plt.Axes,
+    panel: dict,
+    momentum: int,
+    show_momentum_title: bool = True,
+    standalone: bool = False,
+) -> None:
     """Draw raw N_PE,A versus N_PE,B on common selected triggers."""
 
     events = panel.get("events")
     record = panel.get("record")
-    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", loc="center", fontsize=8.6)
-    add_panel_brand(axis, "right")
+    if show_momentum_title:
+        axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", loc="center", fontsize=8.6)
+    add_panel_brand(axis, "right", standalone=standalone)
     axis.grid(alpha=0.22)
     if events is None or events.common_events == 0:
-        axis.text(0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center", fontsize=7.2, wrap=True)
+        axis.text(
+            0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center",
+            fontsize=11.0 if standalone else 7.2, wrap=True,
+        )
         axis.set(xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$")
+        format_panel_axis(axis, standalone)
         return
 
     values_a = events.values_a
@@ -427,25 +455,37 @@ def plot_correlation_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
         )
         text = rf"$\rho_{{AB}} = {record['pearson_correlation']:.3f}$" + "\n" + rf"{int(record['common_events'])} common triggers"
         axis.text(
-            0.97, 0.06, text, transform=axis.transAxes, ha="right", va="bottom", fontsize=6.3,
+            0.97, 0.06, text, transform=axis.transAxes, ha="right", va="bottom",
+            fontsize=9.0 if standalone else 6.3,
             bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92, "pad": 1.4},
         )
-        axis.legend(frameon=True, facecolor="white", fontsize=6.0, loc="upper left")
+        axis.legend(frameon=True, facecolor="white", fontsize=9.2 if standalone else 6.0, loc="upper left")
     axis.set(xlim=(x_low, x_high), ylim=(y_low, y_high), xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$")
-    axis.tick_params(labelsize=7.0)
+    format_panel_axis(axis, standalone)
 
 
-def plot_distribution_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
+def plot_distribution_panel(
+    axis: plt.Axes,
+    panel: dict,
+    momentum: int,
+    show_momentum_title: bool = True,
+    standalone: bool = False,
+) -> None:
     """Draw one D_AB distribution and its Gaussian fit."""
 
     record = panel.get("record")
     values = panel.get("d_values")
-    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", loc="center", fontsize=8.6)
-    add_panel_brand(axis, "left")
+    if show_momentum_title:
+        axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", loc="center", fontsize=8.6)
+    add_panel_brand(axis, "right", standalone=standalone)
     axis.grid(alpha=0.22)
     if values is None or len(values) == 0:
-        axis.text(0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center", fontsize=7.2, wrap=True)
+        axis.text(
+            0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center",
+            fontsize=11.0 if standalone else 7.2, wrap=True,
+        )
         axis.set(xlabel=r"$D_{AB}$", ylabel="Counts")
+        format_panel_axis(axis, standalone)
         return
 
     if record is None:
@@ -453,9 +493,15 @@ def plot_distribution_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
             values, bins="fd", color="#D0D0D0", alpha=0.82, edgecolor="#333333", lw=0.55,
             label=f"Data @ {momentum:g} GeV/c ({len(values)} triggers)",
         )
-        axis.text(0.97, 0.93, panel["message"], transform=axis.transAxes, ha="right", va="top", fontsize=6.3, bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92})
-        axis.set(xlabel=r"$D_{AB}$", ylabel="Counts", ylim=(0.0, 1.42 * max(float(np.max(counts)), 1.0)))
-        axis.legend(frameon=True, facecolor="white", fontsize=6.0, loc="upper left")
+        axis.text(
+            0.97, 0.82, panel["message"], transform=axis.transAxes, ha="right", va="top",
+            fontsize=9.0 if standalone else 6.3,
+            bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92},
+        )
+        ymax = (1.15 if standalone else 1.42) * max(float(np.max(counts)), 1.0)
+        axis.set(xlabel=r"$D_{AB}$", ylabel="Counts", ylim=(0.0, ymax))
+        axis.legend(frameon=True, facecolor="white", fontsize=9.2 if standalone else 6.0, loc="upper left")
+        format_panel_axis(axis, standalone)
         return
 
     fit_low = record["d_gaussian_fit_low"]
@@ -485,60 +531,65 @@ def plot_distribution_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
         axis.plot(x_fit, y_fit, color=DATA_COLOR, lw=1.55, label=label)
     else:
         axis.plot([], [], color=DATA_COLOR, lw=1.55, label="Gaussian fit failed")
-    axis.set(xlim=(low, high), ylim=(0.0, 1.42 * maximum), xlabel=r"$D_{AB}$", ylabel="Counts")
-    axis.tick_params(labelsize=7.0)
-    axis.legend(frameon=True, facecolor="white", fontsize=6.0, loc="upper left")
+    ymax = (1.15 if standalone else 1.42) * maximum
+    axis.set(xlim=(low, high), ylim=(0.0, ymax), xlabel=r"$D_{AB}$", ylabel="Counts")
+    axis.legend(frameon=True, facecolor="white", fontsize=9.2 if standalone else 6.0, loc="upper left")
+    format_panel_axis(axis, standalone)
 
 
-def plot_pair_resolution_panel(axis: plt.Axes, panels: dict[int, dict], resolution_fit: ResolutionFit) -> None:
-    """Draw sigma_D(K_eff) in percent and the three-term fit."""
+def plot_pair_resolution_panel(
+    axis: plt.Axes,
+    panels: dict[int, dict],
+    resolution_fit: ResolutionFit,
+    standalone: bool = False,
+) -> None:
+    """Draw the dimensionless sigma_D(K_eff) and the three-term fit."""
 
     records = []
     for momentum in MOMENTA:
         record = panels.get(momentum, {}).get("record")
         if record is not None and record["d_gaussian_status"] == "success":
             records.append(record)
-    add_panel_brand(axis, "left")
+    add_panel_brand(axis, "left", standalone=standalone)
     if not records:
         axis.text(0.5, 0.5, "No successful Gaussian fit", transform=axis.transAxes, ha="center", va="center")
-        axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$ [%]")
+        axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
+        format_panel_axis(axis, standalone)
         return
 
     records.sort(key=lambda row: row["kinetic_mean_GeV"])
     for index, row in enumerate(records):
         axis.errorbar(
-            row["kinetic_mean_GeV"], 100.0 * row["d_gaussian_sigma"],
-            xerr=row["effective_spread_GeV"], yerr=100.0 * row["d_gaussian_sigma_error"],
-            fmt="o", ms=5.8, capsize=2.2, color=DATA_COLOR, mfc=DATA_COLOR,
+            row["kinetic_mean_GeV"], row["d_gaussian_sigma"],
+            xerr=row["effective_spread_GeV"], yerr=row["d_gaussian_sigma_error"],
+            fmt="o", ms=7.0 if standalone else 5.8, capsize=2.8 if standalone else 2.2, color=DATA_COLOR, mfc=DATA_COLOR,
             mec=DATA_COLOR, mew=1.0, zorder=3,
             label=r"Gaussian-fit $\sigma_D$" if index == 0 else None,
         )
 
-    maximum = max(100.0 * (row["d_gaussian_sigma"] + row["d_gaussian_sigma_error"]) for row in records)
     if resolution_fit.status == "success":
         x_min = max(0.05, min(row["kinetic_mean_GeV"] - row["effective_spread_GeV"] for row in records))
         x_max = max(row["kinetic_mean_GeV"] + row["effective_spread_GeV"] for row in records)
         x_curve = np.linspace(x_min, 1.04 * x_max, 400)
-        y_curve = 100.0 * resolution_model(
+        y_curve = resolution_model(
             x_curve, resolution_fit.constant_a, resolution_fit.stochastic_b_sqrt_GeV, resolution_fit.noise_c_GeV
         )
-        maximum = max(maximum, float(np.max(y_curve)))
         label = (
             "Fit function\n"
             + r"$y = \sqrt{a^2 + b^2/x + c^2/x^2}$" + "\n"
-            + rf"$a = ({100.0 * resolution_fit.constant_a:.1f} \pm {100.0 * resolution_fit.constant_a_error:.1f})\,\%$" + "\n"
-            + rf"$b = ({100.0 * resolution_fit.stochastic_b_sqrt_GeV:.1f} \pm {100.0 * resolution_fit.stochastic_b_error_sqrt_GeV:.1f})\,\%\sqrt{{\rm GeV}}$" + "\n"
-            + rf"$c = ({100.0 * resolution_fit.noise_c_GeV:.1f} \pm {100.0 * resolution_fit.noise_c_error_GeV:.1f})\,\%\,{{\rm GeV}}$" + "\n"
+            + rf"$a = ({resolution_fit.constant_a:.3f} \pm {resolution_fit.constant_a_error:.3f})$" + "\n"
+            + rf"$b = ({resolution_fit.stochastic_b_sqrt_GeV:.3f} \pm {resolution_fit.stochastic_b_error_sqrt_GeV:.3f})\sqrt{{\rm GeV}}$" + "\n"
+            + rf"$c = ({resolution_fit.noise_c_GeV:.3f} \pm {resolution_fit.noise_c_error_GeV:.3f})\,{{\rm GeV}}$" + "\n"
             + rf"$\chi^2/{{\rm ndf}} = {resolution_fit.chi2:.2f}/{resolution_fit.ndf:d} = {resolution_fit.chi2_ndf:.2f}$" + "\n"
             + rf"$R^2 = {resolution_fit.r_squared:.3f}$"
         )
-        axis.plot(x_curve, y_curve, color=FIT_COLOR, lw=1.9, label=label)
+        axis.plot(x_curve, y_curve, color=FIT_COLOR, lw=2.3 if standalone else 1.9, label=label)
     else:
         axis.plot([], [], color=FIT_COLOR, lw=1.9, label="Fit function unavailable")
-    axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$ [%]", ylim=(0.0, 1.45 * maximum))
+    axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
     axis.grid(alpha=0.24)
-    axis.tick_params(labelsize=8.0)
-    axis.legend(frameon=True, facecolor="white", fontsize=6.9, loc="upper right")
+    axis.legend(frameon=True, facecolor="white", fontsize=10.0 if standalone else 6.9, loc="upper right")
+    format_panel_axis(axis, standalone)
 
 
 def export_individual_pair_plots(
@@ -558,14 +609,19 @@ def export_individual_pair_plots(
                 ("npe_a_vs_npe_b", plot_correlation_panel, (6.8, 5.3)),
                 ("dab_distribution", plot_distribution_panel, (6.8, 5.3)),
             ):
-                figure, axis = plt.subplots(figsize=figsize)
-                plotter(axis, panels_by_pair[pair.identifier][momentum], momentum)
+                figure, axis = plt.subplots(figsize=(7.6, 5.9))
+                plotter(
+                    axis, panels_by_pair[pair.identifier][momentum], momentum,
+                    show_momentum_title=False, standalone=True,
+                )
                 figure.tight_layout()
                 figure.savefig(pair_directory / f"{pair.identifier}_{momentum}gev_{suffix}.png", dpi=300)
                 plt.close(figure)
                 exported += 1
-        figure, axis = plt.subplots(figsize=(8.0, 5.5))
-        plot_pair_resolution_panel(axis, panels_by_pair[pair.identifier], resolution_fits[pair.identifier])
+        figure, axis = plt.subplots(figsize=(8.6, 6.1))
+        plot_pair_resolution_panel(
+            axis, panels_by_pair[pair.identifier], resolution_fits[pair.identifier], standalone=True,
+        )
         figure.tight_layout()
         figure.savefig(pair_directory / f"{pair.identifier}_resolution_vs_keff.png", dpi=300)
         plt.close(figure)
