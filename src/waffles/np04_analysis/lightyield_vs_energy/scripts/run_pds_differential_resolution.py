@@ -362,12 +362,15 @@ def default_pairs(apa: int) -> list[Pair]:
     return pairs
 
 
-def watermark(figure: plt.Figure) -> None:
-    figure.text(
-        0.985, 0.985,
-        "ProtoDUNE–HD\nWork in Progress",
-        ha="right", va="top", fontsize=9.5, fontweight="normal",
-        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.92, "pad": 1.5},
+def add_panel_brand(axis: plt.Axes, location: str) -> None:
+    """Add the preliminary-status label above an individual panel."""
+
+    axis.set_title(
+        r"$\mathbf{ProtoDUNE\!-\!HD}$" + "\nWork in Progress",
+        loc=location,
+        fontsize=5.3,
+        fontweight="normal",
+        pad=3.0,
     )
 
 
@@ -401,10 +404,10 @@ def response_limits(values_a: np.ndarray, values_b: np.ndarray) -> tuple[tuple[f
 def plot_correlation_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
     """Draw raw N_PE,A versus N_PE,B on common selected triggers."""
 
-    pair: Pair = panel["pair"]
     events = panel.get("events")
     record = panel.get("record")
-    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", fontsize=8.6)
+    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", loc="center", fontsize=8.6)
+    add_panel_brand(axis, "right")
     axis.grid(alpha=0.22)
     if events is None or events.common_events == 0:
         axis.text(0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center", fontsize=7.2, wrap=True)
@@ -422,9 +425,7 @@ def plot_correlation_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
             "--", color=FIT_COLOR, lw=1.25,
             label=r"$N_B = (\mu_B/\mu_A)N_A$",
         )
-        coverage = record["common_event_fraction"]
-        coverage_label = "" if record["coverage_status"] == "usable" else "\ncoverage < 0.80"
-        text = rf"$\rho_{{AB}} = {record['pearson_correlation']:.3f}$" + "\n" + rf"{int(record['common_events'])} common triggers" + coverage_label
+        text = rf"$\rho_{{AB}} = {record['pearson_correlation']:.3f}$" + "\n" + rf"{int(record['common_events'])} common triggers"
         axis.text(
             0.97, 0.06, text, transform=axis.transAxes, ha="right", va="bottom", fontsize=6.3,
             bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92, "pad": 1.4},
@@ -435,22 +436,26 @@ def plot_correlation_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
 
 
 def plot_distribution_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
-    """Draw one D_AB distribution and its Gaussian core fit."""
+    """Draw one D_AB distribution and its Gaussian fit."""
 
     record = panel.get("record")
     values = panel.get("d_values")
-    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", fontsize=8.6)
+    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", loc="center", fontsize=8.6)
+    add_panel_brand(axis, "left")
     axis.grid(alpha=0.22)
     if values is None or len(values) == 0:
         axis.text(0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center", fontsize=7.2, wrap=True)
-        axis.set(xlabel=r"$D_{AB}$", ylabel="Trigger counts")
+        axis.set(xlabel=r"$D_{AB}$", ylabel="Counts")
         return
 
     if record is None:
-        axis.hist(values, bins="fd", color="#D0D0D0", alpha=0.82, edgecolor="#333333", lw=0.55, label=f"Data ({len(values)} triggers)")
+        counts, _, _ = axis.hist(
+            values, bins="fd", color="#D0D0D0", alpha=0.82, edgecolor="#333333", lw=0.55,
+            label=f"Data @ {momentum:g} GeV/c ({len(values)} triggers)",
+        )
         axis.text(0.97, 0.93, panel["message"], transform=axis.transAxes, ha="right", va="top", fontsize=6.3, bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92})
-        axis.set(xlabel=r"$D_{AB}$", ylabel="Trigger counts")
-        axis.legend(frameon=True, facecolor="white", fontsize=6.0)
+        axis.set(xlabel=r"$D_{AB}$", ylabel="Counts", ylim=(0.0, 1.42 * max(float(np.max(counts)), 1.0)))
+        axis.legend(frameon=True, facecolor="white", fontsize=6.0, loc="upper left")
         return
 
     fit_low = record["d_gaussian_fit_low"]
@@ -460,89 +465,112 @@ def plot_distribution_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
     bin_edges = np.arange(low, high + bin_width, bin_width)
     if len(bin_edges) < 2:
         bin_edges = 30
-    axis.hist(
+    counts, _, _ = axis.hist(
         values, bins=bin_edges, color="#D0D0D0", edgecolor="#333333", lw=0.55,
         label=f"Data @ {momentum:g} GeV/c ({int(record['common_events'])} triggers)",
     )
+    maximum = max(float(np.max(counts)), 1.0)
     if record["d_gaussian_status"] == "success":
         x_fit = np.linspace(fit_low, fit_high, 500)
-        axis.plot(
-            x_fit,
-            gaussian_count_model(x_fit, record["d_gaussian_amplitude"], record["d_gaussian_mean"], record["d_gaussian_sigma"]),
-            color=DATA_COLOR, lw=1.55, label="Gaussian core fit",
+        y_fit = gaussian_count_model(
+            x_fit, record["d_gaussian_amplitude"], record["d_gaussian_mean"], record["d_gaussian_sigma"]
         )
-        text = (
-            rf"$\mu = ({record['d_gaussian_mean']:.3f} \pm {record['d_gaussian_mean_error']:.3f})$" + "\n"
-            + rf"$\sigma_D = ({record['d_gaussian_sigma']:.3f} \pm {record['d_gaussian_sigma_error']:.3f})$"
+        maximum = max(maximum, float(np.max(y_fit)))
+        label = (
+            "Gaussian fit\n"
+            + rf"$\mu = ({record['d_gaussian_mean']:.3f} \pm {record['d_gaussian_mean_error']:.3f})$" + "\n"
+            + rf"$\sigma_D = ({record['d_gaussian_sigma']:.3f} \pm {record['d_gaussian_sigma_error']:.3f})$" + "\n"
+            + rf"$\chi^2/{{\rm ndf}} = {record['d_gaussian_chi2']:.1f}/{int(record['d_gaussian_ndf'])} = {record['d_gaussian_chi2_ndf']:.2f}$"
         )
+        axis.plot(x_fit, y_fit, color=DATA_COLOR, lw=1.55, label=label)
     else:
-        text = "Gaussian fit failed"
-    if record["coverage_status"] == "low_coverage":
-        text += "\ncoverage < 0.80"
-    axis.text(
-        0.97, 0.93, text, transform=axis.transAxes, ha="right", va="top", fontsize=6.0,
-        bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.93, "pad": 1.4},
-    )
-    axis.set(xlim=(low, high), xlabel=r"$D_{AB}$", ylabel="Trigger counts")
+        axis.plot([], [], color=DATA_COLOR, lw=1.55, label="Gaussian fit failed")
+    axis.set(xlim=(low, high), ylim=(0.0, 1.42 * maximum), xlabel=r"$D_{AB}$", ylabel="Counts")
     axis.tick_params(labelsize=7.0)
     axis.legend(frameon=True, facecolor="white", fontsize=6.0, loc="upper left")
 
 
 def plot_pair_resolution_panel(axis: plt.Axes, panels: dict[int, dict], resolution_fit: ResolutionFit) -> None:
-    """Draw sigma_D(K_eff) and the three-term differential-resolution fit."""
+    """Draw sigma_D(K_eff) in percent and the three-term fit."""
 
     records = []
     for momentum in MOMENTA:
         record = panels.get(momentum, {}).get("record")
         if record is not None and record["d_gaussian_status"] == "success":
             records.append(record)
+    add_panel_brand(axis, "left")
     if not records:
         axis.text(0.5, 0.5, "No successful Gaussian fit", transform=axis.transAxes, ha="center", va="center")
-        axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
+        axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$ [%]")
         return
 
     records.sort(key=lambda row: row["kinetic_mean_GeV"])
-    for row in records:
-        low_coverage = row["coverage_status"] == "low_coverage"
+    for index, row in enumerate(records):
         axis.errorbar(
-            row["kinetic_mean_GeV"], row["d_gaussian_sigma"],
-            xerr=row["effective_spread_GeV"], yerr=row["d_gaussian_sigma_error"],
-            fmt="o", ms=5.8, capsize=2.2, color=DATA_COLOR,
-            mfc="white" if low_coverage else DATA_COLOR,
-            mec=LOW_COVERAGE_EDGE if low_coverage else DATA_COLOR,
-            mew=1.1, zorder=3,
+            row["kinetic_mean_GeV"], 100.0 * row["d_gaussian_sigma"],
+            xerr=row["effective_spread_GeV"], yerr=100.0 * row["d_gaussian_sigma_error"],
+            fmt="o", ms=5.8, capsize=2.2, color=DATA_COLOR, mfc=DATA_COLOR,
+            mec=DATA_COLOR, mew=1.0, zorder=3,
+            label=r"Gaussian-fit $\sigma_D$" if index == 0 else None,
         )
-    axis.plot([], [], "o", color=DATA_COLOR, label=r"coverage $\geq 0.80$")
-    axis.plot([], [], "o", color=DATA_COLOR, mfc="white", mec=LOW_COVERAGE_EDGE, mew=1.1, label=r"coverage $< 0.80$")
 
+    maximum = max(100.0 * (row["d_gaussian_sigma"] + row["d_gaussian_sigma_error"]) for row in records)
     if resolution_fit.status == "success":
         x_min = max(0.05, min(row["kinetic_mean_GeV"] - row["effective_spread_GeV"] for row in records))
         x_max = max(row["kinetic_mean_GeV"] + row["effective_spread_GeV"] for row in records)
         x_curve = np.linspace(x_min, 1.04 * x_max, 400)
-        axis.plot(
-            x_curve,
-            resolution_model(x_curve, resolution_fit.constant_a, resolution_fit.stochastic_b_sqrt_GeV, resolution_fit.noise_c_GeV),
-            color=FIT_COLOR, lw=1.9,
-            label=r"$\sqrt{a^2 + b^2/K_{\rm eff} + c^2/K_{\rm eff}^2}$",
+        y_curve = 100.0 * resolution_model(
+            x_curve, resolution_fit.constant_a, resolution_fit.stochastic_b_sqrt_GeV, resolution_fit.noise_c_GeV
         )
-        text = (
-            "Differential-resolution fit\n"
-            + rf"$a = {resolution_fit.constant_a:.3f} \pm {resolution_fit.constant_a_error:.3f}$" + "\n"
-            + rf"$b = ({resolution_fit.stochastic_b_sqrt_GeV:.3f} \pm {resolution_fit.stochastic_b_error_sqrt_GeV:.3f})$ $\sqrt{{\rm GeV}}$" + "\n"
-            + rf"$c = ({resolution_fit.noise_c_GeV:.3f} \pm {resolution_fit.noise_c_error_GeV:.3f})$ GeV" + "\n"
+        maximum = max(maximum, float(np.max(y_curve)))
+        label = (
+            "Fit function\n"
+            + r"$y = \sqrt{a^2 + b^2/x + c^2/x^2}$" + "\n"
+            + rf"$a = ({100.0 * resolution_fit.constant_a:.1f} \pm {100.0 * resolution_fit.constant_a_error:.1f})\,\%$" + "\n"
+            + rf"$b = ({100.0 * resolution_fit.stochastic_b_sqrt_GeV:.1f} \pm {100.0 * resolution_fit.stochastic_b_error_sqrt_GeV:.1f})\,\%\sqrt{{\rm GeV}}$" + "\n"
+            + rf"$c = ({100.0 * resolution_fit.noise_c_GeV:.1f} \pm {100.0 * resolution_fit.noise_c_error_GeV:.1f})\,\%\,{{\rm GeV}}$" + "\n"
             + rf"$\chi^2/{{\rm ndf}} = {resolution_fit.chi2:.2f}/{resolution_fit.ndf:d} = {resolution_fit.chi2_ndf:.2f}$" + "\n"
             + rf"$R^2 = {resolution_fit.r_squared:.3f}$"
         )
+        axis.plot(x_curve, y_curve, color=FIT_COLOR, lw=1.9, label=label)
     else:
-        text = "Resolution fit unavailable\n" + resolution_fit.message
-    axis.text(
-        0.97, 0.06, text, transform=axis.transAxes, ha="right", va="bottom", fontsize=7.0,
-        bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.94, "pad": 1.8},
-    )
-    axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
+        axis.plot([], [], color=FIT_COLOR, lw=1.9, label="Fit function unavailable")
+    axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$ [%]", ylim=(0.0, 1.45 * maximum))
     axis.grid(alpha=0.24)
     axis.tick_params(labelsize=8.0)
     axis.legend(frameon=True, facecolor="white", fontsize=6.9, loc="upper right")
+
+
+def export_individual_pair_plots(
+    pairs: list[Pair],
+    panels_by_pair: dict[str, dict[int, dict]],
+    resolution_fits: dict[str, ResolutionFit],
+    output_directory: Path,
+) -> int:
+    """Export the five correlations, five D_AB distributions, and fit panel as PNGs."""
+
+    exported = 0
+    for pair in pairs:
+        pair_directory = output_directory / pair.identifier
+        pair_directory.mkdir(parents=True, exist_ok=True)
+        for momentum in MOMENTA:
+            for suffix, plotter, figsize in (
+                ("npe_a_vs_npe_b", plot_correlation_panel, (6.8, 5.3)),
+                ("dab_distribution", plot_distribution_panel, (6.8, 5.3)),
+            ):
+                figure, axis = plt.subplots(figsize=figsize)
+                plotter(axis, panels_by_pair[pair.identifier][momentum], momentum)
+                figure.tight_layout()
+                figure.savefig(pair_directory / f"{pair.identifier}_{momentum}gev_{suffix}.png", dpi=300)
+                plt.close(figure)
+                exported += 1
+        figure, axis = plt.subplots(figsize=(8.0, 5.5))
+        plot_pair_resolution_panel(axis, panels_by_pair[pair.identifier], resolution_fits[pair.identifier])
+        figure.tight_layout()
+        figure.savefig(pair_directory / f"{pair.identifier}_resolution_vs_keff.png", dpi=300)
+        plt.close(figure)
+        exported += 1
+    return exported
 
 
 def make_pair_pdf(
@@ -569,7 +597,6 @@ def make_pair_pdf(
                 f"END {pair.second.endpoint} - CH {pair.second.channel}",
                 x=0.02, y=0.987, ha="left", fontsize=14,
             )
-            watermark(figure)
             positions = {
                 1: (grid[0, 0], grid[0, 1]),
                 2: (grid[0, 2], grid[0, 3]),
@@ -636,6 +663,10 @@ def clear_outputs(output_dir: Path) -> None:
     if diagnostics.is_dir():
         for path in diagnostics.glob("*.png"):
             path.unlink()
+    individual = output_dir / "individual_plots"
+    if individual.is_dir():
+        for path in individual.rglob("*.png"):
+            path.unlink()
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -652,6 +683,10 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--low-coverage-threshold", type=float, default=0.80)
     parser.add_argument("--minimum-momenta-for-pdf", type=int, choices=(4, 5), default=4)
     parser.add_argument("--relative-momentum-error", type=float, default=0.05)
+    parser.add_argument(
+        "--export-pair", action="append", default=[], metavar="PAIR",
+        help="Export individual PNG panels for this pair identifier; may be repeated.",
+    )
     arguments = parser.parse_args()
     for attribute in ("input_dir", "trigger_data", "population_fit_results", "composition", "output_dir"):
         setattr(arguments, attribute, getattr(arguments, attribute).expanduser().resolve())
@@ -681,6 +716,12 @@ def main() -> int:
     pairs = default_pairs(arguments.apa)
     if not pairs:
         raise ValueError(f"No manually defined adjacent pairs found for APA {arguments.apa}.")
+    pairs_by_identifier = {pair.identifier: pair for pair in pairs}
+    unknown_export_pairs = sorted(set(arguments.export_pair) - set(pairs_by_identifier))
+    if unknown_export_pairs:
+        available = ", ".join(sorted(pairs_by_identifier))
+        raise ValueError(f"Unknown --export-pair identifier(s): {unknown_export_pairs}. Available identifiers: {available}")
+    export_pairs = [pairs_by_identifier[identifier] for identifier in dict.fromkeys(arguments.export_pair)]
 
     arguments.output_dir.mkdir(parents=True, exist_ok=True)
     clear_outputs(arguments.output_dir)
@@ -807,6 +848,10 @@ def main() -> int:
         pairs, panels_by_pair, pair_summary, resolution_fits,
         arguments.minimum_momenta_for_pdf, pdf_path,
     )
+    exported_plot_count = export_individual_pair_plots(
+        export_pairs, panels_by_pair, resolution_fits,
+        arguments.output_dir / "individual_plots",
+    )
 
     write_csv(arguments.output_dir / "adjacent_pair_differential_resolution.csv", measurements)
     write_csv(arguments.output_dir / "pair_availability.csv", availability_rows)
@@ -855,9 +900,10 @@ def main() -> int:
         f"Successful pair/momentum measurements: {len(table)}.",
         f"Successful Gaussian core fits: {gaussian_count}.",
         f"Measurements flagged for coverage below {arguments.low_coverage_threshold:.2f}: {low_coverage_count}.",
-        "Low coverage is shown with an open marker and does not change the momentum color or remove a successful fit.",
+        "Low coverage is retained as a quality flag in the CSV outputs and does not alter the PDF point style or the fit sample.",
         f"Successful three-term differential-resolution fits: {resolution_successes}.",
         f"Pairs included in the PDF: {page_count}.",
+        f"Individual PNG panels exported: {exported_plot_count}.",
         "",
         "OUTPUTS",
         "adjacent_pair_differential_resolution.csv: all measured pairs, Gaussian fit parameters, and empirical cross-checks.",
@@ -866,6 +912,7 @@ def main() -> int:
         "pair_analysis_summary.csv: pair availability, PDF inclusion, and resolution-fit status.",
         "selected_trigger_counts.csv: selected-trigger count per momentum.",
         f"{pdf_path.name}: five N_PE,A versus N_PE,B correlations, five D_AB distributions, and sigma_D(K_eff) for each eligible pair.",
+        "individual_plots/<pair>/: requested standalone PNG panels for that pair.",
     ]
     (arguments.output_dir / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
     manifest = {
@@ -881,6 +928,7 @@ def main() -> int:
             "relative_momentum_error": arguments.relative_momentum_error,
             "threshold_scenario": "nominal",
             "resolution_model": "sqrt(a^2 + b^2/K_eff + c^2/K_eff^2)",
+            "export_pair_identifiers": [pair.identifier for pair in export_pairs],
         },
         "inputs": [file_info(path) for path in input_paths if path.is_file()],
     }
