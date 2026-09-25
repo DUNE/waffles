@@ -365,7 +365,17 @@ def default_pairs(apa: int) -> list[Pair]:
 def add_panel_brand(axis: plt.Axes, location: str, standalone: bool = False) -> None:
     """Add the preliminary-status label inside an individual panel."""
 
-    horizontal_alignment = "right" if location == "right" else "left"
+    horizontal_alignment = {
+        "left": "left",
+        "center": "center",
+        "right": "right",
+    }[location]
+
+    x_position = {
+        "left": 0.025,
+        "center": 0.5,
+        "right": 0.975,
+    }[location]
     x_position = 0.975 if location == "right" else 0.025
     axis.text(
         x_position,
