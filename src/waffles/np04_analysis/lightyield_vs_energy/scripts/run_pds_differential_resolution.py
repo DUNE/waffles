@@ -56,14 +56,17 @@ MASS_GEV = {
     "pi": 0.13957039,
 }
 DATA_COLOR = "#0072B2"
-FIT_COLOR = "#D55E00"
+TWO_TERM_FIT_COLOR = "#009E73"
+THREE_TERM_FIT_COLOR = "#D55E00"
 LOW_COVERAGE_EDGE = "#4D4D4D"
+RESOLUTION_MODELS = ("two_term", "three_term")
 
 
 @dataclass
 class ResolutionFit:
-    """Three-term fit of the differential relative-response width."""
+    """Fit of the differential relative-response width."""
 
+    model: str
     status: str
     message: str
     n_points: int
@@ -84,9 +87,16 @@ class ResolutionFit:
         return self.chi2 / self.ndf if self.ndf > 0 else float("nan")
 
     @classmethod
-    def failed(cls, message: str, n_points: int = 0, momenta: str = "", low_coverage_momenta: str = "") -> "ResolutionFit":
+    def failed(
+        cls,
+        model: str,
+        message: str,
+        n_points: int = 0,
+        momenta: str = "",
+        low_coverage_momenta: str = "",
+    ) -> "ResolutionFit":
         return cls(
-            status="failed", message=message, n_points=n_points,
+            model=model, status="failed", message=message, n_points=n_points,
             momenta=momenta, low_coverage_momenta=low_coverage_momenta,
             constant_a=float("nan"), constant_a_error=float("nan"),
             stochastic_b_sqrt_GeV=float("nan"), stochastic_b_error_sqrt_GeV=float("nan"),
@@ -94,14 +104,19 @@ class ResolutionFit:
             chi2=float("nan"), ndf=0, r_squared=float("nan"),
         )
 
-    def as_flat_dict(self) -> dict[str, float | int | str]:
+    def as_flat_dict(self, prefix: str = "resolution_fit") -> dict[str, float | int | str]:
         result = asdict(self)
         result["chi2_ndf"] = self.chi2_ndf
-        return {f"resolution_fit_{key}": value for key, value in result.items()}
+        return {f"{prefix}_{key}": value for key, value in result.items()}
 
 
-def resolution_model(kinetic_energy: np.ndarray | float, constant_a: float, stochastic_b: float, noise_c: float) -> np.ndarray:
-    """Three-term differential-resolution model evaluated at K_eff."""
+def resolution_model(
+    kinetic_energy: np.ndarray | float,
+    constant_a: float,
+    stochastic_b: float,
+    noise_c: float = 0.0,
+) -> np.ndarray:
+    """Two- or three-term differential-resolution model evaluated at K_eff."""
 
     energy = np.asarray(kinetic_energy, dtype=float)
     return np.sqrt(
@@ -111,7 +126,12 @@ def resolution_model(kinetic_energy: np.ndarray | float, constant_a: float, stoc
     )
 
 
-def resolution_derivative(kinetic_energy: np.ndarray, response: np.ndarray, stochastic_b: float, noise_c: float) -> np.ndarray:
+def resolution_derivative(
+    kinetic_energy: np.ndarray,
+    response: np.ndarray,
+    stochastic_b: float,
+    noise_c: float = 0.0,
+) -> np.ndarray:
     """Derivative of the resolution model with respect to K_eff."""
 
     return -(
@@ -120,7 +140,7 @@ def resolution_derivative(kinetic_energy: np.ndarray, response: np.ndarray, stoc
     ) / (2.0 * response)
 
 
-def fit_resolution(records: list[dict]) -> ResolutionFit:
+def fit_resolution(records: list[dict], model: str) -> ResolutionFit:
     """Fit sigma_D(K_eff), including the horizontal and vertical uncertainties.
 
     The residual uncertainty is evaluated as ``sqrt(sigma_y^2 +
@@ -128,6 +148,8 @@ def fit_resolution(records: list[dict]) -> ResolutionFit:
     variance treatment of the K_eff uncertainty in a bounded nonlinear fit.
     """
 
+    if model not in RESOLUTION_MODELS:
+        raise ValueError(f"Unknown resolution model: {model}")
     records = sorted(records, key=lambda row: row["kinetic_mean_GeV"])
     momenta = ";".join(str(int(row["momentum_GeV_c"])) for row in records)
     low_coverage = ";".join(
@@ -137,6 +159,7 @@ def fit_resolution(records: list[dict]) -> ResolutionFit:
     )
     if len(records) < 4:
         return ResolutionFit.failed(
+            model,
             "At least four successful Gaussian widths are required.",
             len(records), momenta, low_coverage,
         )
@@ -154,21 +177,22 @@ def fit_resolution(records: list[dict]) -> ResolutionFit:
         or np.any(sy <= 0)
         or np.any(sx < 0)
     ):
-        return ResolutionFit.failed("Non-finite or invalid fit input.", len(records), momenta, low_coverage)
+        return ResolutionFit.failed(model, "Non-finite or invalid fit input.", len(records), momenta, low_coverage)
 
     def residual(parameters: np.ndarray) -> np.ndarray:
-        expected = resolution_model(x, *parameters)
-        derivative = resolution_derivative(x, expected, parameters[1], parameters[2])
+        noise_c = parameters[2] if model == "three_term" else 0.0
+        expected = resolution_model(x, parameters[0], parameters[1], noise_c)
+        derivative = resolution_derivative(x, expected, parameters[1], noise_c)
         uncertainty = np.hypot(sy, derivative * sx)
         return (y - expected) / np.maximum(uncertainty, 1.0e-12)
 
     minimum = max(float(np.min(y)), 1.0e-4)
-    initial = np.asarray((0.65 * minimum, 0.18, 0.10), dtype=float)
+    initial = np.asarray((0.65 * minimum, 0.18, 0.10) if model == "three_term" else (0.65 * minimum, 0.18), dtype=float)
     try:
         solution = least_squares(
             residual,
             initial,
-            bounds=(np.full(3, 1.0e-8), np.full(3, np.inf)),
+            bounds=(np.full(len(initial), 1.0e-8), np.full(len(initial), np.inf)),
             x_scale="jac",
             max_nfev=20_000,
             ftol=1.0e-10,
@@ -176,12 +200,13 @@ def fit_resolution(records: list[dict]) -> ResolutionFit:
             gtol=1.0e-10,
         )
     except (RuntimeError, ValueError, FloatingPointError) as error:
-        return ResolutionFit.failed(f"Resolution fit failed: {error}", len(records), momenta, low_coverage)
+        return ResolutionFit.failed(model, f"Resolution fit failed: {error}", len(records), momenta, low_coverage)
     if not solution.success:
-        return ResolutionFit.failed(f"Resolution fit failed: {solution.message}", len(records), momenta, low_coverage)
+        return ResolutionFit.failed(model, f"Resolution fit failed: {solution.message}", len(records), momenta, low_coverage)
 
     parameters = np.asarray(solution.x, dtype=float)
-    prediction = resolution_model(x, *parameters)
+    noise_c = parameters[2] if model == "three_term" else 0.0
+    prediction = resolution_model(x, parameters[0], parameters[1], noise_c)
     chi2 = float(np.sum(residual(parameters) ** 2))
     ndf = len(x) - len(parameters)
     centered = float(np.sum((y - np.mean(y)) ** 2))
@@ -191,7 +216,7 @@ def fit_resolution(records: list[dict]) -> ResolutionFit:
         scale = max(1.0, chi2 / ndf) if ndf > 0 else 1.0
         errors = np.sqrt(np.diag(covariance) * scale)
     except (np.linalg.LinAlgError, ValueError, FloatingPointError):
-        errors = np.full(3, np.nan)
+        errors = np.full(len(parameters), np.nan)
     message = ""
     if np.any(parameters <= 1.0e-6):
         message = "One or more fit terms are compatible with the lower bound."
@@ -199,11 +224,12 @@ def fit_resolution(records: list[dict]) -> ResolutionFit:
         message = (message + " " if message else "") + "Parameter covariance is not finite."
 
     return ResolutionFit(
-        status="success", message=message, n_points=len(records),
+        model=model, status="success", message=message, n_points=len(records),
         momenta=momenta, low_coverage_momenta=low_coverage,
         constant_a=float(parameters[0]), constant_a_error=float(errors[0]),
         stochastic_b_sqrt_GeV=float(parameters[1]), stochastic_b_error_sqrt_GeV=float(errors[1]),
-        noise_c_GeV=float(parameters[2]), noise_c_error_GeV=float(errors[2]),
+        noise_c_GeV=float(noise_c),
+        noise_c_error_GeV=float(errors[2]) if model == "three_term" else float("nan"),
         chi2=chi2, ndf=ndf, r_squared=r_squared,
     )
 
@@ -365,17 +391,7 @@ def default_pairs(apa: int) -> list[Pair]:
 def add_panel_brand(axis: plt.Axes, location: str, standalone: bool = False) -> None:
     """Add the preliminary-status label inside an individual panel."""
 
-    horizontal_alignment = {
-        "left": "left",
-        "center": "center",
-        "right": "right",
-    }[location]
-
-    x_position = {
-        "left": 0.025,
-        "center": 0.5,
-        "right": 0.975,
-    }[location]
+    horizontal_alignment = "right" if location == "right" else "left"
     x_position = 0.975 if location == "right" else 0.025
     axis.text(
         x_position,
@@ -460,7 +476,7 @@ def plot_correlation_panel(
         x_line = np.asarray((x_low, x_high))
         axis.plot(
             x_line, record["mean_b_PE"] / record["mean_a_PE"] * x_line,
-            "--", color=FIT_COLOR, lw=1.25,
+            "--", color=THREE_TERM_FIT_COLOR, lw=1.25,
             label=r"$N_B = (\mu_B/\mu_A)N_A$",
         )
         text = rf"$\rho_{{AB}} = {record['pearson_correlation']:.3f}$" + "\n" + rf"{int(record['common_events'])} common triggers"
@@ -550,17 +566,17 @@ def plot_distribution_panel(
 def plot_pair_resolution_panel(
     axis: plt.Axes,
     panels: dict[int, dict],
-    resolution_fit: ResolutionFit,
+    resolution_fits: dict[str, ResolutionFit],
     standalone: bool = False,
 ) -> None:
-    """Draw the dimensionless sigma_D(K_eff) and the three-term fit."""
+    """Draw sigma_D(K_eff) and every selected resolution model."""
 
     records = []
     for momentum in MOMENTA:
         record = panels.get(momentum, {}).get("record")
         if record is not None and record["d_gaussian_status"] == "success":
             records.append(record)
-    add_panel_brand(axis, "center", standalone=standalone)
+    add_panel_brand(axis, "left", standalone=standalone)
     if not records:
         axis.text(0.5, 0.5, "No successful Gaussian fit", transform=axis.transAxes, ha="center", va="center")
         axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
@@ -577,35 +593,55 @@ def plot_pair_resolution_panel(
             label=r"Gaussian-fit $\sigma_D$" if index == 0 else None,
         )
 
-    if resolution_fit.status == "success":
-        x_min = max(0.05, min(row["kinetic_mean_GeV"] - row["effective_spread_GeV"] for row in records))
-        x_max = max(row["kinetic_mean_GeV"] + row["effective_spread_GeV"] for row in records)
-        x_curve = np.linspace(x_min, 1.04 * x_max, 400)
+    x_min = max(0.05, min(row["kinetic_mean_GeV"] - row["effective_spread_GeV"] for row in records))
+    x_max = max(row["kinetic_mean_GeV"] + row["effective_spread_GeV"] for row in records)
+    x_curve = np.linspace(x_min, 1.04 * x_max, 400)
+    for model in RESOLUTION_MODELS:
+        resolution_fit = resolution_fits.get(model)
+        if resolution_fit is None:
+            continue
+        color = TWO_TERM_FIT_COLOR if model == "two_term" else THREE_TERM_FIT_COLOR
+        model_label = "Two-term fit" if model == "two_term" else "Three-term fit"
+        if resolution_fit.status != "success":
+            axis.plot([], [], color=color, lw=1.9, label=f"{model_label} unavailable")
+            continue
+        noise_c = resolution_fit.noise_c_GeV if model == "three_term" else 0.0
         y_curve = resolution_model(
-            x_curve, resolution_fit.constant_a, resolution_fit.stochastic_b_sqrt_GeV, resolution_fit.noise_c_GeV
+            x_curve, resolution_fit.constant_a, resolution_fit.stochastic_b_sqrt_GeV, noise_c,
         )
-        label = (
-            "Fit function\n"
-            + r"$y = \sqrt{a^2 + b^2/x + c^2/x^2}$" + "\n"
-            + rf"$a = ({resolution_fit.constant_a:.3f} \pm {resolution_fit.constant_a_error:.3f})$" + "\n"
-            + rf"$b = ({resolution_fit.stochastic_b_sqrt_GeV:.3f} \pm {resolution_fit.stochastic_b_error_sqrt_GeV:.3f})\sqrt{{\rm GeV}}$" + "\n"
-            + rf"$c = ({resolution_fit.noise_c_GeV:.3f} \pm {resolution_fit.noise_c_error_GeV:.3f})\,{{\rm GeV}}$" + "\n"
-            + rf"$\chi^2/{{\rm ndf}} = {resolution_fit.chi2:.2f}/{resolution_fit.ndf:d} = {resolution_fit.chi2_ndf:.2f}$" + "\n"
-            + rf"$R^2 = {resolution_fit.r_squared:.3f}$"
+        formula = r"$y = \sqrt{a^2 + b^2/x}$" if model == "two_term" else r"$y = \sqrt{a^2 + b^2/x + c^2/x^2}$"
+        label_lines = [
+            model_label,
+            formula,
+            rf"$a = ({resolution_fit.constant_a:.3f} \pm {resolution_fit.constant_a_error:.3f})$",
+            rf"$b = ({resolution_fit.stochastic_b_sqrt_GeV:.3f} \pm {resolution_fit.stochastic_b_error_sqrt_GeV:.3f})\sqrt{{\rm GeV}}$",
+        ]
+        if model == "three_term":
+            label_lines.append(
+                rf"$c = ({resolution_fit.noise_c_GeV:.3f} \pm {resolution_fit.noise_c_error_GeV:.3f})\,{{\rm GeV}}$"
+            )
+        label_lines.extend((
+            rf"$\chi^2/{{\rm ndf}} = {resolution_fit.chi2:.2f}/{resolution_fit.ndf:d} = {resolution_fit.chi2_ndf:.2f}$",
+            rf"$R^2 = {resolution_fit.r_squared:.3f}$",
+        ))
+        axis.plot(
+            x_curve, y_curve, color=color, lw=2.3 if standalone else 1.9,
+            label="\n".join(label_lines),
         )
-        axis.plot(x_curve, y_curve, color=FIT_COLOR, lw=2.3 if standalone else 1.9, label=label)
-    else:
-        axis.plot([], [], color=FIT_COLOR, lw=1.9, label="Fit function unavailable")
     axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
     axis.grid(alpha=0.24)
-    axis.legend(frameon=True, facecolor="white", fontsize=10.0 if standalone else 6.9, loc="upper right")
+    fit_count = sum(fit.status == "success" for fit in resolution_fits.values())
+    axis.legend(
+        frameon=True, facecolor="white", fontsize=(7.8 if fit_count > 1 else 10.0) if standalone else (5.4 if fit_count > 1 else 6.9),
+        loc="upper right",
+    )
     format_panel_axis(axis, standalone)
 
 
 def export_individual_pair_plots(
     pairs: list[Pair],
     panels_by_pair: dict[str, dict[int, dict]],
-    resolution_fits: dict[str, ResolutionFit],
+    resolution_fits: dict[str, dict[str, ResolutionFit]],
     output_directory: Path,
 ) -> int:
     """Export the five correlations, five D_AB distributions, and fit panel as PNGs."""
@@ -643,7 +679,7 @@ def make_pair_pdf(
     pairs: list[Pair],
     panels_by_pair: dict[str, dict[int, dict]],
     pair_summary: list[dict],
-    resolution_fits: dict[str, ResolutionFit],
+    resolution_fits: dict[str, dict[str, ResolutionFit]],
     minimum_momenta_for_pdf: int,
     output: Path,
 ) -> int:
@@ -686,16 +722,18 @@ def make_pair_pdf(
 def build_pair_summary(
     pairs: list[Pair],
     table: pd.DataFrame,
-    resolution_fits: dict[str, ResolutionFit],
+    resolution_fits: dict[str, dict[str, ResolutionFit]],
     min_momenta: int,
+    primary_model: str,
 ) -> list[dict]:
     rows: list[dict] = []
     for pair in pairs:
         group = table.loc[table["pair"] == pair.identifier]
         fit_success = group.loc[group["d_gaussian_status"] == "success"]
         low_coverage = fit_success.loc[fit_success["coverage_status"] == "low_coverage"]
-        resolution_fit = resolution_fits[pair.identifier]
-        rows.append({
+        pair_fits = resolution_fits[pair.identifier]
+        primary_fit = pair_fits[primary_model]
+        row = {
             "pair": pair.identifier,
             "kind": pair.kind,
             "apa": pair.first.apa,
@@ -708,8 +746,12 @@ def build_pair_summary(
             "gaussian_fit_momentum_values_GeV_c": ";".join(str(int(value)) for value in sorted(fit_success["momentum_GeV_c"].unique())),
             "low_coverage_momenta_GeV_c": ";".join(str(int(value)) for value in sorted(low_coverage["momentum_GeV_c"].unique())),
             "included_in_pair_pdf": int(len(fit_success) >= min_momenta),
-            **resolution_fit.as_flat_dict(),
-        })
+            "resolution_fit_primary_model": primary_model,
+            **primary_fit.as_flat_dict(),
+        }
+        for model, resolution_fit in pair_fits.items():
+            row.update(resolution_fit.as_flat_dict(prefix=f"resolution_fit_{model}"))
+        rows.append(row)
     return rows
 
 
@@ -750,6 +792,12 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--minimum-momenta-for-pdf", type=int, choices=(4, 5), default=4)
     parser.add_argument("--relative-momentum-error", type=float, default=0.05)
     parser.add_argument(
+        "--resolution-model",
+        choices=("two-term", "three-term", "both"),
+        default="both",
+        help="Resolution model to fit and draw; default: both.",
+    )
+    parser.add_argument(
         "--export-pair", action="append", default=[], metavar="PAIR",
         help="Export individual PNG panels for this pair identifier; may be repeated.",
     )
@@ -772,6 +820,12 @@ def parse_arguments() -> argparse.Namespace:
 
 def main() -> int:
     arguments = parse_arguments()
+    selected_models = (
+        RESOLUTION_MODELS
+        if arguments.resolution_model == "both"
+        else (("two_term",) if arguments.resolution_model == "two-term" else ("three_term",))
+    )
+    primary_model = "two_term" if "two_term" in selected_models else "three_term"
     contexts = load_trigger_contexts(arguments.trigger_data)
     thresholds, threshold_rows = load_nominal_thresholds(arguments.population_fit_results)
     kinetic = load_kinetic_energies(arguments.composition, arguments.relative_momentum_error)
@@ -886,28 +940,32 @@ def main() -> int:
     if not measurements:
         raise RuntimeError("No pair has the required number of common selected triggers.")
     table = pd.DataFrame(measurements)
-    resolution_fits: dict[str, ResolutionFit] = {}
+    resolution_fits: dict[str, dict[str, ResolutionFit]] = {}
     resolution_rows: list[dict] = []
     for pair in pairs:
         pair_records = table.loc[
             (table["pair"] == pair.identifier)
             & (table["d_gaussian_status"] == "success")
         ].to_dict("records")
-        resolution_fit = fit_resolution(pair_records)
-        resolution_fits[pair.identifier] = resolution_fit
-        resolution_rows.append({
-            "pair": pair.identifier,
-            "kind": pair.kind,
-            "apa": pair.first.apa,
-            "first_endpoint": pair.first.endpoint,
-            "first_channel": pair.first.channel,
-            "second_endpoint": pair.second.endpoint,
-            "second_channel": pair.second.channel,
-            **resolution_fit.as_flat_dict(),
-        })
+        pair_fits: dict[str, ResolutionFit] = {}
+        for model in selected_models:
+            resolution_fit = fit_resolution(pair_records, model)
+            pair_fits[model] = resolution_fit
+            resolution_rows.append({
+                "pair": pair.identifier,
+                "kind": pair.kind,
+                "apa": pair.first.apa,
+                "first_endpoint": pair.first.endpoint,
+                "first_channel": pair.first.channel,
+                "second_endpoint": pair.second.endpoint,
+                "second_channel": pair.second.channel,
+                "resolution_model": model,
+                **resolution_fit.as_flat_dict(),
+            })
+        resolution_fits[pair.identifier] = pair_fits
 
     pair_summary = build_pair_summary(
-        pairs, table, resolution_fits, arguments.minimum_momenta_for_pdf,
+        pairs, table, resolution_fits, arguments.minimum_momenta_for_pdf, primary_model,
     )
     pdf_path = arguments.output_dir / f"apa{arguments.apa}_adjacent_pair_gaussian_resolution.pdf"
     page_count = make_pair_pdf(
@@ -936,7 +994,10 @@ def main() -> int:
 
     gaussian_count = int(np.count_nonzero(table["d_gaussian_status"] == "success"))
     low_coverage_count = int(np.count_nonzero(table["coverage_status"] == "low_coverage"))
-    resolution_successes = int(sum(fit.status == "success" for fit in resolution_fits.values()))
+    resolution_successes = {
+        model: int(sum(pair_fits[model].status == "success" for pair_fits in resolution_fits.values()))
+        for model in selected_models
+    }
     report = [
         "PDS ADJACENT-CHANNEL DIFFERENTIAL RESPONSE STUDY",
         f"APA: {arguments.apa}",
@@ -958,7 +1019,9 @@ def main() -> int:
         "",
         "DIFFERENTIAL-RESOLUTION FIT",
         "For pairs with at least four successful Gaussian widths, sigma_D(K_eff) is fit with",
-        "sqrt(a^2 + b^2/K_eff + c^2/K_eff^2).",
+        f"the selected model(s): {', '.join(selected_models)}.",
+        "Two-term model: sqrt(a^2 + b^2/K_eff).",
+        "Three-term model: sqrt(a^2 + b^2/K_eff + c^2/K_eff^2).",
         "Both the K_eff uncertainty and the Gaussian sigma_D uncertainty enter the effective-variance fit.",
         "The fit is differential and is not an absolute calorimetric energy-resolution measurement.",
         "",
@@ -967,15 +1030,18 @@ def main() -> int:
         f"Successful Gaussian core fits: {gaussian_count}.",
         f"Measurements flagged for coverage below {arguments.low_coverage_threshold:.2f}: {low_coverage_count}.",
         "Low coverage is retained as a quality flag in the CSV outputs and does not alter the PDF point style or the fit sample.",
-        f"Successful three-term differential-resolution fits: {resolution_successes}.",
+        *[
+            f"Successful {model.replace('_', '-')} differential-resolution fits: {resolution_successes[model]}."
+            for model in selected_models
+        ],
         f"Pairs included in the PDF: {page_count}.",
         f"Individual PNG panels exported: {exported_plot_count}.",
         "",
         "OUTPUTS",
         "adjacent_pair_differential_resolution.csv: all measured pairs, Gaussian fit parameters, and empirical cross-checks.",
         "pair_availability.csv: availability and missing-value counts for every pair and momentum.",
-        "pair_resolution_fit_results.csv: three-term differential-resolution fit parameters and uncertainties.",
-        "pair_analysis_summary.csv: pair availability, PDF inclusion, and resolution-fit status.",
+        "pair_resolution_fit_results.csv: one row per pair and selected resolution model, with fit parameters and uncertainties.",
+        "pair_analysis_summary.csv: pair availability plus the selected-model fit results; two-term results are primary when both models are run.",
         "selected_trigger_counts.csv: selected-trigger count per momentum.",
         f"{pdf_path.name}: five N_PE,A versus N_PE,B correlations, five D_AB distributions, and sigma_D(K_eff) for each eligible pair.",
         "individual_plots/<pair>/: requested standalone PNG panels for that pair.",
@@ -993,7 +1059,11 @@ def main() -> int:
             "minimum_momenta_for_pdf": arguments.minimum_momenta_for_pdf,
             "relative_momentum_error": arguments.relative_momentum_error,
             "threshold_scenario": "nominal",
-            "resolution_model": "sqrt(a^2 + b^2/K_eff + c^2/K_eff^2)",
+            "resolution_model_selection": arguments.resolution_model,
+            "resolution_models": list(selected_models),
+            "primary_resolution_model": primary_model,
+            "two_term_resolution_model": "sqrt(a^2 + b^2/K_eff)",
+            "three_term_resolution_model": "sqrt(a^2 + b^2/K_eff + c^2/K_eff^2)",
             "export_pair_identifiers": [pair.identifier for pair in export_pairs],
         },
         "inputs": [file_info(path) for path in input_paths if path.is_file()],
