@@ -550,7 +550,7 @@ def plot_pair_resolution_panel(
         record = panels.get(momentum, {}).get("record")
         if record is not None and record["d_gaussian_status"] == "success":
             records.append(record)
-    add_panel_brand(axis, "left", standalone=standalone)
+    add_panel_brand(axis, "center", standalone=standalone)
     if not records:
         axis.text(0.5, 0.5, "No successful Gaussian fit", transform=axis.transAxes, ha="center", va="center")
         axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
