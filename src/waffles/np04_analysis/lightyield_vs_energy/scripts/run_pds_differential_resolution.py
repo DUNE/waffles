@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+from dataclasses import dataclass, asdict
 import json
 import math
 import sys
@@ -31,6 +32,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
+from scipy.optimize import least_squares
 
 from pds_differential_resolution import (
     Channel,
@@ -53,15 +55,157 @@ MASS_GEV = {
     "p": 0.938272088,
     "pi": 0.13957039,
 }
-MOMENTUM_COLORS = {
-    1: "#D55E00",
-    2: "#0072B2",
-    3: "#009E73",
-    5: "#CC79A7",
-    7: "#56B4E9",
-}
-USABLE_COLOR = "#0072B2"
-LOW_COVERAGE_COLOR = "#D55E00"
+DATA_COLOR = "#0072B2"
+FIT_COLOR = "#D55E00"
+LOW_COVERAGE_EDGE = "#4D4D4D"
+
+
+@dataclass
+class ResolutionFit:
+    """Three-term fit of the differential relative-response width."""
+
+    status: str
+    message: str
+    n_points: int
+    momenta: str
+    low_coverage_momenta: str
+    constant_a: float
+    constant_a_error: float
+    stochastic_b_sqrt_GeV: float
+    stochastic_b_error_sqrt_GeV: float
+    noise_c_GeV: float
+    noise_c_error_GeV: float
+    chi2: float
+    ndf: int
+    r_squared: float
+
+    @property
+    def chi2_ndf(self) -> float:
+        return self.chi2 / self.ndf if self.ndf > 0 else float("nan")
+
+    @classmethod
+    def failed(cls, message: str, n_points: int = 0, momenta: str = "", low_coverage_momenta: str = "") -> "ResolutionFit":
+        return cls(
+            status="failed", message=message, n_points=n_points,
+            momenta=momenta, low_coverage_momenta=low_coverage_momenta,
+            constant_a=float("nan"), constant_a_error=float("nan"),
+            stochastic_b_sqrt_GeV=float("nan"), stochastic_b_error_sqrt_GeV=float("nan"),
+            noise_c_GeV=float("nan"), noise_c_error_GeV=float("nan"),
+            chi2=float("nan"), ndf=0, r_squared=float("nan"),
+        )
+
+    def as_flat_dict(self) -> dict[str, float | int | str]:
+        result = asdict(self)
+        result["chi2_ndf"] = self.chi2_ndf
+        return {f"resolution_fit_{key}": value for key, value in result.items()}
+
+
+def resolution_model(kinetic_energy: np.ndarray | float, constant_a: float, stochastic_b: float, noise_c: float) -> np.ndarray:
+    """Three-term differential-resolution model evaluated at K_eff."""
+
+    energy = np.asarray(kinetic_energy, dtype=float)
+    return np.sqrt(
+        constant_a**2
+        + (stochastic_b / np.sqrt(energy)) ** 2
+        + (noise_c / energy) ** 2
+    )
+
+
+def resolution_derivative(kinetic_energy: np.ndarray, response: np.ndarray, stochastic_b: float, noise_c: float) -> np.ndarray:
+    """Derivative of the resolution model with respect to K_eff."""
+
+    return -(
+        stochastic_b**2 / kinetic_energy**2
+        + 2.0 * noise_c**2 / kinetic_energy**3
+    ) / (2.0 * response)
+
+
+def fit_resolution(records: list[dict]) -> ResolutionFit:
+    """Fit sigma_D(K_eff), including the horizontal and vertical uncertainties.
+
+    The residual uncertainty is evaluated as ``sqrt(sigma_y^2 +
+    (d sigma_D / d K_eff * sigma_K)^2)``.  This is the standard effective-
+    variance treatment of the K_eff uncertainty in a bounded nonlinear fit.
+    """
+
+    records = sorted(records, key=lambda row: row["kinetic_mean_GeV"])
+    momenta = ";".join(str(int(row["momentum_GeV_c"])) for row in records)
+    low_coverage = ";".join(
+        str(int(row["momentum_GeV_c"]))
+        for row in records
+        if row["coverage_status"] == "low_coverage"
+    )
+    if len(records) < 4:
+        return ResolutionFit.failed(
+            "At least four successful Gaussian widths are required.",
+            len(records), momenta, low_coverage,
+        )
+
+    x = np.asarray([row["kinetic_mean_GeV"] for row in records], dtype=float)
+    sx = np.asarray([row["effective_spread_GeV"] for row in records], dtype=float)
+    y = np.asarray([row["d_gaussian_sigma"] for row in records], dtype=float)
+    sy = np.asarray([row["d_gaussian_sigma_error"] for row in records], dtype=float)
+    if (
+        not np.all(np.isfinite(x))
+        or not np.all(np.isfinite(sx))
+        or not np.all(np.isfinite(y))
+        or not np.all(np.isfinite(sy))
+        or np.any(x <= 0)
+        or np.any(sy <= 0)
+        or np.any(sx < 0)
+    ):
+        return ResolutionFit.failed("Non-finite or invalid fit input.", len(records), momenta, low_coverage)
+
+    def residual(parameters: np.ndarray) -> np.ndarray:
+        expected = resolution_model(x, *parameters)
+        derivative = resolution_derivative(x, expected, parameters[1], parameters[2])
+        uncertainty = np.hypot(sy, derivative * sx)
+        return (y - expected) / np.maximum(uncertainty, 1.0e-12)
+
+    minimum = max(float(np.min(y)), 1.0e-4)
+    initial = np.asarray((0.65 * minimum, 0.18, 0.10), dtype=float)
+    try:
+        solution = least_squares(
+            residual,
+            initial,
+            bounds=(np.full(3, 1.0e-8), np.full(3, np.inf)),
+            x_scale="jac",
+            max_nfev=20_000,
+            ftol=1.0e-10,
+            xtol=1.0e-10,
+            gtol=1.0e-10,
+        )
+    except (RuntimeError, ValueError, FloatingPointError) as error:
+        return ResolutionFit.failed(f"Resolution fit failed: {error}", len(records), momenta, low_coverage)
+    if not solution.success:
+        return ResolutionFit.failed(f"Resolution fit failed: {solution.message}", len(records), momenta, low_coverage)
+
+    parameters = np.asarray(solution.x, dtype=float)
+    prediction = resolution_model(x, *parameters)
+    chi2 = float(np.sum(residual(parameters) ** 2))
+    ndf = len(x) - len(parameters)
+    centered = float(np.sum((y - np.mean(y)) ** 2))
+    r_squared = float(1.0 - np.sum((y - prediction) ** 2) / centered) if centered > 0 else float("nan")
+    try:
+        covariance = np.linalg.pinv(solution.jac.T @ solution.jac)
+        scale = max(1.0, chi2 / ndf) if ndf > 0 else 1.0
+        errors = np.sqrt(np.diag(covariance) * scale)
+    except (np.linalg.LinAlgError, ValueError, FloatingPointError):
+        errors = np.full(3, np.nan)
+    message = ""
+    if np.any(parameters <= 1.0e-6):
+        message = "One or more fit terms are compatible with the lower bound."
+    if not np.all(np.isfinite(errors)):
+        message = (message + " " if message else "") + "Parameter covariance is not finite."
+
+    return ResolutionFit(
+        status="success", message=message, n_points=len(records),
+        momenta=momenta, low_coverage_momenta=low_coverage,
+        constant_a=float(parameters[0]), constant_a_error=float(errors[0]),
+        stochastic_b_sqrt_GeV=float(parameters[1]), stochastic_b_error_sqrt_GeV=float(errors[1]),
+        noise_c_GeV=float(parameters[2]), noise_c_error_GeV=float(errors[2]),
+        chi2=chi2, ndf=ndf, r_squared=r_squared,
+    )
 
 
 def exact_integer(value: object) -> int:
@@ -220,15 +364,15 @@ def default_pairs(apa: int) -> list[Pair]:
 
 def watermark(figure: plt.Figure) -> None:
     figure.text(
-        0.98, 0.985,
-        r"$\mathbf{ProtoDUNE\!-!HD}$" + "\nWork in Progress",
-        ha="right", va="top", fontsize=10,
-        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.9, "pad": 1.5},
+        0.985, 0.985,
+        "ProtoDUNE–HD\nWork in Progress",
+        ha="right", va="top", fontsize=9.5, fontweight="normal",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.92, "pad": 1.5},
     )
 
 
 def display_limits(values: np.ndarray, fit_low: float, fit_high: float) -> tuple[float, float]:
-    """Choose a stable central display window without changing the fit sample."""
+    """Choose a central display range without changing the fit sample."""
 
     finite = np.asarray(values, dtype=float)[np.isfinite(values)]
     if len(finite) == 0:
@@ -243,24 +387,70 @@ def display_limits(values: np.ndarray, fit_low: float, fit_high: float) -> tuple
     return low - padding, high + padding
 
 
+def response_limits(values_a: np.ndarray, values_b: np.ndarray) -> tuple[tuple[float, float], tuple[float, float]]:
+    """Return robust display limits for the raw channel-response correlation."""
+
+    def limits(values: np.ndarray) -> tuple[float, float]:
+        low, high = np.percentile(values, [0.5, 99.5])
+        span = max(high - low, 1.0)
+        return max(0.0, low - 0.04 * span), high + 0.04 * span
+
+    return limits(values_a), limits(values_b)
+
+
+def plot_correlation_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
+    """Draw raw N_PE,A versus N_PE,B on common selected triggers."""
+
+    pair: Pair = panel["pair"]
+    events = panel.get("events")
+    record = panel.get("record")
+    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", fontsize=8.6)
+    axis.grid(alpha=0.22)
+    if events is None or events.common_events == 0:
+        axis.text(0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center", fontsize=7.2, wrap=True)
+        axis.set(xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$")
+        return
+
+    values_a = events.values_a
+    values_b = events.values_b
+    (x_low, x_high), (y_low, y_high) = response_limits(values_a, values_b)
+    axis.scatter(values_a, values_b, s=5.0, color=DATA_COLOR, alpha=0.22, edgecolors="none", rasterized=True)
+    if record is not None and record["mean_a_PE"] > 0:
+        x_line = np.asarray((x_low, x_high))
+        axis.plot(
+            x_line, record["mean_b_PE"] / record["mean_a_PE"] * x_line,
+            "--", color=FIT_COLOR, lw=1.25,
+            label=r"$N_B = (\mu_B/\mu_A)N_A$",
+        )
+        coverage = record["common_event_fraction"]
+        coverage_label = "" if record["coverage_status"] == "usable" else "\ncoverage < 0.80"
+        text = rf"$\rho_{{AB}} = {record['pearson_correlation']:.3f}$" + "\n" + rf"{int(record['common_events'])} common triggers" + coverage_label
+        axis.text(
+            0.97, 0.06, text, transform=axis.transAxes, ha="right", va="bottom", fontsize=6.3,
+            bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92, "pad": 1.4},
+        )
+        axis.legend(frameon=True, facecolor="white", fontsize=6.0, loc="upper left")
+    axis.set(xlim=(x_low, x_high), ylim=(y_low, y_high), xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$")
+    axis.tick_params(labelsize=7.0)
+
+
 def plot_distribution_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
     """Draw one D_AB distribution and its Gaussian core fit."""
 
-    pair: Pair = panel["pair"]
     record = panel.get("record")
     values = panel.get("d_values")
-    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", fontsize=10)
-    axis.grid(alpha=0.25)
+    axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", fontsize=8.6)
+    axis.grid(alpha=0.22)
     if values is None or len(values) == 0:
-        axis.text(0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center", fontsize=9, wrap=True)
+        axis.text(0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center", fontsize=7.2, wrap=True)
         axis.set(xlabel=r"$D_{AB}$", ylabel="Trigger counts")
         return
 
     if record is None:
-        axis.hist(values, bins="fd", color="#BDBDBD", alpha=0.75, edgecolor="#333333", label=f"Data ({len(values)} triggers)")
-        axis.text(0.97, 0.93, panel["message"], transform=axis.transAxes, ha="right", va="top", fontsize=8, bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92})
+        axis.hist(values, bins="fd", color="#D0D0D0", alpha=0.82, edgecolor="#333333", lw=0.55, label=f"Data ({len(values)} triggers)")
+        axis.text(0.97, 0.93, panel["message"], transform=axis.transAxes, ha="right", va="top", fontsize=6.3, bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92})
         axis.set(xlabel=r"$D_{AB}$", ylabel="Trigger counts")
-        axis.legend(frameon=True, facecolor="white", fontsize=8)
+        axis.legend(frameon=True, facecolor="white", fontsize=6.0)
         return
 
     fit_low = record["d_gaussian_fit_low"]
@@ -270,159 +460,148 @@ def plot_distribution_panel(axis: plt.Axes, panel: dict, momentum: int) -> None:
     bin_edges = np.arange(low, high + bin_width, bin_width)
     if len(bin_edges) < 2:
         bin_edges = 30
-    color = USABLE_COLOR if record["coverage_status"] == "usable" else LOW_COVERAGE_COLOR
     axis.hist(
-        values,
-        bins=bin_edges,
-        color="#D0D0D0",
-        edgecolor="#333333",
-        lw=0.7,
+        values, bins=bin_edges, color="#D0D0D0", edgecolor="#333333", lw=0.55,
         label=f"Data @ {momentum:g} GeV/c ({int(record['common_events'])} triggers)",
     )
     if record["d_gaussian_status"] == "success":
         x_fit = np.linspace(fit_low, fit_high, 500)
         axis.plot(
             x_fit,
-            gaussian_count_model(
-                x_fit,
-                record["d_gaussian_amplitude"],
-                record["d_gaussian_mean"],
-                record["d_gaussian_sigma"],
-            ),
-            color=color,
-            lw=2.0,
-            label="Gaussian core fit",
+            gaussian_count_model(x_fit, record["d_gaussian_amplitude"], record["d_gaussian_mean"], record["d_gaussian_sigma"]),
+            color=DATA_COLOR, lw=1.55, label="Gaussian core fit",
         )
         text = (
-            "Gaussian fit\n"
-            rf"$\mu = ({record['d_gaussian_mean']:.3f} \pm {record['d_gaussian_mean_error']:.3f})$\n"
-            rf"$\sigma = ({record['d_gaussian_sigma']:.3f} \pm {record['d_gaussian_sigma_error']:.3f})$\n"
-            rf"common fraction = {record['common_event_fraction']:.3f}"
+            rf"$\mu = ({record['d_gaussian_mean']:.3f} \pm {record['d_gaussian_mean_error']:.3f})$" + "\n"
+            + rf"$\sigma_D = ({record['d_gaussian_sigma']:.3f} \pm {record['d_gaussian_sigma_error']:.3f})$"
         )
     else:
-        text = "Gaussian fit failed\n" + str(record["d_gaussian_message"])
+        text = "Gaussian fit failed"
     if record["coverage_status"] == "low_coverage":
-        text += "\nlow coverage: excluded from trend"
+        text += "\ncoverage < 0.80"
     axis.text(
-        0.97, 0.93, text, transform=axis.transAxes, ha="right", va="top", fontsize=7.4,
-        bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.93, "pad": 2.0},
+        0.97, 0.93, text, transform=axis.transAxes, ha="right", va="top", fontsize=6.0,
+        bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.93, "pad": 1.4},
     )
     axis.set(xlim=(low, high), xlabel=r"$D_{AB}$", ylabel="Trigger counts")
-    axis.legend(frameon=True, facecolor="white", fontsize=7.3, loc="upper left")
+    axis.tick_params(labelsize=7.0)
+    axis.legend(frameon=True, facecolor="white", fontsize=6.0, loc="upper left")
 
 
-def plot_pair_sigma_panel(axis: plt.Axes, panels: dict[int, dict]) -> None:
-    """Draw Gaussian sigma against K_eff for one pair."""
+def plot_pair_resolution_panel(axis: plt.Axes, panels: dict[int, dict], resolution_fit: ResolutionFit) -> None:
+    """Draw sigma_D(K_eff) and the three-term differential-resolution fit."""
 
-    usable = []
-    low_coverage = []
+    records = []
     for momentum in MOMENTA:
         record = panels.get(momentum, {}).get("record")
-        if record is None or record["d_gaussian_status"] != "success":
-            continue
-        (usable if record["coverage_status"] == "usable" else low_coverage).append(record)
-
-    if not usable and not low_coverage:
+        if record is not None and record["d_gaussian_status"] == "success":
+            records.append(record)
+    if not records:
         axis.text(0.5, 0.5, "No successful Gaussian fit", transform=axis.transAxes, ha="center", va="center")
         axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
         return
 
-    def draw(records: list[dict], color: str, marker: str, label: str, filled: bool) -> None:
-        if not records:
-            return
-        records.sort(key=lambda item: item["kinetic_mean_GeV"])
-        x = np.asarray([item["kinetic_mean_GeV"] for item in records])
-        xerr = np.asarray([item["effective_spread_GeV"] for item in records])
-        y = np.asarray([item["d_gaussian_sigma"] for item in records])
-        yerr = np.asarray([item["d_gaussian_sigma_error"] for item in records])
+    records.sort(key=lambda row: row["kinetic_mean_GeV"])
+    for row in records:
+        low_coverage = row["coverage_status"] == "low_coverage"
         axis.errorbar(
-            x, y, xerr=xerr, yerr=yerr, fmt=marker, color=color, ms=6.5, capsize=2.5,
-            mfc=color if filled else "white", mew=1.4, label=label,
+            row["kinetic_mean_GeV"], row["d_gaussian_sigma"],
+            xerr=row["effective_spread_GeV"], yerr=row["d_gaussian_sigma_error"],
+            fmt="o", ms=5.8, capsize=2.2, color=DATA_COLOR,
+            mfc="white" if low_coverage else DATA_COLOR,
+            mec=LOW_COVERAGE_EDGE if low_coverage else DATA_COLOR,
+            mew=1.1, zorder=3,
         )
+    axis.plot([], [], "o", color=DATA_COLOR, label=r"coverage $\geq 0.80$")
+    axis.plot([], [], "o", color=DATA_COLOR, mfc="white", mec=LOW_COVERAGE_EDGE, mew=1.1, label=r"coverage $< 0.80$")
 
-    draw(usable, USABLE_COLOR, "o", "Gaussian core fit", True)
-    draw(low_coverage, LOW_COVERAGE_COLOR, "o", "Low coverage", False)
-    reference = sorted(usable + low_coverage, key=lambda item: item["kinetic_mean_GeV"])
-    x = np.asarray([item["kinetic_mean_GeV"] for item in reference])
-    poisson = poisson_width(np.asarray([item["n_eff_PE"] for item in reference]))
-    axis.plot(x, poisson, "--s", color="#4D4D4D", ms=4.3, mfc="white", label=r"Independent Poisson: $1/\sqrt{N_{\rm eff}}$")
+    if resolution_fit.status == "success":
+        x_min = max(0.05, min(row["kinetic_mean_GeV"] - row["effective_spread_GeV"] for row in records))
+        x_max = max(row["kinetic_mean_GeV"] + row["effective_spread_GeV"] for row in records)
+        x_curve = np.linspace(x_min, 1.04 * x_max, 400)
+        axis.plot(
+            x_curve,
+            resolution_model(x_curve, resolution_fit.constant_a, resolution_fit.stochastic_b_sqrt_GeV, resolution_fit.noise_c_GeV),
+            color=FIT_COLOR, lw=1.9,
+            label=r"$\sqrt{a^2 + b^2/K_{\rm eff} + c^2/K_{\rm eff}^2}$",
+        )
+        text = (
+            "Differential-resolution fit\n"
+            + rf"$a = {resolution_fit.constant_a:.3f} \pm {resolution_fit.constant_a_error:.3f}$" + "\n"
+            + rf"$b = ({resolution_fit.stochastic_b_sqrt_GeV:.3f} \pm {resolution_fit.stochastic_b_error_sqrt_GeV:.3f})$ $\sqrt{{\rm GeV}}$" + "\n"
+            + rf"$c = ({resolution_fit.noise_c_GeV:.3f} \pm {resolution_fit.noise_c_error_GeV:.3f})$ GeV" + "\n"
+            + rf"$\chi^2/{{\rm ndf}} = {resolution_fit.chi2:.2f}/{resolution_fit.ndf:d} = {resolution_fit.chi2_ndf:.2f}$" + "\n"
+            + rf"$R^2 = {resolution_fit.r_squared:.3f}$"
+        )
+    else:
+        text = "Resolution fit unavailable\n" + resolution_fit.message
+    axis.text(
+        0.97, 0.06, text, transform=axis.transAxes, ha="right", va="bottom", fontsize=7.0,
+        bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.94, "pad": 1.8},
+    )
     axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
-    axis.grid(alpha=0.25)
-    axis.legend(frameon=True, facecolor="white", fontsize=7.2, loc="best")
+    axis.grid(alpha=0.24)
+    axis.tick_params(labelsize=8.0)
+    axis.legend(frameon=True, facecolor="white", fontsize=6.9, loc="upper right")
 
 
 def make_pair_pdf(
     pairs: list[Pair],
     panels_by_pair: dict[str, dict[int, dict]],
     pair_summary: list[dict],
+    resolution_fits: dict[str, ResolutionFit],
     minimum_momenta_for_pdf: int,
     output: Path,
 ) -> int:
-    """Write one six-panel PDF page for every pair with enough usable points."""
+    """Write one A3 landscape page per pair with correlation and D_AB panels."""
 
     summaries = {row["pair"]: row for row in pair_summary}
     pages = 0
     with PdfPages(output) as pdf:
         for pair in pairs:
             summary = summaries[pair.identifier]
-            if int(summary["usable_momenta"]) < minimum_momenta_for_pdf:
+            if int(summary["gaussian_fit_successes"]) < minimum_momenta_for_pdf:
                 continue
-            figure, axes = plt.subplots(3, 2, figsize=(13.0, 15.5))
+            figure = plt.figure(figsize=(16.54, 11.69))
+            grid = figure.add_gridspec(3, 4, wspace=0.34, hspace=0.43)
             figure.suptitle(
                 f"APA {pair.first.apa}: END {pair.first.endpoint} - CH {pair.first.channel}  and  "
                 f"END {pair.second.endpoint} - CH {pair.second.channel}",
-                x=0.04, y=0.985, ha="left", fontsize=15,
+                x=0.02, y=0.987, ha="left", fontsize=14,
             )
             watermark(figure)
-            for axis, momentum in zip(axes.flat[:5], MOMENTA):
-                plot_distribution_panel(axis, panels_by_pair[pair.identifier][momentum], momentum)
-            plot_pair_sigma_panel(axes.flat[5], panels_by_pair[pair.identifier])
-            figure.tight_layout(rect=(0.02, 0.02, 0.98, 0.955))
+            positions = {
+                1: (grid[0, 0], grid[0, 1]),
+                2: (grid[0, 2], grid[0, 3]),
+                3: (grid[1, 0], grid[1, 1]),
+                5: (grid[1, 2], grid[1, 3]),
+                7: (grid[2, 0], grid[2, 1]),
+            }
+            for momentum, (scatter_slot, distribution_slot) in positions.items():
+                plot_correlation_panel(figure.add_subplot(scatter_slot), panels_by_pair[pair.identifier][momentum], momentum)
+                plot_distribution_panel(figure.add_subplot(distribution_slot), panels_by_pair[pair.identifier][momentum], momentum)
+            plot_pair_resolution_panel(
+                figure.add_subplot(grid[2, 2:4]), panels_by_pair[pair.identifier], resolution_fits[pair.identifier]
+            )
+            figure.tight_layout(rect=(0.005, 0.01, 0.995, 0.955))
             pdf.savefig(figure)
             plt.close(figure)
             pages += 1
     return pages
 
 
-def make_summary_plot(table: pd.DataFrame, output: Path) -> None:
-    """Plot fitted Gaussian sigma against the pair effective PE scale."""
-
-    valid = table.loc[
-        (table["measurement_status"] == "success")
-        & (table["coverage_status"] == "usable")
-        & (table["d_gaussian_status"] == "success")
-    ]
-    if valid.empty:
-        return
-    figure, axis = plt.subplots(figsize=(8.0, 5.8))
-    for momentum, group in valid.groupby("momentum_GeV_c"):
-        axis.errorbar(
-            group["n_eff_PE"], group["d_gaussian_sigma"],
-            yerr=group["d_gaussian_sigma_error"], fmt="o", ms=5.8, capsize=2.5,
-            color=MOMENTUM_COLORS[int(momentum)], label=rf"{momentum:g} GeV/c",
-        )
-    low = max(float(valid["n_eff_PE"].min()) * 0.85, 1.0e-3)
-    high = float(valid["n_eff_PE"].max()) * 1.20
-    x_values = np.geomspace(low, high, 300)
-    axis.plot(x_values, poisson_width(x_values), "--", color="#333333", lw=1.8, label=r"Independent Poisson: $1/\sqrt{N_{\rm eff}}$")
-    axis.set(
-        xscale="log", yscale="log", xlabel=r"$N_{\rm eff}$ [PE]",
-        ylabel=r"Gaussian core-fit $\sigma_D$",
-    )
-    axis.grid(which="both", alpha=0.28)
-    axis.legend(frameon=True, facecolor="white", fontsize=8)
-    watermark(figure)
-    figure.tight_layout()
-    figure.savefig(output, dpi=300)
-    plt.close(figure)
-
-
-def build_pair_summary(pairs: list[Pair], table: pd.DataFrame, min_momenta: int) -> list[dict]:
+def build_pair_summary(
+    pairs: list[Pair],
+    table: pd.DataFrame,
+    resolution_fits: dict[str, ResolutionFit],
+    min_momenta: int,
+) -> list[dict]:
     rows: list[dict] = []
     for pair in pairs:
         group = table.loc[table["pair"] == pair.identifier]
         fit_success = group.loc[group["d_gaussian_status"] == "success"]
-        usable = fit_success.loc[fit_success["coverage_status"] == "usable"]
+        low_coverage = fit_success.loc[fit_success["coverage_status"] == "low_coverage"]
+        resolution_fit = resolution_fits[pair.identifier]
         rows.append({
             "pair": pair.identifier,
             "kind": pair.kind,
@@ -433,9 +612,10 @@ def build_pair_summary(pairs: list[Pair], table: pd.DataFrame, min_momenta: int)
             "second_channel": pair.second.channel,
             "successful_measurements": len(group),
             "gaussian_fit_successes": len(fit_success),
-            "usable_momenta": len(usable),
-            "usable_momentum_values_GeV_c": ";".join(str(int(value)) for value in sorted(usable["momentum_GeV_c"].unique())),
-            "included_in_pair_pdf": int(len(usable) >= min_momenta),
+            "gaussian_fit_momentum_values_GeV_c": ";".join(str(int(value)) for value in sorted(fit_success["momentum_GeV_c"].unique())),
+            "low_coverage_momenta_GeV_c": ";".join(str(int(value)) for value in sorted(low_coverage["momentum_GeV_c"].unique())),
+            "included_in_pair_pdf": int(len(fit_success) >= min_momenta),
+            **resolution_fit.as_flat_dict(),
         })
     return rows
 
@@ -444,10 +624,10 @@ def clear_outputs(output_dir: Path) -> None:
     for name in (
         "adjacent_pair_differential_resolution.csv", "pair_availability.csv",
         "pair_configuration.csv", "selection_thresholds.csv", "selected_trigger_counts.csv",
-        "pair_analysis_summary.csv", "differential_gaussian_sigma_vs_neff.png",
+        "pair_analysis_summary.csv", "pair_resolution_fit_results.csv",
         "apa1_adjacent_pair_gaussian_resolution.pdf", "apa2_adjacent_pair_gaussian_resolution.pdf",
         "report.txt", "manifest.json", "pair_threshold_systematics.csv",
-        "differential_width_vs_neff.png",
+        "differential_gaussian_sigma_vs_neff.png", "differential_width_vs_neff.png",
     ):
         path = output_dir / name
         if path.is_file():
@@ -599,10 +779,33 @@ def main() -> int:
     if not measurements:
         raise RuntimeError("No pair has the required number of common selected triggers.")
     table = pd.DataFrame(measurements)
-    pair_summary = build_pair_summary(pairs, table, arguments.minimum_momenta_for_pdf)
+    resolution_fits: dict[str, ResolutionFit] = {}
+    resolution_rows: list[dict] = []
+    for pair in pairs:
+        pair_records = table.loc[
+            (table["pair"] == pair.identifier)
+            & (table["d_gaussian_status"] == "success")
+        ].to_dict("records")
+        resolution_fit = fit_resolution(pair_records)
+        resolution_fits[pair.identifier] = resolution_fit
+        resolution_rows.append({
+            "pair": pair.identifier,
+            "kind": pair.kind,
+            "apa": pair.first.apa,
+            "first_endpoint": pair.first.endpoint,
+            "first_channel": pair.first.channel,
+            "second_endpoint": pair.second.endpoint,
+            "second_channel": pair.second.channel,
+            **resolution_fit.as_flat_dict(),
+        })
+
+    pair_summary = build_pair_summary(
+        pairs, table, resolution_fits, arguments.minimum_momenta_for_pdf,
+    )
     pdf_path = arguments.output_dir / f"apa{arguments.apa}_adjacent_pair_gaussian_resolution.pdf"
     page_count = make_pair_pdf(
-        pairs, panels_by_pair, pair_summary, arguments.minimum_momenta_for_pdf, pdf_path,
+        pairs, panels_by_pair, pair_summary, resolution_fits,
+        arguments.minimum_momenta_for_pdf, pdf_path,
     )
 
     write_csv(arguments.output_dir / "adjacent_pair_differential_resolution.csv", measurements)
@@ -610,6 +813,7 @@ def main() -> int:
     write_csv(arguments.output_dir / "selection_thresholds.csv", threshold_rows)
     write_csv(arguments.output_dir / "selected_trigger_counts.csv", selected_rows)
     write_csv(arguments.output_dir / "pair_analysis_summary.csv", pair_summary)
+    write_csv(arguments.output_dir / "pair_resolution_fit_results.csv", resolution_rows)
     write_csv(arguments.output_dir / "pair_configuration.csv", [
         {
             "pair": pair.identifier, "kind": pair.kind, "apa": pair.first.apa,
@@ -618,16 +822,17 @@ def main() -> int:
         }
         for pair in pairs
     ])
-    make_summary_plot(table, arguments.output_dir / "differential_gaussian_sigma_vs_neff.png")
 
-    usable_count = int(np.count_nonzero(table["analysis_status"] == "usable"))
+    gaussian_count = int(np.count_nonzero(table["d_gaussian_status"] == "success"))
+    low_coverage_count = int(np.count_nonzero(table["coverage_status"] == "low_coverage"))
+    resolution_successes = int(sum(fit.status == "success" for fit in resolution_fits.values()))
     report = [
         "PDS ADJACENT-CHANNEL DIFFERENTIAL RESPONSE STUDY",
         f"APA: {arguments.apa}",
         f"Momenta [GeV/c]: {list(MOMENTA)}",
         f"Minimum common events: {arguments.minimum_events}",
-        f"Low-coverage threshold: {arguments.low_coverage_threshold:.3f}",
-        f"Minimum usable momenta per PDF pair: {arguments.minimum_momenta_for_pdf}",
+        f"Low-coverage flag threshold: {arguments.low_coverage_threshold:.3f}",
+        f"Minimum Gaussian-fit momenta per PDF pair: {arguments.minimum_momenta_for_pdf}",
         "Threshold scenario: nominal only.",
         "",
         "SELECTION",
@@ -635,24 +840,32 @@ def main() -> int:
         "At 2--7 GeV/c: APA1-valid triggers with APA1 mean above the nominal Langauss--Gaussian intersection.",
         "Missing channel values are never replaced by zero.",
         "",
-        "PRIMARY RESULT",
+        "PRIMARY OBSERVABLE",
         "D_AB is fit with a Gaussian in a fixed robust central core: median +/- 2 times the empirical central-68% half-width.",
-        "The fitted Gaussian sigma is the primary differential-response width.",
-        "The central-68% half-width and beta observable are retained as cross-checks in the CSV.",
-        "This is not an absolute calorimetric energy-resolution measurement.",
+        "The fitted Gaussian sigma_D is the differential relative-response width.",
+        "For comparable channel means, D_AB is the first-order equivalent of the beta asymmetry.",
+        "",
+        "DIFFERENTIAL-RESOLUTION FIT",
+        "For pairs with at least four successful Gaussian widths, sigma_D(K_eff) is fit with",
+        "sqrt(a^2 + b^2/K_eff + c^2/K_eff^2).",
+        "Both the K_eff uncertainty and the Gaussian sigma_D uncertainty enter the effective-variance fit.",
+        "The fit is differential and is not an absolute calorimetric energy-resolution measurement.",
         "",
         "QUALITY",
         f"Successful pair/momentum measurements: {len(table)}.",
-        f"Usable Gaussian-fit pair/momentum measurements: {usable_count}.",
+        f"Successful Gaussian core fits: {gaussian_count}.",
+        f"Measurements flagged for coverage below {arguments.low_coverage_threshold:.2f}: {low_coverage_count}.",
+        "Low coverage is shown with an open marker and does not change the momentum color or remove a successful fit.",
+        f"Successful three-term differential-resolution fits: {resolution_successes}.",
         f"Pairs included in the PDF: {page_count}.",
         "",
         "OUTPUTS",
         "adjacent_pair_differential_resolution.csv: all measured pairs, Gaussian fit parameters, and empirical cross-checks.",
         "pair_availability.csv: availability and missing-value counts for every pair and momentum.",
-        "pair_analysis_summary.csv: number of usable momenta and PDF inclusion per pair.",
+        "pair_resolution_fit_results.csv: three-term differential-resolution fit parameters and uncertainties.",
+        "pair_analysis_summary.csv: pair availability, PDF inclusion, and resolution-fit status.",
         "selected_trigger_counts.csv: selected-trigger count per momentum.",
-        f"{pdf_path.name}: five D_AB distributions and sigma versus K_eff for each eligible pair.",
-        "differential_gaussian_sigma_vs_neff.png: all usable Gaussian sigma values compared with independent Poisson counting.",
+        f"{pdf_path.name}: five N_PE,A versus N_PE,B correlations, five D_AB distributions, and sigma_D(K_eff) for each eligible pair.",
     ]
     (arguments.output_dir / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
     manifest = {
@@ -667,6 +880,7 @@ def main() -> int:
             "minimum_momenta_for_pdf": arguments.minimum_momenta_for_pdf,
             "relative_momentum_error": arguments.relative_momentum_error,
             "threshold_scenario": "nominal",
+            "resolution_model": "sqrt(a^2 + b^2/K_eff + c^2/K_eff^2)",
         },
         "inputs": [file_info(path) for path in input_paths if path.is_file()],
     }
