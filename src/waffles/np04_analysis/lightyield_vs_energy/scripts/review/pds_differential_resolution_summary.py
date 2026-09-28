@@ -278,12 +278,11 @@ def add_work_in_progress(axis: plt.Axes) -> None:
     axis.text(
         0.985,
         0.985,
-        r"$\bf{ProtoDUNE\!-\!HD}$" "\nWork in Progress",
+        r"$\bf{ProtoDUNE\!-\!HD}$ Work in Progress",
         transform=axis.transAxes,
         ha="right",
         va="top",
         fontsize=10.5,
-        linespacing=0.95,
         color=TEXT_COLOR,
         zorder=10,
     )
@@ -381,7 +380,7 @@ def draw_grid_panel(
             )
 
     axis.set_xlim(-0.52, 2.52)
-    axis.set_ylim(len(groups) - 0.48, -0.86)
+    axis.set_ylim(len(groups) - 0.48, -1.05)
     axis.set_xticks([])
     axis.set_yticks([])
     for spine in axis.spines.values():
@@ -392,10 +391,10 @@ def draw_grid_panel(
         mapper.set_array([])
         colour_bar = figure.colorbar(
             mapper, ax=axis, orientation="horizontal",
-            pad=0.045, fraction=0.045, aspect=35,
+            pad=0.055, fraction=0.055, aspect=35,
         )
-        colour_bar.set_label(label, fontsize=11)
-        colour_bar.ax.tick_params(labelsize=9)
+        colour_bar.set_label(label, fontsize=15)
+        colour_bar.ax.tick_params(labelsize=12)
 
 
 def draw_pair_grid(
@@ -672,24 +671,9 @@ def draw_width_summary(
         label="Median",
         zorder=3,
     )
-    counts = [int(row["n_pairs"]) for row in summary]
-    if len(set(counts)) == 1:
-        axis.text(
-            0.02, 0.97, f"{counts[0]} pairs at each beam setting",
-            transform=axis.transAxes, ha="left", va="top", fontsize=10,
-            color=TEXT_COLOR,
-        )
-    else:
-        for row in summary:
-            axis.annotate(
-                f"N = {row['n_pairs']}",
-                (float(row["kinetic_mean_GeV"]), float(row["sigma_D_central68_high"])),
-                xytext=(0, 7), textcoords="offset points",
-                ha="center", va="bottom", fontsize=8.5, color=TEXT_COLOR,
-            )
     add_work_in_progress(axis)
     axis.set_xlabel(r"$K_{\mathrm{eff}}$ [GeV]", fontsize=13)
-    axis.set_ylabel(r"Gaussian fit $\sigma_D$", fontsize=13)
+    axis.set_ylabel(r"Gaussian $\sigma_D$ [AU]", fontsize=13)
     axis.tick_params(direction="in", top=True, right=True, labelsize=10)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.35)
     axis.margins(y=0.12)
