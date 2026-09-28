@@ -4,8 +4,8 @@
 Each APA pair is evaluated at 1, 2, 3, 5, and 7 GeV/c.  The 1 GeV/c sample
 uses APA-local-valid triggers because its beam muon fraction is assumed to be
 zero.  At 2--7 GeV/c, the selection uses the nominal Langauss--Gaussian
-intersection on the APA 1 average response.  No threshold systematic is run in
-this version.
+intersection on the APA 1 average response.  The nominal, minus-one-sigma,
+and plus-one-sigma threshold selections can be evaluated in one run.
 
 The principal output is a multi-page PDF.  Each page contains five D_AB
 histograms with Gaussian core fits and a plot of their fitted sigma values as a
@@ -33,6 +33,13 @@ from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
 from scipy.optimize import least_squares
+
+# The driver lives in scripts/review, while the shared channel geometry remains
+# in scripts/utils.py.  Make the parent scripts directory importable regardless
+# of the current working directory used to launch the program.
+SCRIPTS_DIRECTORY = Path(__file__).resolve().parents[1]
+if str(SCRIPTS_DIRECTORY) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIRECTORY))
 
 from pds_differential_resolution import (
     Channel,
@@ -339,6 +346,37 @@ def load_nominal_thresholds(path: Path) -> tuple[dict[int, tuple[float, float]],
             "threshold_applied_PE": threshold,
         })
     return thresholds, output_rows
+
+
+def scenario_name(multiplier: float) -> str:
+    """Return a stable label for one threshold-selection scenario."""
+
+    if math.isclose(multiplier, 0.0):
+        return "nominal"
+    sign = "plus" if multiplier > 0.0 else "minus"
+    return f"{sign}_{abs(multiplier):g}".replace(".", "p") + "sigma"
+
+
+def build_threshold_rows(
+    thresholds: dict[int, tuple[float, float]], multipliers: list[float],
+) -> list[dict]:
+    """Record each applied threshold, including the unchanged 1 GeV/c sample."""
+
+    rows: list[dict] = []
+    for multiplier in multipliers:
+        scenario = scenario_name(multiplier)
+        for momentum in MOMENTA:
+            threshold, uncertainty = thresholds.get(momentum, (math.nan, math.nan))
+            rows.append({
+                "threshold_scenario": scenario,
+                "threshold_sigma_multiplier": multiplier,
+                "momentum_GeV_c": momentum,
+                "selection_kind": "apa_local_valid_no_muon_selection" if momentum == 1 else "apa1_mean_greater_than_threshold",
+                "threshold_nominal_PE": threshold,
+                "threshold_error_PE": uncertainty,
+                "threshold_applied_PE": math.nan if momentum == 1 else threshold + multiplier * uncertainty,
+            })
+    return rows
 
 
 def load_kinetic_energies(path: Path, relative_momentum_error: float) -> dict[int, dict]:
@@ -755,6 +793,228 @@ def build_pair_summary(
     return rows
 
 
+def _finite_number(value: object) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def _latex_value_error(value: object, error: object, digits: int = 3) -> str:
+    """Format one statistical value for a generated LaTeX table."""
+
+    if not _finite_number(value):
+        return r"\text{--}"
+    if not _finite_number(error):
+        return rf"${float(value):.{digits}f}$"
+    return rf"${float(value):.{digits}f} \pm {float(error):.{digits}f}$"
+
+
+def _latex_statistical_systematic(
+    value: object,
+    statistical_error: object,
+    systematic_error: object,
+    digits: int = 3,
+) -> str:
+    """Format nominal, statistical, and threshold-systematic uncertainties."""
+
+    if not _finite_number(value):
+        return r"\text{--}"
+    if not _finite_number(statistical_error):
+        return rf"${float(value):.{digits}f}$"
+    if not _finite_number(systematic_error):
+        return rf"${float(value):.{digits}f} \pm {float(statistical_error):.{digits}f}$"
+    return (
+        rf"${float(value):.{digits}f} \pm {float(statistical_error):.{digits}f}"
+        rf" \pm {float(systematic_error):.{digits}f}$"
+    )
+
+
+def _pair_channel_latex(endpoint: object, channel: object) -> str:
+    return rf"END~{int(endpoint)} -- CH~{int(channel)}"
+
+
+def build_pair_threshold_systematics(
+    pairs: list[Pair],
+    fits_by_scenario: dict[str, dict[str, dict[str, ResolutionFit]]],
+    scenario_order: list[str],
+    primary_model: str,
+) -> list[dict]:
+    """Envelope threshold-selection variations around the nominal fit result.
+
+    The same logic used in the channel-linearity analysis is applied here: the
+    systematic uncertainty is the largest absolute change from the nominal
+    parameter across all requested non-nominal threshold scenarios.
+    """
+
+    nominal_fits = fits_by_scenario["nominal"]
+    variation_names = [name for name in scenario_order if name != "nominal"]
+    rows: list[dict] = []
+    parameter_names = (
+        "constant_a",
+        "stochastic_b_sqrt_GeV",
+        "noise_c_GeV",
+    )
+    for pair in pairs:
+        nominal = nominal_fits[pair.identifier][primary_model]
+        row: dict[str, object] = {
+            "pair": pair.identifier,
+            "kind": pair.kind,
+            "apa": pair.first.apa,
+            "first_endpoint": pair.first.endpoint,
+            "first_channel": pair.first.channel,
+            "second_endpoint": pair.second.endpoint,
+            "second_channel": pair.second.channel,
+            "resolution_model": primary_model,
+            "nominal_status": nominal.status,
+            "threshold_variation_scenarios": ";".join(variation_names),
+        }
+        for parameter in parameter_names:
+            nominal_value = getattr(nominal, parameter)
+            row[f"nominal_{parameter}"] = nominal_value
+            variations: list[float] = []
+            for scenario in variation_names:
+                varied = fits_by_scenario[scenario][pair.identifier][primary_model]
+                value = getattr(varied, parameter)
+                row[f"{scenario}_{parameter}"] = value if varied.status == "success" else math.nan
+                if nominal.status == "success" and varied.status == "success" and _finite_number(value):
+                    variations.append(abs(float(value) - float(nominal_value)))
+            row[f"{parameter}_threshold_systematic"] = max(variations) if variations else math.nan
+        rows.append(row)
+    return rows
+
+
+def write_thesis_tables(
+    output_dir: Path,
+    apa: int,
+    pairs: list[Pair],
+    nominal_measurements: pd.DataFrame,
+    nominal_resolution_rows: list[dict],
+    systematic_rows: list[dict],
+    primary_model: str,
+) -> list[Path]:
+    """Write reusable appendix tables without modifying the thesis repository."""
+
+    table_directory = output_dir / "thesis_tables"
+    table_directory.mkdir(parents=True, exist_ok=True)
+    measurement_lookup = {
+        (str(row["pair"]), int(row["momentum_GeV_c"])): row
+        for row in nominal_measurements.to_dict("records")
+        if row.get("d_gaussian_status") == "success"
+    }
+    width_lines = [
+        "% Requires the booktabs and adjustbox packages.",
+        r"\begin{table}[p]",
+        r"\centering",
+        r"\setlength{\tabcolsep}{3.5pt}",
+        r"\renewcommand{\arraystretch}{1.10}",
+        r"\begin{adjustbox}{max width=\textwidth}",
+        r"\begin{tabular}{llccccc}",
+        r"\toprule",
+        r"Channel $A$ & Channel $B$ & $\sigma_D(1~\mathrm{GeV}/c)$ & $\sigma_D(2~\mathrm{GeV}/c)$ & $\sigma_D(3~\mathrm{GeV}/c)$ & $\sigma_D(5~\mathrm{GeV}/c)$ & $\sigma_D(7~\mathrm{GeV}/c)$ \\",
+        r"\midrule",
+    ]
+    for pair in pairs:
+        cells = [
+            _pair_channel_latex(pair.first.endpoint, pair.first.channel),
+            _pair_channel_latex(pair.second.endpoint, pair.second.channel),
+        ]
+        for momentum in MOMENTA:
+            record = measurement_lookup.get((pair.identifier, momentum))
+            if record is None:
+                cells.append(r"\text{--}")
+            else:
+                cells.append(_latex_value_error(
+                    record.get("d_gaussian_sigma"), record.get("d_gaussian_sigma_error"),
+                ))
+        width_lines.append(" & ".join(cells) + r" \\")
+    width_lines.extend((
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\end{adjustbox}",
+        rf"\caption{{Gaussian widths of the normalized differential response $D_{{AB}}$ for the manually defined adjacent channel pairs on \gls{{apa}}~{apa}. The nominal trigger selection is used. The quoted uncertainties are statistical uncertainties from the Gaussian fits; -- denotes an unavailable fit.}}",
+        rf"\label{{tab:apa{apa}_adjacent_pair_gaussian_widths}}",
+        r"\end{table}",
+        "",
+    ))
+    width_path = table_directory / f"apa{apa}_adjacent_pair_gaussian_widths.tex"
+    width_path.write_text("\n".join(width_lines), encoding="utf-8")
+
+    systematic_lookup = {str(row["pair"]): row for row in systematic_rows}
+    fit_lookup = {
+        str(row["pair"]): row
+        for row in nominal_resolution_rows
+        if row.get("resolution_model") == primary_model and row.get("resolution_fit_status") == "success"
+    }
+    model_formula = (
+        r"$\sigma_D=\sqrt{a^2+b^2/K_{\mathrm{eff}}}$"
+        if primary_model == "two_term"
+        else r"$\sigma_D=\sqrt{a^2+b^2/K_{\mathrm{eff}}+c^2/K_{\mathrm{eff}}^2}$"
+    )
+    include_noise_term = primary_model == "three_term"
+    fit_lines = [
+        "% Requires the booktabs and adjustbox packages.",
+        r"\begin{table}[p]",
+        r"\centering",
+        r"\setlength{\tabcolsep}{3.5pt}",
+        r"\renewcommand{\arraystretch}{1.10}",
+        r"\begin{adjustbox}{max width=\textwidth}",
+        r"\begin{tabular}{llccccc}" if include_noise_term else r"\begin{tabular}{llcccc}",
+        r"\toprule",
+        (
+            r"Channel $A$ & Channel $B$ & $a$ & $b~[\sqrt{\mathrm{GeV}}]$ & $c~[\mathrm{GeV}]$ & $\chi^2/\mathrm{ndf}$ & $R^2$ \\")
+            if include_noise_term
+            else r"Channel $A$ & Channel $B$ & $a$ & $b~[\sqrt{\mathrm{GeV}}]$ & $\chi^2/\mathrm{ndf}$ & $R^2$ \\",
+        r"\midrule",
+    ]
+    for pair in pairs:
+        fit = fit_lookup.get(pair.identifier)
+        systematic = systematic_lookup.get(pair.identifier, {})
+        if fit is None:
+            continue
+        a_text = _latex_statistical_systematic(
+            fit.get("resolution_fit_constant_a"),
+            fit.get("resolution_fit_constant_a_error"),
+            systematic.get("constant_a_threshold_systematic"),
+        )
+        b_text = _latex_statistical_systematic(
+            fit.get("resolution_fit_stochastic_b_sqrt_GeV"),
+            fit.get("resolution_fit_stochastic_b_error_sqrt_GeV"),
+            systematic.get("stochastic_b_sqrt_GeV_threshold_systematic"),
+        )
+        chi2_ndf = fit.get("resolution_fit_chi2_ndf")
+        r_squared = fit.get("resolution_fit_r_squared")
+        cells = [
+            _pair_channel_latex(pair.first.endpoint, pair.first.channel),
+            _pair_channel_latex(pair.second.endpoint, pair.second.channel),
+            a_text,
+            b_text,
+        ]
+        if include_noise_term:
+            cells.append(_latex_statistical_systematic(
+                fit.get("resolution_fit_noise_c_GeV"),
+                fit.get("resolution_fit_noise_c_error_GeV"),
+                systematic.get("noise_c_GeV_threshold_systematic"),
+            ))
+        cells.extend((
+            f"${float(chi2_ndf):.2f}$" if _finite_number(chi2_ndf) else r"\text{--}",
+            f"${float(r_squared):.3f}$" if _finite_number(r_squared) else r"\text{--}",
+        ))
+        fit_lines.append(" & ".join(cells) + r" \\")
+    fit_lines.extend((
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\end{adjustbox}",
+        rf"\caption{{Results of the {model_formula} fits for the adjacent channel pairs on \gls{{apa}}~{apa}. For $a$ and $b$, the first uncertainty is statistical and the second is the threshold-selection systematic uncertainty, evaluated from the envelope of the requested threshold variations.}}",
+        rf"\label{{tab:apa{apa}_adjacent_pair_resolution_results}}",
+        r"\end{table}",
+        "",
+    ))
+    fit_path = table_directory / f"apa{apa}_adjacent_pair_resolution_results.tex"
+    fit_path.write_text("\n".join(fit_lines), encoding="utf-8")
+    return [width_path, fit_path]
+
+
 def clear_outputs(output_dir: Path) -> None:
     for name in (
         "adjacent_pair_differential_resolution.csv", "pair_availability.csv",
@@ -762,6 +1022,7 @@ def clear_outputs(output_dir: Path) -> None:
         "pair_analysis_summary.csv", "pair_resolution_fit_results.csv",
         "apa1_adjacent_pair_gaussian_resolution.pdf", "apa2_adjacent_pair_gaussian_resolution.pdf",
         "report.txt", "manifest.json", "pair_threshold_systematics.csv",
+        "pair_resolution_threshold_systematics.csv",
         "differential_gaussian_sigma_vs_neff.png", "differential_width_vs_neff.png",
     ):
         path = output_dir / name
@@ -775,11 +1036,15 @@ def clear_outputs(output_dir: Path) -> None:
     if individual.is_dir():
         for path in individual.rglob("*.png"):
             path.unlink()
+    thesis_tables = output_dir / "thesis_tables"
+    if thesis_tables.is_dir():
+        for path in thesis_tables.glob("*.tex"):
+            path.unlink()
 
 
 def parse_arguments() -> argparse.Namespace:
     here = Path(__file__).resolve().parent
-    analysis_dir = here.parent
+    analysis_dir = here.parent.parent
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input-dir", type=Path, default=analysis_dir / "output/apa1_vs_apa2")
     parser.add_argument("--trigger-data", type=Path, default=analysis_dir / "output/review/apa12_trigger_data_01/apa12_trigger_data.csv")
@@ -792,10 +1057,15 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--minimum-momenta-for-pdf", type=int, choices=(4, 5), default=4)
     parser.add_argument("--relative-momentum-error", type=float, default=0.05)
     parser.add_argument(
+        "--threshold-sigma-multipliers", nargs="+", type=float,
+        default=[-1.0, 0.0, 1.0],
+        help="Threshold variations in units of the fitted intersection uncertainty.",
+    )
+    parser.add_argument(
         "--resolution-model",
         choices=("two-term", "three-term", "both"),
-        default="both",
-        help="Resolution model to fit and draw; default: both.",
+        default="two-term",
+        help="Resolution model to fit and draw; default: two-term.",
     )
     parser.add_argument(
         "--export-pair", action="append", default=[], metavar="PAIR",
@@ -810,6 +1080,12 @@ def parse_arguments() -> argparse.Namespace:
         parser.error("--low-coverage-threshold must be in (0, 1]")
     if arguments.relative_momentum_error < 0:
         parser.error("--relative-momentum-error must be non-negative")
+    if not arguments.threshold_sigma_multipliers:
+        parser.error("--threshold-sigma-multipliers must not be empty")
+    if len(set(arguments.threshold_sigma_multipliers)) != len(arguments.threshold_sigma_multipliers):
+        parser.error("--threshold-sigma-multipliers must be distinct")
+    if not any(math.isclose(value, 0.0) for value in arguments.threshold_sigma_multipliers):
+        parser.error("--threshold-sigma-multipliers must include 0 for the nominal selection")
     for path in (arguments.input_dir, arguments.trigger_data, arguments.population_fit_results, arguments.composition):
         if not path.exists():
             parser.error(f"Input does not exist: {path}")
@@ -826,8 +1102,16 @@ def main() -> int:
         else (("two_term",) if arguments.resolution_model == "two-term" else ("three_term",))
     )
     primary_model = "two_term" if "two_term" in selected_models else "three_term"
+    nominal_multiplier = next(value for value in arguments.threshold_sigma_multipliers if math.isclose(value, 0.0))
+    scenario_multipliers = [nominal_multiplier] + [
+        value for value in arguments.threshold_sigma_multipliers if not math.isclose(value, 0.0)
+    ]
+    scenarios = [(scenario_name(value), value) for value in scenario_multipliers]
+    scenario_order = [name for name, _ in scenarios]
+
     contexts = load_trigger_contexts(arguments.trigger_data)
-    thresholds, threshold_rows = load_nominal_thresholds(arguments.population_fit_results)
+    thresholds, _ = load_nominal_thresholds(arguments.population_fit_results)
+    threshold_rows = build_threshold_rows(thresholds, scenario_multipliers)
     kinetic = load_kinetic_energies(arguments.composition, arguments.relative_momentum_error)
     data_by_momentum = {
         momentum: load_merged_json(momentum, arguments.input_dir / f"{momentum}GeV")
@@ -856,125 +1140,150 @@ def main() -> int:
     for momentum, blocks in data_by_momentum.items():
         input_paths.extend(arguments.input_dir / f"{momentum}GeV" / block / f"photoelectron_dic_{momentum}GeV.json" for block in blocks)
 
-    for momentum in MOMENTA:
-        threshold, threshold_error = thresholds.get(momentum, (math.nan, math.nan))
-        applied_threshold = math.nan if momentum == 1 else threshold
-        selected = selected_event_indices(
-            data_by_momentum[momentum], contexts[momentum], momentum, arguments.apa,
-            None if momentum == 1 else applied_threshold,
-        )
-        selection_kind = "apa_local_valid_no_muon_selection" if momentum == 1 else "apa1_mean_greater_than_nominal_threshold"
-        selected_rows.append({
-            "momentum_GeV_c": momentum,
-            "selection_kind": selection_kind,
-            "threshold_nominal_PE": threshold,
-            "threshold_error_PE": threshold_error,
-            "threshold_applied_PE": applied_threshold,
-            "selected_triggers": int(sum(len(indices) for indices in selected.values())),
-        })
-        for pair in pairs:
-            events = extract_pair_events(data_by_momentum[momentum], pair, selected)
-            base = {
+    for threshold_scenario, multiplier in scenarios:
+        for momentum in MOMENTA:
+            threshold, threshold_error = thresholds.get(momentum, (math.nan, math.nan))
+            applied_threshold = math.nan if momentum == 1 else threshold + multiplier * threshold_error
+            selected = selected_event_indices(
+                data_by_momentum[momentum], contexts[momentum], momentum, arguments.apa,
+                None if momentum == 1 else applied_threshold,
+            )
+            selection_kind = "apa_local_valid_no_muon_selection" if momentum == 1 else "apa1_mean_greater_than_threshold"
+            selected_rows.append({
+                "threshold_scenario": threshold_scenario,
+                "threshold_sigma_multiplier": multiplier,
+                "momentum_GeV_c": momentum,
                 "selection_kind": selection_kind,
                 "threshold_nominal_PE": threshold,
                 "threshold_error_PE": threshold_error,
                 "threshold_applied_PE": applied_threshold,
-                "kinetic_mean_GeV": kinetic[momentum]["kinetic_mean_GeV"],
-                "effective_spread_GeV": kinetic[momentum]["effective_spread_GeV"],
-            }
-            availability = {
-                **base,
-                "pair": pair.identifier,
-                "kind": pair.kind,
-                "momentum_GeV_c": momentum,
-                "selected_triggers": events.selected_triggers,
-                "common_events": events.common_events,
-                "common_event_fraction": events.common_fraction,
-                "first_missing": events.first_missing,
-                "second_missing": events.second_missing,
-                "both_missing": events.both_missing,
-                "measurement_status": "",
-                "coverage_status": "",
-                "analysis_status": "",
-                "message": "",
-            }
-            panel = panels_by_pair[pair.identifier][momentum]
-            panel.update(pair=pair, events=events, record=None, d_values=None, message="")
-            if events.common_events > 0:
+                "selected_triggers": int(sum(len(indices) for indices in selected.values())),
+            })
+            for pair in pairs:
+                events = extract_pair_events(data_by_momentum[momentum], pair, selected)
+                base = {
+                    "threshold_scenario": threshold_scenario,
+                    "threshold_sigma_multiplier": multiplier,
+                    "selection_kind": selection_kind,
+                    "threshold_nominal_PE": threshold,
+                    "threshold_error_PE": threshold_error,
+                    "threshold_applied_PE": applied_threshold,
+                    "kinetic_mean_GeV": kinetic[momentum]["kinetic_mean_GeV"],
+                    "effective_spread_GeV": kinetic[momentum]["effective_spread_GeV"],
+                }
+                availability = {
+                    **base,
+                    "pair": pair.identifier,
+                    "kind": pair.kind,
+                    "momentum_GeV_c": momentum,
+                    "selected_triggers": events.selected_triggers,
+                    "common_events": events.common_events,
+                    "common_event_fraction": events.common_fraction,
+                    "first_missing": events.first_missing,
+                    "second_missing": events.second_missing,
+                    "both_missing": events.both_missing,
+                    "measurement_status": "",
+                    "coverage_status": "",
+                    "analysis_status": "",
+                    "message": "",
+                }
+                panel = panels_by_pair[pair.identifier][momentum]
+                if threshold_scenario == "nominal":
+                    panel.update(pair=pair, events=events, record=None, d_values=None, message="")
+                    if events.common_events > 0:
+                        try:
+                            panel["d_values"], _, _ = normalized_difference(events.values_a, events.values_b)
+                        except ValueError as error:
+                            panel["message"] = str(error)
                 try:
-                    panel["d_values"], _, _ = normalized_difference(events.values_a, events.values_b)
+                    measurement = measure_pair(pair, momentum, events, min_events=arguments.minimum_events)
                 except ValueError as error:
-                    panel["message"] = str(error)
-            try:
-                measurement = measure_pair(pair, momentum, events, min_events=arguments.minimum_events)
-            except ValueError as error:
-                message = str(error)
-                availability.update(measurement_status="not_measured", coverage_status="not_available", analysis_status="not_available", message=message)
-                availability_rows.append(availability)
-                panel["message"] = message
-                continue
+                    message = str(error)
+                    availability.update(
+                        measurement_status="not_measured", coverage_status="not_available",
+                        analysis_status="not_available", message=message,
+                    )
+                    availability_rows.append(availability)
+                    if threshold_scenario == "nominal":
+                        panel["message"] = message
+                    continue
 
-            coverage_status = "usable" if events.common_fraction >= arguments.low_coverage_threshold else "low_coverage"
-            analysis_status = "usable" if coverage_status == "usable" and measurement.gaussian_d.status == "success" else (
-                "low_coverage" if coverage_status == "low_coverage" else "gaussian_fit_failed"
-            )
-            row = {
-                **base,
-                **measurement.as_flat_dict(),
-                "measurement_status": "success",
-                "coverage_status": coverage_status,
-                "analysis_status": analysis_status,
-                "message": measurement.gaussian_d.message,
-            }
-            measurements.append(row)
-            availability.update(
-                measurement_status="success",
-                coverage_status=coverage_status,
-                analysis_status=analysis_status,
-                message=measurement.gaussian_d.message,
-            )
-            availability_rows.append(availability)
-            panel["record"] = row
-            panel["message"] = measurement.gaussian_d.message
+                coverage_status = "usable" if events.common_fraction >= arguments.low_coverage_threshold else "low_coverage"
+                analysis_status = "usable" if coverage_status == "usable" and measurement.gaussian_d.status == "success" else (
+                    "low_coverage" if coverage_status == "low_coverage" else "gaussian_fit_failed"
+                )
+                row = {
+                    **base,
+                    **measurement.as_flat_dict(),
+                    "measurement_status": "success",
+                    "coverage_status": coverage_status,
+                    "analysis_status": analysis_status,
+                    "message": measurement.gaussian_d.message,
+                }
+                measurements.append(row)
+                availability.update(
+                    measurement_status="success", coverage_status=coverage_status,
+                    analysis_status=analysis_status, message=measurement.gaussian_d.message,
+                )
+                availability_rows.append(availability)
+                if threshold_scenario == "nominal":
+                    panel["record"] = row
+                    panel["message"] = measurement.gaussian_d.message
 
     if not measurements:
         raise RuntimeError("No pair has the required number of common selected triggers.")
     table = pd.DataFrame(measurements)
-    resolution_fits: dict[str, dict[str, ResolutionFit]] = {}
+    resolution_fits_by_scenario: dict[str, dict[str, dict[str, ResolutionFit]]] = {}
     resolution_rows: list[dict] = []
-    for pair in pairs:
-        pair_records = table.loc[
-            (table["pair"] == pair.identifier)
-            & (table["d_gaussian_status"] == "success")
-        ].to_dict("records")
-        pair_fits: dict[str, ResolutionFit] = {}
-        for model in selected_models:
-            resolution_fit = fit_resolution(pair_records, model)
-            pair_fits[model] = resolution_fit
-            resolution_rows.append({
-                "pair": pair.identifier,
-                "kind": pair.kind,
-                "apa": pair.first.apa,
-                "first_endpoint": pair.first.endpoint,
-                "first_channel": pair.first.channel,
-                "second_endpoint": pair.second.endpoint,
-                "second_channel": pair.second.channel,
-                "resolution_model": model,
-                **resolution_fit.as_flat_dict(),
-            })
-        resolution_fits[pair.identifier] = pair_fits
+    for threshold_scenario, multiplier in scenarios:
+        scenario_table = table.loc[table["threshold_scenario"] == threshold_scenario]
+        scenario_fits: dict[str, dict[str, ResolutionFit]] = {}
+        for pair in pairs:
+            pair_records = scenario_table.loc[
+                (scenario_table["pair"] == pair.identifier)
+                & (scenario_table["d_gaussian_status"] == "success")
+            ].to_dict("records")
+            pair_fits: dict[str, ResolutionFit] = {}
+            for model in selected_models:
+                resolution_fit = fit_resolution(pair_records, model)
+                pair_fits[model] = resolution_fit
+                resolution_rows.append({
+                    "threshold_scenario": threshold_scenario,
+                    "threshold_sigma_multiplier": multiplier,
+                    "pair": pair.identifier,
+                    "kind": pair.kind,
+                    "apa": pair.first.apa,
+                    "first_endpoint": pair.first.endpoint,
+                    "first_channel": pair.first.channel,
+                    "second_endpoint": pair.second.endpoint,
+                    "second_channel": pair.second.channel,
+                    "resolution_model": model,
+                    **resolution_fit.as_flat_dict(),
+                })
+            scenario_fits[pair.identifier] = pair_fits
+        resolution_fits_by_scenario[threshold_scenario] = scenario_fits
 
+    nominal_table = table.loc[table["threshold_scenario"] == "nominal"].copy()
+    nominal_resolution_fits = resolution_fits_by_scenario["nominal"]
+    nominal_resolution_rows = [row for row in resolution_rows if row["threshold_scenario"] == "nominal"]
     pair_summary = build_pair_summary(
-        pairs, table, resolution_fits, arguments.minimum_momenta_for_pdf, primary_model,
+        pairs, nominal_table, nominal_resolution_fits, arguments.minimum_momenta_for_pdf, primary_model,
+    )
+    threshold_systematics = build_pair_threshold_systematics(
+        pairs, resolution_fits_by_scenario, scenario_order, primary_model,
     )
     pdf_path = arguments.output_dir / f"apa{arguments.apa}_adjacent_pair_gaussian_resolution.pdf"
     page_count = make_pair_pdf(
-        pairs, panels_by_pair, pair_summary, resolution_fits,
+        pairs, panels_by_pair, pair_summary, nominal_resolution_fits,
         arguments.minimum_momenta_for_pdf, pdf_path,
     )
     exported_plot_count = export_individual_pair_plots(
-        export_pairs, panels_by_pair, resolution_fits,
+        export_pairs, panels_by_pair, nominal_resolution_fits,
         arguments.output_dir / "individual_plots",
+    )
+    thesis_table_paths = write_thesis_tables(
+        arguments.output_dir, arguments.apa, pairs, nominal_table,
+        nominal_resolution_rows, threshold_systematics, primary_model,
     )
 
     write_csv(arguments.output_dir / "adjacent_pair_differential_resolution.csv", measurements)
@@ -983,6 +1292,7 @@ def main() -> int:
     write_csv(arguments.output_dir / "selected_trigger_counts.csv", selected_rows)
     write_csv(arguments.output_dir / "pair_analysis_summary.csv", pair_summary)
     write_csv(arguments.output_dir / "pair_resolution_fit_results.csv", resolution_rows)
+    write_csv(arguments.output_dir / "pair_resolution_threshold_systematics.csv", threshold_systematics)
     write_csv(arguments.output_dir / "pair_configuration.csv", [
         {
             "pair": pair.identifier, "kind": pair.kind, "apa": pair.first.apa,
@@ -992,10 +1302,10 @@ def main() -> int:
         for pair in pairs
     ])
 
-    gaussian_count = int(np.count_nonzero(table["d_gaussian_status"] == "success"))
-    low_coverage_count = int(np.count_nonzero(table["coverage_status"] == "low_coverage"))
+    gaussian_count = int(np.count_nonzero(nominal_table["d_gaussian_status"] == "success"))
+    low_coverage_count = int(np.count_nonzero(nominal_table["coverage_status"] == "low_coverage"))
     resolution_successes = {
-        model: int(sum(pair_fits[model].status == "success" for pair_fits in resolution_fits.values()))
+        model: int(sum(pair_fits[model].status == "success" for pair_fits in nominal_resolution_fits.values()))
         for model in selected_models
     }
     report = [
@@ -1005,11 +1315,13 @@ def main() -> int:
         f"Minimum common events: {arguments.minimum_events}",
         f"Low-coverage flag threshold: {arguments.low_coverage_threshold:.3f}",
         f"Minimum Gaussian-fit momenta per PDF pair: {arguments.minimum_momenta_for_pdf}",
-        "Threshold scenario: nominal only.",
+        f"Threshold scenarios: {', '.join(scenario_order)}.",
+        "Bootstrap resampling: not used.",
         "",
         "SELECTION",
         "At 1 GeV/c: APA-local-valid triggers; no muon-selection threshold.",
-        "At 2--7 GeV/c: APA1-valid triggers with APA1 mean above the nominal Langauss--Gaussian intersection.",
+        "At 2--7 GeV/c: APA1-valid triggers with APA1 mean above the Langauss--Gaussian intersection.",
+        "The nominal figures use the nominal intersection; threshold variations are used only for systematic uncertainties.",
         "Missing channel values are never replaced by zero.",
         "",
         "PRIMARY OBSERVABLE",
@@ -1018,15 +1330,14 @@ def main() -> int:
         "For comparable channel means, D_AB is the first-order equivalent of the beta asymmetry.",
         "",
         "DIFFERENTIAL-RESOLUTION FIT",
-        "For pairs with at least four successful Gaussian widths, sigma_D(K_eff) is fit with",
-        f"the selected model(s): {', '.join(selected_models)}.",
+        f"Nominal model(s): {', '.join(selected_models)}.",
         "Two-term model: sqrt(a^2 + b^2/K_eff).",
         "Three-term model: sqrt(a^2 + b^2/K_eff + c^2/K_eff^2).",
         "Both the K_eff uncertainty and the Gaussian sigma_D uncertainty enter the effective-variance fit.",
         "The fit is differential and is not an absolute calorimetric energy-resolution measurement.",
         "",
-        "QUALITY",
-        f"Successful pair/momentum measurements: {len(table)}.",
+        "QUALITY (NOMINAL SELECTION)",
+        f"Successful pair/momentum measurements: {len(nominal_table)}.",
         f"Successful Gaussian core fits: {gaussian_count}.",
         f"Measurements flagged for coverage below {arguments.low_coverage_threshold:.2f}: {low_coverage_count}.",
         "Low coverage is retained as a quality flag in the CSV outputs and does not alter the PDF point style or the fit sample.",
@@ -1038,13 +1349,15 @@ def main() -> int:
         f"Individual PNG panels exported: {exported_plot_count}.",
         "",
         "OUTPUTS",
-        "adjacent_pair_differential_resolution.csv: all measured pairs, Gaussian fit parameters, and empirical cross-checks.",
-        "pair_availability.csv: availability and missing-value counts for every pair and momentum.",
-        "pair_resolution_fit_results.csv: one row per pair and selected resolution model, with fit parameters and uncertainties.",
-        "pair_analysis_summary.csv: pair availability plus the selected-model fit results; two-term results are primary when both models are run.",
-        "selected_trigger_counts.csv: selected-trigger count per momentum.",
-        f"{pdf_path.name}: five N_PE,A versus N_PE,B correlations, five D_AB distributions, and sigma_D(K_eff) for each eligible pair.",
-        "individual_plots/<pair>/: requested standalone PNG panels for that pair.",
+        "adjacent_pair_differential_resolution.csv: all threshold scenarios, measured pairs, Gaussian-fit parameters, and empirical cross-checks.",
+        "pair_availability.csv: availability and missing-value counts for every pair, momentum, and threshold scenario.",
+        "pair_resolution_fit_results.csv: one row per pair, threshold scenario, and selected resolution model.",
+        "pair_resolution_threshold_systematics.csv: nominal final-fit parameters and threshold-selection systematic envelopes.",
+        "pair_analysis_summary.csv: nominal pair availability plus the selected-model fit results.",
+        "selected_trigger_counts.csv: selected-trigger count per momentum and threshold scenario.",
+        f"{pdf_path.name}: nominal five N_PE,A versus N_PE,B correlations, five D_AB distributions, and sigma_D(K_eff) for each eligible pair.",
+        "individual_plots/<pair>/: requested standalone nominal PNG panels for that pair.",
+        *(f"{path.relative_to(arguments.output_dir)}: ready-to-input LaTeX appendix table." for path in thesis_table_paths),
     ]
     (arguments.output_dir / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
     manifest = {
@@ -1058,7 +1371,9 @@ def main() -> int:
             "low_coverage_threshold": arguments.low_coverage_threshold,
             "minimum_momenta_for_pdf": arguments.minimum_momenta_for_pdf,
             "relative_momentum_error": arguments.relative_momentum_error,
-            "threshold_scenario": "nominal",
+            "threshold_sigma_multipliers": scenario_multipliers,
+            "threshold_scenarios": scenario_order,
+            "bootstrap_resampling": False,
             "resolution_model_selection": arguments.resolution_model,
             "resolution_models": list(selected_models),
             "primary_resolution_model": primary_model,
