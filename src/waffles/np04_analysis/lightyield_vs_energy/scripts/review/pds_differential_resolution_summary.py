@@ -386,8 +386,6 @@ def draw_grid_panel(
     axis.set_yticks([])
     for spine in axis.spines.values():
         spine.set_visible(False)
-    axis.text(0.01, 0.985, label, transform=axis.transAxes,
-              ha="left", va="top", fontsize=13, fontweight="bold")
     add_work_in_progress(axis)
     if finite or colour_limits is not None:
         mapper = cm.ScalarMappable(norm=norm, cmap=colour_map)
@@ -817,7 +815,6 @@ def main() -> int:
     ]
     if not all_width_values:
         raise ValueError(f"No successful nominal Gaussian widths for APA {apa}.")
-    shared_width_limits = (min(all_width_values), max(all_width_values))
     constant_a_values = {
         identifier: (
             float(record["constant_a"]),
@@ -854,7 +851,6 @@ def main() -> int:
             rf"$\sigma_D$ at {momentum} GeV/c",
             output_paths[f"sigma_D_at_{momentum}GeV"],
             arguments.dpi,
-            shared_width_limits,
         )
     draw_pair_grid(
         groups,
@@ -928,7 +924,7 @@ def main() -> int:
         "",
         "GRID DEFINITIONS",
         "The categorical grid follows the manual four-channel chains; its axes are not physical coordinates.",
-        "One sigma_D grid is produced for each beam momentum; all five grids share one colour scale.",
+        "One sigma_D grid is produced for each beam momentum; each grid has its own colour scale.",
         "The sigma_D grids use the successful nominal Gaussian fits directly at each momentum.",
         "Separate a and b grids use successful nominal two-term fits: sigma_D = sqrt(a^2 + b^2 / K_eff).",
         "Values shown in cells have statistical fit uncertainties. Threshold-selection systematics are included in the CSV and LaTeX table.",
