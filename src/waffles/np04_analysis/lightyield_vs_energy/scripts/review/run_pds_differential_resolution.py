@@ -575,8 +575,10 @@ def plot_correlation_panel(
     values_a = events.values_a
     values_b = events.values_b
     (x_low, x_high), (y_low, y_high) = response_limits(values_a, values_b)
+    shared_low = min(x_low, y_low)
+    shared_high = max(x_high, y_high)
     axis.scatter(
-        values_a, values_b, s=5.0, color=DATA_COLOR, alpha=0.22,
+        values_a, values_b, s=5.0, color=DATA_COLOR, alpha=0.27,
         edgecolors="none", rasterized=True, zorder=2,
         label=f"Data @ {momentum:g} GeV/c ({events.common_events} triggers)",
     )
@@ -604,7 +606,7 @@ def plot_correlation_panel(
     # else:
     #     axis.plot([], [], color=TWO_TERM_FIT_COLOR, lw=1.45, label="Linear fit unavailable")
     axis.set(
-        xlim=(x_low, x_high), ylim=(y_low, y_high),
+        xlim=(shared_low, shared_high), ylim=(shared_low, shared_high),
         xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$",
     )
     axis.legend(
@@ -667,7 +669,7 @@ def plot_distribution_panel(
     )
     maximum = max(float(np.max(counts)), 1.0)
     if record["d_gaussian_status"] == "success":
-        x_fit = np.linspace(fit_low, fit_high, 500)
+        x_fit = np.linspace(low, high, 500)
         y_fit = gaussian_count_model(
             x_fit, record["d_gaussian_amplitude"], record["d_gaussian_mean"], record["d_gaussian_sigma"]
         )
@@ -678,7 +680,7 @@ def plot_distribution_panel(
             + rf"$\sigma_D = ({record['d_gaussian_sigma']:.3f} \pm {record['d_gaussian_sigma_error']:.3f})$" + "\n"
             + rf"$\chi^2/{{\rm ndf}} = {record['d_gaussian_chi2']:.1f}/{int(record['d_gaussian_ndf'])} = {record['d_gaussian_chi2_ndf']:.2f}$"
         )
-        axis.plot(x_fit, y_fit, color=DATA_COLOR, lw=1.55, label=label)
+        axis.plot(x_fit, y_fit, color=DATA_COLOR, lw=2.3, label=label)
     else:
         axis.plot([], [], color=DATA_COLOR, lw=1.55, label="Gaussian fit failed")
     ymax = (1.15 if standalone else 1.42) * maximum
