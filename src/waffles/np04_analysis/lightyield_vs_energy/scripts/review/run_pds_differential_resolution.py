@@ -583,26 +583,26 @@ def plot_correlation_panel(
     reference_low = min(x_low, y_low)
     reference_high = max(x_high, y_high)
     reference_x = np.asarray((reference_low, reference_high))
+    fit = fit_correlation_line(values_a, values_b)
     axis.plot(
         reference_x, reference_x, "--", color=THREE_TERM_FIT_COLOR, lw=1.25,
-        label=r"Expected fit $y=x$", zorder=3,
+        label=r"Expected fit $y=x$" +  "\n" +rf"$\rho_{{\rm Pearson}} = {float(fit['pearson']):.3f}$", zorder=3,
     )
-    fit = fit_correlation_line(values_a, values_b)
-    if fit["status"] == "success":
-        x_line = np.asarray((x_low, x_high))
-        axis.plot(
-            x_line, float(fit["slope"]) * x_line + float(fit["intercept"]),
-            color=TWO_TERM_FIT_COLOR, lw=1.45, zorder=4,
-            label=(
-                "Linear fit\n"
-                + rf"$m = ({float(fit['slope']):.3f} \pm {float(fit['slope_error']):.3f})$" + "\n"
-                + rf"$q = ({float(fit['intercept']):.1f} \pm {float(fit['intercept_error']):.1f})\,{{\rm PE}}$" + "\n"
-                + rf"$\chi^2/{{\rm ndf}} = {float(fit['chi2']):.1f}/{int(fit['ndf'])} = {float(fit['chi2_ndf']):.2f}$" + "\n"
-                + rf"$\rho_{{\rm Pearson}} = {float(fit['pearson']):.3f}$"
-            ),
-        )
-    else:
-        axis.plot([], [], color=TWO_TERM_FIT_COLOR, lw=1.45, label="Linear fit unavailable")
+    # if fit["status"] == "success":
+    #     x_line = np.asarray((x_low, x_high))
+    #     axis.plot(
+    #         x_line, float(fit["slope"]) * x_line + float(fit["intercept"]),
+    #         color=TWO_TERM_FIT_COLOR, lw=1.45, zorder=4,
+    #         label=(
+    #             "Linear fit\n"
+    #             + rf"$m = ({float(fit['slope']):.3f} \pm {float(fit['slope_error']):.3f})$" + "\n"
+    #             + rf"$q = ({float(fit['intercept']):.1f} \pm {float(fit['intercept_error']):.1f})\,{{\rm PE}}$" + "\n"
+    #             + rf"$\chi^2/{{\rm ndf}} = {float(fit['chi2']):.1f}/{int(fit['ndf'])} = {float(fit['chi2_ndf']):.2f}$" + "\n"
+    #             + rf"$\rho_{{\rm Pearson}} = {float(fit['pearson']):.3f}$"
+    #         ),
+    #     )
+    # else:
+    #     axis.plot([], [], color=TWO_TERM_FIT_COLOR, lw=1.45, label="Linear fit unavailable")
     axis.set(
         xlim=(x_low, x_high), ylim=(y_low, y_high),
         xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$",
