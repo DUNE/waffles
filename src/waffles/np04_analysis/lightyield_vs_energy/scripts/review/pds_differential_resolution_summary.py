@@ -322,12 +322,13 @@ def draw_grid_panel(
     groups: list[list[dict[str, object]]],
     values: dict[str, tuple[float, float]],
     label: str,
+    colour_limits: tuple[float, float] | None = None,
 ) -> None:
     """Draw pair values on categorical axes, with no implied spatial coordinates."""
     finite = [value for value, _ in values.values() if math.isfinite(value)]
     colour_map = plt.get_cmap(PAIR_CMAP)
-    if finite:
-        lower, upper = min(finite), max(finite)
+    if finite or colour_limits is not None:
+        lower, upper = colour_limits if colour_limits is not None else (min(finite), max(finite))
         if math.isclose(lower, upper):
             padding = max(abs(lower) * 0.05, 0.005)
             lower -= padding
@@ -388,7 +389,7 @@ def draw_grid_panel(
     axis.text(0.01, 0.985, label, transform=axis.transAxes,
               ha="left", va="top", fontsize=13, fontweight="bold")
     add_work_in_progress(axis)
-    if finite:
+    if finite or colour_limits is not None:
         mapper = cm.ScalarMappable(norm=norm, cmap=colour_map)
         mapper.set_array([])
         colour_bar = figure.colorbar(
@@ -401,19 +402,15 @@ def draw_grid_panel(
 
 def draw_pair_grid(
     groups: list[list[dict[str, object]]],
-    panels: list[tuple[str, dict[str, tuple[float, float]]]],
+    values: dict[str, tuple[float, float]],
+    label: str,
     output_path: Path,
     dpi: int,
+    colour_limits: tuple[float, float] | None = None,
 ) -> None:
-    """Draw one or two categorical panels, each with its own colour scale."""
-    figure, axes = plt.subplots(
-        1, len(panels),
-        figsize=(10.5 if len(panels) == 1 else 18.0, 8.0),
-        layout="constrained",
-        squeeze=False,
-    )
-    for axis, (label, values) in zip(axes[0], panels):
-        draw_grid_panel(figure, axis, groups, values, label)
+    """Draw one categorical grid with the requested colour scale."""
+    figure, axis = plt.subplots(figsize=(10.5, 8.0), layout="constrained")
+    draw_grid_panel(figure, axis, groups, values, label, colour_limits)
     figure.savefig(output_path, dpi=dpi)
     plt.close(figure)
 
@@ -729,7 +726,7 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         choices=MOMENTA,
         default=5,
-        help="Beam momentum for the direct sigma_D map; default: 5 GeV/c.",
+        help="Reference momentum for the summary CSV and LaTeX table; all momentum grids are always produced. Default: 5 GeV/c.",
     )
     parser.add_argument("--dpi", type=int, default=250)
     arguments = parser.parse_args()
@@ -801,14 +798,26 @@ def main() -> int:
                 f"Successful nominal fit for {identifier} has no finite threshold systematics."
             )
 
-    fixed_width_values = {
-        identifier: (
-            float(widths[(identifier, fixed_momentum)]["sigma_D"]),
-            float(widths[(identifier, fixed_momentum)]["sigma_D_statistical_error"]),
-        )
-        for identifier in pairs
-        if (identifier, fixed_momentum) in widths
+    width_values_by_momentum = {
+        momentum: {
+            identifier: (
+                float(widths[(identifier, momentum)]["sigma_D"]),
+                float(widths[(identifier, momentum)]["sigma_D_statistical_error"]),
+            )
+            for identifier in pairs
+            if (identifier, momentum) in widths
+        }
+        for momentum in MOMENTA
     }
+    all_width_values = [
+        value
+        for values in width_values_by_momentum.values()
+        for value, _ in values.values()
+        if math.isfinite(value)
+    ]
+    if not all_width_values:
+        raise ValueError(f"No successful nominal Gaussian widths for APA {apa}.")
+    shared_width_limits = (min(all_width_values), max(all_width_values))
     constant_a_values = {
         identifier: (
             float(record["constant_a"]),
@@ -825,29 +834,41 @@ def main() -> int:
     }
 
     output_paths = {
-        "sigma_D_at_fixed_momentum": (
-            results_dir / f"apa{apa}_sigma_D_at_{fixed_momentum}GeV_pair_grid.png"
-        ),
-        "a_b_parameters": (
-            results_dir / f"apa{apa}_resolution_a_b_pair_grid.png"
-        ),
+        **{
+            f"sigma_D_at_{momentum}GeV": (
+                results_dir / f"apa{apa}_sigma_D_at_{momentum}GeV_pair_grid.png"
+            )
+            for momentum in MOMENTA
+        },
+        "constant_a": results_dir / f"apa{apa}_resolution_constant_a_pair_grid.png",
+        "stochastic_b": results_dir / f"apa{apa}_resolution_stochastic_b_pair_grid.png",
         "width_summary": (
             results_dir / f"apa{apa}_sigma_D_median_central68_vs_keff.png"
         ),
     }
 
+    for momentum in MOMENTA:
+        draw_pair_grid(
+            groups,
+            width_values_by_momentum[momentum],
+            rf"$\sigma_D$ at {momentum} GeV/c",
+            output_paths[f"sigma_D_at_{momentum}GeV"],
+            arguments.dpi,
+            shared_width_limits,
+        )
     draw_pair_grid(
         groups,
-        [(rf"$\sigma_D$ at {fixed_momentum} GeV/c", fixed_width_values)],
-        output_paths["sigma_D_at_fixed_momentum"], arguments.dpi,
+        constant_a_values,
+        r"Constant term $a$ [AU]",
+        output_paths["constant_a"],
+        arguments.dpi,
     )
     draw_pair_grid(
         groups,
-        [
-            (r"Constant term $a$ [AU]", constant_a_values),
-            (r"Stochastic term $b$ [$\sqrt{\mathrm{GeV}}$]", stochastic_b_values),
-        ],
-        output_paths["a_b_parameters"], arguments.dpi,
+        stochastic_b_values,
+        r"Stochastic term $b$ [$\sqrt{\mathrm{GeV}}$]",
+        output_paths["stochastic_b"],
+        arguments.dpi,
     )
     width_summary = draw_width_summary(
         widths.values(), apa, output_paths["width_summary"], arguments.dpi
@@ -903,12 +924,13 @@ def main() -> int:
     report = [
         "PDS DIFFERENTIAL-RESOLUTION SUMMARY PRODUCTS",
         f"APA: {apa}",
-        f"Fixed direct-width grid momentum: {fixed_momentum} GeV/c.",
+        f"Reference momentum for CSV and LaTeX table: {fixed_momentum} GeV/c.",
         "",
         "GRID DEFINITIONS",
         "The categorical grid follows the manual four-channel chains; its axes are not physical coordinates.",
-        "The sigma_D grid uses the successful nominal Gaussian fit directly at the fixed momentum.",
-        "The a and b grids use successful nominal two-term fits: sigma_D = sqrt(a^2 + b^2 / K_eff).",
+        "One sigma_D grid is produced for each beam momentum; all five grids share one colour scale.",
+        "The sigma_D grids use the successful nominal Gaussian fits directly at each momentum.",
+        "Separate a and b grids use successful nominal two-term fits: sigma_D = sqrt(a^2 + b^2 / K_eff).",
         "Values shown in cells have statistical fit uncertainties. Threshold-selection systematics are included in the CSV and LaTeX table.",
         "",
         "DESCRIPTIVE ENERGY SUMMARY",
