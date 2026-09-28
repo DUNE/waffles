@@ -292,7 +292,7 @@ def add_work_in_progress(axis: plt.Axes) -> None:
 def value_text(value: float, error: float) -> str:
     """Use three decimals for the small dimensionless pair observables."""
     if math.isfinite(error):
-        return f"{value:.3f} $\\pm$ {error:.3f}"
+        return f"{value:.3f} ± {error:.3f}"
     return f"{value:.3f}"
 
 
@@ -353,43 +353,36 @@ def draw_grid_panel(
             )
             axis.add_patch(patch)
             channel_label = (
-                f"CH {pair['first_channel']}-{pair['second_channel']}"
+                f"END {pair['first_endpoint']} CH {pair['first_channel']}"
+                f" - END {pair['second_endpoint']} CH {pair['second_channel']}"
+            )
+            text_color = (
+                "white" if available and norm(record[0]) > 0.72 else TEXT_COLOR
             )
             axis.text(
                 column_index,
-                row_index - 0.14,
+                row_index - 0.15,
                 channel_label,
                 ha="center",
                 va="center",
-                fontsize=10,
-                fontweight="bold",
-                color=TEXT_COLOR,
+                fontsize=8.4,
+                color=text_color,
             )
             axis.text(
                 column_index,
-                row_index + 0.16,
+                row_index + 0.15,
                 value_text(*record) if available else "not available",
                 ha="center",
                 va="center",
-                fontsize=9,
-                color=TEXT_COLOR,
+                fontsize=12 if available else 9,
+                fontweight="bold" if available else "normal",
+                color=text_color,
             )
 
-    chain_labels = []
-    for group in groups:
-        channels = [group[0]["first_channel"]] + [
-            pair["second_channel"] for pair in group
-        ]
-        chain_labels.append(
-            f"END {group[0]['first_endpoint']}  |  CH "
-            + "-".join(str(channel) for channel in channels)
-        )
     axis.set_xlim(-0.52, 2.52)
     axis.set_ylim(len(groups) - 0.48, -0.86)
-    axis.set_xticks((0, 1, 2), ("Pair 1", "Pair 2", "Pair 3"))
-    axis.xaxis.tick_top()
-    axis.set_yticks(range(len(groups)), chain_labels)
-    axis.tick_params(length=0, labelsize=10, pad=8)
+    axis.set_xticks([])
+    axis.set_yticks([])
     for spine in axis.spines.values():
         spine.set_visible(False)
     axis.text(0.01, 0.985, label, transform=axis.transAxes,
@@ -851,7 +844,7 @@ def main() -> int:
     draw_pair_grid(
         groups,
         [
-            (r"Constant term $a$", constant_a_values),
+            (r"Constant term $a$ [AU]", constant_a_values),
             (r"Stochastic term $b$ [$\sqrt{\mathrm{GeV}}$]", stochastic_b_values),
         ],
         output_paths["a_b_parameters"], arguments.dpi,
