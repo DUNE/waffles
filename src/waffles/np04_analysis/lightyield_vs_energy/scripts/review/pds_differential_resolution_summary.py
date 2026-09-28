@@ -212,9 +212,9 @@ def collect_resolution_fits(
 def collect_systematics(
     path: Path, apa: int, model: str
 ) -> dict[str, dict[str, float]]:
-    """Read threshold-selection envelopes when the corresponding CSV exists."""
+    """Read threshold-selection envelopes needed for the thesis table."""
     if not path.is_file():
-        return {}
+        raise FileNotFoundError(f"Missing threshold-systematics CSV: {path}")
     rows = read_csv(
         path,
         {
@@ -294,6 +294,216 @@ def value_text(value: float, error: float) -> str:
     if math.isfinite(error):
         return f"{value:.3f} $\\pm$ {error:.3f}"
     return f"{value:.3f}"
+
+
+def pair_groups(
+    pairs: dict[str, dict[str, object]]
+) -> list[list[dict[str, object]]]:
+    """Keep the manually defined adjacent pairs in four-channel chains."""
+    ordered = list(pairs.values())
+    if len(ordered) % 3:
+        raise ValueError("The pair configuration must contain complete three-pair chains.")
+    groups = [ordered[index:index + 3] for index in range(0, len(ordered), 3)]
+    for group in groups:
+        for left, right in zip(group, group[1:]):
+            if (
+                left["second_endpoint"] != right["first_endpoint"]
+                or left["second_channel"] != right["first_channel"]
+            ):
+                raise ValueError(
+                    "Pair configuration order does not form adjacent four-channel chains."
+                )
+    return groups
+
+
+def draw_grid_panel(
+    figure: plt.Figure,
+    axis: plt.Axes,
+    groups: list[list[dict[str, object]]],
+    values: dict[str, tuple[float, float]],
+    label: str,
+) -> None:
+    """Draw pair values on categorical axes, with no implied spatial coordinates."""
+    finite = [value for value, _ in values.values() if math.isfinite(value)]
+    colour_map = plt.get_cmap(PAIR_CMAP)
+    if finite:
+        lower, upper = min(finite), max(finite)
+        if math.isclose(lower, upper):
+            padding = max(abs(lower) * 0.05, 0.005)
+            lower -= padding
+            upper += padding
+        norm = colors.Normalize(vmin=lower, vmax=upper, clip=True)
+    else:
+        norm = colors.Normalize(vmin=0, vmax=1)
+
+    for row_index, group in enumerate(groups):
+        for column_index, pair in enumerate(group):
+            identifier = str(pair["pair"])
+            record = values.get(identifier)
+            available = record is not None and math.isfinite(record[0])
+            face = colour_map(norm(record[0])) if available else MISSING_FACE
+            patch = Rectangle(
+                (column_index - 0.47, row_index - 0.38),
+                0.94,
+                0.76,
+                facecolor=face,
+                edgecolor=TEXT_COLOR if available else MISSING_EDGE,
+                linewidth=1.0,
+                hatch=None if available else "//",
+            )
+            axis.add_patch(patch)
+            channel_label = (
+                f"CH {pair['first_channel']}-{pair['second_channel']}"
+            )
+            axis.text(
+                column_index,
+                row_index - 0.14,
+                channel_label,
+                ha="center",
+                va="center",
+                fontsize=10,
+                fontweight="bold",
+                color=TEXT_COLOR,
+            )
+            axis.text(
+                column_index,
+                row_index + 0.16,
+                value_text(*record) if available else "not available",
+                ha="center",
+                va="center",
+                fontsize=9,
+                color=TEXT_COLOR,
+            )
+
+    chain_labels = []
+    for group in groups:
+        channels = [group[0]["first_channel"]] + [
+            pair["second_channel"] for pair in group
+        ]
+        chain_labels.append(
+            f"END {group[0]['first_endpoint']}  |  CH "
+            + "-".join(str(channel) for channel in channels)
+        )
+    axis.set_xlim(-0.52, 2.52)
+    axis.set_ylim(len(groups) - 0.48, -0.86)
+    axis.set_xticks((0, 1, 2), ("Pair 1", "Pair 2", "Pair 3"))
+    axis.xaxis.tick_top()
+    axis.set_yticks(range(len(groups)), chain_labels)
+    axis.tick_params(length=0, labelsize=10, pad=8)
+    for spine in axis.spines.values():
+        spine.set_visible(False)
+    axis.text(0.01, 0.985, label, transform=axis.transAxes,
+              ha="left", va="top", fontsize=13, fontweight="bold")
+    add_work_in_progress(axis)
+    if finite:
+        mapper = cm.ScalarMappable(norm=norm, cmap=colour_map)
+        mapper.set_array([])
+        colour_bar = figure.colorbar(
+            mapper, ax=axis, orientation="horizontal",
+            pad=0.045, fraction=0.045, aspect=35,
+        )
+        colour_bar.set_label(label, fontsize=11)
+        colour_bar.ax.tick_params(labelsize=9)
+
+
+def draw_pair_grid(
+    groups: list[list[dict[str, object]]],
+    panels: list[tuple[str, dict[str, tuple[float, float]]]],
+    output_path: Path,
+    dpi: int,
+) -> None:
+    """Draw one or two categorical panels, each with its own colour scale."""
+    figure, axes = plt.subplots(
+        1, len(panels),
+        figsize=(10.5 if len(panels) == 1 else 18.0, 8.0),
+        layout="constrained",
+        squeeze=False,
+    )
+    for axis, (label, values) in zip(axes[0], panels):
+        draw_grid_panel(figure, axis, groups, values, label)
+    figure.savefig(output_path, dpi=dpi)
+    plt.close(figure)
+
+
+def latex_value_error(value: object, statistical: object, systematic: object = None) -> str:
+    """Format nonzero systematic uncertainties without rounding them to zero."""
+    value = optional_float(value)
+    statistical = optional_float(statistical)
+    if not (math.isfinite(value) and math.isfinite(statistical)):
+        return r"\textemdash"
+    if systematic is None:
+        return f"{value:.3f} $\\pm$ {statistical:.3f}"
+    systematic = optional_float(systematic)
+    if not math.isfinite(systematic):
+        raise ValueError("A successful fit is missing its threshold systematic.")
+    decimals = 3
+    while systematic > 0 and round(systematic, decimals) == 0 and decimals < 8:
+        decimals += 1
+    return (
+        f"{value:.{decimals}f} $\\pm$ {statistical:.{decimals}f}"
+        f" $\\pm$ {systematic:.{decimals}f}"
+    )
+
+
+def write_thesis_table(
+    path: Path,
+    groups: list[list[dict[str, object]]],
+    rows: list[dict[str, object]],
+    apa: int,
+    momentum: int,
+) -> None:
+    """Write a LaTeX table with caption below the tabular material."""
+    by_pair = {str(row["pair"]): row for row in rows}
+    lines = [
+        r"\begin{table}[htbp]",
+        r"\centering",
+        r"\small",
+        r"\begin{adjustbox}{max width=\textwidth}",
+        r"\begin{tabular}{ccccc}",
+        r"\toprule",
+        r"Endpoint & Channel pair & "
+        + rf"\gls{{sigma_D}} at \SI{{{momentum}}}{{\GeV/c}} "
+        + r"& $a$ & $b$ \\",
+        r" & & & & $[\sqrt{\si{\GeV}}]$ \\",
+        r"\midrule",
+    ]
+    for group in groups:
+        for pair in group:
+            row = by_pair[str(pair["pair"])]
+            endpoint = pair["first_endpoint"]
+            channels = f"{pair['first_channel']}--{pair['second_channel']}"
+            sigma = latex_value_error(
+                row["sigma_D_at_fixed_momentum"],
+                row["sigma_D_at_fixed_momentum_statistical_error"],
+            )
+            a = latex_value_error(
+                row["constant_a"],
+                row["constant_a_statistical_error"],
+                row["constant_a_threshold_systematic"],
+            )
+            b = latex_value_error(
+                row["stochastic_b_sqrt_GeV"],
+                row["stochastic_b_statistical_error_sqrt_GeV"],
+                row["stochastic_b_threshold_systematic_sqrt_GeV"],
+            )
+            lines.append(
+                f"{endpoint} & {channels} & {sigma} & {a} & {b} " + r"\\"
+            )
+        lines.append(r"\addlinespace")
+    lines.extend([
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\end{adjustbox}",
+        rf"\caption{{Adjacent-channel differential-response results for \gls{{apa}}~{apa}. "
+        + rf"The Gaussian width \gls{{sigma_D}} is measured at \SI{{{momentum}}}{{\GeV/c}}. "
+        + r"Parameters $a$ and $b$ come from the two-term fit. "
+        + r"Uncertainties are statistical for \gls{sigma_D} and statistical then "
+        + r"threshold-selection systematic for $a$ and $b$. "
+        + r"A dash indicates that no valid result was obtained.}",
+        rf"\label{{tab:apa{apa}_adjacent_pair_resolution_summary}}",
+        r"\end{table}",
+    ])
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def draw_pair_map(
@@ -474,23 +684,28 @@ def draw_width_summary(
         label="Median",
         zorder=3,
     )
-    for row in summary:
-        axis.annotate(
-            f"$N={row['n_pairs']}$",
-            (float(row["kinetic_mean_GeV"]), float(row["sigma_D_central68_high"])),
-            xytext=(0, 7),
-            textcoords="offset points",
-            ha="center",
-            va="bottom",
-            fontsize=8.5,
+    counts = [int(row["n_pairs"]) for row in summary]
+    if len(set(counts)) == 1:
+        axis.text(
+            0.02, 0.97, f"{counts[0]} pairs at each beam setting",
+            transform=axis.transAxes, ha="left", va="top", fontsize=10,
             color=TEXT_COLOR,
         )
+    else:
+        for row in summary:
+            axis.annotate(
+                f"N = {row['n_pairs']}",
+                (float(row["kinetic_mean_GeV"]), float(row["sigma_D_central68_high"])),
+                xytext=(0, 7), textcoords="offset points",
+                ha="center", va="bottom", fontsize=8.5, color=TEXT_COLOR,
+            )
     add_work_in_progress(axis)
     axis.set_xlabel(r"$K_{\mathrm{eff}}$ [GeV]", fontsize=13)
-    axis.set_ylabel(r"Gaussian fit $\sigma_D$ [AU]", fontsize=13)
+    axis.set_ylabel(r"Gaussian fit $\sigma_D$", fontsize=13)
     axis.tick_params(direction="in", top=True, right=True, labelsize=10)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.35)
-    axis.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="#999999")
+    axis.margins(y=0.12)
+    axis.legend(loc="lower left", frameon=True, facecolor="white", edgecolor="#999999")
     figure.savefig(output_path, dpi=dpi)
     plt.close(figure)
     return summary
@@ -583,7 +798,15 @@ def main() -> int:
     systematics = collect_systematics(
         results_dir / "pair_resolution_threshold_systematics.csv", apa, PRIMARY_MODEL
     )
-    positions = map_channels(apa)
+    groups = pair_groups(pairs)
+    for identifier in resolution_fits:
+        systematic = systematics.get(identifier)
+        if systematic is None or not all(
+            math.isfinite(value) for value in systematic.values()
+        ):
+            raise ValueError(
+                f"Successful nominal fit for {identifier} has no finite threshold systematics."
+            )
 
     fixed_width_values = {
         identifier: (
@@ -610,43 +833,28 @@ def main() -> int:
 
     output_paths = {
         "sigma_D_at_fixed_momentum": (
-            results_dir / f"apa{apa}_sigma_D_at_{fixed_momentum}GeV_pair_map.png"
+            results_dir / f"apa{apa}_sigma_D_at_{fixed_momentum}GeV_pair_grid.png"
         ),
-        "constant_a": results_dir / f"apa{apa}_resolution_constant_a_pair_map.png",
-        "stochastic_b": (
-            results_dir / f"apa{apa}_resolution_stochastic_b_pair_map.png"
+        "a_b_parameters": (
+            results_dir / f"apa{apa}_resolution_a_b_pair_grid.png"
         ),
         "width_summary": (
             results_dir / f"apa{apa}_sigma_D_median_central68_vs_keff.png"
         ),
     }
 
-    draw_pair_map(
-        pairs,
-        fixed_width_values,
-        positions,
-        apa,
-        rf"Differential width $\sigma_D$ at {fixed_momentum} GeV/c [AU]",
-        output_paths["sigma_D_at_fixed_momentum"],
-        arguments.dpi,
+    draw_pair_grid(
+        groups,
+        [(rf"$\sigma_D$ at {fixed_momentum} GeV/c", fixed_width_values)],
+        output_paths["sigma_D_at_fixed_momentum"], arguments.dpi,
     )
-    draw_pair_map(
-        pairs,
-        constant_a_values,
-        positions,
-        apa,
-        r"Constant term $a$ [AU]",
-        output_paths["constant_a"],
-        arguments.dpi,
-    )
-    draw_pair_map(
-        pairs,
-        stochastic_b_values,
-        positions,
-        apa,
-        r"Stochastic term $b$ [$\sqrt{\mathrm{GeV}}$]",
-        output_paths["stochastic_b"],
-        arguments.dpi,
+    draw_pair_grid(
+        groups,
+        [
+            (r"Constant term $a$", constant_a_values),
+            (r"Stochastic term $b$ [$\sqrt{\mathrm{GeV}}$]", stochastic_b_values),
+        ],
+        output_paths["a_b_parameters"], arguments.dpi,
     )
     width_summary = draw_width_summary(
         widths.values(), apa, output_paths["width_summary"], arguments.dpi
@@ -694,16 +902,21 @@ def main() -> int:
         results_dir / f"apa{apa}_sigma_D_median_central68_vs_keff.csv",
         width_summary,
     )
+    thesis_tables = results_dir / "thesis_tables"
+    thesis_tables.mkdir(exist_ok=True)
+    table_path = thesis_tables / f"apa{apa}_adjacent_pair_resolution_summary.tex"
+    write_thesis_table(table_path, groups, map_rows, apa, fixed_momentum)
 
     report = [
         "PDS DIFFERENTIAL-RESOLUTION SUMMARY PRODUCTS",
         f"APA: {apa}",
-        f"Fixed direct-width map momentum: {fixed_momentum} GeV/c.",
+        f"Fixed direct-width grid momentum: {fixed_momentum} GeV/c.",
         "",
-        "MAP DEFINITIONS",
-        "The sigma_D map uses the successful nominal Gaussian fit directly at the fixed momentum.",
-        "The a and b maps use successful nominal two-term fits: sigma_D = sqrt(a^2 + b^2 / K_eff).",
-        "Map uncertainties are statistical fit uncertainties. Threshold-selection systematics remain in the CSV output and the final-fit table.",
+        "GRID DEFINITIONS",
+        "The categorical grid follows the manual four-channel chains; its axes are not physical coordinates.",
+        "The sigma_D grid uses the successful nominal Gaussian fit directly at the fixed momentum.",
+        "The a and b grids use successful nominal two-term fits: sigma_D = sqrt(a^2 + b^2 / K_eff).",
+        "Values shown in cells have statistical fit uncertainties. Threshold-selection systematics are included in the CSV and LaTeX table.",
         "",
         "DESCRIPTIVE ENERGY SUMMARY",
         "At each momentum, the central marker is the median sigma_D of all successful pair measurements.",
@@ -712,8 +925,9 @@ def main() -> int:
         "",
         "OUTPUTS",
         *(path.name for path in output_paths.values()),
-        f"apa{apa}_pair_resolution_summary_map_values.csv: values shown in the maps plus threshold-systematic envelopes.",
+        f"apa{apa}_pair_resolution_summary_map_values.csv: values shown in the grids plus threshold-systematic envelopes.",
         f"apa{apa}_sigma_D_median_central68_vs_keff.csv: median and central-68% pair spread at each energy.",
+        f"thesis_tables/{table_path.name}: all configured pairs with statistical and threshold-systematic uncertainties.",
     ]
     (results_dir / f"apa{apa}_pair_resolution_summary_report.txt").write_text(
         "\n".join(report) + "\n", encoding="utf-8"
