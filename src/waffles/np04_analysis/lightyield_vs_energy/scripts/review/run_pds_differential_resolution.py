@@ -67,6 +67,10 @@ TWO_TERM_FIT_COLOR = "#009E73"
 THREE_TERM_FIT_COLOR = "#D55E00"
 LOW_COVERAGE_EDGE = "#4D4D4D"
 RESOLUTION_MODELS = ("two_term", "three_term")
+DEFAULT_EXPORT_PAIRS = {
+    1: ("apa1_end105_ch26__end105_ch24",),
+    2: (),
+}
 
 
 @dataclass
@@ -427,17 +431,25 @@ def default_pairs(apa: int) -> list[Pair]:
 
 
 def add_panel_brand(axis: plt.Axes, location: str, standalone: bool = False) -> None:
-    """Add the preliminary-status label inside an individual panel."""
+    """Add the preliminary-status label inside one plot panel."""
 
-    horizontal_alignment = "right" if location == "right" else "left"
-    x_position = 0.975 if location == "right" else 0.025
+    positions = {
+        "left": (0.025, 0.965, "left", "top"),
+        "right": (0.975, 0.965, "right", "top"),
+        "lower_right": (0.975, 0.035, "right", "bottom"),
+        "upper_center": (0.500, 0.965, "center", "top"),
+    }
+    try:
+        x_position, y_position, horizontal_alignment, vertical_alignment = positions[location]
+    except KeyError as error:
+        raise ValueError(f"Unknown brand location: {location}") from error
     axis.text(
         x_position,
-        0.965,
+        y_position,
         r"$\mathbf{ProtoDUNE\!-\!HD}$" + "\nWork in Progress",
         transform=axis.transAxes,
         ha=horizontal_alignment,
-        va="top",
+        va=vertical_alignment,
         fontsize=9.2 if standalone else 5.3,
         linespacing=0.93,
         zorder=10,
@@ -482,6 +494,61 @@ def response_limits(values_a: np.ndarray, values_b: np.ndarray) -> tuple[tuple[f
     return limits(values_a), limits(values_b)
 
 
+def fit_correlation_line(values_a: np.ndarray, values_b: np.ndarray) -> dict[str, float | int | str]:
+    """Fit ``N_PE^B = m N_PE^A + q`` for the raw pair-correlation panel.
+
+    The per-trigger vertical weights use the Poisson reference uncertainty
+    ``sqrt(max(N_PE^B, 1))``.  The covariance is inflated by the reduced
+    chi-square, so the reported parameter uncertainties reflect the observed
+    event-to-event spread rather than a pure counting-statistics idealisation.
+    The fit is a diagnostic of the raw channel correlation and is not used in
+    the differential-resolution result.
+    """
+
+    finite = np.isfinite(values_a) & np.isfinite(values_b)
+    x = np.asarray(values_a[finite], dtype=float)
+    y = np.asarray(values_b[finite], dtype=float)
+    if len(x) < 3 or np.ptp(x) <= 0.0:
+        return {
+            "status": "failed", "message": "Insufficient variation for linear fit.",
+            "slope": math.nan, "slope_error": math.nan,
+            "intercept": math.nan, "intercept_error": math.nan,
+            "chi2": math.nan, "ndf": 0, "chi2_ndf": math.nan,
+            "pearson": math.nan,
+        }
+    sigma_y = np.sqrt(np.maximum(y, 1.0))
+    design = np.column_stack((x, np.ones_like(x)))
+    weighted_design = design / sigma_y[:, np.newaxis]
+    weighted_y = y / sigma_y
+    try:
+        parameters, _, rank, _ = np.linalg.lstsq(weighted_design, weighted_y, rcond=None)
+        if rank < 2:
+            raise np.linalg.LinAlgError("Rank-deficient weighted design matrix.")
+        covariance = np.linalg.inv(weighted_design.T @ weighted_design)
+    except np.linalg.LinAlgError as error:
+        return {
+            "status": "failed", "message": f"Linear fit failed: {error}",
+            "slope": math.nan, "slope_error": math.nan,
+            "intercept": math.nan, "intercept_error": math.nan,
+            "chi2": math.nan, "ndf": 0, "chi2_ndf": math.nan,
+            "pearson": math.nan,
+        }
+    slope, intercept = (float(parameters[0]), float(parameters[1]))
+    residuals = (y - (slope * x + intercept)) / sigma_y
+    chi2 = float(np.sum(residuals**2))
+    ndf = len(x) - 2
+    chi2_ndf = chi2 / ndf if ndf > 0 else math.nan
+    scale = max(1.0, chi2_ndf) if math.isfinite(chi2_ndf) else 1.0
+    errors = np.sqrt(np.diag(covariance) * scale)
+    pearson = float(np.corrcoef(x, y)[0, 1]) if np.std(x) > 0 and np.std(y) > 0 else math.nan
+    return {
+        "status": "success", "message": "", "slope": slope,
+        "slope_error": float(errors[0]), "intercept": intercept,
+        "intercept_error": float(errors[1]), "chi2": chi2, "ndf": ndf,
+        "chi2_ndf": chi2_ndf, "pearson": pearson,
+    }
+
+
 def plot_correlation_panel(
     axis: plt.Axes,
     panel: dict,
@@ -489,13 +556,12 @@ def plot_correlation_panel(
     show_momentum_title: bool = True,
     standalone: bool = False,
 ) -> None:
-    """Draw raw N_PE,A versus N_PE,B on common selected triggers."""
+    """Draw raw $N_{\rm PE}^{A}$ versus $N_{\rm PE}^{B}$ with diagnostic fits."""
 
     events = panel.get("events")
-    record = panel.get("record")
     if show_momentum_title:
         axis.set_title(rf"$p_{{\rm beam}} = {momentum:g}$ GeV/c", loc="center", fontsize=8.6)
-    add_panel_brand(axis, "right", standalone=standalone)
+    add_panel_brand(axis, "lower_right", standalone=standalone)
     axis.grid(alpha=0.22)
     if events is None or events.common_events == 0:
         axis.text(
@@ -509,22 +575,42 @@ def plot_correlation_panel(
     values_a = events.values_a
     values_b = events.values_b
     (x_low, x_high), (y_low, y_high) = response_limits(values_a, values_b)
-    axis.scatter(values_a, values_b, s=5.0, color=DATA_COLOR, alpha=0.22, edgecolors="none", rasterized=True)
-    if record is not None and record["mean_a_PE"] > 0:
+    axis.scatter(
+        values_a, values_b, s=5.0, color=DATA_COLOR, alpha=0.22,
+        edgecolors="none", rasterized=True, zorder=2,
+        label=f"Data @ {momentum:g} GeV/c ({events.common_events} triggers)",
+    )
+    reference_low = min(x_low, y_low)
+    reference_high = max(x_high, y_high)
+    reference_x = np.asarray((reference_low, reference_high))
+    axis.plot(
+        reference_x, reference_x, "--", color=THREE_TERM_FIT_COLOR, lw=1.25,
+        label=r"Expected fit $y=x$", zorder=3,
+    )
+    fit = fit_correlation_line(values_a, values_b)
+    if fit["status"] == "success":
         x_line = np.asarray((x_low, x_high))
         axis.plot(
-            x_line, record["mean_b_PE"] / record["mean_a_PE"] * x_line,
-            "--", color=THREE_TERM_FIT_COLOR, lw=1.25,
-            label=r"$N_B = (\mu_B/\mu_A)N_A$",
+            x_line, float(fit["slope"]) * x_line + float(fit["intercept"]),
+            color=TWO_TERM_FIT_COLOR, lw=1.45, zorder=4,
+            label=(
+                "Linear fit\n"
+                + rf"$m = ({float(fit['slope']):.3f} \pm {float(fit['slope_error']):.3f})$" + "\n"
+                + rf"$q = ({float(fit['intercept']):.1f} \pm {float(fit['intercept_error']):.1f})\,{{\rm PE}}$" + "\n"
+                + rf"$\chi^2/{{\rm ndf}} = {float(fit['chi2']):.1f}/{int(fit['ndf'])} = {float(fit['chi2_ndf']):.2f}$" + "\n"
+                + rf"$\rho_{{\rm Pearson}} = {float(fit['pearson']):.3f}$"
+            ),
         )
-        text = rf"$\rho_{{AB}} = {record['pearson_correlation']:.3f}$" + "\n" + rf"{int(record['common_events'])} common triggers"
-        axis.text(
-            0.97, 0.06, text, transform=axis.transAxes, ha="right", va="bottom",
-            fontsize=9.0 if standalone else 6.3,
-            bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92, "pad": 1.4},
-        )
-        axis.legend(frameon=True, facecolor="white", fontsize=9.2 if standalone else 6.0, loc="upper left")
-    axis.set(xlim=(x_low, x_high), ylim=(y_low, y_high), xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$")
+    else:
+        axis.plot([], [], color=TWO_TERM_FIT_COLOR, lw=1.45, label="Linear fit unavailable")
+    axis.set(
+        xlim=(x_low, x_high), ylim=(y_low, y_high),
+        xlabel=r"$N_{\rm PE}^{A}$", ylabel=r"$N_{\rm PE}^{B}$",
+    )
+    axis.legend(
+        frameon=True, facecolor="white", fontsize=8.6 if standalone else 5.5,
+        loc="upper left",
+    )
     format_panel_axis(axis, standalone)
 
 
@@ -548,7 +634,7 @@ def plot_distribution_panel(
             0.5, 0.5, panel["message"], transform=axis.transAxes, ha="center", va="center",
             fontsize=11.0 if standalone else 7.2, wrap=True,
         )
-        axis.set(xlabel=r"$D_{AB}$", ylabel="Counts")
+        axis.set(xlabel=r"$D_{AB}$ [AU]", ylabel="Counts")
         format_panel_axis(axis, standalone)
         return
 
@@ -563,7 +649,7 @@ def plot_distribution_panel(
             bbox={"facecolor": "white", "edgecolor": "#999999", "alpha": 0.92},
         )
         ymax = (1.15 if standalone else 1.42) * max(float(np.max(counts)), 1.0)
-        axis.set(xlabel=r"$D_{AB}$", ylabel="Counts", ylim=(0.0, ymax))
+        axis.set(xlabel=r"$D_{AB}$ [AU]", ylabel="Counts", ylim=(0.0, ymax))
         axis.legend(frameon=True, facecolor="white", fontsize=9.2 if standalone else 6.0, loc="upper left")
         format_panel_axis(axis, standalone)
         return
@@ -596,7 +682,7 @@ def plot_distribution_panel(
     else:
         axis.plot([], [], color=DATA_COLOR, lw=1.55, label="Gaussian fit failed")
     ymax = (1.15 if standalone else 1.42) * maximum
-    axis.set(xlim=(low, high), ylim=(0.0, ymax), xlabel=r"$D_{AB}$", ylabel="Counts")
+    axis.set(xlim=(low, high), ylim=(0.0, ymax), xlabel=r"$D_{AB}$ [AU]", ylabel="Counts")
     axis.legend(frameon=True, facecolor="white", fontsize=9.2 if standalone else 6.0, loc="upper left")
     format_panel_axis(axis, standalone)
 
@@ -614,7 +700,7 @@ def plot_pair_resolution_panel(
         record = panels.get(momentum, {}).get("record")
         if record is not None and record["d_gaussian_status"] == "success":
             records.append(record)
-    add_panel_brand(axis, "left", standalone=standalone)
+    add_panel_brand(axis, "upper_center", standalone=standalone)
     if not records:
         axis.text(0.5, 0.5, "No successful Gaussian fit", transform=axis.transAxes, ha="center", va="center")
         axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$")
@@ -647,7 +733,7 @@ def plot_pair_resolution_panel(
         y_curve = resolution_model(
             x_curve, resolution_fit.constant_a, resolution_fit.stochastic_b_sqrt_GeV, noise_c,
         )
-        formula = r"$y = \sqrt{a^2 + b^2/x}$" if model == "two_term" else r"$y = \sqrt{a^2 + b^2/x + c^2/x^2}$"
+        formula = r"$y = \sqrt{a^2 + (b/\sqrt{x})^2}$" if model == "two_term" else r"$y = \sqrt{a^2 + (b/\sqrt{x})^2 + (c/x)^2}$"
         label_lines = [
             model_label,
             formula,
@@ -810,6 +896,15 @@ def _latex_value_error(value: object, error: object, digits: int = 3) -> str:
     return rf"${float(value):.{digits}f} \pm {float(error):.{digits}f}$"
 
 
+def _format_systematic(value: float, minimum_digits: int = 4) -> str:
+    """Keep enough decimals to avoid displaying a non-zero systematic as zero."""
+
+    digits = minimum_digits
+    while value != 0.0 and round(value, digits) == 0.0 and digits < 8:
+        digits += 1
+    return f"{value:.{digits}f}"
+
+
 def _latex_statistical_systematic(
     value: object,
     statistical_error: object,
@@ -826,7 +921,7 @@ def _latex_statistical_systematic(
         return rf"${float(value):.{digits}f} \pm {float(statistical_error):.{digits}f}$"
     return (
         rf"${float(value):.{digits}f} \pm {float(statistical_error):.{digits}f}"
-        rf" \pm {float(systematic_error):.{digits}f}$"
+        rf" \pm {_format_systematic(float(systematic_error))}$"
     )
 
 
@@ -911,7 +1006,7 @@ def write_thesis_tables(
         r"\begin{adjustbox}{max width=\textwidth}",
         r"\begin{tabular}{llccccc}",
         r"\toprule",
-        r"Channel $A$ & Channel $B$ & $\sigma_D(1~\mathrm{GeV}/c)$ & $\sigma_D(2~\mathrm{GeV}/c)$ & $\sigma_D(3~\mathrm{GeV}/c)$ & $\sigma_D(5~\mathrm{GeV}/c)$ & $\sigma_D(7~\mathrm{GeV}/c)$ \\",
+        r"Channel $A$ & Channel $B$ & \gls{sigma_D} at \SI{1}{\GeV/c} & \gls{sigma_D} at \SI{2}{\GeV/c} & \gls{sigma_D} at \SI{3}{\GeV/c} & \gls{sigma_D} at \SI{5}{\GeV/c} & \gls{sigma_D} at \SI{7}{\GeV/c} \\",
         r"\midrule",
     ]
     for pair in pairs:
@@ -947,9 +1042,9 @@ def write_thesis_tables(
         if row.get("resolution_model") == primary_model and row.get("resolution_fit_status") == "success"
     }
     model_formula = (
-        r"$\sigma_D=\sqrt{a^2+b^2/K_{\mathrm{eff}}}$"
+        r"\gls{sigma_D}~$=\sqrt{a^2+b^2/\gls{k_eff}}$"
         if primary_model == "two_term"
-        else r"$\sigma_D=\sqrt{a^2+b^2/K_{\mathrm{eff}}+c^2/K_{\mathrm{eff}}^2}$"
+        else r"\gls{sigma_D}~$=\sqrt{a^2+b^2/\gls{k_eff}+c^2/\gls{k_eff}^2}$"
     )
     include_noise_term = primary_model == "three_term"
     fit_lines = [
@@ -962,9 +1057,9 @@ def write_thesis_tables(
         r"\begin{tabular}{llccccc}" if include_noise_term else r"\begin{tabular}{llcccc}",
         r"\toprule",
         (
-            r"Channel $A$ & Channel $B$ & $a$ & $b~[\sqrt{\mathrm{GeV}}]$ & $c~[\mathrm{GeV}]$ & $\chi^2/\mathrm{ndf}$ & $R^2$ \\")
+            r"Channel $A$ & Channel $B$ & $a$ & $b~[\sqrt{\si{\GeV}}]$ & $c~[\si{\GeV}]$ & $\chi^2/\mathrm{ndf}$ & $R^2$ \\")
             if include_noise_term
-            else r"Channel $A$ & Channel $B$ & $a$ & $b~[\sqrt{\mathrm{GeV}}]$ & $\chi^2/\mathrm{ndf}$ & $R^2$ \\",
+            else r"Channel $A$ & Channel $B$ & $a$ & $b~[\sqrt{\si{\GeV}}]$ & $\chi^2/\mathrm{ndf}$ & $R^2$ \\",
         r"\midrule",
     ]
     for pair in pairs:
@@ -1121,11 +1216,12 @@ def main() -> int:
     if not pairs:
         raise ValueError(f"No manually defined adjacent pairs found for APA {arguments.apa}.")
     pairs_by_identifier = {pair.identifier: pair for pair in pairs}
-    unknown_export_pairs = sorted(set(arguments.export_pair) - set(pairs_by_identifier))
+    requested_export_identifiers = list(DEFAULT_EXPORT_PAIRS.get(arguments.apa, ())) + list(arguments.export_pair)
+    unknown_export_pairs = sorted(set(requested_export_identifiers) - set(pairs_by_identifier))
     if unknown_export_pairs:
         available = ", ".join(sorted(pairs_by_identifier))
         raise ValueError(f"Unknown --export-pair identifier(s): {unknown_export_pairs}. Available identifiers: {available}")
-    export_pairs = [pairs_by_identifier[identifier] for identifier in dict.fromkeys(arguments.export_pair)]
+    export_pairs = [pairs_by_identifier[identifier] for identifier in dict.fromkeys(requested_export_identifiers)]
 
     arguments.output_dir.mkdir(parents=True, exist_ok=True)
     clear_outputs(arguments.output_dir)
