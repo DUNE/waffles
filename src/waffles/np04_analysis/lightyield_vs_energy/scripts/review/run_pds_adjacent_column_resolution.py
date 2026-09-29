@@ -45,7 +45,7 @@ from run_pds_differential_resolution import (
     load_trigger_contexts, plot_correlation_panel, plot_distribution_panel,
     resolution_model, scenario_name,
 )
-from utils import apa1_columns_channels
+from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 
 
 IDEAL_COLOR = "#D55E00"
@@ -85,12 +85,11 @@ def selected_channel_coverage(
     full_columns: dict[int, list[Channel]],
     channels_per_column: int,
 ) -> tuple[dict[int, list[Channel]], list[dict], list[dict]]:
-    """Select one fixed channel set per column, using nominal availability.
+    """Use the same physical rows in every column and record all 40 channels.
 
-    With eight channels (the default), all physical-column channels are kept.
-    A smaller requested subset is ranked by the mean of the five per-momentum
-    availability fractions, giving each beam setting equal weight.  The same
-    selected channels are then used at every momentum and threshold scenario.
+    Each column list follows the ten-row APA map from top to bottom.  Keeping
+    the first N rows ensures that the summed channels cover the same vertical
+    positions in every column at every momentum and threshold scenario.
     """
 
     coverage_rows: list[dict] = []
@@ -108,11 +107,12 @@ def selected_channel_coverage(
                     for channel in channels:
                         if channel_value(event, channel) is not None:
                             counts[channel] += 1
-            for channel in channels:
+            for physical_row, channel in enumerate(channels, start=1):
                 fraction = counts[channel] / total if total else 0.0
                 scores.setdefault((column, channel.endpoint, channel.channel), []).append(fraction)
                 coverage_rows.append({
-                    "column": column, "endpoint": channel.endpoint,
+                    "column": column, "physical_row": physical_row,
+                    "endpoint": channel.endpoint,
                     "channel": channel.channel, "momentum_GeV_c": momentum,
                     "selected_triggers": total, "valid_channel_triggers": counts[channel],
                     "valid_fraction": fraction,
@@ -121,17 +121,13 @@ def selected_channel_coverage(
     chosen: dict[int, list[Channel]] = {}
     configuration: list[dict] = []
     for column, channels in full_columns.items():
-        ranked = sorted(
-            channels,
-            key=lambda ch: -float(np.mean(scores[(column, ch.endpoint, ch.channel)])),
-        )
-        selected_set = set(ranked[:channels_per_column])
-        chosen[column] = [channel for channel in channels if channel in selected_set]
-        for channel in channels:
+        chosen[column] = channels[:channels_per_column]
+        for physical_row, channel in enumerate(channels, start=1):
             configuration.append({
-                "column": column, "endpoint": channel.endpoint,
+                "column": column, "physical_row": physical_row,
+                "endpoint": channel.endpoint,
                 "channel": channel.channel,
-                "included_in_sum": int(channel in selected_set),
+                "included_in_sum": int(physical_row <= channels_per_column),
                 "mean_valid_fraction_over_momenta": float(np.mean(
                     scores[(column, channel.endpoint, channel.channel)]
                 )),
@@ -234,7 +230,8 @@ def write_pair_pdf(output: Path, pair_defs: list[tuple[int, int, Pair]],
         for first, second, pair in pair_defs:
             figure = plt.figure(figsize=(16.54, 11.69))
             grid = figure.add_gridspec(3, 4)
-            subset_note = "" if channels_per_column == 8 else f" ({channels_per_column} fixed channels per column)"
+            subset_note = ("" if channels_per_column == 10
+                           else f" (physical rows 1–{channels_per_column})")
             figure.suptitle(f"APA 1: adjacent columns {first} and {second}{subset_note}",
                             x=0.02, y=0.987, ha="left", fontsize=14)
             positions = {
@@ -268,7 +265,7 @@ def write_summary_plots(output_dir: Path, pair_defs: list[tuple[int, int, Pair]]
     fig, axes = plt.subplots(1, 3, figsize=(16, 4.8), sharex=True, sharey=True)
     for axis, (first, second, pair) in zip(axes, pair_defs):
         make_column_fit_panel(axis, panels[pair.identifier], fits[pair.identifier])
-        subset_note = "" if channels_per_column == 8 else f" ({channels_per_column}/8 channels)"
+        subset_note = f" (rows 1–{channels_per_column}/10)"
         axis.set_title(f"Columns {first}–{second}{subset_note}")
     fig.tight_layout()
     fig.savefig(output_dir / "apa1_adjacent_column_sigma_D_vs_keff.png", dpi=240)
@@ -346,8 +343,8 @@ def parse_arguments() -> argparse.Namespace:
                         default=analysis_dir / "data/np04_beam_particle_content.csv")
     parser.add_argument("--output-dir", type=Path,
                         default=analysis_dir / "output/review/pds_adjacent_column_resolution_01")
-    parser.add_argument("--channels-per-column", type=int, default=8, choices=range(2, 9),
-                        help="Fixed channels summed in every column; 8 uses each complete column.")
+    parser.add_argument("--channels-per-column", type=int, default=7, choices=range(2, 11),
+                        help="Same top N physical rows summed in every column (default: rows 1–7).")
     parser.add_argument("--minimum-events", type=int, default=150)
     parser.add_argument("--relative-momentum-error", type=float, default=0.05)
     parser.add_argument("--threshold-sigma-multipliers", nargs="+", type=float,
@@ -378,15 +375,17 @@ def main() -> int:
     kinetic = load_kinetic_energies(args.composition, args.relative_momentum_error)
     data = {momentum: load_merged_json(momentum, args.input_dir / f"{momentum}GeV")
             for momentum in MOMENTA}
-    raw_columns = apa1_columns_channels()
+    raw_rows = APA_map[1].data
+    if len(raw_rows) != 10 or any(len(row) != 4 for row in raw_rows):
+        raise ValueError("The APA 1 geometry must contain ten rows of four channels.")
     full_columns = {
-        column: [Channel.from_mapping(value) for value in raw_columns[column]]
+        column: [Channel.from_mapping({"apa": 1, "end": row[column - 1].endpoint,
+                                       "ch": row[column - 1].channel})
+                 for row in raw_rows]
         for column in range(1, 5)
     }
-    if any(len(channels) != 8 for channels in full_columns.values()):
-        raise ValueError("The APA 1 column map must contain eight channels per column.")
     flattened = [channel for channels in full_columns.values() for channel in channels]
-    if len(set(flattened)) != 32 or any(channel.apa != 1 for channel in flattened):
+    if len(set(flattened)) != 40 or any(channel.apa != 1 for channel in flattened):
         raise ValueError("The APA 1 column map has duplicate or non-APA-1 channels.")
 
     nominal_selected = {
@@ -556,9 +555,13 @@ def main() -> int:
                         args.channels_per_column)
     report = [
         "APA 1 ADJACENT-COLUMN DIFFERENTIAL RESPONSE",
-        f"Channels per column: {args.channels_per_column} of 8.",
-        "Full physical columns are used only when channels per column = 8.",
-        "If fewer are requested, one high-availability subset is fixed across all beam settings and threshold scenarios.",
+        "APA 1 geometry: 40 channels in 10 rows and 4 columns.",
+        f"Each column sum uses the same physical rows 1--{args.channels_per_column} "
+        f"({args.channels_per_column} of 10 channels per column).",
+        "The included rows are fixed across all beam settings and threshold scenarios.",
+        "Excluded physical cells remain listed in the channel configuration and coverage CSVs.",
+        "The default seven-row selection omits row 8, which contains END 105 - CH 12, "
+        "and the two lowest rows (9 and 10).",
         f"Minimum complete common triggers per pair and momentum: {args.minimum_events}.",
         f"Threshold scenarios: {', '.join(scenario for scenario, _ in scenarios)}.",
         "At 1 GeV/c: APA1-valid triggers, no muon threshold; at 2--7 GeV/c: APA1 mean above the Langauss--Gaussian intersection.",

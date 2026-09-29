@@ -315,6 +315,44 @@ def pair_groups(
     return groups
 
 
+def physical_grid_groups(
+    pairs: dict[str, dict[str, object]], apa: int
+) -> list[list[dict[str, object]]]:
+    """Fill all ten APA rows, including adjacent pairs absent from the study."""
+    by_channels = {
+        (pair["first_endpoint"], pair["first_channel"],
+         pair["second_endpoint"], pair["second_channel"]): pair
+        for pair in pairs.values()
+    }
+    if len(by_channels) != len(pairs):
+        raise ValueError("The pair configuration contains duplicate channel pairs.")
+    groups: list[list[dict[str, object]]] = []
+    configured: set[str] = set()
+    for physical_row in APA_map[apa].data:
+        group: list[dict[str, object]] = []
+        for first, second in zip(physical_row, physical_row[1:]):
+            key = (int(first.endpoint), int(first.channel),
+                   int(second.endpoint), int(second.channel))
+            pair = by_channels.get(key)
+            if pair is None:
+                pair = {
+                    "pair": (f"apa{apa}_end{key[0]}_ch{key[1]}"
+                             f"__end{key[2]}_ch{key[3]}"),
+                    "apa": apa,
+                    "first_endpoint": key[0], "first_channel": key[1],
+                    "second_endpoint": key[2], "second_channel": key[3],
+                }
+            else:
+                configured.add(str(pair["pair"]))
+            group.append(pair)
+        if len(group) != 3:
+            raise ValueError("Every physical APA row must contain four channels.")
+        groups.append(group)
+    if len(groups) != 10 or configured != set(pairs):
+        raise ValueError("The configured pairs do not match the ten-row APA geometry.")
+    return groups
+
+
 def draw_grid_panel(
     figure: plt.Figure,
     axis: plt.Axes,
@@ -406,7 +444,9 @@ def draw_pair_grid(
     colour_limits: tuple[float, float] | None = None,
 ) -> None:
     """Draw one categorical grid with the requested colour scale."""
-    figure, axis = plt.subplots(figsize=(10.5, 8.0), layout="constrained")
+    figure, axis = plt.subplots(
+        figsize=(10.5, max(8.0, 0.96 * len(groups))), layout="constrained"
+    )
     draw_grid_panel(figure, axis, groups, values, label, colour_limits)
     figure.savefig(output_path, dpi=dpi)
     plt.close(figure)
@@ -771,6 +811,7 @@ def main() -> int:
         results_dir / "pair_resolution_threshold_systematics.csv", apa, PRIMARY_MODEL
     )
     groups = pair_groups(pairs)
+    grid_groups = physical_grid_groups(pairs, apa)
     for identifier in resolution_fits:
         systematic = systematics.get(identifier)
         if systematic is None or not all(
@@ -830,21 +871,21 @@ def main() -> int:
 
     for momentum in MOMENTA:
         draw_pair_grid(
-            groups,
+            grid_groups,
             width_values_by_momentum[momentum],
             rf"$\sigma_D$ at {momentum} GeV/c",
             output_paths[f"sigma_D_at_{momentum}GeV"],
             arguments.dpi,
         )
     draw_pair_grid(
-        groups,
+        grid_groups,
         constant_a_values,
         r"Constant term $a$ [AU]",
         output_paths["constant_a"],
         arguments.dpi,
     )
     draw_pair_grid(
-        groups,
+        grid_groups,
         stochastic_b_values,
         r"Stochastic term $b$ [$\sqrt{\mathrm{GeV}}$]",
         output_paths["stochastic_b"],
@@ -855,42 +896,45 @@ def main() -> int:
     )
 
     map_rows: list[dict[str, object]] = []
-    for identifier, pair in sorted(pairs.items()):
-        fixed_width = widths.get((identifier, fixed_momentum), {})
-        final_fit = resolution_fits.get(identifier, {})
-        systematic = systematics.get(identifier, {})
-        map_rows.append(
-            {
-                **pair,
-                "fixed_momentum_GeV_c": fixed_momentum,
-                "sigma_D_at_fixed_momentum": fixed_width.get("sigma_D", math.nan),
-                "sigma_D_at_fixed_momentum_statistical_error": fixed_width.get(
-                    "sigma_D_statistical_error", math.nan
-                ),
-                "sigma_D_at_fixed_momentum_coverage_status": fixed_width.get(
-                    "coverage_status", ""
-                ),
-                "constant_a": final_fit.get("constant_a", math.nan),
-                "constant_a_statistical_error": final_fit.get(
-                    "constant_a_statistical_error", math.nan
-                ),
-                "constant_a_threshold_systematic": systematic.get(
-                    "constant_a_threshold_systematic", math.nan
-                ),
-                "stochastic_b_sqrt_GeV": final_fit.get(
-                    "stochastic_b_sqrt_GeV", math.nan
-                ),
-                "stochastic_b_statistical_error_sqrt_GeV": final_fit.get(
-                    "stochastic_b_statistical_error_sqrt_GeV", math.nan
-                ),
-                "stochastic_b_threshold_systematic_sqrt_GeV": systematic.get(
-                    "stochastic_b_sqrt_GeV_threshold_systematic", math.nan
-                ),
-                "resolution_fit_status": (
-                    "success" if identifier in resolution_fits else "not_available"
-                ),
-            }
-        )
+    for group in grid_groups:
+        for pair in group:
+            identifier = str(pair["pair"])
+            fixed_width = widths.get((identifier, fixed_momentum), {})
+            final_fit = resolution_fits.get(identifier, {})
+            systematic = systematics.get(identifier, {})
+            map_rows.append(
+                {
+                    **pair,
+                    "configured_in_analysis": int(identifier in pairs),
+                    "fixed_momentum_GeV_c": fixed_momentum,
+                    "sigma_D_at_fixed_momentum": fixed_width.get("sigma_D", math.nan),
+                    "sigma_D_at_fixed_momentum_statistical_error": fixed_width.get(
+                        "sigma_D_statistical_error", math.nan
+                    ),
+                    "sigma_D_at_fixed_momentum_coverage_status": fixed_width.get(
+                        "coverage_status", ""
+                    ),
+                    "constant_a": final_fit.get("constant_a", math.nan),
+                    "constant_a_statistical_error": final_fit.get(
+                        "constant_a_statistical_error", math.nan
+                    ),
+                    "constant_a_threshold_systematic": systematic.get(
+                        "constant_a_threshold_systematic", math.nan
+                    ),
+                    "stochastic_b_sqrt_GeV": final_fit.get(
+                        "stochastic_b_sqrt_GeV", math.nan
+                    ),
+                    "stochastic_b_statistical_error_sqrt_GeV": final_fit.get(
+                        "stochastic_b_statistical_error_sqrt_GeV", math.nan
+                    ),
+                    "stochastic_b_threshold_systematic_sqrt_GeV": systematic.get(
+                        "stochastic_b_sqrt_GeV_threshold_systematic", math.nan
+                    ),
+                    "resolution_fit_status": (
+                        "success" if identifier in resolution_fits else "not_available"
+                    ),
+                }
+            )
     write_csv(results_dir / f"apa{apa}_pair_resolution_summary_map_values.csv", map_rows)
     write_csv(
         results_dir / f"apa{apa}_sigma_D_median_central68_vs_keff.csv",
@@ -907,7 +951,8 @@ def main() -> int:
         f"Reference momentum for CSV and LaTeX table: {fixed_momentum} GeV/c.",
         "",
         "GRID DEFINITIONS",
-        "The categorical grid follows the manual four-channel chains; its axes are not physical coordinates.",
+        "The categorical grids show all ten physical APA rows; their axes are not spatial coordinates.",
+        "Pairs absent from the configured analysis are shown as not available, without estimated values.",
         "One sigma_D grid is produced for each beam momentum; each grid has its own colour scale.",
         "The sigma_D grids use the successful nominal Gaussian fits directly at each momentum.",
         "Separate a and b grids use successful nominal two-term fits: sigma_D = sqrt(a^2 + b^2 / K_eff).",
