@@ -7,13 +7,9 @@ one selected trigger.  A trigger enters a column pair when at least one channel
 is available in each column; missing entries are never interpreted as zero.
 The number of contributing channels is recorded for every selected trigger. The
 trigger selection, central Gaussian fit, K_eff values, and two-term resolution
-fit match run_pds_differential_resolution.py.
-
-The reference sqrt((1/mu_A + 1/mu_B)/2) is the ideal independent-photoelectron
-counting width for the normalized difference.  It is a diagnostic, not a
-complete prediction of the measured differential width or an absolute energy
-resolution.  No electronic-noise term is inferred without an independent
-integrated-noise measurement.
+fit match run_pds_differential_resolution.py. The fit always includes 1 GeV/c.
+Coverage subsets and Gaussian residuals are diagnostics; they do not change the
+nominal trigger selection or provide an absolute energy resolution.
 """
 
 from __future__ import annotations
@@ -37,8 +33,9 @@ if str(SCRIPTS_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIRECTORY))
 
 from pds_differential_resolution import (
-    Channel, Pair, PairEvents, load_merged_json, measure_pair,
-    normalized_difference, poisson_width, selected_event_indices,
+    Channel, Pair, PairEvents, central68_half_width, fit_gaussian_core,
+    gaussian_count_model, load_merged_json, measure_pair,
+    normalized_difference, selected_event_indices,
 )
 from run_pds_differential_resolution import (
     DATA_COLOR, MOMENTA, ResolutionFit, add_panel_brand, fit_resolution,
@@ -49,8 +46,8 @@ from run_pds_differential_resolution import (
 from waffles.np04_data.ProtoDUNE_HD_APA_maps import APA_map
 
 
-IDEAL_COLOR = "#D55E00"
-EXCLUDED_COLOR = "#CC79A7"
+SYSTEMATIC_COLOR = "#D55E00"
+DIAGNOSTIC_COLOR = "#CC79A7"
 FIT_COLOR = "#17365D"
 COLUMN_PAIRS = ((1, 2), (2, 3), (3, 4))
 
@@ -209,11 +206,8 @@ def make_column_fit_panel(axis: plt.Axes, panels: dict[int, dict], fits: dict[st
     sx = np.asarray([row["effective_spread_GeV"] for row in records], dtype=float)
     y = np.asarray([row["d_gaussian_sigma"] for row in records], dtype=float)
     sy = np.asarray([row["d_gaussian_sigma_error"] for row in records], dtype=float)
-    ideal = np.asarray([row["ideal_independent_PE_sigma_D"] for row in records], dtype=float)
     axis.errorbar(x, y, xerr=sx, yerr=sy, fmt="o", color=DATA_COLOR, ms=5,
                   capsize=2.1, label=r"Gaussian $\sigma_D$", zorder=4)
-    axis.plot(x, ideal, "s--", color=IDEAL_COLOR, ms=3.7, lw=1.4,
-              label="Independent PE reference", zorder=3)
     x_curve = np.linspace(max(0.05, float(min(x - sx))), float(max(x + sx)) * 1.03, 300)
     full = fits["all"]
     if full.status == "success":
@@ -223,13 +217,8 @@ def make_column_fit_panel(axis: plt.Axes, panels: dict[int, dict], fits: dict[st
                          + rf"$a=({full.constant_a:.3f}\pm{full.constant_a_error:.3f})$" + "\n"
                          + rf"$b=({full.stochastic_b_sqrt_GeV:.3f}\pm{full.stochastic_b_error_sqrt_GeV:.3f})\sqrt{{\rm GeV}}$" + "\n"
                          + rf"$\chi^2/{{\rm ndf}}={full.chi2_ndf:.2f},\ R^2={full.r_squared:.3f}$"))
-    excluded = fits["exclude_1gev"]
-    if excluded.status == "success":
-        axis.plot(x_curve, resolution_model(x_curve, excluded.constant_a,
-                  excluded.stochastic_b_sqrt_GeV), "--", color=EXCLUDED_COLOR, lw=1.5,
-                  label="Fit excluding 1 GeV/c")
     axis.set_xlim(max(0.0, float(min(x - sx)) - 0.1), float(max(x + sx)) + 0.1)
-    axis.set_ylim(0.0, max(float(max(y + sy)), float(max(ideal))) * 1.37)
+    axis.set_ylim(0.0, float(max(y + sy)) * 1.37)
     axis.legend(loc="upper right", fontsize=5.7, facecolor="white", frameon=True)
     format_panel_axis(axis, False)
 
@@ -307,11 +296,11 @@ def write_summary_plots(output_dir: Path, pair_defs: list[tuple[int, int, Pair]]
             systematic = sys_lookup[pair.identifier][syst_field]
             if math.isfinite(systematic) and systematic > 0:
                 axis.errorbar(index + 0.10, value, yerr=systematic, fmt="none",
-                              ecolor=IDEAL_COLOR, capsize=4,
+                              ecolor=SYSTEMATIC_COLOR, capsize=4,
                               label="Threshold variation" if not systematic_label_added else None)
                 systematic_label_added = True
         axis.set_xticks(range(3), names)
-        axis.set(xlabel="Adjacent APA 1 columns", ylabel=label)
+        axis.set(xlabel="APA 1 column pair (unequal separations)", ylabel=label)
         axis.grid(axis="y", alpha=0.23)
         add_panel_brand(axis, "right", standalone=True)
         if statistical_label_added:
@@ -320,26 +309,113 @@ def write_summary_plots(output_dir: Path, pair_defs: list[tuple[int, int, Pair]]
     fig.savefig(output_dir / "apa1_adjacent_column_fit_parameters.png", dpi=240)
     plt.close(fig)
 
-    fig, axis = plt.subplots(figsize=(9.2, 5.8))
-    colors = (DATA_COLOR, IDEAL_COLOR, "#009E73")
-    for color, (first, second, pair) in zip(colors, pair_defs):
-        rows = [panels[pair.identifier][momentum].get("record") for momentum in MOMENTA]
-        rows = [row for row in rows if row is not None and row["d_gaussian_status"] == "success"]
-        if not rows:
-            continue
-        x = [row["kinetic_mean_GeV"] for row in rows]
-        ratios = [row["sigma_D_over_ideal_independent_PE"] for row in rows]
-        axis.errorbar(x, ratios, xerr=[row["effective_spread_GeV"] for row in rows],
-                      fmt="o-", color=color, capsize=3,
-                      label=f"Columns {first}–{second}")
-    axis.axhline(1.0, color="#444444", lw=1.4, ls="--", label="Independent PE reference")
-    axis.set(xlabel=r"$K_{\rm eff}$ [GeV]",
-             ylabel=r"Measured $\sigma_D$ / independent PE reference")
-    axis.grid(alpha=0.22)
-    add_panel_brand(axis, "right", standalone=True)
-    axis.legend(loc="upper left", frameon=True, facecolor="white", fontsize=10)
+
+
+def coverage_check_rows(
+    base: dict, d_values: np.ndarray, multiplicity: list[dict],
+    nominal_gaussian: Any, channels_per_column: int, minimum_events: int,
+) -> list[dict]:
+    """Compare coverage subsets without applying a cut to the nominal result."""
+
+    used = [item for item in multiplicity if item["used_for_pair"]]
+    if len(used) != len(d_values):
+        raise ValueError("Column multiplicities are not aligned with D_AB values.")
+    n_min = np.asarray([
+        min(item["valid_channels_first_column"], item["valid_channels_second_column"])
+        for item in used
+    ], dtype=int)
+    groups = [("all", np.ones(len(used), dtype=bool)),
+              ("complete", n_min == channels_per_column)]
+    groups.extend((f"min_valid_{count}", n_min == count)
+                  for count in range(1, channels_per_column + 1))
+    rows = []
+    for name, mask in groups:
+        subset = d_values[mask]
+        fit = (nominal_gaussian if name == "all" else
+               fit_gaussian_core(subset) if name == "complete" and len(subset) >= minimum_events
+               else None)
+        rows.append({
+            **base, "coverage_group": name, "events": len(subset),
+            "fraction_of_common_events": len(subset) / len(d_values),
+            "d_mean": float(np.mean(subset)) if len(subset) else math.nan,
+            "d_central68_half_width": central68_half_width(subset)
+            if len(subset) >= 30 else math.nan,
+            "gaussian_fit_status": fit.status if fit is not None else "not_fit",
+            "gaussian_sigma_D": fit.sigma if fit is not None else math.nan,
+            "gaussian_sigma_D_error": fit.sigma_error if fit is not None else math.nan,
+            "gaussian_chi2_ndf": fit.chi2_ndf if fit is not None else math.nan,
+        })
+    return rows
+
+
+def write_coverage_check_plot(output_dir: Path, pair_defs: list[tuple[int, int, Pair]],
+                              diagnostics: list[dict]) -> None:
+    fig, axes = plt.subplots(1, 3, figsize=(15.5, 4.8), sharex=True, sharey=True)
+    n_channels = diagnostics[0]["channels_per_column"] if diagnostics else 7
+    for axis, (first, second, pair) in zip(axes, pair_defs):
+        for group, label, color, marker in (
+            ("all", "All common triggers", DATA_COLOR, "o"),
+            ("complete", f"{n_channels} + {n_channels} valid channels (check)", DIAGNOSTIC_COLOR, "s"),
+        ):
+            rows = sorted((row for row in diagnostics if row["pair"] == pair.identifier
+                           and row["coverage_group"] == group
+                           and row["gaussian_fit_status"] == "success"),
+                          key=lambda row: row["kinetic_mean_GeV"])
+            if rows:
+                axis.errorbar([row["kinetic_mean_GeV"] for row in rows],
+                              [row["gaussian_sigma_D"] for row in rows],
+                              xerr=[row["effective_spread_GeV"] for row in rows],
+                              yerr=[row["gaussian_sigma_D_error"] for row in rows],
+                              fmt=f"{marker}-", color=color, capsize=2.5, label=label)
+        axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Gaussian $\sigma_D$ [AU]")
+        axis.set_title(f"Columns {first}–{second}")
+        axis.grid(alpha=0.22)
+        add_panel_brand(axis, "upper_center")
+        if axis.get_legend_handles_labels()[0]:
+            axis.legend(loc="upper right", frameon=True, facecolor="white", fontsize=8)
     fig.tight_layout()
-    fig.savefig(output_dir / "apa1_adjacent_column_counting_comparison.png", dpi=240)
+    fig.savefig(output_dir / "apa1_adjacent_column_coverage_check.png", dpi=240)
+    plt.close(fig)
+
+
+def write_gaussian_residual_checks(output_dir: Path,
+                                   pair_defs: list[tuple[int, int, Pair]],
+                                   panels: dict[str, dict[int, dict]]) -> None:
+    fig, axes = plt.subplots(3, 5, figsize=(16.5, 9), sharey=False)
+    for row_index, (first, second, pair) in enumerate(pair_defs):
+        for column_index, momentum in enumerate(MOMENTA):
+            axis = axes[row_index, column_index]
+            panel = panels[pair.identifier][momentum]
+            record = panel.get("record")
+            values = panel.get("d_values")
+            axis.axhline(0.0, color="#444444", lw=0.9)
+            axis.set_title(f"Columns {first}–{second}, {momentum} GeV/c", fontsize=10)
+            if record is None or values is None or record["d_gaussian_status"] != "success":
+                axis.text(0.5, 0.5, "No Gaussian fit", transform=axis.transAxes,
+                          ha="center", va="center")
+                continue
+            low, high = record["d_gaussian_fit_low"], record["d_gaussian_fit_high"]
+            bins = int(round((high - low) / record["d_gaussian_bin_width"]))
+            counts, edges = np.histogram(values[(values >= low) & (values <= high)],
+                                         bins=np.linspace(low, high, bins + 1))
+            centers = (edges[:-1] + edges[1:]) / 2.0
+            prediction = gaussian_count_model(
+                centers, record["d_gaussian_amplitude"], record["d_gaussian_mean"],
+                record["d_gaussian_sigma"],
+            )
+            residual = (counts - prediction) / np.sqrt(np.maximum(counts, 1.0))
+            axis.plot(centers, residual, "o", color=DATA_COLOR, ms=3)
+            axis.text(0.03, 0.96,
+                      rf"$\chi^2/{{\rm ndf}}={record['d_gaussian_chi2_ndf']:.2f}$",
+                      transform=axis.transAxes, ha="left", va="top", fontsize=9,
+                      bbox=dict(facecolor="white", edgecolor="none", alpha=0.85))
+            axis.set_xlabel(r"$D_{AB}$ [AU]", fontsize=9)
+            axis.set_ylabel("Poisson residual", fontsize=9)
+            axis.grid(alpha=0.2)
+    fig.text(0.985, 0.995, "ProtoDUNE-HD Work in Progress", ha="right", va="top",
+             fontsize=11)
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.savefig(output_dir / "apa1_adjacent_column_gaussian_residuals.png", dpi=240)
     plt.close(fig)
 
 
@@ -420,6 +496,7 @@ def main() -> int:
     availability_rows: list[dict] = []
     measurement_rows: list[dict] = []
     multiplicity_rows: list[dict] = []
+    coverage_checks: list[dict] = []
     selected_rows: list[dict] = []
     panels = {
         pair.identifier: {momentum: {"message": "No measurement available."}
@@ -499,13 +576,9 @@ def main() -> int:
                     availability_rows.append(availability)
                     continue
 
-                ideal = float(poisson_width(measurement.n_eff))
                 gaussian = measurement.gaussian_d
                 row = {
                     **base, **coverage_stats, **measurement.as_flat_dict(),
-                    "ideal_independent_PE_sigma_D": ideal,
-                    "sigma_D_over_ideal_independent_PE": gaussian.sigma / ideal
-                    if gaussian.status == "success" else math.nan,
                     "central68_over_gaussian_sigma_D": measurement.empirical_d.central68_half_width / gaussian.sigma
                     if gaussian.status == "success" else math.nan,
                     "measurement_status": "success",
@@ -517,6 +590,11 @@ def main() -> int:
                 if scenario == "nominal":
                     panel["record"] = row
                     panel["message"] = gaussian.message
+                    if panel["d_values"] is not None:
+                        coverage_checks.extend(coverage_check_rows(
+                            base, panel["d_values"], multiplicity, gaussian,
+                            args.channels_per_column, args.minimum_events,
+                        ))
 
     fit_rows: list[dict] = []
     fits_by_scenario: dict[str, dict[str, dict[str, ResolutionFit]]] = {}
@@ -524,53 +602,50 @@ def main() -> int:
         fits_by_scenario[scenario] = {}
         for first, second, pair in pair_defs:
             fits_by_scenario[scenario][pair.identifier] = {}
-            for scope in ("all", "exclude_1gev"):
-                selected_records = [
-                    row for row in measurement_rows
-                    if row["threshold_scenario"] == scenario
-                    and row["pair"] == pair.identifier
-                    and row["d_gaussian_status"] == "success"
-                    and (scope == "all" or row["momentum_GeV_c"] != 1)
-                ]
-                fit = fit_resolution(selected_records, "two_term")
-                fits_by_scenario[scenario][pair.identifier][scope] = fit
-                ideal_b = float(np.median([
-                    row["ideal_independent_PE_sigma_D"] * math.sqrt(row["kinetic_mean_GeV"])
-                    for row in selected_records
-                ])) if selected_records else math.nan
-                fit_rows.append({
-                    "threshold_scenario": scenario, "threshold_sigma_multiplier": multiplier,
-                    "pair": pair.identifier, "first_column": first, "second_column": second,
-                    "channels_per_column": args.channels_per_column, "fit_scope": scope,
-                    **fit.as_flat_dict(prefix="fit"),
-                    "ideal_counting_b_reference_sqrt_GeV": ideal_b,
-                    "ideal_b_method": "median(ideal_sigma_D * sqrt(K_eff))",
-                })
+            selected_records = [
+                row for row in measurement_rows
+                if row["threshold_scenario"] == scenario
+                and row["pair"] == pair.identifier
+                and row["d_gaussian_status"] == "success"
+            ]
+            fit = (fit_resolution(selected_records, "two_term")
+                   if any(row["momentum_GeV_c"] == 1 for row in selected_records)
+                   else ResolutionFit.failed(
+                       "two_term", "The required Gaussian width at 1 GeV/c is unavailable.",
+                       len(selected_records),
+                       ";".join(str(row["momentum_GeV_c"]) for row in selected_records),
+                   ))
+            fits_by_scenario[scenario][pair.identifier]["all"] = fit
+            fit_rows.append({
+                "threshold_scenario": scenario, "threshold_sigma_multiplier": multiplier,
+                "pair": pair.identifier, "first_column": first, "second_column": second,
+                "channels_per_column": args.channels_per_column, "fit_scope": "all",
+                **fit.as_flat_dict(prefix="fit"),
+            })
 
     nominal_fits = fits_by_scenario["nominal"]
     systematics: list[dict] = []
     for first, second, pair in pair_defs:
-        for scope in ("all", "exclude_1gev"):
-            nominal = nominal_fits[pair.identifier][scope]
-            row = {
-                "pair": pair.identifier, "first_column": first, "second_column": second,
-                "fit_scope": scope, "nominal_status": nominal.status,
-                "constant_a": nominal.constant_a,
-                "constant_a_stat_error": nominal.constant_a_error,
-                "stochastic_b_sqrt_GeV": nominal.stochastic_b_sqrt_GeV,
-                "stochastic_b_stat_error_sqrt_GeV": nominal.stochastic_b_error_sqrt_GeV,
-            }
-            for parameter in ("constant_a", "stochastic_b_sqrt_GeV"):
-                shifts = [
-                    abs(getattr(fits_by_scenario[scenario][pair.identifier][scope], parameter)
-                        - getattr(nominal, parameter))
-                    for scenario, _ in scenarios if scenario != "nominal"
-                    and nominal.status == "success"
-                    and fits_by_scenario[scenario][pair.identifier][scope].status == "success"
-                ]
-                row[f"{parameter}_threshold_systematic"] = max(shifts) if shifts else math.nan
-                row[f"{parameter}_successful_variations"] = len(shifts)
-            systematics.append(row)
+        nominal = nominal_fits[pair.identifier]["all"]
+        row = {
+            "pair": pair.identifier, "first_column": first, "second_column": second,
+            "fit_scope": "all", "nominal_status": nominal.status,
+            "constant_a": nominal.constant_a,
+            "constant_a_stat_error": nominal.constant_a_error,
+            "stochastic_b_sqrt_GeV": nominal.stochastic_b_sqrt_GeV,
+            "stochastic_b_stat_error_sqrt_GeV": nominal.stochastic_b_error_sqrt_GeV,
+        }
+        for parameter in ("constant_a", "stochastic_b_sqrt_GeV"):
+            shifts = [
+                abs(getattr(fits_by_scenario[scenario][pair.identifier]["all"], parameter)
+                    - getattr(nominal, parameter))
+                for scenario, _ in scenarios if scenario != "nominal"
+                and nominal.status == "success"
+                and fits_by_scenario[scenario][pair.identifier]["all"].status == "success"
+            ]
+            row[f"{parameter}_threshold_systematic"] = max(shifts) if shifts else math.nan
+            row[f"{parameter}_successful_variations"] = len(shifts)
+        systematics.append(row)
 
     save_csv(args.output_dir / "column_configuration.csv", column_config)
     save_csv(args.output_dir / "column_channel_coverage.csv", coverage_rows)
@@ -583,13 +658,18 @@ def main() -> int:
              ["threshold_scenario", "momentum_GeV_c", "pair", "d_gaussian_sigma"])
     save_csv(args.output_dir / "column_pair_resolution_fits.csv", fit_rows)
     save_csv(args.output_dir / "column_pair_threshold_systematics.csv", systematics)
+    save_csv(args.output_dir / "column_pair_coverage_checks.csv", coverage_checks,
+             ["momentum_GeV_c", "pair", "coverage_group", "events",
+              "d_central68_half_width", "gaussian_sigma_D"])
 
     pdf_path = args.output_dir / "apa1_adjacent_column_resolution.pdf"
     pages = write_pair_pdf(pdf_path, pair_defs, panels, nominal_fits,
                            args.channels_per_column)
     write_summary_plots(args.output_dir, pair_defs, panels, nominal_fits,
-                        [row for row in systematics if row["fit_scope"] == "all"],
-                        args.channels_per_column)
+                        systematics, args.channels_per_column)
+    write_coverage_check_plot(args.output_dir, pair_defs, coverage_checks)
+    write_gaussian_residual_checks(args.output_dir, pair_defs, panels)
+    (args.output_dir / "apa1_adjacent_column_counting_comparison.png").unlink(missing_ok=True)
     report = [
         "APA 1 ADJACENT-COLUMN DIFFERENTIAL RESPONSE",
         "APA 1 geometry: 40 channels in 10 rows and 4 columns.",
@@ -607,9 +687,10 @@ def main() -> int:
         "Absent or invalid values are excluded from the sum, never replaced by zero.",
         "Changing channel multiplicity can broaden D_AB; inspect the per-trigger multiplicity CSV before interpreting the widths.",
         "The Gaussian core and two-term sigma_D(K_eff) fit match the adjacent-channel study.",
-        "The reference sigma_D = sqrt((1/mu_A + 1/mu_B)/2) assumes independent ideal PE counts.",
-        "This reference is not an independent electronic-noise measurement or a full prediction.",
-        "The observed/reference ratio is descriptive; its reference uncertainty is not shown as a vertical error bar.",
+        "The two-term fit always includes 1 GeV/c; no fit excluding 1 GeV/c is produced.",
+        "The three adjacent column pairs have unequal physical separations; their fit parameters are pair-specific.",
+        "The complete-channel subset is used only to diagnose coverage dependence, never as a nominal trigger cut.",
+        "Coverage diagnostics retain the D_AB normalization of the full common-trigger sample for all subsets.",
         "No absolute energy resolution or separate physical noise/geometry contribution is inferred.",
         "",
         "NOMINAL RESULTS",
@@ -632,13 +713,15 @@ def main() -> int:
         "column_channel_coverage.csv: nominal per-channel availability at every momentum.",
         "column_pair_availability.csv: common-trigger counts and mean contributing channels for every pair, momentum, and threshold scenario.",
         "column_pair_trigger_multiplicity.csv: contributing channel counts and column sums for every selected trigger.",
-        "column_pair_measurements.csv: Gaussian widths, means, correlation, empirical width, and ideal PE reference.",
-        "column_pair_resolution_fits.csv: two-term fits with all momenta and excluding 1 GeV/c.",
+        "column_pair_measurements.csv: Gaussian widths, means, correlation, and empirical widths.",
+        "column_pair_coverage_checks.csv: D_AB width versus contributing-channel count and complete-channel diagnostic fits.",
+        "column_pair_resolution_fits.csv: two-term fits including 1 GeV/c.",
         "column_pair_threshold_systematics.csv: threshold-variation envelope for a and b.",
         f"{pdf_path.name}: {pages} pages with correlations, D_AB distributions, and sigma_D(K_eff).",
         "apa1_adjacent_column_sigma_D_vs_keff.png: three adjacent-column comparisons.",
         "apa1_adjacent_column_fit_parameters.png: a and b by column pair.",
-        "apa1_adjacent_column_counting_comparison.png: observed/ideal counting-width ratios.",
+        "apa1_adjacent_column_coverage_check.png: nominal and complete-channel diagnostic widths.",
+        "apa1_adjacent_column_gaussian_residuals.png: Gaussian fit residuals at all momenta.",
     ]
     (args.output_dir / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
     print(args.output_dir)
