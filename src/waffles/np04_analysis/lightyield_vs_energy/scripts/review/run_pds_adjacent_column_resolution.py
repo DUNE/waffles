@@ -233,7 +233,7 @@ def write_pair_pdf(output: Path, pair_defs: list[tuple[int, int, Pair]],
     with PdfPages(output) as pdf:
         for first, second, pair in pair_defs:
             figure = plt.figure(figsize=(16.54, 11.69))
-            grid = figure.add_gridspec(3, 4, wspace=0.35, hspace=0.43)
+            grid = figure.add_gridspec(3, 4)
             subset_note = "" if channels_per_column == 8 else f" ({channels_per_column} fixed channels per column)"
             figure.suptitle(f"APA 1: adjacent columns {first} and {second}{subset_note}",
                             x=0.02, y=0.987, ha="left", fontsize=14)
@@ -253,7 +253,8 @@ def write_pair_pdf(output: Path, pair_defs: list[tuple[int, int, Pair]],
                                         panels[pair.identifier][momentum], momentum)
             make_column_fit_panel(figure.add_subplot(grid[2, 2:4]),
                                   panels[pair.identifier], fits[pair.identifier])
-            figure.tight_layout(rect=(0.005, 0.01, 0.995, 0.955))
+            figure.subplots_adjust(left=0.055, right=0.985, bottom=0.065,
+                                   top=0.92, wspace=0.42, hspace=0.48)
             pdf.savefig(figure)
             plt.close(figure)
             pages += 1
@@ -280,25 +281,32 @@ def write_summary_plots(output_dir: Path, pair_defs: list[tuple[int, int, Pair]]
         (axes[0], "constant_a", "constant_a_error", "constant_a_threshold_systematic",
          r"Constant parameter $a$ [AU]"),
         (axes[1], "stochastic_b_sqrt_GeV", "stochastic_b_error_sqrt_GeV",
-         "stochastic_b_threshold_systematic", r"Stochastic parameter $b$ [AU $\sqrt{\rm GeV}$]"),
+         "stochastic_b_sqrt_GeV_threshold_systematic",
+         r"Stochastic parameter $b$ [AU $\sqrt{\rm GeV}$]"),
     ):
+        statistical_label_added = False
+        systematic_label_added = False
         for index, (_, _, pair) in enumerate(pair_defs):
             fit = fits[pair.identifier]["all"]
             if fit.status != "success":
                 continue
             value = getattr(fit, field)
             axis.errorbar(index, value, yerr=getattr(fit, error), fmt="o", color=DATA_COLOR,
-                          capsize=4, ms=7, label="Fit ± statistical" if index == 0 else None)
+                          capsize=4, ms=7,
+                          label="Fit ± statistical" if not statistical_label_added else None)
+            statistical_label_added = True
             systematic = sys_lookup[pair.identifier][syst_field]
             if math.isfinite(systematic) and systematic > 0:
                 axis.errorbar(index + 0.10, value, yerr=systematic, fmt="none",
                               ecolor=IDEAL_COLOR, capsize=4,
-                              label="Threshold variation" if index == 0 else None)
+                              label="Threshold variation" if not systematic_label_added else None)
+                systematic_label_added = True
         axis.set_xticks(range(3), names)
         axis.set(xlabel="Adjacent APA 1 columns", ylabel=label)
         axis.grid(axis="y", alpha=0.23)
         add_panel_brand(axis, "right", standalone=True)
-        axis.legend(loc="upper left", frameon=True, facecolor="white", fontsize=9)
+        if statistical_label_added:
+            axis.legend(loc="upper left", frameon=True, facecolor="white", fontsize=9)
     fig.tight_layout()
     fig.savefig(output_dir / "apa1_adjacent_column_fit_parameters.png", dpi=240)
     plt.close(fig)
