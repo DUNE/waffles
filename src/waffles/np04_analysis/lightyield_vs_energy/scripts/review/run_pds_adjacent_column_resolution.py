@@ -2,9 +2,10 @@
 r"""Study the differential PDS response of adjacent APA 1 columns.
 
 Columns 1--2, 2--3, and 3--4 use the geometry in scripts/utils.py.  A column
-value is the sum of one fixed set of channels on one selected trigger.  A
-trigger enters a column pair only when every required channel in both columns
-has a finite value; missing entries are never interpreted as zero.  The
+value is the sum of finite values among the same first seven physical rows on
+one selected trigger.  A trigger enters a column pair when at least one channel
+is available in each column; missing entries are never interpreted as zero.
+The number of contributing channels is recorded for every selected trigger. The
 trigger selection, central Gaussian fit, K_eff values, and two-term resolution
 fit match run_pds_differential_resolution.py.
 
@@ -72,11 +73,12 @@ def event_at(payload: Mapping[str, Any], block: str, index: int) -> Mapping[str,
     return None
 
 
-def column_sum(event: Mapping[str, Any] | None, channels: list[Channel]) -> float | None:
+def column_sum(event: Mapping[str, Any] | None, channels: list[Channel]) -> tuple[float | None, int]:
     if event is None:
-        return None
+        return None, 0
     values = [channel_value(event, channel) for channel in channels]
-    return float(sum(values)) if all(value is not None for value in values) else None
+    valid = [value for value in values if value is not None]
+    return (float(sum(valid)), len(valid)) if valid else (None, 0)
 
 
 def selected_channel_coverage(
@@ -137,16 +139,25 @@ def selected_channel_coverage(
 
 def extract_column_pair_events(
     data: dict, selected: dict, first: list[Channel], second: list[Channel],
-) -> PairEvents:
+) -> tuple[PairEvents, list[dict]]:
     values_a: list[float] = []
     values_b: list[float] = []
+    multiplicity: list[dict] = []
     selected_triggers = first_missing = second_missing = both_missing = 0
     for block, indices in selected.items():
         for index in indices:
             selected_triggers += 1
             event = event_at(data, block, int(index))
-            sum_a = column_sum(event, first)
-            sum_b = column_sum(event, second)
+            sum_a, n_a = column_sum(event, first)
+            sum_b, n_b = column_sum(event, second)
+            multiplicity.append({
+                "block": block, "json_trigger_index": int(index),
+                "valid_channels_first_column": n_a,
+                "valid_channels_second_column": n_b,
+                "first_column_sum_PE": sum_a if sum_a is not None else math.nan,
+                "second_column_sum_PE": sum_b if sum_b is not None else math.nan,
+                "used_for_pair": int(sum_a is not None and sum_b is not None),
+            })
             if sum_a is None and sum_b is None:
                 both_missing += 1
             elif sum_a is None:
@@ -156,7 +167,7 @@ def extract_column_pair_events(
             else:
                 values_a.append(sum_a)
                 values_b.append(sum_b)
-    return PairEvents(
+    events = PairEvents(
         values_a=np.asarray(values_a, dtype=float),
         values_b=np.asarray(values_b, dtype=float),
         selected_triggers=selected_triggers,
@@ -165,6 +176,7 @@ def extract_column_pair_events(
         second_missing=second_missing,
         both_missing=both_missing,
     )
+    return events, multiplicity
 
 
 def save_csv(path: Path, rows: list[dict], empty_columns: list[str] | None = None) -> None:
@@ -407,6 +419,7 @@ def main() -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     availability_rows: list[dict] = []
     measurement_rows: list[dict] = []
+    multiplicity_rows: list[dict] = []
     selected_rows: list[dict] = []
     panels = {
         pair.identifier: {momentum: {"message": "No measurement available."}
@@ -427,8 +440,28 @@ def main() -> int:
                 "selected_triggers": sum(len(indices) for indices in selected.values()),
             })
             for first, second, pair in pair_defs:
-                events = extract_column_pair_events(data[momentum], selected,
-                                                    columns[first], columns[second])
+                events, multiplicity = extract_column_pair_events(
+                    data[momentum], selected, columns[first], columns[second],
+                )
+                multiplicity_rows.extend({
+                    "threshold_scenario": scenario, "momentum_GeV_c": momentum,
+                    "pair": pair.identifier, "first_column": first,
+                    "second_column": second, **item,
+                } for item in multiplicity)
+                used = [item for item in multiplicity if item["used_for_pair"]]
+                coverage_stats = {
+                    "fully_observed_common_events": sum(
+                        item["valid_channels_first_column"] == args.channels_per_column
+                        and item["valid_channels_second_column"] == args.channels_per_column
+                        for item in used
+                    ),
+                    "mean_valid_channels_first_column": float(np.mean([
+                        item["valid_channels_first_column"] for item in used
+                    ])) if used else math.nan,
+                    "mean_valid_channels_second_column": float(np.mean([
+                        item["valid_channels_second_column"] for item in used
+                    ])) if used else math.nan,
+                }
                 base = {
                     "threshold_scenario": scenario, "threshold_sigma_multiplier": multiplier,
                     "momentum_GeV_c": momentum,
@@ -440,12 +473,13 @@ def main() -> int:
                     "effective_spread_GeV": kinetic[momentum]["effective_spread_GeV"],
                 }
                 availability = {
-                    **base, "selected_triggers": events.selected_triggers,
+                    **base, **coverage_stats,
+                    "selected_triggers": events.selected_triggers,
                     "common_events": events.common_events,
                     "common_event_fraction": events.common_fraction,
-                    "first_column_incomplete": events.first_missing,
-                    "second_column_incomplete": events.second_missing,
-                    "both_columns_incomplete": events.both_missing,
+                    "first_column_no_valid_channel": events.first_missing,
+                    "second_column_no_valid_channel": events.second_missing,
+                    "both_columns_no_valid_channel": events.both_missing,
                     "measurement_status": "not_measured", "message": "",
                 }
                 if scenario == "nominal":
@@ -468,7 +502,7 @@ def main() -> int:
                 ideal = float(poisson_width(measurement.n_eff))
                 gaussian = measurement.gaussian_d
                 row = {
-                    **base, **measurement.as_flat_dict(),
+                    **base, **coverage_stats, **measurement.as_flat_dict(),
                     "ideal_independent_PE_sigma_D": ideal,
                     "sigma_D_over_ideal_independent_PE": gaussian.sigma / ideal
                     if gaussian.status == "success" else math.nan,
@@ -542,6 +576,9 @@ def main() -> int:
     save_csv(args.output_dir / "column_channel_coverage.csv", coverage_rows)
     save_csv(args.output_dir / "selected_trigger_counts.csv", selected_rows)
     save_csv(args.output_dir / "column_pair_availability.csv", availability_rows)
+    save_csv(args.output_dir / "column_pair_trigger_multiplicity.csv", multiplicity_rows,
+             ["threshold_scenario", "momentum_GeV_c", "pair",
+              "valid_channels_first_column", "valid_channels_second_column"])
     save_csv(args.output_dir / "column_pair_measurements.csv", measurement_rows,
              ["threshold_scenario", "momentum_GeV_c", "pair", "d_gaussian_sigma"])
     save_csv(args.output_dir / "column_pair_resolution_fits.csv", fit_rows)
@@ -562,10 +599,13 @@ def main() -> int:
         "Excluded physical cells remain listed in the channel configuration and coverage CSVs.",
         "The default seven-row selection omits row 8, which contains END 105 - CH 12, "
         "and the two lowest rows (9 and 10).",
-        f"Minimum complete common triggers per pair and momentum: {args.minimum_events}.",
+        f"Minimum common triggers per pair and momentum: {args.minimum_events}.",
         f"Threshold scenarios: {', '.join(scenario for scenario, _ in scenarios)}.",
         "At 1 GeV/c: APA1-valid triggers, no muon threshold; at 2--7 GeV/c: APA1 mean above the Langauss--Gaussian intersection.",
-        "A column sum is recorded only when every included channel has a finite value; valid zero values are retained.",
+        "For each selected trigger, a column sum uses its finite channel values in the fixed included rows.",
+        "At least one valid channel in each column is required; valid zero values are retained.",
+        "Absent or invalid values are excluded from the sum, never replaced by zero.",
+        "Changing channel multiplicity can broaden D_AB; inspect the per-trigger multiplicity CSV before interpreting the widths.",
         "The Gaussian core and two-term sigma_D(K_eff) fit match the adjacent-channel study.",
         "The reference sigma_D = sqrt((1/mu_A + 1/mu_B)/2) assumes independent ideal PE counts.",
         "This reference is not an independent electronic-noise measurement or a full prediction.",
@@ -583,14 +623,15 @@ def main() -> int:
         ]
         fit = nominal_fits[pair.identifier]["all"]
         report.append(
-            f"Columns {first}-{second}: complete triggers at 1,2,3,5,7 GeV/c = {counts}; "
+            f"Columns {first}-{second}: common triggers at 1,2,3,5,7 GeV/c = {counts}; "
             f"two-term fit {fit.status} ({fit.n_points} Gaussian widths)."
         )
     report += [
         "", "OUTPUTS",
         "column_configuration.csv: fixed channel membership and nominal availability score.",
         "column_channel_coverage.csv: nominal per-channel availability at every momentum.",
-        "column_pair_availability.csv: complete-trigger counts for every pair, momentum, and threshold scenario.",
+        "column_pair_availability.csv: common-trigger counts and mean contributing channels for every pair, momentum, and threshold scenario.",
+        "column_pair_trigger_multiplicity.csv: contributing channel counts and column sums for every selected trigger.",
         "column_pair_measurements.csv: Gaussian widths, means, correlation, empirical width, and ideal PE reference.",
         "column_pair_resolution_fits.csv: two-term fits with all momenta and excluding 1 GeV/c.",
         "column_pair_threshold_systematics.csv: threshold-variation envelope for a and b.",
