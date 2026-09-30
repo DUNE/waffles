@@ -523,6 +523,41 @@ def write_activity_diagnostic_plots(
     fig.savefig(output_dir / "apa1_adjacent_column_activity_distributions.png", dpi=240)
     plt.close(fig)
 
+    # Split the equal-activity sample into exact matched multiplicities. This
+    # tests whether the shape/width changes with activity, rather than mixing
+    # all matched multiplicities into one distribution.
+    fig, axes = plt.subplots(3, len(MOMENTA), figsize=(17, 9), sharey="row")
+    max_active_count = max((int(row["channels_per_column"]) for row in checks), default=7)
+    for row_index, (first, second, pair) in enumerate(pair_defs):
+        for column_index, momentum in enumerate(MOMENTA):
+            axis = axes[row_index, column_index]
+            subset_map = distributions.get(pair.identifier, {}).get(momentum, {})
+            reference = subset_map.get("all_common", np.asarray([], dtype=float))
+            if len(reference):
+                bins = np.histogram_bin_edges(reference, bins=45)
+                for active_count in range(1, max_active_count + 1):
+                    values = subset_map.get(f"equal_active_{active_count}",
+                                             np.asarray([], dtype=float))
+                    if len(values) >= 30:
+                        color_position = ((active_count - 1) / (max_active_count - 1)
+                                          if max_active_count > 1 else 0.5)
+                        axis.hist(values, bins=bins, density=True, histtype="step",
+                                  linewidth=1.25, color=plt.cm.viridis(0.08 + 0.84 * color_position),
+                                  label=f"{active_count} active/column (N={len(values)})")
+            axis.set_title(f"Columns {first}–{second}, {momentum} GeV/c", fontsize=9)
+            axis.set_xlabel(r"$D_{AB}$ [AU]", fontsize=8)
+            axis.set_ylabel("Density", fontsize=8)
+            axis.tick_params(labelsize=7)
+            axis.grid(alpha=0.18)
+    handles, legend_labels = axes[0, 0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, legend_labels, loc="upper center", ncol=4,
+                   frameon=True, fontsize=7.5, bbox_to_anchor=(0.5, 0.985))
+    fig.text(0.995, 0.995, "ProtoDUNE-HD Work in Progress", ha="right", va="top", fontsize=9)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.savefig(output_dir / "apa1_adjacent_column_equal_activity_distributions.png", dpi=240)
+    plt.close(fig)
+
 
 def write_coverage_check_plot(output_dir: Path, pair_defs: list[tuple[int, int, Pair]],
                               diagnostics: list[dict]) -> None:
@@ -950,6 +985,7 @@ def main() -> int:
         "apa1_adjacent_column_gaussian_residuals.png: Gaussian fit residuals at all momenta.",
         "apa1_adjacent_column_activity_widths.png: central-68% D_AB widths for nominal and activity-matched samples.",
         "apa1_adjacent_column_activity_distributions.png: D_AB distributions compared across activity and validity selections.",
+        "apa1_adjacent_column_equal_activity_distributions.png: D_AB distributions split by exact equal positive-channel multiplicity.",
     ]
     (args.output_dir / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
     print(args.output_dir)
