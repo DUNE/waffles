@@ -5,7 +5,8 @@ Columns 1--2, 2--3, and 3--4 use the geometry in scripts/utils.py.  A column
 value is the sum of finite values among the same first seven physical rows on
 one selected trigger.  A trigger enters a column pair when at least one channel
 is available in each column; missing entries are never interpreted as zero.
-The number of contributing channels is recorded for every selected trigger. The
+The number of valid and positive-PE channels is recorded for every selected trigger.
+Nominal results are unchanged; activity-matched samples are diagnostic controls. The
 trigger selection, central Gaussian fit, K_eff values, and two-term resolution
 fit match run_pds_differential_resolution.py. The fit always includes 1 GeV/c.
 Coverage subsets and Gaussian residuals are diagnostics; they do not change the
@@ -70,12 +71,16 @@ def event_at(payload: Mapping[str, Any], block: str, index: int) -> Mapping[str,
     return None
 
 
-def column_sum(event: Mapping[str, Any] | None, channels: list[Channel]) -> tuple[float | None, int]:
+def column_sum(
+    event: Mapping[str, Any] | None, channels: list[Channel],
+) -> tuple[float | None, int, int]:
     if event is None:
-        return None, 0
+        return None, 0, 0
     values = [channel_value(event, channel) for channel in channels]
     valid = [value for value in values if value is not None]
-    return (float(sum(valid)), len(valid)) if valid else (None, 0)
+    if not valid:
+        return None, 0, 0
+    return float(sum(valid)), len(valid), sum(value > 0 for value in valid)
 
 
 def selected_channel_coverage(
@@ -145,12 +150,14 @@ def extract_column_pair_events(
         for index in indices:
             selected_triggers += 1
             event = event_at(data, block, int(index))
-            sum_a, n_a = column_sum(event, first)
-            sum_b, n_b = column_sum(event, second)
+            sum_a, n_a, active_a = column_sum(event, first)
+            sum_b, n_b, active_b = column_sum(event, second)
             multiplicity.append({
                 "block": block, "json_trigger_index": int(index),
                 "valid_channels_first_column": n_a,
                 "valid_channels_second_column": n_b,
+                "active_channels_first_column": active_a,
+                "active_channels_second_column": active_b,
                 "first_column_sum_PE": sum_a if sum_a is not None else math.nan,
                 "second_column_sum_PE": sum_b if sum_b is not None else math.nan,
                 "used_for_pair": int(sum_a is not None and sum_b is not None),
@@ -348,6 +355,175 @@ def coverage_check_rows(
     return rows
 
 
+def activity_diagnostics(
+    base: dict, d_values: np.ndarray, multiplicity: list[dict],
+    nominal_gaussian: Any, channels_per_column: int, minimum_events: int,
+) -> tuple[list[dict], list[dict], dict[str, np.ndarray]]:
+    """Summarize D_AB by the number of positive-PE channels in each column.
+
+    D_AB is kept on the nominal all-common-trigger normalization so that the
+    diagnostic subsets can be compared on the same scale.
+    """
+
+    used = [item for item in multiplicity if item["used_for_pair"]]
+    if len(used) != len(d_values):
+        raise ValueError("Column multiplicities are not aligned with D_AB values.")
+    active_a = np.asarray([item["active_channels_first_column"] for item in used], dtype=int)
+    active_b = np.asarray([item["active_channels_second_column"] for item in used], dtype=int)
+    valid_a = np.asarray([item["valid_channels_first_column"] for item in used], dtype=int)
+    valid_b = np.asarray([item["valid_channels_second_column"] for item in used], dtype=int)
+
+    masks: dict[str, np.ndarray] = {
+        "all_common": np.ones(len(used), dtype=bool),
+        "equal_active_count_including_zero": active_a == active_b,
+        "equal_active_count_positive": (active_a == active_b) & (active_a > 0),
+        "equal_active_count_zero": (active_a == 0) & (active_b == 0),
+        "all_channels_active": (active_a == channels_per_column)
+        & (active_b == channels_per_column),
+        "all_channels_valid": (valid_a == channels_per_column)
+        & (valid_b == channels_per_column),
+    }
+    masks.update({
+        f"equal_active_{count}": (active_a == count) & (active_b == count)
+        for count in range(1, channels_per_column + 1)
+    })
+
+    rows: list[dict] = []
+    distributions: dict[str, np.ndarray] = {}
+    for name, mask in masks.items():
+        values = np.asarray(d_values[mask], dtype=float)
+        distributions[name] = values
+        count = len(values)
+        q16 = median = q84 = math.nan
+        asymmetry = math.nan
+        if count:
+            q16, median, q84 = (float(value) for value in np.quantile(values, [0.16, 0.5, 0.84]))
+            denominator = q84 - q16
+            asymmetry = (q84 + q16 - 2.0 * median) / denominator if denominator > 0 else math.nan
+        if name == "all_common":
+            fit = nominal_gaussian
+        elif count >= minimum_events:
+            fit = fit_gaussian_core(values)
+        else:
+            fit = type(nominal_gaussian).failed(
+                f"Fewer than {minimum_events} events in this diagnostic subset."
+            )
+        rows.append({
+            **base,
+            "activity_group": name,
+            "events": count,
+            "fraction_of_common_events": count / len(used) if used else math.nan,
+            "mean_active_channels_first_column": float(np.mean(active_a[mask])) if count else math.nan,
+            "mean_active_channels_second_column": float(np.mean(active_b[mask])) if count else math.nan,
+            "mean_valid_channels_first_column": float(np.mean(valid_a[mask])) if count else math.nan,
+            "mean_valid_channels_second_column": float(np.mean(valid_b[mask])) if count else math.nan,
+            "d_normalization": "nominal_all_common_triggers",
+            "d_mean": float(np.mean(values)) if count else math.nan,
+            "d_median": median,
+            "d_standard_deviation": float(np.std(values, ddof=1)) if count > 1 else math.nan,
+            "d_q16": q16,
+            "d_q84": q84,
+            "d_central68_half_width": central68_half_width(values) if count >= 30 else math.nan,
+            "d_quantile_asymmetry": asymmetry,
+            "gaussian_fit_status": fit.status,
+            "gaussian_fit_message": fit.message,
+            "gaussian_sigma_D": fit.sigma,
+            "gaussian_sigma_D_error": fit.sigma_error,
+            "gaussian_chi2": fit.chi2,
+            "gaussian_ndf": fit.ndf,
+            "gaussian_chi2_ndf": fit.chi2_ndf,
+        })
+
+    grouped: dict[tuple[int, int], list[float]] = {}
+    for a_count, b_count, value in zip(active_a, active_b, d_values):
+        grouped.setdefault((int(a_count), int(b_count)), []).append(float(value))
+    pattern_rows: list[dict] = []
+    for (a_count, b_count), group_values in sorted(grouped.items()):
+        values = np.asarray(group_values, dtype=float)
+        q16, median, q84 = (float(value) for value in np.quantile(values, [0.16, 0.5, 0.84]))
+        pattern_rows.append({
+            **base,
+            "active_channels_first_column": a_count,
+            "active_channels_second_column": b_count,
+            "events": len(values),
+            "fraction_of_common_events": len(values) / len(used) if used else math.nan,
+            "d_mean": float(np.mean(values)),
+            "d_median": median,
+            "d_central68_half_width": central68_half_width(values) if len(values) >= 30 else math.nan,
+            "d_quantile_asymmetry": (q84 + q16 - 2.0 * median) / (q84 - q16)
+            if q84 > q16 else math.nan,
+        })
+    return rows, pattern_rows, distributions
+
+
+def write_activity_diagnostic_plots(
+    output_dir: Path, pair_defs: list[tuple[int, int, Pair]],
+    checks: list[dict], distributions: dict[str, dict[int, dict[str, np.ndarray]]],
+) -> None:
+    labels = {
+        "all_common": "All common triggers",
+        "equal_active_count_positive": "Equal active count (at least 1 per column)",
+        "all_channels_active": "All included channels active",
+        "all_channels_valid": "All included channels valid",
+    }
+    colors = {
+        "all_common": DATA_COLOR,
+        "equal_active_count_positive": FIT_COLOR,
+        "all_channels_active": SYSTEMATIC_COLOR,
+        "all_channels_valid": DIAGNOSTIC_COLOR,
+    }
+    groups = tuple(labels)
+
+    fig, axes = plt.subplots(1, 3, figsize=(15.5, 4.8), sharex=True, sharey=True)
+    for axis, (first, second, pair) in zip(axes, pair_defs):
+        for group in groups:
+            rows = sorted((row for row in checks if row["pair"] == pair.identifier
+                           and row["activity_group"] == group
+                           and row["events"] >= 30),
+                          key=lambda row: row["kinetic_mean_GeV"])
+            if rows:
+                axis.plot([row["kinetic_mean_GeV"] for row in rows],
+                          [row["d_central68_half_width"] for row in rows],
+                          marker="o", ms=4, lw=1.3, color=colors[group], label=labels[group])
+        axis.set(xlabel=r"$K_{\rm eff}$ [GeV]", ylabel=r"Central 68\% half-width of $D_{AB}$ [AU]",
+                 title=f"Columns {first}–{second}")
+        axis.grid(alpha=0.22)
+        add_panel_brand(axis, "upper_center")
+        if axis.get_legend_handles_labels()[0]:
+            axis.legend(loc="lower left", frameon=True, facecolor="white", fontsize=7.5)
+    fig.tight_layout()
+    fig.savefig(output_dir / "apa1_adjacent_column_activity_widths.png", dpi=240)
+    plt.close(fig)
+
+    fig, axes = plt.subplots(3, len(MOMENTA), figsize=(17, 9), sharey="row")
+    histogram_groups = groups
+    for row_index, (first, second, pair) in enumerate(pair_defs):
+        for column_index, momentum in enumerate(MOMENTA):
+            axis = axes[row_index, column_index]
+            subset_map = distributions.get(pair.identifier, {}).get(momentum, {})
+            all_values = subset_map.get("all_common", np.asarray([], dtype=float))
+            if len(all_values):
+                bins = np.histogram_bin_edges(all_values, bins=45)
+                for group in histogram_groups:
+                    values = subset_map.get(group, np.asarray([], dtype=float))
+                    if len(values) >= 30:
+                        axis.hist(values, bins=bins, density=True, histtype="step",
+                                  linewidth=1.25, color=colors[group], label=labels[group])
+            axis.set_title(f"Columns {first}–{second}, {momentum} GeV/c", fontsize=9)
+            axis.set_xlabel(r"$D_{AB}$ [AU]", fontsize=8)
+            axis.set_ylabel("Density", fontsize=8)
+            axis.tick_params(labelsize=7)
+            axis.grid(alpha=0.18)
+    handles, legend_labels = axes[0, 0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, legend_labels, loc="upper center", ncol=4,
+                   frameon=True, fontsize=8, bbox_to_anchor=(0.5, 0.985))
+    fig.text(0.995, 0.995, "ProtoDUNE-HD Work in Progress", ha="right", va="top", fontsize=9)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.savefig(output_dir / "apa1_adjacent_column_activity_distributions.png", dpi=240)
+    plt.close(fig)
+
+
 def write_coverage_check_plot(output_dir: Path, pair_defs: list[tuple[int, int, Pair]],
                               diagnostics: list[dict]) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(15.5, 4.8), sharex=True, sharey=True)
@@ -497,7 +673,12 @@ def main() -> int:
     measurement_rows: list[dict] = []
     multiplicity_rows: list[dict] = []
     coverage_checks: list[dict] = []
+    activity_checks: list[dict] = []
+    activity_patterns: list[dict] = []
     selected_rows: list[dict] = []
+    activity_distributions: dict[str, dict[int, dict[str, np.ndarray]]] = {
+        pair.identifier: {} for _, _, pair in pair_defs
+    }
     panels = {
         pair.identifier: {momentum: {"message": "No measurement available."}
                           for momentum in MOMENTA}
@@ -537,6 +718,12 @@ def main() -> int:
                     ])) if used else math.nan,
                     "mean_valid_channels_second_column": float(np.mean([
                         item["valid_channels_second_column"] for item in used
+                    ])) if used else math.nan,
+                    "mean_active_channels_first_column": float(np.mean([
+                        item["active_channels_first_column"] for item in used
+                    ])) if used else math.nan,
+                    "mean_active_channels_second_column": float(np.mean([
+                        item["active_channels_second_column"] for item in used
                     ])) if used else math.nan,
                 }
                 base = {
@@ -595,6 +782,13 @@ def main() -> int:
                             base, panel["d_values"], multiplicity, gaussian,
                             args.channels_per_column, args.minimum_events,
                         ))
+                        activity_rows, pattern_rows, group_values = activity_diagnostics(
+                            base, panel["d_values"], multiplicity, gaussian,
+                            args.channels_per_column, args.minimum_events,
+                        )
+                        activity_checks.extend(activity_rows)
+                        activity_patterns.extend(pattern_rows)
+                        activity_distributions[pair.identifier][momentum] = group_values
 
     fit_rows: list[dict] = []
     fits_by_scenario: dict[str, dict[str, dict[str, ResolutionFit]]] = {}
@@ -653,7 +847,8 @@ def main() -> int:
     save_csv(args.output_dir / "column_pair_availability.csv", availability_rows)
     save_csv(args.output_dir / "column_pair_trigger_multiplicity.csv", multiplicity_rows,
              ["threshold_scenario", "momentum_GeV_c", "pair",
-              "valid_channels_first_column", "valid_channels_second_column"])
+              "valid_channels_first_column", "valid_channels_second_column",
+              "active_channels_first_column", "active_channels_second_column"])
     save_csv(args.output_dir / "column_pair_measurements.csv", measurement_rows,
              ["threshold_scenario", "momentum_GeV_c", "pair", "d_gaussian_sigma"])
     save_csv(args.output_dir / "column_pair_resolution_fits.csv", fit_rows)
@@ -661,6 +856,12 @@ def main() -> int:
     save_csv(args.output_dir / "column_pair_coverage_checks.csv", coverage_checks,
              ["momentum_GeV_c", "pair", "coverage_group", "events",
               "d_central68_half_width", "gaussian_sigma_D"])
+    save_csv(args.output_dir / "column_pair_activity_checks.csv", activity_checks,
+             ["momentum_GeV_c", "pair", "activity_group", "events",
+              "fraction_of_common_events", "d_central68_half_width", "gaussian_chi2_ndf"])
+    save_csv(args.output_dir / "column_pair_activity_multiplicity.csv", activity_patterns,
+             ["momentum_GeV_c", "pair", "active_channels_first_column",
+              "active_channels_second_column", "events", "d_mean", "d_central68_half_width"])
 
     pdf_path = args.output_dir / "apa1_adjacent_column_resolution.pdf"
     pages = write_pair_pdf(pdf_path, pair_defs, panels, nominal_fits,
@@ -669,6 +870,8 @@ def main() -> int:
                         systematics, args.channels_per_column)
     write_coverage_check_plot(args.output_dir, pair_defs, coverage_checks)
     write_gaussian_residual_checks(args.output_dir, pair_defs, panels)
+    write_activity_diagnostic_plots(args.output_dir, pair_defs, activity_checks,
+                                    activity_distributions)
     (args.output_dir / "apa1_adjacent_column_counting_comparison.png").unlink(missing_ok=True)
     report = [
         "APA 1 ADJACENT-COLUMN DIFFERENTIAL RESPONSE",
@@ -684,6 +887,7 @@ def main() -> int:
         "At 1 GeV/c: APA1-valid triggers, no muon threshold; at 2--7 GeV/c: APA1 mean above the Langauss--Gaussian intersection.",
         "For each selected trigger, a column sum uses its finite channel values in the fixed included rows.",
         "At least one valid channel in each column is required; valid zero values are retained.",
+        "An active channel is defined as a finite n_pe value greater than zero PE; zero PE values remain valid but are inactive.",
         "Absent or invalid values are excluded from the sum, never replaced by zero.",
         "Changing channel multiplicity can broaden D_AB; inspect the per-trigger multiplicity CSV before interpreting the widths.",
         "The Gaussian core and two-term sigma_D(K_eff) fit match the adjacent-channel study.",
@@ -691,6 +895,8 @@ def main() -> int:
         "The three adjacent column pairs have unequal physical separations; their fit parameters are pair-specific.",
         "The complete-channel subset is used only to diagnose coverage dependence, never as a nominal trigger cut.",
         "Coverage diagnostics retain the D_AB normalization of the full common-trigger sample for all subsets.",
+        "Activity diagnostics compare all common triggers with equal active-channel counts, all included channels active, and all included channels valid.",
+        "Activity diagnostic D_AB values retain the nominal all-common-trigger normalization; they do not alter nominal fits or systematics.",
         "No absolute energy resolution or separate physical noise/geometry contribution is inferred.",
         "",
         "NOMINAL RESULTS",
@@ -707,6 +913,24 @@ def main() -> int:
             f"Columns {first}-{second}: common triggers at 1,2,3,5,7 GeV/c = {counts}; "
             f"two-term fit {fit.status} ({fit.n_points} Gaussian widths)."
         )
+        equal_active_counts = [
+            next((row["events"] for row in activity_checks
+                  if row["pair"] == pair.identifier
+                  and row["momentum_GeV_c"] == momentum
+                  and row["activity_group"] == "equal_active_count_positive"), 0)
+            for momentum in MOMENTA
+        ]
+        all_active_counts = [
+            next((row["events"] for row in activity_checks
+                  if row["pair"] == pair.identifier
+                  and row["momentum_GeV_c"] == momentum
+                  and row["activity_group"] == "all_channels_active"), 0)
+            for momentum in MOMENTA
+        ]
+        report.append(
+            f"Columns {first}-{second}: equal positive-active counts at 1,2,3,5,7 GeV/c = "
+            f"{equal_active_counts}; both columns fully active = {all_active_counts}."
+        )
     report += [
         "", "OUTPUTS",
         "column_configuration.csv: fixed channel membership and nominal availability score.",
@@ -715,6 +939,8 @@ def main() -> int:
         "column_pair_trigger_multiplicity.csv: contributing channel counts and column sums for every selected trigger.",
         "column_pair_measurements.csv: Gaussian widths, means, correlation, and empirical widths.",
         "column_pair_coverage_checks.csv: D_AB width versus contributing-channel count and complete-channel diagnostic fits.",
+        "column_pair_activity_checks.csv: D_AB width, shape, and Gaussian diagnostics for activity-matched trigger subsets.",
+        "column_pair_activity_multiplicity.csv: counts and D_AB summaries for each exact active-channel-count pair.",
         "column_pair_resolution_fits.csv: two-term fits including 1 GeV/c.",
         "column_pair_threshold_systematics.csv: threshold-variation envelope for a and b.",
         f"{pdf_path.name}: {pages} pages with correlations, D_AB distributions, and sigma_D(K_eff).",
@@ -722,6 +948,8 @@ def main() -> int:
         "apa1_adjacent_column_fit_parameters.png: a and b by column pair.",
         "apa1_adjacent_column_coverage_check.png: nominal and complete-channel diagnostic widths.",
         "apa1_adjacent_column_gaussian_residuals.png: Gaussian fit residuals at all momenta.",
+        "apa1_adjacent_column_activity_widths.png: central-68% D_AB widths for nominal and activity-matched samples.",
+        "apa1_adjacent_column_activity_distributions.png: D_AB distributions compared across activity and validity selections.",
     ]
     (args.output_dir / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
     print(args.output_dir)
