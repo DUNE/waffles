@@ -162,6 +162,12 @@ def create_response(wfsetch, avgmethod="mean", maxfev=100000, specific_tick=None
     return averages, timestamps
 
 
+def clear_pmt_problems(waveform:Waveform):
+    if np.any(waveform.adcs < 2000):
+        return False
+    return True
+
+
 def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Path=Path("./"), cutyaml="cuts.yaml", saveplots=False, nfiles=None, channels=None, avgmethod="mean", force = False, dryrun=False):
 
     if channels is not None:
@@ -192,6 +198,10 @@ def main(run, dettype, datadir, analysisname:str, nwaveforms=None, outputdir:Pat
         return ProcessStatus.FAILED
 
     wfset_full = WaveformSet.from_filtered_WaveformSet(wfset_full, remove_extra_channels_membrane)
+
+    if dettype == "pmt":
+        print("Clearning pmt...")
+        wfset_full = WaveformSet.from_filtered_WaveformSet(wfset_full, clear_pmt_problems)
 
 
     runBasicWfAnaNP02(wfset_full, onlyoptimal=True, baselinefinish=60, int_ll=64, int_ul=100, amp_ll=64, amp_ul=150, configyaml="")

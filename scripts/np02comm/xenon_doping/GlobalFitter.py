@@ -8,8 +8,8 @@ from scipy.signal import find_peaks, peak_prominences
 from waffles.np02_utils.AutoMap import getModuleName
 
 def tta_vs_ppm(ppm):
-    intercept = 0.744
-    slope = 0.151
+    intercept = 0.734
+    slope = 0.152
     return 1/(intercept + slope*ppm)
 
 def ttx_vs_ppm(ppm):
@@ -115,10 +115,6 @@ class GlobalFitResults:
 # ------------------------------------------------------------------
 class GlobalFitter:
 
-    _PER_MODULE_INIT  = {"A": 2000., "B": 2000., "C": 12000., "t0": 900.0, "sigma": 50.0}#, "offset": 0.0}
-    _GLOBAL_INIT      = {"tf": 7.0, "tta": 1008., "ttx": 2718., }
-    # _PER_MODULE_INIT  = {"B": 8000., "C": 12000., "offset": 0.0}
-    # _GLOBAL_INIT      = {"tta": 700., "ttx": 2000.}
 
     def __init__(self,
                  datasets: dict[tuple[int, int], np.ndarray] = None,
@@ -148,6 +144,10 @@ class GlobalFitter:
             if key[0] == 110:
                 self._PER_MODULE_INIT  = {"A": 200e3, "B": 1e6, "C": 1e6, "t0": 900.0, "sigma": 40.0}
                 break
+
+
+        self._PER_MODULE_INIT  = {"A": 2000., "B": 2000., "C": 12000., "t0": 900.0, "sigma": 50.0}#, "offset": 0.0}
+        self._GLOBAL_INIT      = {"tf": 7.0, "tta": 1008., "ttx": 2718., }
 
     # ------------------------------------------------------------------
     # Param name helpers
@@ -246,10 +246,14 @@ class GlobalFitter:
 
     def debug_peaks(self, key=None, prominence=None):
         if key is not None:
-            keys = [key]
+            keys = key
+            if not isinstance(keys, list):
+                keys = [keys]
+
+            print(keys)
         else:
             keys = self.datasets.keys()
-        fig, axs = plt.subplots(len(keys)//2, 2, figsize=(12, 4 * (len(keys)//2)), squeeze=False)
+        fig, axs = plt.subplots(len(keys)//2, 2, figsize=(24, 5.5 * (len(keys)//2)), squeeze=False)
 
         if prominence is None:
             prominence = self.prominence
@@ -264,6 +268,18 @@ class GlobalFitter:
             ax.vlines(self.x[peaks], ymin=y[peaks] - prominences, ymax=y[peaks], color='C1', label='Prominence')
             ax.set_xlabel("Time [ns]")
             ax.set_ylabel("Amplitude [a.u.]")
+
+            start_slow = int(peaks[0] + self.offset_t0//16)
+            value_at_start = y[start_slow]
+            lim_arg = np.argwhere(y[start_slow:]/value_at_start < 0.005)
+            if len(lim_arg) > 0:
+                _fit_limit_ns = min((lim_arg[0][0] + start_slow)*16, 12500)
+            else:
+                _fit_limit_ns = 12500
+            ax.axvline(self.x[start_slow], color='green', linestyle='--', label='Start of slow decay')
+            ax.axhline(value_at_start, color='orange', linestyle='--', label='Value at start of slow decay')
+            ax.axhline(value_at_start*0.005, color='purple', linestyle='--', label='0.5% of value at start')
+            ax.axvline(_fit_limit_ns, color='red', linestyle='--', label='Fit limit')
             ax.legend(title=f"{getModuleName(key[0], key[1])}: {key}")
 
         return fig, axs
@@ -308,7 +324,7 @@ class GlobalFitter:
             self.mask_key[key] = mask
 
         datasets = {key: y[self.mask_key[key]] for key, y in self.datasets.items()}
-        self.errors = {key: np.ones_like(y)*0.1+self.error for key, y in datasets.items()}
+        self.errors = {key: np.zeros_like(y)+self.error for key, y in datasets.items()}
         self.errors = {key: v**2 for key, v in self.errors.items()}
 
         self.values_chi2 = []
@@ -320,11 +336,7 @@ class GlobalFitter:
             params = dict(zip(param_names, args))
             return self._cost(datasets, **params)
 
-        nparams = len(param_names)
-        if oneexp:
-            nparams -= sum(1 for names in self.param_names.values() if names["C"] in param_names)  # C is fixed to 0, so not a free parameter
-            nparams -= 1 # ttx is fixed to 0, so not a free parameter
-        cost_wrapper.ndata = sum(len(y) for y in datasets.values()) - nparams # for proper error scaling in Minuit
+        cost_wrapper.ndata = sum(len(y) for y in datasets.values()) # for proper error scaling in Minuit
 
         m = Minuit(cost_wrapper, *init.values(), name=param_names)
         # Global params
@@ -362,6 +374,7 @@ class GlobalFitter:
         m.migrad()
         if not oneexp: m.fixed["ttx"] = False
         m.fixed["tta"] = False
+        # m.fixed["tf"] = False
         for names in self.param_names.values():
             m.fixed[names["sigma"]]  = False
         m.migrad()

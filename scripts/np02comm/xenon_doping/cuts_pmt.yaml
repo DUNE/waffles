@@ -1,7 +1,8 @@
 110: 
   0:
     cuts: &defaultPcut
-      1: {}
+        0: { t0: 72, tf:  80, threshold: 2000, type:  higher, filter: 0, npop: max }
+        1: { t0: 100, tf:  1024, threshold: 3000, type:  lower, filter: 0, npop: max }
         # 1: { t0: 0, tf:   70, threshold:  75, type:   lower, filter:  8, npop: max }
         # 2: { t0: 0, tf:   70, threshold:  -75, type:  higher, filter: 8, npop: min }
         # 3: { t0: 70, tf:  72, threshold: 1000, type:  lower, filter: 8, npop: max }

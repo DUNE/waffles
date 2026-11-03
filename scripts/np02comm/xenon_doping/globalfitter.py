@@ -28,9 +28,14 @@ def genkeys(detectors:list):
         return []
     modules = expand_modules(detectors, list(dict_module_to_uniqch.keys()))
     keys = []
+
     for m in modules:
         if m[:2] in ["M1", "M2", "M3", "M4" ]:
             continue
+
+        if m.startswith('P') and m not in ["P41", "P38", "P37", "P29", "P34", "P32", "P25", "P35", "P12", "P06", "P14"]:
+            continue
+
         uch:UniqueChannel = dict_module_to_uniqch[m]
         ep, ch = uch.endpoint, uch.channel
         keys.append((ep,ch))
@@ -40,12 +45,20 @@ def genkeys(detectors:list):
 def save_plot(run, gFit, keys, suffix, label, outputdir):
     if not keys:
         return
+    wfms = { key: wfm for key, wfm in gFit.datasets.items() if key in keys }
+    keys = [ key for key in keys if key in gFit.datasets.keys() ] 
     fig, axs = gFit.plot_results(keys=keys, ncols=2, logscale='log' in suffix)
-    for ax in np.ravel(axs):
+    for i, ax in enumerate(np.ravel(axs)):
+        if i >= len(keys):
+            continue
         if 'log' in suffix:
-            ax.set_ylim(1e-3, None)
-        # ax.set_xlim(55*16,120*16)
-        # ax.set_ylim(-0.5,0.5)
+            ax.set_ylim(1e-3, 1.2*np.max(wfms[keys[i]]))
+        else:
+            ax.set_ylim(None, 1.2*np.max(wfms[keys[i]]))
+            ax.set_xlim(40*16, 3000)
+            # ax.set_xlim(55*16,6000)
+        # ax.set_ylim(-50,50)
+
     plt.savefig(outputdir / f'globalfit_plot_run{run:06d}_{label}{suffix}.png')
     plt.close(fig)
     
@@ -128,7 +141,8 @@ def main(run: int,
          force:bool = False,
          savefig:bool = True,
          ppm: float = 0.0,
-         dryrun:bool = False
+         dryrun:bool = False,
+         tolerance:float = 0.005
         ):
 
 
@@ -182,11 +196,15 @@ def main(run: int,
 
 
     oneexp = True if run < 43418 else False
-    gFit = GlobalFitter(datasets=dataset_fit, offset_t0=320, penalty_strength=100, error=1)
+    if 'pmt' not in dettypes:
+        gFit = GlobalFitter(datasets=dataset_fit, offset_t0=320, penalty_strength=100, error=0.11)
+    else:
+        gFit = GlobalFitter(datasets=dataset_fit, offset_t0=320, penalty_strength=1e5, error=200, prominence=500, penalty_scale=50)
+
 
 
     print("Performing global fit...")
-    results = gFit.minimize(fit_limit_ns=12500, oneexp=oneexp, ppm=ppm)
+    results = gFit.minimize(fit_limit_ns=12500, tolerance=tolerance, oneexp=oneexp, ppm=ppm)
     if not gFit.minuit or gFit.minuit.fmin is None:
         print_colored(f"Fit failed for run {run}.", "ERROR")
         return ProcessStatus.FAILED
@@ -203,7 +221,9 @@ if __name__ == "__main__":
     argument_parser.add_argument("--force", action="store_true", help="Force reprocessing even if output already exists.")
     argument_parser.add_argument("--analysisname", type=str, default="global_analysis_results", help="Name of the analysis for output directory.")
     argument_parser.add_argument("--outputdir", type=str, default=PATH_XE_OUTPUTS, help="Base directory for output. A subdirectory with the analysis name will be created inside this directory.")
+    argument_parser.add_argument("--response-folder", type=str, default="average_waveforms_few_cuts_deconvolved-hvieirad", help="Name of the folder containing the deconvolved responses.")
     argument_parser.add_argument("--dryrun", action="store_true", help="If set, the script will only print the parameters and not execute the main function.")
+    argument_parser.add_argument("--tolerance",type=float, default=0.005, help="Tolerance for the fit minimization.")
     argument_parser.add_argument("--savefig", action="store_true", help="If set, the script will save the fit result plots.")
     args = argument_parser.parse_args()
 
@@ -211,6 +231,8 @@ if __name__ == "__main__":
     list_of_modules = args.modules.split(",")
     force = args.force
     analysisname = args.analysisname
+    response_folder = args.response_folder
+    tolerance = args.tolerance
 
     df = load_database()
     df = add_ppm_per_run(df.drop(columns=["ppm"]))
@@ -226,7 +248,7 @@ if __name__ == "__main__":
         ppm = df.loc[run, 'ppm']
         print("----------------------------------------")
         print("Prossessing run:", run)
-        status = main(run=run, list_of_modules=list_of_modules, analysisname=analysisname, force=force, outputdir=args.outputdir, savefig=args.savefig, dryrun=args.dryrun, ppm=ppm)
+        status = main(run=run, deconvolved_name=response_folder, list_of_modules=list_of_modules, analysisname=analysisname, force=force, outputdir=args.outputdir, savefig=args.savefig, dryrun=args.dryrun, ppm=ppm, tolerance=tolerance)
         results[run] = status
 
     __print_summary(results, dryrun=args.dryrun)
