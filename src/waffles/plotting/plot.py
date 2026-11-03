@@ -1107,6 +1107,7 @@ def plot_ChannelWsGrid(
                        filtering: float = 0,
                        zlog: bool = False,
                        heatmap_chunk_size: int = 5000,
+                       apply_baseline_correction_heatmap: bool = True,
                        **kwargs
                        ) -> pgo.Figure:
     """This function returns a plotly.graph_objects.Figure 
@@ -1377,6 +1378,12 @@ def plot_ChannelWsGrid(
         y-coordinate of the top annotation of each subplot
     verbose: bool
         Whether to print functioning-related messages
+    apply_baseline_correction_heatmap: bool
+        If True, then the baseline will be subtracted from each
+        waveform before plotting the heatmap. In such case, the
+        baseline will be grabbed from the 'baseline' key of the
+        analysis specified by the 'analysis_label' parameter.
+        
     **kwargs
         These arguments only make a difference if the
         'mode' parameter is set to 'average' and the
@@ -1719,7 +1726,7 @@ def plot_ChannelWsGrid(
                     chunk = aux_idcs_list[start : start + heatmap_chunk_size]
                     accumulated += wpu.__subplot_heatmap_histogram_only( 
                         channel_ws, chunk, analysis_label,
-                        time_bins, adc_bins, aux_ranges, filtering)
+                        time_bins, adc_bins, aux_ranges, filtering, apply_baseline_correction=apply_baseline_correction_heatmap)
 
                 # Plot the fully accumulated histogram once
                 figure_ = wpu.__subplot_heatmap_from_array(             

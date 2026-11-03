@@ -230,7 +230,8 @@ def get_string_of_first_n_integers_if_available(
 
 def __subplot_heatmap_histogram_only(
     waveform_set, wf_idcs, analysis_label,
-    time_bins, adc_bins, ranges, filtering
+    time_bins, adc_bins, ranges, filtering,
+    apply_baseline_correction=True
 ) -> np.ndarray:
     """Computes and returns the raw 2D histogram array for a chunk of waveforms."""
     accumulated = np.zeros((time_bins, adc_bins), dtype=np.float32)
@@ -241,7 +242,9 @@ def __subplot_heatmap_histogram_only(
         wf = waveform_set.waveforms[idx]
         baseline = wf.analyses[analysis_label].result['baseline']
         aux_x = x_base + wf.time_offset
-        aux_y = wf.adcs.astype(np.float32) - baseline
+        aux_y = wf.adcs.astype(np.float32)
+        if apply_baseline_correction:
+            aux_y -= baseline
 
         if filtering > 0:
             aux_y = denoiser.apply_denoise(aux_y, filter=filtering)
@@ -299,6 +302,7 @@ def __subplot_heatmap(
     filtering: float = 0,
     zlog: bool = False,
     chunk_size: int = 5000,
+    apply_baseline_correction: bool = True
 ) -> pgo.Figure:
     """This is a helper function for the 
     plot_WaveformSet() function. It should only
@@ -391,6 +395,9 @@ def __subplot_heatmap(
         Larger values are faster but use more memory.
         Smaller values are slower but keep memory
         usage bounded. Defaults to 5000.
+    apply_baseline_correction: bool
+        If True, the baseline will be subtracted from
+        each waveform before being added to the heatmap.
 
     Returns
     ----------
@@ -405,7 +412,7 @@ def __subplot_heatmap(
         chunk = wf_idcs[start : start + chunk_size]
         accumulated += __subplot_heatmap_histogram_only(
             waveform_set, chunk, analysis_label,
-            time_bins, adc_bins, ranges, filtering)
+            time_bins, adc_bins, ranges, filtering, apply_baseline_correction=apply_baseline_correction)
 
     return __subplot_heatmap_from_array(
         accumulated, figure, name,
