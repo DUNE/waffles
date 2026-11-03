@@ -8,6 +8,7 @@ from waffles.data_classes.ChannelWsGrid import ChannelWsGrid
 from waffles.input_output.hdf5_structured import load_structured_waveformset
 from waffles.np02_utils.AutoMap import dict_uniqch_to_module, ordered_channels_membrane
 from waffles.np02_utils.load_utils import open_processed
+from waffles.utils.numerical_utils import derivative
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -73,11 +74,19 @@ def compute_all_peaks(wfset: WaveformSet, nrecords:dict, allpeaks:dict, endpoint
     
     for ch, wfs in wfsetch.items():
         binswidth_ticks = 1024
-        bmin = -1250
-        bmax = 93750
-        if min(allpeaks[ch]) < -20000 - 1024:
-            bmin = -187500
-            bmax = 187500
+        # old...
+        # bmin = -1250
+        # bmax = 93750
+        # if min(allpeaks[ch]) < -20000 - 1024:
+        #     bmin = -187500
+        #     bmax = 187500
+        
+        # new..
+        bmin = -6250
+        bmax = 56250
+        if min(allpeaks[ch]) < -75000 - 1024:
+            bmin = -156250
+            bmax = 312500
         bins = np.arange(bmin, bmax, binswidth_ticks)
         
         counts, bins = np.histogram(allpeaks[ch], bins=bins, weights=np.ones_like(allpeaks[ch])/nrecords[ch])
@@ -193,11 +202,6 @@ def apply_derivativeWf(waveform: Waveform, mult_factor=10, again=False) -> bool:
         waveform.derivative_2 = derivative(waveform.derivative, mult_factor=mult_factor) # type: ignore
     return True
 
-def derivative(raw: np.ndarray, mult_factor=12) -> np.ndarray:
-    adcs = np.astype(raw, np.float32)
-    derivative = np.zeros_like(raw, dtype=np.float32) 
-    derivative[1:-1] = mult_factor*(adcs[2:] - adcs[:-2])*0.5 
-    return derivative
 
 def apply_moving_averageWf(waveform: Waveform, width=12) -> bool:
     waveform.derivative = moving_average(waveform.derivative, width=width) # type: ignore
