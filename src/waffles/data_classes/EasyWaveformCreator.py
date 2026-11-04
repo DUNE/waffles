@@ -2,7 +2,7 @@ import numpy as np
 
 from waffles.data_classes.Waveform import Waveform
 from waffles.data_classes.WaveformSet import WaveformSet
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 
@@ -11,7 +11,7 @@ class NeededWaveformParams:
     timestamp: int = 0
     time_step_ns: float = 16.
     daq_window_timestamp: int = 0
-    adcs: np.ndarray = np.zeros(1024, dtype=np.int16)
+    adcs: np.ndarray = field(default_factory=lambda: np.zeros(1024, dtype=np.int16))
     run_number: int = 0
     record_number: int = 0
     endpoint: int = 0
