@@ -1,0 +1,7 @@
+# Outputs of run_calibration.py
+*.png
+*.html
+*.csv
+summary_*.txt
+# Output folders YYYYMMDD_N (inside results/ or any --outdir)
+[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*/

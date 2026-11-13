@@ -1,0 +1,13 @@
+45763	11/11/2026	14:52	hvieirad			106,107,110		LED run		LED intensity = 3100, LED width = 4 ns, mask = 1	C1 
+45764	11/11/2026	14:55	hvieirad			106,107,110		LED run		LED intensity = 3950, LED width = 4 ns, mask = 1	C2 
+45765	11/11/2026	14:58	hvieirad			106,107,110		LED run		LED intensity = 2100, LED width = 4 ns, mask = 1	C3
+45766	11/11/2026	15:01	hvieirad			106,107,110		LED run		LED intensity = 3500, LED width = 4 ns, mask = 1	C4
+45767	11/11/2026	15:04	hvieirad			106,107,110		LED run		LED intensity = 2800, LED width = 4 ns, mask = 1	C5
+45768	11/11/2026	15:07	hvieirad			106,107,110		LED run		LED intensity = 1900, LED width = 4 ns, mask = 16	C6(1)
+45769	11/11/2026	15:10	hvieirad			106,107,110		LED run		LED intensity = 1700, LED width = 4 ns, mask = 16	C6(2)
+45770	11/11/2026	15:13	hvieirad			106,107,110		LED run		LED intensity = 1600, LED width = 4 ns, mask = 16	C7, M3, M4
+45771	11/11/2026	15:16	hvieirad			106,107,110		LED run		LED intensity = 1550, LED width = 4 ns, mask = 16	C8
+45772	11/11/2026	15:20	hvieirad			106,107,110		LED run		LED intensity = 1900, LED width = 4 ns, mask = 8	M5 
+45773	11/11/2026	15:23	hvieirad			106,107,110		LED run		LED intensity = 1600, LED width = 4 ns, mask = 8	M6 
+45774	11/11/2026	15:26	hvieirad			106,107,110		LED run		LED intensity = 2250, LED width = 4 ns, mask = 8	M7
+45775	11/11/2026	15:29	hvieirad			106,107,110		LED run		LED intensity = 3250, LED width = 4 ns, mask = 8	M8
