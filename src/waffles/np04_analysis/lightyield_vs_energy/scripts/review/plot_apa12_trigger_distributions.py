@@ -1264,7 +1264,7 @@ def main():
             ) = prepared[momentum]
 
             fig, axis = plt.subplots(figsize=(9, 5.2))
-            axis.hist(
+            counts1, _, _ = axis.hist(
                 apa1,
                 bins=edges1,
                 color=COLORS["apa1"],
@@ -1275,21 +1275,19 @@ def main():
                 label=f"Data @ {momentum} GeV/c ({len(apa1)} triggers)",
             )
             axis.set_xlim(0, display_max1)
+            axis.set_ylim(0, max(1, np.max(counts1)) * 1.3)
             axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$")
             axis.set_ylabel("Counts")
             axis.xaxis.set_major_locator(ticker.MaxNLocator(nbins=9, min_n_ticks=5))
             axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=8, integer=True))
             finish_axis(axis)
-            axis.legend(
-                loc="lower left", bbox_to_anchor=(0.0, 1.01),
-                borderaxespad=0, frameon=False,
-            )
+            axis.legend(loc="upper left", frameon=False)
             add_status_label(axis, "Work in Progress")
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa1_hist_{momentum}GeV")
 
             fig, axis = plt.subplots(figsize=(9, 5.2))
-            axis.hist(
+            counts2, _, _ = axis.hist(
                 apa2,
                 bins=edges2,
                 color=COLORS["apa2"],
@@ -1300,15 +1298,13 @@ def main():
                 label=f"Data @ {momentum} GeV/c ({len(apa2)} triggers)",
             )
             axis.set_xlim(0, display_max2)
+            axis.set_ylim(0, max(1, np.max(counts2)) * 1.3)
             axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,2}}$")
             axis.set_ylabel("Counts")
             axis.xaxis.set_major_locator(ticker.MaxNLocator(nbins=9, min_n_ticks=5))
             axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=8, integer=True))
             finish_axis(axis)
-            axis.legend(
-                loc="lower left", bbox_to_anchor=(0.0, 1.01),
-                borderaxespad=0, frameon=False,
-            )
+            axis.legend(loc="upper left", frameon=False)
             add_status_label(axis, "Work in Progress")
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa2_hist_{momentum}GeV")
