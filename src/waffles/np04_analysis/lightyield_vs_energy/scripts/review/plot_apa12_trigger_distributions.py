@@ -1421,12 +1421,12 @@ def main():
                     axis.axvline(
                         fit_row["intersection"], color=COLORS["intersection"],
                         linestyle=":", linewidth=1.8,
-                        label="Intersection = " + format_estimate(
+                        label=r"$\langle N_{\mathrm{PE}}\rangle_{\mathrm{thr}}$ = " + format_estimate(
                             fit_row["intersection"],
                             fit_row["intersection_error"], unit="PE",
                         ),
                     )
-                axis.set_ylabel("Trigger counts")
+                axis.set_ylabel("Counts")
                 axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=7, integer=True))
                 axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$")
                 axis.set_xlim(plot_edges[0], plot_edges[-1])
@@ -1445,21 +1445,21 @@ def main():
                     "\n" + rf"$R^2$ = {fit_row['r_squared']:.3f}"
                 )
                 langauss_text = (
-                        "MPV = " + format_estimate(
+                        r"$x_{\mathrm{MPV},\mathrm{LG}}$ = " + format_estimate(
                             fit_row["mpv"], fit_row["mpv_error"], unit="PE"
                         ) + "\n"
-                        + r"$\eta$ = " + format_estimate(
+                        + r"$\chi_{\mathrm{LG}}$ = " + format_estimate(
                             fit_row["eta"], fit_row["eta_error"], unit="PE"
                         ) + "\n"
-                        + r"$\sigma_{\rm LG}$ = " + format_estimate(
+                        + r"$\sigma_{\mathrm{LG}}$ = " + format_estimate(
                             fit_row["langauss_sigma"],
                             fit_row["langauss_sigma_error"], unit="PE",
                         ) + "\n"
-                        + r"$N_{\rm LG}$ = " + format_estimate(
+                        + r"$N_{\mathrm{LG}}$ = " + format_estimate(
                             fit_row["langauss_yield"],
                             fit_row["langauss_yield_error"], digits=0,
                         ) + "\n"
-                        + r"$x_{\rm peak}$ = " + format_estimate(
+                        + r"$x_{\mathrm{peak},\mathrm{LG}}$ = " + format_estimate(
                             fit_row["langauss_peak"],
                             fit_row["langauss_peak_error"], unit="PE",
                         )
@@ -1468,15 +1468,15 @@ def main():
                     info_text = "Langauss:\n" + langauss_text + "\n\n" + quality_text
                 else:
                     gaussian_text = (
-                        r"$\mu$ = " + format_estimate(
+                        r"$\mu_{\mathrm{G}}$ = " + format_estimate(
                             fit_row["gaussian_mean"],
                             fit_row["gaussian_mean_error"], unit="PE",
                         ) + "\n"
-                        + r"$\sigma_{\rm G}$ = " + format_estimate(
+                        + r"$\sigma_{\mathrm{G}}$ = " + format_estimate(
                             fit_row["gaussian_sigma"],
                             fit_row["gaussian_sigma_error"], unit="PE",
                         ) + "\n"
-                        + r"$N_{\rm G}$ = " + format_estimate(
+                        + r"$N_{\mathrm{G}}$ = " + format_estimate(
                             fit_row["gaussian_yield"],
                             fit_row["gaussian_yield_error"], digits=0,
                         )
@@ -1499,7 +1499,8 @@ def main():
                 info_box.patch.set_edgecolor("0.65")
                 axis.add_artist(info_box)
                 axis.text(
-                    0.52, 0.97, r"$\bf{ProtoDUNE\!-\!HD}$ Preliminary",
+                    0.52, 0.97,
+                    "$\\bf{ProtoDUNE\\!-\\!HD}$\nWork in Progress",
                     transform=axis.transAxes, fontsize=9,
                     ha="center", va="top",
                 )
