@@ -16,6 +16,11 @@ src/analyisis/*
 # Ignore the input/output of each particular NP04 analysis
 src/waffles/np04_analysis/*/data/
 src/waffles/np04_analysis/*/output/
+# Keep the small, reproducible waveform example used for the thesis figures.
+!src/waffles/np04_analysis/lightyield_vs_energy/data/
+src/waffles/np04_analysis/lightyield_vs_energy/data/*
+!src/waffles/np04_analysis/lightyield_vs_energy/data/waveform_examples/
+!src/waffles/np04_analysis/lightyield_vs_energy/data/waveform_examples/*.pkl
 src/waffles/np04_analysis/lightyield_vs_energy/scripts/MY_config.json
 src/waffles/np04_analysis/lightyield_vs_energy/scripts/Renan_scripts/pe_histogram_data/
 
@@ -32,6 +37,7 @@ install/
 *.pdf
 *.svg
 *.png
+!src/waffles/np04_analysis/lightyield_vs_energy/data/waveform_examples/processed_st_screenshot.png
 *.jpg
 *.gif
 

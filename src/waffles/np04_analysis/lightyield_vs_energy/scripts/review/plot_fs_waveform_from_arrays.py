@@ -86,7 +86,7 @@ def main():
     plt.rcParams.update({"font.size": 11, "axes.labelsize": 13, "xtick.labelsize": 11,
                          "ytick.labelsize": 11, "legend.fontsize": 10})
     time_ticks = np.arange(len(raw))
-    fig, ax = plt.subplots(figsize=(8.2, 4.8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6.4, 6.4), constrained_layout=True)
     ax.plot(time_ticks, raw, color="#0072B2", lw=0.65, rasterized=True,
             label="Original FS waveform")
     ax.axvspan(start, end,
@@ -101,11 +101,12 @@ def main():
     plt.close(fig)
 
     selected_ticks = np.arange(start, end)
-    fig, ax = plt.subplots(figsize=(8.2, 4.8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6.4, 6.4), constrained_layout=True)
     ax.plot(selected_ticks, cut, color="#0072B2", lw=1.2,
-            label="Selected waveform (baseline-subtracted and inverted)")
+            label="Selected waveform\n(baseline-subtracted and inverted)")
     ax.axhline(0, color="#D55E00", lw=1.0, ls="--", label="Zero baseline")
-    ax.legend(loc="lower right", frameon=True, facecolor="white", framealpha=1)
+    ax.set_ylim(top=float(np.max(cut)) + 0.20 * float(np.ptp(cut)))
+    ax.legend(loc="upper left", frameon=True, facecolor="white", framealpha=1)
     ax.set(xlabel="Time ticks", ylabel="Amplitude [ADC]")
     ax.grid(alpha=0.2)
     add_mark(ax)
