@@ -827,8 +827,12 @@ def draw_distribution(
 def format_fit_text(fit: dict) -> str:
     if fit["status"] != "success":
         return "Fit results\nnot available\n" + fit["message"]
-    momenta = fit["available_momenta_GeV_c"].replace(";", ", ")
-    return ("Fit results\n" + f"Points: {momenta} GeV/c\n" + rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm {fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n" + rf"$q = ({fit['intercept_PE']:.1f} \pm {fit['intercept_error_PE']:.1f})$ PE" "\n" + rf"$\chi^2/\mathrm{{ndf}} = {fit['chi2']:.2f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}$" "\n" + rf"$R^2 = {fit['r_squared']:.3f}$")
+    return (
+        "Fit results\n"
+        + rf"$m = ({fit['slope_PE_per_GeV']:.1f} \pm {fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n"
+        + rf"$q = ({fit['intercept_PE']:.1f} \pm {fit['intercept_error_PE']:.1f})$ PE" "\n"
+        + rf"$R^2 = {fit['r_squared']:.3f}$"
+    )
 
 
 def draw_linearity(
