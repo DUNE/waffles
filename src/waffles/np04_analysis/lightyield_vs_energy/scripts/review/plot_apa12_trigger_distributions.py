@@ -391,7 +391,7 @@ def histogram_edges(values, np):
     """Bin diagnostici circa 20% più stretti di Freedman–Diaconis."""
     edges = np.histogram_bin_edges(values, bins="fd")
     if len(edges) >= 2 and edges[-1] > edges[0]:
-        n_bins = math.ceil((len(edges) - 1) * 1.25)
+        n_bins = math.ceil((len(edges) - 1) * 3)
         return np.linspace(edges[0], edges[-1], n_bins + 1)
     center = float(values[0])
     half_width = max(abs(center) * 0.01, 0.5)
