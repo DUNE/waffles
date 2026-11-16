@@ -1487,7 +1487,7 @@ def main():
                     )
                 info_text = (
                     f"Data @ {momentum} GeV/c "
-                    f"({int(np.sum(plot_observed))} triggers shown)\n\n"
+                    f"({int(np.sum(plot_observed))} triggers)\n\n"
                     + info_text
                 )
                 info_box = AnchoredText(
