@@ -37,7 +37,7 @@ OUTPUT
     anomalies.csv: incoerenze del dataset di input;
     report.txt: descrizione dei risultati e dei limiti;
     manifest.json: configurazione, versioni e SHA-256 dell'input.
-    I bin diagnostici sono determinati con la regola di Freedman–Diaconis. I
+    I bin diagnostici sono il 20% più stretti della regola di Freedman–Diaconis. I
     fit usano larghezze fissate per momento e tutti i bin, inclusi quelli vuoti.
     A 1 GeV/c il range è 10--150 PE; per gli altri momenti è l'intervallo
     robusto P0.5--P99.5 riportato negli output.
@@ -388,10 +388,11 @@ def descriptive(values, np):
 
 
 def histogram_edges(values, np):
-    """Freedman–Diaconis con fallback esplicito per campioni degeneri."""
+    """Bin diagnostici circa 20% più stretti di Freedman–Diaconis."""
     edges = np.histogram_bin_edges(values, bins="fd")
     if len(edges) >= 2 and edges[-1] > edges[0]:
-        return edges
+        n_bins = math.ceil((len(edges) - 1) * 1.25)
+        return np.linspace(edges[0], edges[-1], n_bins + 1)
     center = float(values[0])
     half_width = max(abs(center) * 0.01, 0.5)
     return np.array([center - half_width, center + half_width], dtype=float)
@@ -1521,7 +1522,7 @@ def main():
         )
         (args.output_dir / "histogram_bins.json").write_text(
             json.dumps({
-                "method": "numpy.histogram_bin_edges with bins='fd'",
+                "method": "Freedman-Diaconis width / 1.25 (rounded to full bins)",
                 "meaning": "Diagnostic binning only; not a fit range.",
                 "edges": bins_manifest,
             }, indent=2) + "\n",
@@ -1535,7 +1536,7 @@ def main():
             "input_file": str(args.input_file),
             "output_dir": str(args.output_dir),
             "momenta": args.momenta,
-            "histogram_binning": "Freedman-Diaconis, independently for each APA and momentum",
+            "histogram_binning": "Freedman-Diaconis width / 1.25, independently for each APA and momentum",
             "display_range": (
                 "0 to max(99th percentile, Q3 + 5*IQR), with 3% upper margin; "
                 "the full sample remains in all calculations"
@@ -1632,7 +1633,7 @@ def main():
         f"Input: {args.input_file}",
         f"Output: {args.output_dir}",
         f"Momenti nominali (GeV/c): {args.momenta}",
-        "Binning: Freedman–Diaconis, separato per APA e momento.",
+        "Binning diagnostico: Freedman–Diaconis con bin circa 20% più stretti, separato per APA e momento.",
         "Tagli applicati agli eventi: nessuno.",
         fit_description,
         "Fit misto APA 2: non eseguito.",
