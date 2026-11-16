@@ -1227,11 +1227,11 @@ def main():
             "savefig.dpi": 300,
             "axes.linewidth": 1.0,
         })
-        def add_preliminary_label(axis):
+        def add_status_label(axis, status):
             axis.text(
                 0.98,
                 0.96,
-                r"$\bf{ProtoDUNE\!-\!HD}$ Preliminary",
+                r"$\bf{ProtoDUNE\!-\!HD}$ " + status,
                 transform=axis.transAxes,
                 fontsize=11,
                 ha="right",
@@ -1272,25 +1272,19 @@ def main():
                 edgecolor="black",
                 linewidth=0.5,
                 histtype="stepfilled",
-                label=f"{len(apa1)} triggers",
+                label=f"Data @ {momentum} GeV/c ({len(apa1)} triggers)",
             )
             axis.set_xlim(0, display_max1)
             axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,1}}$")
-            axis.set_ylabel("Triggers / bin")
-            axis.set_title(
-                rf"Photoelectron distribution — APA 1 — $p_{{\rm beam}}={momentum}$ GeV/$c$"
-            )
+            axis.set_ylabel("Counts")
             axis.xaxis.set_major_locator(ticker.MaxNLocator(nbins=9, min_n_ticks=5))
             axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=8, integer=True))
             finish_axis(axis)
-            axis.legend(loc="upper left", frameon=False)
-            add_preliminary_label(axis)
-            if above_display1:
-                axis.text(
-                    0.98, 0.86,
-                    f"{above_display1} triggers above displayed range",
-                    transform=axis.transAxes, ha="right", va="top", fontsize=9,
-                )
+            axis.legend(
+                loc="lower left", bbox_to_anchor=(0.0, 1.01),
+                borderaxespad=0, frameon=False,
+            )
+            add_status_label(axis, "Work in Progress")
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa1_hist_{momentum}GeV")
 
@@ -1303,25 +1297,19 @@ def main():
                 edgecolor="black",
                 linewidth=0.5,
                 histtype="stepfilled",
-                label=f"{len(apa2)} triggers",
+                label=f"Data @ {momentum} GeV/c ({len(apa2)} triggers)",
             )
             axis.set_xlim(0, display_max2)
             axis.set_xlabel(r"$\langle N_{\mathrm{PE}} \rangle_{\mathrm{APA\,2}}$")
-            axis.set_ylabel("Triggers / bin")
-            axis.set_title(
-                rf"Photoelectron distribution — APA 2 — $p_{{\rm beam}}={momentum}$ GeV/$c$"
-            )
+            axis.set_ylabel("Counts")
             axis.xaxis.set_major_locator(ticker.MaxNLocator(nbins=9, min_n_ticks=5))
             axis.yaxis.set_major_locator(ticker.MaxNLocator(nbins=8, integer=True))
             finish_axis(axis)
-            axis.legend(loc="upper left", frameon=False)
-            add_preliminary_label(axis)
-            if above_display2:
-                axis.text(
-                    0.98, 0.86,
-                    f"{above_display2} triggers above displayed range",
-                    transform=axis.transAxes, ha="right", va="top", fontsize=9,
-                )
+            axis.legend(
+                loc="lower left", bbox_to_anchor=(0.0, 1.01),
+                borderaxespad=0, frameon=False,
+            )
+            add_status_label(axis, "Work in Progress")
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa2_hist_{momentum}GeV")
 
@@ -1364,7 +1352,7 @@ def main():
                     f"{paired_above_display} triggers outside displayed range",
                     transform=axis.transAxes, ha="right", va="top", fontsize=9,
                 )
-            add_preliminary_label(axis)
+            add_status_label(axis, "Preliminary")
             fig.tight_layout()
             save_figure(fig, args.output_dir / f"apa12_pe_distribution_{momentum}GeV")
 
