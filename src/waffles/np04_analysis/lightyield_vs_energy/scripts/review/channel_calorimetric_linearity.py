@@ -766,18 +766,15 @@ def format_value_with_error(value: float, error: float, precision: int = 1) -> s
 def format_distribution_text(fit: dict) -> str:
     if not fit.get("fit_drawable", 0):
         return "Fit results\nnot available\n" + fit["message"]
-    text = (
+    return (
         "Fit results\n"
-        + f"MPV = {format_value_with_error(fit['mpv_PE'], fit['mpv_error_PE'])} PE\n"
-        + rf"$\eta$ = {format_value_with_error(fit['eta_PE'], fit['eta_error_PE'])} PE" + "\n"
-        + rf"$\sigma_{{\rm LG}}$ = {format_value_with_error(fit['langauss_sigma_PE'], fit['langauss_sigma_error_PE'])} PE" + "\n"
-        + rf"$N_{{\rm LG}}$ = {format_value_with_error(fit['yield'], fit['yield_error'], 0)}" + "\n"
-        + rf"$x_{{\rm peak}}$ = {format_value_with_error(fit['peak_PE'], fit['peak_error_PE'])} PE" + "\n"
+        + rf"$x_{{\mathrm{{MPV}},\mathrm{{LG}}}}$ = {format_value_with_error(fit['mpv_PE'], fit['mpv_error_PE'])} PE" + "\n"
+        + rf"$\chi_{{\mathrm{{LG}}}}$ = {format_value_with_error(fit['eta_PE'], fit['eta_error_PE'])} PE" + "\n"
+        + rf"$\sigma_{{\mathrm{{LG}}}}$ = {format_value_with_error(fit['langauss_sigma_PE'], fit['langauss_sigma_error_PE'])} PE" + "\n"
+        + rf"$N_{{\mathrm{{LG}}}}$ = {format_value_with_error(fit['yield'], fit['yield_error'], 0)}" + "\n"
+        + rf"$x_{{\mathrm{{peak}},\mathrm{{LG}}}}$ = {format_value_with_error(fit['peak_PE'], fit['peak_error_PE'])} PE" + "\n"
         + rf"$\chi^2/\mathrm{{ndf}}$ = {fit['poisson_deviance']:.1f}/{fit['ndf']} = {fit['chi2_per_ndf']:.2f}"
     )
-    if fit["quality_flag"] != "good":
-        text += "\nReview fit quality"
-    return text
 
 
 def draw_distribution(
@@ -798,20 +795,30 @@ def draw_distribution(
         axis.text(0.5, 0.50, f"{fit['entries_total']} triggers\n{fit['status']}", transform=axis.transAxes, ha="center", va="center", fontsize=8)
     else:
         axis.stairs(fit["observed"], fit["edges"], fill=True, color=COLORS["data"], edgecolor=COLORS["edge"], linewidth=0.9, label=f"Data @ {momentum} GeV/c ({fit['entries_total']} triggers)")
+        fit_top = 0.0
         if fit.get("fit_drawable", 0):
             centers = 0.5 * (fit["edges"][:-1] + fit["edges"][1:])
-            label = "Langauss fit" if fit["status"] == "success" else "Langauss fit (review)"
-            axis.plot(centers, fit["expected"], color=COLORS["langauss"], linewidth=1.8, label=label)
+            curve_x, curve_y = centers, fit["expected"]
+            if standalone:
+                dense_x = np.linspace(fit["edges"][0], fit["edges"][-1], 500)
+                dense_y = (
+                    fit["bin_width_PE"] * fit["yield"]
+                    * stable_langauss_pdf(dense_x, *fit["parameters"][:3])
+                )
+                if np.all(np.isfinite(dense_y)):
+                    curve_x, curve_y = dense_x, dense_y
+            fit_top = float(np.max(curve_y))
+            axis.plot(curve_x, curve_y, color=COLORS["langauss"], linewidth=1.6 if standalone else 1.8, label="Langauss fit")
         summary = format_distribution_text(fit)
         axis.text(0.97, 0.04, summary, transform=axis.transAxes, ha="right", va="bottom", fontsize=text_size, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.94, "boxstyle": "square,pad=0.27"})
         axis.legend(loc="upper left", facecolor="white", framealpha=1, edgecolor="0.7", fontsize=legend_size)
         x_span = float(fit["edges"][-1] - fit["edges"][0])
         x_padding = max(0.03 * x_span, 0.05)
-        top = max(float(np.max(fit["observed"])), float(np.max(fit["expected"])) if fit.get("fit_drawable", 0) else 0.0, 1.0)
+        top = max(float(np.max(fit["observed"])), fit_top, 1.0)
         axis.set_xlim(fit["edges"][0] - x_padding, fit["edges"][-1] + x_padding)
         axis.set_ylim(0.0, 1.13 * top)
     add_work_in_progress(axis, fontsize=8.2 if standalone else 5.6)
-    axis.set_xlabel(r"$N_{\mathrm{PE}}$ [PE]", fontsize=label_size)
+    axis.set_xlabel(r"$N_{\mathrm{PE}}$", fontsize=label_size)
     axis.set_ylabel("Counts", fontsize=label_size)
     axis.tick_params(direction="in", top=True, right=True, labelsize=tick_size)
     axis.grid(linestyle="--", linewidth=0.45, alpha=0.35)
@@ -865,7 +872,7 @@ def draw_linearity(
     axis.text(0.98, 0.04, format_fit_text(linearity_fit), transform=axis.transAxes, ha="right", va="bottom", fontsize=text_size, linespacing=1.12, bbox={"facecolor": "white", "edgecolor": "0.7", "alpha": 0.95, "boxstyle": "square,pad=0.35"})
     add_work_in_progress(axis, fontsize=8.2 if standalone else 5.6)
     axis.set_xlabel(r"$K_{\mathrm{eff}}$ [GeV]", fontsize=label_size)
-    axis.set_ylabel(r"$x_{\mathrm{peak}}$ [PE]", fontsize=label_size)
+    axis.set_ylabel(r"$x_{\mathrm{peak},\mathrm{LG}}$ [PE]", fontsize=label_size)
     if show_title:
         axis.set_title("Channel linearity", fontsize=10, loc="left")
     axis.tick_params(direction="in", top=True, right=True, labelsize=tick_size)
