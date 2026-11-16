@@ -77,18 +77,10 @@ def plot_distribution(offsets: np.ndarray, apa: int, output_path: Path):
         *BEAM_WINDOW, color="#F0E442", alpha=0.28, zorder=2,
         label="Beam selection [-40; -20] ticks",
     )
-    # A linear scale would make this 20-tick interval invisible next to the
-    # full APA 1 range of about 175,000 ticks. Keep the whole range visible.
-    full.set_xscale("symlog", linthresh=100)
     full.set_xlabel("Time ticks")
     full.set_ylabel("Counts")
     full.grid(alpha=0.18)
     full.set_axisbelow(True)
-    full.text(
-        0.02, 0.04, "Symmetric-log time axis",
-        transform=full.transAxes, ha="left", va="bottom", fontsize=9,
-        bbox=dict(facecolor="white", edgecolor="none", alpha=0.9),
-    )
     full.legend(loc="upper right", bbox_to_anchor=(0.99, 0.84),
                 frameon=True, facecolor="white", framealpha=1)
     add_work_in_progress(full)
