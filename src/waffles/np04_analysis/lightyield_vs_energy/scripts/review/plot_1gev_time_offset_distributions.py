@@ -66,46 +66,32 @@ def plot_distribution(offsets: np.ndarray, apa: int, output_path: Path):
         "font.size": 11, "axes.labelsize": 12, "axes.titlesize": 12,
         "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 10,
     })
-    fig, (full, zoom) = plt.subplots(
-        1, 2, figsize=(12, 5.1), constrained_layout=True
-    )
-    full_counts, full_edges = np.histogram(offsets, bins=10000)
+    fig, full = plt.subplots(figsize=(9.0, 5.2), constrained_layout=True)
+    full_bins = 10000 if apa == 1 else 1000
+    full_counts, full_edges = np.histogram(offsets, bins=full_bins)
     full.stairs(
         full_counts, full_edges, fill=True, color="#72B7D2",
-        edgecolor="#253746", linewidth=0.35,
+        edgecolor="#253746", linewidth=0.35, zorder=1,
     )
-    full.set_title("Full time-offset range")
-    full.set_xlabel("Time offset [ticks]")
+    full.axvspan(
+        *BEAM_WINDOW, color="#F0E442", alpha=0.28, zorder=2,
+        label="Beam selection [-40; -20] ticks",
+    )
+    # A linear scale would make this 20-tick interval invisible next to the
+    # full APA 1 range of about 175,000 ticks. Keep the whole range visible.
+    full.set_xscale("symlog", linthresh=100)
+    full.set_xlabel("Time ticks")
     full.set_ylabel("Counts")
     full.grid(alpha=0.18)
     full.set_axisbelow(True)
     full.text(
-        0.98, 0.80, f"{len(offsets):,} peak offsets",
-        transform=full.transAxes, ha="right", va="top", fontsize=10,
-        bbox=dict(facecolor="white", edgecolor="#bbbbbb", alpha=0.95),
+        0.02, 0.04, "Symmetric-log time axis",
+        transform=full.transAxes, ha="left", va="bottom", fontsize=9,
+        bbox=dict(facecolor="white", edgecolor="none", alpha=0.9),
     )
-
-    zoom.axvspan(
-        *BEAM_WINDOW, color="#F0E442", alpha=0.30, zorder=0,
-        label="Beam selection [-40, -20] ticks",
-    )
-    zoom_counts, zoom_edges = np.histogram(
-        offsets, bins=np.arange(-100.5, 0.6, 1.0)
-    )
-    zoom.stairs(
-        zoom_counts, zoom_edges, fill=True, color="#72B7D2",
-        edgecolor="#253746", linewidth=0.7, zorder=2,
-    )
-    zoom.set_xlim(-100, 0)
-    zoom.set_title("Beam time-offset region")
-    zoom.set_xlabel("Time offset [ticks]")
-    zoom.set_ylabel("Counts")
-    zoom.grid(alpha=0.18)
-    zoom.set_axisbelow(True)
-    zoom.legend(loc="upper left", frameon=True, facecolor="white", framealpha=1)
-
-    for axis in (full, zoom):
-        add_work_in_progress(axis)
+    full.legend(loc="upper right", bbox_to_anchor=(0.99, 0.84),
+                frameon=True, facecolor="white", framealpha=1)
+    add_work_in_progress(full)
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
 
