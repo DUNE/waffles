@@ -172,9 +172,6 @@ def draw(points, fit_all, fit_four, destination):
             rf"{fit['slope_error_PE_per_GeV']:.1f})$ PE/GeV" "\n"
             rf"$q = ({fit['intercept_PE']:.1f} \pm "
             rf"{fit['intercept_error_PE']:.1f})$ PE" "\n"
-            rf"$\chi^2/\mathrm{{ndf}} = "
-            rf"{fit['chi2']:.2f}/{fit['ndf']} = "
-            rf"{fit['chi2_per_ndf']:.2f}$" "\n"
             rf"$R^2 = {fit['r_squared']:.3f}$"
         )
     fit_summary = (
